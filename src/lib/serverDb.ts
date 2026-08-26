@@ -172,6 +172,25 @@ export interface SupportMessage {
   createdAt: string;
 }
 
+export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
+
+export interface ProfessionalApplication {
+  id: string;
+  userId?: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  profession: string;
+  experience: string;
+  portfolioUrl?: string;
+  acceptsCharter: boolean;
+  status: ProfessionalApplicationStatus;
+  adminComment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StripeEventLog {
   eventId: string;
   type: string;
@@ -195,6 +214,7 @@ class SupabaseServerStore {
   private inMemoryRefunds: CustomerRefund[] = [];
   private inMemoryTickets: SupportTicket[] = [];
   private inMemoryMessages: SupportMessage[] = [];
+  private inMemoryProfessionalApplications: ProfessionalApplication[] = [];
   private processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
@@ -1894,6 +1914,95 @@ class SupabaseServerStore {
       items,
       applyStock: isFullRefund
     });
+  }
+
+  // ============================================================
+  // PROFESSIONAL APPLICATIONS
+  // ============================================================
+  public async createProfessionalApplication(input: Omit<ProfessionalApplication, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<ProfessionalApplication> {
+    const now = new Date().toISOString();
+    const application: ProfessionalApplication = {
+      ...input,
+      id: randomUUID(),
+      status: 'submitted',
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('professional_applications').insert({
+        id: application.id,
+        user_id: application.userId || null,
+        name: application.name,
+        email: application.email,
+        phone: application.phone,
+        city: application.city,
+        profession: application.profession,
+        experience: application.experience,
+        portfolio_url: application.portfolioUrl || null,
+        accepts_charter: application.acceptsCharter,
+        status: application.status,
+        created_at: now,
+        updated_at: now
+      });
+      ensureDatabaseSuccess('création de la candidature Pro', error);
+    }
+
+    this.inMemoryProfessionalApplications.unshift(application);
+    return application;
+  }
+
+  public async getProfessionalApplications(): Promise<ProfessionalApplication[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('professional_applications').select('*').order('created_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des candidatures Pro', error);
+      return (data || []).map(row => ({
+        id: row.id,
+        userId: row.user_id || undefined,
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        city: row.city,
+        profession: row.profession,
+        experience: row.experience,
+        portfolioUrl: row.portfolio_url || undefined,
+        acceptsCharter: row.accepts_charter === true,
+        status: row.status,
+        adminComment: row.admin_comment || undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+    }
+    return [...this.inMemoryProfessionalApplications];
+  }
+
+  public async updateProfessionalApplication(id: string, status: ProfessionalApplicationStatus, adminComment?: string): Promise<ProfessionalApplication | undefined> {
+    const current = (await this.getProfessionalApplications()).find(application => application.id === id);
+    if (!current) return undefined;
+    const updated: ProfessionalApplication = {
+      ...current,
+      status,
+      adminComment: adminComment || undefined,
+      updatedAt: new Date().toISOString()
+    };
+
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('professional_applications').update({
+        status: updated.status,
+        admin_comment: updated.adminComment || null,
+        updated_at: updated.updatedAt
+      }).eq('id', id).select('*').maybeSingle();
+      ensureDatabaseSuccess('mise à jour de la candidature Pro', error);
+      if (!data) return undefined;
+    }
+
+    const index = this.inMemoryProfessionalApplications.findIndex(application => application.id === id);
+    if (index >= 0) this.inMemoryProfessionalApplications[index] = updated;
+    else if (!supabase) this.inMemoryProfessionalApplications.unshift(updated);
+    return updated;
   }
 
   // ============================================================

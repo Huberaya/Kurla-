@@ -14,6 +14,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [serverOrders, setServerOrders] = useState<any[]>([]);
   const [returnsList, setReturnsList] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [professionalApplications, setProfessionalApplications] = useState<any[]>([]);
+  const [professionalStatusDrafts, setProfessionalStatusDrafts] = useState<Record<string, string>>({});
+  const [professionalComments, setProfessionalComments] = useState<Record<string, string>>({});
   
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
@@ -55,7 +58,13 @@ export const AdminDashboardPage: React.FC = () => {
     fetch('/api/support/tickets', { headers: adminHeaders })
       .then(res => res.json())
       .then(data => data.tickets && setSupportTickets(data.tickets))
-      .catch(err => console.error('Error tickets:', err))
+      .catch(err => console.error('Error tickets:', err));
+
+    // 5. Fetch persisted KURLA Pro applications
+    fetch('/api/admin/professional-applications', { headers: adminHeaders })
+      .then(res => res.json())
+      .then(data => data.applications && setProfessionalApplications(data.applications))
+      .catch(err => console.error('Error professional applications:', err))
       .finally(() => setLoading(false));
   };
 
@@ -168,6 +177,25 @@ export const AdminDashboardPage: React.FC = () => {
       if (selectedTicket && selectedTicket.id === ticketId) {
         setSelectedTicket({ ...selectedTicket, status });
       }
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    }
+  };
+
+  const handleProfessionalStatusChange = async (application: any) => {
+    const status = professionalStatusDrafts[application.id] || application.status;
+    const adminComment = professionalComments[application.id] || '';
+    try {
+      const response = await fetch(`/api/admin/professional-applications/${application.id}/status`, {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({ status, adminComment })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Impossible de modifier la candidature.');
+      setActionSuccess(`Candidature de ${application.name} mise à jour : ${status === 'under_review' ? 'en examen' : status === 'approved' ? 'approuvée' : status === 'rejected' ? 'refusée' : 'reçue'}.`);
+      loadData();
+      setTimeout(() => setActionSuccess(''), 4000);
     } catch (err: any) {
       alert(`Erreur: ${err.message}`);
     }
@@ -627,31 +655,73 @@ export const AdminDashboardPage: React.FC = () => {
         {/* TAB 5: CERTIFICATIONS PROS */}
         {activeTab === 'pros' && (
           <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#C8753D]" /> Candidatures KURLA Pro (Validation Bêta)
-            </h2>
-
-            <div className="space-y-4">
-              {[
-                { name: 'Kadiatou Diallo', city: 'Paris (75010)', specialty: 'Loctician Microlocks', experience: '6 ans' },
-                { name: 'Fatouma S.', city: 'Lyon', specialty: 'Experte Skincare Peaux Mélaninées', experience: '4 ans' },
-              ].map((cand, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">{cand.name} ({cand.city})</h3>
-                    <p className="text-xs text-[#D49A63]">{cand.specialty} • {cand.experience} d'expérience</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow">
-                      Valider & Certifier
-                    </button>
-                    <button className="px-4 py-1.5 rounded-full bg-[#1A0F0A] hover:bg-[#3A2218] text-xs font-medium text-[#FFF7EF]/70 border border-[#FFF7EF]/10">
-                      Refuser
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#C8753D]" /> Candidatures KURLA Pro
+              </h2>
+              <p className="text-xs text-[#FFF7EF]/55 mt-2">Les candidatures sont chargées depuis le stockage serveur. Une validation admin ne crée pas automatiquement un compte professionnel.</p>
             </div>
+
+            {professionalApplications.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 text-center text-sm text-[#FFF7EF]/55">
+                Aucune candidature enregistrée.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {professionalApplications.map((application: any) => {
+                  const draftStatus = professionalStatusDrafts[application.id] || application.status;
+                  const statusLabel = application.status === 'under_review'
+                    ? 'En examen'
+                    : application.status === 'approved'
+                      ? 'Approuvée'
+                      : application.status === 'rejected' ? 'Refusée' : 'Soumise';
+                  return (
+                    <div key={application.id} className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 space-y-4">
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">{application.name}</h3>
+                            <span className="px-2 py-1 rounded-full bg-[#C8753D]/15 text-[#D49A63] text-[10px] font-semibold">{statusLabel}</span>
+                          </div>
+                          <p className="text-xs text-[#D49A63] mt-1">{application.profession} • {application.experience} • {application.city}</p>
+                          <p className="text-xs text-[#FFF7EF]/60 mt-1">{application.email} • {application.phone}</p>
+                          {application.portfolioUrl && (
+                            <a href={application.portfolioUrl} target="_blank" rel="noreferrer" className="text-xs text-sky-300 hover:text-sky-200 underline break-all">Voir le portfolio</a>
+                          )}
+                          <p className="text-[11px] text-[#FFF7EF]/40 mt-1">Reçue le {new Date(application.createdAt).toLocaleString('fr-FR')}</p>
+                        </div>
+
+                        <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <select
+                            value={draftStatus}
+                            onChange={e => setProfessionalStatusDrafts({ ...professionalStatusDrafts, [application.id]: e.target.value })}
+                            className="px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
+                            aria-label={`Statut de la candidature de ${application.name}`}
+                          >
+                            <option value="submitted">Soumise</option>
+                            <option value="under_review">En examen</option>
+                            <option value="approved">Approuvée</option>
+                            <option value="rejected">Refusée</option>
+                          </select>
+                          <button onClick={() => handleProfessionalStatusChange(application)} className="px-4 py-2 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-semibold shadow">
+                            Enregistrer
+                          </button>
+                        </div>
+                      </div>
+
+                      <textarea
+                        value={professionalComments[application.id] ?? application.adminComment ?? ''}
+                        onChange={e => setProfessionalComments({ ...professionalComments, [application.id]: e.target.value })}
+                        maxLength={1000}
+                        rows={2}
+                        placeholder="Commentaire interne (facultatif)"
+                        className="w-full p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

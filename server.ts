@@ -9,6 +9,7 @@ import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
 import { UserRole } from './src/types';
 import { MOCK_PRODUCTS } from './src/data/mockData';
+import { calculateShippingCents, normalizeShippingAddress, ShippingMethod } from './src/lib/shippingRules';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -559,6 +560,18 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       return res.status(400).json({ error: 'Clé d’idempotence du checkout invalide.' });
     }
 
+    const shippingMethod: ShippingMethod | null = req.body.shippingMethod === 'express' ? 'express' : req.body.shippingMethod === 'standard' ? 'standard' : null;
+    if (!shippingMethod) {
+      return res.status(400).json({ error: 'Mode de livraison invalide.' });
+    }
+
+    let normalizedShippingAddress;
+    try {
+      normalizedShippingAddress = normalizeShippingAddress(req.body.shippingAddress);
+    } catch (error: any) {
+      return res.status(400).json({ error: error?.message || 'Adresse de livraison invalide.' });
+    }
+
     const stripe = getStripeClient();
     if (!stripe) {
       console.error('[Stripe Checkout Error] Stripe client non configuré (STRIPE_SECRET_KEY manquant)');
@@ -640,17 +653,29 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       });
     }
 
-    console.log(`[Stripe Checkout] Total calculé côté serveur: ${calculatedTotal.toFixed(2)} EUR`);
+    const subtotalCents = Math.round(calculatedTotal * 100);
+    const shippingCents = calculateShippingCents(subtotalCents, normalizedShippingAddress.country, shippingMethod);
+    const finalTotalCents = subtotalCents + shippingCents;
+    const finalTotal = Number((finalTotalCents / 100).toFixed(2));
+    console.log(`[Stripe Checkout] Sous-total: ${calculatedTotal.toFixed(2)} EUR, livraison: ${(shippingCents / 100).toFixed(2)} EUR, total: ${finalTotal.toFixed(2)} EUR`);
 
-    // Save order with user_id and status payment_pending_webhook
+    // Save order with user_id, shipping details and status payment_pending_webhook.
+    // The shipping cost is stored in the order snapshot so the customer and
+    // operations team can reconstruct exactly what was paid.
     const newOrder: ServerOrder = {
       id: orderId,
       userId: uid,
       items: verifiedItems,
-      total: Number(calculatedTotal.toFixed(2)),
+      total: finalTotal,
       status: 'payment_pending_webhook',
       customerEmail: email,
       checkoutIdempotencyKey,
+      shippingAddress: {
+        ...normalizedShippingAddress,
+        shippingMethod,
+        shippingCost: Number((shippingCents / 100).toFixed(2)),
+        subtotal: Number(calculatedTotal.toFixed(2))
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -666,6 +691,16 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       },
       quantity: item.quantity,
     }));
+    if (shippingCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'eur',
+          product_data: { name: `Livraison ${shippingMethod}`, images: [] },
+          unit_amount: shippingCents
+        },
+        quantity: 1
+      });
+    }
 
     // Persist and reserve stock before creating an external Stripe session.
     // A failed Stripe call can then release the reservation through the order
@@ -1187,6 +1222,100 @@ async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promis
     : await serverDb.getSupportTicketsByUser(user.id);
   return tickets.find(ticket => ticket.id === ticketId);
 }
+
+// KURLA Pro applications may be submitted by guests. If a valid Supabase
+// session is present, it is attached for follow-up; the form fields remain
+// authoritative for the application contact details.
+app.post('/api/professional-applications', rateLimit('professional-application', 5, 60 * 60 * 1000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const body = req.body || {};
+  const fields = ['name', 'email', 'phone', 'city', 'profession', 'experience'] as const;
+  for (const field of fields) {
+    if (typeof body[field] !== 'string' || !body[field].trim()) {
+      return res.status(400).json({ error: 'Tous les champs obligatoires doivent être renseignés.' });
+    }
+    if (body[field].trim().length > 200) {
+      return res.status(400).json({ error: 'Un des champs dépasse la longueur autorisée.' });
+    }
+  }
+
+  if (body.acceptsCharter !== true) {
+    return res.status(400).json({ error: 'L’adhésion à la Charte Qualité KURLA Pro est obligatoire.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+    return res.status(400).json({ error: 'Adresse email invalide.' });
+  }
+
+  let portfolioUrl: string | undefined;
+  if (body.portfolioUrl !== undefined && body.portfolioUrl !== '') {
+    if (typeof body.portfolioUrl !== 'string' || body.portfolioUrl.length > 500) {
+      return res.status(400).json({ error: 'Lien portfolio invalide.' });
+    }
+    try {
+      const parsedUrl = new URL(body.portfolioUrl);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('unsupported protocol');
+      portfolioUrl = parsedUrl.toString();
+    } catch {
+      return res.status(400).json({ error: 'Lien portfolio invalide.' });
+    }
+  }
+
+  const authenticatedUser = await authenticateRequest(req);
+  try {
+    const application = await serverDb.createProfessionalApplication({
+      userId: authenticatedUser?.id,
+      name: body.name.trim(),
+      email: body.email.trim().toLowerCase(),
+      phone: body.phone.trim(),
+      city: body.city.trim(),
+      profession: body.profession.trim(),
+      experience: body.experience.trim(),
+      portfolioUrl,
+      acceptsCharter: true
+    });
+    res.status(201).json({ application });
+  } catch (err) {
+    console.error('[ProApplications] submission error:', err);
+    res.status(500).json({ error: safeApiError(err, 'Impossible d’enregistrer la candidature pour le moment.') });
+  }
+}));
+
+app.get('/api/admin/professional-applications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const applications = await serverDb.getProfessionalApplications();
+    res.json({ applications });
+  } catch (err) {
+    console.error('[ProApplications] admin list error:', err);
+    res.status(500).json({ error: safeApiError(err, 'Impossible de charger les candidatures Pro.') });
+  }
+}));
+
+app.post('/api/admin/professional-applications/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { status, adminComment } = req.body || {};
+  const allowedStatuses = ['submitted', 'under_review', 'approved', 'rejected'];
+  if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Statut de candidature invalide.' });
+  }
+  if (adminComment !== undefined && (typeof adminComment !== 'string' || adminComment.trim().length > 1000)) {
+    return res.status(400).json({ error: 'Commentaire administrateur invalide.' });
+  }
+
+  try {
+    const application = await serverDb.updateProfessionalApplication(
+      req.params.id,
+      status as any,
+      typeof adminComment === 'string' && adminComment.trim() ? adminComment.trim() : undefined
+    );
+    if (!application) return res.status(404).json({ error: 'Candidature Pro introuvable.' });
+    res.json({ application });
+  } catch (err) {
+    console.error('[ProApplications] status update error:', err);
+    res.status(500).json({ error: safeApiError(err, 'Impossible de modifier la candidature Pro.') });
+  }
+}));
 
 // 1. User Notifications API
 app.get('/api/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

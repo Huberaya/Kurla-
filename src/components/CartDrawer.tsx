@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink } from 'lucide-react';
 import { CartItem } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -32,6 +33,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
   const [guestEmail, setGuestEmail] = useState('');
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('standard');
+  const [shippingAddress, setShippingAddress] = useState({
+    fullName: '',
+    street: '',
+    city: '',
+    postalCode: '',
+    country: 'FR',
+    phone: ''
+  });
   const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState(() => createIdempotencyKey());
 
   useEffect(() => {
@@ -49,11 +59,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!isOpen) return null;
 
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotalCents = Math.round(total * 100);
+  const shippingOption = getShippingOption(shippingAddress.country);
+  const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
+  const orderTotalCents = subtotalCents + shippingCents;
 
   const handleStartCheckout = async () => {
     const email = user?.email || guestEmail.trim();
     if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setCheckoutError('Saisissez une adresse email valide pour recevoir votre confirmation de commande.');
+      return;
+    }
+
+    try {
+      normalizeShippingAddress(shippingAddress);
+    } catch (error: any) {
+      setCheckoutError(error?.message || 'Vérifiez votre adresse de livraison.');
       return;
     }
 
@@ -84,7 +105,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         body: JSON.stringify({
           items: payloadItems,
           customerEmail: email,
-          checkoutIdempotencyKey
+          checkoutIdempotencyKey,
+          shippingAddress,
+          shippingMethod
         })
       });
 
@@ -146,7 +169,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="relative w-full max-w-md bg-[#1A0F0A] border-l border-[#FFF7EF]/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl"
+        className="relative w-full max-w-md bg-[#1A0F0A] border-l border-[#FFF7EF]/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl overflow-y-auto"
       >
 
         {/* Header */}
@@ -292,12 +315,90 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <p className="mt-1.5 text-[11px] text-[#FFF7EF]/60">Votre reçu et le suivi de commande seront envoyés à cette adresse.</p>
               </div>
             )}
+
+            <div className="pt-2 border-t border-[#FFF7EF]/10 space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[#FFF7EF]">Adresse de livraison</h4>
+                <p className="mt-1 text-[11px] text-[#FFF7EF]/60">Livraison disponible pour le moment en France et dans plusieurs pays de l’Union européenne.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  aria-label="Nom complet de livraison"
+                  value={shippingAddress.fullName}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, fullName: event.target.value }))}
+                  placeholder="Nom complet"
+                  autoComplete="name"
+                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+                <input
+                  aria-label="Adresse"
+                  value={shippingAddress.street}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, street: event.target.value }))}
+                  placeholder="Adresse et numéro"
+                  autoComplete="street-address"
+                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+                <input
+                  aria-label="Ville"
+                  value={shippingAddress.city}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, city: event.target.value }))}
+                  placeholder="Ville"
+                  autoComplete="address-level2"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+                <input
+                  aria-label="Code postal"
+                  value={shippingAddress.postalCode}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, postalCode: event.target.value }))}
+                  placeholder="Code postal"
+                  autoComplete="postal-code"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+                <select
+                  aria-label="Pays de livraison"
+                  value={shippingAddress.country}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, country: event.target.value }))}
+                  autoComplete="country"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                >
+                  {SHIPPING_OPTIONS.map(option => <option key={option.country} value={option.country}>{option.label}</option>)}
+                </select>
+                <input
+                  aria-label="Téléphone de livraison facultatif"
+                  value={shippingAddress.phone}
+                  onChange={event => setShippingAddress(prev => ({ ...prev, phone: event.target.value }))}
+                  placeholder="Téléphone (facultatif)"
+                  autoComplete="tel"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+              </div>
+              <label className="block text-xs text-[#FFF7EF]/80">
+                Mode de livraison
+                <select
+                  value={shippingMethod}
+                  onChange={event => setShippingMethod(event.target.value as ShippingMethod)}
+                  className="mt-1 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                >
+                  <option value="standard">Standard — {shippingOption?.freeFromCents && subtotalCents >= shippingOption.freeFromCents ? 'offerte' : `${(shippingOption?.standardCents || 0) / 100} €`} — {shippingOption?.estimatedStandardDays}</option>
+                  <option value="express">Express — {((shippingOption?.expressCents || 0) / 100).toFixed(2)} € — {shippingOption?.estimatedExpressDays}</option>
+                </select>
+              </label>
+            </div>
+
             <div className="flex justify-between text-sm text-[#FFF7EF]">
               <span className="text-[#FFF7EF]/70">Sous-total :</span>
-              <span className="font-bold text-lg">{total.toFixed(2)} €</span>
+              <span>{total.toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between text-sm text-[#FFF7EF]">
+              <span className="text-[#FFF7EF]/70">Livraison :</span>
+              <span>{(shippingCents / 100).toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between text-base text-[#FFF7EF] border-t border-[#FFF7EF]/10 pt-3">
+              <span className="font-semibold">Total estimé :</span>
+              <span className="font-bold">{(orderTotalCents / 100).toFixed(2)} €</span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
-              <ShieldCheck className="w-4 h-4" /> Livraison suivie Europe & Paiement sécurisé Stripe
+              <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
             <button
               onClick={handleStartCheckout}
@@ -311,7 +412,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <span>Commander maintenant ({total.toFixed(2)} €)</span>
+                  <span>Commander maintenant ({(orderTotalCents / 100).toFixed(2)} €)</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
