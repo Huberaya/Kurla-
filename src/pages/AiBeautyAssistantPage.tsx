@@ -158,7 +158,7 @@ export const AiBeautyAssistantPage: React.FC = () => {
                             {/* Products */}
                             <div className="p-3 rounded-xl border border-[#E8E1DA] bg-[#FFFDF9]">
                               <span className="text-[10px] uppercase font-bold tracking-wider text-[#111111]/70 block mb-2 flex items-center gap-1">
-                                <ShoppingBag className="w-3 h-3 text-[#C8753D]" /> Produits Utiles & Score Fit
+                                <ShoppingBag className="w-3 h-3 text-[#C8753D]" /> Produits utiles — à vérifier dans KURla ID
                               </span>
                               <div className="space-y-2">
                                 {item.response.answer.usefulProducts.map((p, pIdx) => (
@@ -169,7 +169,7 @@ export const AiBeautyAssistantPage: React.FC = () => {
                                   >
                                     <span className="font-semibold line-clamp-1">{p.name}</span>
                                     <span className="text-[10px] bg-[#C8753D] text-white px-2 py-0.5 rounded-full shrink-0">
-                                      Fit {p.fitScore}%
+                                      Voir KURla ID
                                     </span>
                                   </a>
                                 ))}

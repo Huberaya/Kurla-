@@ -22,6 +22,10 @@ export const SavedPage: React.FC = () => {
           </p>
         </div>
 
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs mb-8">
+          Aperçu de démonstration : les favoris et routines présentés ici ne sont pas encore reliés à une persistance KURla ID.
+        </div>
+
         <div className="space-y-8">
           {/* Saved Routines */}
           <div className="bg-[#F8F2EC] p-6 rounded-3xl border border-[#E8E1DA]">
@@ -30,7 +34,7 @@ export const SavedPage: React.FC = () => {
             </h2>
             <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-[#C8753D]">Fit 96%</span>
+                <span className="text-[10px] uppercase font-bold text-[#C8753D]">Exemple de routine</span>
                 <h3 className="text-xs font-bold text-[#111111]">Routine 3 Étapes "Hydratation & Scellage 4C"</h3>
               </div>
               <a href="/routines/routine-hydratation-4c" className="px-3 py-1.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold flex items-center gap-1">
@@ -46,7 +50,7 @@ export const SavedPage: React.FC = () => {
             </h2>
             <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-emerald-600">KURLA Fit 98%</span>
+                <span className="text-[10px] uppercase font-bold text-emerald-600">Exemple de produit</span>
                 <h3 className="text-xs font-bold text-[#111111]">Beurre de Cacao & Karité Grand Cru</h3>
               </div>
               <a href="/produit/beurre-de-cacao-karite" className="px-3 py-1.5 rounded-full bg-[#111111] text-white text-xs font-semibold flex items-center gap-1">

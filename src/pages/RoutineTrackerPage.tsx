@@ -123,7 +123,7 @@ export const RoutineTrackerPage: React.FC = () => {
                 <Sparkles className="w-4 h-4 text-[#C8753D]" /> Notes "Ça a marché / Ça n'a pas marché"
               </h3>
               <p className="text-xs text-[#111111]/70 font-light mb-4">
-                Note ce que tes cheveux ont aimé lors du dernier soin pour affiner ton KURLA Fit Score.
+                Note ce que tes cheveux ont aimé lors du dernier soin pour affiner ton profil et tes recommandations explicables.
               </p>
 
               <textarea

@@ -670,8 +670,16 @@ export const CustomerAccountPage: React.FC = () => {
 
         {/* TAB 5: PROFILE FORM */}
         {activeTab === 'profil' && (
+          <>
+            <div className="mb-6 p-5 rounded-2xl bg-[#3A2218] border border-[#C8753D]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-serif-title font-bold text-[#FFF7EF]">Votre profil beauté se construit dans KURla ID</h3>
+              <p className="text-xs text-[#FFF7EF]/70 mt-1">Texture, porosité, peau, environnement, historique et préférences sont gérés dans l’espace dédié.</p>
+            </div>
+            <a href="/account/kurla-id" className="shrink-0 px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-semibold">Ouvrir KURla ID</a>
+          </div>
           <form onSubmit={handleSaveProfile} className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Éditer mon Profil Supabase</h3>
+            <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Informations de compte</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -702,6 +710,7 @@ export const CustomerAccountPage: React.FC = () => {
               {saving ? 'Enregistrement...' : 'Sauvegarder le profil'}
             </button>
           </form>
+          </>
         )}
 
         {/* NEW TICKET MODAL */}

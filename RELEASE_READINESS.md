@@ -34,6 +34,13 @@
   - Modération et validation des demandes de retours clients avec déclenchement automatique de remboursement Stripe test.
   - Support client intégré avec fil de conversation bidirectionnel et mise à jour des statuts de ticket (`open` -> `in_progress` -> `resolved`).
 
+### KURLA ID — Profil beauté explicable
+- **Profil capillaire détaillé** : motifs multiples, porosité, densité, épaisseur, longueur, état de fibre, sécheresse, casse, élasticité, cuir chevelu, styles protecteurs, pratiques, temps et budget.
+- **Profil peau mélaninée détaillé** : profondeur de carnation, sous-ton, sensibilité, hyperpigmentation, imperfections, marques post-inflammatoires, hydratation, tolérance aux actifs, exposition solaire, SPF, zones et préférences sensorielles.
+- **Contexte et zones** : cuir chevelu, longueurs et pointes séparés ; climat, humidité, qualité de l’eau et saison enregistrés ; valeur « je ne sais pas » disponible.
+- **Historique, suppression et photos** : instantanés de chaque évolution, suppression des données KURLA ID et stockage privé des photos uniquement après consentement explicite et rétractable.
+- **KURLA Fit** : calcul de correspondance fondé sur les besoins réels du produit et des preuves lisibles ; aucun score artificiel ni valeur inventée pour les champs inconnus.
+
 ### Performance & Accessibilité Frontend
 - **Interface Réactive & Mobile-First** : Adaptée aux smartphones, tablettes et ordinateurs.
 - **Accessibilité & Mouvement Réduit** : Prise en charge de la directive CSS `@media (prefers-reduced-motion: reduce)` désactivant les animations pour les utilisateurs ayant configuré la préférence de réduction de mouvement.

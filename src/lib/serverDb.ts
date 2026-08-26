@@ -4,6 +4,15 @@ import { getSupabaseServerClient, isSupabaseServerConfigured } from './supabaseC
 import { MOCK_PRODUCTS } from '../data/mockData';
 import { emailService } from './emailService';
 import { shippingService, ShippingCarrier, ShipmentDetails } from './shippingService';
+import {
+  BeautyProfile,
+  BeautyProfileHistoryEntry,
+  BeautyProfilePhoto,
+  BeautyProfileRecord,
+  ProfileConfidence,
+  calculateProfileConfidence,
+  normalizeBeautyProfile
+} from './beautyProfile';
 
 function ensureDatabaseSuccess(operation: string, error: { message?: string } | null | undefined): void {
   if (error) {
@@ -215,6 +224,9 @@ class SupabaseServerStore {
   private inMemoryTickets: SupportTicket[] = [];
   private inMemoryMessages: SupportMessage[] = [];
   private inMemoryProfessionalApplications: ProfessionalApplication[] = [];
+  private inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
+  private inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
+  private inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
   private processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
@@ -1914,6 +1926,172 @@ class SupabaseServerStore {
       items,
       applyStock: isFullRefund
     });
+  }
+
+  // ============================================================
+  // KURLA ID BEAUTY PROFILES
+  // ============================================================
+  private mapBeautyProfileRow(row: any): BeautyProfileRecord {
+    const profile = normalizeBeautyProfile(row.profile);
+    const confidence: ProfileConfidence = calculateProfileConfidence(profile);
+    return {
+      userId: row.user_id,
+      profile,
+      confidence,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  public async getBeautyProfile(userId: string): Promise<BeautyProfileRecord | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('beauty_profiles').select('*').eq('user_id', userId).maybeSingle();
+      ensureDatabaseSuccess('lecture du profil beauté KURLA ID', error);
+      return data ? this.mapBeautyProfileRow(data) : undefined;
+    }
+    return this.inMemoryBeautyProfiles.get(userId);
+  }
+
+  public async saveBeautyProfile(userId: string, input: unknown, source = 'user'): Promise<BeautyProfileRecord> {
+    const profile = normalizeBeautyProfile(input);
+    const confidence = calculateProfileConfidence(profile);
+    const now = new Date().toISOString();
+    const existing = await this.getBeautyProfile(userId);
+    const createdAt = existing?.createdAt || now;
+    const record: BeautyProfileRecord = { userId, profile, confidence, createdAt, updatedAt: now };
+    const supabase = getSupabaseServerClient();
+
+    if (supabase) {
+      const { error } = await supabase.from('beauty_profiles').upsert({
+        user_id: userId,
+        profile,
+        confidence: confidence.overall,
+        photo_consent: profile.photoConsent,
+        created_at: createdAt,
+        updated_at: now
+      }, { onConflict: 'user_id' });
+      ensureDatabaseSuccess('enregistrement du profil beauté KURLA ID', error);
+
+      const { error: historyError } = await supabase.from('beauty_profile_history').insert({
+        user_id: userId,
+        profile,
+        confidence: confidence.overall,
+        source,
+        created_at: now
+      });
+      ensureDatabaseSuccess('historisation du profil beauté KURLA ID', historyError);
+    }
+
+    this.inMemoryBeautyProfiles.set(userId, record);
+    const history = this.inMemoryBeautyProfileHistory.get(userId) || [];
+    history.unshift({ id: randomUUID(), profile, confidence, source, createdAt: now });
+    this.inMemoryBeautyProfileHistory.set(userId, history.slice(0, 50));
+    return record;
+  }
+
+  public async getBeautyProfileHistory(userId: string): Promise<BeautyProfileHistoryEntry[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('beauty_profile_history').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+      ensureDatabaseSuccess('lecture de l’historique du profil beauté', error);
+      return (data || []).map((row: any) => {
+        const profile = normalizeBeautyProfile(row.profile);
+        return {
+          id: row.id,
+          profile,
+          confidence: calculateProfileConfidence(profile),
+          source: row.source,
+          createdAt: row.created_at
+        };
+      });
+    }
+    return [...(this.inMemoryBeautyProfileHistory.get(userId) || [])];
+  }
+
+  public async getBeautyProfilePhotos(userId: string): Promise<BeautyProfilePhoto[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('beauty_profile_photos').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des photos du profil beauté', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        storagePath: row.storage_path,
+        mimeType: row.mime_type,
+        sizeBytes: Number(row.size_bytes),
+        consentAt: row.consent_at,
+        createdAt: row.created_at
+      }));
+    }
+    return [...(this.inMemoryBeautyProfilePhotos.get(userId) || [])];
+  }
+
+  public async uploadBeautyProfilePhoto(userId: string, buffer: Uint8Array, mimeType: BeautyProfilePhoto['mimeType'], consentAt: string): Promise<BeautyProfilePhoto> {
+    const id = randomUUID();
+    const storagePath = `${userId}/${id}`;
+    const now = new Date().toISOString();
+    const photo: BeautyProfilePhoto = {
+      id,
+      storagePath,
+      mimeType,
+      sizeBytes: buffer.byteLength,
+      consentAt,
+      createdAt: now
+    };
+    const supabase = getSupabaseServerClient();
+
+    if (supabase) {
+      const { error: uploadError } = await supabase.storage.from('beauty-profile-photos').upload(storagePath, buffer as any, {
+        contentType: mimeType,
+        upsert: false
+      });
+      ensureDatabaseSuccess('stockage de la photo du profil beauté', uploadError);
+      const { error } = await supabase.from('beauty_profile_photos').insert({
+        id,
+        user_id: userId,
+        storage_path: storagePath,
+        mime_type: mimeType,
+        size_bytes: buffer.byteLength,
+        consent_at: consentAt,
+        created_at: now
+      });
+      ensureDatabaseSuccess('enregistrement de la photo du profil beauté', error);
+    }
+
+    const photos = this.inMemoryBeautyProfilePhotos.get(userId) || [];
+    photos.unshift(photo);
+    this.inMemoryBeautyProfilePhotos.set(userId, photos.slice(0, 10));
+    return photo;
+  }
+
+  public async deleteBeautyProfilePhotos(userId: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error: selectError } = await supabase.from('beauty_profile_photos').select('storage_path').eq('user_id', userId);
+      ensureDatabaseSuccess('lecture des photos à supprimer', selectError);
+      const paths = (data || []).map((row: any) => row.storage_path).filter(Boolean);
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage.from('beauty-profile-photos').remove(paths);
+        ensureDatabaseSuccess('suppression des fichiers photo du profil', storageError);
+      }
+      const { error } = await supabase.from('beauty_profile_photos').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression des métadonnées photo du profil', error);
+    }
+    this.inMemoryBeautyProfilePhotos.delete(userId);
+  }
+
+  public async deleteBeautyProfile(userId: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      await this.deleteBeautyProfilePhotos(userId);
+      const { error: historyError } = await supabase.from('beauty_profile_history').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression de l’historique du profil beauté', historyError);
+      const { error } = await supabase.from('beauty_profiles').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression du profil beauté KURLA ID', error);
+    }
+    this.inMemoryBeautyProfiles.delete(userId);
+    this.inMemoryBeautyProfileHistory.delete(userId);
+    this.inMemoryBeautyProfilePhotos.delete(userId);
   }
 
   // ============================================================

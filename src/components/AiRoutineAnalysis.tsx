@@ -165,17 +165,16 @@ export const AiRoutineAnalysis: React.FC<AiRoutineAnalysisProps> = ({
       strengths.push('Méthode d’hydratation + scellage (L.O.C / L.C.O) appliquée.');
     }
 
-    // Calculate score
-    let baseScore = 100;
-    gaps.forEach(g => {
-      if (g.severity === 'high') baseScore -= 15;
-      else baseScore -= 10;
-    });
-
-    const fitScore = Math.max(50, Math.min(100, baseScore));
+    // This is a transparent routine coverage indicator, not a beauty or
+    // product-fit score. Every evaluated pillar counts once; no arbitrary
+    // severity weighting or minimum score is added.
+    const evaluatedPillars = strengths.length + gaps.length;
+    const coverageScore = evaluatedPillars > 0
+      ? Math.round((strengths.length / evaluatedPillars) * 100)
+      : 0;
 
     return {
-      fitScore,
+      coverageScore,
       gaps,
       strengths,
       totalTasksEvaluated: tasks.length
@@ -238,7 +237,7 @@ export const AiRoutineAnalysis: React.FC<AiRoutineAnalysisProps> = ({
       {/* Main Score & Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         
-        {/* KURLA Fit Score Card */}
+        {/* Transparent routine coverage card */}
         <div className="p-5 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -248,26 +247,26 @@ export const AiRoutineAnalysis: React.FC<AiRoutineAnalysisProps> = ({
 
             <div className="flex items-baseline gap-2 my-2">
               <span className="text-4xl font-serif-title font-extrabold text-[#C8753D]">
-                {analysis.fitScore}%
+                {analysis.coverageScore}%
               </span>
-              <span className="text-xs font-semibold text-[#111111]/60">KURLA Fit</span>
+              <span className="text-xs font-semibold text-[#111111]/60">Couverture explicable</span>
             </div>
 
             {/* Progress bar */}
             <div className="w-full h-2 rounded-full bg-[#E8E1DA] overflow-hidden mb-3">
               <div 
                 className={`h-full transition-all duration-700 ${
-                  analysis.fitScore >= 85 ? 'bg-emerald-500' : analysis.fitScore >= 70 ? 'bg-[#C8753D]' : 'bg-amber-500'
+                  analysis.coverageScore >= 85 ? 'bg-emerald-500' : analysis.coverageScore >= 70 ? 'bg-[#C8753D]' : 'bg-amber-500'
                 }`}
-                style={{ width: `${analysis.fitScore}%` }}
+                style={{ width: `${analysis.coverageScore}%` }}
               />
             </div>
           </div>
 
           <p className="text-xs text-[#111111]/70 leading-relaxed">
-            {analysis.fitScore >= 85
+            {analysis.coverageScore >= 85
               ? 'Excellente routine globale ! Tes cheveux et ta peau sont bien protégés.'
-              : analysis.fitScore >= 70
+              : analysis.coverageScore >= 70
               ? 'Routine solide, mais 2 optimisations clés permettraient d’accélérer tes résultats.'
               : 'Routine incomplète. Quelques gestes essentiels manquent pour éviter la casse et la sécheresse.'
             }

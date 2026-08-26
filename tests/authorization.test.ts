@@ -50,6 +50,12 @@ async function runAuthorizationNegativeTests() {
         'x-admin-key': 'forged-legacy-admin-key'
       }
     }, 401);
+    await expectStatus(baseUrl, '/api/beauty-profile', {
+      headers: { 'x-user-id': 'attacker', 'x-user-email': 'victim@example.com' }
+    }, 401);
+    await expectStatus(baseUrl, '/api/beauty-recommendations', {
+      headers: { 'x-user-id': 'attacker' }
+    }, 401);
 
     console.log('[PASS] Negative authorization HTTP tests: forged identity/admin headers never grant access.');
   } finally {

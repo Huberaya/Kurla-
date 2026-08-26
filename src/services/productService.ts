@@ -89,7 +89,7 @@ function mapSupabaseToProduct(
   if (badges.length === 0) {
     if (p.is_promo) badges.push('Offre Spéciale');
     if (p.is_new) badges.push('Nouveauté');
-    if (badges.length === 0) badges.push('Certifié KURLA Fit');
+    if (badges.length === 0) badges.push('Sélection KURLA');
   }
 
   return {

@@ -3,7 +3,7 @@ export interface StructuredAiAnswer {
   simpleExplanation: string;
   immediateActions: string[];
   recommendedRoutine: string;
-  usefulProducts: { name: string; link: string; fitScore: number }[];
+  usefulProducts: { name: string; link: string }[];
   usefulTools: { name: string; description: string }[];
   errorsToAvoid: string[];
   whenToConsultPro: string;
@@ -22,9 +22,9 @@ export const MOCK_AI_ANSWERS: Record<string, StructuredAiAnswer> = {
     ],
     recommendedRoutine: 'Routine 3 Étapes "Hydratation & Scellage 4C"',
     usefulProducts: [
-      { name: 'Leave-In Conditioner Aloe Vera & Hibiscus', link: '/produit/leave-in-conditioner', fitScore: 96 },
-      { name: 'Beurre de Cacao & Karité Grand Cru', link: '/produit/beurre-de-cacao-karite', fitScore: 94 },
-      { name: 'Shampooing Doux Hydratant Cacao', link: '/produit/shampooing-doux-hydratant', fitScore: 90 }
+      { name: 'Leave-In Conditioner Aloe Vera & Hibiscus', link: '/produit/leave-in-conditioner' },
+      { name: 'Beurre de Cacao & Karité Grand Cru', link: '/produit/beurre-de-cacao-karite' },
+      { name: 'Shampooing Doux Hydratant Cacao', link: '/produit/shampooing-doux-hydratant' }
     ],
     usefulTools: [
       { name: 'Vaporisateur à Brume Continue 360°', description: 'Permet d’humidifier sans tremper.' },
@@ -54,8 +54,8 @@ export const MOCK_AI_ANSWERS: Record<string, StructuredAiAnswer> = {
     ],
     recommendedRoutine: 'Routine Entretien Protective Styles',
     usefulProducts: [
-      { name: 'Lotion Apaisante Menthe & Arbre à Thé', link: '/produit/lotion-apaisante-menthe', fitScore: 98 },
-      { name: 'Huile Légère Pousse & Vitalité', link: '/produit/huile-pousse-vitalite', fitScore: 92 }
+      { name: 'Lotion Apaisante Menthe & Arbre à Thé', link: '/produit/lotion-apaisante-menthe' },
+      { name: 'Huile Légère Pousse & Vitalité', link: '/produit/huile-pousse-vitalite' }
     ],
     usefulTools: [
       { name: 'Flacon Embout Applicateur', description: 'Application directe sur les raies.' },
@@ -84,8 +84,8 @@ export const MOCK_AI_ANSWERS: Record<string, StructuredAiAnswer> = {
     ],
     recommendedRoutine: 'Routine Enfant Démêlage Sans Larmes (20 min)',
     usefulProducts: [
-      { name: 'Soin Démêlant Magique Enfant', link: '/produit/soin-demelant-enfant', fitScore: 97 },
-      { name: 'Baume Démêlant Doux Mangue & Coton', link: '/produit/baume-demelant-enfant', fitScore: 95 }
+      { name: 'Soin Démêlant Magique Enfant', link: '/produit/soin-demelant-enfant' },
+      { name: 'Baume Démêlant Doux Mangue & Coton', link: '/produit/baume-demelant-enfant' }
     ],
     usefulTools: [
       { name: 'Brosse Démêlante Souple Flex Enfant', description: 'Ergonomique et sans douleur.' },
@@ -112,8 +112,8 @@ export const MOCK_AI_ANSWERS: Record<string, StructuredAiAnswer> = {
     ],
     recommendedRoutine: 'Routine Peau Mélaninée Anti-Taches & Éclat',
     usefulProducts: [
-      { name: 'Fluide Solaire Incolore SPF 50 Peaux Mélaninées', link: '/produit/fluide-solaire-spf50', fitScore: 99 },
-      { name: 'Sérum Éclat Niacinamide 5%', link: '/produit/serum-niacinamide', fitScore: 93 }
+      { name: 'Fluide Solaire Incolore SPF 50 Peaux Mélaninées', link: '/produit/fluide-solaire-spf50' },
+      { name: 'Sérum Éclat Niacinamide 5%', link: '/produit/serum-niacinamide' }
     ],
     usefulTools: [
       { name: 'Taie d’Oreiller en Satin', description: 'Garde l’hydratation du visage la nuit.' }
