@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, User, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 
@@ -157,6 +157,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#D49A63]" /> Mon KURLA ID
                   </a>
+                  <a
+                    href="/account/routine-tracker"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 text-[#C8753D]" /> Ma routine adaptative
+                  </a>
+                  <a
+                    href="/account/progress"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <NotebookPen className="w-3.5 h-3.5 text-[#D49A63]" /> Mon journal de progression
+                  </a>
 
                   {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
                     <a
@@ -282,6 +296,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <User className="w-4 h-4 text-[#C8753D]" /> Accéder à mon KURLA ID
             </a>
+            <div className="grid grid-cols-2 gap-2">
+              <a href="/account/routine-tracker" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><CalendarDays className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Routine</a>
+              <a href="/account/progress" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><NotebookPen className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Journal</a>
+            </div>
           </div>
         </div>
       )}

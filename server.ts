@@ -13,6 +13,7 @@ import { UserRole } from './src/types';
 import { calculateShippingCents, normalizeShippingAddress, ShippingMethod } from './src/lib/shippingRules';
 import { calculateKurlaFit } from './src/lib/kurlaFit';
 import { createEmptyBeautyProfile, normalizeBeautyProfile, calculateProfileConfidence, BeautyProfilePhoto } from './src/lib/beautyProfile';
+import { normalizeWeatherContext } from './src/lib/adaptiveRoutine';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -1448,6 +1449,127 @@ async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promis
 }
 
 // ============================================================
+// ADAPTIVE ROUTINES & PERSISTENT PROGRESS JOURNAL API
+// ============================================================
+async function routinePayload(userId: string) {
+  const state = await serverDb.getAdaptiveRoutineState(userId);
+  return {
+    plan: state.plan || null,
+    tasks: state.tasks,
+    feedback: state.feedback,
+    journal: state.journal,
+    persistence: state.persistence
+  };
+}
+
+app.get('/api/routine', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json(await routinePayload(user.id));
+}));
+
+app.put('/api/routine', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  if (req.body?.preferences !== undefined && (typeof req.body.preferences !== 'object' || req.body.preferences === null)) {
+    return res.status(400).json({ error: 'Préférences de routine invalides.' });
+  }
+  try {
+    await serverDb.saveAdaptiveRoutine(user.id, req.body?.preferences || {}, req.body?.weather);
+    res.json(await routinePayload(user.id));
+  } catch (err) {
+    console.error('[AdaptiveRoutine] save error:', err);
+    res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer votre routine.') });
+  }
+}));
+
+app.patch('/api/routine/tasks/:taskId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const status = req.body?.status;
+  if (!['pending', 'completed', 'skipped'].includes(status)) return res.status(400).json({ error: 'Statut de tâche invalide.' });
+  const task = await serverDb.updateAdaptiveRoutineTask(user.id, req.params.taskId, status);
+  if (!task) return res.status(404).json({ error: 'Tâche de routine introuvable.' });
+  res.json({ task });
+}));
+
+app.post('/api/routine/feedback', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const result = await serverDb.recordRoutineFeedback(user.id, {
+      signal: req.body?.signal,
+      note: req.body?.note,
+      productLabel: req.body?.productLabel,
+      observedAt: req.body?.observedAt
+    });
+    res.status(201).json({ feedback: result.feedback, ...(await routinePayload(user.id)) });
+  } catch (err) {
+    console.error('[AdaptiveRoutine] feedback error:', err);
+    res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette observation.') });
+  }
+}));
+
+app.get('/api/routine/journal', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const state = await serverDb.getAdaptiveRoutineState(user.id);
+  res.json({ journal: state.journal, persistence: state.persistence });
+}));
+
+app.post('/api/routine/journal', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const result = await serverDb.createProgressJournalEntry(user.id, {
+      entryDate: req.body?.entryDate,
+      note: req.body?.note,
+      signals: req.body?.signals,
+      metrics: req.body?.metrics,
+      productsUsed: req.body?.productsUsed
+    });
+    res.status(201).json({ entry: result.entry, ...(await routinePayload(user.id)) });
+  } catch (err) {
+    console.error('[AdaptiveRoutine] journal error:', err);
+    res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette note de progression.') });
+  }
+}));
+
+// Weather is fetched only after an explicit browser location permission. It
+// is not inferred from an IP address and remains a transparent context input.
+app.get('/api/routine/weather', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const latitude = Number(req.query.latitude);
+  const longitude = Number(req.query.longitude);
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    return res.status(400).json({ error: 'Coordonnées météo invalides.' });
+  }
+  try {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', String(latitude));
+    url.searchParams.set('longitude', String(longitude));
+    url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,precipitation');
+    url.searchParams.set('timezone', 'auto');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`weather_provider_${response.status}`);
+    const payload = await response.json() as any;
+    const weather = normalizeWeatherContext({
+      temperatureC: payload?.current?.temperature_2m,
+      humidityPercent: payload?.current?.relative_humidity_2m,
+      precipitationMm: payload?.current?.precipitation,
+      source: 'Open-Meteo',
+      observedAt: payload?.current?.time
+    });
+    if (!weather) throw new Error('weather_payload_incomplete');
+    res.json({ weather });
+  } catch (err) {
+    console.error('[AdaptiveRoutine] weather provider error:', err);
+    res.status(502).json({ error: 'La météo actuelle n’est pas disponible. La routine reste basée sur votre profil et vos observations.' });
+  }
+}));
+
+// ============================================================
 // KURLA ID BEAUTY PROFILE API
 // ============================================================
 app.get('/api/beauty-profile', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -1574,7 +1696,15 @@ app.get('/api/beauty-recommendations', asyncRoute(async (req: AuthenticatedReque
     const record = await serverDb.getBeautyProfile(user.id);
     if (!record) return res.json({ recommendations: [], message: 'Complétez votre profil pour calculer KURLA Fit.' });
     const products = await serverDb.getProducts();
-    const recommendations = products
+    const routineState = await serverDb.getAdaptiveRoutineState(user.id);
+    const recentFeedback = routineState.feedback.slice(0, 30);
+    const hasSafetySignal = recentFeedback.some(item => item.signal === 'reaction' || item.signal === 'scalp_itchy');
+    const affectedLabels = recentFeedback
+      .filter(item => item.signal === 'reaction' || item.signal === 'product_heavy')
+      .map(item => item.productLabel?.toLowerCase())
+      .filter((label): label is string => !!label);
+    const recommendations = hasSafetySignal ? [] : products
+      .filter((product: any) => !affectedLabels.some(label => `${product.name} ${product.brand || ''}`.toLowerCase().includes(label)))
       .map((product: any) => ({
         product: {
           id: product.id,
@@ -1591,7 +1721,15 @@ app.get('/api/beauty-recommendations', asyncRoute(async (req: AuthenticatedReque
       .filter(item => item.fit.score !== null)
       .sort((a, b) => (b.fit.score || 0) - (a.fit.score || 0))
       .slice(0, 8);
-    res.json({ recommendations, confidence: record.confidence });
+    res.json({
+      recommendations,
+      confidence: record.confidence,
+      routineAdaptation: hasSafetySignal
+        ? 'Une réaction ou des démangeaisons ont été signalées : aucune nouvelle recommandation produit n’est proposée avant observation ou avis professionnel.'
+        : affectedLabels.length > 0
+          ? 'Les produits signalés comme alourdissants ou réactifs sont écartés lorsqu’ils sont identifiables.'
+          : routineState.plan?.adaptationNotes || []
+    });
   } catch (err) {
     console.error('[BeautyRecommendations] error:', err);
     res.status(500).json({ error: safeApiError(err, 'Impossible de calculer vos recommandations.') });
