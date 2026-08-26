@@ -14,7 +14,7 @@ interface ServerOrder {
 }
 
 export const CustomerAccountPage: React.FC = () => {
-  const { user, profile, signOut, updateProfile, loading: authLoading } = useAuth();
+  const { user, profile, session, signOut, updateProfile, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'commandes' | 'notifications' | 'support' | 'preferences' | 'profil'>('commandes');
   
   const [serverOrders, setServerOrders] = useState<ServerOrder[]>([]);
@@ -63,14 +63,12 @@ export const CustomerAccountPage: React.FC = () => {
 
   const [saving, setSaving] = useState(false);
 
-  const userId = user?.id || profile?.id || '';
-  const userEmail = user?.email || profile?.email || 'client@kurla-beauty.com';
-
-  const authHeaders = {
-    'x-user-id': userId,
-    'x-user-email': userEmail,
-    'Authorization': `Bearer ${userId || userEmail}`
-  };
+  // Protected API calls carry only the Supabase access token. Never send a
+  // client-controlled user id or email as an authorization signal.
+  const authHeaders: HeadersInit = session?.access_token
+    ? { Authorization: `Bearer ${session.access_token}` }
+    : {};
+  const userEmail = user?.email || profile?.email || '';
 
   const loadUserData = () => {
     // 1. Load Orders
@@ -81,7 +79,7 @@ export const CustomerAccountPage: React.FC = () => {
           setServerOrders(data.orders);
           // Fetch shipments for shipped/delivered orders
           data.orders.forEach((o: any) => {
-            fetch(`/api/shipments/${o.id}`)
+            fetch(`/api/shipments/${o.id}`, { headers: authHeaders })
               .then(r => r.json())
               .then(sd => {
                 if (sd.shipment) {

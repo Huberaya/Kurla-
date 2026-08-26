@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.shipments (
   price NUMERIC(10, 2) DEFAULT 0.00,
   tracking_number TEXT,
   tracking_url TEXT,
-  status TEXT DEFAULT 'preparing' CHECK (status IN ('preparing', 'label_created', 'in_transit', 'out_for_delivery', 'delivered', 'failed')),
+  status TEXT DEFAULT 'preparing' CHECK (status IN ('preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed')),
   shipped_at TIMESTAMPTZ,
   estimated_delivery TIMESTAMPTZ,
   delivered_at TIMESTAMPTZ,

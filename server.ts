@@ -1,31 +1,242 @@
-import express, { Request, Response } from 'express';
+import 'dotenv/config';
+import express, { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import Stripe from 'stripe';
-import dotenv from 'dotenv';
 import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from './src/lib/ai/systemPrompt';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
+import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
+import { UserRole } from './src/types';
 import { MOCK_PRODUCTS } from './src/data/mockData';
 
-dotenv.config();
-
-// Initialize persistent product database via Supabase
-serverDb.initialize(MOCK_PRODUCTS).then(() => {
-  console.log('[ServerDB] Supabase store initialized successfully.');
-});
+// Initialize persistent product database via Supabase. The startup path awaits
+// this promise so a schema/connection error cannot be hidden behind a healthy
+// HTTP listener.
+const serverInitialization = process.env.NODE_ENV === 'production' && !isSupabaseServerConfigured()
+  ? Promise.resolve()
+  : serverDb.initialize(MOCK_PRODUCTS).then(() => {
+      console.log('[ServerDB] Supabase store initialized successfully.');
+    });
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+
+// Production baseline: do not disclose Express, accept unbounded request
+// bodies, or allow an abusive client to consume all API workers.
+app.disable('x-powered-by');
+// Trust forwarded client IPs only when the deployment explicitly sits behind
+// a known reverse proxy. This prevents spoofed X-Forwarded-For values from
+// bypassing the limiter on a directly exposed process.
+app.set('trust proxy', process.env.TRUST_PROXY === 'true');
+
+interface RateLimitBucket {
+  count: number;
+  resetAt: number;
+}
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+function requestAddress(req: Request): string {
+  return req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+function rateLimit(name: string, maxRequests: number, windowMs: number) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const now = Date.now();
+    const key = `${name}:${requestAddress(req)}`;
+    const current = rateLimitBuckets.get(key);
+    const bucket = !current || current.resetAt <= now
+      ? { count: 0, resetAt: now + windowMs }
+      : current;
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+
+    // Keep this process-local fallback bounded. A multi-instance deployment
+    // should place a shared limiter at the edge as well.
+    if (rateLimitBuckets.size > 10000) {
+      for (const [bucketKey, value] of rateLimitBuckets) {
+        if (value.resetAt <= now) rateLimitBuckets.delete(bucketKey);
+      }
+    }
+
+    if (bucket.count > maxRequests) {
+      const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'Trop de requêtes. Réessayez plus tard.' });
+    }
+    next();
+  };
+}
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = typeof req.headers['x-request-id'] === 'string' && /^[A-Za-z0-9._-]{8,128}$/.test(req.headers['x-request-id'])
+    ? req.headers['x-request-id']
+    : randomUUID();
+  (req as Request & { requestId?: string }).requestId = requestId;
+  res.setHeader('X-Request-Id', requestId);
+
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
+  res.on('finish', () => {
+    if (res.statusCode >= 500) {
+      console.error(JSON.stringify({
+        event: 'http_server_error',
+        requestId,
+        method: req.method,
+        path: req.path,
+        status: res.statusCode
+      }));
+    }
+  });
+  next();
+});
+
+const corsOrigins = new Set(
+  (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean)
+);
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  if (!origin || corsOrigins.size === 0) return next();
+  if (!corsOrigins.has(origin)) {
+    if (req.method === 'OPTIONS') return res.status(403).json({ error: 'Origine non autorisée.' });
+    return next();
+  }
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Idempotency-Key, X-Anonymous-Id, X-Request-Id');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  next();
+});
+
+app.use('/api', rateLimit('api', 300, 60_000));
+
+type AuthenticatedUser = {
+  id: string;
+  email: string;
+  role: UserRole;
+};
+
+type AuthenticatedRequest = Request & {
+  authUser?: AuthenticatedUser;
+};
+
+type AsyncRouteHandler = (req: AuthenticatedRequest, res: Response, next: NextFunction) => unknown;
+
+function asyncRoute(handler: AsyncRouteHandler) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(handler(req as AuthenticatedRequest, res, next)).catch(next);
+  };
+}
+
+const ADMIN_ROLES: UserRole[] = ['admin', 'superadmin'];
+
+function bearerToken(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return null;
+  const token = header.slice('Bearer '.length).trim();
+  return token || null;
+}
+
+/**
+ * Resolve identity exclusively from a Supabase access token.
+ * x-user-id/x-user-email are deliberately ignored: they are client supplied
+ * and cannot be used for authorization.
+ */
+async function authenticateRequest(req: Request): Promise<AuthenticatedUser | null> {
+  const token = bearerToken(req);
+  const verifier = getSupabaseAuthVerifier();
+  if (!token || !verifier) return null;
+
+  try {
+    const { data, error } = await verifier.auth.getUser(token);
+    if (error || !data.user || !data.user.id) return null;
+
+    let role: UserRole = 'customer';
+    const serverSupabase = getSupabaseServerClient();
+    if (serverSupabase) {
+      const { data: profile, error: profileError } = await serverSupabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (!profileError && profile?.role && ADMIN_ROLES.includes(profile.role as UserRole)) {
+        role = profile.role as UserRole;
+      } else if (!profileError && profile?.role && ['professional', 'support', 'editor'].includes(profile.role)) {
+        role = profile.role as UserRole;
+      }
+    }
+
+    return {
+      id: data.user.id,
+      email: data.user.email || '',
+      role,
+    };
+  } catch (error) {
+    console.error('[Auth] Supabase token verification failed:', error);
+    return null;
+  }
+}
+
+async function requireUser(req: AuthenticatedRequest, res: Response): Promise<AuthenticatedUser | null> {
+  const user = await authenticateRequest(req);
+  if (!user) {
+    res.status(401).json({ error: 'Authentification Supabase requise.' });
+    return null;
+  }
+  req.authUser = user;
+  return user;
+}
+
+async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<AuthenticatedUser | null> {
+  const user = await requireUser(req, res);
+  if (!user) return null;
+  if (!ADMIN_ROLES.includes(user.role)) {
+    res.status(403).json({ error: 'Accès administrateur requis.' });
+    return null;
+  }
+  return user;
+}
+
+async function getOwnedOrder(orderId: string, user: AuthenticatedUser): Promise<ServerOrder | undefined> {
+  const order = await serverDb.getOrderById(orderId);
+  if (!order) return undefined;
+  if (ADMIN_ROLES.includes(user.role)) return order;
+  return order.userId === user.id ? order : undefined;
+}
+
+function safeApiError(error: unknown, fallback: string): string {
+  if (process.env.NODE_ENV !== 'production' && error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 // Lazy Stripe Initialization
 function getStripeClient(): Stripe | null {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) return null;
-  return new Stripe(secretKey, { apiVersion: '2025-02-24.acacia' as any });
+  return new Stripe(secretKey, {
+    apiVersion: '2025-02-24.acacia' as any,
+    timeout: 15_000,
+    maxNetworkRetries: 2
+  });
 }
 
 // Stripe Webhook Endpoint (Raw Body Handling Before express.json)
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '256kb' }), async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const webhookEnabled = process.env.STRIPE_WEBHOOK_ENABLED === 'true';
@@ -58,12 +269,16 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     });
   }
 
+  let parsedEvent: Stripe.Event | undefined;
   try {
-    const event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
+    parsedEvent = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
+    const event = parsedEvent;
 
-    // Persistent Idempotency Check in Supabase
-    if (await serverDb.isEventProcessed(event.id)) {
-      console.log(`[Stripe Webhook] Événement déjà traité (Idempotent): ${event.id}`);
+    // Atomically claim the event before changing orders or stock. A read
+    // followed by a later insert would allow two concurrent deliveries to
+    // process the same payment twice.
+    if (!(await serverDb.claimEventForProcessing(event.id, event.type))) {
+      console.log(`[Stripe Webhook] Événement déjà traité ou en cours (Idempotent): ${event.id}`);
       return res.status(200).json({ received: true, duplicate: true });
     }
 
@@ -75,12 +290,19 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = session.metadata?.orderId;
         const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
         if (order) {
+          if (['refunded', 'partially_refunded'].includes(order.status)) {
+            console.warn(`[Stripe Webhook] Confirmation reçue après remboursement pour la commande ${order.id}; statut conservé.`);
+            break;
+          }
           const expectedCents = Math.round(order.total * 100);
-          if (session.amount_total !== null && session.amount_total !== expectedCents) {
-            console.warn(`[Stripe Webhook Warning] Montant incohérent pour commande ${order.id}: attendu ${expectedCents}, reçu ${session.amount_total}`);
+          if (session.amount_total !== expectedCents) {
+            throw new Error(`Montant Checkout incohérent pour ${order.id}: attendu ${expectedCents}, reçu ${session.amount_total ?? 'null'}.`);
           }
           if (session.currency && session.currency.toLowerCase() !== 'eur') {
-            console.warn(`[Stripe Webhook Warning] Devise incohérente pour commande ${order.id}: attendue eur, reçue ${session.currency}`);
+            throw new Error(`Devise Checkout incohérente pour ${order.id}: ${session.currency}.`);
+          }
+          if (session.payment_status !== 'paid') {
+            throw new Error(`Checkout ${session.id} non payé (${session.payment_status || 'statut absent'}).`);
           }
           const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
           await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
@@ -94,11 +316,22 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = session.metadata?.orderId;
         const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
         if (order) {
-          const expectedCents = Math.round(order.total * 100);
-          if (session.amount_total !== null && session.amount_total !== expectedCents) {
-            console.warn(`[Stripe Webhook Warning] Montant incohérent pour commande ${order.id}`);
+          if (['refunded', 'partially_refunded'].includes(order.status)) {
+            console.warn(`[Stripe Webhook] Confirmation asynchrone reçue après remboursement pour la commande ${order.id}; statut conservé.`);
+            break;
           }
-          await serverDb.updateOrderStatus(order.id, 'paid');
+          const expectedCents = Math.round(order.total * 100);
+          if (session.amount_total !== expectedCents) {
+            throw new Error(`Montant Checkout asynchrone incohérent pour ${order.id}.`);
+          }
+          if (session.currency && session.currency.toLowerCase() !== 'eur') {
+            throw new Error(`Devise Checkout asynchrone incohérente pour ${order.id}.`);
+          }
+          if (session.payment_status !== 'paid') {
+            throw new Error(`Checkout asynchrone ${session.id} non payé.`);
+          }
+          const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+          await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Commande ${order.id} payée via checkout.session.async_payment_succeeded.`);
         }
@@ -109,12 +342,16 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = paymentIntent.metadata?.orderId;
         const order = await serverDb.findOrder({ paymentIntentId: paymentIntent.id, orderId });
         if (order) {
+          if (['refunded', 'partially_refunded'].includes(order.status)) {
+            console.warn(`[Stripe Webhook] PaymentIntent confirmé après remboursement pour la commande ${order.id}; statut conservé.`);
+            break;
+          }
           const expectedCents = Math.round(order.total * 100);
           if (paymentIntent.amount !== expectedCents) {
-            console.warn(`[Stripe Webhook Warning] Montant incohérent pour PaymentIntent ${paymentIntent.id}: attendu ${expectedCents}, reçu ${paymentIntent.amount}`);
+            throw new Error(`Montant PaymentIntent incohérent pour ${order.id}: attendu ${expectedCents}, reçu ${paymentIntent.amount}.`);
           }
           if (paymentIntent.currency && paymentIntent.currency.toLowerCase() !== 'eur') {
-            console.warn(`[Stripe Webhook Warning] Devise incohérente pour PaymentIntent ${paymentIntent.id}: attendue eur, reçue ${paymentIntent.currency}`);
+            throw new Error(`Devise PaymentIntent incohérente pour ${order.id}: ${paymentIntent.currency}.`);
           }
           await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: paymentIntent.id });
           processedOrderId = order.id;
@@ -127,6 +364,10 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = paymentIntent.metadata?.orderId;
         const order = await serverDb.findOrder({ paymentIntentId: paymentIntent.id, orderId });
         if (order) {
+          if (['paid', 'processing', 'packed', 'shipped', 'delivered', 'partially_refunded', 'refunded'].includes(order.status)) {
+            console.warn(`[Stripe Webhook] Échec d’un ancien PaymentIntent pour ${order.id}; statut déjà finalisé conservé.`);
+            break;
+          }
           await serverDb.updateOrderStatus(order.id, 'payment_failed', { stripePaymentIntentId: paymentIntent.id });
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Commande ${order.id} marquée en échec via payment_intent.payment_failed.`);
@@ -138,6 +379,10 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = session.metadata?.orderId;
         const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
         if (order) {
+          if (['paid', 'processing', 'packed', 'shipped', 'delivered', 'partially_refunded', 'refunded'].includes(order.status)) {
+            console.warn(`[Stripe Webhook] Expiration ignorée pour la commande ${order.id}; un paiement a déjà été confirmé.`);
+            break;
+          }
           await serverDb.updateOrderStatus(order.id, 'payment_failed');
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Session ${session.id} expirée. Commande ${order.id} annulée.`);
@@ -150,9 +395,16 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const orderId = charge.metadata?.orderId;
         const order = await serverDb.findOrder({ paymentIntentId: piId, orderId });
         if (order) {
-          await serverDb.updateOrderStatus(order.id, 'refunded');
+          const latestRefund = charge.refunds?.data?.[0];
+          await serverDb.recordStripeRefundFromWebhook(order.id, {
+            eventId: event.id,
+            stripeRefundId: latestRefund?.id || `charge_refund:${charge.id}:${charge.amount_refunded}`,
+            amount: Number(charge.amount_refunded || latestRefund?.amount || 0) / 100,
+            currency: charge.currency,
+            reason: latestRefund?.reason || 'Remboursement Stripe confirmé'
+          });
           processedOrderId = order.id;
-          console.log(`[Stripe Webhook] Commande ${order.id} marquée comme remboursée.`);
+          console.log(`[Stripe Webhook] Remboursement Stripe enregistré pour la commande ${order.id}.`);
         }
         break;
       }
@@ -164,35 +416,86 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
     res.status(200).json({ received: true, processed: true });
   } catch (err: any) {
-    console.error('[Stripe Webhook Error]', err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
+    const errorMessage = err?.message || 'Erreur inconnue';
+    console.error('[Stripe Webhook Error]', errorMessage);
+    if (parsedEvent) {
+      try {
+        await serverDb.markEventError(parsedEvent.id, parsedEvent.type, errorMessage);
+      } catch (markError: any) {
+        console.error('[Stripe Webhook Error] Impossible d’enregistrer l’échec de traitement:', markError?.message || markError);
+      }
+    }
+    const publicMessage = process.env.NODE_ENV === 'production'
+      ? 'Webhook Stripe refusé.'
+      : errorMessage;
+    res.status(400).send(`Webhook Error: ${publicMessage}`);
   }
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb', strict: true }));
 
 // Cart API Endpoints (public.carts & public.cart_items)
-app.get('/api/cart', async (req: Request, res: Response) => {
+// Guest carts use an anonymous browser id; authenticated carts always use the
+// verified Supabase user id and never a user id supplied in JSON/headers.
+function getAnonymousId(req: Request): string | null {
+  const candidate = req.body?.anonymousId || req.headers['x-anonymous-id'];
+  if (typeof candidate !== 'string') return null;
+  const value = candidate.trim();
+  return /^[a-zA-Z0-9_-]{8,128}$/.test(value) ? value : null;
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+app.get('/api/cart', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = (req.headers['x-user-id'] as string) || null;
-    const anonymousId = (req.headers['x-anonymous-id'] as string) || null;
+    const user = await authenticateRequest(req);
+    const userId = user?.id || null;
+    const anonymousId = user ? null : getAnonymousId(req);
+    if (!userId && !anonymousId) return res.json({ items: [] });
+
     const items = await serverDb.getCart(userId, anonymousId);
     res.json({ items });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Erreur lors de la récupération du panier' });
+    res.status(500).json({ error: safeApiError(err, 'Erreur lors de la récupération du panier') });
   }
 });
 
-app.post('/api/cart', async (req: Request, res: Response) => {
+app.post('/api/cart', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { items, userId, anonymousId } = req.body;
-    const uid = userId || (req.headers['x-user-id'] as string) || null;
-    const anonId = anonymousId || (req.headers['x-anonymous-id'] as string) || null;
+    const user = await authenticateRequest(req);
+    const userId = user?.id || null;
+    const anonymousId = user ? null : getAnonymousId(req);
+    if (!userId && !anonymousId) {
+      return res.status(400).json({ error: 'Identifiant de panier invité invalide.' });
+    }
 
-    const cartId = await serverDb.saveCart(uid, anonId, items || []);
+    if (!Array.isArray(req.body?.items)) {
+      return res.status(400).json({ error: 'Le panier doit être un tableau d’articles.' });
+    }
+    const safeItems: { productId: string; variantId?: string; quantity: number }[] = [];
+    for (const item of req.body.items) {
+      if (!item || typeof item.productId !== 'string' || !item.productId.trim()) {
+        return res.status(400).json({ error: 'Article de panier invalide.' });
+      }
+      if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+        return res.status(400).json({ error: 'Quantité de panier invalide.' });
+      }
+      if (item.variantId !== undefined && (typeof item.variantId !== 'string' || !isUuid(item.variantId))) {
+        return res.status(400).json({ error: 'Identifiant de variante invalide.' });
+      }
+      safeItems.push({
+        productId: item.productId.trim(),
+        variantId: item.variantId,
+        quantity: item.quantity
+      });
+    }
+
+    const cartId = await serverDb.saveCart(userId, anonymousId, safeItems);
     res.json({ success: true, cartId });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Erreur lors de la sauvegarde du panier' });
+    res.status(500).json({ error: safeApiError(err, 'Erreur lors de la sauvegarde du panier') });
   }
 });
 
@@ -217,7 +520,9 @@ function getAppUrl(req: Request): string {
 }
 
 // Stripe Create Checkout Session Endpoint (Server Authoritative Pricing & Inventory Check)
-app.post('/api/stripe/create-checkout-session', async (req: Request, res: Response) => {
+app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000), async (req: Request, res: Response) => {
+  let persistedOrderId: string | undefined;
+  let stripeSessionCreated = false;
   try {
     let items = req.body.items;
     if ((!items || !Array.isArray(items) || items.length === 0) && (req.body.product_id || req.body.productId)) {
@@ -234,19 +539,70 @@ app.post('/api/stripe/create-checkout-session', async (req: Request, res: Respon
 
     console.log(`[Stripe Checkout] Demandée pour ${items.length} produit(s)`);
 
-    const email = req.body.customerEmail || 'client@kurla-beauty.com';
-    const uid = req.body.userId || (req.headers['x-user-id'] as string) || undefined;
+    const token = bearerToken(req);
+    const authenticatedUser = await authenticateRequest(req);
+    if (token && !authenticatedUser) {
+      return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
+    }
+
+    // A guest may provide an email for Stripe receipts, but an authenticated
+    // order always uses the email and id returned by Supabase Auth.
+    const submittedEmail = typeof req.body.customerEmail === 'string' ? req.body.customerEmail.trim() : '';
+    const email = authenticatedUser?.email || submittedEmail;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Une adresse email valide est requise pour le paiement.' });
+    }
+    const uid = authenticatedUser?.id;
+    const rawIdempotencyKey = req.headers['idempotency-key'] || req.body.checkoutIdempotencyKey;
+    const checkoutIdempotencyKey = typeof rawIdempotencyKey === 'string' ? rawIdempotencyKey.trim() : undefined;
+    if (checkoutIdempotencyKey && (checkoutIdempotencyKey.length < 8 || checkoutIdempotencyKey.length > 255)) {
+      return res.status(400).json({ error: 'Clé d’idempotence du checkout invalide.' });
+    }
+
     const stripe = getStripeClient();
+    if (!stripe) {
+      console.error('[Stripe Checkout Error] Stripe client non configuré (STRIPE_SECRET_KEY manquant)');
+      return res.status(400).json({
+        error: 'Paiement Stripe non configuré sur le serveur. La clé STRIPE_SECRET_KEY est manquante.'
+      });
+    }
+
+    if (checkoutIdempotencyKey) {
+      const existingOrder = await serverDb.findOrder({ checkoutIdempotencyKey });
+      if (existingOrder) {
+        if (!existingOrder.stripeSessionId) {
+          return res.status(409).json({ error: 'Un checkout avec cette clé est déjà en cours de création.' });
+        }
+        const existingSession = await stripe.checkout.sessions.retrieve(existingOrder.stripeSessionId);
+        return res.json({ sessionId: existingSession.id, url: existingSession.url });
+      }
+    }
+
     const appUrl = getAppUrl(req);
     const orderId = 'ORD-' + Math.random().toString(36).substring(2, 9).toUpperCase();
 
     // Verify product pricing & stock authoritatively against backend catalog (Database)
     const verifiedItems: any[] = [];
     let calculatedTotal = 0;
+    const requestedByVariant = new Map<string, number>();
 
     for (const rawItem of items) {
-      const pId = rawItem.product_id || rawItem.productId || rawItem.product?.id || rawItem.id;
-      const quantity = Math.max(1, Number(rawItem.quantity) || 1);
+      const pId = rawItem?.product_id || rawItem?.productId || rawItem?.product?.id || rawItem?.id;
+      const variantId = rawItem?.variant_id || rawItem?.variantId || '';
+      if (typeof pId !== 'string' || !pId.trim()) {
+        return res.status(400).json({ error: 'Article invalide dans le panier.' });
+      }
+
+      const parsedQuantity = Number(rawItem?.quantity);
+      if (!Number.isSafeInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 99) {
+        return res.status(400).json({ error: 'Quantité invalide dans le panier.' });
+      }
+      const quantity = parsedQuantity;
+      const requestedKey = `${pId}:${variantId}`;
+      requestedByVariant.set(requestedKey, (requestedByVariant.get(requestedKey) || 0) + quantity);
+      if ((requestedByVariant.get(requestedKey) || 0) > 99) {
+        return res.status(400).json({ error: 'La quantité totale demandée pour un article est trop élevée.' });
+      }
 
       const dbProduct = await serverDb.getProductById(pId);
       if (!dbProduct) {
@@ -260,10 +616,11 @@ app.post('/api/stripe/create-checkout-session', async (req: Request, res: Respon
       }
 
       const availableStock = await serverDb.getAvailableStock(dbProduct.id);
-      if (quantity > availableStock) {
-        console.error(`[Stripe Checkout Error] Stock insuffisant pour ${dbProduct.name} (${quantity}/${availableStock})`);
+      const requestedQuantity = requestedByVariant.get(requestedKey) || quantity;
+      if (requestedQuantity > availableStock) {
+        console.error(`[Stripe Checkout Error] Stock insuffisant pour ${dbProduct.name} (${requestedQuantity}/${availableStock})`);
         return res.status(400).json({
-          error: `Stock insuffisant pour "${dbProduct.name}". Quantité demandée : ${quantity}, Stock disponible : ${availableStock}.`
+          error: `Stock insuffisant pour "${dbProduct.name}". Quantité demandée : ${requestedQuantity}, Stock disponible : ${availableStock}.`
         });
       }
 
@@ -293,16 +650,10 @@ app.post('/api/stripe/create-checkout-session', async (req: Request, res: Respon
       total: Number(calculatedTotal.toFixed(2)),
       status: 'payment_pending_webhook',
       customerEmail: email,
+      checkoutIdempotencyKey,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    if (!stripe) {
-      console.error('[Stripe Checkout Error] Stripe client non configuré (STRIPE_SECRET_KEY manquant)');
-      return res.status(400).json({
-        error: 'Paiement Stripe non configuré sur le serveur. La clé STRIPE_SECRET_KEY est manquante.'
-      });
-    }
 
     const lineItems = verifiedItems.map((item) => ({
       price_data: {
@@ -316,6 +667,12 @@ app.post('/api/stripe/create-checkout-session', async (req: Request, res: Respon
       quantity: item.quantity,
     }));
 
+    // Persist and reserve stock before creating an external Stripe session.
+    // A failed Stripe call can then release the reservation through the order
+    // state machine instead of leaving an untracked checkout.
+    await serverDb.saveOrder(newOrder);
+    persistedOrderId = orderId;
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
@@ -327,47 +684,39 @@ app.post('/api/stripe/create-checkout-session', async (req: Request, res: Respon
       },
       success_url: `${appUrl}/account?order_success=true&session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
       cancel_url: `${appUrl}/boutique?canceled=true`,
-    });
+    }, checkoutIdempotencyKey ? { idempotencyKey: checkoutIdempotencyKey } : undefined);
+    stripeSessionCreated = true;
 
     console.log(`[Stripe Checkout] Session créée avec succès ID: ${session.id}, URL présente: ${!!session.url}`);
 
     newOrder.stripeSessionId = session.id;
-    await serverDb.saveOrder(newOrder);
+    await serverDb.updateOrderStripeSession(orderId, session.id);
 
     res.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     console.error('[Stripe Checkout Error]', error?.message || error);
-    res.status(500).json({ error: error?.message || 'Erreur lors de la création de la session de paiement' });
+    if (persistedOrderId && !stripeSessionCreated) {
+      try {
+        await serverDb.updateOrderStatus(persistedOrderId, 'payment_failed', {
+          changedByRole: 'system',
+          reason: 'Échec de création de la session Stripe'
+        });
+      } catch (releaseError: any) {
+        console.error('[Stripe Checkout Error] Impossible de libérer la réservation:', releaseError?.message || releaseError);
+      }
+    }
+    res.status(500).json({ error: safeApiError(error, 'Erreur lors de la création de la session de paiement') });
   }
 });
 
 // Authenticated Orders API Endpoint
-app.get('/api/orders', async (req: Request, res: Response) => {
-  const authHeader = req.headers['authorization'];
-  const userEmail = req.headers['x-user-email'] as string;
-  const userIdHeader = req.headers['x-user-id'] as string;
-  const adminKey = req.headers['x-admin-key'] as string;
+app.get('/api/orders', async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
 
-  // Admin access
-  if (adminKey === 'kurla2026' || authHeader === 'Bearer kurla_admin_secret') {
-    const orders = await serverDb.getOrdersByCustomer('', '');
-    return res.json({ orders });
-  }
-
-  let email = userEmail || '';
-  let userId = userIdHeader || '';
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.replace('Bearer ', '');
-    if (token.includes('@')) email = token;
-    else if (token.length > 5) userId = token;
-  }
-
-  if (!email && !userId) {
-    return res.status(401).json({ error: 'Authentification requise pour consulter les commandes.' });
-  }
-
-  const orders = await serverDb.getOrdersByCustomer(email, userId);
+  const orders = ADMIN_ROLES.includes(user.role)
+    ? await serverDb.getOrdersByCustomer('', '')
+    : await serverDb.getOrdersByCustomer(user.email, user.id);
   return res.json({ orders });
 });
 
@@ -406,7 +755,7 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 // Health check endpoint
-app.get('/api/health', async (req: Request, res: Response) => {
+app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const products = await serverDb.getProducts();
   res.json({
     status: 'ok',
@@ -417,13 +766,13 @@ app.get('/api/health', async (req: Request, res: Response) => {
     supabaseStatus: serverDb.getStatusSummary(),
     time: new Date().toISOString(),
   });
-});
+}));
 
 // Products API endpoint
-app.get('/api/products', async (req: Request, res: Response) => {
+app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const products = await serverDb.getProducts();
   res.json({ products });
-});
+}));
 
 // Real Available Catalog helper for AI Assistant
 async function getAvailableCatalog() {
@@ -441,7 +790,7 @@ async function getAvailableCatalog() {
 }
 
 // AI Endpoint: General Beauty Assistant Query
-app.post('/api/ai/assistant', async (req: Request, res: Response) => {
+app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), async (req: Request, res: Response) => {
   try {
     const { query } = req.body;
     if (!query || typeof query !== 'string') {
@@ -635,7 +984,7 @@ Règle absolue : Tu ne dois recommander QUE des produits figurant dans ce catalo
 });
 
 // AI Endpoint: Generate Routine Recommendation
-app.post('/api/ai/routine-result', async (req: Request, res: Response) => {
+app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), async (req: Request, res: Response) => {
   try {
     const { diagnosticType, answers } = req.body;
     const aiClient = getGeminiClient();
@@ -771,199 +1120,262 @@ Règle impérative : productHandles doit contenir UNIQUEMENT une liste de slugs 
 // PHASE 5 REST API ENDPOINTS
 // ============================================================
 
-// Helper to extract authenticated user details
-function getAuthUser(req: Request): { userId: string; email: string; isAdmin: boolean } {
-  const authHeader = req.headers['authorization'] as string;
-  const userEmail = (req.headers['x-user-email'] as string) || '';
-  const userIdHeader = (req.headers['x-user-id'] as string) || '';
-  const adminKey = req.headers['x-admin-key'] as string;
-
-  const isAdmin = adminKey === 'kurla2026' || authHeader === 'Bearer kurla_admin_secret';
-  let userId = userIdHeader;
-  let email = userEmail;
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.replace('Bearer ', '');
-    if (token.includes('@')) email = token;
-    else if (token.length > 5 && !isAdmin) userId = token;
-  }
-
-  return { userId, email, isAdmin };
+// Phase 5 private APIs: every identity comes from a verified Supabase token.
+// Never use x-user-id, x-user-email or x-admin-key here: all three are client
+// controlled and therefore unsuitable for authorization.
+async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promise<any | undefined> {
+  const tickets = ADMIN_ROLES.includes(user.role)
+    ? await serverDb.getAllSupportTickets()
+    : await serverDb.getSupportTicketsByUser(user.id);
+  return tickets.find(ticket => ticket.id === ticketId);
 }
 
 // 1. User Notifications API
-app.get('/api/notifications', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  const notifs = await serverDb.getNotifications(userId);
+app.get('/api/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const notifs = await serverDb.getNotifications(user.id);
   res.json({ notifications: notifs });
-});
+}));
 
-app.post('/api/notifications/:id/read', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  const notifId = req.params.id;
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  await serverDb.markNotificationRead(notifId, userId);
+app.post('/api/notifications/:id/read', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  await serverDb.markNotificationRead(req.params.id, user.id);
   res.json({ success: true });
-});
+}));
 
-app.delete('/api/notifications/:id', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  const notifId = req.params.id;
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  await serverDb.deleteNotification(notifId, userId);
+app.delete('/api/notifications/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  await serverDb.deleteNotification(req.params.id, user.id);
   res.json({ success: true });
-});
+}));
 
 // 2. Notification Preferences API
-app.get('/api/notification-preferences', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  const prefs = await serverDb.getNotificationPreferences(userId);
+app.get('/api/notification-preferences', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const prefs = await serverDb.getNotificationPreferences(user.id);
   res.json({ preferences: prefs });
-});
+}));
 
-app.post('/api/notification-preferences', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  const updated = await serverDb.updateNotificationPreferences(userId, req.body);
+app.post('/api/notification-preferences', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const allowedFields = ['emailNotifications', 'marketingEmails', 'inAppNotifications'];
+  const prefs: Record<string, boolean> = {};
+  for (const field of allowedFields) {
+    if (typeof req.body?.[field] === 'boolean') prefs[field] = req.body[field];
+  }
+
+  const updated = await serverDb.updateNotificationPreferences(user.id, prefs);
   res.json({ preferences: updated });
-});
+}));
 
-// 3. Shipments API
-app.get('/api/shipments/:orderId', async (req: Request, res: Response) => {
-  const orderId = req.params.orderId;
-  const shipment = await serverDb.getShipmentByOrderId(orderId);
+// 3. Shipments API: an order id is not a capability. Check order ownership first.
+app.get('/api/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const order = await getOwnedOrder(req.params.orderId, user);
+  if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+
+  const shipment = await serverDb.getShipmentByOrderId(order.id);
   res.json({ shipment: shipment || null });
-});
+}));
 
 // 4. Returns & Refunds API
-app.post('/api/returns', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  const { orderId, reason, items, comment } = req.body;
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  if (!orderId || !reason || !items) return res.status(400).json({ error: 'Données manquantes pour le retour' });
+app.post('/api/returns', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const { orderId, reason, items, comment } = req.body || {};
+  if (typeof orderId !== 'string' || typeof reason !== 'string' || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Données manquantes pour le retour.' });
+  }
+
+  const order = await getOwnedOrder(orderId, user);
+  if (!order || order.userId !== user.id) {
+    return res.status(404).json({ error: 'Commande introuvable.' });
+  }
 
   try {
-    const ret = await serverDb.createReturnRequest(userId, orderId, reason, items, comment);
+    const ret = await serverDb.createReturnRequest(user.id, order.id, reason.trim(), items, typeof comment === 'string' ? comment.trim() : undefined);
     res.json({ returnRequest: ret });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeApiError(err, 'Impossible de créer la demande de retour.') });
   }
-});
+}));
 
-app.get('/api/returns', async (req: Request, res: Response) => {
-  const { userId, isAdmin } = getAuthUser(req);
-  if (isAdmin) {
+app.get('/api/returns', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  if (ADMIN_ROLES.includes(user.role)) {
     const allReturns = await serverDb.getAllReturns();
     return res.json({ returns: allReturns });
   }
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  const userReturns = await serverDb.getReturnsByUser(userId);
+  const userReturns = await serverDb.getReturnsByUser(user.id);
   res.json({ returns: userReturns });
-});
+}));
 
-app.post('/api/admin/returns/:id/status', async (req: Request, res: Response) => {
-  const { isAdmin } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
-  const { status, adminComment } = req.body;
-  const ret = await serverDb.updateReturnStatus(req.params.id, status, adminComment);
-  res.json({ returnRequest: ret });
-});
+app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { status, adminComment } = req.body || {};
+  const allowedStatuses = ['requested', 'approved', 'rejected', 'received', 'refunded', 'cancelled'];
+  if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Statut de retour invalide.' });
+  }
 
-app.post('/api/admin/refunds', async (req: Request, res: Response) => {
-  const { isAdmin } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
-  const { orderId, returnId, amount, reason } = req.body;
   try {
-    const refund = await serverDb.processStripeRefund(orderId, returnId, amount, reason);
+    const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined);
+    if (!ret) return res.status(404).json({ error: 'Demande de retour introuvable.' });
+    res.json({ returnRequest: ret });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le statut du retour.') });
+  }
+}));
+
+app.post('/api/admin/refunds', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { orderId, returnId, amount, reason, idempotencyKey: bodyIdempotencyKey } = req.body || {};
+  if (typeof orderId !== 'string' || (amount !== undefined && (!Number.isFinite(amount) || amount <= 0))) {
+    return res.status(400).json({ error: 'Paramètres de remboursement invalides.' });
+  }
+
+  const headerIdempotencyKey = req.headers['idempotency-key'];
+  const idempotencyKey = typeof headerIdempotencyKey === 'string'
+    ? headerIdempotencyKey
+    : typeof bodyIdempotencyKey === 'string' ? bodyIdempotencyKey : undefined;
+  if (idempotencyKey && (idempotencyKey.length < 8 || idempotencyKey.length > 255)) {
+    return res.status(400).json({ error: 'Clé d’idempotence invalide.' });
+  }
+
+  try {
+    const refund = await serverDb.processStripeRefund(
+      orderId,
+      typeof returnId === 'string' ? returnId : undefined,
+      amount,
+      typeof reason === 'string' && reason.trim() ? reason.trim() : undefined,
+      idempotencyKey
+    );
     res.json({ refund });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: safeApiError(err, 'Impossible de traiter le remboursement.') });
   }
-});
+}));
 
 // 5. Customer Support Tickets API
-app.get('/api/support/tickets', async (req: Request, res: Response) => {
-  const { userId, isAdmin } = getAuthUser(req);
-  if (isAdmin) {
-    const allTickets = await serverDb.getAllSupportTickets();
-    return res.json({ tickets: allTickets });
-  }
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  const tickets = await serverDb.getSupportTicketsByUser(userId);
+app.get('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const tickets = ADMIN_ROLES.includes(user.role)
+    ? await serverDb.getAllSupportTickets()
+    : await serverDb.getSupportTicketsByUser(user.id);
   res.json({ tickets });
-});
+}));
 
-app.post('/api/support/tickets', async (req: Request, res: Response) => {
-  const { userId } = getAuthUser(req);
-  const { orderId, category, subject, message } = req.body;
-  if (!userId) return res.status(401).json({ error: 'Non authentifié' });
-  if (!category || !subject || !message) return res.status(400).json({ error: 'Paramètres manquants' });
+app.post('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { orderId, category, subject, message } = req.body || {};
+  if (typeof category !== 'string' || typeof subject !== 'string' || typeof message !== 'string' || !category.trim() || !subject.trim() || !message.trim()) {
+    return res.status(400).json({ error: 'Paramètres manquants.' });
+  }
 
-  const ticket = await serverDb.createSupportTicket(userId, orderId, category, subject, message);
+  if (orderId !== undefined) {
+    if (typeof orderId !== 'string') return res.status(400).json({ error: 'Commande invalide.' });
+    const order = await getOwnedOrder(orderId, user);
+    if (!order || order.userId !== user.id) return res.status(404).json({ error: 'Commande introuvable.' });
+  }
+
+  const ticket = await serverDb.createSupportTicket(
+    user.id,
+    typeof orderId === 'string' ? orderId : undefined,
+    category as any,
+    subject.trim(),
+    message.trim()
+  );
   res.json({ ticket });
-});
+}));
 
-app.get('/api/support/tickets/:id/messages', async (req: Request, res: Response) => {
-  const { userId, isAdmin } = getAuthUser(req);
-  const ticketId = req.params.id;
-  const messages = await serverDb.getSupportMessages(ticketId);
+app.get('/api/support/tickets/:id/messages', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const ticket = await getOwnedTicket(req.params.id, user);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+
+  const messages = await serverDb.getSupportMessages(ticket.id);
   res.json({ messages });
-});
+}));
 
-app.post('/api/support/tickets/:id/messages', async (req: Request, res: Response) => {
-  const { userId, isAdmin } = getAuthUser(req);
-  const ticketId = req.params.id;
-  const { message } = req.body;
+app.post('/api/support/tickets/:id/messages', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const ticket = await getOwnedTicket(req.params.id, user);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
 
-  if (!message) return res.status(400).json({ error: 'Message vide' });
-  const role = isAdmin ? 'admin' : 'customer';
-  const msg = await serverDb.addSupportMessage(ticketId, userId || 'admin', role, message);
+  const message = req.body?.message;
+  if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ error: 'Message vide.' });
+  const isAdmin = ADMIN_ROLES.includes(user.role);
+  const msg = await serverDb.addSupportMessage(ticket.id, user.id, isAdmin ? 'admin' : 'customer', message.trim());
   res.json({ message: msg });
-});
+}));
 
-app.post('/api/admin/support/tickets/:id/status', async (req: Request, res: Response) => {
-  const { isAdmin } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
-  const { status } = req.body;
-  await serverDb.updateSupportTicketStatus(req.params.id, status);
+app.post('/api/admin/support/tickets/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { status } = req.body || {};
+  const allowedStatuses = ['open', 'in_progress', 'resolved', 'closed'];
+  if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Statut de ticket invalide.' });
+  }
+
+  const ticket = await getOwnedTicket(req.params.id, admin);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  await serverDb.updateSupportTicketStatus(ticket.id, status as any);
   res.json({ success: true });
-});
+}));
 
 // 6. Admin Order Status & Audit Trail API
-app.post('/api/admin/orders/:id/status', async (req: Request, res: Response) => {
-  const { isAdmin, userId } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
+app.post('/api/admin/orders/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const orderId = req.params.id;
-  const { status, reason } = req.body;
+  const { status, reason } = req.body || {};
+  if (typeof status !== 'string') return res.status(400).json({ error: 'Statut de commande invalide.' });
 
   try {
-    const updated = await serverDb.updateOrderStatus(orderId, status, {
-      changedBy: userId || 'admin',
-      changedByRole: 'admin',
-      reason: reason || `Mise à jour statut admin vers ${status}`
+    const updated = await serverDb.updateOrderStatus(orderId, status as any, {
+      changedBy: admin.id,
+      changedByRole: admin.role,
+      reason: typeof reason === 'string' && reason.trim() ? reason.trim() : `Mise à jour statut admin vers ${status}`
     });
+    if (!updated) return res.status(404).json({ error: 'Commande introuvable.' });
     res.json({ order: updated });
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le statut.') });
   }
-});
+}));
 
-app.get('/api/admin/orders/:id/history', async (req: Request, res: Response) => {
-  const { isAdmin } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
+app.get('/api/admin/orders/:id/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const history = await serverDb.getOrderStatusHistory(req.params.id);
   res.json({ history });
-});
+}));
 
 // 7. Admin Real Dashboard Analytics API
-app.get('/api/admin/metrics', async (req: Request, res: Response) => {
-  const { isAdmin } = getAuthUser(req);
-  if (!isAdmin) return res.status(403).json({ error: 'Accès administrateur requis' });
+app.get('/api/admin/metrics', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const metrics = await serverDb.getAdminAnalyticsMetrics();
   res.json({ metrics });
-});
+}));
 
 // AI Endpoint: Support Assistant Draft
 app.post('/api/ai/support-draft', async (req: Request, res: Response) => {
@@ -988,8 +1400,71 @@ app.post('/api/ai/support-draft', async (req: Request, res: Response) => {
   }
 });
 
+// Last-resort error boundary for async routes. Critical database errors are
+// logged and returned as 5xx instead of being converted into fake success.
+app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req as Request & { requestId?: string }).requestId;
+  console.error(JSON.stringify({
+    event: 'http_unhandled_error',
+    requestId,
+    method: req.method,
+    path: req.path,
+    error: error?.message || String(error)
+  }));
+  if (res.headersSent) return next(error);
+
+  if (error?.type === 'entity.too.large' || error?.status === 413) {
+    return res.status(413).json({ error: 'Requête trop volumineuse.' });
+  }
+  if (error?.type === 'entity.parse.failed' || error?.status === 400) {
+    return res.status(400).json({ error: 'Corps de requête JSON invalide.' });
+  }
+  res.status(500).json({
+    error: 'Erreur interne du serveur. Aucune opération critique n’a été confirmée.',
+    requestId
+  });
+});
+
 // Mount Vite middleware in dev or static files in production
+function assertProductionConfiguration(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const missing: string[] = [];
+  if (!isSupabaseServerConfigured()) {
+    missing.push('SUPABASE_URL + SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY)');
+  }
+  if (!process.env.STRIPE_SECRET_KEY) missing.push('STRIPE_SECRET_KEY');
+  if (process.env.STRIPE_WEBHOOK_ENABLED !== 'true' || !process.env.STRIPE_WEBHOOK_SECRET) {
+    missing.push('STRIPE_WEBHOOK_ENABLED=true + STRIPE_WEBHOOK_SECRET');
+  }
+
+  const appUrl = process.env.VITE_APP_URL;
+  try {
+    const parsedAppUrl = appUrl ? new URL(appUrl) : null;
+    if (!parsedAppUrl || parsedAppUrl.protocol !== 'https:' || !parsedAppUrl.hostname) {
+      missing.push('VITE_APP_URL HTTPS publique');
+    }
+  } catch {
+    missing.push('VITE_APP_URL HTTPS publique');
+  }
+
+  const emailProvider = (process.env.EMAIL_PROVIDER || 'console').toLowerCase();
+  if (!['resend', 'sendgrid', 'postmark'].includes(emailProvider) || !process.env.EMAIL_PROVIDER_API_KEY) {
+    missing.push('EMAIL_PROVIDER réel (resend/sendgrid/postmark) + EMAIL_PROVIDER_API_KEY');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[KURLA Startup] Configuration production incomplète. Variables requises : ${missing.join(', ')}. ` +
+      'Le serveur ne démarre pas en production avec un stockage, un paiement, un webhook ou un fournisseur email non configuré.'
+    );
+  }
+}
+
 async function startServer() {
+  assertProductionConfiguration();
+  await serverInitialization;
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -1005,9 +1480,43 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[KURLA Beauty Server] Listening on http://0.0.0.0:${PORT}`);
   });
+
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[KURLA Beauty Server] ${signal} reçu, arrêt gracieux en cours.`);
+    const forceExit = setTimeout(() => {
+      console.error('[KURLA Beauty Server] Arrêt forcé après expiration du délai.');
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+
+    httpServer.close(error => {
+      clearTimeout(forceExit);
+      if (error) {
+        console.error('[KURLA Beauty Server] Erreur pendant l’arrêt:', error);
+        process.exit(1);
+      }
+      console.log('[KURLA Beauty Server] Arrêt terminé.');
+      process.exit(0);
+    });
+  };
+
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 }
 
-startServer();
+// Export the Express app for HTTP authorization tests without starting a
+// second listener. Production/dev execution still starts normally.
+export { app };
+
+if (process.env.KURLA_TEST_NO_SERVER !== 'true') {
+  startServer().catch(error => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

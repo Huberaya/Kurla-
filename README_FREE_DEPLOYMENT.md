@@ -9,7 +9,7 @@ Ce document explique comment exécuter et déployer l'application **KURLA Beauty
 L'application est configurée pour fonctionner de manière autonome sur votre machine avec **React + Vite + Express + Supabase + Stripe (mode test)**.
 
 ### Prérequis
-- Node.js v18+ 
+- Node.js v22+ (requis par la version actuelle de `@supabase/supabase-js`)
 - npm / npx
 
 ### Lancement du serveur dev
@@ -78,10 +78,47 @@ Pour héberger l'application en ligne gratuitement sans carte bancaire ni frais 
 
 ---
 
-## 🧪 6. Exécution des Tests Automatisés Supabase
+## 🧪 6. Tests locaux et intégration réelle Supabase
 
-Pour vérifier les migrations SQL et les règles RLS multi-utilisateurs (Compte A vs Compte B) :
+Les vérifications locales et les tests HTTP négatifs peuvent être lancés sans secret :
 
 ```bash
 npm test
+npm run test:authorization
 ```
+
+Le serveur refuse de démarrer avec `NODE_ENV=production` si `SUPABASE_URL` et une clé secrète serveur (`SUPABASE_SECRET_KEY` ou `SUPABASE_SERVICE_ROLE_KEY`) sont absentes.
+
+Après avoir appliqué les migrations Supabase dans l'ordre, le test A/B réel crée temporairement deux clients et un administrateur, vérifie leurs JWT, l'isolation des commandes/tickets/expéditions/retours, puis supprime les comptes de test :
+
+```bash
+npm run test:integration
+```
+
+Cette commande exige un projet Supabase de test avec `SUPABASE_URL`, une clé service côté serveur et une clé publique d'authentification. Ne placez jamais ces valeurs dans Git.
+
+Les remboursements administrateur appellent Stripe côté serveur avec une clé d’idempotence. La migration `20260827000000_refund_integrity.sql` doit être appliquée avant d’activer ce flux : elle protège le ledger et la restauration du stock contre les doubles traitements.
+
+Le panier et le checkout utilisent également la migration `20260828000000_cart_order_integrity.sql`, qui ajoute les paniers canoniques, les politiques RLS, la réservation atomique du stock et l’idempotence des créations de checkout.
+
+Les opérations métier utilisent enfin `20260829000000_operations_integrity.sql`. Appliquez-la après les migrations précédentes : elle déduplique les expéditions existantes en conservant leurs événements de suivi, impose une seule expédition par commande et élargit la contrainte des types de notifications aux statuts réellement émis par le serveur. Les nouveaux retours, tickets, messages, notifications et expéditions reçoivent des UUID compatibles avec Supabase.
+
+### Durcissement production
+
+- Le serveur désactive le fingerprint Express, ajoute des en-têtes de sécurité, corrèle les erreurs avec `X-Request-Id` et limite les corps JSON à 100 ko (webhook brut à 256 ko).
+- Les API sont protégées par un rate limit local ; un rate limit partagé au niveau du proxy/CDN reste recommandé en multi-instance. Définir `TRUST_PROXY=true` uniquement derrière un reverse proxy maîtrisé pour obtenir l’IP client réelle.
+- Les origines frontend séparées peuvent être autorisées avec `CORS_ORIGIN` (liste séparée par des virgules). Sans cette variable, aucune origine cross-site n’est ajoutée.
+- En production, le serveur refuse de démarrer sans Supabase serveur, Stripe + webhook signé, URL publique HTTPS et fournisseur email réel.
+- `EMAIL_PROVIDER=console` est strictement réservé au développement. Les providers `resend`, `sendgrid` et `postmark` utilisent leurs API avec timeout de 10 secondes ; Stripe utilise un timeout de 15 secondes et des retries réseau bornés.
+
+## 🔐 7. Rotation des secrets exposés
+
+Les anciennes clés ou mots de passe présents dans l'historique public doivent être considérés comme compromis. Depuis les consoles Supabase, GitHub et de l'hébergeur :
+
+1. révoquez les anciennes clés ;
+2. générez de nouvelles clés ;
+3. mettez à jour uniquement les variables d'environnement serveur ;
+4. vérifiez les logs et les secrets CI/CD ;
+5. activez la MFA sur les comptes administrateurs.
+
+Le dépôt ne peut pas effectuer ces révocations à votre place.

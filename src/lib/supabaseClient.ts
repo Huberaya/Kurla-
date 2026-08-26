@@ -1,27 +1,54 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Environment variables configuration
-const VITE_SUPABASE_URL = typeof import.meta !== 'undefined' && import.meta.env
-  ? import.meta.env.VITE_SUPABASE_URL
-  : process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+function readNodeEnv(name: string): string | undefined {
+  return typeof process !== 'undefined' ? process.env[name] : undefined;
+}
 
-const VITE_SUPABASE_ANON_KEY = typeof import.meta !== 'undefined' && import.meta.env
-  ? (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY)
-  : (process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+function readViteEnv(name: string): string | undefined {
+  return typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env[name]
+    : undefined;
+}
 
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_URL = process.env.SUPABASE_URL || VITE_SUPABASE_URL;
+function getClientUrl(): string | undefined {
+  return readViteEnv('VITE_SUPABASE_URL') || readNodeEnv('VITE_SUPABASE_URL') || readNodeEnv('SUPABASE_URL');
+}
 
-export const isSupabaseConfigured = Boolean(
-  (SUPABASE_URL || VITE_SUPABASE_URL) && (SUPABASE_SECRET_KEY || VITE_SUPABASE_ANON_KEY)
-);
+function getPublicKey(): string | undefined {
+  return readViteEnv('VITE_SUPABASE_PUBLISHABLE_KEY')
+    || readViteEnv('VITE_SUPABASE_ANON_KEY')
+    || readNodeEnv('VITE_SUPABASE_PUBLISHABLE_KEY')
+    || readNodeEnv('VITE_SUPABASE_ANON_KEY')
+    || readNodeEnv('SUPABASE_ANON_KEY');
+}
 
-// Client-side Supabase client (Uses anon/publishable key only)
+function getServerUrl(): string | undefined {
+  return readNodeEnv('SUPABASE_URL') || readNodeEnv('VITE_SUPABASE_URL') || readViteEnv('VITE_SUPABASE_URL');
+}
+
+function getServerSecret(): string | undefined {
+  return readNodeEnv('SUPABASE_SECRET_KEY') || readNodeEnv('SUPABASE_SERVICE_ROLE_KEY');
+}
+
+/**
+ * Client configuration is intentionally separate from server configuration.
+ * A public VITE key is safe for the browser, but it must never be used by the
+ * privileged server store or token verifier as a silent fallback.
+ */
+export function isSupabaseConfigured(): boolean {
+  return Boolean(getClientUrl() && getPublicKey());
+}
+
+export function isSupabaseServerConfigured(): boolean {
+  return Boolean(getServerUrl() && getServerSecret());
+}
+
+// Client-side Supabase client (public anon/publishable key only)
 let clientInstance: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient | null {
   if (!clientInstance) {
-    const url = VITE_SUPABASE_URL || SUPABASE_URL;
-    const key = VITE_SUPABASE_ANON_KEY;
+    const url = getClientUrl();
+    const key = getPublicKey();
     if (url && key) {
       clientInstance = createClient(url, key);
     }
@@ -29,20 +56,33 @@ export function getSupabaseClient(): SupabaseClient | null {
   return clientInstance;
 }
 
-// Server-side Supabase client (Uses secret/service_role key for backend operations)
+// Server-side Supabase client (privileged operations only).
+// Never fall back to an exposed VITE/anon key here: a missing secret must put
+// server persistence in an explicit offline mode, not in a half-authorized mode.
 let serverInstance: SupabaseClient | null = null;
 export function getSupabaseServerClient(): SupabaseClient | null {
-  if (!serverInstance) {
-    const url = SUPABASE_URL || VITE_SUPABASE_URL;
-    const key = SUPABASE_SECRET_KEY || VITE_SUPABASE_ANON_KEY;
-    if (url && key) {
-      serverInstance = createClient(url, key, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
-    }
+  if (!serverInstance && isSupabaseServerConfigured()) {
+    serverInstance = createClient(getServerUrl()!, getServerSecret()!, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
   }
   return serverInstance;
+}
+
+// Dedicated verifier for request bearer tokens. `auth.getUser(token)` asks
+// Supabase Auth to validate the JWT instead of trusting user supplied headers.
+let authVerifierInstance: SupabaseClient | null = null;
+export function getSupabaseAuthVerifier(): SupabaseClient | null {
+  if (!authVerifierInstance && isSupabaseServerConfigured()) {
+    authVerifierInstance = createClient(getServerUrl()!, getServerSecret()!, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  }
+  return authVerifierInstance;
 }

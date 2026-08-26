@@ -8,6 +8,7 @@ import path from 'path';
 
 export interface SecurityCheckReport {
   category: string;
+  simulated?: boolean;
   checks: { item: string; passed: boolean; details: string }[];
 }
 
@@ -169,12 +170,15 @@ export function runMultiUserSimulationTests() {
       {
         item: 'Erreurs de sécurité ou vulnérabilités RLS restantes',
         passed: true,
-        details: '0 erreur restante. Toutes les vulnérabilités RLS et privilèges SECURITY DEFINER sont comblés.'
+        details: 'Simulation locale uniquement ; une validation avec deux JWT Supabase réels est requise avant de conclure.'
       }
     ]
   };
 
-  return [testCompteA, testCompteB, protectionAdmin, erreursRestantes];
+  return [testCompteA, testCompteB, protectionAdmin, erreursRestantes].map(report => ({
+    ...report,
+    simulated: true
+  }));
 }
 
 async function runStandaloneVerifications() {
@@ -189,7 +193,7 @@ async function runStandaloneVerifications() {
   for (const report of allReports) {
     console.log(`--- ${report.category.toUpperCase()} ---`);
     for (const check of report.checks) {
-      const status = check.passed ? '[PASS]' : '[FAIL]';
+      const status = report.simulated ? '[SIMULATION]' : (check.passed ? '[PASS]' : '[FAIL]');
       console.log(`${status} ${check.item}: ${check.details}`);
     }
     console.log('');

@@ -17,6 +17,7 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   const userB = 'user_b_phase5_' + Date.now();
   const emailA = 'user.a@kurla.com';
   const orderId = 'ORD-P5-' + Date.now();
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   // Test 1: Création commande & 1er statut
   try {
@@ -53,8 +54,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     results.push({
       testId: 2,
       testName: 'Notification et log email transactionnel',
-      passed: notif.id.length > 0 && emailResult.success,
-      details: `Notification in-app créée (#${notif.id}) et email provider (${emailService.getProviderName()}) loggé.`
+      passed: uuidPattern.test(notif.id) && emailResult.success,
+      details: `Notification in-app créée avec UUID (#${notif.id}) et email provider (${emailService.getProviderName()}) loggé.`
     });
   } catch (err: any) {
     results.push({ testId: 2, testName: 'Notification et log email transactionnel', passed: false, details: err.message });
@@ -128,8 +129,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     results.push({
       testId: 6,
       testName: 'Statut SHIPPED avec suivi transporteur',
-      passed: !!shipment?.trackingNumber && shipment.trackingNumber.length > 0 && shipment.carrier === 'colissimo',
-      details: `Expédié via ${shipment.carrier} N°: ${shipment.trackingNumber} (${shipment.trackingUrl}).`
+      passed: !!shipment?.trackingNumber && shipment.trackingNumber.length > 0 && shipment.carrier === 'colissimo' && uuidPattern.test(shipment.id),
+      details: `Expédié via ${shipment.carrier} avec UUID ${shipment.id}, N°: ${shipment.trackingNumber} (${shipment.trackingUrl}).`
     });
   } catch (err: any) {
     results.push({ testId: 6, testName: 'Statut SHIPPED avec suivi transporteur', passed: false, details: err.message });
@@ -170,14 +171,15 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
 
   // Test 9: Demande de retour par le client
   let returnId = '';
+  let refundIdForRetry = '';
   try {
     const ret = await serverDb.createReturnRequest(userA, orderId, 'Produit non adapté', [{ productId: 'leave-in-hydratant', quantity: 1 }]);
     returnId = ret.id;
     results.push({
       testId: 9,
       testName: 'Demande de retour client',
-      passed: ret.status === 'requested' && ret.quantity === 1,
-      details: `Demande de retour #${ret.id} enregistrée.`
+      passed: ret.status === 'requested' && ret.quantity === 1 && uuidPattern.test(ret.id),
+      details: `Demande de retour #${ret.id} enregistrée avec UUID valide.`
     });
   } catch (err: any) {
     results.push({ testId: 9, testName: 'Demande de retour client', passed: false, details: err.message });
@@ -201,23 +203,24 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     const pBefore = await serverDb.getProductById('leave-in-hydratant');
     const qBefore = pBefore?.stockQuantity || 0;
 
-    const ref = await serverDb.processStripeRefund(orderId, returnId, 48, 'Retour approuvé');
+    const ref = await serverDb.processStripeRefund(orderId, returnId, 24, 'Retour approuvé');
 
+    refundIdForRetry = ref.stripeRefundId || '';
     const pAfter = await serverDb.getProductById('leave-in-hydratant');
     const qAfter = pAfter?.stockQuantity || 0;
 
     results.push({
       testId: 11,
       testName: 'Remboursement Stripe test & réintégration du stock',
-      passed: ref.status === 'succeeded' && qAfter >= qBefore,
-      details: `Remboursement #${ref.id} émis (${ref.amount} EUR), stock restauré à ${qAfter}.`
+      passed: ref.status === 'succeeded' && qAfter === qBefore + 1,
+      details: `Remboursement #${ref.id} émis (${ref.amount} EUR), une unité restaurée (${qBefore} -> ${qAfter}).`
     });
 
     results.push({
       testId: 12,
       testName: 'Enregistrement de la transaction de remboursement',
-      passed: ref.stripeRefundId !== undefined && ref.amount === 48,
-      details: `Transaction Stripe enregistrée avec ID #${ref.stripeRefundId}.`
+      passed: ref.stripeRefundId !== undefined && ref.amount === 24 && ref.stockRestored === true,
+      details: `Transaction Stripe enregistrée avec ID #${ref.stripeRefundId}, stockRestored=${ref.stockRestored}.`
     });
   } catch (err: any) {
     results.push({ testId: 11, testName: 'Remboursement Stripe test & réintégration du stock', passed: false, details: err.message });
@@ -232,8 +235,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     results.push({
       testId: 13,
       testName: 'Création ticket support client',
-      passed: ticket.status === 'open' && ticket.subjectCategory === 'livraison',
-      details: `Ticket support #${ticket.id} créé.`
+      passed: ticket.status === 'open' && ticket.subjectCategory === 'livraison' && uuidPattern.test(ticket.id),
+      details: `Ticket support #${ticket.id} créé avec UUID valide.`
     });
   } catch (err: any) {
     results.push({ testId: 13, testName: 'Création ticket support client', passed: false, details: err.message });
@@ -245,8 +248,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     results.push({
       testId: 14,
       testName: 'Message client sur ticket support',
-      passed: msg.senderRole === 'customer',
-      details: `Message client ajouté à #${ticketId}.`
+      passed: msg.senderRole === 'customer' && uuidPattern.test(msg.id),
+      details: `Message client ${msg.id} ajouté à #${ticketId}.`
     });
   } catch (err: any) {
     results.push({ testId: 14, testName: 'Message client sur ticket support', passed: false, details: err.message });
@@ -340,6 +343,115 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     });
   } catch (err: any) {
     results.push({ testId: 20, testName: 'Calcul métriques analytics tableau de bord commercial', passed: false, details: err.message });
+  }
+
+  // Test 21: Retry idempotent d'un remboursement déjà traité
+  try {
+    const pBeforeRetry = await serverDb.getProductById('leave-in-hydratant');
+    const retry = await serverDb.processStripeRefund(orderId, returnId, 24, 'Retour approuvé');
+    const pAfterRetry = await serverDb.getProductById('leave-in-hydratant');
+    results.push({
+      testId: 21,
+      testName: 'Idempotence du remboursement et absence de double restauration',
+      passed: retry.stripeRefundId === refundIdForRetry && pAfterRetry?.stockQuantity === pBeforeRetry?.stockQuantity,
+      details: `Retry réutilise le remboursement ${retry.stripeRefundId} sans modifier à nouveau le stock.`
+    });
+  } catch (err: any) {
+    results.push({ testId: 21, testName: 'Idempotence du remboursement et absence de double restauration', passed: false, details: err.message });
+  }
+
+  // Test 22: Webhook de remboursement final après un remboursement partiel
+  try {
+    const pBeforeWebhook = await serverDb.getProductById('leave-in-hydratant');
+    const qBeforeWebhook = pBeforeWebhook?.stockQuantity || 0;
+    const webhookRefund = await serverDb.recordStripeRefundFromWebhook(orderId, {
+      eventId: `evt-refund-${Date.now()}`,
+      stripeRefundId: `re_webhook_${Date.now()}`,
+      amount: 48,
+      currency: 'EUR'
+    });
+    const pAfterWebhook = await serverDb.getProductById('leave-in-hydratant');
+    const qAfterWebhook = pAfterWebhook?.stockQuantity || 0;
+    const duplicateWebhook = await serverDb.recordStripeRefundFromWebhook(orderId, {
+      eventId: `evt-refund-${Date.now() - 1}`,
+      stripeRefundId: webhookRefund.stripeRefundId,
+      amount: 48,
+      currency: 'EUR'
+    });
+    const pAfterDuplicateWebhook = await serverDb.getProductById('leave-in-hydratant');
+    const qAfterDuplicateWebhook = pAfterDuplicateWebhook?.stockQuantity || 0;
+    results.push({
+      testId: 22,
+      testName: 'Webhook final et restauration résiduelle idempotente',
+      passed: webhookRefund.status === 'succeeded'
+        && qAfterWebhook === qBeforeWebhook + 1
+        && duplicateWebhook.stripeRefundId === webhookRefund.stripeRefundId
+        && qAfterDuplicateWebhook === qAfterWebhook,
+      details: `status=${webhookRefund.status}, stock=${qBeforeWebhook}->${qAfterWebhook}->${qAfterDuplicateWebhook}, refund=${webhookRefund.stripeRefundId}, duplicate=${duplicateWebhook.stripeRefundId}.`
+    });
+  } catch (err: any) {
+    results.push({ testId: 22, testName: 'Webhook final et restauration résiduelle idempotente', passed: false, details: err.message });
+  }
+
+  // Test 23: Validation ownership and quantities on return requests
+  try {
+    const validationOrderId = `ORD-P5-VALIDATION-${Date.now()}`;
+    await serverDb.saveOrder({
+      id: validationOrderId,
+      userId: userA,
+      customerEmail: emailA,
+      items: [{ productId: 'leave-in-hydratant', quantity: 2, price: 24, name: 'Leave-In Hydratant' }],
+      total: 48,
+      status: 'delivered',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    let ownerRejected = false;
+    let quantityRejected = false;
+    try {
+      await serverDb.createReturnRequest(userB, validationOrderId, 'Produit non adapté', [{ productId: 'leave-in-hydratant', quantity: 1 }]);
+    } catch {
+      ownerRejected = true;
+    }
+    try {
+      await serverDb.createReturnRequest(userA, validationOrderId, 'Produit non adapté', [{ productId: 'leave-in-hydratant', quantity: 3 }]);
+    } catch {
+      quantityRejected = true;
+    }
+
+    results.push({
+      testId: 23,
+      testName: 'Validation propriétaire et quantités des retours',
+      passed: ownerRejected && quantityRejected,
+      details: `Accès d’un autre utilisateur rejeté=${ownerRejected}, quantité supérieure à la commande rejetée=${quantityRejected}.`
+    });
+  } catch (err: any) {
+    results.push({ testId: 23, testName: 'Validation propriétaire et quantités des retours', passed: false, details: err.message });
+  }
+
+  // Test 24: Une commande ne conserve qu’une expédition courante
+  try {
+    const first = await serverDb.upsertShipment({
+      id: `legacy-shipment-${Date.now()}`,
+      orderId,
+      userId: userA,
+      carrier: 'colissimo',
+      method: 'Colissimo Domicile',
+      price: 4.90,
+      trackingNumber: 'COLISSIMO-UPDATED',
+      trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois',
+      status: 'in_transit'
+    });
+    const current = await serverDb.getShipmentByOrderId(orderId);
+    results.push({
+      testId: 24,
+      testName: 'Unicité de l’expédition par commande',
+      passed: uuidPattern.test(first.id) && current?.id === first.id && current.trackingNumber === 'COLISSIMO-UPDATED',
+      details: `Expédition courante unique pour #${orderId}, UUID=${current?.id}.`
+    });
+  } catch (err: any) {
+    results.push({ testId: 24, testName: 'Unicité de l’expédition par commande', passed: false, details: err.message });
   }
 
   return results;

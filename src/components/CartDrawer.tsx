@@ -20,7 +20,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onCheckout
 }) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
@@ -49,11 +49,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           items: payloadItems,
-          customerEmail: user?.email || 'client@kurla-beauty.com',
-          userId: user?.id
+          customerEmail: user?.email || 'client@kurla-beauty.com'
         })
       });
 

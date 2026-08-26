@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('kurla_admin_session') === 'active_kurla_2026';
-  });
-  const [passwordInput, setPasswordInput] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const { user, profile, session, signOut } = useAuth();
+  const isAuthenticated = Boolean(
+    user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
+  );
   
   const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros'>('analytics');
   
@@ -26,8 +26,8 @@ export const AdminDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const adminHeaders = {
-    'x-admin-key': 'kurla2026',
+  const adminHeaders: HeadersInit = {
+    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
     'Content-Type': 'application/json'
   };
 
@@ -65,20 +65,8 @@ export const AdminDashboardPage: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInput.trim() === 'kurla2026' || passwordInput.trim() === 'admin') {
-      localStorage.setItem('kurla_admin_session', 'active_kurla_2026');
-      setIsAuthenticated(true);
-      setErrorMsg('');
-    } else {
-      setErrorMsg('Mot de passe administrateur incorrect.');
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('kurla_admin_session');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
@@ -188,42 +176,15 @@ export const AdminDashboardPage: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF] flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-[#1A0F0A] border border-[#C8753D]/30 shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-[#C8753D]/20 border border-[#C8753D]/40 flex items-center justify-center mx-auto text-[#D49A63]">
-              <Lock className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-serif-title font-bold text-[#FFF7EF]">Espace Administration Sécurisé</h1>
-            <p className="text-xs text-[#FFF7EF]/60">Veuillez vous authentifier avec votre mot de passe SuperAdmin KURLA.</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#D49A63] mb-1.5">Clé d'accès Administrateur</label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={e => setPasswordInput(e.target.value)}
-                placeholder="Saisissez votre mot de passe admin"
-                className="w-full px-4 py-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]"
-              />
-            </div>
-
-            {errorMsg && (
-              <p className="text-xs text-rose-400 font-medium">{errorMsg}</p>
-            )}
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-lg"
-            >
-              Se Connecter en Mode Admin
-            </button>
-          </form>
-
-          <p className="text-[11px] text-center text-[#FFF7EF]/40 font-mono">
-            Accès réservé aux équipes internes & modérateurs certifiés KURLA.
+        <div className="max-w-md w-full p-8 rounded-3xl bg-[#1A0F0A] border border-rose-500/30 shadow-2xl space-y-5 text-center">
+          <Lock className="w-8 h-8 mx-auto text-rose-400" />
+          <h1 className="text-2xl font-serif-title font-bold">Authentification administrateur requise</h1>
+          <p className="text-xs text-[#FFF7EF]/60">
+            Connectez-vous avec Supabase Auth. Les mots de passe locaux et les clés administrateur partagées sont désactivés.
           </p>
+          <a href="/account" className="inline-flex px-5 py-3 rounded-xl bg-[#C8753D] text-white text-xs font-bold">
+            Se connecter
+          </a>
         </div>
       </div>
     );

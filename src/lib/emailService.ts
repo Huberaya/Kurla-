@@ -1,6 +1,6 @@
 /**
  * KURLA BEAUTY - INTERCHANGEABLE EMAIL SERVICE
- * Supports console logging in dev mode (EMAIL_PROVIDER=console) and future API providers.
+ * Supports console logging in dev mode and transactional API providers (Resend, SendGrid, Postmark).
  */
 
 export interface EmailMessage {
@@ -51,7 +51,10 @@ export class EmailService {
 
     const content = this.renderTemplate(finalTemplate, msg.data);
 
-    if (this.provider === 'console' || !this.apiKey) {
+    if (this.provider === 'console') {
+      if (process.env.NODE_ENV === 'production') {
+        return { success: false, error: 'Le fournisseur email console est interdit en production.' };
+      }
       console.log(`============================================================`);
       console.log(`[EMAIL PROVIDER: ${this.provider.toUpperCase()}] MODE DÉVELOPPEMENT`);
       console.log(`De: ${this.from}`);
@@ -61,22 +64,98 @@ export class EmailService {
       console.log(`------------------------------------------------------------`);
       console.log(content);
       console.log(`============================================================`);
-      
+
       return {
         success: true,
         messageId: `console-msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
       };
     }
 
-    // Custom API Provider integration hook (SendGrid/Resend/Postmark placeholder)
-    try {
-      // In non-console mode, send request using apiKey...
-      console.log(`[Email Provider API] Sending email via ${this.provider} to ${msg.to}`);
-      return { success: true, messageId: `api-msg-${Date.now()}` };
-    } catch (err: any) {
-      console.error(`[Email Provider Error] Failed to send email:`, err?.message || err);
-      return { success: false, error: err?.message || 'Erreur envoi email' };
+    if (!this.apiKey) {
+      return { success: false, error: `Clé API manquante pour le fournisseur email ${this.provider}.` };
     }
+
+    try {
+      return await this.sendViaProvider(msg.to, finalSubject, content);
+    } catch (err: any) {
+      const providerError = err?.message || 'Erreur envoi email';
+      console.error(`[Email Provider Error] ${this.provider}:`, providerError);
+      return { success: false, error: providerError };
+    }
+  }
+
+  private async sendViaProvider(to: string, subject: string, content: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    timeout.unref?.();
+
+    try {
+      let endpoint: string;
+      let headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      let body: Record<string, any>;
+
+      switch (this.provider.toLowerCase()) {
+        case 'resend':
+          endpoint = 'https://api.resend.com/emails';
+          headers.Authorization = `Bearer ${this.apiKey}`;
+          body = {
+            from: this.from,
+            to: [to],
+            subject,
+            html: this.escapeHtml(content).replace(/\n/g, '<br>')
+          };
+          break;
+        case 'sendgrid':
+          endpoint = 'https://api.sendgrid.com/v3/mail/send';
+          headers.Authorization = `Bearer ${this.apiKey}`;
+          body = {
+            personalizations: [{ to: [{ email: to }] }],
+            from: { email: this.from },
+            subject,
+            content: [{ type: 'text/plain', value: content }]
+          };
+          break;
+        case 'postmark':
+          endpoint = 'https://api.postmarkapp.com/email';
+          headers['X-Postmark-Server-Token'] = this.apiKey;
+          body = { From: this.from, To: to, Subject: subject, TextBody: content };
+          break;
+        default:
+          throw new Error(`Fournisseur email non supporté : ${this.provider}.`);
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      const responseText = await response.text();
+      if (!response.ok) {
+        throw new Error(`API ${this.provider} HTTP ${response.status}: ${responseText.slice(0, 200)}`);
+      }
+
+      let messageId: string | undefined;
+      try {
+        const parsed = responseText ? JSON.parse(responseText) : undefined;
+        messageId = parsed?.id || parsed?.message_id || parsed?.MessageID;
+      } catch {
+        // SendGrid commonly answers 202 with an empty body.
+      }
+      return { success: true, messageId: messageId || `api-msg-${Date.now()}` };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character] || character);
   }
 
   private renderTemplate(template: EmailMessage['template'], data: Record<string, any>): string {

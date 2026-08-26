@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { serverDb } from '../src/lib/serverDb';
 import { MOCK_PRODUCTS } from '../src/data/mockData';
-import { isSupabaseConfigured, getSupabaseClient } from '../src/lib/supabaseClient';
+import { getSupabaseClient } from '../src/lib/supabaseClient';
 import { runPhase2AuthTests } from './supabase_auth.test';
 import { runPhase3CartOrderTests } from './phase3_cart_orders.test';
 import { runPhase4WebhookStockTests } from './phase4_webhook_stock.test';
@@ -17,13 +17,21 @@ async function runTests() {
   const migrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260804000000_init_kurla_schema.sql');
   const seedPath = path.join(process.cwd(), 'supabase', 'migrations', '20260805000000_seed_demo_products.sql');
   const phase2MigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260805100000_phase2_auth_profiles.sql');
+  const hardeningMigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260826000000_harden_existing_schema.sql');
+  const refundIntegrityMigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260827000000_refund_integrity.sql');
+  const cartOrderIntegrityMigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260828000000_cart_order_integrity.sql');
+  const operationsIntegrityMigrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260829000000_operations_integrity.sql');
 
-  if (!fs.existsSync(migrationPath) || !fs.existsSync(seedPath) || !fs.existsSync(phase2MigrationPath)) {
+  if (!fs.existsSync(migrationPath) || !fs.existsSync(seedPath) || !fs.existsSync(phase2MigrationPath) || !fs.existsSync(hardeningMigrationPath) || !fs.existsSync(refundIntegrityMigrationPath) || !fs.existsSync(cartOrderIntegrityMigrationPath) || !fs.existsSync(operationsIntegrityMigrationPath)) {
     throw new Error('Test Failed: Supabase migration or seed SQL file is missing!');
   }
   const sqlContent = fs.readFileSync(migrationPath, 'utf-8');
   const seedContent = fs.readFileSync(seedPath, 'utf-8');
   const phase2Content = fs.readFileSync(phase2MigrationPath, 'utf-8');
+  const hardeningContent = fs.readFileSync(hardeningMigrationPath, 'utf-8');
+  const refundIntegrityContent = fs.readFileSync(refundIntegrityMigrationPath, 'utf-8');
+  const cartOrderIntegrityContent = fs.readFileSync(cartOrderIntegrityMigrationPath, 'utf-8');
+  const operationsIntegrityContent = fs.readFileSync(operationsIntegrityMigrationPath, 'utf-8');
 
   if (!sqlContent.includes('CREATE TABLE IF NOT EXISTS public.products') || !sqlContent.includes('ROW LEVEL SECURITY')) {
     throw new Error('Test Failed: SQL Schema Migration does not contain required tables or RLS policies!');
@@ -34,7 +42,63 @@ async function runTests() {
   if (!phase2Content.includes('CREATE TRIGGER on_auth_user_created') || !phase2Content.includes('public.profiles')) {
     throw new Error('Test Failed: Phase 2 Auth SQL migration does not contain trigger or profile updates!');
   }
-  console.log('[PASS] 1. Supabase schema migrations (Phase 1 & Phase 2) and demo seed SQL files validated.');
+  const requiredHardeningStatements = [
+    'ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS user_id',
+    'ALTER TABLE public.refunds ADD COLUMN IF NOT EXISTS stripe_refund_id',
+    'ADD CONSTRAINT orders_status_check',
+    'ADD CONSTRAINT shipments_status_check',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_refunds_stripe_refund_id',
+    'RAISE EXCEPTION'
+  ];
+  for (const statement of requiredHardeningStatements) {
+    if (!hardeningContent.includes(statement)) {
+      throw new Error(`Test Failed: schema hardening migration is missing: ${statement}`);
+    }
+  }
+  const requiredRefundIntegrityStatements = [
+    'ALTER TABLE public.refunds ADD COLUMN IF NOT EXISTS idempotency_key',
+    'ALTER TABLE public.refunds ADD COLUMN IF NOT EXISTS stock_restored',
+    'ALTER TABLE public.refunds ADD COLUMN IF NOT EXISTS items',
+    'CREATE OR REPLACE FUNCTION public.finalize_refund',
+    'pg_advisory_xact_lock',
+    'CREATE OR REPLACE FUNCTION public.claim_stripe_event',
+    'CREATE OR REPLACE FUNCTION public.mark_stripe_event_error',
+    'REVOKE ALL ON FUNCTION public.finalize_refund'
+  ];
+  for (const statement of requiredRefundIntegrityStatements) {
+    if (!refundIntegrityContent.includes(statement)) {
+      throw new Error(`Test Failed: refund integrity migration is missing: ${statement}`);
+    }
+  }
+  const requiredCartOrderStatements = [
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_carts_user_id_unique',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_carts_anonymous_id_unique',
+    'CREATE POLICY "Users manage own cart items"',
+    'ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS checkout_idempotency_key',
+    'CREATE OR REPLACE FUNCTION public.replace_cart',
+    'CREATE OR REPLACE FUNCTION public.reserve_stock_for_order',
+    'CREATE OR REPLACE FUNCTION public.release_stock_for_order'
+  ];
+  for (const statement of requiredCartOrderStatements) {
+    if (!cartOrderIntegrityContent.includes(statement)) {
+      throw new Error(`Test Failed: cart/order integrity migration is missing: ${statement}`);
+    }
+  }
+  const requiredOperationsIntegrityStatements = [
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_shipments_order_id_unique',
+    'DELETE FROM public.shipments',
+    'UPDATE public.shipping_events',
+    "status IN ('preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed')",
+    'type IN (',
+    "'order_payment_pending_webhook'",
+    "'order_returned'"
+  ];
+  for (const statement of requiredOperationsIntegrityStatements) {
+    if (!operationsIntegrityContent.includes(statement)) {
+      throw new Error(`Test Failed: operations integrity migration is missing: ${statement}`);
+    }
+  }
+  console.log('[PASS] 1. Supabase schema migrations, explicit hardening, refund integrity, cart/order integrity, operations integrity and demo seed SQL files validated.');
 
   // 2. Initialize Persistent Product Catalog
   await serverDb.initialize(MOCK_PRODUCTS);
@@ -88,6 +152,12 @@ async function runTests() {
   if (await serverDb.isEventProcessed(testEvtId)) {
     throw new Error('Test Failed: Webhook event falsely marked as processed before execution!');
   }
+  if (!(await serverDb.claimEventForProcessing(testEvtId, 'payment_intent.succeeded'))) {
+    throw new Error('Test Failed: first webhook claim was not granted!');
+  }
+  if (await serverDb.claimEventForProcessing(testEvtId, 'payment_intent.succeeded')) {
+    throw new Error('Test Failed: concurrent webhook claim was granted twice!');
+  }
   await serverDb.markEventProcessed(testEvtId, 'payment_intent.succeeded');
   if (!(await serverDb.isEventProcessed(testEvtId))) {
     throw new Error('Test Failed: Webhook event idempotency recording failed!');
@@ -98,11 +168,14 @@ async function runTests() {
   const phase2Results = await runPhase2AuthTests();
   let phase2PassedCount = 0;
   for (const res of phase2Results) {
-    if (res.passed) {
+    if (res.skipped) {
+      console.log(`[SKIP] [Phase 2] ${res.description}: ${res.message}`);
+    } else if (res.passed) {
       phase2PassedCount++;
       console.log(`[PASS] [Phase 2] ${res.description}: ${res.message}`);
     } else {
       console.error(`[FAIL] [Phase 2] ${res.description}: ${res.message}`);
+      throw new Error(`Phase 2 Test Failed: ${res.description} - ${res.message}`);
     }
   }
 
@@ -113,9 +186,9 @@ async function runTests() {
   console.log('AUDIT DES POLITIQUES RLS ET FONCTIONS SQL (SÉCURITÉ PHASE 2)');
   console.log('============================================================');
   for (const rep of rlsReports) {
-    console.log(`\n--- ${rep.category.toUpperCase()} ---`);
+      console.log(`\n--- ${rep.category.toUpperCase()}${rep.simulated ? ' (SIMULATION LOCALE)' : ''} ---`);
     for (const c of rep.checks) {
-      console.log(`${c.passed ? '[PASS]' : '[FAIL]'} ${c.item}: ${c.details}`);
+      console.log(`${rep.simulated ? '[SIMULATION]' : (c.passed ? '[PASS]' : '[FAIL]')} ${c.item}: ${c.details}`);
     }
   }
 
@@ -171,7 +244,7 @@ async function runTests() {
   const status = serverDb.getStatusSummary();
   console.log(`\n[PASS] Database status summary: Supabase Configured=${status.supabaseConfigured}, Products=${status.productCount}, Orders=${status.orderCount}.`);
 
-  console.log(`\nAll Phase 1, 2, 3, 4 & 5 Supabase tests completed successfully! (${phase2PassedCount}/${phase2Results.length} Phase 2, ${phase3PassedCount}/${phase3Results.length} Phase 3, ${phase4PassedCount}/${phase4Results.length} Phase 4, ${phase5PassedCount}/${phase5Results.length} Phase 5 passed).`);
+  console.log(`\nLocal suites completed (${phase2PassedCount}/${phase2Results.length} Phase 2 checks executed, ${phase3PassedCount}/${phase3Results.length} Phase 3, ${phase4PassedCount}/${phase4Results.length} Phase 4, ${phase5PassedCount}/${phase5Results.length} Phase 5 passed). Run npm run test:integration for real Supabase A/B authorization.`);
 }
 
 runTests().catch(err => {

@@ -3,12 +3,13 @@
  * SUPABASE AUTH, PROFILES & RLS SECURITY VERIFICATION
  */
 
-import { getSupabaseClient, isSupabaseConfigured } from '../src/lib/supabaseClient';
+import { getSupabaseClient } from '../src/lib/supabaseClient';
 
 export interface TestResult {
   testId: string;
   description: string;
   passed: boolean;
+  skipped?: boolean;
   message: string;
 }
 
@@ -21,9 +22,10 @@ export async function runPhase2AuthTests(): Promise<TestResult[]> {
     testId: 'auth_configured',
     description: 'Vérification de la configuration Supabase Client',
     passed: !!supabase,
+    skipped: !supabase,
     message: supabase
       ? 'Supabase Client est correctement configuré et actif.'
-      : 'Supabase URL / Key non définies dans l’environnement. Mode local actif.'
+      : 'Supabase URL / Key non définies dans l’environnement. Test réel différé à npm run test:integration.'
   });
 
   if (!supabase) {
@@ -50,8 +52,9 @@ export async function runPhase2AuthTests(): Promise<TestResult[]> {
       results.push({
         testId: t,
         description: `Validation locale : ${t}`,
-        passed: true,
-        message: 'Validé en mode démo / structure locale.'
+        passed: false,
+        skipped: true,
+        message: 'Non exécuté sans configuration Supabase réelle. Utiliser npm run test:integration.'
       });
     }
     return results;

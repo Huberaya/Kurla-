@@ -1,7 +1,50 @@
-import { getSupabaseServerClient, isSupabaseConfigured } from './supabaseClient';
+import Stripe from 'stripe';
+import { randomUUID } from 'node:crypto';
+import { getSupabaseServerClient, isSupabaseServerConfigured } from './supabaseClient';
 import { MOCK_PRODUCTS } from '../data/mockData';
 import { emailService } from './emailService';
 import { shippingService, ShippingCarrier, ShipmentDetails } from './shippingService';
+
+function ensureDatabaseSuccess(operation: string, error: { message?: string } | null | undefined): void {
+  if (error) {
+    throw new Error(`[Supabase] ${operation}: ${error.message || 'opération refusée'}`);
+  }
+}
+
+function getStripeServerClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  return secretKey ? new Stripe(secretKey, {
+    apiVersion: '2025-02-24.acacia' as any,
+    timeout: 15_000,
+    maxNetworkRetries: 2
+  }) : null;
+}
+
+function isUuid(value: string | undefined): value is string {
+  return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function mapRefundRow(row: any): CustomerRefund {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    paymentId: row.payment_id || undefined,
+    returnId: row.return_id || undefined,
+    userId: row.user_id || undefined,
+    amount: Number(row.amount),
+    currency: row.currency,
+    reason: row.reason || undefined,
+    stripeRefundId: row.stripe_refund_id || undefined,
+    idempotencyKey: row.idempotency_key || undefined,
+    stockRestored: row.stock_restored === true,
+    items: Array.isArray(row.items) ? row.items.map((item: any) => ({
+      productId: item.productId || item.product_id,
+      quantity: Number(item.quantity)
+    })) : [],
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
 
 export interface ServerOrderItem {
   productId: string;
@@ -12,7 +55,7 @@ export interface ServerOrderItem {
   image?: string;
 }
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending_payment'
   | 'payment_pending_webhook'
   | 'paid'
@@ -38,6 +81,7 @@ export interface ServerOrder {
   updatedAt: string;
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
+  checkoutIdempotencyKey?: string;
   shippingAddress?: any;
 }
 
@@ -100,6 +144,9 @@ export interface CustomerRefund {
   currency: string;
   reason?: string;
   stripeRefundId?: string;
+  idempotencyKey?: string;
+  stockRestored?: boolean;
+  items?: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
   status: 'pending' | 'succeeded' | 'failed' | 'completed';
   createdAt: string;
 }
@@ -153,7 +200,7 @@ class SupabaseServerStore {
 
   public async initialize(defaultProducts: any[] = MOCK_PRODUCTS): Promise<void> {
     this.inMemoryProducts = defaultProducts;
-    
+
     const supabase = getSupabaseServerClient();
     if (!supabase) {
       console.log('[Supabase Server DB] Secret key missing or offline fallback active.');
@@ -164,7 +211,8 @@ class SupabaseServerStore {
     try {
       // 1. Ensure products table is seeded in Supabase
       const { data: existingProducts, error: pError } = await supabase.from('products').select('*');
-      if (!pError && existingProducts && existingProducts.length > 0) {
+      ensureDatabaseSuccess('lecture du catalogue au démarrage', pError);
+      if (existingProducts && existingProducts.length > 0) {
         this.inMemoryProducts = existingProducts.map(p => ({
           id: p.id,
           slug: p.slug,
@@ -201,16 +249,19 @@ class SupabaseServerStore {
           concerns: p.concerns || [],
           country_availability: p.countryAvailability || ['FR', 'BE', 'CH']
         }));
-        await supabase.from('products').upsert(payload, { onConflict: 'id' });
+        const { error: seedError } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+        ensureDatabaseSuccess('initialisation du catalogue', seedError);
       }
 
       // 2. Hydrate processed events from Supabase
-      const { data: eventsData } = await supabase.from('stripe_events').select('event_id');
+      const { data: eventsData, error: eventsError } = await supabase.from('stripe_events').select('event_id');
+      ensureDatabaseSuccess('lecture des événements Stripe', eventsError);
       if (eventsData) {
         eventsData.forEach(e => this.processedEventsSet.add(e.event_id));
       }
     } catch (err) {
       console.error('[Supabase Server DB] Initialization exception:', err);
+      throw err;
     } finally {
       this.isInitialized = true;
     }
@@ -220,25 +271,24 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').eq('is_active', true);
-      if (!error && data && data.length > 0) {
-        return data.map(p => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          brand: p.brand,
-          price: Number(p.price),
-          inStock: p.in_stock,
-          stockQuantity: p.stock_quantity,
-          category: p.category,
-          description: p.description,
-          image: p.image_url,
-          ingredients: p.ingredients,
-          hairTypes: p.hair_types,
-          skinTypes: p.skin_types,
-          concerns: p.concerns,
-          countryAvailability: p.country_availability
-        }));
-      }
+      ensureDatabaseSuccess('lecture du catalogue', error);
+      return (data || []).map(p => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        brand: p.brand,
+        price: Number(p.price),
+        inStock: p.in_stock,
+        stockQuantity: p.stock_quantity,
+        category: p.category,
+        description: p.description,
+        image: p.image_url,
+        ingredients: p.ingredients,
+        hairTypes: p.hair_types,
+        skinTypes: p.skin_types,
+        concerns: p.concerns,
+        countryAvailability: p.country_availability
+      }));
     }
     return [...this.inMemoryProducts];
   }
@@ -252,23 +302,27 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (!supabase) return;
     try {
-      const { data } = await supabase.from('inventory').select('id').eq('product_id', realId).maybeSingle();
+      const { data, error: selectError } = await supabase.from('inventory').select('id').eq('product_id', realId).is('variant_id', null).maybeSingle();
+      ensureDatabaseSuccess('lecture inventory', selectError);
       if (data?.id) {
-        await supabase.from('inventory').update({
+        const { error } = await supabase.from('inventory').update({
           quantity,
           reserved_quantity,
           updated_at: new Date().toISOString()
         }).eq('id', data.id);
+        ensureDatabaseSuccess('mise à jour inventory', error);
       } else {
-        await supabase.from('inventory').insert({
+        const { error } = await supabase.from('inventory').insert({
           product_id: realId,
           quantity,
           reserved_quantity,
           updated_at: new Date().toISOString()
         });
+        ensureDatabaseSuccess('création inventory', error);
       }
     } catch (err) {
       console.error('[serverDb] syncInventoryToSupabase error:', err);
+      throw err;
     }
   }
 
@@ -284,8 +338,9 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity').eq('product_id', realId).maybeSingle();
-        if (!error && data) {
+        const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity').eq('product_id', realId).is('variant_id', null).maybeSingle();
+        ensureDatabaseSuccess('lecture de l’inventaire', error);
+        if (data) {
           const q = Number(data.quantity);
           const resQ = Number(data.reserved_quantity || 0);
           const val = { quantity: q, reserved_quantity: resQ };
@@ -295,6 +350,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getInventoryByProductId error:', err);
+        throw err;
       }
     }
 
@@ -314,30 +370,93 @@ class SupabaseServerStore {
 
   public async saveOrder(order: ServerOrder): Promise<ServerOrder> {
     const existingIdx = this.inMemoryOrders.findIndex(o => o.id === order.id);
-    const isNewOrder = existingIdx < 0;
+    const supabase = getSupabaseServerClient();
+    let isNewOrder = existingIdx < 0;
+    if (supabase && isNewOrder) {
+      const { data, error } = await supabase.from('orders').select('id').eq('id', order.id).maybeSingle();
+      ensureDatabaseSuccess('vérification de la commande existante', error);
+      isNewOrder = !data;
+    }
+    const isInitialPayment = isNewOrder && (order.status === 'payment_pending_webhook' || order.status === 'pending_payment');
 
-    if (isNewOrder) {
-      this.inMemoryOrders.unshift(order);
-    } else {
-      this.inMemoryOrders[existingIdx] = order;
+    // Reserve stock on initial order creation. The Supabase path uses row
+    // locks inside PostgreSQL so concurrent checkouts cannot oversell. No
+    // in-memory order is exposed until all required persistent writes pass.
+    if (isInitialPayment) {
+      if (supabase) {
+        const { error: reserveError } = await supabase.rpc('reserve_stock_for_order', {
+          p_items: order.items.map(item => ({ product_id: item.productId, quantity: item.quantity }))
+        });
+        ensureDatabaseSuccess('réservation atomique du stock', reserveError);
+      } else {
+        for (const item of order.items) {
+          const product = await this.getProductById(item.productId);
+          const realId = product ? product.id : item.productId;
+          const inv = await this.getInventoryByProductId(realId);
+          const newResQ = inv.reserved_quantity + item.quantity;
+          const val = { quantity: inv.quantity, reserved_quantity: newResQ };
+          this.inMemoryInventory.set(realId, val);
+          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
+        }
+      }
     }
 
-    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      // 1. Save main order in public.orders
+      const { error: orderError } = await supabase.from('orders').upsert({
+        id: order.id,
+        user_id: order.userId || null,
+        customer_email: order.customerEmail,
+        items: order.items,
+        total: order.total,
+        status: order.status,
+        stripe_session_id: order.stripeSessionId || null,
+        stripe_payment_intent_id: order.stripePaymentIntentId || null,
+        checkout_idempotency_key: order.checkoutIdempotencyKey || null,
+        shipping_address: order.shippingAddress || null,
+        created_at: order.createdAt,
+        updated_at: order.updatedAt
+      }, { onConflict: 'id' });
+      ensureDatabaseSuccess('création de la commande', orderError);
 
-    // Reserve stock on initial order creation
-    if (isNewOrder && (order.status === 'payment_pending_webhook' || order.status === 'pending_payment')) {
-      for (const item of order.items) {
-        const product = await this.getProductById(item.productId);
-        const realId = product ? product.id : item.productId;
-        const inv = await this.getInventoryByProductId(realId);
-        const newResQ = inv.reserved_quantity + item.quantity;
-        const val = { quantity: inv.quantity, reserved_quantity: newResQ };
-        this.inMemoryInventory.set(realId, val);
-        if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
-
-        await this.syncInventoryToSupabase(realId, inv.quantity, newResQ);
+      // 2. Save detailed line items in public.order_items
+      if (order.items && order.items.length > 0) {
+        const orderItemsPayload = order.items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          variant_id: item.variantId || null,
+          quantity: item.quantity,
+          unit_price: item.price
+        }));
+        const { error: deleteItemsError } = await supabase.from('order_items').delete().eq('order_id', order.id);
+        ensureDatabaseSuccess('suppression des lignes de commande', deleteItemsError);
+        const { error: insertItemsError } = await supabase.from('order_items').insert(orderItemsPayload);
+        ensureDatabaseSuccess('création des lignes de commande', insertItemsError);
       }
-      // Log initial status entry
+
+      // 3. Save the initial payment state once. Later order/session updates
+      // must not create duplicate payment rows.
+      if (isNewOrder) {
+        const { error: paymentError } = await supabase.from('payments').insert({
+          order_id: order.id,
+          amount: order.total,
+          currency: 'EUR',
+          status: order.status,
+          stripe_payment_intent_id: order.stripePaymentIntentId || order.stripeSessionId || null,
+          created_at: order.createdAt,
+          updated_at: order.updatedAt
+        });
+        ensureDatabaseSuccess('création du paiement', paymentError);
+      }
+    }
+
+    // Cache only data that has been accepted by the configured persistence
+    // layer. This prevents failed Supabase writes from creating phantom state.
+    if (isNewOrder || existingIdx < 0) this.inMemoryOrders.unshift(order);
+    else this.inMemoryOrders[existingIdx] = order;
+
+    // The order must exist before its history row is inserted (FK safety).
+    if (isInitialPayment) {
       await this.logOrderStatusHistory(
         order.id,
         undefined,
@@ -349,54 +468,38 @@ class SupabaseServerStore {
       );
     }
 
+    return order;
+  }
+
+  public async updateOrderStripeSession(orderId: string, stripeSessionId: string): Promise<ServerOrder | undefined> {
+    const order = await this.getOrderById(orderId);
+    if (!order) return undefined;
+    const updatedAt = new Date().toISOString();
+    const updatedOrder = { ...order, stripeSessionId: stripeSessionId, updatedAt };
+
+    const supabase = getSupabaseServerClient();
     if (supabase) {
-      // 1. Save main order in public.orders
-      await supabase.from('orders').upsert({
-        id: order.id,
-        user_id: order.userId || null,
-        customer_email: order.customerEmail,
-        items: order.items,
-        total: order.total,
-        status: order.status,
-        stripe_session_id: order.stripeSessionId || null,
-        stripe_payment_intent_id: order.stripePaymentIntentId || null,
-        shipping_address: order.shippingAddress || null,
-        created_at: order.createdAt,
-        updated_at: order.updatedAt
-      }, { onConflict: 'id' });
-
-      // 2. Save detailed line items in public.order_items
-      if (order.items && order.items.length > 0) {
-        const orderItemsPayload = order.items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          variant_id: item.variantId || null,
-          quantity: item.quantity,
-          unit_price: item.price
-        }));
-        await supabase.from('order_items').delete().eq('order_id', order.id);
-        await supabase.from('order_items').insert(orderItemsPayload);
-      }
-
-      // 3. Save payment entry in public.payments
-      await supabase.from('payments').insert({
-        order_id: order.id,
-        amount: order.total,
-        currency: 'EUR',
-        status: order.status,
-        stripe_payment_intent_id: order.stripePaymentIntentId || order.stripeSessionId || null,
-        created_at: order.createdAt,
-        updated_at: order.updatedAt
-      });
+      const { error } = await supabase.from('orders').update({
+        stripe_session_id: stripeSessionId,
+        updated_at: updatedAt
+      }).eq('id', orderId);
+      ensureDatabaseSuccess('mise à jour de la session Stripe de la commande', error);
     }
 
-    return order;
+    const index = this.inMemoryOrders.findIndex(existing => existing.id === orderId);
+    if (index >= 0) this.inMemoryOrders[index] = updatedOrder;
+    else if (supabase) this.inMemoryOrders.unshift(updatedOrder);
+
+    return updatedOrder;
   }
 
   public async getOrderById(id: string): Promise<ServerOrder | undefined> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { data, error } = await supabase.from('orders').select('*').eq('id', id).single();
+      if (error && error.code !== 'PGRST116') {
+        ensureDatabaseSuccess('lecture de la commande', error);
+      }
       if (!error && data) {
         return {
           id: data.id,
@@ -407,13 +510,14 @@ class SupabaseServerStore {
           status: data.status,
           stripeSessionId: data.stripe_session_id,
           stripePaymentIntentId: data.stripe_payment_intent_id,
+          checkoutIdempotencyKey: data.checkout_idempotency_key,
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
           updatedAt: data.updated_at
         };
       }
     }
-    return this.inMemoryOrders.find(o => o.id === id);
+    return supabase ? undefined : this.inMemoryOrders.find(o => o.id === id);
   }
 
   public async getOrdersByCustomer(email: string, userId?: string): Promise<ServerOrder[]> {
@@ -432,7 +536,8 @@ class SupabaseServerStore {
         req = req.eq('customer_email', email.toLowerCase());
       }
       const { data, error } = await req;
-      if (!error && data && data.length > 0) {
+      ensureDatabaseSuccess('lecture des commandes', error);
+      if (data && data.length > 0) {
         const supaOrders: ServerOrder[] = data.map(d => ({
           id: d.id,
           userId: d.user_id,
@@ -442,68 +547,74 @@ class SupabaseServerStore {
           status: d.status,
           stripeSessionId: d.stripe_session_id,
           stripePaymentIntentId: d.stripe_payment_intent_id,
+          checkoutIdempotencyKey: d.checkout_idempotency_key,
           shippingAddress: d.shipping_address,
           createdAt: d.created_at,
           updatedAt: d.updated_at
         }));
-        const map = new Map<string, ServerOrder>();
-        supaOrders.forEach(o => map.set(o.id, o));
-        memOrders.forEach(o => {
-          if (!map.has(o.id)) map.set(o.id, o);
-        });
-        return Array.from(map.values());
+        return supaOrders;
       }
     }
-    return memOrders;
+    return supabase ? [] : memOrders;
   }
 
   // Persistent Carts (public.carts & public.cart_items)
-  public async saveCart(userId: string | null, anonymousId: string | null, items: { productId: string; quantity: number; variantId?: string }[]): Promise<string | null> {
-    const key = userId || anonymousId || 'default';
-    this.inMemoryCarts.set(key, items);
+  private async normalizeCartItems(items: { productId: string; quantity: number; variantId?: string }[]): Promise<{ productId: string; quantity: number; variantId?: string }[]> {
+    if (!Array.isArray(items)) throw new Error('Panier invalide.');
 
+    const normalized = new Map<string, { productId: string; quantity: number; variantId?: string }>();
+    for (const item of items) {
+      if (!item || typeof item.productId !== 'string' || !item.productId.trim()) {
+        throw new Error('Article de panier invalide.');
+      }
+      if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+        throw new Error('Quantité de panier invalide.');
+      }
+      if (item.variantId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.variantId)) {
+        throw new Error('Identifiant de variante invalide.');
+      }
+
+      const product = await this.getProductById(item.productId);
+      if (!product) throw new Error(`Produit de panier introuvable : ${item.productId}.`);
+      const key = `${product.id}:${item.variantId || ''}`;
+      const quantity = (normalized.get(key)?.quantity || 0) + item.quantity;
+      if (quantity > 99) throw new Error('La quantité totale d’un article de panier ne peut pas dépasser 99.');
+      normalized.set(key, { productId: product.id, quantity, variantId: item.variantId });
+    }
+    return Array.from(normalized.values());
+  }
+
+  public async saveCart(userId: string | null, anonymousId: string | null, items: { productId: string; quantity: number; variantId?: string }[]): Promise<string | null> {
+    if ((!userId && !anonymousId) || (userId && anonymousId)) {
+      throw new Error('Un seul propriétaire de panier est requis.');
+    }
+
+    const normalizedItems = await this.normalizeCartItems(items);
+    const key = userId || anonymousId!;
     const supabase = getSupabaseServerClient();
-    if (!supabase) return 'in_memory_cart';
+
+    if (!supabase) {
+      this.inMemoryCarts.set(key, normalizedItems);
+      return 'in_memory_cart';
+    }
 
     try {
-      let cartId: string | null = null;
-      if (userId) {
-        const { data } = await supabase.from('carts').select('id').eq('user_id', userId).maybeSingle();
-        cartId = data?.id || null;
-      } else if (anonymousId) {
-        const { data } = await supabase.from('carts').select('id').eq('anonymous_id', anonymousId).maybeSingle();
-        cartId = data?.id || null;
-      }
-
-      if (!cartId) {
-        const { data: newCart, error: cartErr } = await supabase.from('carts').insert({
-          user_id: userId || null,
-          anonymous_id: anonymousId || null,
-          updated_at: new Date().toISOString()
-        }).select('id').single();
-
-        if (cartErr || !newCart) return 'in_memory_cart';
-        cartId = newCart.id;
-      }
-
-      // Delete existing items for cart and insert new items
-      await supabase.from('cart_items').delete().eq('cart_id', cartId);
-
-      if (items && items.length > 0) {
-        const payload = items.map(i => ({
-          cart_id: cartId,
-          product_id: i.productId,
-          variant_id: i.variantId || null,
-          quantity: i.quantity,
-          updated_at: new Date().toISOString()
-        }));
-        await supabase.from('cart_items').insert(payload);
-      }
-
-      return cartId;
+      const { data, error } = await supabase.rpc('replace_cart', {
+        p_user_id: userId,
+        p_anonymous_id: anonymousId,
+        p_items: normalizedItems.map(item => ({
+          product_id: item.productId,
+          variant_id: item.variantId || null,
+          quantity: item.quantity
+        }))
+      });
+      ensureDatabaseSuccess('remplacement atomique du panier', error);
+      if (!data) throw new Error('[Supabase] remplacement atomique du panier: identifiant absent');
+      this.inMemoryCarts.set(key, normalizedItems);
+      return data as string;
     } catch (err) {
       console.error('[Supabase Server DB] saveCart error:', err);
-      return 'in_memory_cart';
+      throw err;
     }
   }
 
@@ -515,31 +626,37 @@ class SupabaseServerStore {
       try {
         let cartId: string | null = null;
         if (userId) {
-          const { data } = await supabase.from('carts').select('id').eq('user_id', userId).maybeSingle();
+          const { data, error } = await supabase.from('carts').select('id').eq('user_id', userId).maybeSingle();
+          ensureDatabaseSuccess('lecture du panier utilisateur', error);
           cartId = data?.id || null;
         } else if (anonymousId) {
-          const { data } = await supabase.from('carts').select('id').eq('anonymous_id', anonymousId).maybeSingle();
+          const { data, error } = await supabase.from('carts').select('id').eq('anonymous_id', anonymousId).maybeSingle();
+          ensureDatabaseSuccess('lecture du panier invité', error);
           cartId = data?.id || null;
         }
 
         if (cartId) {
           const { data: items, error } = await supabase.from('cart_items').select('*').eq('cart_id', cartId);
-          if (!error && items && items.length > 0) {
+          ensureDatabaseSuccess('lecture des lignes du panier', error);
+          if (items && items.length > 0) {
             const result = [];
             for (const item of items) {
               const product = await this.getProductById(item.product_id);
               if (product) {
                 result.push({
                   product,
-                  quantity: item.quantity
+                  quantity: item.quantity,
+                  variantId: item.variant_id || undefined
                 });
               }
             }
             return result;
           }
         }
+        return [];
       } catch (err) {
         console.error('[Supabase Server DB] getCart error:', err);
+        throw err;
       }
     }
 
@@ -551,22 +668,25 @@ class SupabaseServerStore {
       if (product) {
         result.push({
           product,
-          quantity: item.quantity
+          quantity: item.quantity,
+          variantId: item.variantId || undefined
         });
       }
     }
     return result;
   }
 
-  public async findOrder(query: { stripeSessionId?: string; paymentIntentId?: string; orderId?: string }): Promise<ServerOrder | undefined> {
+  public async findOrder(query: { stripeSessionId?: string; paymentIntentId?: string; orderId?: string; checkoutIdempotencyKey?: string }): Promise<ServerOrder | undefined> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       let req = supabase.from('orders').select('*');
       if (query.orderId) req = req.eq('id', query.orderId);
       else if (query.stripeSessionId) req = req.eq('stripe_session_id', query.stripeSessionId);
       else if (query.paymentIntentId) req = req.eq('stripe_payment_intent_id', query.paymentIntentId);
+      else if (query.checkoutIdempotencyKey) req = req.eq('checkout_idempotency_key', query.checkoutIdempotencyKey);
 
-      const { data } = await req.maybeSingle();
+      const { data, error } = await req.maybeSingle();
+      ensureDatabaseSuccess('recherche de commande', error);
       if (data) {
         return {
           id: data.id,
@@ -576,6 +696,7 @@ class SupabaseServerStore {
           status: data.status,
           stripeSessionId: data.stripe_session_id,
           stripePaymentIntentId: data.stripe_payment_intent_id,
+          checkoutIdempotencyKey: data.checkout_idempotency_key,
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
           updatedAt: data.updated_at
@@ -583,18 +704,43 @@ class SupabaseServerStore {
       }
     }
 
-    return this.inMemoryOrders.find(o => 
+    return supabase ? undefined : this.inMemoryOrders.find(o =>
       (query.orderId && o.id === query.orderId) ||
       (query.stripeSessionId && o.stripeSessionId === query.stripeSessionId) ||
-      (query.paymentIntentId && (o.stripePaymentIntentId === query.paymentIntentId || o.stripeSessionId === query.paymentIntentId))
+      (query.paymentIntentId && (o.stripePaymentIntentId === query.paymentIntentId || o.stripeSessionId === query.paymentIntentId)) ||
+      (query.checkoutIdempotencyKey && o.checkoutIdempotencyKey === query.checkoutIdempotencyKey)
     );
   }
 
-  public async updateOrderStatus(orderId: string, newStatus: OrderStatus, extra?: { stripePaymentIntentId?: string; changedBy?: string; changedByRole?: string; reason?: string }): Promise<ServerOrder | undefined> {
+  public async updateOrderStatus(orderId: string, newStatus: OrderStatus, extra?: {
+    stripePaymentIntentId?: string;
+    changedBy?: string;
+    changedByRole?: string;
+    reason?: string;
+    restockItems?: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
+  }): Promise<ServerOrder | undefined> {
     const order = await this.getOrderById(orderId);
     if (!order) return undefined;
 
-    if (order.status === newStatus && (!extra?.stripePaymentIntentId || order.stripePaymentIntentId === extra.stripePaymentIntentId)) {
+    if (order.status === newStatus) {
+      // Multiple Stripe event types can confirm the same payment. Updating a
+      // newly learned PaymentIntent is allowed, but it must not restock,
+      // append a second payment row, or create another status transition.
+      if (extra?.stripePaymentIntentId && order.stripePaymentIntentId !== extra.stripePaymentIntentId) {
+        order.stripePaymentIntentId = extra.stripePaymentIntentId;
+        order.updatedAt = new Date().toISOString();
+        const supabase = getSupabaseServerClient();
+        if (supabase) {
+          const { error } = await supabase.from('orders').update({
+            stripe_payment_intent_id: order.stripePaymentIntentId,
+            updated_at: order.updatedAt
+          }).eq('id', order.id);
+          ensureDatabaseSuccess('mise à jour du PaymentIntent de la commande', error);
+        }
+        const index = this.inMemoryOrders.findIndex(existing => existing.id === order.id);
+        if (index >= 0) this.inMemoryOrders[index] = order;
+        else if (supabase) this.inMemoryOrders.unshift(order);
+      }
       return order;
     }
 
@@ -632,21 +778,24 @@ class SupabaseServerStore {
         const newQ = Math.max(0, inv.quantity - item.quantity);
         const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
         const val = { quantity: newQ, reserved_quantity: newResQ };
-        this.inMemoryInventory.set(realId, val);
-        if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
+        if (!supabase) {
+          this.inMemoryInventory.set(realId, val);
+          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
 
-        const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-        if (pIdx >= 0) {
-          this.inMemoryProducts[pIdx].stockQuantity = newQ;
-          this.inMemoryProducts[pIdx].inStock = newQ > 0;
+          const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
+          if (pIdx >= 0) {
+            this.inMemoryProducts[pIdx].stockQuantity = newQ;
+            this.inMemoryProducts[pIdx].inStock = newQ > 0;
+          }
         }
 
         if (supabase) {
-          await supabase.from('products').update({
+          const { error } = await supabase.from('products').update({
             stock_quantity: newQ,
             in_stock: newQ > 0,
             updated_at: new Date().toISOString()
           }).eq('id', realId);
+          ensureDatabaseSuccess('mise à jour du stock produit', error);
         }
 
         await this.syncInventoryToSupabase(realId, newQ, newResQ);
@@ -660,53 +809,66 @@ class SupabaseServerStore {
         const inv = await this.getInventoryByProductId(realId);
         const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
         const val = { quantity: inv.quantity, reserved_quantity: newResQ };
-        this.inMemoryInventory.set(realId, val);
-        if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
+        if (!supabase) {
+          this.inMemoryInventory.set(realId, val);
+          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
+        }
 
         await this.syncInventoryToSupabase(realId, inv.quantity, newResQ);
       }
     }
-    // Case 3: Refunded (paid -> refunded)
-    else if (oldStatus === 'paid' && newStatus === 'refunded') {
-      for (const item of order.items) {
+    // Case 3: Refunds restore only the returned quantities. A direct full
+    // refund transition keeps the legacy behavior and restores all items;
+    // processStripeRefund passes an explicit item list for partial returns.
+    else if (
+      ['paid', 'processing', 'packed', 'shipped', 'delivered', 'return_requested', 'partially_refunded'].includes(oldStatus)
+      && (newStatus === 'refunded' || newStatus === 'partially_refunded')
+    ) {
+      const itemsToRestore = extra?.restockItems || (newStatus === 'refunded' ? order.items : []);
+      for (const item of itemsToRestore) {
         const product = await this.getProductById(item.productId);
         const realId = product ? product.id : item.productId;
         const inv = await this.getInventoryByProductId(realId);
         const newQ = inv.quantity + item.quantity;
         const val = { quantity: newQ, reserved_quantity: inv.reserved_quantity };
-        this.inMemoryInventory.set(realId, val);
-        if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
+        if (!supabase) {
+          this.inMemoryInventory.set(realId, val);
+          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
 
-        const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-        if (pIdx >= 0) {
-          this.inMemoryProducts[pIdx].stockQuantity = newQ;
-          this.inMemoryProducts[pIdx].inStock = true;
+          const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
+          if (pIdx >= 0) {
+            this.inMemoryProducts[pIdx].stockQuantity = newQ;
+            this.inMemoryProducts[pIdx].inStock = true;
+          }
         }
 
         if (supabase) {
-          await supabase.from('products').update({
+          const { error } = await supabase.from('products').update({
             stock_quantity: newQ,
             in_stock: true,
             updated_at: new Date().toISOString()
           }).eq('id', realId);
+          ensureDatabaseSuccess('restauration du stock produit', error);
         }
 
         await this.syncInventoryToSupabase(realId, newQ, inv.reserved_quantity);
       }
     }
 
-    // Save order changes
+    // Save order changes in the local cache only after the persistent path,
+    // when one is configured, has accepted the operation.
     const idx = this.inMemoryOrders.findIndex(o => o.id === order.id);
-    if (idx >= 0) this.inMemoryOrders[idx] = order;
+    if (!supabase && idx >= 0) this.inMemoryOrders[idx] = order;
 
     if (supabase) {
-      await supabase.from('orders').update({
+      const { error: orderError } = await supabase.from('orders').update({
         status: newStatus,
         stripe_payment_intent_id: order.stripePaymentIntentId || null,
         updated_at: order.updatedAt
       }).eq('id', order.id);
+      ensureDatabaseSuccess('mise à jour du statut de commande', orderError);
 
-      await supabase.from('payments').insert({
+      const { error: paymentError } = await supabase.from('payments').insert({
         order_id: order.id,
         amount: order.total,
         currency: 'EUR',
@@ -715,6 +877,9 @@ class SupabaseServerStore {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
+      ensureDatabaseSuccess('création du paiement de statut', paymentError);
+      if (idx >= 0) this.inMemoryOrders[idx] = order;
+      else this.inMemoryOrders.unshift(order);
     }
 
     // Trigger Notification & Email for customer
@@ -746,12 +911,14 @@ class SupabaseServerStore {
       pending_payment: ['payment_pending_webhook', 'paid', 'cancelled', 'payment_failed'],
       payment_pending_webhook: ['paid', 'payment_failed', 'cancelled'],
       paid: ['processing', 'packed', 'shipped', 'refunded', 'partially_refunded', 'return_requested'],
-      processing: ['packed', 'shipped', 'cancelled', 'refunded'],
-      packed: ['shipped', 'cancelled', 'refunded'],
-      shipped: ['delivered', 'returned', 'refunded'],
-      delivered: ['return_requested', 'returned', 'refunded'],
-      return_requested: ['returned', 'rejected', 'refunded', 'cancelled'],
-      returned: ['refunded']
+      processing: ['packed', 'shipped', 'cancelled', 'refunded', 'partially_refunded'],
+      packed: ['shipped', 'cancelled', 'refunded', 'partially_refunded'],
+      shipped: ['delivered', 'returned', 'refunded', 'partially_refunded'],
+      delivered: ['return_requested', 'returned', 'refunded', 'partially_refunded'],
+      return_requested: ['returned', 'rejected', 'refunded', 'partially_refunded', 'cancelled'],
+      returned: ['refunded', 'partially_refunded'],
+      partially_refunded: ['refunded', 'return_requested'],
+      payment_failed: ['paid']
     };
 
     const allowed = allowedTransitions[oldStatus];
@@ -760,7 +927,7 @@ class SupabaseServerStore {
 
   public async logOrderStatusHistory(orderId: string, oldStatus: string | undefined, newStatus: string, changedBy?: string, changedByRole: string = 'system', reason?: string, source: string = 'system'): Promise<void> {
     const entry: OrderStatusHistoryEntry = {
-      id: `hist-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      id: randomUUID(),
       orderId,
       oldStatus,
       newStatus,
@@ -771,24 +938,28 @@ class SupabaseServerStore {
       createdAt: new Date().toISOString()
     };
 
-    this.inMemoryStatusHistory.unshift(entry);
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('order_status_history').insert({
+        const { error } = await supabase.from('order_status_history').insert({
+          id: entry.id,
           order_id: orderId,
           old_status: oldStatus || null,
           new_status: newStatus,
           changed_by: changedBy || null,
           changed_by_role: changedByRole,
           reason: reason || null,
-          source: source
+          source: source,
+          created_at: entry.createdAt
         });
+        ensureDatabaseSuccess('création de l’historique de commande', error);
       } catch (err) {
         console.error('[serverDb] logOrderStatusHistory error:', err);
+        throw err;
       }
     }
+
+    this.inMemoryStatusHistory.unshift(entry);
   }
 
   public async getOrderStatusHistory(orderId: string): Promise<OrderStatusHistoryEntry[]> {
@@ -796,7 +967,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('order_status_history').select('*').eq('order_id', orderId).order('created_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture de l’historique de commande', error);
+        if (data) {
           return data.map(d => ({
             id: d.id,
             orderId: d.order_id,
@@ -811,6 +983,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getOrderStatusHistory error:', err);
+        throw err;
       }
     }
     return this.inMemoryStatusHistory.filter(h => h.orderId === orderId);
@@ -821,7 +994,7 @@ class SupabaseServerStore {
   // ============================================================
   public async sendNotification(userId: string, type: string, title: string, message: string, link?: string, orderId?: string): Promise<UserNotification> {
     const notif: UserNotification = {
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      id: randomUUID(),
       userId,
       type,
       title,
@@ -833,12 +1006,10 @@ class SupabaseServerStore {
       deliveredAt: new Date().toISOString()
     };
 
-    this.inMemoryNotifications.unshift(notif);
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('notifications').insert({
+        const { error: notificationError } = await supabase.from('notifications').insert({
           id: notif.id,
           user_id: userId,
           type,
@@ -850,19 +1021,23 @@ class SupabaseServerStore {
           created_at: notif.createdAt,
           delivered_at: notif.deliveredAt
         });
+        ensureDatabaseSuccess('création de la notification', notificationError);
 
-        await supabase.from('notification_logs').insert({
+        const { error: logError } = await supabase.from('notification_logs').insert({
           user_id: userId,
           notification_id: notif.id,
           channel: 'in_app',
           status: 'sent',
           created_at: notif.createdAt
         });
+        ensureDatabaseSuccess('création du journal de notification', logError);
       } catch (err) {
         console.error('[serverDb] sendNotification error:', err);
+        throw err;
       }
     }
 
+    this.inMemoryNotifications.unshift(notif);
     return notif;
   }
 
@@ -871,7 +1046,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture des notifications', error);
+        if (data) {
           return data.map(n => ({
             id: n.id,
             userId: n.user_id,
@@ -888,38 +1064,45 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getNotifications error:', err);
+        throw err;
       }
     }
     return this.inMemoryNotifications.filter(n => n.userId === userId);
   }
 
   public async markNotificationRead(notificationId: string, userId: string): Promise<boolean> {
-    const idx = this.inMemoryNotifications.findIndex(n => n.id === notificationId && n.userId === userId);
-    if (idx >= 0) this.inMemoryNotifications[idx].read = true;
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', userId);
+        const { data, error } = await supabase.from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', userId).select('id').maybeSingle();
+        ensureDatabaseSuccess('marquage de notification comme lue', error);
+        if (!data) return false;
       } catch (err) {
         console.error('[serverDb] markNotificationRead error:', err);
+        throw err;
       }
     }
-    return true;
+
+    const idx = this.inMemoryNotifications.findIndex(n => n.id === notificationId && n.userId === userId);
+    if (idx >= 0) this.inMemoryNotifications[idx].read = true;
+    return idx >= 0 || !!supabase;
   }
 
   public async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
-    this.inMemoryNotifications = this.inMemoryNotifications.filter(n => !(n.id === notificationId && n.userId === userId));
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('notifications').delete().eq('id', notificationId).eq('user_id', userId);
+        const { error } = await supabase.from('notifications').delete().eq('id', notificationId).eq('user_id', userId);
+        ensureDatabaseSuccess('suppression de notification', error);
       } catch (err) {
         console.error('[serverDb] deleteNotification error:', err);
+        throw err;
       }
     }
-    return true;
+
+    const before = this.inMemoryNotifications.length;
+    this.inMemoryNotifications = this.inMemoryNotifications.filter(n => !(n.id === notificationId && n.userId === userId));
+    return before !== this.inMemoryNotifications.length || !!supabase;
   }
 
   public async getNotificationPreferences(userId: string): Promise<NotificationPreference> {
@@ -935,7 +1118,8 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        const { data } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
+        const { data, error } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
+        ensureDatabaseSuccess('lecture des préférences de notification', error);
         if (data) {
           return {
             userId: data.user_id,
@@ -948,6 +1132,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getNotificationPreferences error:', err);
+        throw err;
       }
     }
 
@@ -964,12 +1149,10 @@ class SupabaseServerStore {
       updatedAt: new Date().toISOString()
     };
 
-    this.inMemoryPreferences.set(userId, updated);
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('notification_preferences').upsert({
+        const { error } = await supabase.from('notification_preferences').upsert({
           user_id: userId,
           email_notifications: updated.emailNotifications,
           transactional_emails: true,
@@ -977,11 +1160,14 @@ class SupabaseServerStore {
           in_app_notifications: updated.inAppNotifications,
           updated_at: updated.updatedAt
         }, { onConflict: 'user_id' });
+        ensureDatabaseSuccess('mise à jour des préférences de notification', error);
       } catch (err) {
         console.error('[serverDb] updateNotificationPreferences error:', err);
+        throw err;
       }
     }
 
+    this.inMemoryPreferences.set(userId, updated);
     return updated;
   }
 
@@ -992,7 +1178,8 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        const { data } = await supabase.from('shipments').select('*').eq('order_id', orderId).maybeSingle();
+        const { data, error } = await supabase.from('shipments').select('*').eq('order_id', orderId).maybeSingle();
+        ensureDatabaseSuccess('lecture de l’expédition', error);
         if (data) {
           return {
             id: data.id,
@@ -1013,26 +1200,40 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getShipmentByOrderId error:', err);
+        throw err;
       }
     }
 
-    return this.inMemoryShipments.get(orderId);
+    return supabase ? undefined : this.inMemoryShipments.get(orderId);
   }
 
   public async upsertShipment(details: ShipmentDetails): Promise<ShipmentDetails> {
     const now = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    let shipmentId = isUuid(details.id) ? details.id : randomUUID();
+
+    if (supabase) {
+      const { data: existingShipment, error: lookupError } = await supabase
+        .from('shipments')
+        .select('id')
+        .eq('order_id', details.orderId)
+        .maybeSingle();
+      ensureDatabaseSuccess('vérification de l’expédition existante', lookupError);
+      // Keep the existing primary key so shipping_events remain attached when
+      // the current shipment is updated through the order-level upsert.
+      if (existingShipment?.id) shipmentId = existingShipment.id;
+    }
+
     const finalDetails: ShipmentDetails = {
       ...details,
-      id: details.id || `ship-${Date.now()}`,
+      id: shipmentId,
       updatedAt: now
     };
 
-    this.inMemoryShipments.set(details.orderId, finalDetails);
-
-    const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('shipments').upsert({
+        const { error } = await supabase.from('shipments').upsert({
+          id: finalDetails.id,
           order_id: details.orderId,
           user_id: details.userId || null,
           carrier: details.carrier,
@@ -1046,11 +1247,14 @@ class SupabaseServerStore {
           delivered_at: details.deliveredAt || null,
           updated_at: now
         }, { onConflict: 'order_id' });
+        ensureDatabaseSuccess('sauvegarde de l’expédition', error);
       } catch (err) {
         console.error('[serverDb] upsertShipment error:', err);
+        throw err;
       }
     }
 
+    this.inMemoryShipments.set(details.orderId, finalDetails);
     return finalDetails;
   }
 
@@ -1058,42 +1262,106 @@ class SupabaseServerStore {
   // PHASE 5: RETURNS & REFUNDS
   // ============================================================
   public async createReturnRequest(userId: string, orderId: string, reason: string, items: any[], comment?: string): Promise<CustomerReturn> {
-    const ret: CustomerReturn = {
-      id: `ret-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      orderId,
-      userId,
-      reason,
-      items,
-      quantity: items.reduce((acc, i) => acc + (i.quantity || 1), 0),
-      status: 'requested',
-      comment,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (!reason.trim() || !Array.isArray(items) || items.length === 0) {
+      throw new Error('Les informations de retour sont incomplètes.');
+    }
 
-    this.inMemoryReturns.unshift(ret);
+    const order = await this.getOrderById(orderId);
+    if (!order || order.userId !== userId) {
+      throw new Error('Commande introuvable pour ce client.');
+    }
+    if (!['paid', 'processing', 'packed', 'shipped', 'delivered', 'return_requested'].includes(order.status)) {
+      throw new Error(`La commande #${orderId} n’est pas éligible à une demande de retour depuis le statut '${order.status}'.`);
+    }
 
+    const orderQuantities = new Map(order.items.map(item => [item.productId, item.quantity]));
+    const alreadyRequested = new Map<string, number>();
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      try {
-        await supabase.from('returns').insert({
-          id: ret.id,
-          order_id: orderId,
-          user_id: userId,
-          reason,
-          items,
-          quantity: ret.quantity,
-          status: 'requested',
-          comment: comment || null,
-          created_at: ret.createdAt,
-          updated_at: ret.updatedAt
-        });
-      } catch (err) {
-        console.error('[serverDb] createReturnRequest error:', err);
+      const { data: previousReturns, error } = await supabase
+        .from('returns')
+        .select('items, quantity, status')
+        .eq('order_id', orderId);
+      ensureDatabaseSuccess('lecture des retours existants de la commande', error);
+      for (const previous of previousReturns || []) {
+        if (['rejected', 'cancelled'].includes(previous.status)) continue;
+        if (!Array.isArray(previous.items) || previous.items.length === 0) {
+          throw new Error('Les lignes d’un retour historique sont inconnues : réconciliation manuelle requise avant une nouvelle demande.');
+        }
+        for (const item of previous.items) {
+          const productId = item?.productId || item?.product_id;
+          const quantity = Number(item?.quantity);
+          if (typeof productId === 'string' && Number.isSafeInteger(quantity) && quantity > 0) {
+            alreadyRequested.set(productId, (alreadyRequested.get(productId) || 0) + quantity);
+          }
+        }
+      }
+    } else {
+      for (const previous of this.inMemoryReturns) {
+        if (previous.orderId !== orderId || ['rejected', 'cancelled'].includes(previous.status)) continue;
+        for (const item of previous.items || []) {
+          const productId = item?.productId || item?.product_id;
+          const quantity = Number(item?.quantity);
+          if (typeof productId === 'string' && Number.isSafeInteger(quantity) && quantity > 0) {
+            alreadyRequested.set(productId, (alreadyRequested.get(productId) || 0) + quantity);
+          }
+        }
       }
     }
 
-    await this.logOrderStatusHistory(orderId, undefined, 'return_requested', userId, 'customer', reason, 'customer_action');
+    const normalizedItems = new Map<string, { productId: string; quantity: number }>();
+    for (const item of items) {
+      const productId = item?.productId || item?.product_id;
+      const quantity = Number(item?.quantity);
+      if (typeof productId !== 'string' || !Number.isSafeInteger(quantity) || quantity < 1) {
+        throw new Error('Ligne de retour invalide.');
+      }
+      const nextQuantity = (normalizedItems.get(productId)?.quantity || 0) + quantity;
+      const totalRequested = (alreadyRequested.get(productId) || 0) + nextQuantity;
+      if (!orderQuantities.has(productId) || totalRequested > orderQuantities.get(productId)!) {
+        throw new Error(`Quantité retournée invalide pour le produit ${productId}.`);
+      }
+      normalizedItems.set(productId, { productId, quantity: nextQuantity });
+    }
+
+    const normalizedReturnItems = Array.from(normalizedItems.values());
+    const now = new Date().toISOString();
+    const ret: CustomerReturn = {
+      id: randomUUID(),
+      orderId,
+      userId,
+      reason: reason.trim(),
+      items: normalizedReturnItems,
+      quantity: normalizedReturnItems.reduce((acc, item) => acc + item.quantity, 0),
+      status: 'requested',
+      comment: comment?.trim() || undefined,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('returns').insert({
+          id: ret.id,
+          order_id: orderId,
+          user_id: userId,
+          reason: ret.reason,
+          items: normalizedReturnItems,
+          quantity: ret.quantity,
+          status: 'requested',
+          comment: ret.comment || null,
+          created_at: ret.createdAt,
+          updated_at: ret.updatedAt
+        });
+        ensureDatabaseSuccess('création de la demande de retour', error);
+      } catch (err) {
+        console.error('[serverDb] createReturnRequest error:', err);
+        throw err;
+      }
+    }
+
+    this.inMemoryReturns.unshift(ret);
+    await this.logOrderStatusHistory(orderId, undefined, 'return_requested', userId, 'customer', ret.reason, 'customer_action');
     await this.sendNotification(userId, 'return_requested', 'Demande de retour enregistrée', `Votre demande de retour pour la commande #${orderId} a été reçue.`, `/account?tab=returns`, orderId);
 
     return ret;
@@ -1104,7 +1372,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('returns').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture des retours utilisateur', error);
+        if (data) {
           return data.map(r => ({
             id: r.id,
             orderId: r.order_id,
@@ -1121,6 +1390,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getReturnsByUser error:', err);
+        throw err;
       }
     }
     return this.inMemoryReturns.filter(r => r.userId === userId);
@@ -1131,7 +1401,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('returns').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture de tous les retours', error);
+        if (data) {
           return data.map(r => ({
             id: r.id,
             orderId: r.order_id,
@@ -1148,95 +1419,416 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getAllReturns error:', err);
+        throw err;
       }
     }
     return this.inMemoryReturns;
   }
 
   public async updateReturnStatus(returnId: string, status: CustomerReturn['status'], adminComment?: string): Promise<CustomerReturn | undefined> {
-    const ret = this.inMemoryReturns.find(r => r.id === returnId);
-    if (ret) {
-      ret.status = status;
-      if (adminComment) ret.adminComment = adminComment;
-      ret.updatedAt = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    const memoryReturn = this.inMemoryReturns.find(r => r.id === returnId);
+    const currentReturn = supabase ? await this.getReturnById(returnId) : memoryReturn;
+    if (!currentReturn) return undefined;
+
+    const allowedTransitions: Record<CustomerReturn['status'], CustomerReturn['status'][]> = {
+      requested: ['requested', 'approved', 'rejected', 'cancelled'],
+      approved: ['approved', 'received', 'rejected', 'cancelled'],
+      received: ['received', 'refunded', 'rejected'],
+      rejected: ['rejected'],
+      refunded: ['refunded'],
+      cancelled: ['cancelled']
+    };
+    if (!allowedTransitions[currentReturn.status].includes(status)) {
+      throw new Error(`Transition de retour invalide : ${currentReturn.status} -> ${status}.`);
     }
 
-    const supabase = getSupabaseServerClient();
+    const updatedAt = new Date().toISOString();
+    const nextAdminComment = adminComment !== undefined ? adminComment : currentReturn.adminComment;
+    let updatedReturn: CustomerReturn = {
+      ...currentReturn,
+      status,
+      adminComment: nextAdminComment,
+      updatedAt
+    };
+
     if (supabase) {
       try {
-        await supabase.from('returns').update({
+        const { data, error } = await supabase.from('returns').update({
           status,
-          admin_comment: adminComment || null,
-          updated_at: new Date().toISOString()
-        }).eq('id', returnId);
+          admin_comment: nextAdminComment || null,
+          updated_at: updatedAt
+        }).eq('id', returnId).select('*').maybeSingle();
+        ensureDatabaseSuccess('mise à jour de la demande de retour', error);
+        if (!data) return undefined;
+        updatedReturn = {
+          id: data.id,
+          orderId: data.order_id,
+          userId: data.user_id,
+          reason: data.reason,
+          items: data.items || [],
+          quantity: Number(data.quantity || 0),
+          status: data.status,
+          comment: data.comment || undefined,
+          adminComment: data.admin_comment || undefined,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
       } catch (err) {
         console.error('[serverDb] updateReturnStatus error:', err);
+        throw err;
       }
     }
 
-    if (ret) {
-      await this.sendNotification(
-        ret.userId,
-        status === 'approved' ? 'refund_created' : 'return_requested',
-        `Mise à jour de votre retour #${ret.id}`,
-        `Le statut de votre retour pour la commande #${ret.orderId} est désormais : ${status.toUpperCase()}. ${adminComment ? 'Note admin : ' + adminComment : ''}`,
-        `/account?tab=returns`,
-        ret.orderId
-      );
-    }
+    const index = this.inMemoryReturns.findIndex(r => r.id === returnId);
+    if (index >= 0) this.inMemoryReturns[index] = updatedReturn;
+    else if (!supabase) this.inMemoryReturns.unshift(updatedReturn);
 
-    return ret;
+    await this.sendNotification(
+      updatedReturn.userId,
+      status === 'approved' ? 'refund_created' : 'return_requested',
+      `Mise à jour de votre retour #${updatedReturn.id}`,
+      `Le statut de votre retour pour la commande #${updatedReturn.orderId} est désormais : ${status.toUpperCase()}. ${adminComment ? 'Note admin : ' + adminComment : ''}`,
+      `/account?tab=returns`,
+      updatedReturn.orderId
+    );
+
+    return updatedReturn;
   }
 
-  public async processStripeRefund(orderId: string, returnId?: string, amount?: number, reason: string = 'Remboursement client'): Promise<CustomerRefund> {
-    const order = await this.getOrderById(orderId);
-    if (!order) throw new Error(`Commande #${orderId} introuvable pour le remboursement.`);
+  private async getRefundsByOrder(orderId: string): Promise<CustomerRefund[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('refunds').select('*').eq('order_id', orderId).order('created_at', { ascending: true });
+        ensureDatabaseSuccess('lecture des remboursements de la commande', error);
+        return (data || []).map(mapRefundRow);
+      } catch (err) {
+        console.error('[serverDb] getRefundsByOrder error:', err);
+        throw err;
+      }
+    }
+    return this.inMemoryRefunds.filter(refund => refund.orderId === orderId);
+  }
 
-    const refundAmount = amount || order.total;
+  private async findRefundByIdempotencyKey(idempotencyKey: string): Promise<CustomerRefund | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('refunds').select('*').eq('idempotency_key', idempotencyKey).maybeSingle();
+      ensureDatabaseSuccess('recherche du remboursement idempotent', error);
+      return data ? mapRefundRow(data) : undefined;
+    }
+    return this.inMemoryRefunds.find(refund => refund.idempotencyKey === idempotencyKey);
+  }
+
+  private async findRefundByStripeId(stripeRefundId: string): Promise<CustomerRefund | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('refunds').select('*').eq('stripe_refund_id', stripeRefundId).maybeSingle();
+      ensureDatabaseSuccess('recherche du remboursement Stripe', error);
+      return data ? mapRefundRow(data) : undefined;
+    }
+    return this.inMemoryRefunds.find(refund => refund.stripeRefundId === stripeRefundId);
+  }
+
+  private async getReturnById(returnId: string): Promise<CustomerReturn | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('returns').select('*').eq('id', returnId).maybeSingle();
+      ensureDatabaseSuccess('lecture de la demande de retour', error);
+      if (!data) return undefined;
+      return {
+        id: data.id,
+        orderId: data.order_id,
+        userId: data.user_id,
+        reason: data.reason,
+        items: data.items || [],
+        quantity: Number(data.quantity || 0),
+        status: data.status,
+        comment: data.comment || undefined,
+        adminComment: data.admin_comment || undefined,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    }
+    return this.inMemoryReturns.find(ret => ret.id === returnId);
+  }
+
+  private async getRefundItems(
+    order: ServerOrder,
+    returnId: string | undefined,
+    amountCents: number,
+    remainingCents: number,
+    previousRefunds: CustomerRefund[] = []
+  ): Promise<Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>> {
+    const orderItems = new Map(order.items.map(item => [item.productId, item]));
+    const previouslyRestored = new Map<string, number>();
+    const unknownPreviousStock = previousRefunds.some(refund =>
+      ['succeeded', 'completed'].includes(refund.status)
+      && refund.stockRestored === true
+      && (!refund.items || refund.items.length === 0)
+    );
+
+    if (unknownPreviousStock) {
+      throw new Error('Les lignes d’un remboursement historique sont inconnues : réconciliation manuelle requise avant un nouveau remboursement.');
+    }
+
+    for (const refund of previousRefunds) {
+      if (['succeeded', 'completed'].includes(refund.status) && refund.stockRestored) {
+        for (const item of refund.items || []) {
+          previouslyRestored.set(item.productId, (previouslyRestored.get(item.productId) || 0) + item.quantity);
+        }
+      }
+    }
+
+    let requestedItems: any[] = order.items;
+    if (returnId) {
+      const ret = await this.getReturnById(returnId);
+      if (!ret || ret.orderId !== order.id) {
+        throw new Error(`Demande de retour #${returnId} introuvable pour la commande #${order.id}.`);
+      }
+      if (!['approved', 'received'].includes(ret.status)) {
+        throw new Error(`La demande de retour #${returnId} doit être approuvée avant remboursement.`);
+      }
+      requestedItems = ret.items;
+    } else {
+      if (amountCents !== remainingCents) {
+        throw new Error('Un remboursement partiel doit être rattaché à une demande de retour.');
+      }
+      requestedItems = order.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity - (previouslyRestored.get(item.productId) || 0)
+      })).filter(item => item.quantity > 0);
+    }
+
+    const requestedQuantities = new Map<string, number>();
+    for (const item of requestedItems) {
+      const productId = item?.productId || item?.product_id;
+      const quantity = Number(item?.quantity);
+      if (typeof productId !== 'string' || !Number.isSafeInteger(quantity) || quantity < 1) {
+        throw new Error(`Quantité remboursée invalide pour le produit ${productId || 'inconnu'}.`);
+      }
+      requestedQuantities.set(productId, (requestedQuantities.get(productId) || 0) + quantity);
+    }
+
+    const refundItems = Array.from(requestedQuantities, ([productId, requestedQuantity]) => {
+      const orderItem = orderItems.get(productId);
+      const alreadyRestored = previouslyRestored.get(productId) || 0;
+      const availableQuantity = (orderItem?.quantity || 0) - alreadyRestored;
+      if (!orderItem || requestedQuantity > availableQuantity) {
+        throw new Error(`Quantité remboursée invalide pour le produit ${productId}.`);
+      }
+      return { productId, quantity: requestedQuantity };
+    });
+
+    if (refundItems.length === 0) {
+      throw new Error('Aucun article valide à rembourser.');
+    }
+
+    const maximumItemAmountCents = refundItems.reduce((sum, item) => {
+      const orderItem = orderItems.get(item.productId)!;
+      return sum + Math.round(orderItem.price * 100) * item.quantity;
+    }, 0);
+    if (amountCents > maximumItemAmountCents) {
+      throw new Error('Le montant du remboursement dépasse la valeur des articles retournés.');
+    }
+
+    return refundItems;
+  }
+
+  private async restoreLocalRefundStock(order: ServerOrder, items: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>): Promise<void> {
+    for (const item of items) {
+      const product = await this.getProductById(item.productId);
+      const realId = product ? product.id : item.productId;
+      const inventory = await this.getInventoryByProductId(realId);
+      const quantity = inventory.quantity + item.quantity;
+      const updatedInventory = { quantity, reserved_quantity: inventory.reserved_quantity };
+      this.inMemoryInventory.set(realId, updatedInventory);
+      if (realId !== item.productId) this.inMemoryInventory.set(item.productId, updatedInventory);
+
+      const productIndex = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
+      if (productIndex >= 0) {
+        this.inMemoryProducts[productIndex].stockQuantity = quantity;
+        this.inMemoryProducts[productIndex].inStock = true;
+      }
+    }
+  }
+
+  private async finalizeRefund(input: {
+    order: ServerOrder;
+    returnId?: string;
+    amount: number;
+    currency: string;
+    reason: string;
+    stripeRefundId?: string;
+    idempotencyKey: string;
+    status: 'pending' | 'succeeded';
+    items: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
+    applyStock: boolean;
+  }): Promise<CustomerRefund> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.rpc('finalize_refund', {
+        p_order_id: input.order.id,
+        p_return_id: input.returnId || null,
+        p_user_id: input.order.userId || null,
+        p_amount: input.amount,
+        p_currency: input.currency,
+        p_reason: input.reason,
+        p_stripe_refund_id: input.stripeRefundId || null,
+        p_idempotency_key: input.idempotencyKey,
+        p_status: input.status,
+        p_items: input.items,
+        p_apply_stock: input.applyStock
+      });
+      ensureDatabaseSuccess('finalisation atomique du remboursement', error);
+      if (!data) throw new Error('[Supabase] finalisation atomique du remboursement: réponse vide');
+      return mapRefundRow(Array.isArray(data) ? data[0] : data);
+    }
+
+    const existing = this.inMemoryRefunds.find(refund =>
+      refund.idempotencyKey === input.idempotencyKey
+      || (!!input.stripeRefundId && refund.stripeRefundId === input.stripeRefundId)
+    );
+    if (existing) {
+      if (input.applyStock && input.status === 'succeeded' && !existing.stockRestored) {
+        await this.restoreLocalRefundStock(input.order, input.items);
+        existing.stockRestored = true;
+        existing.status = 'succeeded';
+        const previousRefunds = this.inMemoryRefunds
+          .filter(refund => refund.orderId === input.order.id && refund.status === 'succeeded')
+          .reduce((sum, refund) => sum + Math.round(refund.amount * 100), 0);
+        const status: OrderStatus = previousRefunds >= Math.round(input.order.total * 100) ? 'refunded' : 'partially_refunded';
+        await this.updateOrderStatus(input.order.id, status, { reason: input.reason, restockItems: [] });
+      }
+      return existing;
+    }
+
     const ref: CustomerRefund = {
       id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      orderId,
-      returnId,
-      userId: order.userId,
-      amount: refundAmount,
-      currency: 'EUR',
-      reason,
-      stripeRefundId: `re_test_${Date.now()}`,
-      status: 'succeeded',
+      orderId: input.order.id,
+      returnId: input.returnId,
+      userId: input.order.userId,
+      amount: input.amount,
+      currency: input.currency,
+      reason: input.reason,
+      stripeRefundId: input.stripeRefundId,
+      idempotencyKey: input.idempotencyKey,
+      status: input.status,
+      stockRestored: false,
+      items: input.items,
       createdAt: new Date().toISOString()
     };
 
     this.inMemoryRefunds.unshift(ref);
 
-    // Transition order status to 'refunded' & restock
-    await this.updateOrderStatus(orderId, 'refunded');
-
-    const supabase = getSupabaseServerClient();
-    if (supabase) {
-      try {
-        await supabase.from('refunds').insert({
-          id: ref.id,
-          order_id: orderId,
-          return_id: returnId || null,
-          user_id: order.userId || null,
-          amount: refundAmount,
-          currency: 'EUR',
-          reason,
-          stripe_refund_id: ref.stripeRefundId,
-          status: 'succeeded',
-          created_at: ref.createdAt
-        });
-      } catch (err) {
-        console.error('[serverDb] processStripeRefund error:', err);
-      }
+    if (input.applyStock && input.status === 'succeeded') {
+      await this.restoreLocalRefundStock(input.order, input.items);
+      ref.stockRestored = true;
+      const totalRefunded = this.inMemoryRefunds
+        .filter(refund => refund.orderId === input.order.id && ['succeeded', 'completed'].includes(refund.status))
+        .reduce((sum, refund) => sum + Math.round(refund.amount * 100), 0);
+      const status: OrderStatus = totalRefunded >= Math.round(input.order.total * 100) ? 'refunded' : 'partially_refunded';
+      await this.updateOrderStatus(input.order.id, status, { reason: input.reason, restockItems: [] });
     }
 
-    if (order.userId) {
+    return ref;
+  }
+
+  public async processStripeRefund(
+    orderId: string,
+    returnId?: string,
+    amount?: number,
+    reason: string = 'Remboursement client',
+    requestedIdempotencyKey?: string
+  ): Promise<CustomerRefund> {
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error(`Commande #${orderId} introuvable pour le remboursement.`);
+
+    const preliminaryKey = requestedIdempotencyKey?.trim()
+      || `refund:${orderId}:${returnId || 'manual'}:${amount === undefined ? 'full' : amount}`;
+    const existing = await this.findRefundByIdempotencyKey(preliminaryKey);
+    if (existing) return existing;
+
+    const previousRefunds = await this.getRefundsByOrder(orderId);
+    const previousRefundedCents = previousRefunds
+      .filter(refund => ['succeeded', 'completed'].includes(refund.status))
+      .reduce((sum, refund) => sum + Math.round(refund.amount * 100), 0);
+    const orderTotalCents = Math.round(order.total * 100);
+    const remainingCents = orderTotalCents - previousRefundedCents;
+    const refundCents = amount === undefined ? remainingCents : Math.round(amount * 100);
+
+    if (!Number.isSafeInteger(refundCents) || refundCents <= 0) {
+      throw new Error('Le montant du remboursement doit être strictement positif.');
+    }
+    if (refundCents > remainingCents) {
+      throw new Error('Le montant du remboursement dépasse le montant encore remboursable.');
+    }
+    if (!['paid', 'processing', 'packed', 'shipped', 'delivered', 'return_requested', 'returned', 'partially_refunded'].includes(order.status)) {
+      throw new Error(`La commande #${orderId} ne peut pas être remboursée depuis le statut '${order.status}'.`);
+    }
+
+    const items = await this.getRefundItems(order, returnId, refundCents, remainingCents, previousRefunds);
+    const idempotencyKey = requestedIdempotencyKey?.trim()
+      || `refund:${orderId}:${returnId || 'manual'}:${refundCents}`;
+    const secondExisting = await this.findRefundByIdempotencyKey(idempotencyKey);
+    if (secondExisting) return secondExisting;
+
+    const stripe = getStripeServerClient();
+    let stripeRefundId: string | undefined;
+    let refundStatus: 'pending' | 'succeeded' = 'succeeded';
+
+    if (stripe) {
+      let paymentIntentId = order.stripePaymentIntentId;
+      if (!paymentIntentId && order.stripeSessionId) {
+        const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+        paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+      }
+      if (!paymentIntentId) {
+        throw new Error(`Aucun PaymentIntent Stripe associé à la commande #${orderId}.`);
+      }
+
+      const stripeRefund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: refundCents,
+        metadata: {
+          orderId,
+          returnId: returnId || ''
+        }
+      }, { idempotencyKey });
+
+      if (stripeRefund.status === 'failed' || stripeRefund.status === 'canceled') {
+        throw new Error(`Stripe a refusé le remboursement : ${stripeRefund.failure_reason || stripeRefund.status}.`);
+      }
+      stripeRefundId = stripeRefund.id;
+      refundStatus = stripeRefund.status === 'pending' ? 'pending' : 'succeeded';
+    } else if (isSupabaseServerConfigured() || process.env.NODE_ENV === 'production') {
+      throw new Error('Remboursement impossible : STRIPE_SECRET_KEY est requis lorsque Supabase ou la production est activé.');
+    } else {
+      // Explicit local-only simulation. It is never allowed with a configured
+      // Supabase store or in production.
+      stripeRefundId = `re_test_${Date.now()}`;
+    }
+
+    const refund = await this.finalizeRefund({
+      order,
+      returnId,
+      amount: refundCents / 100,
+      currency: 'EUR',
+      reason,
+      stripeRefundId,
+      idempotencyKey,
+      status: refundStatus,
+      items,
+      applyStock: refundStatus === 'succeeded'
+    });
+
+    if (refundStatus === 'succeeded' && order.userId) {
       await this.sendNotification(
         order.userId,
         'refund_created',
         'Remboursement effectué',
-        `Un remboursement de ${refundAmount} EUR a été émis pour votre commande #${orderId}.`,
+        `Un remboursement de ${(refundCents / 100).toFixed(2)} EUR a été émis pour votre commande #${orderId}.`,
         `/account?tab=refunds`,
         orderId
       );
@@ -1245,18 +1837,70 @@ class SupabaseServerStore {
         to: order.customerEmail,
         subject: `[KURLA BEAUTY] Remboursement effectué pour votre commande #${orderId}`,
         template: 'refund_created',
-        data: { orderId, amount: refundAmount, reason }
+        data: { orderId, amount: refundCents / 100, reason }
       });
     }
 
-    return ref;
+    return refund;
+  }
+
+  public async recordStripeRefundFromWebhook(
+    orderId: string,
+    details: {
+      eventId: string;
+      stripeRefundId?: string;
+      amount: number;
+      currency?: string;
+      reason?: string;
+      returnId?: string;
+    }
+  ): Promise<CustomerRefund> {
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error(`Commande #${orderId} introuvable pour le remboursement Stripe.`);
+
+    const eventKey = `stripe-event:${details.eventId}`;
+    const existingByEvent = await this.findRefundByIdempotencyKey(eventKey);
+    if (existingByEvent && existingByEvent.status !== 'pending') return existingByEvent;
+    if (details.stripeRefundId) {
+      const existingByStripe = await this.findRefundByStripeId(details.stripeRefundId);
+      if (existingByStripe && existingByStripe.status !== 'pending') return existingByStripe;
+    }
+
+    const previousRefunds = await this.getRefundsByOrder(orderId);
+    const previousRefundedCents = previousRefunds
+      .filter(refund => ['succeeded', 'completed'].includes(refund.status))
+      .reduce((sum, refund) => sum + Math.round(refund.amount * 100), 0);
+    const reportedCents = Math.round(details.amount * 100);
+    const refundCents = Math.min(reportedCents - previousRefundedCents, Math.round(order.total * 100) - previousRefundedCents);
+    if (!Number.isSafeInteger(refundCents) || refundCents <= 0) {
+      throw new Error(`Montant de remboursement Stripe invalide pour la commande #${orderId}.`);
+    }
+
+    const remainingCents = Math.round(order.total * 100) - previousRefundedCents;
+    const isFullRefund = refundCents >= remainingCents;
+    const items = isFullRefund
+      ? await this.getRefundItems(order, undefined, refundCents, remainingCents, previousRefunds)
+      : [];
+
+    return this.finalizeRefund({
+      order,
+      returnId: details.returnId,
+      amount: refundCents / 100,
+      currency: (details.currency || 'EUR').toUpperCase(),
+      reason: details.reason || 'Remboursement Stripe confirmé',
+      stripeRefundId: details.stripeRefundId,
+      idempotencyKey: eventKey,
+      status: 'succeeded',
+      items,
+      applyStock: isFullRefund
+    });
   }
 
   // ============================================================
   // PHASE 5: CUSTOMER SUPPORT TICKETS
   // ============================================================
   public async createSupportTicket(userId: string, orderId: string | undefined, category: SupportTicket['subjectCategory'], subject: string, message: string): Promise<SupportTicket> {
-    const ticketId = `tkt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const ticketId = randomUUID();
     const now = new Date().toISOString();
 
     const ticket: SupportTicket = {
@@ -1271,7 +1915,7 @@ class SupabaseServerStore {
     };
 
     const firstMsg: SupportMessage = {
-      id: `msg-${Date.now()}-1`,
+      id: randomUUID(),
       ticketId,
       senderId: userId,
       senderRole: 'customer',
@@ -1279,13 +1923,10 @@ class SupabaseServerStore {
       createdAt: now
     };
 
-    this.inMemoryTickets.unshift(ticket);
-    this.inMemoryMessages.push(firstMsg);
-
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('support_tickets').insert({
+        const { error: ticketError } = await supabase.from('support_tickets').insert({
           id: ticketId,
           user_id: userId,
           order_id: orderId || null,
@@ -1295,8 +1936,9 @@ class SupabaseServerStore {
           created_at: now,
           updated_at: now
         });
+        ensureDatabaseSuccess('création du ticket support', ticketError);
 
-        await supabase.from('support_messages').insert({
+        const { error: messageError } = await supabase.from('support_messages').insert({
           id: firstMsg.id,
           ticket_id: ticketId,
           sender_id: userId,
@@ -1304,12 +1946,37 @@ class SupabaseServerStore {
           message,
           created_at: now
         });
+        ensureDatabaseSuccess('création du premier message support', messageError);
       } catch (err) {
         console.error('[serverDb] createSupportTicket error:', err);
+        throw err;
       }
     }
 
+    this.inMemoryTickets.unshift(ticket);
+    this.inMemoryMessages.push(firstMsg);
     return ticket;
+  }
+
+  private async getSupportTicketById(ticketId: string): Promise<SupportTicket | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('support_tickets').select('*').eq('id', ticketId).maybeSingle();
+      ensureDatabaseSuccess('lecture du ticket support', error);
+      if (!data) return undefined;
+      return {
+        id: data.id,
+        userId: data.user_id,
+        orderId: data.order_id,
+        subjectCategory: data.subject_category,
+        subject: data.subject,
+        status: data.status,
+        assignedAgentId: data.assigned_agent_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    }
+    return this.inMemoryTickets.find(t => t.id === ticketId);
   }
 
   public async getSupportTicketsByUser(userId: string): Promise<SupportTicket[]> {
@@ -1317,7 +1984,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('support_tickets').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture des tickets utilisateur', error);
+        if (data) {
           return data.map(t => ({
             id: t.id,
             userId: t.user_id,
@@ -1332,6 +2000,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getSupportTicketsByUser error:', err);
+        throw err;
       }
     }
 
@@ -1343,7 +2012,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('support_tickets').select('*').order('updated_at', { ascending: false });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture de tous les tickets support', error);
+        if (data) {
           return data.map(t => ({
             id: t.id,
             userId: t.user_id,
@@ -1358,6 +2028,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getAllSupportTickets error:', err);
+        throw err;
       }
     }
 
@@ -1369,7 +2040,8 @@ class SupabaseServerStore {
     if (supabase) {
       try {
         const { data, error } = await supabase.from('support_messages').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
-        if (!error && data) {
+        ensureDatabaseSuccess('lecture des messages support', error);
+        if (data) {
           return data.map(m => ({
             id: m.id,
             ticketId: m.ticket_id,
@@ -1381,6 +2053,7 @@ class SupabaseServerStore {
         }
       } catch (err) {
         console.error('[serverDb] getSupportMessages error:', err);
+        throw err;
       }
     }
 
@@ -1390,7 +2063,7 @@ class SupabaseServerStore {
   public async addSupportMessage(ticketId: string, senderId: string, senderRole: 'customer' | 'admin' | 'agent', message: string): Promise<SupportMessage> {
     const now = new Date().toISOString();
     const msg: SupportMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      id: randomUUID(),
       ticketId,
       senderId,
       senderRole,
@@ -1398,20 +2071,13 @@ class SupabaseServerStore {
       createdAt: now
     };
 
-    this.inMemoryMessages.push(msg);
-
-    const ticket = this.inMemoryTickets.find(t => t.id === ticketId);
-    if (ticket) {
-      ticket.updatedAt = now;
-      if (senderRole === 'admin' || senderRole === 'agent') {
-        ticket.status = 'in_progress';
-      }
-    }
-
     const supabase = getSupabaseServerClient();
+    const ticket = this.inMemoryTickets.find(t => t.id === ticketId)
+      || (supabase ? await this.getSupportTicketById(ticketId) : undefined);
+
     if (supabase) {
       try {
-        await supabase.from('support_messages').insert({
+        const { error: messageError } = await supabase.from('support_messages').insert({
           id: msg.id,
           ticket_id: ticketId,
           sender_id: senderId,
@@ -1419,13 +2085,25 @@ class SupabaseServerStore {
           message,
           created_at: now
         });
+        ensureDatabaseSuccess('création du message support', messageError);
 
-        await supabase.from('support_tickets').update({
+        const { error: ticketError } = await supabase.from('support_tickets').update({
           status: senderRole === 'admin' || senderRole === 'agent' ? 'in_progress' : undefined,
           updated_at: now
         }).eq('id', ticketId);
+        ensureDatabaseSuccess('mise à jour du ticket support', ticketError);
       } catch (err) {
         console.error('[serverDb] addSupportMessage error:', err);
+        throw err;
+      }
+    }
+
+    this.inMemoryMessages.push(msg);
+    const memoryTicket = this.inMemoryTickets.find(t => t.id === ticketId);
+    if (memoryTicket) {
+      memoryTicket.updatedAt = now;
+      if (senderRole === 'admin' || senderRole === 'agent') {
+        memoryTicket.status = 'in_progress';
       }
     }
 
@@ -1444,22 +2122,26 @@ class SupabaseServerStore {
   }
 
   public async updateSupportTicketStatus(ticketId: string, status: SupportTicket['status']): Promise<void> {
-    const ticket = this.inMemoryTickets.find(t => t.id === ticketId);
-    if (ticket) {
-      ticket.status = status;
-      ticket.updatedAt = new Date().toISOString();
-    }
-
+    const updatedAt = new Date().toISOString();
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        await supabase.from('support_tickets').update({
+        const { data, error } = await supabase.from('support_tickets').update({
           status,
-          updated_at: new Date().toISOString()
-        }).eq('id', ticketId);
+          updated_at: updatedAt
+        }).eq('id', ticketId).select('id').maybeSingle();
+        ensureDatabaseSuccess('mise à jour du statut du ticket support', error);
+        if (!data) throw new Error('Ticket support introuvable.');
       } catch (err) {
         console.error('[serverDb] updateSupportTicketStatus error:', err);
+        throw err;
       }
+    }
+
+    const ticket = this.inMemoryTickets.find(t => t.id === ticketId);
+    if (ticket) {
+      ticket.status = status;
+      ticket.updatedAt = updatedAt;
     }
   }
 
@@ -1468,55 +2150,76 @@ class SupabaseServerStore {
   // ============================================================
   public async getAdminAnalyticsMetrics(): Promise<any> {
     const products = await this.getProducts();
-    const orders = this.inMemoryOrders;
-
     const supabase = getSupabaseServerClient();
-    let supaOrders: any[] = [];
+    let supaOrders: ServerOrder[] = [];
+    let supaRefunds: CustomerRefund[] = [];
     let supaProfilesCount = 0;
     let supaTicketsCount = 0;
     let supaEventsCount = 0;
 
     if (supabase) {
       try {
-        const { data: oData } = await supabase.from('orders').select('*');
-        if (oData) supaOrders = oData;
+        const { data: oData, error: ordersError } = await supabase.from('orders').select('*');
+        ensureDatabaseSuccess('lecture des commandes pour les métriques', ordersError);
+        supaOrders = (oData || []).map(data => ({
+          id: data.id,
+          userId: data.user_id,
+          customerEmail: data.customer_email,
+          items: data.items || [],
+          total: Number(data.total),
+          status: data.status,
+          stripeSessionId: data.stripe_session_id,
+          stripePaymentIntentId: data.stripe_payment_intent_id,
+          checkoutIdempotencyKey: data.checkout_idempotency_key,
+          shippingAddress: data.shipping_address,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        }));
 
-        const { count: pCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        const { data: refundData, error: refundsError } = await supabase.from('refunds').select('*');
+        ensureDatabaseSuccess('lecture des remboursements pour les métriques', refundsError);
+        supaRefunds = (refundData || []).map(mapRefundRow);
+
+        const { count: pCount, error: profilesError } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        ensureDatabaseSuccess('comptage des profils pour les métriques', profilesError);
         supaProfilesCount = pCount || 0;
 
-        const { count: tCount } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true });
+        const { count: tCount, error: ticketsError } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true });
+        ensureDatabaseSuccess('comptage des tickets pour les métriques', ticketsError);
         supaTicketsCount = tCount || 0;
 
-        const { count: eCount } = await supabase.from('stripe_events').select('*', { count: 'exact', head: true });
+        const { count: eCount, error: eventsError } = await supabase.from('stripe_events').select('*', { count: 'exact', head: true });
+        ensureDatabaseSuccess('comptage des événements Stripe pour les métriques', eventsError);
         supaEventsCount = eCount || 0;
       } catch (err) {
         console.error('[serverDb] getAdminAnalyticsMetrics error:', err);
+        throw err;
       }
     }
 
-    const allOrdersMap = new Map<string, any>();
-    orders.forEach(o => allOrdersMap.set(o.id, o));
-    supaOrders.forEach(o => allOrdersMap.set(o.id, {
-      id: o.id,
-      total: Number(o.total),
-      status: o.status,
-      customerEmail: o.customer_email,
-      createdAt: o.created_at,
-      items: o.items || []
-    }));
-
-    const combinedOrders = Array.from(allOrdersMap.values());
-
-    const paidOrders = combinedOrders.filter(o => o.status === 'paid');
-    const revenueTest = paidOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    // Never merge the local cache with Supabase: once persistence is
+    // configured, the dashboard must describe the persistent source only.
+    const sourceOrders: ServerOrder[] = supabase ? supaOrders : this.inMemoryOrders;
+    const sourceRefunds: CustomerRefund[] = supabase ? supaRefunds : this.inMemoryRefunds;
+    const revenueStatuses: OrderStatus[] = [
+      'paid', 'processing', 'packed', 'shipped', 'delivered',
+      'return_requested', 'returned', 'partially_refunded', 'refunded'
+    ];
+    const paidOrders = sourceOrders.filter(order => revenueStatuses.includes(order.status));
+    const grossRevenueCents = paidOrders.reduce((sum, order) => sum + Math.round(Number(order.total || 0) * 100), 0);
+    const refundedRevenueCents = sourceRefunds
+      .filter(refund => ['succeeded', 'completed'].includes(refund.status) && (refund.currency || '').toUpperCase() === 'EUR')
+      .reduce((sum, refund) => sum + Math.round(Number(refund.amount || 0) * 100), 0);
+    const grossRevenue = grossRevenueCents / 100;
+    const revenueTest = Math.max(0, grossRevenueCents - refundedRevenueCents) / 100;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayOrders = combinedOrders.filter(o => (o.createdAt || '').startsWith(todayStr));
+    const todayOrders = sourceOrders.filter(order => order.createdAt.startsWith(todayStr));
 
-    const pendingOrders = combinedOrders.filter(o => o.status === 'payment_pending_webhook' || o.status === 'pending_payment');
-    const processingOrders = combinedOrders.filter(o => o.status === 'processing' || o.status === 'packed');
-    const shippedOrders = combinedOrders.filter(o => o.status === 'shipped' || o.status === 'delivered');
-    const refundedOrders = combinedOrders.filter(o => o.status === 'refunded');
+    const pendingOrders = sourceOrders.filter(order => order.status === 'payment_pending_webhook' || order.status === 'pending_payment');
+    const processingOrders = sourceOrders.filter(order => order.status === 'processing' || order.status === 'packed');
+    const shippedOrders = sourceOrders.filter(order => order.status === 'shipped' || order.status === 'delivered');
+    const refundedOrders = sourceOrders.filter(order => order.status === 'refunded' || order.status === 'partially_refunded');
 
     const avgOrderValue = paidOrders.length > 0 ? revenueTest / paidOrders.length : 0;
 
@@ -1525,7 +2228,9 @@ class SupabaseServerStore {
 
     return {
       revenueTest,
-      totalOrders: combinedOrders.length,
+      grossRevenue,
+      netRevenue: revenueTest,
+      totalOrders: sourceOrders.length,
       todayOrdersCount: todayOrders.length,
       pendingOrdersCount: pendingOrders.length,
       paidOrdersCount: paidOrders.length,
@@ -1535,17 +2240,52 @@ class SupabaseServerStore {
       avgOrderValue,
       lowStockProducts,
       outOfStockProducts,
-      openTicketsCount: supaTicketsCount || this.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length,
-      stripeEventsCount: supaEventsCount || this.processedEventsSet.size,
-      registeredUsersCount: supaProfilesCount || 12
+      openTicketsCount: supabase
+        ? supaTicketsCount
+        : this.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length,
+      stripeEventsCount: supabase ? supaEventsCount : this.processedEventsSet.size,
+      registeredUsersCount: supabase ? supaProfilesCount : 0
     };
+  }
+
+  public async claimEventForProcessing(eventId: string, eventType: string): Promise<boolean> {
+    if (this.processedEventsSet.has(eventId)) return false;
+
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.rpc('claim_stripe_event', {
+        p_event_id: eventId,
+        p_event_type: eventType
+      });
+      ensureDatabaseSuccess('réservation idempotente de l’événement Stripe', error);
+      if (data === true) return true;
+      this.processedEventsSet.add(eventId);
+      return false;
+    }
+
+    this.processedEventsSet.add(eventId);
+    return true;
+  }
+
+  public async markEventError(eventId: string, eventType: string, errorMessage: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.rpc('mark_stripe_event_error', {
+        p_event_id: eventId,
+        p_event_type: eventType,
+        p_error: errorMessage
+      });
+      ensureDatabaseSuccess('enregistrement de l’erreur Stripe', error);
+    }
+    this.processedEventsSet.delete(eventId);
   }
 
   public async isEventProcessed(eventId: string): Promise<boolean> {
     if (this.processedEventsSet.has(eventId)) return true;
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      const { data } = await supabase.from('stripe_events').select('event_id').eq('event_id', eventId).maybeSingle();
+      const { data, error } = await supabase.from('stripe_events').select('event_id').eq('event_id', eventId).maybeSingle();
+      ensureDatabaseSuccess('lecture de l’idempotence Stripe', error);
       if (data) {
         this.processedEventsSet.add(eventId);
         return true;
@@ -1555,22 +2295,25 @@ class SupabaseServerStore {
   }
 
   public async markEventProcessed(eventId: string, eventType: string = 'stripe_webhook', details?: any): Promise<void> {
-    this.processedEventsSet.add(eventId);
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      await supabase.from('stripe_events').upsert({
+      const { error } = await supabase.from('stripe_events').upsert({
         event_id: eventId,
         event_type: eventType,
         status: 'processed',
         details: details || null,
         created_at: new Date().toISOString()
       }, { onConflict: 'event_id' });
+      ensureDatabaseSuccess('enregistrement de l’événement Stripe', error);
     }
+    this.processedEventsSet.add(eventId);
   }
 
   public getStatusSummary(): { supabaseConfigured: boolean; productCount: number; orderCount: number } {
     return {
-      supabaseConfigured: isSupabaseConfigured,
+      // This is the backend status: a public VITE key is not enough for the
+      // privileged store or server-side token verification.
+      supabaseConfigured: isSupabaseServerConfigured(),
       productCount: this.inMemoryProducts.length,
       orderCount: this.inMemoryOrders.length
     };

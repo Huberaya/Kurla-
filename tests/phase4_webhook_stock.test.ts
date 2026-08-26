@@ -279,5 +279,42 @@ export async function runPhase4WebhookStockTests(): Promise<Phase4TestResult[]> 
     });
   }
 
+  // Test 7: Deux événements de confirmation du même paiement ne déduisent
+  // pas le stock une seconde fois.
+  try {
+    const testProductId = 'leave-in-hydratant';
+    const testProduct = await serverDb.getProductById(testProductId);
+    const testOrderId = 'ORD-PH4-DUPLICATE-PAID-' + Date.now();
+    await serverDb.saveOrder({
+      id: testOrderId,
+      userId: 'usr_ph4_test',
+      customerEmail: 'ph4.test@kurla-beauty.com',
+      items: [{ productId: testProductId, quantity: 2, price: testProduct.price, name: testProduct.name }],
+      total: testProduct.price * 2,
+      status: 'payment_pending_webhook',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    await serverDb.updateOrderStatus(testOrderId, 'paid', { stripePaymentIntentId: 'pi_test_duplicate_a' });
+    const afterFirstConfirmation = await serverDb.getInventoryByProductId(testProductId);
+    await serverDb.updateOrderStatus(testOrderId, 'paid', { stripePaymentIntentId: 'pi_test_duplicate_b' });
+    const afterSecondConfirmation = await serverDb.getInventoryByProductId(testProductId);
+    const updatedOrder = await serverDb.getOrderById(testOrderId);
+
+    results.push({
+      passed: updatedOrder?.status === 'paid'
+        && updatedOrder.stripePaymentIntentId === 'pi_test_duplicate_b'
+        && afterSecondConfirmation.quantity === afterFirstConfirmation.quantity,
+      testName: 'confirmation de paiement répétée sans double déstockage',
+      details: `Le second événement met à jour le PaymentIntent sans modifier à nouveau le stock.`
+    });
+  } catch (err: any) {
+    results.push({
+      passed: false,
+      testName: 'confirmation de paiement répétée sans double déstockage',
+      details: err.message
+    });
+  }
+
   return results;
 }

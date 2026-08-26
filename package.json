@@ -3,13 +3,19 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --loader:.jpg=dataurl --loader:.png=dataurl --loader:.svg=dataurl --loader:.webp=dataurl --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
-    "test": "tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test:authorization": "KURLA_TEST_NO_SERVER=true tsx tests/authorization.test.ts",
+    "test:hardening": "KURLA_TEST_NO_SERVER=true tsx tests/production_hardening.test.ts",
+    "test:integration": "KURLA_TEST_NO_SERVER=true tsx tests/supabase_integration.test.ts",
+    "test": "npm run test:authorization && npm run test:hardening && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
