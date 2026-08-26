@@ -87,7 +87,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
               {/* Image Type Badge (Hybrid System Status) */}
               <div className="absolute top-4 right-4 z-10">
-                {currentImg.isOfficial ? (
+                {source === 'fallback' ? (
+                  <span className="px-3 py-1 rounded-full bg-amber-950/90 backdrop-blur-md text-[11px] font-semibold text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shadow-md">
+                    <Info className="w-3.5 h-3.5 text-amber-400" />
+                    Visuel de démonstration
+                  </span>
+                ) : currentImg.isOfficial ? (
                   <span className="px-3 py-1 rounded-full bg-emerald-950/80 backdrop-blur-md text-[11px] font-semibold text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-md">
                     <Camera className="w-3.5 h-3.5 text-emerald-400" />
                     Photo Officielle
@@ -182,7 +187,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                   <span className="font-bold text-[#FFF7EF]">{product.rating}</span>
                 </div>
                 <span className="text-[#FFF7EF]/40">({product.reviewsCount} avis vérifiés)</span>
-                <span className="text-emerald-400 font-medium text-xs border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">En Stock</span>
+                <span className={`font-medium text-xs border px-2.5 py-0.5 rounded-full ${
+                  product.inStock
+                    ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+                    : 'text-rose-300 border-rose-500/30 bg-rose-500/10'
+                }`}>
+                  {product.inStock ? 'En stock' : 'Rupture de stock'}
+                </span>
               </div>
             </div>
 
@@ -198,14 +209,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
               <button
                 onClick={handleAdd}
-                className={`px-8 py-3.5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-lg transition-all ${
+                disabled={!product.inStock}
+                className={`px-8 py-3.5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   added
                     ? 'bg-emerald-600 text-white'
                     : 'bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white hover:from-[#b06330]'
                 }`}
               >
                 <ShoppingBag className="w-4 h-4" />
-                {added ? 'Ajouté au panier !' : 'Ajouter au panier'}
+                {added ? 'Ajouté au panier !' : product.inStock ? 'Ajouter au panier' : 'Indisponible'}
               </button>
             </div>
 

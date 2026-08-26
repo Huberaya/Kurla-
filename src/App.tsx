@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import React, { useRef, useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { isSupabaseConfigured } from './lib/supabaseClient';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -56,6 +57,9 @@ import { MenGroomingPage } from './pages/MenGroomingPage';
 import { ToolsPage } from './pages/ToolsPage';
 import { IngredientsGuidePage } from './pages/IngredientsGuidePage';
 import { CommunityPage } from './pages/CommunityPage';
+import { LegalPage } from './pages/LegalPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 
 // Modals & Widgets
 import { CartDrawer } from './components/CartDrawer';
@@ -63,7 +67,8 @@ import { SearchModal } from './components/SearchModal';
 import { AiAssistantWidget } from './components/AiAssistantWidget';
 import { CartItem, Product } from './types';
 
-export function App() {
+function AppContent() {
+  const { user, session } = useAuth();
   const [pathname, setPathname] = useState(window.location.pathname);
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
@@ -73,6 +78,8 @@ export function App() {
       return [];
     }
   });
+  const initialCartRef = useRef<CartItem[]>(cartItems);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -88,37 +95,75 @@ export function App() {
   useEffect(() => {
     const handlePopState = () => setPathname(window.location.pathname);
     window.addEventListener('popstate', handlePopState);
+    let cancelled = false;
 
-    // Initial server cart fetch
-    fetch('/api/cart', {
-      headers: { 'x-anonymous-id': anonId }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.items && data.items.length > 0) {
-          setCartItems(data.items);
+    const authHeaders: HeadersInit = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {};
+
+    const loadCart = async () => {
+      setCartHydrated(false);
+      try {
+        // Read the guest cart without auth and the account cart with the
+        // verified session in parallel. This lets a login merge both carts.
+        const guestResponse = await fetch('/api/cart', {
+          headers: { 'x-anonymous-id': anonId }
+        });
+        const guestData = await guestResponse.json().catch(() => ({}));
+        const guestItems: CartItem[] = Array.isArray(guestData?.items) ? guestData.items : [];
+
+        let accountItems: CartItem[] = [];
+        if (session?.access_token) {
+          const accountResponse = await fetch('/api/cart', { headers: authHeaders });
+          const accountData = await accountResponse.json().catch(() => ({}));
+          accountItems = Array.isArray(accountData?.items) ? accountData.items : [];
         }
-      })
-      .catch(() => {});
 
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [anonId]);
+        if (cancelled) return;
+        const baseItems = guestItems.length > 0 ? guestItems : initialCartRef.current;
+        const merged = new Map<string, CartItem>();
+        [...baseItems, ...accountItems].forEach(item => {
+          const previous = merged.get(item.product.id);
+          merged.set(item.product.id, {
+            ...item,
+            quantity: Math.min(99, (previous?.quantity || 0) + item.quantity)
+          });
+        });
+        setCartItems(Array.from(merged.values()));
+      } catch {
+        // Keep the local cart available if the API is temporarily offline.
+      } finally {
+        if (!cancelled) setCartHydrated(true);
+      }
+    };
 
-  // Persist cart to localStorage & public.carts / public.cart_items
+    loadCart();
+    return () => {
+      cancelled = true;
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [anonId, user?.id]);
+
+  // Persist the active cart only after the initial guest/account merge. When a
+  // session exists, the server associates the cart with the verified user.
   useEffect(() => {
+    if (!cartHydrated) return;
     try {
       localStorage.setItem('kurla_cart_items', JSON.stringify(cartItems));
     } catch (e) {}
 
     fetch('/api/cart', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+      },
       body: JSON.stringify({
         anonymousId: anonId,
         items: cartItems.map(i => ({ productId: i.product.id, quantity: i.quantity }))
       })
     }).catch(() => {});
-  }, [cartItems, anonId]);
+  }, [cartItems, anonId, session?.access_token, cartHydrated]);
 
   const handleAddToCart = (product: Product) => {
     setCartItems(prev => {
@@ -174,7 +219,10 @@ export function App() {
     if (pathname === '/guides/ingredients') return <IngredientsGuidePage />;
     if (pathname === '/community') return <CommunityPage />;
 
-    if (pathname === '/boutique') return <BoutiquePage onAddToCart={handleAddToCart} />;
+    if (pathname === '/boutique') {
+      const params = new URLSearchParams(window.location.search);
+      return <BoutiquePage onAddToCart={handleAddToCart} selectedCategory={params.get('category') || 'tous'} />;
+    }
     if (pathname.startsWith('/produit/')) {
       const slug = pathname.replace('/produit/', '');
       return <ProductDetailPage slug={slug} onAddToCart={handleAddToCart} />;
@@ -215,6 +263,14 @@ export function App() {
       );
     }
     if (pathname === '/manifeste') return <ManifestePage />;
+    if (pathname === '/cgv') return <LegalPage kind="cgv" />;
+    if (pathname === '/confidentialite') return <LegalPage kind="confidentialite" />;
+    if (pathname === '/commande/confirmation') {
+      const params = new URLSearchParams(window.location.search);
+      return <OrderConfirmationPage sessionId={params.get('session_id') || undefined} orderId={params.get('order_id') || undefined} />;
+    }
+
+    if (pathname !== '/') return <NotFoundPage />;
 
     // Home Page Full Template Layout
     return (
@@ -244,13 +300,19 @@ export function App() {
   };
 
   return (
-    <AuthProvider>
       <div className="min-h-screen bg-[#FFFDF9] text-[#111111] font-sans selection:bg-[#C8753D] selection:text-white">
         <Navbar
           cartCount={cartCount}
           onOpenCart={() => setIsCartOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
+          currentPath={pathname}
         />
+
+        {import.meta.env.DEV && !isSupabaseConfigured() && (
+          <div role="status" className="fixed top-[72px] left-0 right-0 z-40 px-4 py-2 bg-amber-100 border-b border-amber-200 text-amber-950 text-center text-[11px] font-semibold">
+            Mode démonstration : les données catalogue sont illustratives et le paiement réel n’est pas activé.
+          </div>
+        )}
 
         {renderView()}
 
@@ -273,6 +335,13 @@ export function App() {
 
         <AiAssistantWidget />
       </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   );
 }

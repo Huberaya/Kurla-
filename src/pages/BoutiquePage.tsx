@@ -7,6 +7,7 @@ import {
 import { MOCK_ROUTINES } from '../data/mockData';
 import { Product, RoutineBundle } from '../types';
 import { useProducts } from '../services/productService';
+import { useAuth } from '../context/AuthContext';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -48,6 +49,18 @@ const SKIN_NEEDS: NeedOption[] = [
 
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
   const { products, brands: supabaseBrands, source, count, loading, error, refetch } = useProducts();
+  const { profile } = useAuth();
+  const hasKurlaProfile = Boolean(profile && (profile.hair_type || profile.skin_type || profile.concerns?.length));
+
+  const isProductCompatible = (product: Product): boolean => {
+    if (!hasKurlaProfile) return false;
+    const profileConcerns = profile?.concerns || [];
+    if (profileConcerns.length > 0 && product.needs?.some(need => profileConcerns.includes(need))) {
+      return true;
+    }
+    const isSkinProduct = product.category === 'peau';
+    return isSkinProduct ? Boolean(profile?.skin_type) : Boolean(profile?.hair_type || profile?.texture);
+  };
 
   const [activeCategory, setActiveCategory] = useState<string>(selectedCategory);
   const [activeSubCategory, setActiveSubCategory] = useState<string>('tous');
@@ -133,6 +146,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       // Afro Community Brand Filter
       if (onlyAfroCommunity && !p.communityBrand) return false;
 
+      // KURLA ID compatibility is only shown when it can be derived from a
+      // real profile. Never label every item with an invented score.
+      if (onlyCompatible && !isProductCompatible(p)) return false;
+
       // Country Filter
       if (selectedCountry !== 'tous' && p.countryAvailability && !p.countryAvailability.includes(selectedCountry)) return false;
 
@@ -155,7 +172,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     });
   }, [
     products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand, 
-    onlyAfroCommunity, selectedCountry, searchQuery, sortBy
+    onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
+    profile, hasKurlaProfile
   ]);
 
   const activeNeedObj = useMemo(() => {
@@ -180,11 +198,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             Filtrage scientifique par besoin, composition INCI sans résidus et compatibilité avec votre profil.
           </p>
 
-          {/* Supabase Status Banner */}
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200/80 shadow-xs">
-            <Database className="w-4 h-4 text-emerald-600" />
+          {/* Data source is transparent during beta and never exposes an
+              internal database name as a consumer-facing quality claim. */}
+          <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border shadow-xs ${
+            source === 'fallback'
+              ? 'bg-amber-50 text-amber-900 border-amber-200/80'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+          }`}>
+            <Database className={`w-4 h-4 ${source === 'fallback' ? 'text-amber-600' : 'text-emerald-600'}`} />
             <span>
-              Source Principale : <strong>public.products (Supabase)</strong> — <strong className="text-emerald-700">{count} produit(s) récupéré(s)</strong>
+              {source === 'fallback'
+                ? <>Mode démonstration — <strong>{count} produit(s) illustratif(s)</strong>. Le paiement réel est indisponible.</>
+                : <>Catalogue KURLA disponible — <strong className="text-emerald-700">{count} produit(s)</strong></>}
             </span>
           </div>
         </div>
@@ -398,7 +423,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]"
             >
-              <option value="fit">✨ Tri : Score KURLA Fit</option>
+              <option value="fit">✨ Tri : Sélection KURLA</option>
               <option value="rating">⭐ Meilleurs avis</option>
               <option value="price-asc">€ Prix croissant</option>
               <option value="price-desc">€ Prix décroissant</option>
@@ -432,9 +457,14 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 </span>
               </label>
             </div>
+            {onlyCompatible && !hasKurlaProfile && (
+              <p className="w-full text-[11px] text-[#9a5b2d]">
+                Complète ton KURLA ID pour activer une compatibilité personnalisée.
+              </p>
+            )}
 
             {/* Active Filters Summary Reset */}
-            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous') && (
+            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || onlyCompatible || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous') && (
               <button
                 onClick={() => {
                   setSelectedNeedId(null);
@@ -442,6 +472,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   setOnlyAfroCommunity(false);
                   setSelectedCountry('tous');
                   setSearchQuery('');
+                  setOnlyCompatible(false);
                   setActiveSubCategory('tous');
                 }}
                 className="text-[#C8753D] hover:underline text-xs font-bold flex items-center gap-1"
@@ -545,6 +576,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 setOnlyAfroCommunity(false);
                 setSelectedCountry('tous');
                 setSearchQuery('');
+                setOnlyCompatible(false);
                 setActiveCategory('tous');
                 setActiveSubCategory('tous');
               }}
@@ -555,8 +587,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product, idx) => {
-              const fitScore = 92 + (idx % 7);
+            {filteredProducts.map((product) => {
+              const compatibleWithProfile = hasKurlaProfile && isProductCompatible(product);
 
               return (
                 <div
@@ -571,10 +603,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       
-                      {/* KURLA Fit Badge */}
+                      {/* Compatibility is displayed only when it is derived from
+                          the signed-in user's profile. */}
                       <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
                         <Award className="w-3 h-3 text-[#D49A63]" />
-                        KURLA Fit {fitScore}%
+                        {compatibleWithProfile ? 'Compatible avec ton profil' : 'Sélection KURLA'}
                       </div>
 
                       {/* Community Badge */}

@@ -127,14 +127,17 @@ export async function getProductsFromSupabase(): Promise<FetchProductsResponse> 
   const supabase = getSupabaseClient();
 
   // Helper to attempt backend API endpoint fallback
-  async function fetchFromBackendApi(): Promise<Product[] | null> {
+  async function fetchFromBackendApi(): Promise<{ products: Product[]; source: 'supabase' | 'fallback' } | null> {
     try {
       const origin = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
       const apiRes = await fetch(`${origin}/api/products`);
       if (apiRes.ok) {
         const apiJson = await apiRes.json();
-        if (apiJson.products && Array.isArray(apiJson.products) && apiJson.products.length > 0) {
-          return apiJson.products;
+        if (apiJson.products && Array.isArray(apiJson.products)) {
+          return {
+            products: apiJson.products,
+            source: apiJson.source === 'supabase' ? 'supabase' : 'fallback'
+          };
         }
       }
     } catch (e) {
@@ -197,6 +200,17 @@ export async function getProductsFromSupabase(): Promise<FetchProductsResponse> 
           count: products.length,
           error: null
         };
+      } else if (!pError && rawProducts) {
+        // An empty production catalogue is a valid state. Never replace it
+        // with demo products: merchandising must be able to detect the issue.
+        return {
+          products: [],
+          brands: [],
+          categories: [],
+          source: 'supabase',
+          count: 0,
+          error: null
+        };
       } else if (pError) {
         console.warn('[productService] Client-side direct Supabase query skipped/unavailable, switching to backend store:', pError.message);
       }
@@ -206,19 +220,31 @@ export async function getProductsFromSupabase(): Promise<FetchProductsResponse> 
   }
 
   // Attempt backend API server fallback
-  const apiProducts = await fetchFromBackendApi();
-  if (apiProducts && apiProducts.length > 0) {
+  const apiResult = await fetchFromBackendApi();
+  if (apiResult) {
     return {
-      products: apiProducts,
+      products: apiResult.products,
       brands: [],
       categories: [],
-      source: 'supabase',
-      count: apiProducts.length,
+      source: apiResult.source,
+      count: apiResult.products.length,
       error: null
     };
   }
 
-  // Development Fallback
+  // Demo data is available only outside a production build. A production
+  // outage must be visible instead of silently showing fictitious products.
+  if (import.meta.env.PROD) {
+    return {
+      products: [],
+      brands: [],
+      categories: [],
+      source: 'supabase',
+      count: 0,
+      error: new Error('Le catalogue est momentanément indisponible. Veuillez réessayer dans quelques instants.')
+    };
+  }
+
   return {
     products: MOCK_PRODUCTS,
     brands: [],
@@ -241,11 +267,18 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
 
   if (supabase) {
     try {
-      const { data, error } = await supabase
+      // Use separate equality queries instead of interpolating a route value
+      // into a PostgREST OR expression.
+      const { data: slugData, error: slugError } = await supabase
         .from('products')
         .select('*')
-        .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
+        .eq('slug', slugOrId)
         .maybeSingle();
+      const { data: idData, error: idError } = slugData || slugError
+        ? { data: null, error: null }
+        : await supabase.from('products').select('*').eq('id', slugOrId).maybeSingle();
+      const data = slugData || idData;
+      const error = slugError || idError;
 
       if (!error && data) {
         // Fetch product images and inventory
@@ -274,7 +307,11 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
       if (apiJson.products && Array.isArray(apiJson.products)) {
         const found = apiJson.products.find((p: any) => p.slug === slugOrId || p.id === slugOrId);
         if (found) {
-          return { product: found, source: 'supabase', error: null };
+          return {
+            product: found,
+            source: apiJson.source === 'supabase' ? 'supabase' : 'fallback',
+            error: null
+          };
         }
       }
     }
@@ -282,7 +319,16 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
     // ignore
   }
 
-  // Development Fallback
+  // Development Fallback. Production must not silently render the first-party
+  // demo catalogue after a real catalogue outage.
+  if (import.meta.env.PROD) {
+    return {
+      product: null,
+      source: 'supabase',
+      error: new Error('Ce produit est momentanément indisponible. Veuillez réessayer dans quelques instants.')
+    };
+  }
+
   const fallback = MOCK_PRODUCTS.find(p => p.slug === slugOrId || p.id === slugOrId) || null;
   return { product: fallback, source: 'fallback', error: null };
 }

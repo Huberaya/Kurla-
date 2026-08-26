@@ -1,13 +1,15 @@
 import React from 'react';
 import { ArrowLeft, Clock, Share2, Sparkles, ArrowRight } from 'lucide-react';
 import { MOCK_ARTICLES } from '../data/mockData';
+import { NotFoundPage } from './NotFoundPage';
 
 interface ArticleDetailPageProps {
   slug: string;
 }
 
 export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) => {
-  const article = MOCK_ARTICLES.find(a => a.slug === slug) || MOCK_ARTICLES[0];
+  const article = MOCK_ARTICLES.find(a => a.slug === slug);
+  if (!article) return <NotFoundPage />;
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">

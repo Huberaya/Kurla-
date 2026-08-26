@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star, MapPin, CheckCircle2, ShieldCheck, Calendar, Clock, ArrowLeft, Video } from 'lucide-react';
 import { MOCK_PROS } from '../data/mockData';
 import { ConsultationBookingModal } from '../components/ConsultationBookingModal';
+import { NotFoundPage } from './NotFoundPage';
 
 interface ProProfilePageProps {
   slug: string;
@@ -12,7 +13,8 @@ export const ProProfilePage: React.FC<ProProfilePageProps> = ({ slug }) => {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [isVisioModalOpen, setIsVisioModalOpen] = useState(false);
 
-  const pro = MOCK_PROS.find(p => p.slug === slug) || MOCK_PROS[0];
+  const pro = MOCK_PROS.find(p => p.slug === slug);
+  if (!pro) return <NotFoundPage />;
 
   const handleBook = (serviceName: string) => {
     setSelectedService(serviceName);
@@ -70,8 +72,8 @@ export const ProProfilePage: React.FC<ProProfilePageProps> = ({ slug }) => {
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-400" />
               <div>
-                <h4 className="font-bold text-sm">Demande de rendez-vous enregistrée !</h4>
-                <p className="text-xs font-light">Service sélectionné : {selectedService}. {pro.name} reprendra contact avec toi d'ici 24h.</p>
+                <h4 className="font-bold text-sm">Demande préparée — fonctionnalité bêta</h4>
+                <p className="text-xs font-light">Service sélectionné : {selectedService}. Aucune réservation n’est encore créée ; le service sera disponible après connexion du calendrier KURLA Pro.</p>
               </div>
             </div>
             <button onClick={() => setBookingSuccess(false)} className="text-xs underline text-emerald-400">Fermer</button>

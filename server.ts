@@ -682,7 +682,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       payment_intent_data: {
         metadata: { orderId, userId: uid || '' }
       },
-      success_url: `${appUrl}/account?order_success=true&session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
+      success_url: `${appUrl}/commande/confirmation?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
       cancel_url: `${appUrl}/boutique?canceled=true`,
     }, checkoutIdempotencyKey ? { idempotencyKey: checkoutIdempotencyKey } : undefined);
     stripeSessionCreated = true;
@@ -708,6 +708,58 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     res.status(500).json({ error: safeApiError(error, 'Erreur lors de la création de la session de paiement') });
   }
 });
+
+// Public, capability-based checkout confirmation. The Stripe Checkout Session
+// id is unguessable and is used only to return the minimum information needed
+// after a guest payment. This endpoint never trusts a client-provided amount
+// or status and never exposes the customer's email or line items.
+app.get('/api/stripe/checkout-session', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id.trim() : '';
+  const requestedOrderId = typeof req.query.order_id === 'string' ? req.query.order_id.trim() : '';
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+    return res.status(400).json({ error: 'Session de paiement invalide.' });
+  }
+  if (requestedOrderId && !/^ORD-[A-Z0-9-]+$/.test(requestedOrderId)) {
+    return res.status(400).json({ error: 'Commande invalide.' });
+  }
+
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return res.status(503).json({ error: 'La vérification du paiement est momentanément indisponible.' });
+  }
+
+  try {
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+    const order = await serverDb.findOrder({ stripeSessionId: sessionId });
+    if (!order || (requestedOrderId && order.id !== requestedOrderId)) {
+      return res.status(404).json({ error: 'Commande introuvable.' });
+    }
+    if (checkoutSession.metadata?.orderId && checkoutSession.metadata.orderId !== order.id) {
+      return res.status(409).json({ error: 'La session de paiement ne correspond pas à cette commande.' });
+    }
+
+    const expectedCents = Math.round(order.total * 100);
+    if (checkoutSession.amount_total !== expectedCents || (checkoutSession.currency && checkoutSession.currency.toLowerCase() !== 'eur')) {
+      return res.status(409).json({ error: 'Les informations de paiement ne correspondent pas à la commande.' });
+    }
+
+    return res.json({
+      order: {
+        id: order.id,
+        total: order.total,
+        status: order.status,
+        createdAt: order.createdAt
+      },
+      checkout: {
+        paymentStatus: checkoutSession.payment_status || null,
+        status: checkoutSession.status || null
+      }
+    });
+  } catch (error: any) {
+    console.error('[Stripe Checkout Confirmation Error]', error?.message || error);
+    return res.status(502).json({ error: 'Impossible de vérifier la session de paiement pour le moment.' });
+  }
+}));
 
 // Authenticated Orders API Endpoint
 app.get('/api/orders', async (req: AuthenticatedRequest, res: Response) => {
@@ -771,7 +823,8 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
 // Products API endpoint
 app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const products = await serverDb.getProducts();
-  res.json({ products });
+  const source = serverDb.getStatusSummary().supabaseConfigured ? 'supabase' : 'fallback';
+  res.json({ products, source });
 }));
 
 // Real Available Catalog helper for AI Assistant
@@ -930,7 +983,10 @@ Règle absolue : Tu ne dois recommander QUE des produits figurant dans ce catalo
     // Filter usefulProducts to ensure strictly real catalog products and correct route links
     if (parsedAnswer.usefulProducts && Array.isArray(parsedAnswer.usefulProducts)) {
       parsedAnswer.usefulProducts = parsedAnswer.usefulProducts.map((p: any) => {
-        const matched = MOCK_PRODUCTS.find(mp => mp.name.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(mp.name.toLowerCase()));
+        const proposedName = typeof p?.name === 'string' ? p.name.toLowerCase() : '';
+        const matched = availableCatalog.find(product =>
+          product.name.toLowerCase().includes(proposedName) || proposedName.includes(product.name.toLowerCase())
+        );
         if (matched) {
           return { name: matched.name, link: `/produit/${matched.slug}`, fitScore: p.fitScore || 90 };
         }
@@ -1012,9 +1068,12 @@ app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), async (r
       });
     }
 
-    const realProductHandles = diagnosticType === 'hair'
+    const currentCatalog = await getAvailableCatalog();
+    const validCatalogSlugs = new Set(currentCatalog.map(product => product.slug));
+    const requestedFallbackHandles = diagnosticType === 'hair'
       ? ["leave-in-hydratant", "masque-hydratant", "bonnet-satin"]
       : ["spf-invisible", "serum-marques-post-imperfections"];
+    const realProductHandles = requestedFallbackHandles.filter(slug => validCatalogSlugs.has(slug));
 
     if (!aiClient) {
       const isHair = diagnosticType === 'hair';
@@ -1044,7 +1103,6 @@ app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), async (r
       });
     }
 
-    const currentCatalog = await getAvailableCatalog();
     const systemInstruction = `Tu es l'architecte IA beauté certifié de KURLA Beauty.
 Tu as accès aux produits réels avec leurs slugs exacts :
 ${JSON.stringify(currentCatalog.map(p => ({ slug: p.slug, name: p.name })))}
@@ -1088,7 +1146,7 @@ Règle impérative : productHandles doit contenir UNIQUEMENT une liste de slugs 
 
     // Ensure productHandles contains only valid slugs
     if (parsed.productHandles && Array.isArray(parsed.productHandles)) {
-      const validSlugs = MOCK_PRODUCTS.map(p => p.slug);
+      const validSlugs = currentCatalog.map(p => p.slug);
       parsed.productHandles = parsed.productHandles.filter((h: string) => validSlugs.includes(h));
       if (parsed.productHandles.length === 0) {
         parsed.productHandles = realProductHandles;

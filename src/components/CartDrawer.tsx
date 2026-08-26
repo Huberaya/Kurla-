@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink } from 'lucide-react';
 import { CartItem } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,13 @@ interface CartDrawerProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
   onCheckout?: () => void;
+}
+
+function createIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -24,12 +31,32 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
+  const [guestEmail, setGuestEmail] = useState('');
+  const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState(() => createIdempotencyKey());
+
+  useEffect(() => {
+    if (user?.email && !guestEmail) setGuestEmail(user.email);
+  }, [user?.email, guestEmail]);
+
+  const cartSignature = items.map(item => `${item.product.id}:${item.quantity}`).join('|');
+  useEffect(() => {
+    // Keep the key stable while retrying the same checkout intent. A changed
+    // cart starts a new intent and therefore receives a new key.
+    setCheckoutIdempotencyKey(createIdempotencyKey());
+    setStripeUrl(null);
+  }, [cartSignature]);
 
   if (!isOpen) return null;
 
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   const handleStartCheckout = async () => {
+    const email = user?.email || guestEmail.trim();
+    if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setCheckoutError('Saisissez une adresse email valide pour recevoir votre confirmation de commande.');
+      return;
+    }
+
     setIsCheckoutLoading(true);
     setCheckoutError(null);
     setStripeUrl(null);
@@ -51,11 +78,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Idempotency-Key': checkoutIdempotencyKey,
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({
           items: payloadItems,
-          customerEmail: user?.email || 'client@kurla-beauty.com'
+          customerEmail: email,
+          checkoutIdempotencyKey
         })
       });
 
@@ -72,8 +101,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         throw new Error("L'URL de paiement Stripe est absente de la réponse du serveur.");
       }
 
-      if (!data.url.startsWith('https://checkout.stripe.com') && !data.url.startsWith('http')) {
+      let checkoutUrl: URL;
+      try {
+        checkoutUrl = new URL(data.url);
+      } catch {
         throw new Error("Format d'URL de paiement invalide renvoyé par le serveur.");
+      }
+      if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'checkout.stripe.com') {
+        throw new Error("Domaine de paiement inattendu renvoyé par le serveur.");
       }
 
       setStripeUrl(data.url);
@@ -107,18 +142,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       />
 
       {/* Drawer */}
-      <div className="relative w-full max-w-md bg-[#1A0F0A] border-l border-[#FFF7EF]/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-title"
+        className="relative w-full max-w-md bg-[#1A0F0A] border-l border-[#FFF7EF]/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl"
+      >
 
         {/* Header */}
         <div>
           <div className="flex items-center justify-between pb-4 border-b border-[#FFF7EF]/10 mb-6">
             <div className="flex items-center gap-2 text-[#FFF7EF]">
               <ShoppingBag className="w-5 h-5 text-[#C8753D]" />
-              <h3 className="text-lg font-serif-title font-bold">Ton Panier KURLA</h3>
+              <h3 id="cart-drawer-title" className="text-lg font-serif-title font-bold">Ton Panier KURLA</h3>
               <span className="text-xs text-[#D49A63]">({items.reduce((acc, i) => acc + i.quantity, 0)})</span>
             </div>
             <button
               onClick={onClose}
+              aria-label="Fermer le panier"
               className="p-2 rounded-full text-[#FFF7EF]/60 hover:text-[#FFF7EF] hover:bg-[#FFF7EF]/10 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -234,6 +275,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Footer Checkout Summary */}
         {items.length > 0 && (
           <div className="pt-6 border-t border-[#FFF7EF]/10 space-y-4">
+            {!user && (
+              <div>
+                <label htmlFor="guest-checkout-email" className="block text-xs font-semibold text-[#FFF7EF] mb-1.5">
+                  Email de confirmation
+                </label>
+                <input
+                  id="guest-checkout-email"
+                  type="email"
+                  value={guestEmail}
+                  onChange={event => setGuestEmail(event.target.value)}
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  className="w-full px-4 py-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                />
+                <p className="mt-1.5 text-[11px] text-[#FFF7EF]/60">Votre reçu et le suivi de commande seront envoyés à cette adresse.</p>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-[#FFF7EF]">
               <span className="text-[#FFF7EF]/70">Sous-total :</span>
               <span className="font-bold text-lg">{total.toFixed(2)} €</span>

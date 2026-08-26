@@ -11,7 +11,6 @@ import {
   ShieldCheck, 
   Sparkles, 
   ArrowRight,
-  ExternalLink,
   MessageSquare,
   Lock,
   Star
@@ -104,7 +103,6 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
   // Confirmation State
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [videoMeetingUrl, setVideoMeetingUrl] = useState('');
 
   if (!isOpen) return null;
 
@@ -136,9 +134,8 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    const meetingCode = Math.random().toString(36).substring(2, 9);
-    const generatedUrl = `https://meet.kurla.beauty/visio-${meetingCode}`;
-    setVideoMeetingUrl(generatedUrl);
+    // This UI is intentionally an interest request until availability,
+    // payment, calendar and video providers are connected server-side.
     setBookingConfirmed(true);
     setStep(4);
   };
@@ -147,7 +144,12 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-[#FFF7EF] shadow-2xl my-8 overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consultation-modal-title"
+        className="relative w-full max-w-2xl rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-[#FFF7EF] shadow-2xl my-8 overflow-hidden"
+      >
         
         {/* Top Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#FFF7EF]/10 bg-[#050403]">
@@ -158,9 +160,9 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-[#C8753D] uppercase tracking-wider">KURLA Visio Expert</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">100% En Ligne</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium">Bêta — demande d’intérêt</span>
               </div>
-              <h2 className="text-lg font-serif-title font-bold text-[#FFF7EF]">
+              <h2 id="consultation-modal-title" className="text-lg font-serif-title font-bold text-[#FFF7EF]">
                 Réserver une Consultation Vidéo Privée
               </h2>
             </div>
@@ -168,6 +170,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
           <button
             onClick={onClose}
+            aria-label="Fermer la demande de consultation"
             className="w-9 h-9 rounded-full bg-[#1A0F0A] text-[#FFF7EF]/60 hover:text-white border border-[#FFF7EF]/10 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5" />
@@ -525,7 +528,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                   className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-2 shadow-lg transition-all"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirmer la Réservation Visio ({selectedService.price} €)</span>
+                  <span>Envoyer ma demande de consultation</span>
                 </button>
               </div>
 
@@ -542,44 +545,29 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
               <div>
                 <span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold">
-                  Réservation Confirmée !
+                  Demande enregistrée
                 </span>
                 <h3 className="text-2xl font-serif-title font-bold text-[#FFF7EF] my-1">
-                  Ta Consultation Vidéo est Réservée
+                  Ta demande de consultation est prise en compte
                 </h3>
                 <p className="text-xs text-[#FFF7EF]/70 max-w-md mx-auto">
-                  Un e-mail de confirmation avec l'invitation Google Calendar a été envoyé à <strong>{clientEmail || 'votre email'}</strong>.
+                  Aucune réservation ni aucun paiement n’est encore créé. Les informations saisies servent à préparer le futur service de consultation.
                 </p>
               </div>
 
-              {/* Video Link Box */}
-              <div className="p-5 rounded-2xl bg-[#050403] border border-[#C8753D]/40 text-left max-w-lg mx-auto space-y-3">
-                <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-3">
-                  <span className="text-xs font-bold text-[#C8753D] flex items-center gap-1.5">
-                    <Video className="w-4 h-4" /> Lien d'accès direct Visio HD
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold">
-                    Statut : Prêt
-                  </span>
+              <div className="p-5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-left max-w-lg mx-auto space-y-3">
+                <div className="flex items-center gap-2 text-amber-200">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold">Demande enregistrée — module en préparation</span>
                 </div>
-
-                <div className="p-3 rounded-xl bg-[#1A0F0A] font-mono text-xs text-[#FFF7EF] flex items-center justify-between break-all">
-                  <span>{videoMeetingUrl}</span>
-                  <a
-                    href={videoMeetingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ml-2 px-3 py-1.5 rounded-lg bg-[#C8753D] hover:bg-[#b06330] text-white text-[11px] font-sans font-bold flex items-center gap-1 shrink-0"
-                  >
-                    Rejoindre <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
+                <p className="text-xs text-amber-100/80 leading-relaxed">
+                  Cette demande ne crée pas encore de réservation, de paiement, d’invitation calendrier ou de lien visio. Notre équipe pourra confirmer le rendez-vous lorsque le service sera disponible.
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-[#FFF7EF]/80 pt-2">
-                  <div><strong>Date :</strong> {selectedDate} {monthNames[currentMonth]} {currentYear}</div>
-                  <div><strong>Heure :</strong> {selectedSlot} ({selectedService.duration})</div>
-                  <div><strong>Expert :</strong> {selectedProObj ? selectedProObj.name : 'Expert KURLA Certifié'}</div>
-                  <div><strong>Montant :</strong> {selectedService.price} € (Payé)</div>
+                  <div><strong>Date souhaitée :</strong> {selectedDate} {monthNames[currentMonth]} {currentYear}</div>
+                  <div><strong>Heure souhaitée :</strong> {selectedSlot} ({selectedService.duration})</div>
+                  <div><strong>Expert souhaité :</strong> {selectedProObj ? selectedProObj.name : 'Premier expert disponible'}</div>
+                  <div><strong>Montant indicatif :</strong> {selectedService.price} €</div>
                 </div>
               </div>
 

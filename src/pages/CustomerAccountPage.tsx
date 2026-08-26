@@ -19,11 +19,12 @@ export const CustomerAccountPage: React.FC = () => {
   
   const [serverOrders, setServerOrders] = useState<ServerOrder[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // Keep the client contract identical to the server contract. Transactional
+  // emails remain mandatory; the user controls marketing and in-app alerts.
   const [notifPrefs, setNotifPrefs] = useState<any>({
-    emailOrderUpdates: true,
-    emailPromotions: true,
-    emailSupportReplies: true,
-    inAppAlerts: true
+    emailNotifications: true,
+    marketingEmails: false,
+    inAppNotifications: true
   });
   
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
@@ -253,7 +254,7 @@ export const CustomerAccountPage: React.FC = () => {
 
   const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : (user?.email?.split('@')[0] || 'Client KURLA');
   const userInitials = profile?.first_name ? profile.first_name[0].toUpperCase() : (user?.email ? user.email[0].toUpperCase() : 'K');
-  const unreadNotifsCount = notifications.filter(n => !n.isRead).length;
+  const unreadNotifsCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
@@ -480,7 +481,7 @@ export const CustomerAccountPage: React.FC = () => {
                   <div
                     key={n.id}
                     className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-4 ${
-                      n.isRead ? 'bg-[#050403] border-[#FFF7EF]/5 opacity-70' : 'bg-[#1D170E] border-[#C8753D]/40'
+                      n.read ? 'bg-[#050403] border-[#FFF7EF]/5 opacity-70' : 'bg-[#1D170E] border-[#C8753D]/40'
                     }`}
                   >
                     <div className="space-y-1">
@@ -492,7 +493,7 @@ export const CustomerAccountPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {!n.isRead && (
+                      {!n.read && (
                         <button
                           onClick={() => handleMarkNotifRead(n.id)}
                           className="p-1.5 rounded-full bg-[#050403] hover:bg-[#3A2218] text-emerald-400 border border-emerald-500/30 text-xs"
@@ -620,39 +621,39 @@ export const CustomerAccountPage: React.FC = () => {
             <div className="space-y-4 max-w-xl">
               <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Emails de Suivi de Commande</span>
-                  <span className="text-[11px] text-[#FFF7EF]/50">Recevez les confirmations et étapes de livraison.</span>
+                  <span className="text-xs font-bold text-[#FFF7EF] block">Emails de service et de commande</span>
+                  <span className="text-[11px] text-[#FFF7EF]/50">Confirmations et étapes de livraison. Les emails transactionnels restent obligatoires.</span>
                 </div>
                 <input
                   type="checkbox"
-                  checked={notifPrefs.emailOrderUpdates}
-                  onChange={e => setNotifPrefs({ ...notifPrefs, emailOrderUpdates: e.target.checked })}
+                  checked={notifPrefs.emailNotifications}
+                  onChange={e => setNotifPrefs({ ...notifPrefs, emailNotifications: e.target.checked })}
                   className="w-4 h-4 accent-[#C8753D]"
                 />
               </label>
 
               <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Réponses Support Client</span>
-                  <span className="text-[11px] text-[#FFF7EF]/50">Notification email lorsque l'équipe répond à vos tickets.</span>
+                  <span className="text-xs font-bold text-[#FFF7EF] block">Conseils et offres KURLA</span>
+                  <span className="text-[11px] text-[#FFF7EF]/50">Recevoir les communications marketing et nouveautés.</span>
                 </div>
                 <input
                   type="checkbox"
-                  checked={notifPrefs.emailSupportReplies}
-                  onChange={e => setNotifPrefs({ ...notifPrefs, emailSupportReplies: e.target.checked })}
+                  checked={notifPrefs.marketingEmails}
+                  onChange={e => setNotifPrefs({ ...notifPrefs, marketingEmails: e.target.checked })}
                   className="w-4 h-4 accent-[#C8753D]"
                 />
               </label>
 
               <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Notifications In-App</span>
+                  <span className="text-xs font-bold text-[#FFF7EF] block">Notifications dans mon espace</span>
                   <span className="text-[11px] text-[#FFF7EF]/50">Alertes visuelles directement dans votre espace client.</span>
                 </div>
                 <input
                   type="checkbox"
-                  checked={notifPrefs.inAppAlerts}
-                  onChange={e => setNotifPrefs({ ...notifPrefs, inAppAlerts: e.target.checked })}
+                  checked={notifPrefs.inAppNotifications}
+                  onChange={e => setNotifPrefs({ ...notifPrefs, inAppNotifications: e.target.checked })}
                   className="w-4 h-4 accent-[#C8753D]"
                 />
               </label>

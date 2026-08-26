@@ -3,6 +3,7 @@ import { Sparkles, CheckCircle2, ShoppingBag, Clock, Calendar, ShieldAlert, Load
 import { MOCK_ROUTINES } from '../data/mockData';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
+import { NotFoundPage } from './NotFoundPage';
 
 interface RoutineDetailPageProps {
   slug: string;
@@ -13,7 +14,8 @@ export const RoutineDetailPage: React.FC<RoutineDetailPageProps> = ({ slug, onAd
   const { products, loading } = useProducts();
   const [added, setAdded] = useState(false);
 
-  const routine = MOCK_ROUTINES.find(r => r.slug === slug) || MOCK_ROUTINES[0];
+  const routine = MOCK_ROUTINES.find(r => r.slug === slug);
+  if (!routine) return <NotFoundPage />;
 
   const bundleProducts = products.length > 0 ? products.slice(0, 3) : [];
 
