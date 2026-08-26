@@ -1,0 +1,12 @@
+{
+  "version": "001",
+  "description": "Initialize KURLA Beauty database schema, persistent collections and idempotency store",
+  "createdAt": "2026-08-04T00:00:00.000Z",
+  "collections": [
+    "orders",
+    "products",
+    "stripe_events",
+    "idempotency"
+  ],
+  "status": "applied"
+}

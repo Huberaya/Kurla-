@@ -1,0 +1,6 @@
+{
+  "name": "KURLA Beauty",
+  "description": "Plateforme européenne dédiée aux cheveux texturés et peaux riches en mélanine. La beauté texturée, enfin comprise.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
