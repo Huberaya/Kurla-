@@ -82,22 +82,25 @@ ALTER TABLE public.routine_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.routine_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progress_journal_entries ENABLE ROW LEVEL SECURITY;
 
+-- The application server uses the verified Supabase identity and the service
+-- role for its writes. Direct client access is restricted to the owner only;
+-- no role helper is required for these tables.
 DROP POLICY IF EXISTS "Users access own routine plans" ON public.routine_plans;
 CREATE POLICY "Users access own routine plans"
-  ON public.routine_plans FOR ALL USING (user_id = auth.uid() OR public.is_admin())
-  WITH CHECK (user_id = auth.uid() OR public.is_admin());
+  ON public.routine_plans FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users access own routine tasks" ON public.routine_tasks;
 CREATE POLICY "Users access own routine tasks"
-  ON public.routine_tasks FOR ALL USING (user_id = auth.uid() OR public.is_admin())
-  WITH CHECK (user_id = auth.uid() OR public.is_admin());
+  ON public.routine_tasks FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users access own routine feedback" ON public.routine_feedback;
 CREATE POLICY "Users access own routine feedback"
-  ON public.routine_feedback FOR ALL USING (user_id = auth.uid() OR public.is_admin())
-  WITH CHECK (user_id = auth.uid() OR public.is_admin());
+  ON public.routine_feedback FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users access own progress journal" ON public.progress_journal_entries;
 CREATE POLICY "Users access own progress journal"
-  ON public.progress_journal_entries FOR ALL USING (user_id = auth.uid() OR public.is_admin())
-  WITH CHECK (user_id = auth.uid() OR public.is_admin());
+  ON public.progress_journal_entries FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
