@@ -2,10 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { 
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X, 
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart, 
-  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Database
+  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle
 } from 'lucide-react';
-import { MOCK_ROUTINES } from '../data/mockData';
-import { Product, RoutineBundle } from '../types';
+import { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 
@@ -48,7 +47,7 @@ const SKIN_NEEDS: NeedOption[] = [
 ];
 
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
-  const { products, brands: supabaseBrands, source, count, loading, error, refetch } = useProducts();
+  const { products, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
   const { profile } = useAuth();
   const hasKurlaProfile = Boolean(profile && (profile.hair_type || profile.skin_type || profile.concerns?.length));
 
@@ -72,6 +71,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [selectedCountry, setSelectedCountry] = useState<string>('tous');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'fit' | 'price-asc' | 'price-desc' | 'rating'>('fit');
+  const [compareIds, setCompareIds] = useState<string[]>([]);
 
   const mainCategories = [
     { id: 'tous', name: 'Tous les soins', badge: null },
@@ -181,6 +181,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     return [...HAIR_NEEDS, ...SKIN_NEEDS].find(n => n.id === selectedNeedId) || null;
   }, [selectedNeedId]);
 
+  const comparedProducts = useMemo(() => compareIds.map(id => products.find(product => product.id === id)).filter((product): product is Product => Boolean(product)), [compareIds, products]);
+  const toggleCompare = (productId: string) => {
+    setCompareIds(current => current.includes(productId) ? current.filter(id => id !== productId) : current.length < 3 ? [...current, productId] : current);
+  };
+
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -188,29 +193,19 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         {/* Audit Header Banner */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-bold uppercase tracking-widest mb-3 border border-[#C8753D]/20">
-            <Sparkles className="w-3.5 h-3.5" /> Catalogue Supabase KURLA
+            <Sparkles className="w-3.5 h-3.5" /> Catalogue publié KURLA
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 tracking-tight">
             La Boutique Conseillère d'Achat.
           </h1>
           <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
-            Trouvez des soins fiables pour vos cheveux texturés et peaux riches en mélanine. 
-            Filtrage scientifique par besoin, composition INCI sans résidus et compatibilité avec votre profil.
+            Trouvez des soins publiés avec des informations vérifiées pour vos cheveux et votre peau.
+            Filtrez par besoin réel, composition, pays de livraison et compatibilité avec votre profil.
           </p>
 
-          {/* Data source is transparent during beta and never exposes an
-              internal database name as a consumer-facing quality claim. */}
-          <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border shadow-xs ${
-            source === 'fallback'
-              ? 'bg-amber-50 text-amber-900 border-amber-200/80'
-              : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
-          }`}>
-            <Database className={`w-4 h-4 ${source === 'fallback' ? 'text-amber-600' : 'text-emerald-600'}`} />
-            <span>
-              {source === 'fallback'
-                ? <>Mode démonstration — <strong>{count} produit(s) illustratif(s)</strong>. Le paiement réel est indisponible.</>
-                : <>Catalogue KURLA disponible — <strong className="text-emerald-700">{count} produit(s)</strong></>}
-            </span>
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#C8753D]/20 bg-[#C8753D]/5 text-[#7c4826]">
+            <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
+            <span>Chaque produit affiché a franchi le contrôle de publication KURLA.</span>
           </div>
         </div>
 
@@ -423,7 +418,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]"
             >
-              <option value="fit">✨ Tri : Sélection KURLA</option>
+              <option value="fit">Ordre du catalogue</option>
               <option value="rating">⭐ Meilleurs avis</option>
               <option value="price-asc">€ Prix croissant</option>
               <option value="price-desc">€ Prix décroissant</option>
@@ -483,59 +478,25 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           </div>
         </div>
 
+        {comparedProducts.length > 0 && <section className="mb-8 rounded-3xl border border-[#C8753D]/25 bg-[#F8F2EC] p-5"><div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Comparer les produits</h2><p className="text-xs text-[#111111]/60 mt-1">Comparez uniquement les informations publiées, sans score automatique.</p></div><button onClick={() => setCompareIds([])} className="text-xs text-[#C8753D] hover:underline">Effacer</button></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{comparedProducts.map(product => <div key={product.id} className="rounded-2xl border border-[#E8E1DA] bg-[#FFFDF9] p-3"><div className="flex items-start justify-between gap-2"><h3 className="text-xs font-bold">{product.name}</h3><button onClick={() => toggleCompare(product.id)} aria-label={`Retirer ${product.name}`}><X className="w-3.5 h-3.5 text-[#111111]/50" /></button></div><dl className="mt-3 space-y-1 text-[11px] text-[#111111]/70"><div><dt className="font-semibold inline">Prix : </dt><dd className="inline">{product.price.toFixed(2)} €</dd></div><div><dt className="font-semibold inline">Texture : </dt><dd className="inline">{product.texture || 'Non renseignée'}</dd></div><div><dt className="font-semibold inline">Format : </dt><dd className="inline">{product.sizeLabel || 'Non renseigné'}</dd></div><div><dt className="font-semibold inline">Pays : </dt><dd className="inline">{product.countryAvailability?.join(', ') || 'Non renseignés'}</dd></div></dl></div>)}</div></section>}
+
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-xs text-[#111111]/70 font-medium">
-            Affichage de <strong className="text-[#111111]">{filteredProducts.length}</strong> soin(s) certifié(s)
+            Affichage de <strong className="text-[#111111]">{filteredProducts.length}</strong> produit(s) publié(s)
           </p>
         </div>
 
-        {/* KITS & ROUTINES BUNDLES CAROUSEL (If viewing Kits category or no specific search) */}
         {(activeCategory === 'kits' || activeCategory === 'tous') && !selectedNeedId && searchQuery === '' && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className="text-xs font-bold text-[#C8753D] uppercase tracking-wider block">Économies & Efficacité Synergique</span>
-                <h2 className="text-xl font-serif-title font-bold text-[#111111]">Kits & Routines Complètes 3-4 Étapes</h2>
-              </div>
-              <a href="/routines" className="text-xs font-bold text-[#C8753D] hover:underline flex items-center gap-1">
-                Voir toutes les routines <ChevronRight className="w-3.5 h-3.5" />
-              </a>
+          <div className="mb-12 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-bold text-[#C8753D] uppercase tracking-wider block mb-1">Routines & bundles</span>
+              <h2 className="text-xl font-serif-title font-bold text-[#111111]">Construire une routine adaptée</h2>
+              <p className="text-xs text-[#111111]/70 mt-1">Les routines ne sont proposées qu’avec des produits publiés et une composition connue.</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {MOCK_ROUTINES.map(routine => (
-                <div key={routine.id} className="rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] p-5 flex flex-col sm:flex-row gap-5 hover:border-[#C8753D] transition-all group">
-                  <div className="w-full sm:w-44 h-44 rounded-2xl overflow-hidden shrink-0 bg-white">
-                    <img src={routine.image} alt={routine.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
-                  <div className="flex flex-col justify-between flex-1">
-                    <div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#C8753D] text-white text-[10px] font-bold">
-                        {routine.badge}
-                      </span>
-                      <h3 className="text-base font-serif-title font-bold text-[#111111] mt-2">{routine.title}</h3>
-                      <p className="text-xs text-[#111111]/70 font-light mt-1 line-clamp-2">{routine.subtitle}</p>
-                    </div>
-
-                    <div className="pt-3 border-t border-[#E8E1DA] flex items-center justify-between mt-3">
-                      <div>
-                        <span className="text-lg font-bold text-[#111111]">{routine.price.toFixed(2)} €</span>
-                        {routine.originalPrice && (
-                          <span className="text-xs text-[#111111]/40 line-through block">{routine.originalPrice.toFixed(2)} €</span>
-                        )}
-                      </div>
-                      <a
-                        href={`/routines/${routine.slug}`}
-                        className="px-4 py-2 rounded-full bg-[#111111] hover:bg-[#C8753D] text-white text-xs font-semibold transition-colors"
-                      >
-                        Découvrir la routine
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <a href="/routines" className="text-xs font-bold text-[#C8753D] hover:underline flex items-center gap-1 shrink-0">
+              Explorer les routines <ChevronRight className="w-3.5 h-3.5" />
+            </a>
           </div>
         )}
 
@@ -543,17 +504,17 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         {loading ? (
           <div className="text-center py-24 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
             <Loader2 className="w-10 h-10 text-[#C8753D] mx-auto mb-4 animate-spin" />
-            <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Chargement du catalogue Supabase...</h3>
+            <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Chargement des produits publiés…</h3>
             <p className="text-xs text-[#111111]/70 max-w-md mx-auto">
-              Connexion en cours à la table public.products et ses tables associées.
+              Nous vérifions les informations disponibles avant de les afficher.
             </p>
           </div>
         ) : error ? (
           <div className="text-center py-16 bg-red-50 rounded-3xl border border-red-200 p-8">
             <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-            <h3 className="text-lg font-serif-title font-bold text-red-900 mb-2">Erreur de connexion Supabase</h3>
+            <h3 className="text-lg font-serif-title font-bold text-red-900 mb-2">Catalogue momentanément indisponible</h3>
             <p className="text-xs text-red-700 max-w-md mx-auto mb-6">
-              {error.message || "Impossible de récupérer les produits depuis Supabase."}
+              {error.message || "Impossible de récupérer les produits publiés pour le moment."}
             </p>
             <button
               onClick={() => refetch()}
@@ -567,7 +528,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             <Filter className="w-10 h-10 text-[#C8753D] mx-auto mb-3 opacity-60" />
             <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Aucun produit trouvé</h3>
             <p className="text-xs text-[#111111]/70 max-w-md mx-auto mb-6">
-              Aucun produit ne correspond à vos filtres actuels dans la base Supabase.
+              Aucun produit publié ne correspond à vos filtres actuels.
             </p>
             <button
               onClick={() => {
@@ -597,18 +558,21 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 >
                   <div>
                     <div className="relative h-56 rounded-2xl overflow-hidden mb-4 bg-[#F8F2EC]">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-[#111111]/50">Image en attente de validation</div>
+                      )}
                       
-                      {/* Compatibility is displayed only when it is derived from
-                          the signed-in user's profile. */}
-                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
-                        <Award className="w-3 h-3 text-[#D49A63]" />
-                        {compatibleWithProfile ? 'Compatible avec ton profil' : 'Sélection KURLA'}
-                      </div>
+                      {compatibleWithProfile && (
+                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+                          <Award className="w-3 h-3 text-[#D49A63]" /> Compatible avec ton profil
+                        </div>
+                      )}
 
                       {/* Community Badge */}
                       {product.communityBrand && (
@@ -629,12 +593,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <span className="text-[10px] uppercase tracking-wider text-[#C8753D] font-bold">
                         {product.brand}
                       </span>
-                      {product.countryAvailability && (
-                        <span className="text-[10px] text-[#111111]/50 font-medium">
-                          🇫🇷 🇧🇪 🌴 🇸🇳 Available
-                        </span>
-                      )}
-                    </div>
+                      <span className="text-[10px] text-[#111111]/50 font-medium text-right">
+                        {product.countryAvailability?.length ? `Livraison : ${product.countryAvailability.join(', ')}` : 'Pays de livraison non renseignés'}
+                      </span>                    </div>
 
                     <a href={`/produit/${product.slug}`} className="hover:underline">
                       <h3 className="text-base font-serif-title font-bold text-[#111111] mb-2 line-clamp-2">
@@ -642,11 +603,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       </h3>
                     </a>
 
-                    <div className="flex items-center gap-1.5 text-xs text-amber-500 mb-2">
-                      <Star className="w-3.5 h-3.5 fill-current" />
-                      <span className="font-bold text-[#111111]">{product.rating}</span>
-                      <span className="text-[#111111]/40">({product.reviewsCount})</span>
-                    </div>
+                    {product.verifiedReviewCount && product.rating > 0 ? (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-500 mb-2">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span className="font-bold text-[#111111]">{product.rating.toFixed(1)}</span>
+                        <span className="text-[#111111]/40">({product.verifiedReviewCount} avis vérifiés)</span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-[#111111]/50 mb-2">Aucun avis vérifié pour le moment</p>
+                    )}
 
                     <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-3">
                       {product.description}
@@ -670,12 +635,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       )}
                     </div>
 
-                    <button
-                      onClick={() => onAddToCart(product)}
-                      className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" /> Ajouter
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => toggleCompare(product.id)} className={`px-3 py-2 rounded-full border text-[11px] font-semibold transition-colors ${compareIds.includes(product.id) ? 'border-[#C8753D] text-[#C8753D] bg-[#C8753D]/10' : 'border-[#E8E1DA] text-[#111111]/60 hover:border-[#C8753D]'}`}>
+                        {compareIds.includes(product.id) ? 'Comparé' : 'Comparer'}
+                      </button>
+                      <button
+                        onClick={() => onAddToCart(product)}
+                        disabled={!product.inStock}
+                        className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" /> {product.inStock ? 'Ajouter' : 'Indisponible'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

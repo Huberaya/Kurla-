@@ -17,7 +17,8 @@
     "test:integration": "KURLA_TEST_NO_SERVER=true tsx tests/supabase_integration.test.ts",
     "test:beauty-profile": "KURLA_TEST_NO_SERVER=true tsx tests/beauty_profile.test.ts",
     "test:ai-product": "KURLA_TEST_NO_SERVER=true tsx tests/ai_assistant_product.test.ts",
-    "test": "npm run test:authorization && npm run test:hardening && npm run test:beauty-profile && npm run test:ai-product && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test:marketplace": "KURLA_TEST_NO_SERVER=true tsx tests/marketplace_trust.test.ts",
+    "test": "npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:beauty-profile && npm run test:ai-product && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

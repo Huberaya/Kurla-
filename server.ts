@@ -10,7 +10,6 @@ import { formatKnowledgeContext, selectKnowledgeCards } from './src/lib/ai/knowl
 import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
 import { UserRole } from './src/types';
-import { MOCK_PRODUCTS } from './src/data/mockData';
 import { calculateShippingCents, normalizeShippingAddress, ShippingMethod } from './src/lib/shippingRules';
 import { calculateKurlaFit } from './src/lib/kurlaFit';
 import { createEmptyBeautyProfile, normalizeBeautyProfile, calculateProfileConfidence, BeautyProfilePhoto } from './src/lib/beautyProfile';
@@ -20,7 +19,7 @@ import { createEmptyBeautyProfile, normalizeBeautyProfile, calculateProfileConfi
 // HTTP listener.
 const serverInitialization = process.env.NODE_ENV === 'production' && !isSupabaseServerConfigured()
   ? Promise.resolve()
-  : serverDb.initialize(MOCK_PRODUCTS).then(() => {
+  : serverDb.initialize([]).then(() => {
       console.log('[ServerDB] Supabase store initialized successfully.');
     });
 
@@ -598,7 +597,9 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     const appUrl = getAppUrl(req);
     const orderId = 'ORD-' + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-    // Verify product pricing & stock authoritatively against backend catalog (Database)
+    // Verify product publication, variant pricing and stock against the
+    // customer catalogue. Client-provided prices and availability are ignored.
+    const customerCatalog = await serverDb.getProducts({ publishedOnly: true });
     const verifiedItems: any[] = [];
     let calculatedTotal = 0;
     const requestedByVariant = new Map<string, number>();
@@ -621,18 +622,25 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         return res.status(400).json({ error: 'La quantité totale demandée pour un article est trop élevée.' });
       }
 
-      const dbProduct = await serverDb.getProductById(pId);
+      const dbProduct = customerCatalog.find(product => product.id === pId || product.slug === pId);
       if (!dbProduct) {
-        console.error(`[Stripe Checkout Error] Produit introuvable ID: ${pId}`);
-        return res.status(400).json({ error: `Produit introuvable dans le catalogue serveur (ID: ${pId})` });
+        console.error(`[Stripe Checkout Error] Produit introuvable ou non publié ID: ${pId}`);
+        return res.status(400).json({ error: 'Ce produit n’est pas disponible à la vente.' });
+      }
+      const deliveredCountries = Array.isArray(dbProduct.countryAvailability) ? dbProduct.countryAvailability : [];
+      if (!deliveredCountries.includes(normalizedShippingAddress.country) && !deliveredCountries.includes('INT')) {
+        return res.status(400).json({ error: 'Ce produit n’est pas livré dans le pays indiqué.' });
       }
 
-      if (!dbProduct.inStock) {
-        console.error(`[Stripe Checkout Error] Produit en rupture: ${dbProduct.name}`);
-        return res.status(400).json({ error: `Le produit "${dbProduct.name}" est actuellement en rupture de stock.` });
-      }
+      const variant = variantId
+        ? (dbProduct.variants || []).find((candidate: any) => candidate.id === variantId && candidate.is_active !== false)
+        : undefined;
+      if (variantId && !variant) return res.status(400).json({ error: 'La variante demandée n’est pas disponible.' });
+      if (!variant && dbProduct.inStock === false) return res.status(400).json({ error: `Le produit "${dbProduct.name}" est actuellement en rupture de stock.` });
 
-      const availableStock = await serverDb.getAvailableStock(dbProduct.id);
+      const availableStock = variant
+        ? Math.max(0, Number(variant.stock_quantity) - Number(variant.reserved_quantity || 0))
+        : await serverDb.getAvailableStock(dbProduct.id);
       const requestedQuantity = requestedByVariant.get(requestedKey) || quantity;
       if (requestedQuantity > availableStock) {
         console.error(`[Stripe Checkout Error] Stock insuffisant pour ${dbProduct.name} (${requestedQuantity}/${availableStock})`);
@@ -642,7 +650,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       }
 
       // Ignore client price parameter — compute strictly using server DB price
-      const dbPrice = dbProduct.price;
+      const dbPrice = variant ? Number(variant.price) : Number(dbProduct.price);
       const itemTotal = dbPrice * quantity;
       calculatedTotal += itemTotal;
 
@@ -861,9 +869,102 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
 
 // Products API endpoint
 app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-  const products = await serverDb.getProducts();
-  const source = serverDb.getStatusSummary().supabaseConfigured ? 'supabase' : 'fallback';
-  res.json({ products, source });
+  const products = await serverDb.getPublicProducts();
+  res.json({ products, count: products.length });
+}));
+
+// Customer-facing trust data is deliberately separated from the catalogue
+// record. Only moderated, verified reviews and answered questions are public.
+app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const product = (await serverDb.getProducts({ publishedOnly: true })).find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  const [reviews, questions] = await Promise.all([
+    serverDb.getProductReviews(product.id),
+    serverDb.getProductQuestions(product.id)
+  ]);
+  res.json({ reviews, questions, verifiedReviewCount: reviews.length, questionsCount: questions.length });
+}));
+
+app.post('/api/products/:productId/questions', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const product = (await serverDb.getProducts({ publishedOnly: true })).find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  const question = await serverDb.createProductQuestion(user.id, product.id, String(req.body?.question || ''), user.email);
+  res.status(201).json({ question, message: 'Question reçue. Elle sera publiée après réponse de notre équipe.' });
+}));
+
+app.post('/api/products/:productId/reviews', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const product = (await serverDb.getProducts({ publishedOnly: true })).find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  const review = await serverDb.createProductReview(user.id, product.id, Number(req.body?.rating), String(req.body?.comment || ''), typeof req.body?.title === 'string' ? req.body.title : undefined, typeof req.body?.variantId === 'string' ? req.body.variantId : undefined);
+  res.status(201).json({ review, message: 'Avis reçu. Il sera visible après modération.' });
+}));
+
+app.post('/api/products/:productId/waitlist', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const token = bearerToken(req);
+  const user = await authenticateRequest(req);
+  if (token && !user) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
+  const product = (await serverDb.getProducts({ publishedOnly: true })).find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  const entry = await serverDb.joinProductWaitlist(product.id, String(req.body?.email || user?.email || ''), String(req.body?.country || 'FR'), typeof req.body?.variantId === 'string' ? req.body.variantId : undefined, user?.id);
+  res.status(201).json({ waitlist: entry, message: 'Vous serez prévenu lorsque cette option sera à nouveau disponible dans votre pays.' });
+}));
+
+app.post('/api/products/:productId/subscriptions', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const product = (await serverDb.getProducts({ publishedOnly: true })).find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  const subscription = await serverDb.createProductSubscription(
+    user.id,
+    product.id,
+    req.body?.frequency,
+    Number(req.body?.quantity || 1),
+    String(req.body?.country || 'FR'),
+    typeof req.body?.variantId === 'string' ? req.body.variantId : undefined,
+    typeof req.body?.paymentMethod === 'string' ? req.body.paymentMethod : undefined
+  );
+  res.status(201).json({ subscription, message: 'Demande de réassort enregistrée. Le paiement récurrent sera activé après confirmation.' });
+}));
+
+// Admin-only catalog governance endpoints. Evidence and decisions stay on
+// the server; they are never returned as customer-facing product metadata.
+app.get('/api/admin/catalog/:productId/validation', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const product = await serverDb.getProductById(req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit introuvable.' });
+  res.json({ events: await serverDb.getCatalogValidationEvents(product.id) });
+}));
+
+app.post('/api/admin/catalog/validation', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const productId = typeof req.body?.productId === 'string' ? req.body.productId : '';
+  if (!productId) return res.status(400).json({ error: 'Produit obligatoire.' });
+  await serverDb.recordCatalogValidation(admin.id, productId, String(req.body?.checkType || ''), req.body?.status, typeof req.body?.evidenceUrl === 'string' ? req.body.evidenceUrl : undefined, typeof req.body?.note === 'string' ? req.body.note : undefined);
+  res.status(201).json({ ok: true });
+}));
+
+app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  await serverDb.updateCatalogStatus(req.params.productId, req.body?.status);
+  res.json({ ok: true });
+}));
+
+app.get('/api/routines', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  const routines = await serverDb.getRoutines();
+  res.json({ routines, count: routines.length });
+}));
+
+app.get('/api/routines/:slug', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const routine = await serverDb.getRoutineBySlug(req.params.slug);
+  if (!routine) return res.status(404).json({ error: 'Routine non disponible.' });
+  res.json({ routine });
 }));
 
 // Real Available Catalog helper for AI Assistant.
@@ -888,7 +989,7 @@ const SUPPORTED_AI_LOCALES = new Set(['fr', 'en', 'es', 'pt']);
 
 async function getAvailableCatalog(country = 'FR'): Promise<AvailableCatalogEntry[]> {
   const normalizedCountry = country.trim().toUpperCase();
-  const products = await serverDb.getProducts();
+  const products = await serverDb.getProducts({ publishedOnly: true });
   return products
     .filter(product => product.inStock)
     .filter(product => !product.countryAvailability?.length || product.countryAvailability.includes(normalizedCountry) || product.countryAvailability.includes('INT'))

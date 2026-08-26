@@ -65,7 +65,7 @@ import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { CartDrawer } from './components/CartDrawer';
 import { SearchModal } from './components/SearchModal';
 import { AiAssistantWidget } from './components/AiAssistantWidget';
-import { CartItem, Product } from './types';
+import { CartItem, Product, ProductVariant } from './types';
 
 function AppContent() {
   const { user, session } = useAuth();
@@ -123,8 +123,9 @@ function AppContent() {
         const baseItems = guestItems.length > 0 ? guestItems : initialCartRef.current;
         const merged = new Map<string, CartItem>();
         [...baseItems, ...accountItems].forEach(item => {
-          const previous = merged.get(item.product.id);
-          merged.set(item.product.id, {
+          const key = `${item.product.id}:${item.variantId || ''}`;
+          const previous = merged.get(key);
+          merged.set(key, {
             ...item,
             quantity: Math.min(99, (previous?.quantity || 0) + item.quantity)
           });
@@ -160,32 +161,35 @@ function AppContent() {
       },
       body: JSON.stringify({
         anonymousId: anonId,
-        items: cartItems.map(i => ({ productId: i.product.id, quantity: i.quantity }))
+        items: cartItems.map(i => ({ productId: i.product.id, variantId: i.variantId, quantity: i.quantity }))
       })
     }).catch(() => {});
   }, [cartItems, anonId, session?.access_token, cartHydrated]);
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, variant?: ProductVariant) => {
+    const variantId = variant?.id;
+    const unitPrice = variant?.price ?? product.price;
     setCartItems(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
+      const existing = prev.find(i => i.product.id === product.id && i.variantId === variantId);
       if (existing) {
-        return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map(i => i.product.id === product.id && i.variantId === variantId ? { ...i, quantity: Math.min(99, i.quantity + 1) } : i);
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, variantId, variantLabel: variant?.label, unitPrice }];
     });
     setIsCartOpen(true);
   };
 
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
+
+  const handleUpdateQuantity = (productId: string, quantity: number, variantId?: string) => {
     if (quantity <= 0) {
-      handleRemoveItem(productId);
+      handleRemoveItem(productId, variantId);
     } else {
-      setCartItems(prev => prev.map(i => i.product.id === productId ? { ...i, quantity } : i));
+      setCartItems(prev => prev.map(i => i.product.id === productId && i.variantId === variantId ? { ...i, quantity: Math.min(99, quantity) } : i));
     }
   };
 
-  const handleRemoveItem = (productId: string) => {
-    setCartItems(prev => prev.filter(i => i.product.id !== productId));
+  const handleRemoveItem = (productId: string, variantId?: string) => {
+    setCartItems(prev => prev.filter(i => !(i.product.id === productId && i.variantId === variantId)));
   };
 
   const cartCount = cartItems.reduce((acc, i) => acc + i.quantity, 0);

@@ -32,7 +32,73 @@ export interface ProductGalleryImage {
   url: string;
   label: string;
   type: 'hero' | 'detail' | 'lifestyle' | 'use' | 'size' | 'kit';
+  imageTrust?: 'brand_provided' | 'licensed' | 'editorial' | 'illustrative' | 'unverified';
   isOfficial?: boolean;
+}
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  label: string;
+  optionType?: 'weight' | 'format' | 'shade' | 'scent' | 'size';
+  optionValue?: string;
+  sku?: string;
+  price: number;
+  stockQuantity: number;
+  reservedQuantity?: number;
+  inStock: boolean;
+}
+
+export interface IngredientRole {
+  name: string;
+  role: string;
+}
+
+export interface ProductCertification {
+  name: string;
+  issuer?: string;
+  verificationUrl?: string;
+  status: 'verified' | 'pending' | 'not_provided';
+  verifiedAt?: string;
+}
+
+export interface ProductReview {
+  id: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  author: string;
+  verifiedPurchase: boolean;
+  createdAt: string;
+}
+
+export interface ProductQuestion {
+  id: string;
+  question: string;
+  answer?: string;
+  createdAt: string;
+  answeredAt?: string;
+}
+
+export interface ProductShippingInfo {
+  countries: string[];
+  deliveryEstimate?: string;
+  deliveryFee?: number;
+  freeFromAmount?: number;
+  returnsPolicy?: string;
+}
+
+export interface CatalogQuality {
+  status: 'draft' | 'pending_review' | 'published' | 'unavailable';
+  ingredientVerification: 'verified' | 'pending' | 'not_provided';
+  claimsValidation: 'verified' | 'pending' | 'not_provided';
+  imagesValidation: 'verified' | 'pending' | 'not_provided';
+  stockValidation: 'verified' | 'pending' | 'not_provided';
+  certificationsValidation: 'verified' | 'pending' | 'not_provided';
+  translationsValidation: 'verified' | 'pending' | 'not_provided';
+  brandVerification: 'verified' | 'pending' | 'not_provided';
+  lastReviewedAt?: string;
+  lastUpdatedAt?: string;
 }
 
 export interface Product {
@@ -55,6 +121,25 @@ export interface Product {
   keyIngredients: string[];
   inci: string;
   description: string;
+  benefitPrimary?: string;
+  targetHairTypes?: string[];
+  targetSkinTypes?: string[];
+  texture?: string;
+  fragrance?: string;
+  usageFrequency?: string;
+  sizeLabel?: string;
+  estimatedYield?: string;
+  ingredientRoles?: IngredientRole[];
+  allergens?: string[];
+  containsFragrance?: boolean;
+  originCountry?: string;
+  certifications?: ProductCertification[];
+  quality?: CatalogQuality;
+  shippingInfo?: ProductShippingInfo;
+  returnsPolicy?: string;
+  variants?: ProductVariant[];
+  verifiedReviewCount?: number;
+  questionsCount?: number;
   inStock: boolean;
   disclaimer?: string;
   needs?: string[]; // E.g., ['hydrater_cheveux', 'reduire_casse', 'taches_hyperpigmentation']
@@ -142,6 +227,9 @@ export interface AIRecommendationResult {
 export interface CartItem {
   product: Product;
   quantity: number;
+  variantId?: string;
+  variantLabel?: string;
+  unitPrice?: number;
 }
 
 export type UserRole = 'customer' | 'professional' | 'support' | 'editor' | 'admin' | 'superadmin';

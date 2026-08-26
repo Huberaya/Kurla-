@@ -20,6 +20,85 @@ function ensureDatabaseSuccess(operation: string, error: { message?: string } | 
   }
 }
 
+function isPublishableProduct(product: any): boolean {
+  return product?.is_active === true
+    && product?.catalog_status === 'published'
+    && product?.ingredient_verification_status === 'verified'
+    && product?.claims_validation_status === 'verified'
+    && product?.images_validation_status === 'verified'
+    && product?.stock_validation_status === 'verified'
+    && product?.certifications_validation_status === 'verified'
+    && product?.translations_validation_status === 'verified'
+    && product?.brand_verification_status === 'verified'
+    && ['brand_provided', 'licensed'].includes(product?.image_ownership_status);
+}
+
+/** Strip catalog governance and operational fields before data reaches a
+ * browser. Admin evidence remains available through admin-only endpoints. */
+export function toPublicProduct(product: any): any {
+  const variants = (product.variants || []).map((variant: any) => {
+    const stockQuantity = Number(variant.stock_quantity ?? variant.stockQuantity ?? 0);
+    const reservedQuantity = Number(variant.reserved_quantity ?? variant.reservedQuantity ?? 0);
+    return {
+      id: variant.id,
+      productId: product.id,
+      label: variant.name || variant.label || variant.option_value || 'Option',
+      optionType: variant.option_type || variant.optionType,
+      optionValue: variant.option_value || variant.optionValue,
+      price: Number(variant.price),
+      stockQuantity: Math.max(0, stockQuantity - reservedQuantity),
+      inStock: variant.is_active !== false && stockQuantity > reservedQuantity
+    };
+  });
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    subCategory: product.subCategory,
+    price: Number(product.price),
+    originalPrice: product.originalPrice,
+    rating: 0,
+    reviewsCount: 0,
+    image: product.image || '',
+    galleryImages: product.image ? [{ url: product.image, label: 'Image du catalogue', type: 'hero', imageTrust: product.imageOwnershipStatus }] : [],
+    badges: Array.isArray(product.badges) ? product.badges : [],
+    forWho: product.forWho || '',
+    notIdealIf: product.notIdealIf || '',
+    howToUse: product.howToUse || '',
+    routineStep: product.routineStep || '',
+    keyIngredients: product.keyIngredients || product.ingredients || [],
+    ingredients: product.ingredients || [],
+    inci: product.inci || '',
+    description: product.description || '',
+    benefitPrimary: product.benefitPrimary,
+    targetHairTypes: product.targetHairTypes || product.hairTypes || [],
+    targetSkinTypes: product.targetSkinTypes || product.skinTypes || [],
+    texture: product.texture,
+    fragrance: product.fragrance,
+    usageFrequency: product.usageFrequency,
+    sizeLabel: product.sizeLabel,
+    estimatedYield: product.estimatedYield,
+    ingredientRoles: product.ingredientRoles || [],
+    allergens: product.allergens || [],
+    containsFragrance: product.containsFragrance,
+    originCountry: product.originCountry,
+    certifications: product.certifications || [],
+    returnsPolicy: product.returnsPolicy,
+    shippingInfo: { ...(product.shippingInfo || product.shippingPolicy || {}), countries: product.countryAvailability || [] },
+    variants,
+    verifiedReviewCount: 0,
+    questionsCount: 0,
+    inStock: product.inStock === true || variants.some((variant: any) => variant.inStock),
+    needs: product.needs || product.concerns || [],
+    countryAvailability: product.countryAvailability || [],
+    communityBrand: product.communityBrand === true,
+    isNew: product.isNew === true,
+    isPromo: product.isPromo === true
+  };
+}
+
 function getStripeServerClient(): Stripe | null {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   return secretKey ? new Stripe(secretKey, {
@@ -62,6 +141,42 @@ export interface ServerOrderItem {
   price: number;
   name: string;
   image?: string;
+}
+
+export interface MarketplaceReview {
+  id: string;
+  productId: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  author: string;
+  verifiedPurchase: boolean;
+  createdAt: string;
+  status: string;
+}
+
+export interface MarketplaceQuestion {
+  id: string;
+  productId: string;
+  question: string;
+  answer?: string;
+  createdAt: string;
+  answeredAt?: string;
+}
+
+export interface ProductSubscription {
+  id: string;
+  userId: string;
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  frequency: '30_days' | '45_days' | '60_days' | '90_days';
+  country: string;
+  paymentMethod?: string;
+  status: 'pending' | 'active' | 'paused' | 'cancelled';
+  nextOrderAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type OrderStatus =
@@ -262,6 +377,11 @@ class SupabaseServerStore {
   private inMemoryTickets: SupportTicket[] = [];
   private inMemoryMessages: SupportMessage[] = [];
   private inMemoryProfessionalApplications: ProfessionalApplication[] = [];
+  private inMemoryProductReviews: MarketplaceReview[] = [];
+  private inMemoryProductQuestions: MarketplaceQuestion[] = [];
+  private inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
+  private inMemoryProductSubscriptions: ProductSubscription[] = [];
+  private inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
   private inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   private inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
   private inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
@@ -307,27 +427,11 @@ class SupabaseServerStore {
           notIdealIf: p.not_ideal_if || '',
           countryAvailability: p.country_availability || []
         }));
-      } else if (existingProducts?.length === 0) {
-        // Seed default products to Supabase
-        const payload = defaultProducts.map(p => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          brand: p.brand,
-          price: p.price,
-          in_stock: p.inStock ?? true,
-          stock_quantity: 100,
-          category: p.category,
-          description: p.description,
-          image_url: p.image,
-          ingredients: p.keyIngredients || p.ingredients || [],
-          hair_types: p.hairTypes || [],
-          skin_types: p.skinTypes || [],
-          concerns: p.concerns || p.needs || [],
-          country_availability: p.countryAvailability || ['FR', 'BE', 'CH']
-        }));
-        const { error: seedError } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
-        ensureDatabaseSuccess('initialisation du catalogue', seedError);
+      } else {
+        // An empty production catalogue is valid. Demo data is never copied
+        // into the real catalogue: products must be entered and validated by
+        // an operator before they can become customer-visible.
+        this.inMemoryProducts = [];
       }
 
       // 2. Hydrate processed events from Supabase
@@ -344,35 +448,362 @@ class SupabaseServerStore {
     }
   }
 
-  public async getProducts(): Promise<any[]> {
+  public async getProducts(options: { publishedOnly?: boolean } = {}): Promise<any[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').eq('is_active', true);
       ensureDatabaseSuccess('lecture du catalogue', error);
-      return (data || []).map(p => ({
+      const { data: variants, error: variantsError } = await supabase.from('product_variants').select('*');
+      ensureDatabaseSuccess('lecture des variantes produit', variantsError);
+      const { data: inventoryRows, error: inventoryError } = await supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity');
+      ensureDatabaseSuccess('lecture du stock catalogue', inventoryError);
+      const inventoryByKey = new Map<string, any>();
+      (inventoryRows || []).forEach((row: any) => inventoryByKey.set(`${row.product_id}:${row.variant_id || ''}`, row));
+      const variantsByProduct = new Map<string, any[]>();
+      (variants || []).forEach((variant: any) => {
+        if (variant.is_active === false) return;
+        const lines = variantsByProduct.get(variant.product_id) || [];
+        lines.push(variant);
+        variantsByProduct.set(variant.product_id, lines);
+      });
+      const mapped = (data || []).map((p: any) => {
+        const productVariants = (variantsByProduct.get(p.id) || []).map((variant: any) => {
+          const stock = inventoryByKey.get(`${p.id}:${variant.id}`);
+          return stock ? { ...variant, stock_quantity: stock.quantity, reserved_quantity: stock.reserved_quantity } : variant;
+        });
+        const baseStock = inventoryByKey.get(`${p.id}:`);
+        const baseAvailable = baseStock ? Number(baseStock.quantity) - Number(baseStock.reserved_quantity || 0) : Number(p.stock_quantity || 0);
+        const variantAvailable = productVariants.some((variant: any) => Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0) > 0);
+        return {
         id: p.id,
         slug: p.slug,
         name: p.name,
         brand: p.brand,
         price: Number(p.price),
-        inStock: p.in_stock,
-        stockQuantity: p.stock_quantity,
+        originalPrice: p.original_price == null ? undefined : Number(p.original_price),
+        rating: p.rating == null ? 0 : Number(p.rating),
+        reviewsCount: Number(p.reviews_count || 0),
+        inStock: p.in_stock === true && (productVariants.length > 0 ? variantAvailable : baseAvailable > 0),
+        stockQuantity: baseStock ? Number(baseStock.quantity) : Number(p.stock_quantity || 0),
         category: p.category,
-        description: p.description,
-        image: p.image_url,
-        ingredients: p.ingredients,
-        hairTypes: p.hair_types,
-        skinTypes: p.skin_types,
-        concerns: p.concerns,
-        countryAvailability: p.country_availability
-      }));
+        subCategory: p.subcategory,
+        description: p.description || '',
+        image: p.image_url || '',
+        ingredients: p.ingredients || [],
+        inci: p.inci || '',
+        forWho: p.for_who || '',
+        notIdealIf: p.not_ideal_if || '',
+        howToUse: p.how_to_use || '',
+        routineStep: p.routine_step || '',
+        badges: p.badges || [],
+        keyIngredients: p.ingredients || [],
+        hairTypes: p.hair_types || [],
+        targetHairTypes: p.hair_types || [],
+        skinTypes: p.skin_types || [],
+        targetSkinTypes: p.skin_types || [],
+        concerns: p.concerns || [],
+        needs: p.concerns || [],
+        countryAvailability: p.country_availability || [],
+        benefitPrimary: p.benefit_primary,
+        texture: p.texture,
+        fragrance: p.fragrance,
+        usageFrequency: p.usage_frequency,
+        sizeLabel: p.size_label,
+        estimatedYield: p.estimated_yield,
+        ingredientRoles: p.ingredient_roles || [],
+        allergens: p.allergens || [],
+        containsFragrance: p.contains_fragrance,
+        originCountry: p.origin_country,
+        certifications: p.certifications || [],
+        returnsPolicy: p.returns_policy,
+        shippingPolicy: p.shipping_policy || {},
+        shippingInfo: { ...(p.shipping_policy || {}), countries: p.country_availability || [] },
+        communityBrand: p.community_brand === true,
+        isNew: p.is_new === true,
+        isPromo: p.is_promo === true,
+        catalogStatus: p.catalog_status,
+        ingredientVerificationStatus: p.ingredient_verification_status,
+        claimsValidationStatus: p.claims_validation_status,
+        imagesValidationStatus: p.images_validation_status,
+        stockValidationStatus: p.stock_validation_status,
+        certificationsValidationStatus: p.certifications_validation_status,
+        translationsValidationStatus: p.translations_validation_status,
+        brandVerificationStatus: p.brand_verification_status,
+        imageOwnershipStatus: p.image_ownership_status,
+        lastCatalogReviewedAt: p.last_catalog_reviewed_at,
+        lastCatalogUpdatedAt: p.last_catalog_updated_at,
+        variants: productVariants
+      };
+      });
+      return options.publishedOnly ? mapped.filter(product => isPublishableProduct({
+        ...product,
+        is_active: true,
+        catalog_status: product.catalogStatus,
+        ingredient_verification_status: product.ingredientVerificationStatus,
+        claims_validation_status: product.claimsValidationStatus,
+        images_validation_status: product.imagesValidationStatus,
+        stock_validation_status: product.stockValidationStatus,
+        certifications_validation_status: product.certificationsValidationStatus,
+        translations_validation_status: product.translationsValidationStatus,
+        brand_verification_status: product.brandVerificationStatus,
+        image_ownership_status: product.imageOwnershipStatus
+      })) : mapped;
     }
-    return [...this.inMemoryProducts];
+    // The local development catalogue remains available to internal tests and
+    // non-public server routines. Customer-facing API calls always pass
+    // publishedOnly, so unvalidated development records cannot be published.
+    return options.publishedOnly
+      ? this.inMemoryProducts.filter(product => isPublishableProduct(product))
+      : [...this.inMemoryProducts];
   }
 
   public async getProductById(idOrSlug: string): Promise<any | undefined> {
     const products = await this.getProducts();
     return products.find(p => p.id === idOrSlug || p.slug === idOrSlug);
+  }
+
+  public async getPublicProducts(): Promise<any[]> {
+    return (await this.getProducts({ publishedOnly: true })).map(toPublicProduct);
+  }
+
+  public async getProductReviews(productId: string): Promise<MarketplaceReview[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('id, product_id, rating, title, comment, verified_purchase, status, created_at')
+        .eq('product_id', productId)
+        .eq('status', 'approved')
+        .eq('verified_purchase', true)
+        .order('created_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des avis vérifiés', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        productId: row.product_id,
+        rating: Number(row.rating),
+        title: row.title || undefined,
+        comment: row.comment || '',
+        author: 'Client vérifié',
+        verifiedPurchase: true,
+        createdAt: row.created_at,
+        status: row.status
+      }));
+    }
+    return this.inMemoryProductReviews.filter(review => review.productId === productId && review.status === 'approved' && review.verifiedPurchase);
+  }
+
+  public async createProductReview(userId: string, productId: string, rating: number, comment: string, title?: string, variantId?: string): Promise<MarketplaceReview> {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5 || !comment.trim() || comment.trim().length > 4000) {
+      throw new Error('Un avis doit contenir une note de 1 à 5 et un commentaire valide.');
+    }
+    const orders = await this.getOrdersByCustomer('', userId);
+    const eligible = orders.some(order =>
+      ['paid', 'processing', 'packed', 'shipped', 'delivered'].includes(order.status) &&
+      order.items.some(item => item.productId === productId && (!variantId || item.variantId === variantId))
+    );
+    if (!eligible) throw new Error('Un achat réglé de ce produit est nécessaire pour déposer un avis vérifié.');
+
+    const now = new Date().toISOString();
+    const review: MarketplaceReview = {
+      id: randomUUID(), productId, rating, title: title?.trim() || undefined,
+      comment: comment.trim(), author: 'Client vérifié', verifiedPurchase: true,
+      createdAt: now, status: 'pending'
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('reviews').insert({
+        id: review.id, product_id: productId, user_id: userId, rating,
+        title: review.title || null, comment: review.comment,
+        verified_purchase: true, verified_at: now, status: 'pending'
+      }).select('id, product_id, rating, title, comment, verified_purchase, status, created_at').single();
+      ensureDatabaseSuccess('enregistrement de l’avis', error);
+      return { ...review, id: data.id, createdAt: data.created_at, status: data.status };
+    }
+    this.inMemoryProductReviews.unshift(review);
+    return review;
+  }
+
+  public async getProductQuestions(productId: string, userId?: string): Promise<MarketplaceQuestion[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      let request = supabase.from('product_questions')
+        .select('id, product_id, question, answer, status, created_at, answered_at')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
+      const { data, error } = await request;
+      ensureDatabaseSuccess('lecture des questions produit', error);
+      return (data || []).filter((row: any) => row.status === 'answered').map((row: any) => ({
+        id: row.id, productId: row.product_id, question: row.question,
+        answer: row.answer || undefined, createdAt: row.created_at, answeredAt: row.answered_at || undefined
+      }));
+    }
+    return this.inMemoryProductQuestions.filter(question => question.productId === productId && question.answer);
+  }
+
+  public async createProductQuestion(userId: string, productId: string, question: string, email?: string): Promise<MarketplaceQuestion> {
+    const value = question.trim();
+    if (value.length < 5 || value.length > 1000) throw new Error('La question doit contenir entre 5 et 1 000 caractères.');
+    const published = (await this.getProducts({ publishedOnly: true })).some(product => product.id === productId);
+    if (!published) throw new Error('Produit non disponible.');
+    const now = new Date().toISOString();
+    const draft: MarketplaceQuestion = { id: randomUUID(), productId, question: value, createdAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('product_questions').insert({
+        id: draft.id, product_id: productId, user_id: userId,
+        asker_email: email || null, question: value, status: 'pending'
+      }).select('id, product_id, question, answer, created_at, answered_at').single();
+      ensureDatabaseSuccess('enregistrement de la question produit', error);
+      return { id: data.id, productId: data.product_id, question: data.question, answer: data.answer || undefined, createdAt: data.created_at, answeredAt: data.answered_at || undefined };
+    }
+    this.inMemoryProductQuestions.unshift(draft);
+    return draft;
+  }
+
+  public async joinProductWaitlist(productId: string, email: string, country: string, variantId?: string, userId?: string): Promise<{ id: string; status: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCountry = country.trim().toUpperCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail) || !/^[A-Z]{2}$/.test(normalizedCountry)) {
+      throw new Error('Adresse e-mail ou pays invalide.');
+    }
+    const products = await this.getProducts({ publishedOnly: true });
+    const product = products.find(item => item.id === productId);
+    if (!product) throw new Error('Produit non disponible.');
+    if (variantId && !(product.variants || []).some((variant: any) => variant.id === variantId)) throw new Error('Variante inconnue.');
+    const now = new Date().toISOString();
+    const entry = { id: randomUUID(), productId, variantId, userId, email: normalizedEmail, country: normalizedCountry, status: 'waiting' as const, createdAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('product_waitlist').upsert({
+        id: entry.id, product_id: productId, variant_id: variantId || null,
+        user_id: userId || null, email: normalizedEmail, country: normalizedCountry, status: 'waiting'
+      }, { onConflict: 'product_id,variant_id,email,country' }).select('id, status').single();
+      ensureDatabaseSuccess('inscription à la liste d’attente', error);
+      return { id: data.id, status: data.status };
+    }
+    const existing = this.inMemoryProductWaitlist.find(item => item.productId === productId && item.variantId === variantId && item.email === normalizedEmail && item.country === normalizedCountry);
+    if (existing) return { id: existing.id, status: existing.status };
+    this.inMemoryProductWaitlist.push(entry);
+    return { id: entry.id, status: entry.status };
+  }
+
+  public async createProductSubscription(userId: string, productId: string, frequency: ProductSubscription['frequency'], quantity: number, country: string, variantId?: string, paymentMethod?: string): Promise<ProductSubscription> {
+    if (!['30_days', '45_days', '60_days', '90_days'].includes(frequency) || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      throw new Error('Fréquence ou quantité de réassort invalide.');
+    }
+    const product = (await this.getProducts({ publishedOnly: true })).find(item => item.id === productId);
+    if (!product) throw new Error('Produit non disponible.');
+    if (variantId && !(product.variants || []).some((variant: any) => variant.id === variantId && variant.inStock)) throw new Error('Variante indisponible.');
+    const normalizedCountry = country.trim().toUpperCase();
+    if (!product.countryAvailability?.includes(normalizedCountry) && !product.countryAvailability?.includes('INT')) throw new Error('Ce produit n’est pas livré dans ce pays.');
+    const now = new Date().toISOString();
+    const subscription: ProductSubscription = { id: randomUUID(), userId, productId, variantId, quantity, frequency, country: normalizedCountry, paymentMethod, status: 'pending', createdAt: now, updatedAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('product_subscriptions').insert({
+        id: subscription.id, user_id: userId, product_id: productId, variant_id: variantId || null,
+        quantity, frequency, country: normalizedCountry, payment_method: paymentMethod || null, status: 'pending'
+      }).select('*').single();
+      ensureDatabaseSuccess('création du réassort', error);
+      return { ...subscription, id: data.id, createdAt: data.created_at, updatedAt: data.updated_at };
+    }
+    this.inMemoryProductSubscriptions.push(subscription);
+    return subscription;
+  }
+
+  public async recordCatalogValidation(adminId: string, productId: string, checkType: string, status: 'passed' | 'failed' | 'pending', evidenceUrl?: string, note?: string): Promise<void> {
+    if (!await this.getProductById(productId)) throw new Error('Produit introuvable.');
+    const checkColumns: Record<string, string> = {
+      ingredients: 'ingredient_verification_status', claims: 'claims_validation_status', images: 'images_validation_status',
+      stock: 'stock_validation_status', brand: 'brand_verification_status', certifications: 'certifications_validation_status', translations: 'translations_validation_status'
+    };
+    const column = checkColumns[checkType];
+    if (!column) throw new Error('Type de validation inconnu.');
+    const value = status === 'passed' ? 'verified' : status === 'failed' ? 'not_provided' : 'pending';
+    const now = new Date().toISOString();
+    const event = { id: randomUUID(), productId, checkType, status, evidenceUrl, note, createdAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error: eventError } = await supabase.from('catalog_validation_events').insert({
+        id: event.id, product_id: productId, validator_id: adminId, check_type: checkType, status, evidence_url: evidenceUrl || null, note: note || null
+      });
+      ensureDatabaseSuccess('enregistrement de la validation catalogue', eventError);
+      const { error: updateError } = await supabase.from('products').update({ [column]: value, last_catalog_reviewed_at: now }).eq('id', productId);
+      ensureDatabaseSuccess('mise à jour de la validation catalogue', updateError);
+      return;
+    }
+    this.inMemoryCatalogValidationEvents.unshift(event);
+    const product = this.inMemoryProducts.find(item => item.id === productId);
+    if (product) product[column] = value;
+  }
+
+  public async getCatalogValidationEvents(productId: string): Promise<any[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('catalog_validation_events').select('id, product_id, validator_id, check_type, status, evidence_url, note, created_at').eq('product_id', productId).order('created_at', { ascending: false });
+      ensureDatabaseSuccess('lecture de l’historique de validation', error);
+      return data || [];
+    }
+    return this.inMemoryCatalogValidationEvents.filter(event => event.productId === productId);
+  }
+
+  public async updateCatalogStatus(productId: string, status: 'draft' | 'pending_review' | 'published' | 'unavailable'): Promise<void> {
+    if (!['draft', 'pending_review', 'published', 'unavailable'].includes(status)) throw new Error('Statut catalogue invalide.');
+    if (!await this.getProductById(productId)) throw new Error('Produit introuvable.');
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('products').update({ catalog_status: status, last_catalog_updated_at: new Date().toISOString() }).eq('id', productId);
+      ensureDatabaseSuccess('mise à jour du statut catalogue', error);
+      return;
+    }
+    const product = this.inMemoryProducts.find(item => item.id === productId);
+    if (product) product.catalog_status = status;
+  }
+
+  public async getRoutines(): Promise<any[]> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return [];
+    const { data: routineRows, error: routineError } = await supabase.from('routines').select('*').eq('status', 'published').order('created_at', { ascending: false });
+    ensureDatabaseSuccess('lecture des routines publiées', routineError);
+    const { data: itemRows, error: itemError } = await supabase.from('routine_items').select('*').order('step_number', { ascending: true });
+    ensureDatabaseSuccess('lecture des produits de routine', itemError);
+    const products = await this.getProducts({ publishedOnly: true });
+    const productsById = new Map(products.map(product => [product.id, product]));
+    return (routineRows || []).map((routine: any) => {
+      if (routine.image_url && (routine.images_validation_status !== 'verified' || !['brand_provided', 'licensed'].includes(routine.image_ownership_status))) return null;
+      const rawItems = (itemRows || []).filter((item: any) => item.routine_id === routine.id);
+      const items = rawItems.map((item: any) => ({ ...item, product: productsById.get(item.product_id) }));
+      if (!items.length || items.some((item: any) => !item.product)) return null;
+      const steps = items.map((item: any) => ({
+        number: item.step_number,
+        title: item.title || item.product.name,
+        description: item.description || '',
+        productName: item.product.name,
+        productId: item.product.id,
+        variantId: item.variant_id || undefined,
+        quantity: item.quantity
+      }));
+      return {
+        id: routine.id,
+        slug: routine.slug,
+        title: routine.title,
+        subtitle: routine.subtitle || '',
+        category: routine.category || 'cheveux',
+        badge: routine.badge || '',
+        benefit: routine.benefit || '',
+        duration: routine.duration || '',
+        frequency: routine.frequency || '',
+        price: Number(routine.price),
+        originalPrice: routine.original_price == null ? undefined : Number(routine.original_price),
+        image: routine.image_url || '',
+        products: items.map((item: any) => toPublicProduct(item.product)),
+        steps
+      };
+    }).filter(Boolean);
+  }
+
+  public async getRoutineBySlug(slug: string): Promise<any | undefined> {
+    return (await this.getRoutines()).find(routine => routine.slug === slug);
   }
 
   private async syncInventoryToSupabase(realId: string, quantity: number, reserved_quantity: number): Promise<void> {
@@ -445,6 +876,42 @@ class SupabaseServerStore {
     return Math.max(0, inv.quantity - inv.reserved_quantity);
   }
 
+  public async getInventoryByVariantId(productId: string, variantId: string): Promise<{ quantity: number; reserved_quantity: number }> {
+    const product = await this.getProductById(productId);
+    const realId = product ? product.id : productId;
+    const cacheKey = `${realId}:${variantId}`;
+    const cached = this.inMemoryInventory.get(cacheKey);
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity').eq('product_id', realId).eq('variant_id', variantId).maybeSingle();
+      ensureDatabaseSuccess('lecture de l’inventaire de la variante', error);
+      if (data) {
+        const value = { quantity: Number(data.quantity), reserved_quantity: Number(data.reserved_quantity || 0) };
+        this.inMemoryInventory.set(cacheKey, value);
+        return value;
+      }
+    }
+    if (cached) return cached;
+    const variant = product?.variants?.find((item: any) => item.id === variantId);
+    const value = { quantity: Number(variant?.stock_quantity || variant?.stockQuantity || 0), reserved_quantity: Number(variant?.reserved_quantity || variant?.reservedQuantity || 0) };
+    this.inMemoryInventory.set(cacheKey, value);
+    return value;
+  }
+
+  private async syncVariantInventoryToSupabase(productId: string, variantId: string, quantity: number, reserved_quantity: number): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return;
+    const { data: existing, error: lookupError } = await supabase.from('inventory').select('id').eq('product_id', productId).eq('variant_id', variantId).maybeSingle();
+    ensureDatabaseSuccess('lecture de l’inventaire de la variante', lookupError);
+    if (existing?.id) {
+      const { error } = await supabase.from('inventory').update({ quantity, reserved_quantity, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      ensureDatabaseSuccess('mise à jour de l’inventaire de la variante', error);
+    } else {
+      const { error } = await supabase.from('inventory').insert({ product_id: productId, variant_id: variantId, quantity, reserved_quantity, updated_at: new Date().toISOString() });
+      ensureDatabaseSuccess('création de l’inventaire de la variante', error);
+    }
+  }
+
   public async saveOrder(order: ServerOrder): Promise<ServerOrder> {
     const existingIdx = this.inMemoryOrders.findIndex(o => o.id === order.id);
     const supabase = getSupabaseServerClient();
@@ -462,7 +929,7 @@ class SupabaseServerStore {
     if (isInitialPayment) {
       if (supabase) {
         const { error: reserveError } = await supabase.rpc('reserve_stock_for_order', {
-          p_items: order.items.map(item => ({ product_id: item.productId, quantity: item.quantity }))
+          p_items: order.items.map(item => ({ product_id: item.productId, variant_id: item.variantId || null, quantity: item.quantity }))
         });
         ensureDatabaseSuccess('réservation atomique du stock', reserveError);
       } else {
@@ -639,6 +1106,8 @@ class SupabaseServerStore {
   private async normalizeCartItems(items: { productId: string; quantity: number; variantId?: string }[]): Promise<{ productId: string; quantity: number; variantId?: string }[]> {
     if (!Array.isArray(items)) throw new Error('Panier invalide.');
 
+    const supabase = getSupabaseServerClient();
+    const publishedProducts = supabase ? await this.getProducts({ publishedOnly: true }) : null;
     const normalized = new Map<string, { productId: string; quantity: number; variantId?: string }>();
     for (const item of items) {
       if (!item || typeof item.productId !== 'string' || !item.productId.trim()) {
@@ -651,8 +1120,18 @@ class SupabaseServerStore {
         throw new Error('Identifiant de variante invalide.');
       }
 
-      const product = await this.getProductById(item.productId);
-      if (!product) throw new Error(`Produit de panier introuvable : ${item.productId}.`);
+      const product = publishedProducts
+        ? publishedProducts.find(itemProduct => itemProduct.id === item.productId)
+        : await this.getProductById(item.productId);
+      if (!product) throw new Error(`Produit de panier introuvable ou non publié : ${item.productId}.`);
+      if (item.variantId) {
+        const variant = (product.variants || []).find((candidate: any) => candidate.id === item.variantId);
+        if (!variant || variant.is_active === false || Number(variant.stock_quantity) <= Number(variant.reserved_quantity || 0)) {
+          throw new Error('Variante indisponible.');
+        }
+      } else if (product.inStock === false) {
+        throw new Error('Produit indisponible.');
+      }
       const key = `${product.id}:${item.variantId || ''}`;
       const quantity = (normalized.get(key)?.quantity || 0) + item.quantity;
       if (quantity > 99) throw new Error('La quantité totale d’un article de panier ne peut pas dépasser 99.');
@@ -701,6 +1180,7 @@ class SupabaseServerStore {
 
     if (supabase) {
       try {
+        const publishedProducts = await this.getProducts({ publishedOnly: true });
         let cartId: string | null = null;
         if (userId) {
           const { data, error } = await supabase.from('carts').select('id').eq('user_id', userId).maybeSingle();
@@ -718,12 +1198,17 @@ class SupabaseServerStore {
           if (items && items.length > 0) {
             const result = [];
             for (const item of items) {
-              const product = await this.getProductById(item.product_id);
+              const product = publishedProducts.find(itemProduct => itemProduct.id === item.product_id);
               if (product) {
+                const variantId = item.variant_id || undefined;
+                const variant = variantId && (product.variants || []).find((candidate: any) => candidate.id === variantId);
+                if (variantId && !variant) continue;
                 result.push({
-                  product,
+                  product: toPublicProduct(product),
                   quantity: item.quantity,
-                  variantId: item.variant_id || undefined
+                  variantId,
+                  variantLabel: variant?.name,
+                  unitPrice: variant ? Number(variant.price) : Number(product.price)
                 });
               }
             }
@@ -794,7 +1279,7 @@ class SupabaseServerStore {
     changedBy?: string;
     changedByRole?: string;
     reason?: string;
-    restockItems?: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
+    restockItems?: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
   }): Promise<ServerOrder | undefined> {
     const order = await this.getOrderById(orderId);
     if (!order) return undefined;
@@ -851,31 +1336,38 @@ class SupabaseServerStore {
       for (const item of order.items) {
         const product = await this.getProductById(item.productId);
         const realId = product ? product.id : item.productId;
-        const inv = await this.getInventoryByProductId(realId);
+        const variantId = item.variantId;
+        const inv = variantId
+          ? await this.getInventoryByVariantId(realId, variantId)
+          : await this.getInventoryByProductId(realId);
         const newQ = Math.max(0, inv.quantity - item.quantity);
         const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
         const val = { quantity: newQ, reserved_quantity: newResQ };
         if (!supabase) {
-          this.inMemoryInventory.set(realId, val);
-          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
-
+          this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, val);
           const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-          if (pIdx >= 0) {
-            this.inMemoryProducts[pIdx].stockQuantity = newQ;
-            this.inMemoryProducts[pIdx].inStock = newQ > 0;
+          const inMemoryProduct = pIdx >= 0 ? this.inMemoryProducts[pIdx] : undefined;
+          const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === variantId);
+          if (inMemoryVariant && variantId) {
+            inMemoryVariant.stock_quantity = newQ;
+            inMemoryVariant.reserved_quantity = newResQ;
+          } else if (inMemoryProduct) {
+            inMemoryProduct.stockQuantity = newQ;
+            inMemoryProduct.inStock = newQ > 0;
           }
         }
 
-        if (supabase) {
+        if (supabase && !variantId) {
           const { error } = await supabase.from('products').update({
             stock_quantity: newQ,
             in_stock: newQ > 0,
             updated_at: new Date().toISOString()
           }).eq('id', realId);
           ensureDatabaseSuccess('mise à jour du stock produit', error);
+          await this.syncInventoryToSupabase(realId, newQ, newResQ);
+        } else if (variantId) {
+          await this.syncVariantInventoryToSupabase(realId, variantId, newQ, newResQ);
         }
-
-        await this.syncInventoryToSupabase(realId, newQ, newResQ);
       }
     }
     // Case 2: Payment Failed / Cancelled (payment_pending_webhook / pending_payment -> payment_failed / cancelled)
@@ -883,15 +1375,14 @@ class SupabaseServerStore {
       for (const item of order.items) {
         const product = await this.getProductById(item.productId);
         const realId = product ? product.id : item.productId;
-        const inv = await this.getInventoryByProductId(realId);
+        const variantId = item.variantId;
+        const inv = variantId
+          ? await this.getInventoryByVariantId(realId, variantId)
+          : await this.getInventoryByProductId(realId);
         const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
-        const val = { quantity: inv.quantity, reserved_quantity: newResQ };
-        if (!supabase) {
-          this.inMemoryInventory.set(realId, val);
-          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
-        }
-
-        await this.syncInventoryToSupabase(realId, inv.quantity, newResQ);
+        if (!supabase) this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, { quantity: inv.quantity, reserved_quantity: newResQ });
+        if (variantId) await this.syncVariantInventoryToSupabase(realId, variantId, inv.quantity, newResQ);
+        else await this.syncInventoryToSupabase(realId, inv.quantity, newResQ);
       }
     }
     // Case 3: Refunds restore only the returned quantities. A direct full
@@ -905,30 +1396,36 @@ class SupabaseServerStore {
       for (const item of itemsToRestore) {
         const product = await this.getProductById(item.productId);
         const realId = product ? product.id : item.productId;
-        const inv = await this.getInventoryByProductId(realId);
+        const variantId = item.variantId;
+        const inv = variantId
+          ? await this.getInventoryByVariantId(realId, variantId)
+          : await this.getInventoryByProductId(realId);
         const newQ = inv.quantity + item.quantity;
         const val = { quantity: newQ, reserved_quantity: inv.reserved_quantity };
         if (!supabase) {
-          this.inMemoryInventory.set(realId, val);
-          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
-
+          this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, val);
           const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-          if (pIdx >= 0) {
-            this.inMemoryProducts[pIdx].stockQuantity = newQ;
-            this.inMemoryProducts[pIdx].inStock = true;
+          const inMemoryProduct = pIdx >= 0 ? this.inMemoryProducts[pIdx] : undefined;
+          const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === variantId);
+          if (inMemoryVariant && variantId) {
+            inMemoryVariant.stock_quantity = newQ;
+          } else if (inMemoryProduct) {
+            inMemoryProduct.stockQuantity = newQ;
+            inMemoryProduct.inStock = true;
           }
         }
 
-        if (supabase) {
+        if (supabase && !variantId) {
           const { error } = await supabase.from('products').update({
             stock_quantity: newQ,
             in_stock: true,
             updated_at: new Date().toISOString()
           }).eq('id', realId);
           ensureDatabaseSuccess('restauration du stock produit', error);
+          await this.syncInventoryToSupabase(realId, newQ, inv.reserved_quantity);
+        } else if (variantId) {
+          await this.syncVariantInventoryToSupabase(realId, variantId, newQ, inv.reserved_quantity);
         }
-
-        await this.syncInventoryToSupabase(realId, newQ, inv.reserved_quantity);
       }
     }
 

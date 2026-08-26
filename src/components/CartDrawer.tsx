@@ -8,8 +8,8 @@ interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   items: CartItem[];
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number, variantId?: string) => void;
+  onRemoveItem: (productId: string, variantId?: string) => void;
   onCheckout?: () => void;
 }
 
@@ -48,7 +48,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     if (user?.email && !guestEmail) setGuestEmail(user.email);
   }, [user?.email, guestEmail]);
 
-  const cartSignature = items.map(item => `${item.product.id}:${item.quantity}`).join('|');
+  const unitPrice = (item: CartItem): number => {
+    if (typeof item.unitPrice === 'number') return item.unitPrice;
+    const variant = item.variantId && item.product.variants?.find(candidate => candidate.id === item.variantId);
+    return variant?.price ?? item.product.price;
+  };
+  const cartSignature = items.map(item => `${item.product.id}:${item.variantId || ''}:${unitPrice(item)}:${item.quantity}`).join('|');
   useEffect(() => {
     // Keep the key stable while retrying the same checkout intent. A changed
     // cart starts a new intent and therefore receives a new key.
@@ -58,7 +63,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0);
   const subtotalCents = Math.round(total * 100);
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
@@ -92,6 +97,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     try {
       const payloadItems = items.map(item => ({
         product_id: item.product.id,
+        variant_id: item.variantId,
         quantity: item.quantity
       }));
 
@@ -249,7 +255,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="space-y-4 max-h-[45vh] overflow-y-auto pr-1">
               {items.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={`${item.product.id}:${item.variantId || ''}`}
                   className="flex items-center gap-4 p-3 rounded-2xl bg-[#050403]/80 border border-[#FFF7EF]/10"
                 >
                   <img
@@ -261,11 +267,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <h4 className="text-xs font-serif-title font-bold text-[#FFF7EF] truncate">
                       {item.product.name}
                     </h4>
-                    <p className="text-[11px] text-[#D49A63] font-medium">{item.product.price.toFixed(2)} €</p>
+                    <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center border border-[#FFF7EF]/20 rounded-lg bg-[#1A0F0A]">
                         <button
-                          onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1, item.variantId)}
                           disabled={isCheckoutLoading}
                           className="px-2 py-0.5 text-xs text-[#FFF7EF]/70 hover:text-[#FFF7EF] disabled:opacity-50"
                         >
@@ -273,7 +279,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </button>
                         <span className="px-2 text-xs font-bold text-[#FFF7EF]">{item.quantity}</span>
                         <button
-                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1, item.variantId)}
                           disabled={isCheckoutLoading}
                           className="px-2 py-0.5 text-xs text-[#FFF7EF]/70 hover:text-[#FFF7EF] disabled:opacity-50"
                         >
@@ -281,7 +287,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </button>
                       </div>
                       <button
-                        onClick={() => onRemoveItem(item.product.id)}
+                        onClick={() => onRemoveItem(item.product.id, item.variantId)}
                         disabled={isCheckoutLoading}
                         className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1 disabled:opacity-50"
                       >
