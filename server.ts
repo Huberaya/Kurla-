@@ -5,6 +5,8 @@ import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import Stripe from 'stripe';
 import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from './src/lib/ai/systemPrompt';
+import { AI_GUARDRAILS } from './src/lib/ai/guardrails';
+import { formatKnowledgeContext, selectKnowledgeCards } from './src/lib/ai/knowledgeBase';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
 import { UserRole } from './src/types';
@@ -864,352 +866,471 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
   res.json({ products, source });
 }));
 
-// Real Available Catalog helper for AI Assistant
-async function getAvailableCatalog() {
+// Real Available Catalog helper for AI Assistant.
+// The model receives only entries that are in stock and allowed in the user's
+// country. It never receives a product name without its exact catalog slug.
+type AvailableCatalogEntry = {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  price: number;
+  link: string;
+  category: string;
+  description: string;
+  needs: string[];
+  keyIngredients: string[];
+  notIdealIf: string;
+  product: any;
+};
+
+const SUPPORTED_AI_LOCALES = new Set(['fr', 'en', 'es', 'pt']);
+
+async function getAvailableCatalog(country = 'FR'): Promise<AvailableCatalogEntry[]> {
+  const normalizedCountry = country.trim().toUpperCase();
   const products = await serverDb.getProducts();
-  return products.filter(p => p.inStock).map(p => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    brand: p.brand,
-    price: p.price,
-    link: `/produit/${p.slug}`,
-    category: p.category,
-    description: p.description
+  return products
+    .filter(product => product.inStock)
+    .filter(product => !product.countryAvailability?.length || product.countryAvailability.includes(normalizedCountry) || product.countryAvailability.includes('INT'))
+    .map(product => ({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      link: `/produit/${product.slug}`,
+      category: product.category,
+      description: product.description,
+      needs: product.needs || [],
+      keyIngredients: product.keyIngredients || [],
+      notIdealIf: product.notIdealIf,
+      product
+    }));
+}
+
+function normalizeAiLocale(value: unknown): string {
+  const locale = typeof value === 'string' ? value.trim().toLowerCase().split('-')[0] : 'fr';
+  return SUPPORTED_AI_LOCALES.has(locale) ? locale : 'fr';
+}
+
+function normalizeAiCountry(value: unknown): string {
+  const country = typeof value === 'string' ? value.trim().toUpperCase() : 'FR';
+  return /^[A-Z]{2}$/.test(country) ? country : 'FR';
+}
+
+function queryNeeds(query: string, diagnosticType?: string): string[] {
+  const value = `${diagnosticType || ''} ${query}`.toLowerCase();
+  const needs: string[] = [];
+  const add = (need: string, terms: string[]) => { if (terms.some(term => value.includes(term))) needs.push(need); };
+  add('hydrater_cheveux', ['cheveu', 'boucle', 'frisé', 'frise', 'crépu', 'crepu', 'dry hair', 'hair']);
+  add('reduire_casse', ['casse', 'breakage', 'fragile', 'fragility']);
+  add('definir_boucles', ['boucle', 'definition', 'définition', 'curl']);
+  add('cuir_chevelu', ['cuir chevelu', 'scalp', 'pellicule', 'démange', 'demange', 'itch']);
+  add('entretenir_tresses', ['tresse', 'braid', 'twist']);
+  add('entretenir_locks', ['lock', 'microlock']);
+  add('entretenir_perruque', ['perruque', 'wig', 'lace']);
+  add('protection_solaire', ['spf', 'solaire', 'soleil', 'sun', 'sunscreen']);
+  add('taches_hyperpigmentation', ['tache', 'hyperpigment', 'marque', 'pigment', 'dark spot']);
+  add('imperfections_acne', ['acné', 'acne', 'imperfection', 'pimple']);
+  add('peau_sensible', ['sensible', 'sensibilité', 'sensitivity', 'irrit']);
+  add('hydrater_peau', ['peau sèche', 'peau deshydrate', 'peau déshydrat', 'dry skin', 'hydration']);
+  return Array.from(new Set(needs));
+}
+
+function catalogForPrompt(catalog: AvailableCatalogEntry[], fits: Map<string, any>) {
+  return catalog.map(entry => ({
+    slug: entry.slug,
+    name: entry.name,
+    brand: entry.brand,
+    price: entry.price,
+    category: entry.category,
+    description: entry.description,
+    needs: entry.needs,
+    keyIngredients: entry.keyIngredients,
+    notIdealIf: entry.notIdealIf,
+    fitEvidence: fits.get(entry.slug)?.evidence || [],
+    fitReasons: fits.get(entry.slug)?.reasons || []
   }));
 }
 
+function recommendationsForSlugs(slugs: unknown, catalog: AvailableCatalogEntry[], fits: Map<string, any>, locale = 'fr', modelDetails?: Map<string, any>) {
+  const requested = Array.isArray(slugs) ? slugs : [];
+  const uniqueSlugs = Array.from(new Set(requested.filter((slug): slug is string => typeof slug === 'string')));
+  return uniqueSlugs
+    .map(slug => catalog.find(entry => entry.slug === slug))
+    .filter((entry): entry is AvailableCatalogEntry => !!entry)
+    .slice(0, 5)
+    .map(entry => {
+      const fit = fits.get(entry.slug);
+      const details = modelDetails?.get(entry.slug);
+      const fitEvidence = (fit?.evidence || []).slice(0, 4).map((item: any) => `${item.label}: ${item.value}`);
+      const modelEvidence = Array.isArray(details?.evidence) ? details.evidence.filter((value: unknown): value is string => typeof value === 'string').slice(0, 4) : [];
+      const evidence = fitEvidence.length > 0 ? fitEvidence : modelEvidence;
+      const modelReason = typeof details?.reason === 'string' && details.reason.trim() ? details.reason.trim().slice(0, 500) : undefined;
+      const reason = fit?.reasons?.[0] || modelReason || (locale === 'en' ? 'Selected from the verified in-stock catalog for this request.' : 'Sélectionné dans le catalogue vérifié et disponible pour cette demande.');
+      return {
+        productSlug: entry.slug,
+        name: entry.name,
+        link: entry.link,
+        reason,
+        evidence
+      };
+    });
+}
+
+function budgetLimit(profile: any): number | undefined {
+  const value = profile?.hair?.budget || profile?.skin?.budget;
+  if (typeof value !== 'string' || value === 'inconnu') return undefined;
+  const limits: Record<string, number> = { moins_40: 40, '40_70': 70, '70_100': 100, premium: Number.POSITIVE_INFINITY };
+  return limits[value];
+}
+
+function fallbackAnswer(query: string, locale: string, cards: any[], catalog: AvailableCatalogEntry[], fits: Map<string, any>, needs: string[], profile: any): any {
+  const isEnglish = locale === 'en';
+  const isSpanish = locale === 'es';
+  const isPortuguese = locale === 'pt';
+  const maxPrice = budgetLimit(profile);
+  const products = catalog
+    .map(entry => ({ entry, fit: fits.get(entry.slug) }))
+    .filter(({ entry, fit }) => {
+      if (maxPrice !== undefined && entry.price > maxPrice) return false;
+      if (profile && fit?.score !== null && fit?.score !== undefined) return fit.score > 0;
+      return needs.length === 0 || entry.needs.some(need => needs.includes(need));
+    })
+    .sort((a, b) => (b.fit?.score || 0) - (a.fit?.score || 0))
+    .slice(0, 3)
+    .map(({ entry }) => entry.slug);
+  const productRecommendations = recommendationsForSlugs(products, catalog, fits, locale);
+  const sourceRefs = cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status }));
+
+  if (isEnglish) return {
+    shortAnswer: `For “${query}”, start with a gentle, consistent routine rather than adding many products at once.`,
+    simpleExplanation: 'Your profile, environment and stated goal help set priorities. This is cosmetic guidance, not a diagnosis.',
+    routineSteps: ['Clarify the priority and work in sections if needed.', 'Introduce one change at a time and observe tolerance.', 'Adjust frequency according to comfort, climate and results.'],
+    immediateActions: ['Keep the next step simple and gentle.', 'Stop a product that causes a persistent reaction.', 'Ask a professional if symptoms are intense, sudden or persistent.'],
+    usefulProducts: productRecommendations,
+    avoidCombinations: ['Avoid layering several new or potentially irritating actives at once.'],
+    usefulTools: [],
+    errorsToAvoid: ['Do not use a product simply because it is marketed for a texture or skin tone.', 'Do not apply a cosmetic product to damaged skin.'],
+    whenToConsultPro: 'Ask a dermatologist or doctor for pain, lesions, bleeding, pus, sudden hair loss or a persistent reaction.',
+    uncertainty: profile ? 'Personalization is limited to the fields currently completed in your KURLA ID profile.' : 'No KURLA ID profile was shared, so this remains general cosmetic guidance.',
+    sources: sourceRefs,
+    ctas: [{ label: 'Browse the catalog', href: '/boutique', type: 'boutique' }, { label: 'Track my routine', href: '/account/routine-tracker', type: 'routine' }]
+  };
+  if (isSpanish || isPortuguese) return {
+    shortAnswer: isSpanish ? `Para “${query}”, empieza con una rutina suave y constante, sin añadir muchos productos a la vez.` : `Para “${query}”, comece com uma rotina suave e consistente, sem adicionar muitos produtos de uma vez.`,
+    simpleExplanation: isSpanish ? 'Tu perfil, tu entorno y tu objetivo ayudan a establecer prioridades. Esto es un consejo cosmético, no un diagnóstico.' : 'O seu perfil, ambiente e objetivo ajudam a definir prioridades. Isto é orientação cosmética, não um diagnóstico.',
+    routineSteps: isSpanish ? ['Define la prioridad y trabaja por secciones si es necesario.', 'Introduce un cambio cada vez y observa la tolerancia.', 'Ajusta la frecuencia según tu comodidad, clima y resultados.'] : ['Defina a prioridade e trabalhe por secções se necessário.', 'Introduza uma mudança de cada vez e observe a tolerância.', 'Ajuste a frequência segundo o conforto, o clima e os resultados.'],
+    immediateActions: isSpanish ? ['Mantén el siguiente paso simple y suave.', 'Suspende un producto que provoque una reacción persistente.', 'Consulta a un profesional si los síntomas son intensos o persistentes.'] : ['Mantenha o próximo passo simples e suave.', 'Pare um produto que cause uma reação persistente.', 'Procure um profissional se os sintomas forem intensos ou persistentes.'],
+    usefulProducts: productRecommendations,
+    avoidCombinations: [isSpanish ? 'Evita combinar varios activos nuevos o irritantes a la vez.' : 'Evite combinar vários ativos novos ou potencialmente irritantes de uma vez.'],
+    usefulTools: [],
+    errorsToAvoid: [isSpanish ? 'No uses un producto solo porque se anuncia para una textura o tono.' : 'Não use um produto apenas porque é anunciado para uma textura ou tom de pele.', isSpanish ? 'No apliques cosméticos sobre piel lesionada.' : 'Não aplique cosméticos sobre pele lesionada.'],
+    whenToConsultPro: isSpanish ? 'Consulta a un dermatólogo o médico ante dolor, lesiones, sangrado, pus, caída súbita o reacción persistente.' : 'Procure um dermatologista ou médico em caso de dor, lesões, sangramento, pus, queda súbita ou reação persistente.',
+    uncertainty: profile ? (isSpanish ? 'La personalización se limita a los campos completados de tu perfil KURLA ID.' : 'A personalização limita-se aos campos preenchidos do seu perfil KURLA ID.') : (isSpanish ? 'No se compartió un perfil KURLA ID: la orientación es general.' : 'Nenhum perfil KURLA ID foi partilhado: a orientação é geral.'),
+    sources: sourceRefs,
+    ctas: [{ label: isSpanish ? 'Ver el catálogo' : 'Ver o catálogo', href: '/boutique', type: 'boutique' }, { label: isSpanish ? 'Seguir mi rutina' : 'Acompanhar a minha rotina', href: '/account/routine-tracker', type: 'routine' }]
+  };
+  return {
+    shortAnswer: `Pour « ${query} », commence par une routine douce et régulière, sans multiplier les produits.`,
+    simpleExplanation: 'Le profil, l’environnement et l’objectif servent à définir les priorités. Il s’agit d’un conseil cosmétique, pas d’un diagnostic.',
+    routineSteps: ['Clarifier la priorité et travailler par sections si besoin.', 'Introduire un seul changement à la fois et observer la tolérance.', 'Adapter la fréquence au confort, au climat et aux résultats observés.'],
+    immediateActions: ['Garder la prochaine étape simple et douce.', 'Arrêter un produit qui provoque une réaction persistante.', 'Demander un avis professionnel si les signes sont intenses, soudains ou persistants.'],
+    usefulProducts: productRecommendations,
+    avoidCombinations: ['Éviter d’empiler plusieurs actifs nouveaux ou potentiellement irritants en même temps.'],
+    usefulTools: [],
+    errorsToAvoid: ['Ne pas choisir un produit uniquement parce qu’il est présenté pour une texture ou une carnation.', 'Ne pas appliquer de cosmétique sur une peau lésée.'],
+    whenToConsultPro: 'Demander un avis médical en cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante.',
+    uncertainty: profile ? 'La personnalisation reste limitée aux champs actuellement renseignés dans votre profil KURLA ID.' : 'Aucun profil KURLA ID n’a été partagé : il s’agit donc de conseils cosmétiques généraux.',
+    sources: sourceRefs,
+    ctas: [{ label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }, { label: 'Suivre ma routine', href: '/account/routine-tracker', type: 'routine' }]
+  };
+}
+
+function sanitizeStructuredAnswer(raw: any, query: string, locale: string, cards: any[], catalog: AvailableCatalogEntry[], fits: Map<string, any>, needs: string[], profile: any): any {
+  const fallback = fallbackAnswer(query, locale, cards, catalog, fits, needs, profile);
+  if (!raw || typeof raw !== 'object') return fallback;
+  const modelDetails = new Map<string, any>((Array.isArray(raw.usefulProducts) ? raw.usefulProducts : []).filter((product: any) => typeof product?.productSlug === 'string').map((product: any) => [product.productSlug, product]));
+  const productRecommendations = recommendationsForSlugs(raw.usefulProducts?.map((p: any) => p?.productSlug), catalog, fits, locale, modelDetails);
+  const answer = {
+    ...fallback,
+    shortAnswer: typeof raw.shortAnswer === 'string' ? raw.shortAnswer.slice(0, 1000) : fallback.shortAnswer,
+    simpleExplanation: typeof raw.simpleExplanation === 'string' ? raw.simpleExplanation.slice(0, 2000) : fallback.simpleExplanation,
+    whenToConsultPro: typeof raw.whenToConsultPro === 'string' ? raw.whenToConsultPro.slice(0, 1200) : fallback.whenToConsultPro,
+    uncertainty: typeof raw.uncertainty === 'string' ? raw.uncertainty.slice(0, 1200) : fallback.uncertainty,
+    routineSteps: Array.isArray(raw.routineSteps) && raw.routineSteps.length > 0 ? raw.routineSteps.filter((v: unknown): v is string => typeof v === 'string').slice(0, 8) : fallback.routineSteps,
+    immediateActions: Array.isArray(raw.immediateActions) && raw.immediateActions.length > 0 ? raw.immediateActions.filter((v: unknown): v is string => typeof v === 'string').slice(0, 8) : fallback.immediateActions,
+    usefulProducts: productRecommendations,
+    avoidCombinations: Array.isArray(raw.avoidCombinations) ? raw.avoidCombinations.filter((v: unknown): v is string => typeof v === 'string').slice(0, 8) : fallback.avoidCombinations,
+    usefulTools: Array.isArray(raw.usefulTools) ? raw.usefulTools.filter((v: any) => typeof v?.name === 'string' && typeof v?.description === 'string').slice(0, 6) : fallback.usefulTools,
+    errorsToAvoid: Array.isArray(raw.errorsToAvoid) ? raw.errorsToAvoid.filter((v: unknown): v is string => typeof v === 'string').slice(0, 8) : fallback.errorsToAvoid,
+    sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })),
+    ctas: [{ label: locale === 'en' ? 'Browse the catalog' : 'Explorer le catalogue', href: '/boutique', type: 'boutique' as const }, { label: locale === 'en' ? 'Track my routine' : 'Suivre ma routine', href: '/account/routine-tracker', type: 'routine' as const }]
+  };
+  return answer;
+}
+
+function medicalTriage(query: string): { emergency: boolean; review: boolean; message: string } {
+  const value = query.toLowerCase();
+  const emergencyTerms = ['difficulté à respirer', 'difficulte a respirer', 'difficulty breathing', 'gonflement de la gorge', 'swelling of the throat', 'gonflement langue', 'swollen tongue', 'brûlure chimique grave', 'brulure chimique grave', 'chemical burn', 'saignement abondant', 'heavy bleeding'];
+  const reviewTerms = [...AI_GUARDRAILS.medicalFlagsKeywords, 'infection', 'fièvre', 'fever', 'douleur intense', 'severe pain', 'chute massive', 'massive hair loss', 'diagnostic', 'prescription'];
+  const emergency = emergencyTerms.some(term => value.includes(term));
+  const review = emergency || reviewTerms.some(term => value.includes(term));
+  const message = emergency
+    ? 'Des signes potentiellement urgents sont mentionnés. Appelez immédiatement le 15 ou le 112 en France, ou le numéro d’urgence local, et ne mettez pas de nouveau cosmétique sur la zone concernée.'
+    : 'Votre description mérite un avis professionnel. KURLA ne pose pas de diagnostic et ne remplace pas un médecin, un dermatologue ou un pharmacien.';
+  return { emergency, review, message };
+}
+
+const AI_DISCLAIMER = "Les réponses KURLA sont des informations et conseils cosmétiques. Elles ne constituent ni un diagnostic, ni une prescription, ni un avis médical.";
+
+async function persistAiExchange(user: AuthenticatedUser | null, session: any, query: string, responseText: string, metadata: Record<string, unknown>, sourceIds: string[], uncertainty?: string) {
+  if (!user || !session) return { sessionId: undefined, messageId: undefined, memorySaved: false };
+  const userMessage = await serverDb.addAiMessage(session.id, 'user', query, { kind: 'user_query' }, []);
+  const assistantMessage = await serverDb.addAiMessage(session.id, 'assistant', responseText, metadata, sourceIds, uncertainty);
+  return { sessionId: session.id, messageId: assistantMessage.id, memorySaved: true, userMessageId: userMessage.id };
+}
+
 // AI Endpoint: General Beauty Assistant Query
-app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), async (req: Request, res: Response) => {
-  try {
-    const { query } = req.body;
-    if (!query || typeof query !== 'string') {
-      return res.status(400).json({ error: 'Query parameter is required' });
-    }
+app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const query = typeof req.body?.query === 'string' ? req.body.query.trim() : '';
+  if (!query || query.length > 2000) return res.status(400).json({ error: 'La question est obligatoire et doit rester sous 2 000 caractères.' });
 
-    const aiClient = getGeminiClient();
+  const token = bearerToken(req);
+  const user = await authenticateRequest(req);
+  if (token && !user) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
 
-    // Guardrail Check for Medical/Emergency Claims
-    const emergencyTerms = [
-      'difficulte a respirer', 'difficulté à respirer', 'gonflement gorge', 'gonflement langue',
-      'allergie grave', 'brulure chimique', 'brûlure chimique', 'cloques', 'sang', 'saignement',
-      'fievre', 'fièvre', 'plaies', 'alopecie cicatricielle'
-    ];
-    const qLower = query.toLowerCase();
-    const isMedicalEmergency = emergencyTerms.some(term => qLower.includes(term));
+  const locale = normalizeAiLocale(req.body?.locale);
+  const country = normalizeAiCountry(req.body?.country);
+  const memoryConsent = req.body?.memoryConsent === true;
+  const requestedSessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : undefined;
+  if ((memoryConsent || requestedSessionId) && !user) return res.status(401).json({ error: 'Connectez-vous pour utiliser la mémoire de l’assistant.' });
+  if (requestedSessionId && !memoryConsent) return res.status(400).json({ error: 'Le consentement mémoire doit rester actif pour reprendre une session.' });
 
-    if (isMedicalEmergency) {
-      return res.json({
-        isMedicalRedirect: true,
-        medicalMessage: "Attention : Votre description comporte des signes nécessitant une attention médicale prioritaire (brûlure, saignement, réaction allergique ou infection). En France, contactez le SAMU (15) ou le 112, ou consultez d'urgence un médecin ou dermatologue.",
-        disclaimer: "Les conseils KURLA Beauty sont à titre informatif et ne remplacent en aucun cas un avis ou diagnostic médical."
-      });
-    }
-
-    const availableCatalog = await getAvailableCatalog();
-    const defaultAvailableProduct = availableCatalog[0] || { name: 'Leave-In Hydratant Cacao & Mangue', link: '/produit/leave-in-hydratant', fitScore: 96 };
-
-    if (!aiClient) {
-      return res.json({
-        isMedicalRedirect: false,
-        fallback: true,
-        answer: {
-          shortAnswer: `Voici nos conseils personnalisés KURLA concernant : "${query}".`,
-          simpleExplanation: "Pour les cheveux texturés (3A à 4C) et les peaux mélaninées, le secret réside dans l'apport régulier d'eau tiède ou de soins à base d'eau, scellés ensuite par un corps gras adapté sans surcharger le cuir chevelu.",
-          immediateActions: [
-            "Humidifier légèrement avec un spray d'eau tiède ou une eau florale d'aloe vera.",
-            "Appliquer un soin nourrissant doux en séparant en sections.",
-            "Éviter toute traction forte ou frottement agressif."
-          ],
-          recommendedRoutine: "Routine Hydratation & Protection KURLA",
-          usefulProducts: [
-            { name: defaultAvailableProduct.name, link: defaultAvailableProduct.link, fitScore: 96 },
-            { name: "Sérum SPF 50+ Invisible Peau Mélaninée", link: "/produit/spf-invisible", fitScore: 94 }
-          ],
-          usefulTools: [
-            { name: "Vaporisateur Brume Continue 360°", description: "Humidifie uniformément sans détremper." },
-            { name: "Bonnet Satin Ajustable", description: "Garde l'hydratation capillaire pendant le sommeil." }
-          ],
-          errorsToAvoid: [
-            "Mettre de l'huile pure sur des cheveux ou une peau totalement secs.",
-            "Frotter vigoureusement avec une serviette en coton classique."
-          ],
-          whenToConsultPro: "En cas d'irritation persistante, rougeur douloureuse ou perte soudaine de densité.",
-          ctas: [
-            { label: "Voir la Boutique", href: "/boutique", type: "boutique" },
-            { label: "Consulter un Spécialiste Certifié", href: "/professionnels", type: "pro" }
-          ]
-        },
-        disclaimer: "Les conseils KURLA Beauty sont des conseils cosmétiques non médicaux."
-      });
-    }
-
-    const systemPromptWithCatalog = `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}
-Catalogue de produits KURLA REELS et DISPONIBLES uniquement :
-${JSON.stringify(availableCatalog)}
-
-Règle absolue : Tu ne dois recommander QUE des produits figurant dans ce catalogue réel. Le champ "link" de chaque produit doit TOUJOURS suivre le format "/produit/{slug}" ou "/boutique". Ne fais AUCUN lien vers /produits.`;
-
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-3.6-flash',
-      contents: `Question de l'utilisateur : "${query}"`,
-      config: {
-        systemInstruction: systemPromptWithCatalog,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            shortAnswer: { type: Type.STRING },
-            simpleExplanation: { type: Type.STRING },
-            immediateActions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            usefulProducts: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  link: { type: Type.STRING },
-                  fitScore: { type: Type.NUMBER }
-                },
-                required: ['name', 'link', 'fitScore']
-              }
-            },
-            usefulTools: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  description: { type: Type.STRING }
-                },
-                required: ['name', 'description']
-              }
-            },
-            errorsToAvoid: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            whenToConsultPro: { type: Type.STRING },
-            ctas: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  label: { type: Type.STRING },
-                  href: { type: Type.STRING },
-                  type: { type: Type.STRING }
-                },
-                required: ['label', 'href', 'type']
-              }
-            }
-          },
-          required: [
-            'shortAnswer', 'simpleExplanation', 'immediateActions', 'usefulProducts',
-            'usefulTools', 'errorsToAvoid', 'whenToConsultPro', 'ctas'
-          ]
-        }
-      }
-    });
-
-    const jsonText = response.text || '';
-    const parsedAnswer = JSON.parse(jsonText);
-
-    // Filter usefulProducts to ensure strictly real catalog products and correct route links
-    if (parsedAnswer.usefulProducts && Array.isArray(parsedAnswer.usefulProducts)) {
-      parsedAnswer.usefulProducts = parsedAnswer.usefulProducts.map((p: any) => {
-        const proposedName = typeof p?.name === 'string' ? p.name.toLowerCase() : '';
-        const matched = availableCatalog.find(product =>
-          product.name.toLowerCase().includes(proposedName) || proposedName.includes(product.name.toLowerCase())
-        );
-        if (matched) {
-          return { name: matched.name, link: `/produit/${matched.slug}`, fitScore: p.fitScore || 90 };
-        }
-        return { name: defaultAvailableProduct.name, link: defaultAvailableProduct.link, fitScore: 90 };
-      });
-    }
-
-    // Sanitize links
-    if (parsedAnswer.ctas && Array.isArray(parsedAnswer.ctas)) {
-      parsedAnswer.ctas = parsedAnswer.ctas.map((c: any) => ({
-        ...c,
-        href: c.href === '/produits' ? '/boutique' : c.href
-      }));
-    }
-
-    return res.json({
-      isMedicalRedirect: false,
-      answer: parsedAnswer,
-      disclaimer: "Les réponses de l'assistant KURLA sont fournies à titre d'information et d'accompagnement cosmétique et ne remplacent pas une consultation médicale."
-    });
-  } catch (err: any) {
-    console.error('Error in AI Assistant API endpoint:', err);
-    return res.status(500).json({
-      isMedicalRedirect: false,
-      error: true,
-      answer: {
-        shortAnswer: "Notre assistant IA a rencontré un bref imprévu réseau, voici la recommandation essentielle KURLA.",
-        simpleExplanation: "Pour toute préoccupation liée aux cheveux ou à la peau, la base est de protéger la barrière cutanée et la fibre capillaire avec douceur.",
-        immediateActions: [
-          "Privilégier un nettoyage doux pH neutre.",
-          "Appliquer des soins riches en actifs apaisants (aloe vera, karité, niacinamide).",
-          "Eviter les frictions mécaniques trop intenses."
-        ],
-        usefulProducts: [
-          { name: "Shampoing Doux Sans Sulfates", link: "/produit/shampoing-doux", fitScore: 95 }
-        ],
-        usefulTools: [
-          { name: "Bonnet Satin XL", description: "Soin nocturne" }
-        ],
-        errorsToAvoid: [
-          "Produits trop décapants ou abrasifs"
-        ],
-        whenToConsultPro: "Si la gêne persists plusieurs jours.",
-        ctas: [
-          { label: "Explorer la boutique", href: "/boutique", type: "boutique" }
-        ]
-      },
-      disclaimer: "Les conseils KURLA Beauty sont informatifs."
-    });
+  const objective = typeof req.body?.objective === 'string' ? req.body.objective.trim().slice(0, 160) : undefined;
+  const profileRecord = user ? await serverDb.getBeautyProfile(user.id) : undefined;
+  const profile = profileRecord?.profile;
+  const needs = queryNeeds(`${objective || ''} ${query}`);
+  const cards = selectKnowledgeCards(query, needs);
+  const fullCatalog = await getAvailableCatalog(country);
+  const maxPrice = budgetLimit(profile);
+  const catalog = maxPrice === undefined ? fullCatalog : fullCatalog.filter(entry => entry.price <= maxPrice);
+  const fits = new Map<string, any>();
+  for (const entry of catalog) {
+    if (profile) fits.set(entry.slug, calculateKurlaFit(entry.product, profile));
   }
-});
+  const recommendationCatalog = needs.length > 0
+    ? catalog.filter(entry => entry.needs.some(need => needs.includes(need)) || (fits.get(entry.slug)?.score || 0) > 0)
+    : catalog;
 
-// AI Endpoint: Generate Routine Recommendation
-app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), async (req: Request, res: Response) => {
-  try {
-    const { diagnosticType, answers } = req.body;
-    const aiClient = getGeminiClient();
-
-    // Guardrail Check for Medical/Emergency Claims
-    const sensitiveTerms = ['plaie', 'brulure', 'sang', 'infection', 'alopecie severe', 'chute massive'];
-    const userString = JSON.stringify(answers || {}).toLowerCase();
-    const isSensitive = sensitiveTerms.some(term => userString.includes(term));
-
-    if (isSensitive) {
-      return res.json({
-        summary: "Votre situation présente des signes de sensibilité extrême ou d'irritation.",
-        recommendedRoutine: "Consultation Spécialisée",
-        reason: "Pour votre sécurité, nous vous recommandons de consulter un dermatologue ou un professionnel de santé.",
-        steps: [
-          "Suspendre immédiatement les traitements chimiques ou coiffures très serrées.",
-          "Nettoyer à l'eau tiède douce avec un soin neutre sans parfum.",
-          "Consulter un médecin si les symptômes persistent."
-        ],
-        warnings: [
-          "AVIS IMPORTANT : Les conseils KURLA ne remplacent en aucun cas un avis médical."
-        ],
-        productHandles: [],
-        requiresHumanReview: true
-      });
-    }
-
-    const currentCatalog = await getAvailableCatalog();
-    const validCatalogSlugs = new Set(currentCatalog.map(product => product.slug));
-    const requestedFallbackHandles = diagnosticType === 'hair'
-      ? ["leave-in-hydratant", "masque-hydratant", "bonnet-satin"]
-      : ["spf-invisible", "serum-marques-post-imperfections"];
-    const realProductHandles = requestedFallbackHandles.filter(slug => validCatalogSlugs.has(slug));
-
-    if (!aiClient) {
-      const isHair = diagnosticType === 'hair';
-      return res.json({
-        summary: isHair
-          ? `Routine sur-mesure pour texture ${answers.texture || 'texturée'} axée sur ${answers.priority || 'l’hydratation'}.`
-          : `Routine éclat visage pour type de peau ${answers.skinType || 'mélaninée'} axée sur ${answers.priority || 'l’uniformité'}.`,
-        recommendedRoutine: isHair ? "Starter Hydratation 4C & Boucles" : "Melanin Skin Glow & Anti-Taches",
-        reason: isHair
-          ? "Vos réponses indiquent un besoin prioritaire de scellage d'hydratation pour stopper la casse sans alourdir les spires."
-          : "Votre peau réagit mieux aux sérums doux enrichis en Niacinamide et protection solaire 100% invisible.",
-        steps: isHair ? [
-          "Étape 1 : Nettoyage doux au shampoing nourrissant 1x par semaine.",
-          "Étape 2 : Application du Leave-In Crème Cacao sur cheveux très humides.",
-          "Étape 3 : Sceller l'eau avec 3 gouttes d'Élixir d'huiles.",
-          "Étape 4 : Protéger les longueurs la nuit avec le bonnet satin."
-        ] : [
-          "Étape 1 Matin : Nettoyage doux à l'eau tiède.",
-          "Étape 2 Matin : Sérum SPF 50+ Invisible sans aucun trace blanche.",
-          "Étape 3 Soir : Sérum Concentré Marques sur zones ciblées."
-        ],
-        warnings: [
-          "Les recommandations KURLA sont des conseils beauté non médicaux."
-        ],
-        productHandles: realProductHandles,
-        requiresHumanReview: false
-      });
-    }
-
-    const systemInstruction = `Tu es l'architecte IA beauté certifié de KURLA Beauty.
-Tu as accès aux produits réels avec leurs slugs exacts :
-${JSON.stringify(currentCatalog.map(p => ({ slug: p.slug, name: p.name })))}
-
-Règle impérative : productHandles doit contenir UNIQUEMENT une liste de slugs réels parmi la liste ci-dessus (par exemple ["leave-in-hydratant", "masque-hydratant", "bonnet-satin"]). Ne crée AUCUN slug fictif.`;
-
-    const prompt = `Diagnostic : ${diagnosticType}. Réponses : ${JSON.stringify(answers)}`;
-
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-3.6-flash',
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING },
-            recommendedRoutine: { type: Type.STRING },
-            reason: { type: Type.STRING },
-            steps: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            warnings: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            productHandles: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            requiresHumanReview: { type: Type.BOOLEAN }
-          },
-          required: ['summary', 'recommendedRoutine', 'reason', 'steps', 'warnings', 'productHandles', 'requiresHumanReview']
-        }
-      }
-    });
-
-    const parsed = JSON.parse(response.text || '{}');
-
-    // Ensure productHandles contains only valid slugs
-    if (parsed.productHandles && Array.isArray(parsed.productHandles)) {
-      const validSlugs = currentCatalog.map(p => p.slug);
-      parsed.productHandles = parsed.productHandles.filter((h: string) => validSlugs.includes(h));
-      if (parsed.productHandles.length === 0) {
-        parsed.productHandles = realProductHandles;
-      }
+  let session;
+  if (memoryConsent && user) {
+    if (requestedSessionId) {
+      const existing = await serverDb.getAiSession(user.id, requestedSessionId);
+      if (!existing) return res.status(404).json({ error: 'Session IA introuvable ou non autorisée.' });
+      session = existing.session;
     } else {
-      parsed.productHandles = realProductHandles;
+      session = await serverDb.createAiSession(user.id, objective || 'assistant-beauté', locale, country, true, objective);
     }
-
-    res.json(parsed);
-  } catch (error: any) {
-    console.error('Error generating AI routine:', error);
-    res.status(500).json({
-      summary: "Routine KURLA Recommandée",
-      recommendedRoutine: "Starter Hydratation",
-      reason: "Voici notre routine de départ certifiée basée sur votre profil.",
-      steps: [
-        "Hydrater sur cheveux humides avec le Leave-In Cacao",
-        "Sceller avec l'huile capillaire douce",
-        "Dormir avec le bonnet satin"
-      ],
-      warnings: ["Les conseils KURLA sont des conseils beauté non médicaux."],
-      productHandles: ["leave-in-hydratant", "bonnet-satin"],
-      requiresHumanReview: false
-    });
   }
-});
+
+  const triage = medicalTriage(query);
+  if (triage.review) {
+    const persistence = await persistAiExchange(user, session, query, triage.message, { kind: 'medical_triage', emergency: triage.emergency }, cards.map(card => card.id), 'Avis professionnel recommandé ; aucun diagnostic n’est établi.');
+    if (triage.emergency) {
+      return res.json({ isMedicalRedirect: true, medicalMessage: triage.message, requiresHumanReview: true, disclaimer: AI_DISCLAIMER, ...persistence });
+    }
+    return res.json({ isMedicalRedirect: true, medicalMessage: triage.message, requiresHumanReview: true, disclaimer: AI_DISCLAIMER, ...persistence });
+  }
+
+  const aiClient = getGeminiClient();
+  let answer: any;
+  let modelUsed = false;
+  if (aiClient) {
+    try {
+      const catalogContext = catalogForPrompt(recommendationCatalog, fits);
+      const systemInstruction = `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\n\nLANGUE DE SORTIE : ${locale}. Réponds dans cette langue avec des phrases simples.\nPAYS : ${country}. OBJECTIF : ${objective || 'à préciser'}. BUDGET MAXIMUM INDICATIF : ${budgetLimit(profile) === undefined ? 'non renseigné' : `${budgetLimit(profile)} EUR par article`}.\n\nPROFIL KURLA ID (données déclarées, possiblement incomplètes) :\n${JSON.stringify(profile || { unavailable: true })}\n\nBASE DE CONNAISSANCES KURLA SÉLECTIONNÉE :\n${formatKnowledgeContext(cards)}\n\nCATALOGUE VÉRIFIÉ :\n${JSON.stringify(catalogContext)}\n\nContraintes absolues : n’utilise aucune connaissance comme preuve clinique si son statut n’est pas validé ; ne pose aucun diagnostic ; usefulProducts doit contenir uniquement des objets dont productSlug est un slug EXACT du catalogue ; n’invente ni produit, ni lien, ni disponibilité. Explique chaque recommandation avec evidence reliée au profil ou indique que la personnalisation est limitée. N’utilise pas de score dans la réponse.`;
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: JSON.stringify({ query, objective, locale, country }),
+        config: {
+          systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              shortAnswer: { type: Type.STRING },
+              simpleExplanation: { type: Type.STRING },
+              routineSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
+              immediateActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+              usefulProducts: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { productSlug: { type: Type.STRING }, reason: { type: Type.STRING }, evidence: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ['productSlug', 'reason', 'evidence'] } },
+              avoidCombinations: { type: Type.ARRAY, items: { type: Type.STRING } },
+              usefulTools: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING } }, required: ['name', 'description'] } },
+              errorsToAvoid: { type: Type.ARRAY, items: { type: Type.STRING } },
+              whenToConsultPro: { type: Type.STRING },
+              uncertainty: { type: Type.STRING }
+            },
+            required: ['shortAnswer', 'simpleExplanation', 'routineSteps', 'immediateActions', 'usefulProducts', 'avoidCombinations', 'usefulTools', 'errorsToAvoid', 'whenToConsultPro', 'uncertainty']
+          }
+        }
+      });
+      answer = sanitizeStructuredAnswer(JSON.parse(response.text || '{}'), query, locale, cards, recommendationCatalog, fits, needs, profile);
+      modelUsed = true;
+    } catch (error) {
+      console.error('[AI Assistant] constrained model failed, using deterministic safe answer:', error);
+    }
+  }
+  if (!answer) answer = fallbackAnswer(query, locale, cards, recommendationCatalog, fits, needs, profile);
+
+  const persistence = await persistAiExchange(user, session, query, JSON.stringify(answer), { kind: 'structured_answer', modelUsed, profileConfidence: profileRecord?.confidence || null, country, locale, objective }, cards.map(card => card.id), answer.uncertainty);
+  res.json({ isMedicalRedirect: false, requiresHumanReview: false, answer, disclaimer: AI_DISCLAIMER, profileAvailable: !!profile, profileConfidence: profileRecord?.confidence, ...persistence });
+}));
+
+// Consent-aware AI history and feedback APIs.
+app.get('/api/ai/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ sessions: await serverDb.getAiSessions(user.id) });
+}));
+
+app.get('/api/ai/history/:sessionId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const sessionId = typeof req.params.sessionId === 'string' ? req.params.sessionId : '';
+  const session = await serverDb.getAiSession(user.id, sessionId);
+  if (!session) return res.status(404).json({ error: 'Session IA introuvable ou non autorisée.' });
+  res.json(session);
+}));
+
+app.delete('/api/ai/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  await serverDb.deleteAiSessions(user.id);
+  res.json({ success: true });
+}));
+
+app.post('/api/ai/feedback', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const rating = req.body?.rating;
+  if (!['helpful', 'incorrect', 'unsafe'].includes(rating)) return res.status(400).json({ error: 'Feedback IA invalide.' });
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : undefined;
+  const messageId = typeof req.body?.messageId === 'string' ? req.body.messageId : undefined;
+  if (messageId && !sessionId) return res.status(400).json({ error: 'La session est requise pour référencer un message IA.' });
+  if (sessionId) {
+    const ownedSession = await serverDb.getAiSession(user.id, sessionId);
+    if (!ownedSession || (messageId && !ownedSession.messages.some(message => message.id === messageId))) return res.status(404).json({ error: 'Référence de session ou de message IA non autorisée.' });
+  }
+  const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim().slice(0, 1000) : undefined;
+  await serverDb.recordAiFeedback(user.id, rating, comment, sessionId, messageId);
+  res.status(201).json({ success: true });
+}));
+
+app.post('/api/ai/human-review', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+  if (!reason) return res.status(400).json({ error: 'La raison de la revue est obligatoire.' });
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : undefined;
+  const messageId = typeof req.body?.messageId === 'string' ? req.body.messageId : undefined;
+  if (messageId && !sessionId) return res.status(400).json({ error: 'La session est requise pour référencer un message IA.' });
+  if (sessionId) {
+    const ownedSession = await serverDb.getAiSession(user.id, sessionId);
+    if (!ownedSession || (messageId && !ownedSession.messages.some(message => message.id === messageId))) return res.status(404).json({ error: 'Référence de session ou de message IA non autorisée.' });
+  }
+  const payload = typeof req.body?.payload === 'object' && req.body.payload ? req.body.payload : {};
+  const review = await serverDb.requestAiHumanReview(user.id, reason, payload, sessionId, messageId);
+  res.status(201).json({ review });
+}));
+
+// AI Endpoint: Generate a routine from the public diagnostic. Products are
+// still selected only from the country-filtered, in-stock catalog.
+app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const diagnosticType = req.body?.diagnosticType === 'skin' ? 'skin' : req.body?.diagnosticType === 'hair' ? 'hair' : null;
+  if (!diagnosticType || !req.body?.answers || typeof req.body.answers !== 'object') return res.status(400).json({ error: 'Diagnostic invalide.' });
+  const answers = req.body.answers;
+  const { email: _diagnosticEmail, ...answersForAi } = answers as Record<string, unknown>;
+  const answerText = JSON.stringify(answersForAi);
+  const triage = medicalTriage(answerText);
+  const locale = normalizeAiLocale(req.body?.locale);
+  const country = normalizeAiCountry(req.body?.country);
+  const fullCatalog = await getAvailableCatalog(country);
+  const diagnosticPriorityMap: Record<string, string[]> = diagnosticType === 'hair'
+    ? {
+      hydratation: ['hydrater_cheveux'],
+      casse: ['reduire_casse'],
+      definition: ['definir_boucles'],
+      cuir_chevelu: ['cuir_chevelu'],
+      entretien_protective: ['entretenir_tresses', 'entretenir_locks'],
+      demelage_enfant: ['demeler_cheveux']
+    }
+    : {
+      taches: ['taches_hyperpigmentation'],
+      teint_irregulier: ['taches_hyperpigmentation'],
+      hydratation: ['hydrater_peau'],
+      spf: ['protection_solaire'],
+      acne_legere: ['imperfections_acne'],
+      sensibilite: ['peau_sensible']
+    };
+  const needs = Array.from(new Set([...queryNeeds(`${diagnosticType} ${answerText}`, diagnosticType), ...(diagnosticPriorityMap[String(answers.priority)] || [])]));
+  const cards = selectKnowledgeCards(answerText, [diagnosticType, ...needs]);
+  const authenticatedUser = await authenticateRequest(req);
+  if (bearerToken(req) && !authenticatedUser) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
+  const profileRecord = authenticatedUser ? await serverDb.getBeautyProfile(authenticatedUser.id) : undefined;
+  const profile = profileRecord?.profile;
+  const diagnosticBudget = typeof answers.budget === 'string' ? ({ moins_40: 40, '40_70': 70, '70_100': 100, premium: Number.POSITIVE_INFINITY } as Record<string, number>)[answers.budget] : undefined;
+  const catalog = diagnosticBudget === undefined ? fullCatalog : fullCatalog.filter(entry => entry.price <= diagnosticBudget);
+  const fits = new Map<string, any>();
+  catalog.forEach(entry => { if (profile) fits.set(entry.slug, calculateKurlaFit(entry.product, profile)); });
+  const candidateSlugs = catalog.filter(entry => entry.needs.some(need => needs.includes(need))).slice(0, 5).map(entry => entry.slug);
+
+  if (triage.review) {
+    return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });
+  }
+
+  let parsed: any;
+  const aiClient = getGeminiClient();
+  if (aiClient) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: JSON.stringify({ diagnosticType, answers: answersForAi, locale, country }),
+        config: {
+          systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.`,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: { summary: { type: Type.STRING }, recommendedRoutine: { type: Type.STRING }, reason: { type: Type.STRING }, steps: { type: Type.ARRAY, items: { type: Type.STRING } }, warnings: { type: Type.ARRAY, items: { type: Type.STRING } }, productHandles: { type: Type.ARRAY, items: { type: Type.STRING } }, requiresHumanReview: { type: Type.BOOLEAN } },
+            required: ['summary', 'recommendedRoutine', 'reason', 'steps', 'warnings', 'productHandles', 'requiresHumanReview']
+          }
+        }
+      });
+      parsed = JSON.parse(response.text || '{}');
+    } catch (error) {
+      console.error('[AI Routine] constrained model failed, using deterministic catalog routine:', error);
+    }
+  }
+
+  const validSlugs = new Set(catalog.map(entry => entry.slug));
+  const relevantSlugs = new Set(candidateSlugs);
+  const requestedHandles = Array.isArray(parsed?.productHandles) ? parsed.productHandles : candidateSlugs;
+  const filteredRequestedHandles = requestedHandles.filter((slug: unknown): slug is string => typeof slug === 'string' && validSlugs.has(slug) && relevantSlugs.has(slug));
+  const productHandles = Array.from(new Set(filteredRequestedHandles.length > 0 ? filteredRequestedHandles : candidateSlugs));
+  const isHair = diagnosticType === 'hair';
+  const safeResult = {
+    summary: typeof parsed?.summary === 'string' ? parsed.summary : (isHair ? 'Routine capillaire structurée à ajuster progressivement.' : 'Routine de soin de la peau structurée à ajuster progressivement.'),
+    recommendedRoutine: typeof parsed?.recommendedRoutine === 'string' ? parsed.recommendedRoutine : (isHair ? 'Routine capillaire KURLA' : 'Routine peau KURLA'),
+    reason: typeof parsed?.reason === 'string' ? parsed.reason : 'Les étapes sont proposées à partir des réponses et des produits disponibles, sans diagnostic médical.',
+    steps: Array.isArray(parsed?.steps) ? parsed.steps.filter((step: unknown): step is string => typeof step === 'string').slice(0, 8) : ['Commencer doucement et introduire un changement à la fois.', 'Observer la tolérance et ajuster la fréquence.', 'Demander un avis professionnel en cas de symptôme persistant.'],
+    warnings: Array.isArray(parsed?.warnings) ? parsed.warnings.filter((warning: unknown): warning is string => typeof warning === 'string').slice(0, 8) : [AI_DISCLAIMER],
+    productHandles,
+    requiresHumanReview: parsed?.requiresHumanReview === true,
+    sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })),
+    uncertainty: profile ? 'La routine tient compte des champs complétés du profil KURLA ID.' : 'La routine est basée uniquement sur les réponses du diagnostic ; le profil KURLA ID n’a pas été partagé.'
+  };
+  res.json(safeResult);
+}));
+
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS
@@ -1720,23 +1841,35 @@ app.get('/api/admin/metrics', asyncRoute(async (req: AuthenticatedRequest, res: 
 // AI Endpoint: Support Assistant Draft
 app.post('/api/ai/support-draft', async (req: Request, res: Response) => {
   try {
-    const { userMessage, topic } = req.body;
+    const userMessage = typeof req.body?.userMessage === 'string' ? req.body.userMessage.trim().slice(0, 2000) : '';
+    const topic = typeof req.body?.topic === 'string' ? req.body.topic.trim().slice(0, 120) : 'votre demande';
+    if (!userMessage) return res.status(400).json({ error: 'Le message support est obligatoire.' });
+    const triage = medicalTriage(userMessage);
+    if (triage.review) return res.json({ answer: triage.message, requiresHumanReview: true, disclaimer: AI_DISCLAIMER });
+    const catalog = await getAvailableCatalog('FR');
     const aiClient = getGeminiClient();
 
     if (!aiClient) {
       return res.json({
-        answer: `Bonjour ! Merci pour votre message concernant ${topic || 'votre routine'}. Chez KURLA Beauty, nous recommandons de toujours privilégier l'hydratation à l'eau tiède suivie d'un leave-in adapté. N'hésitez pas à faire notre diagnostic gratuit.`
+        answer: `Bonjour ! Merci pour votre message concernant ${topic}. Notre équipe peut vous aider à vérifier une routine ou un produit du catalogue KURLA. Pour un symptôme persistant, demandez un avis professionnel.`,
+        disclaimer: AI_DISCLAIMER
       });
     }
 
     const response = await aiClient.models.generateContent({
       model: 'gemini-3.6-flash',
-      contents: `Tu es le conseiller support beauté chaleureux de KURLA Beauty. Réponds de façon concise à : "${userMessage}". Ton bienveillant et expert.`,
+      contents: JSON.stringify({ userMessage, topic }),
+      config: {
+        systemInstruction: `Tu es le conseiller support beauté de KURLA. Réponds de façon concise, chaleureuse et simple. Tu ne poses pas de diagnostic. Tu ne cites un produit que s’il existe exactement dans ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(product => ({ name: product.name, slug: product.slug })))}. N’invente aucune disponibilité, promesse ou lien.`,
+        responseMimeType: 'application/json',
+        responseSchema: { type: Type.OBJECT, properties: { answer: { type: Type.STRING } }, required: ['answer'] }
+      }
     });
 
-    res.json({ answer: response.text });
+    const parsed = JSON.parse(response.text || '{}');
+    res.json({ answer: typeof parsed.answer === 'string' ? parsed.answer.slice(0, 2000) : 'Notre équipe peut vous aider à vérifier cette demande.', disclaimer: AI_DISCLAIMER });
   } catch (err) {
-    res.status(500).json({ answer: "Merci de contacter KURLA Beauty ! Notre équipe vous recommande de commencer par le diagnostic gratuit." });
+    res.status(500).json({ error: 'Le brouillon support est temporairement indisponible.', disclaimer: AI_DISCLAIMER });
   }
 });
 

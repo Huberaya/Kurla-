@@ -16,22 +16,15 @@ export const DiagnosticResultPage: React.FC = () => {
         console.error(e);
       }
     } else {
-      // Default fallback if accessed directly
+      // No client-side product fallback: the API is the only authority for
+      // in-stock, country-eligible diagnostic recommendations.
       setResult({
-        summary: "Routine Hydratation Intense 4C & Boucles",
-        recommendedRoutine: "Starter Hydratation 4C & Boucles",
-        reason: "Vos réponses montrent un besoin prioritaire de rétablir l'équilibre hydrique sans surcharger le cuir chevelu.",
-        steps: [
-          "Étape 1 : Nettoyage doux sans sulfates au shampoing nourrissant.",
-          "Étape 2 : Pose du masque soin intense porosité pendant 20 minutes sous charlotte.",
-          "Étape 3 : Application du Leave-In Crème Cacao sur longueurs très humides.",
-          "Étape 4 : Sceller avec 3 gouttes d'Élixir d'huiles stimulantes sur la pulpe des doigts.",
-          "Étape 5 : Protection nocturne obligatoire au bonnet satin microfibre."
-        ],
-        warnings: [
-          "Les recommandations KURLA sont des conseils beauté non médicaux. En cas de gêne ou irritation persistante, consultez un professionnel de santé."
-        ],
-        productHandles: ["leave-in-hydratant", "masque-hydratant", "bonnet-satin"],
+        summary: "Aucun résultat de diagnostic n’est disponible dans cette session.",
+        recommendedRoutine: "Diagnostic KURLA à recommencer",
+        reason: "Relancez le diagnostic pour obtenir une routine calculée à partir de vos réponses et du catalogue disponible.",
+        steps: ["Relancer le diagnostic.", "Vérifier votre contexte et votre budget.", "Demander un avis professionnel en cas de symptôme."],
+        warnings: ["Les recommandations KURLA sont des conseils beauté non médicaux."],
+        productHandles: [],
         requiresHumanReview: false
       });
     }
@@ -54,7 +47,7 @@ export const DiagnosticResultPage: React.FC = () => {
     result.productHandles.includes(p.slug) || result.productHandles.includes(p.id)
   );
 
-  const displayProducts = matchedProducts.length > 0 ? matchedProducts : products.slice(0, 3);
+  const displayProducts = matchedProducts;
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
@@ -121,7 +114,7 @@ export const DiagnosticResultPage: React.FC = () => {
             <span className="text-xs text-[#D49A63] font-semibold">Formules concentrées</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayProducts.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {displayProducts.map((p) => (
               <div key={p.id} className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-5 flex flex-col justify-between shadow-lg">
                 <div>
@@ -132,16 +125,11 @@ export const DiagnosticResultPage: React.FC = () => {
                 </div>
                 <div className="pt-4 border-t border-[#FFF7EF]/10 flex items-center justify-between">
                   <span className="text-lg font-bold text-[#FFF7EF]">{p.price.toFixed(2)} €</span>
-                  <a
-                    href={`/produit/${p.slug}`}
-                    className="px-4 py-2 rounded-full bg-[#C8753D] text-white text-xs font-semibold hover:bg-[#b06330]"
-                  >
-                    Voir le soin
-                  </a>
+                  <a href={`/produit/${p.slug}`} className="px-4 py-2 rounded-full bg-[#C8753D] text-white text-xs font-semibold hover:bg-[#b06330]">Voir le soin</a>
                 </div>
               </div>
             ))}
-          </div>
+          </div> : <div className="p-6 rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-sm text-[#FFF7EF]/70">Aucun produit n’est affiché : le catalogue disponible ne contient pas de recommandation vérifiable pour ce diagnostic ou votre pays.</div>}
         </div>
 
         {/* Disclaimer Warning */}

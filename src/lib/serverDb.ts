@@ -200,6 +200,44 @@ export interface ProfessionalApplication {
   updatedAt: string;
 }
 
+export interface AiAssistantSession {
+  id: string;
+  userId: string;
+  topic: string;
+  locale: string;
+  country: string;
+  objective?: string;
+  memoryConsent: boolean;
+  lastUncertainty?: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface AiAssistantMessage {
+  id: string;
+  sessionId: string;
+  sender: 'user' | 'assistant' | 'system';
+  message: string;
+  metadata?: Record<string, unknown>;
+  sourceIds: string[];
+  createdAt: string;
+}
+
+export type AiFeedbackRating = 'helpful' | 'incorrect' | 'unsafe';
+
+export interface AiHumanReview {
+  id: string;
+  userId: string;
+  sessionId?: string;
+  messageId?: string;
+  reason: string;
+  payload: Record<string, unknown>;
+  status: 'pending' | 'in_review' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StripeEventLog {
   eventId: string;
   type: string;
@@ -227,6 +265,10 @@ class SupabaseServerStore {
   private inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   private inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
   private inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
+  private inMemoryAiSessions: Map<string, AiAssistantSession> = new Map();
+  private inMemoryAiMessages: Map<string, AiAssistantMessage[]> = new Map();
+  private inMemoryAiFeedback: Array<{ userId: string; sessionId?: string; messageId?: string; rating: AiFeedbackRating; comment?: string; createdAt: string }> = [];
+  private inMemoryAiHumanReviews: AiHumanReview[] = [];
   private processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
@@ -256,11 +298,14 @@ class SupabaseServerStore {
           category: p.category,
           description: p.description,
           image: p.image_url,
-          ingredients: p.ingredients,
-          hairTypes: p.hair_types,
-          skinTypes: p.skin_types,
-          concerns: p.concerns,
-          countryAvailability: p.country_availability
+          ingredients: p.ingredients || [],
+          keyIngredients: p.ingredients || [],
+          hairTypes: p.hair_types || [],
+          skinTypes: p.skin_types || [],
+          concerns: p.concerns || [],
+          needs: p.concerns || [],
+          notIdealIf: p.not_ideal_if || '',
+          countryAvailability: p.country_availability || []
         }));
       } else if (existingProducts?.length === 0) {
         // Seed default products to Supabase
@@ -275,10 +320,10 @@ class SupabaseServerStore {
           category: p.category,
           description: p.description,
           image_url: p.image,
-          ingredients: p.ingredients || [],
+          ingredients: p.keyIngredients || p.ingredients || [],
           hair_types: p.hairTypes || [],
           skin_types: p.skinTypes || [],
-          concerns: p.concerns || [],
+          concerns: p.concerns || p.needs || [],
           country_availability: p.countryAvailability || ['FR', 'BE', 'CH']
         }));
         const { error: seedError } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
@@ -2092,6 +2137,154 @@ class SupabaseServerStore {
     this.inMemoryBeautyProfiles.delete(userId);
     this.inMemoryBeautyProfileHistory.delete(userId);
     this.inMemoryBeautyProfilePhotos.delete(userId);
+  }
+
+  // ============================================================
+  // AI ASSISTANT SESSIONS, FEEDBACK & HUMAN REVIEW
+  // ============================================================
+  private mapAiSessionRow(row: any, messageCount = 0): AiAssistantSession {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      topic: row.topic,
+      locale: row.locale || 'fr',
+      country: row.country || 'FR',
+      objective: row.objective || undefined,
+      memoryConsent: row.memory_consent === true,
+      lastUncertainty: row.last_uncertainty || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      messageCount
+    };
+  }
+
+  public async createAiSession(userId: string, topic: string, locale: string, country: string, memoryConsent: boolean, objective?: string): Promise<AiAssistantSession> {
+    if (!memoryConsent) throw new Error('La mémorisation de la conversation nécessite un consentement explicite.');
+    const now = new Date().toISOString();
+    const session: AiAssistantSession = {
+      id: randomUUID(),
+      userId,
+      topic,
+      locale,
+      country,
+      objective,
+      memoryConsent: true,
+      createdAt: now,
+      updatedAt: now,
+      messageCount: 0
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('advice_sessions').insert({
+        id: session.id,
+        user_id: userId,
+        topic,
+        locale,
+        country,
+        memory_consent: true,
+        objective: objective || null,
+        created_at: now,
+        updated_at: now
+      });
+      ensureDatabaseSuccess('création de la session IA', error);
+    }
+    this.inMemoryAiSessions.set(session.id, session);
+    this.inMemoryAiMessages.set(session.id, []);
+    return session;
+  }
+
+  public async addAiMessage(sessionId: string, sender: AiAssistantMessage['sender'], message: string, metadata: Record<string, unknown> = {}, sourceIds: string[] = [], uncertainty?: string): Promise<AiAssistantMessage> {
+    const now = new Date().toISOString();
+    const aiMessage: AiAssistantMessage = { id: randomUUID(), sessionId, sender, message, metadata, sourceIds, createdAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('advice_messages').insert({
+        id: aiMessage.id,
+        session_id: sessionId,
+        sender,
+        message,
+        metadata,
+        source_ids: sourceIds,
+        created_at: now
+      });
+      ensureDatabaseSuccess('enregistrement du message IA', error);
+      const updatePayload: Record<string, unknown> = { updated_at: now };
+      if (uncertainty) updatePayload.last_uncertainty = uncertainty;
+      const { error: updateError } = await supabase.from('advice_sessions').update(updatePayload).eq('id', sessionId);
+      ensureDatabaseSuccess('mise à jour de la session IA', updateError);
+    }
+    const messages = this.inMemoryAiMessages.get(sessionId) || [];
+    messages.push(aiMessage);
+    this.inMemoryAiMessages.set(sessionId, messages);
+    const session = this.inMemoryAiSessions.get(sessionId);
+    if (session) this.inMemoryAiSessions.set(sessionId, { ...session, updatedAt: now, lastUncertainty: uncertainty || session.lastUncertainty, messageCount: messages.length });
+    return aiMessage;
+  }
+
+  public async getAiSessions(userId: string): Promise<AiAssistantSession[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('advice_sessions').select('*').eq('user_id', userId).eq('memory_consent', true).order('updated_at', { ascending: false }).limit(50);
+      ensureDatabaseSuccess('lecture des sessions IA', error);
+      return Promise.all((data || []).map(async (row: any) => {
+        const { count, error: countError } = await supabase.from('advice_messages').select('id', { count: 'exact', head: true }).eq('session_id', row.id);
+        ensureDatabaseSuccess('comptage des messages IA', countError);
+        return this.mapAiSessionRow(row, count || 0);
+      }));
+    }
+    return [...this.inMemoryAiSessions.values()].filter(session => session.userId === userId && session.memoryConsent).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  public async getAiSession(userId: string, sessionId: string): Promise<{ session: AiAssistantSession; messages: AiAssistantMessage[] } | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data: row, error } = await supabase.from('advice_sessions').select('*').eq('id', sessionId).eq('user_id', userId).eq('memory_consent', true).maybeSingle();
+      ensureDatabaseSuccess('lecture de la session IA', error);
+      if (!row) return undefined;
+      const { data: messageRows, error: messagesError } = await supabase.from('advice_messages').select('*').eq('session_id', sessionId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture des messages IA', messagesError);
+      const messages = (messageRows || []).map((message: any) => ({ id: message.id, sessionId: message.session_id, sender: message.sender, message: message.message, metadata: message.metadata || {}, sourceIds: message.source_ids || [], createdAt: message.created_at }));
+      return { session: this.mapAiSessionRow(row, messages.length), messages };
+    }
+    const session = this.inMemoryAiSessions.get(sessionId);
+    if (!session || session.userId !== userId || !session.memoryConsent) return undefined;
+    return { session, messages: [...(this.inMemoryAiMessages.get(sessionId) || [])] };
+  }
+
+  public async deleteAiSessions(userId: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('advice_sessions').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression de l’historique IA', error);
+    }
+    for (const [id, session] of this.inMemoryAiSessions) {
+      if (session.userId === userId) {
+        this.inMemoryAiSessions.delete(id);
+        this.inMemoryAiMessages.delete(id);
+      }
+    }
+  }
+
+  public async recordAiFeedback(userId: string, rating: AiFeedbackRating, comment?: string, sessionId?: string, messageId?: string): Promise<void> {
+    const createdAt = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('ai_feedback').insert({ user_id: userId, session_id: sessionId || null, message_id: messageId || null, rating, comment: comment || null, created_at: createdAt });
+      ensureDatabaseSuccess('enregistrement du feedback IA', error);
+    }
+    this.inMemoryAiFeedback.unshift({ userId, sessionId, messageId, rating, comment, createdAt });
+  }
+
+  public async requestAiHumanReview(userId: string, reason: string, payload: Record<string, unknown>, sessionId?: string, messageId?: string): Promise<AiHumanReview> {
+    const now = new Date().toISOString();
+    const review: AiHumanReview = { id: randomUUID(), userId, sessionId, messageId, reason, payload, status: 'pending', createdAt: now, updatedAt: now };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('ai_human_reviews').insert({ id: review.id, user_id: userId, session_id: sessionId || null, message_id: messageId || null, reason, payload, status: 'pending', created_at: now, updated_at: now });
+      ensureDatabaseSuccess('création de la revue humaine IA', error);
+    }
+    this.inMemoryAiHumanReviews.unshift(review);
+    return review;
   }
 
   // ============================================================
