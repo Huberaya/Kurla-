@@ -119,7 +119,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Idempotency-Key, X-Anonymous-Id, X-Request-Id');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Idempotency-Key, X-Anonymous-Id, X-Request-Id, X-File-Name');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).end();
   next();
@@ -146,6 +146,7 @@ function asyncRoute(handler: AsyncRouteHandler) {
 }
 
 const ADMIN_ROLES: UserRole[] = ['admin', 'superadmin'];
+const SUPPORT_ROLES: UserRole[] = [...ADMIN_ROLES, 'support'];
 
 function bearerToken(req: Request): string | null {
   const header = req.headers.authorization;
@@ -210,6 +211,16 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<A
   if (!user) return null;
   if (!ADMIN_ROLES.includes(user.role)) {
     res.status(403).json({ error: 'Accès administrateur requis.' });
+    return null;
+  }
+  return user;
+}
+
+async function requireSupport(req: AuthenticatedRequest, res: Response): Promise<AuthenticatedUser | null> {
+  const user = await requireUser(req, res);
+  if (!user) return null;
+  if (!SUPPORT_ROLES.includes(user.role)) {
+    res.status(403).json({ error: 'Accès support requis.' });
     return null;
   }
   return user;
@@ -1578,7 +1589,7 @@ app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), asyncRou
 // Never use x-user-id, x-user-email or x-admin-key here: all three are client
 // controlled and therefore unsuitable for authorization.
 async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promise<any | undefined> {
-  const tickets = ADMIN_ROLES.includes(user.role)
+  const tickets = SUPPORT_ROLES.includes(user.role)
     ? await serverDb.getAllSupportTickets()
     : await serverDb.getSupportTicketsByUser(user.id);
   return tickets.find(ticket => ticket.id === ticketId);
@@ -2023,6 +2034,52 @@ app.get('/api/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, 
   res.json({ shipment: shipment || null });
 }));
 
+app.get('/api/shipments/:orderId/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const order = await getOwnedOrder(req.params.orderId, user);
+  if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+  res.json({ history: await serverDb.getShipmentHistory(order.id) });
+}));
+
+// Delivery address book. An address is always owned by the authenticated
+// customer; checkout snapshots remain independent from later edits here.
+app.get('/api/shipping/addresses', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ addresses: await serverDb.getShippingAddresses(user.id) });
+}));
+
+app.post('/api/shipping/addresses', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const address = await serverDb.saveShippingAddress(
+      user.id,
+      req.body?.address || req.body,
+      typeof req.body?.id === 'string' ? req.body.id : undefined,
+      req.body?.isDefault === true
+    );
+    res.status(201).json({ address });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Adresse de livraison invalide.') });
+  }
+}));
+
+app.delete('/api/shipping/addresses/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const deleted = await serverDb.deleteShippingAddress(user.id, req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Adresse de livraison introuvable.' });
+  res.json({ success: true });
+}));
+
+app.get('/api/shipping/rates', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const country = typeof req.query.country === 'string' ? req.query.country.trim().toUpperCase() : undefined;
+  if (country && !/^[A-Z]{2}$/.test(country)) return res.status(400).json({ error: 'Pays de livraison invalide.' });
+  res.json({ rates: await serverDb.getShippingRates(country) });
+}));
+
 // 4. Returns & Refunds API
 app.post('/api/returns', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);
@@ -2058,6 +2115,15 @@ app.get('/api/returns', asyncRoute(async (req: AuthenticatedRequest, res: Respon
   res.json({ returns: userReturns });
 }));
 
+app.get('/api/returns/:id/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const returns = ADMIN_ROLES.includes(user.role) ? await serverDb.getAllReturns() : await serverDb.getReturnsByUser(user.id);
+  const returnRequest = returns.find(item => item.id === req.params.id);
+  if (!returnRequest) return res.status(404).json({ error: 'Demande de retour introuvable.' });
+  res.json({ history: await serverDb.getReturnHistory(returnRequest.id) });
+}));
+
 app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -2068,7 +2134,7 @@ app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRe
   }
 
   try {
-    const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined);
+    const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined, admin.id, admin.role === 'support' ? 'support' : 'admin');
     if (!ret) return res.status(404).json({ error: 'Demande de retour introuvable.' });
     await serverDb.recordAdminAudit(admin.id, 'admin_return_status_update', { returnId: ret.id, status });
     res.json({ returnRequest: ret });
@@ -2113,7 +2179,7 @@ app.get('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const tickets = ADMIN_ROLES.includes(user.role)
+  const tickets = SUPPORT_ROLES.includes(user.role)
     ? await serverDb.getAllSupportTickets()
     : await serverDb.getSupportTicketsByUser(user.id);
   res.json({ tickets });
@@ -2122,7 +2188,7 @@ app.get('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res
 app.post('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);
   if (!user) return;
-  const { orderId, category, subject, message } = req.body || {};
+  const { orderId, category, subject, message, priority } = req.body || {};
   if (typeof category !== 'string' || typeof subject !== 'string' || typeof message !== 'string' || !category.trim() || !subject.trim() || !message.trim()) {
     return res.status(400).json({ error: 'Paramètres manquants.' });
   }
@@ -2133,12 +2199,17 @@ app.post('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, re
     if (!order || order.userId !== user.id) return res.status(404).json({ error: 'Commande introuvable.' });
   }
 
+  const allowedPriorities = ['low', 'normal', 'high', 'urgent'];
+  if (priority !== undefined && (typeof priority !== 'string' || !allowedPriorities.includes(priority))) {
+    return res.status(400).json({ error: 'Priorité de ticket invalide.' });
+  }
   const ticket = await serverDb.createSupportTicket(
     user.id,
     typeof orderId === 'string' ? orderId : undefined,
     category as any,
     subject.trim(),
-    message.trim()
+    message.trim(),
+    (priority || 'normal') as any
   );
   res.json({ ticket });
 }));
@@ -2149,8 +2220,12 @@ app.get('/api/support/tickets/:id/messages', asyncRoute(async (req: Authenticate
   const ticket = await getOwnedTicket(req.params.id, user);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
 
-  const messages = await serverDb.getSupportMessages(ticket.id);
-  res.json({ messages });
+  const [messages, events, attachments] = await Promise.all([
+    serverDb.getSupportMessages(ticket.id),
+    serverDb.getSupportTicketEvents(ticket.id),
+    serverDb.getSupportAttachments(ticket.id)
+  ]);
+  res.json({ messages, events, attachments });
 }));
 
 app.post('/api/support/tickets/:id/messages', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -2161,13 +2236,15 @@ app.post('/api/support/tickets/:id/messages', asyncRoute(async (req: Authenticat
 
   const message = req.body?.message;
   if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ error: 'Message vide.' });
-  const isAdmin = ADMIN_ROLES.includes(user.role);
-  const msg = await serverDb.addSupportMessage(ticket.id, user.id, isAdmin ? 'admin' : 'customer', message.trim());
+  const senderRole: 'customer' | 'admin' | 'agent' = ADMIN_ROLES.includes(user.role)
+    ? 'admin'
+    : user.role === 'support' ? 'agent' : 'customer';
+  const msg = await serverDb.addSupportMessage(ticket.id, user.id, senderRole, message.trim());
   res.json({ message: msg });
 }));
 
 app.post('/api/admin/support/tickets/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-  const admin = await requireAdmin(req, res);
+  const admin = await requireSupport(req, res);
   if (!admin) return;
   const { status } = req.body || {};
   const allowedStatuses = ['open', 'in_progress', 'resolved', 'closed'];
@@ -2177,9 +2254,72 @@ app.post('/api/admin/support/tickets/:id/status', asyncRoute(async (req: Authent
 
   const ticket = await getOwnedTicket(req.params.id, admin);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
-  await serverDb.updateSupportTicketStatus(ticket.id, status as any);
-  await serverDb.recordAdminAudit(admin.id, 'admin_support_ticket_status_update', { ticketId: ticket.id, status });
+  await serverDb.updateSupportTicketStatus(ticket.id, status as any, admin.id);
+  await serverDb.recordAdminAudit(admin.id, 'support_ticket_status_update', { ticketId: ticket.id, status });
   res.json({ success: true });
+}));
+
+app.post('/api/admin/support/tickets/:id/priority', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const agent = await requireSupport(req, res);
+  if (!agent) return;
+  const priority = req.body?.priority;
+  if (typeof priority !== 'string' || !['low', 'normal', 'high', 'urgent'].includes(priority)) {
+    return res.status(400).json({ error: 'Priorité de ticket invalide.' });
+  }
+  const ticket = await getOwnedTicket(req.params.id, agent);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const updated = await serverDb.updateSupportTicketPriority(ticket.id, priority as any, agent.id);
+  await serverDb.recordAdminAudit(agent.id, 'support_ticket_priority_update', { ticketId: ticket.id, priority });
+  res.json({ ticket: updated });
+}));
+
+app.post('/api/admin/support/tickets/:id/assignment', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const agent = await requireSupport(req, res);
+  if (!agent) return;
+  const assignedAgentId = req.body?.assignedAgentId;
+  if (assignedAgentId !== undefined && assignedAgentId !== null && typeof assignedAgentId !== 'string') {
+    return res.status(400).json({ error: 'Agent support invalide.' });
+  }
+  if (typeof assignedAgentId === 'string' && assignedAgentId && !(await serverDb.isSupportAgent(assignedAgentId))) {
+    return res.status(400).json({ error: 'Cet utilisateur ne peut pas recevoir de ticket support.' });
+  }
+  const ticket = await getOwnedTicket(req.params.id, agent);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const updated = await serverDb.assignSupportTicket(ticket.id, assignedAgentId || undefined, agent.id);
+  await serverDb.recordAdminAudit(agent.id, 'support_ticket_assignment_update', { ticketId: ticket.id, assignedAgentId: assignedAgentId || null });
+  res.json({ ticket: updated });
+}));
+
+app.post('/api/support/tickets/:id/attachments', express.raw({
+  type: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+  limit: '5mb'
+}), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const ticket = await getOwnedTicket(req.params.id, user);
+  if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (!allowedTypes.includes(contentType)) return res.status(400).json({ error: 'Format de pièce jointe non pris en charge.' });
+  const rawBody = req.body as Buffer | Uint8Array;
+  if (!rawBody || typeof rawBody.byteLength !== 'number' || rawBody.byteLength === 0 || rawBody.byteLength > 5 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Pièce jointe vide ou trop volumineuse (5 Mo maximum).' });
+  }
+  const bytes = Buffer.from(rawBody);
+  const isJpeg = contentType === 'image/jpeg' && bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  const isPng = contentType === 'image/png' && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isWebp = contentType === 'image/webp' && bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
+  const isPdf = contentType === 'application/pdf' && bytes.subarray(0, 5).toString() === '%PDF-';
+  if (!isJpeg && !isPng && !isWebp && !isPdf) return res.status(400).json({ error: 'Le contenu ne correspond pas au format déclaré.' });
+  const headerName = req.headers['x-file-name'];
+  const queryName = typeof req.query.fileName === 'string' ? req.query.fileName : '';
+  const fileName = typeof headerName === 'string' ? headerName : queryName || `piece-jointe.${contentType === 'application/pdf' ? 'pdf' : contentType.split('/')[1]}`;
+  try {
+    const attachment = await serverDb.addSupportAttachment(ticket.id, user.id, bytes, contentType as any, fileName, typeof req.query.messageId === 'string' ? req.query.messageId : undefined);
+    res.status(201).json({ attachment });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Impossible d’enregistrer la pièce jointe.') });
+  }
 }));
 
 // 6. Admin Order Status & Audit Trail API
@@ -2291,6 +2431,46 @@ app.post('/api/admin/payments/:id/status', asyncRoute(async (req: AuthenticatedR
   }
 }));
 
+app.get('/api/admin/shipments/:orderId/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const order = await serverDb.getOrderById(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+  res.json({ history: await serverDb.getShipmentHistory(order.id) });
+}));
+
+app.get('/api/admin/shipping/rates', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const country = typeof req.query.country === 'string' ? req.query.country.trim().toUpperCase() : undefined;
+  if (country && !/^[A-Z]{2}$/.test(country)) return res.status(400).json({ error: 'Pays de livraison invalide.' });
+  res.json({ rates: await serverDb.getShippingRates(country, true) });
+}));
+
+app.post('/api/admin/shipping/rates', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const rate = await serverDb.saveShippingRate(admin.id, req.body || {});
+    await serverDb.recordAdminAudit(admin.id, 'admin_shipping_rate_upsert', { rateId: rate.id, country: rate.country, method: rate.method });
+    res.status(201).json({ rate });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Impossible d’enregistrer le tarif de livraison.') });
+  }
+}));
+
+app.patch('/api/admin/shipping/rates/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const rate = await serverDb.saveShippingRate(admin.id, { ...(req.body || {}), id: req.params.id });
+    await serverDb.recordAdminAudit(admin.id, 'admin_shipping_rate_upsert', { rateId: rate.id, country: rate.country, method: rate.method });
+    res.json({ rate });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Impossible de modifier le tarif de livraison.') });
+  }
+}));
+
 app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -2300,22 +2480,42 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
   const allowedStatuses = ['preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed'];
   const carrier = typeof req.body?.carrier === 'string' && allowedCarriers.includes(req.body.carrier) ? req.body.carrier : 'manual';
   const status = typeof req.body?.status === 'string' && allowedStatuses.includes(req.body.status) ? req.body.status : 'preparing';
-  const trackingNumber = typeof req.body?.trackingNumber === 'string' ? req.body.trackingNumber.trim().slice(0, 160) || undefined : undefined;
-  const trackingUrl = typeof req.body?.trackingUrl === 'string' ? req.body.trackingUrl.trim().slice(0, 2000) || undefined : undefined;
+  const currentShipment = await serverDb.getShipmentByOrderId(order.id);
+  const trackingNumber = typeof req.body?.trackingNumber === 'string' ? req.body.trackingNumber.trim().slice(0, 160) || undefined : currentShipment?.trackingNumber;
+  const trackingUrl = typeof req.body?.trackingUrl === 'string' ? req.body.trackingUrl.trim().slice(0, 2000) || undefined : currentShipment?.trackingUrl;
+  const rawAddress = req.body?.address || order.shippingAddress;
+  let deliveryAddress: any = undefined;
+  if (rawAddress && typeof rawAddress === 'object' && typeof rawAddress.fullName === 'string' && typeof rawAddress.street === 'string' && typeof rawAddress.city === 'string' && typeof rawAddress.postalCode === 'string' && typeof rawAddress.country === 'string') {
+    deliveryAddress = {
+      fullName: rawAddress.fullName.trim().slice(0, 160),
+      street: rawAddress.street.trim().slice(0, 240),
+      city: rawAddress.city.trim().slice(0, 120),
+      postalCode: rawAddress.postalCode.trim().slice(0, 32),
+      country: rawAddress.country.trim().toUpperCase().slice(0, 2),
+      phone: typeof rawAddress.phone === 'string' ? rawAddress.phone.trim().slice(0, 40) || undefined : undefined
+    };
+  }
+  const orderShippingCost = Number(order.shippingAddress?.shippingCost);
+  const price = Number.isFinite(Number(req.body?.price)) ? Number(req.body.price) : currentShipment?.price ?? (Number.isFinite(orderShippingCost) ? orderShippingCost : 0);
   const shipment = await serverDb.upsertShipment({
-    id: typeof req.body?.id === 'string' ? req.body.id : randomUUID(),
+    id: typeof req.body?.id === 'string' ? req.body.id : currentShipment?.id || randomUUID(),
     orderId: order.id,
     userId: order.userId,
     carrier: carrier as any,
-    method: typeof req.body?.method === 'string' ? req.body.method.trim().slice(0, 80) : 'standard',
-    price: Number.isFinite(Number(req.body?.price)) ? Number(req.body.price) : 0,
+    method: typeof req.body?.method === 'string' ? req.body.method.trim().slice(0, 80) : currentShipment?.method || order.shippingAddress?.shippingMethod || 'standard',
+    price,
+    tariff: Number.isFinite(Number(req.body?.tariff)) ? Number(req.body.tariff) : price,
+    address: deliveryAddress || currentShipment?.address,
+    country: typeof req.body?.country === 'string' ? req.body.country.trim().toUpperCase().slice(0, 2) : currentShipment?.country || deliveryAddress?.country,
     trackingNumber,
     trackingUrl,
     status: status as any,
-    shippedAt: req.body?.shippedAt,
-    estimatedDelivery: req.body?.estimatedDelivery,
-    deliveredAt: req.body?.deliveredAt,
-    createdAt: new Date().toISOString(),
+    eventLocation: typeof req.body?.eventLocation === 'string' ? req.body.eventLocation.trim().slice(0, 160) : undefined,
+    eventDescription: typeof req.body?.eventDescription === 'string' ? req.body.eventDescription.trim().slice(0, 1000) : undefined,
+    shippedAt: typeof req.body?.shippedAt === 'string' ? req.body.shippedAt : undefined,
+    estimatedDelivery: typeof req.body?.estimatedDelivery === 'string' ? req.body.estimatedDelivery : undefined,
+    deliveredAt: typeof req.body?.deliveredAt === 'string' ? req.body.deliveredAt : undefined,
+    createdAt: currentShipment?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
 

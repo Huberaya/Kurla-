@@ -39,6 +39,7 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
   const [couponForm, setCouponForm] = useState<any>(emptyCoupon());
   const [notificationForm, setNotificationForm] = useState({ userId: '', type: 'account_created', title: '', message: '', link: '' });
   const [shipmentDrafts, setShipmentDrafts] = useState<Record<string, any>>({});
+  const [shipmentHistories, setShipmentHistories] = useState<Record<string, any[]>>({});
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
 
@@ -65,6 +66,16 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
       return null;
     } finally {
       setBusy('');
+    }
+  };
+
+  const loadShipmentHistory = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/admin/shipments/${orderId}/history`, { headers });
+      const data = await response.json();
+      if (response.ok) setShipmentHistories(prev => ({ ...prev, [orderId]: data.history || [] }));
+    } catch {
+      setMessage('Historique de livraison indisponible.');
     }
   };
 
@@ -128,9 +139,21 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     <div className="space-y-3">{rows.payments?.length ? rows.payments.filter((payment: any) => matches(payment.id, payment.order_id, payment.status, payment.stripe_payment_intent_id)).map((payment: any) => <div key={payment.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 grid md:grid-cols-[1fr_auto_auto] items-center gap-3"><div><p className="text-sm font-semibold">{Number(payment.amount || 0).toFixed(2)} {payment.currency || 'EUR'}</p><p className="text-[11px] text-[#FFF7EF]/45 font-mono">Commande {payment.order_id || 'non renseignée'} · {payment.stripe_payment_intent_id || 'sans identifiant Stripe'}</p></div><span className="text-[11px] text-[#D49A63]">{payment.status}</span><select className={inputClass + ' md:w-44'} value={payment.status} onChange={e => run(`payment-${payment.id}`, { url: `/api/admin/payments/${payment.id}/status`, method: 'POST', body: JSON.stringify({ status: e.target.value }) })}><option value="pending">pending</option><option value="succeeded">succeeded</option><option value="failed">failed</option><option value="partially_refunded">partially_refunded</option><option value="refunded">refunded</option></select></div>) : renderEmpty('Aucun paiement persistant.')}</div>
   );
 
-  const shipmentValue = (shipment: any) => shipmentDrafts[shipment.id] || { carrier: shipment.carrier || 'manual', status: shipment.status || 'preparing', trackingNumber: shipment.tracking_number || shipment.trackingNumber || '', trackingUrl: shipment.tracking_url || shipment.trackingUrl || '' };
+  const shipmentValue = (shipment: any) => shipmentDrafts[shipment.id] || {
+    carrier: shipment.carrier || 'manual',
+    status: shipment.status || 'preparing',
+    method: shipment.method || 'standard',
+    price: shipment.tariff ?? shipment.price ?? '',
+    trackingNumber: shipment.tracking_number || shipment.trackingNumber || '',
+    trackingUrl: shipment.tracking_url || shipment.trackingUrl || '',
+    eventLocation: '',
+    eventDescription: ''
+  };
   const renderShipments = () => (
-    <div className="space-y-3">{shipments.length ? shipments.filter((shipment: any) => matches(shipment.id, shipment.orderId, shipment.order_id, shipment.status, shipment.tracking_number, shipment.trackingNumber)).map((shipment: any) => { const draft = shipmentValue(shipment); return <div key={shipment.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 space-y-3"><div className="flex flex-wrap justify-between gap-2"><p className="text-sm font-semibold">Commande <span className="font-mono">{shipment.orderId || shipment.order_id}</span></p><span className="text-[11px] text-[#D49A63]">{shipment.status}</span></div><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2"><select className={inputClass} value={draft.carrier} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, carrier: e.target.value } })}><option value="manual">manual</option><option value="colissimo">colissimo</option><option value="mondial_relay">mondial_relay</option><option value="chronopost">chronopost</option><option value="dhl">dhl</option><option value="autre">autre</option></select><select className={inputClass} value={draft.status} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, status: e.target.value } })}><option value="preparing">preparing</option><option value="label_created">label_created</option><option value="shipped">shipped</option><option value="in_transit">in_transit</option><option value="out_for_delivery">out_for_delivery</option><option value="delivered">delivered</option><option value="failed">failed</option></select><input className={inputClass} placeholder="N° de suivi" value={draft.trackingNumber} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, trackingNumber: e.target.value } })} /><input className={inputClass} placeholder="URL de suivi" value={draft.trackingUrl} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, trackingUrl: e.target.value } })} /></div><button className={buttonClass} onClick={() => run(`shipment-${shipment.id}`, { url: `/api/admin/shipments/${shipment.orderId || shipment.order_id}`, method: 'PATCH', body: JSON.stringify(draft) })}><Truck className="w-3.5 h-3.5" /> Enregistrer la livraison</button></div>; }) : renderEmpty('Aucune expédition enregistrée. Les expéditions sont créées depuis une commande.')}</div>
+    <div className="space-y-3">{shipments.length ? shipments.filter((shipment: any) => matches(shipment.id, shipment.orderId, shipment.order_id, shipment.status, shipment.tracking_number, shipment.trackingNumber, shipment.country)).map((shipment: any) => { const draft = shipmentValue(shipment); const address = shipment.address || shipment.delivery_address; return <div key={shipment.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 space-y-3">
+      <div className="flex flex-wrap justify-between gap-2"><div><p className="text-sm font-semibold">Commande <span className="font-mono">{shipment.orderId || shipment.order_id}</span></p><p className="text-[11px] text-[#FFF7EF]/50">{address ? `${address.fullName}, ${address.street}, ${address.postalCode} ${address.city} · ${address.country}` : 'Adresse de livraison non renseignée.'}</p></div><span className="text-[11px] text-[#D49A63]">{shipment.status}</span></div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2"><select className={inputClass} value={draft.carrier} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, carrier: e.target.value } })}><option value="manual">manual</option><option value="colissimo">colissimo</option><option value="mondial_relay">mondial_relay</option><option value="chronopost">chronopost</option><option value="dhl">dhl</option><option value="autre">autre</option></select><select className={inputClass} value={draft.status} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, status: e.target.value } })}><option value="preparing">preparing</option><option value="label_created">label_created</option><option value="shipped">shipped</option><option value="in_transit">in_transit</option><option value="out_for_delivery">out_for_delivery</option><option value="delivered">delivered</option><option value="failed">failed</option></select><input className={inputClass} placeholder="Méthode" value={draft.method} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, method: e.target.value } })} /><input className={inputClass} type="number" min="0" step="0.01" placeholder="Tarif (€)" value={draft.price} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, price: e.target.value } })} /><input className={inputClass} placeholder="N° réel de suivi" value={draft.trackingNumber} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, trackingNumber: e.target.value } })} /><input className={inputClass} placeholder="URL de suivi (facultative)" value={draft.trackingUrl} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, trackingUrl: e.target.value } })} /><input className={inputClass} placeholder="Lieu de l’événement" value={draft.eventLocation} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, eventLocation: e.target.value } })} /><input className={inputClass} placeholder="Description de l’événement" value={draft.eventDescription} onChange={e => setShipmentDrafts({ ...shipmentDrafts, [shipment.id]: { ...draft, eventDescription: e.target.value } })} /></div>
+      {shipmentHistories[shipment.orderId || shipment.order_id] && <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1"><p className="text-[10px] uppercase text-[#FFF7EF]/45 font-bold">Historique des événements</p>{shipmentHistories[shipment.orderId || shipment.order_id].map((event: any) => <p key={event.id} className="text-[11px] text-[#FFF7EF]/65"><span className="font-mono text-[#D49A63]">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.status}{event.location ? ` · ${event.location}` : ''}{event.description ? ` — ${event.description}` : ''}</p>)}</div>}<div className="flex flex-wrap gap-2"><button type="button" className={mutedButtonClass} onClick={() => loadShipmentHistory(shipment.orderId || shipment.order_id)}>Voir l’historique</button><p className="text-[11px] text-[#FFF7EF]/45 self-center">Le statut expédié/en transit/livré exige le numéro réel saisi par l’opérateur. Aucun suivi n’est généré automatiquement.</p></div><button className={buttonClass} onClick={() => run(`shipment-${shipment.id}`, { url: `/api/admin/shipments/${shipment.orderId || shipment.order_id}`, method: 'PATCH', body: JSON.stringify(draft) })}><Truck className="w-3.5 h-3.5" /> Enregistrer et journaliser</button></div>; }) : renderEmpty('Aucune expédition enregistrée. Les expéditions sont créées depuis une commande.')}</div>
   );
 
   const renderUsers = () => (
@@ -173,7 +196,7 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     if (section === 'coupons') return renderCoupons();
     if (section === 'notifications') return renderNotifications();
     return renderLogs();
-  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, busy, message]);
+  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, shipmentHistories, busy, message]);
 
   return (
     <div className="space-y-6">

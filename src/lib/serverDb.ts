@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseServerClient, isSupabaseServerConfigured } from './supabaseClient';
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from './catalogManagement';
 import { emailService, EmailDeliveryResult, EmailMessage } from './emailService';
-import { shippingService, ShippingCarrier, ShipmentDetails } from './shippingService';
+import { shippingService, ShippingCarrier, ShipmentDetails, ShipmentEvent, ShipmentStatus } from './shippingService';
+import { getShippingOption, normalizeShippingAddress, ShippingAddressInput, SHIPPING_OPTIONS } from './shippingRules';
 import {
   BeautyProfile,
   BeautyProfileHistoryEntry,
@@ -339,6 +340,17 @@ export interface CustomerReturn {
   updatedAt: string;
 }
 
+export interface CustomerReturnEvent {
+  id: string;
+  returnId: string;
+  actorId?: string;
+  actorRole: 'customer' | 'admin' | 'support' | 'system';
+  oldStatus?: string;
+  newStatus: CustomerReturn['status'];
+  comment?: string;
+  createdAt: string;
+}
+
 export interface CustomerRefund {
   id: string;
   orderId: string;
@@ -362,6 +374,7 @@ export interface SupportTicket {
   orderId?: string;
   subjectCategory: 'paiement' | 'commande' | 'livraison' | 'retour' | 'remboursement' | 'produit' | 'compte' | 'conseil_ia' | 'autre';
   subject: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   assignedAgentId?: string;
   createdAt: string;
@@ -375,6 +388,50 @@ export interface SupportMessage {
   senderRole: 'customer' | 'admin' | 'agent';
   message: string;
   createdAt: string;
+}
+
+export interface SupportTicketEvent {
+  id: string;
+  ticketId: string;
+  actorId?: string;
+  eventType: 'created' | 'message_added' | 'status_changed' | 'priority_changed' | 'assignment_changed' | 'attachment_added';
+  oldValue?: string;
+  newValue?: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface SupportAttachment {
+  id: string;
+  ticketId: string;
+  messageId?: string;
+  uploadedBy: string;
+  fileName: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf';
+  sizeBytes: number;
+  storagePath: string;
+  createdAt: string;
+}
+
+export interface ShippingAddressRecord extends ShippingAddressInput {
+  id: string;
+  userId: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface ShippingRateRecord {
+  id: string;
+  country?: string;
+  carrier: ShippingCarrier;
+  method: string;
+  name: string;
+  price: number;
+  freeFromCents?: number;
+  estimatedDays?: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
@@ -454,10 +511,17 @@ class SupabaseServerStore {
   private inMemoryNotificationLogs: NotificationDeliveryLog[] = [];
   private inMemoryPreferences: Map<string, NotificationPreference> = new Map();
   private inMemoryShipments: Map<string, ShipmentDetails> = new Map();
+  private inMemoryShippingAddresses: Map<string, ShippingAddressRecord[]> = new Map();
+  private inMemoryShippingRates: ShippingRateRecord[] = [];
+  private inMemoryShippingEvents: ShipmentEvent[] = [];
   private inMemoryReturns: CustomerReturn[] = [];
+  private inMemoryReturnEvents: CustomerReturnEvent[] = [];
   private inMemoryRefunds: CustomerRefund[] = [];
   private inMemoryTickets: SupportTicket[] = [];
   private inMemoryMessages: SupportMessage[] = [];
+  private inMemorySupportEvents: SupportTicketEvent[] = [];
+  private inMemorySupportAttachments: SupportAttachment[] = [];
+  private inMemorySupportAttachmentBytes: Map<string, Uint8Array> = new Map();
   private inMemoryProfessionalApplications: ProfessionalApplication[] = [];
   private inMemoryProductReviews: MarketplaceReview[] = [];
   private inMemoryProductQuestions: MarketplaceQuestion[] = [];
@@ -2787,6 +2851,178 @@ class SupabaseServerStore {
   }
 
   // ============================================================
+  // DELIVERY ADDRESSES & RATES
+  // ============================================================
+  public async getShippingAddresses(userId: string): Promise<ShippingAddressRecord[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('shipping_addresses').select('*').eq('user_id', userId).order('is_default', { ascending: false }).order('created_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des adresses de livraison', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        fullName: row.full_name,
+        street: row.street,
+        city: row.city,
+        postalCode: row.postal_code,
+        country: row.country,
+        phone: row.phone || undefined,
+        isDefault: row.is_default === true,
+        createdAt: row.created_at
+      }));
+    }
+    return [...(this.inMemoryShippingAddresses.get(userId) || [])];
+  }
+
+  public async saveShippingAddress(userId: string, input: unknown, addressId?: string, isDefault = false): Promise<ShippingAddressRecord> {
+    const normalized = normalizeShippingAddress(input);
+    const now = new Date().toISOString();
+    const addresses = await this.getShippingAddresses(userId);
+    const existingAddress = addressId ? addresses.find(address => address.id === addressId) : undefined;
+    if (addressId && isUuid(addressId) && !existingAddress) throw new Error('Adresse de livraison introuvable pour ce client.');
+    const id = existingAddress ? existingAddress.id : randomUUID();
+    const record: ShippingAddressRecord = {
+      ...normalized,
+      id,
+      userId,
+      isDefault: isDefault || addresses.length === 0,
+      createdAt: addresses.find(address => address.id === id)?.createdAt || now
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      if (record.isDefault) {
+        const { error: clearError } = await supabase.from('shipping_addresses').update({ is_default: false }).eq('user_id', userId);
+        ensureDatabaseSuccess('réinitialisation de l’adresse par défaut', clearError);
+      }
+      const { data, error } = await supabase.from('shipping_addresses').upsert({
+        id,
+        user_id: userId,
+        full_name: record.fullName,
+        street: record.street,
+        city: record.city,
+        postal_code: record.postalCode,
+        country: record.country,
+        phone: record.phone || null,
+        is_default: record.isDefault,
+        created_at: record.createdAt
+      }, { onConflict: 'id' }).select('*').single();
+      ensureDatabaseSuccess('enregistrement de l’adresse de livraison', error);
+      if (data) {
+        record.isDefault = data.is_default === true;
+        record.createdAt = data.created_at;
+      }
+    }
+    const next = addresses.filter(address => address.id !== id).map(address => record.isDefault ? { ...address, isDefault: false } : address);
+    next.unshift(record);
+    this.inMemoryShippingAddresses.set(userId, next);
+    return record;
+  }
+
+  public async deleteShippingAddress(userId: string, addressId: string): Promise<boolean> {
+    const addresses = await this.getShippingAddresses(userId);
+    const target = addresses.find(address => address.id === addressId);
+    if (!target) return false;
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('shipping_addresses').delete().eq('id', addressId).eq('user_id', userId);
+      ensureDatabaseSuccess('suppression de l’adresse de livraison', error);
+    }
+    const remaining = addresses.filter(address => address.id !== addressId);
+    if (target.isDefault && remaining.length > 0) {
+      remaining[0] = { ...remaining[0], isDefault: true };
+      if (supabase) {
+        const { error } = await supabase.from('shipping_addresses').update({ is_default: true }).eq('id', remaining[0].id).eq('user_id', userId);
+        ensureDatabaseSuccess('sélection de la nouvelle adresse par défaut', error);
+      }
+    }
+    this.inMemoryShippingAddresses.set(userId, remaining);
+    return true;
+  }
+
+  public async getShippingRates(country?: string, includeInactive = false): Promise<ShippingRateRecord[]> {
+    const normalizedCountry = country?.trim().toUpperCase();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      let query = supabase.from('shipping_rates').select('*').order('country').order('price');
+      if (!includeInactive) query = query.eq('active', true);
+      if (normalizedCountry) query = query.or(`country.eq.${normalizedCountry},country.is.null`);
+      const { data, error } = await query;
+      ensureDatabaseSuccess('lecture des tarifs de livraison', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        country: row.country || undefined,
+        carrier: row.carrier as ShippingCarrier,
+        method: row.method || 'standard',
+        name: row.name,
+        price: Number(row.price || 0),
+        freeFromCents: row.free_from_cents == null ? undefined : Number(row.free_from_cents),
+        estimatedDays: row.estimated_days == null ? undefined : Number(row.estimated_days),
+        active: row.active === true,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at
+      }));
+    }
+
+    const defaults = SHIPPING_OPTIONS
+      .filter(option => !normalizedCountry || option.country === normalizedCountry)
+      .flatMap(option => [
+        { id: `default-${option.country}-standard`, country: option.country, carrier: 'manual' as ShippingCarrier, method: 'standard', name: `Livraison standard — ${option.label}`, price: option.standardCents / 100, freeFromCents: option.freeFromCents, estimatedDays: Number(option.estimatedStandardDays.match(/\d+/)?.[0] || 0), active: true, createdAt: '', updatedAt: '' },
+        { id: `default-${option.country}-express`, country: option.country, carrier: 'manual' as ShippingCarrier, method: 'express', name: `Livraison express — ${option.label}`, price: option.expressCents / 100, estimatedDays: Number(option.estimatedExpressDays.match(/\d+/)?.[0] || 0), active: true, createdAt: '', updatedAt: '' }
+      ]);
+    const custom = this.inMemoryShippingRates.filter(rate => (!normalizedCountry || rate.country === normalizedCountry) && (includeInactive || rate.active));
+    return [...custom, ...defaults];
+  }
+
+  public async saveShippingRate(adminId: string, input: Partial<ShippingRateRecord>): Promise<ShippingRateRecord> {
+    const country = input.country?.trim().toUpperCase() || undefined;
+    if (country && !getShippingOption(country)) throw new Error('Pays de livraison non pris en charge.');
+    if (!input.name?.trim() || !input.method?.trim() || !input.carrier) throw new Error('Transporteur, méthode et nom du tarif sont obligatoires.');
+    if (!['manual', 'colissimo', 'mondial_relay', 'chronopost', 'dhl', 'autre'].includes(input.carrier)) throw new Error('Transporteur de livraison invalide.');
+    if (!Number.isFinite(Number(input.price)) || Number(input.price) < 0) throw new Error('Tarif de livraison invalide.');
+    if (input.freeFromCents !== undefined && input.freeFromCents !== null && (!Number.isSafeInteger(Number(input.freeFromCents)) || Number(input.freeFromCents) < 0)) throw new Error('Seuil de gratuité invalide.');
+    if (input.estimatedDays !== undefined && input.estimatedDays !== null && (!Number.isSafeInteger(Number(input.estimatedDays)) || Number(input.estimatedDays) < 0)) throw new Error('Délai de livraison invalide.');
+    const now = new Date().toISOString();
+    const record: ShippingRateRecord = {
+      id: input.id && isUuid(input.id) ? input.id : randomUUID(),
+      country,
+      carrier: input.carrier,
+      method: input.method.trim().toLowerCase(),
+      name: input.name.trim().slice(0, 160),
+      price: Number(input.price),
+      freeFromCents: input.freeFromCents == null ? undefined : Number(input.freeFromCents),
+      estimatedDays: input.estimatedDays == null ? undefined : Number(input.estimatedDays),
+      active: input.active !== false,
+      createdAt: input.createdAt || now,
+      updatedAt: now
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('shipping_rates').upsert({
+        id: record.id,
+        country: record.country || null,
+        carrier: record.carrier,
+        method: record.method,
+        name: record.name,
+        price: record.price,
+        free_from_cents: record.freeFromCents ?? null,
+        estimated_days: record.estimatedDays ?? null,
+        active: record.active,
+        created_at: record.createdAt,
+        updated_at: record.updatedAt,
+        updated_by: adminId
+      }, { onConflict: 'id' }).select('*').single();
+      ensureDatabaseSuccess('enregistrement du tarif de livraison', error);
+      if (data) {
+        record.country = data.country || undefined;
+        record.price = Number(data.price);
+        record.updatedAt = data.updated_at;
+      }
+    }
+    this.inMemoryShippingRates = [record, ...this.inMemoryShippingRates.filter(rate => rate.id !== record.id)];
+    return record;
+  }
+
+  // ============================================================
   // PHASE 5: SHIPMENTS & CARRIER TRACKING
   // ============================================================
   public async getShipmentByOrderId(orderId: string): Promise<ShipmentDetails | undefined> {
@@ -2796,52 +3032,137 @@ class SupabaseServerStore {
         const { data, error } = await supabase.from('shipments').select('*').eq('order_id', orderId).maybeSingle();
         ensureDatabaseSuccess('lecture de l’expédition', error);
         if (data) {
-          return {
+          const shipment: ShipmentDetails = {
             id: data.id,
             orderId: data.order_id,
             userId: data.user_id,
             carrier: data.carrier as ShippingCarrier,
             method: data.method,
             price: Number(data.price || 0),
-            trackingNumber: data.tracking_number,
-            trackingUrl: data.tracking_url,
+            tariff: data.tariff == null ? Number(data.price || 0) : Number(data.tariff),
+            address: data.delivery_address || undefined,
+            country: data.country || data.delivery_address?.country || undefined,
+            trackingNumber: data.tracking_number || undefined,
+            trackingUrl: data.tracking_url || undefined,
             status: data.status,
-            shippedAt: data.shipped_at,
-            estimatedDelivery: data.estimated_delivery,
-            deliveredAt: data.delivered_at,
+            shippedAt: data.shipped_at || undefined,
+            estimatedDelivery: data.estimated_delivery || undefined,
+            deliveredAt: data.delivered_at || undefined,
             createdAt: data.created_at,
-            updatedAt: data.updated_at
+            updatedAt: data.updated_at,
+            history: await this.getShipmentHistoryById(data.id)
           };
+          return shipment;
         }
       } catch (err) {
         console.error('[serverDb] getShipmentByOrderId error:', err);
         throw err;
       }
     }
+    const shipment = supabase ? undefined : this.inMemoryShipments.get(orderId);
+    if (shipment?.id) shipment.history = this.inMemoryShippingEvents.filter(event => event.shipmentId === shipment.id);
+    return shipment;
+  }
 
-    return supabase ? undefined : this.inMemoryShipments.get(orderId);
+  private async getShipmentHistoryById(shipmentId: string): Promise<ShipmentEvent[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('shipping_events').select('*').eq('shipment_id', shipmentId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture de l’historique de livraison', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        shipmentId: row.shipment_id,
+        status: row.status as ShipmentStatus,
+        location: row.location || undefined,
+        description: row.description || undefined,
+        createdAt: row.created_at
+      }));
+    }
+    return this.inMemoryShippingEvents.filter(event => event.shipmentId === shipmentId);
+  }
+
+  public async getShipmentHistory(orderId: string): Promise<ShipmentEvent[]> {
+    const shipment = await this.getShipmentByOrderId(orderId);
+    return shipment?.history || [];
   }
 
   public async upsertShipment(details: ShipmentDetails): Promise<ShipmentDetails> {
-    const now = new Date().toISOString();
-    const supabase = getSupabaseServerClient();
-    let shipmentId = isUuid(details.id) ? details.id : randomUUID();
-
-    if (supabase) {
-      const { data: existingShipment, error: lookupError } = await supabase
-        .from('shipments')
-        .select('id')
-        .eq('order_id', details.orderId)
-        .maybeSingle();
-      ensureDatabaseSuccess('vérification de l’expédition existante', lookupError);
-      // Keep the existing primary key so shipping_events remain attached when
-      // the current shipment is updated through the order-level upsert.
-      if (existingShipment?.id) shipmentId = existingShipment.id;
+    const allowedCarriers: ShippingCarrier[] = ['manual', 'colissimo', 'mondial_relay', 'chronopost', 'dhl', 'autre'];
+    const allowedStatuses: ShipmentStatus[] = ['preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed'];
+    if (!details.orderId.trim()) throw new Error('Commande de livraison manquante.');
+    if (!allowedCarriers.includes(details.carrier)) throw new Error('Transporteur de livraison invalide.');
+    if (!allowedStatuses.includes(details.status)) throw new Error('Statut de livraison invalide.');
+    if (!details.method?.trim()) throw new Error('Méthode de livraison obligatoire.');
+    if (!Number.isFinite(details.price) || details.price < 0) throw new Error('Tarif de livraison invalide.');
+    if (details.country && !getShippingOption(details.country)) throw new Error('Pays de livraison non pris en charge.');
+    const validatedAddress = details.address ? normalizeShippingAddress(details.address) : undefined;
+    const trackingNumber = details.trackingNumber?.trim() || undefined;
+    const trackingUrl = details.trackingUrl?.trim() || undefined;
+    const outboundStatuses: ShipmentStatus[] = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
+    if (outboundStatuses.includes(details.status) && !trackingNumber) {
+      throw new Error('Un vrai numéro de suivi saisi par le transporteur est obligatoire avant l’expédition.');
+    }
+    if (trackingNumber && /^(test|fake|dummy|placeholder|todo|n[\/.-]?a|none|null|example)/i.test(trackingNumber)) {
+      throw new Error('Le numéro de suivi fourni ressemble à une valeur de test ou de remplacement. Saisissez le numéro réel du transporteur.');
+    }
+    if (trackingUrl && !/^https?:\/\//i.test(trackingUrl)) {
+      throw new Error('Le lien de suivi doit être une URL HTTP(S) réelle.');
     }
 
+    const now = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    let existing: ShipmentDetails | undefined;
+    let shipmentId = isUuid(details.id) ? details.id : randomUUID();
+    if (supabase) {
+      const { data, error } = await supabase.from('shipments').select('*').eq('order_id', details.orderId).maybeSingle();
+      ensureDatabaseSuccess('vérification de l’expédition existante', error);
+      if (data) {
+        shipmentId = data.id;
+        existing = {
+          id: data.id,
+          orderId: data.order_id,
+          userId: data.user_id || undefined,
+          carrier: data.carrier as ShippingCarrier,
+          method: data.method,
+          price: Number(data.price || 0),
+          tariff: data.tariff == null ? Number(data.price || 0) : Number(data.tariff),
+          address: data.delivery_address || undefined,
+          country: data.country || undefined,
+          trackingNumber: data.tracking_number || undefined,
+          trackingUrl: data.tracking_url || undefined,
+          status: data.status as ShipmentStatus,
+          shippedAt: data.shipped_at || undefined,
+          estimatedDelivery: data.estimated_delivery || undefined,
+          deliveredAt: data.delivered_at || undefined,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
+      }
+    } else {
+      existing = this.inMemoryShipments.get(details.orderId);
+      if (existing?.id) shipmentId = existing.id;
+    }
+
+    const effectiveTrackingNumber = trackingNumber || existing?.trackingNumber;
+    if (effectiveTrackingNumber && /^(test|fake|dummy|placeholder|todo|n[\\/.-]?a|none|null|example)/i.test(effectiveTrackingNumber)) {
+      throw new Error('Le numéro de suivi historique ressemble à une valeur de test ou de remplacement. Réconciliation manuelle requise.');
+    }
+    if (outboundStatuses.includes(details.status) && !effectiveTrackingNumber) {
+      throw new Error('Un vrai numéro de suivi est obligatoire pour ce statut de livraison.');
+    }
+    const effectiveTrackingUrl = trackingUrl || (effectiveTrackingNumber ? shippingService.generateTrackingUrl(details.carrier, effectiveTrackingNumber) : existing?.trackingUrl);
+    const tariff = details.tariff == null ? details.price : details.tariff;
+    if (!Number.isFinite(tariff) || tariff < 0) throw new Error('Tarif de livraison invalide.');
     const finalDetails: ShipmentDetails = {
       ...details,
       id: shipmentId,
+      price: tariff,
+      tariff,
+      address: validatedAddress || existing?.address,
+      country: details.country?.toUpperCase() || validatedAddress?.country || existing?.country || existing?.address?.country,
+      trackingNumber: effectiveTrackingNumber,
+      trackingUrl: effectiveTrackingUrl,
+      createdAt: existing?.createdAt || details.createdAt || now,
       updatedAt: now
     };
 
@@ -2850,16 +3171,20 @@ class SupabaseServerStore {
         const { error } = await supabase.from('shipments').upsert({
           id: finalDetails.id,
           order_id: details.orderId,
-          user_id: details.userId || null,
+          user_id: details.userId || existing?.userId || null,
           carrier: details.carrier,
-          method: details.method || 'standard',
-          price: details.price || 0,
-          tracking_number: details.trackingNumber || null,
-          tracking_url: details.trackingUrl || null,
+          method: details.method.trim(),
+          price: tariff,
+          tariff,
+          delivery_address: finalDetails.address || null,
+          country: finalDetails.country || null,
+          tracking_number: finalDetails.trackingNumber || null,
+          tracking_url: finalDetails.trackingUrl || null,
           status: details.status,
-          shipped_at: details.shippedAt || null,
-          estimated_delivery: details.estimatedDelivery || null,
-          delivered_at: details.deliveredAt || null,
+          shipped_at: details.shippedAt || existing?.shippedAt || null,
+          estimated_delivery: details.estimatedDelivery || existing?.estimatedDelivery || null,
+          delivered_at: details.deliveredAt || existing?.deliveredAt || null,
+          created_at: finalDetails.createdAt,
           updated_at: now
         }, { onConflict: 'order_id' });
         ensureDatabaseSuccess('sauvegarde de l’expédition', error);
@@ -2869,6 +3194,30 @@ class SupabaseServerStore {
       }
     }
 
+    const event: ShipmentEvent = {
+      id: randomUUID(),
+      shipmentId,
+      status: details.status,
+      location: details.eventLocation?.trim() || undefined,
+      description: details.eventDescription?.trim() || (existing && existing.status === details.status ? 'Informations de livraison mises à jour.' : `Statut de livraison : ${details.status}`),
+      createdAt: now
+    };
+    if (supabase) {
+      const { error } = await supabase.from('shipping_events').insert({
+        id: event.id,
+        shipment_id: shipmentId,
+        status: event.status,
+        location: event.location || null,
+        description: event.description || null,
+        created_at: event.createdAt
+      });
+      ensureDatabaseSuccess('journalisation de l’événement de livraison', error);
+      finalDetails.history = await this.getShipmentHistoryById(shipmentId);
+    } else {
+      this.inMemoryShippingEvents.push(event);
+      finalDetails.history = [...(existing?.history || []), event];
+    }
+
     this.inMemoryShipments.set(details.orderId, finalDetails);
     return finalDetails;
   }
@@ -2876,6 +3225,45 @@ class SupabaseServerStore {
   // ============================================================
   // PHASE 5: RETURNS & REFUNDS
   // ============================================================
+  private async recordReturnEvent(input: Omit<CustomerReturnEvent, 'id' | 'createdAt'>): Promise<CustomerReturnEvent> {
+    const event: CustomerReturnEvent = { ...input, id: randomUUID(), createdAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('return_events').insert({
+        id: event.id,
+        return_id: event.returnId,
+        actor_id: event.actorId || null,
+        actor_role: event.actorRole,
+        old_status: event.oldStatus || null,
+        new_status: event.newStatus,
+        comment: event.comment || null,
+        created_at: event.createdAt
+      });
+      ensureDatabaseSuccess('journalisation de l’événement de retour', error);
+    }
+    this.inMemoryReturnEvents.push(event);
+    return event;
+  }
+
+  public async getReturnHistory(returnId: string): Promise<CustomerReturnEvent[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('return_events').select('*').eq('return_id', returnId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture de l’historique du retour', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        returnId: row.return_id,
+        actorId: row.actor_id || undefined,
+        actorRole: row.actor_role,
+        oldStatus: row.old_status || undefined,
+        newStatus: row.new_status,
+        comment: row.comment || undefined,
+        createdAt: row.created_at
+      }));
+    }
+    return this.inMemoryReturnEvents.filter(event => event.returnId === returnId);
+  }
+
   public async createReturnRequest(userId: string, orderId: string, reason: string, items: any[], comment?: string): Promise<CustomerReturn> {
     if (!reason.trim() || !Array.isArray(items) || items.length === 0) {
       throw new Error('Les informations de retour sont incomplètes.');
@@ -2983,6 +3371,13 @@ class SupabaseServerStore {
     }
 
     this.inMemoryReturns.unshift(ret);
+    await this.recordReturnEvent({
+      returnId: ret.id,
+      actorId: userId,
+      actorRole: 'customer',
+      newStatus: 'requested',
+      comment: ret.comment || ret.reason
+    });
     await this.logOrderStatusHistory(orderId, undefined, 'return_requested', userId, 'customer', ret.reason, 'customer_action');
     await this.notifyUser(
       userId,
@@ -3061,7 +3456,7 @@ class SupabaseServerStore {
     return this.inMemoryReturns;
   }
 
-  public async updateReturnStatus(returnId: string, status: CustomerReturn['status'], adminComment?: string): Promise<CustomerReturn | undefined> {
+  public async updateReturnStatus(returnId: string, status: CustomerReturn['status'], adminComment?: string, actorId?: string, actorRole: CustomerReturnEvent['actorRole'] = 'admin'): Promise<CustomerReturn | undefined> {
     const supabase = getSupabaseServerClient();
     const memoryReturn = this.inMemoryReturns.find(r => r.id === returnId);
     const currentReturn = supabase ? await this.getReturnById(returnId) : memoryReturn;
@@ -3119,6 +3514,17 @@ class SupabaseServerStore {
     const index = this.inMemoryReturns.findIndex(r => r.id === returnId);
     if (index >= 0) this.inMemoryReturns[index] = updatedReturn;
     else if (!supabase) this.inMemoryReturns.unshift(updatedReturn);
+
+    if (currentReturn.status !== status || adminComment !== undefined) {
+      await this.recordReturnEvent({
+        returnId: updatedReturn.id,
+        actorId,
+        actorRole,
+        oldStatus: currentReturn.status,
+        newStatus: status,
+        comment: adminComment || undefined
+      });
+    }
 
     const returnMessage = `Le statut de votre retour pour la commande #${updatedReturn.orderId} est désormais : ${status.toUpperCase()}. ${adminComment ? 'Note admin : ' + adminComment : ''}`;
     const returnOrder = await this.getOrderById(updatedReturn.orderId);
@@ -3234,8 +3640,8 @@ class SupabaseServerStore {
       if (!ret || ret.orderId !== order.id) {
         throw new Error(`Demande de retour #${returnId} introuvable pour la commande #${order.id}.`);
       }
-      if (!['approved', 'received'].includes(ret.status)) {
-        throw new Error(`La demande de retour #${returnId} doit être approuvée avant remboursement.`);
+      if (ret.status !== 'received') {
+        throw new Error(`La réception physique de la demande de retour #${returnId} doit être enregistrée avant remboursement.`);
       }
       requestedItems = ret.items;
     } else {
@@ -3416,7 +3822,7 @@ class SupabaseServerStore {
     if (!order) throw new Error(`Commande #${orderId} introuvable pour le remboursement.`);
 
     const preliminaryKey = requestedIdempotencyKey?.trim()
-      || `refund:${orderId}:${returnId || 'manual'}:${amount === undefined ? 'full' : amount}`;
+      || `refund:${orderId}:${returnId || 'manual'}:${amount === undefined ? 'full' : Math.round(amount * 100)}`;
     const existing = await this.findRefundByIdempotencyKey(preliminaryKey);
     if (existing) return existing;
 
@@ -3493,6 +3899,13 @@ class SupabaseServerStore {
       applyStock: refundStatus === 'succeeded'
     });
 
+    if (refundStatus === 'succeeded' && returnId) {
+      const relatedReturn = await this.getReturnById(returnId);
+      if (relatedReturn?.status === 'received') {
+        await this.updateReturnStatus(returnId, 'refunded', 'Remboursement finalisé.', undefined, 'system');
+      }
+    }
+
     if (refundStatus === 'succeeded') {
       const title = 'Remboursement effectué';
       const refundEmail: EmailMessage = {
@@ -3558,7 +3971,7 @@ class SupabaseServerStore {
       ? await this.getRefundItems(order, undefined, refundCents, remainingCents, previousRefunds)
       : [];
 
-    return this.finalizeRefund({
+    const refund = await this.finalizeRefund({
       order,
       returnId: details.returnId,
       amount: refundCents / 100,
@@ -3570,6 +3983,13 @@ class SupabaseServerStore {
       items,
       applyStock: isFullRefund
     });
+    if (details.returnId) {
+      const relatedReturn = await this.getReturnById(details.returnId);
+      if (relatedReturn?.status === 'received') {
+        await this.updateReturnStatus(details.returnId, 'refunded', 'Remboursement Stripe confirmé.', undefined, 'system');
+      }
+    }
+    return refund;
   }
 
   // ============================================================
@@ -4292,7 +4712,87 @@ class SupabaseServerStore {
   // ============================================================
   // PHASE 5: CUSTOMER SUPPORT TICKETS
   // ============================================================
-  public async createSupportTicket(userId: string, orderId: string | undefined, category: SupportTicket['subjectCategory'], subject: string, message: string): Promise<SupportTicket> {
+  private mapSupportTicketRow(row: any): SupportTicket {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      orderId: row.order_id || undefined,
+      subjectCategory: row.subject_category,
+      subject: row.subject,
+      priority: row.priority || 'normal',
+      status: row.status,
+      assignedAgentId: row.assigned_agent_id || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  private mapSupportMessageRow(row: any): SupportMessage {
+    return {
+      id: row.id,
+      ticketId: row.ticket_id,
+      senderId: row.sender_id || undefined,
+      senderRole: row.sender_role,
+      message: row.message,
+      createdAt: row.created_at
+    };
+  }
+
+  private async recordSupportEvent(input: Omit<SupportTicketEvent, 'id' | 'createdAt'>): Promise<SupportTicketEvent> {
+    const event: SupportTicketEvent = { ...input, id: randomUUID(), createdAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('support_ticket_events').insert({
+        id: event.id,
+        ticket_id: event.ticketId,
+        actor_id: event.actorId || null,
+        event_type: event.eventType,
+        old_value: event.oldValue || null,
+        new_value: event.newValue || null,
+        description: event.description || null,
+        created_at: event.createdAt
+      });
+      ensureDatabaseSuccess('journalisation de l’événement support', error);
+    }
+    this.inMemorySupportEvents.push(event);
+    return event;
+  }
+
+  public async getSupportTicketEvents(ticketId: string): Promise<SupportTicketEvent[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('support_ticket_events').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture de l’historique du ticket support', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        ticketId: row.ticket_id,
+        actorId: row.actor_id || undefined,
+        eventType: row.event_type,
+        oldValue: row.old_value || undefined,
+        newValue: row.new_value || undefined,
+        description: row.description || undefined,
+        createdAt: row.created_at
+      }));
+    }
+    return this.inMemorySupportEvents.filter(event => event.ticketId === ticketId);
+  }
+
+  public async createSupportTicket(
+    userId: string,
+    orderId: string | undefined,
+    category: SupportTicket['subjectCategory'],
+    subject: string,
+    message: string,
+    priority: SupportTicket['priority'] = 'normal'
+  ): Promise<SupportTicket> {
+    const allowedCategories: SupportTicket['subjectCategory'][] = ['paiement', 'commande', 'livraison', 'retour', 'remboursement', 'produit', 'compte', 'conseil_ia', 'autre'];
+    if (!allowedCategories.includes(category)) throw new Error('Catégorie de ticket invalide.');
+    if (!subject.trim() || !message.trim()) throw new Error('Sujet et message obligatoires.');
+    if (!['low', 'normal', 'high', 'urgent'].includes(priority)) throw new Error('Priorité de ticket invalide.');
+    if (orderId) {
+      const linkedOrder = await this.getOrderById(orderId);
+      if (!linkedOrder || linkedOrder.userId !== userId) throw new Error('Commande liée introuvable pour ce client.');
+    }
     const ticketId = randomUUID();
     const now = new Date().toISOString();
 
@@ -4301,7 +4801,8 @@ class SupabaseServerStore {
       userId,
       orderId,
       subjectCategory: category,
-      subject,
+      subject: subject.trim(),
+      priority,
       status: 'open',
       createdAt: now,
       updatedAt: now
@@ -4312,7 +4813,7 @@ class SupabaseServerStore {
       ticketId,
       senderId: userId,
       senderRole: 'customer',
-      message,
+      message: message.trim(),
       createdAt: now
     };
 
@@ -4324,7 +4825,8 @@ class SupabaseServerStore {
           user_id: userId,
           order_id: orderId || null,
           subject_category: category,
-          subject,
+          subject: ticket.subject,
+          priority,
           status: 'open',
           created_at: now,
           updated_at: now
@@ -4336,7 +4838,7 @@ class SupabaseServerStore {
           ticket_id: ticketId,
           sender_id: userId,
           sender_role: 'customer',
-          message,
+          message: firstMsg.message,
           created_at: now
         });
         ensureDatabaseSuccess('création du premier message support', messageError);
@@ -4348,6 +4850,19 @@ class SupabaseServerStore {
 
     this.inMemoryTickets.unshift(ticket);
     this.inMemoryMessages.push(firstMsg);
+    await this.recordSupportEvent({
+      ticketId,
+      actorId: userId,
+      eventType: 'created',
+      newValue: 'open',
+      description: `Ticket créé avec la priorité ${priority}.`
+    });
+    await this.recordSupportEvent({
+      ticketId,
+      actorId: userId,
+      eventType: 'message_added',
+      description: 'Premier message du ticket ajouté.'
+    });
     return ticket;
   }
 
@@ -4356,195 +4871,268 @@ class SupabaseServerStore {
     if (supabase) {
       const { data, error } = await supabase.from('support_tickets').select('*').eq('id', ticketId).maybeSingle();
       ensureDatabaseSuccess('lecture du ticket support', error);
-      if (!data) return undefined;
-      return {
-        id: data.id,
-        userId: data.user_id,
-        orderId: data.order_id,
-        subjectCategory: data.subject_category,
-        subject: data.subject,
-        status: data.status,
-        assignedAgentId: data.assigned_agent_id,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
+      return data ? this.mapSupportTicketRow(data) : undefined;
     }
-    return this.inMemoryTickets.find(t => t.id === ticketId);
+    return this.inMemoryTickets.find(ticket => ticket.id === ticketId);
   }
 
   public async getSupportTicketsByUser(userId: string): Promise<SupportTicket[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      try {
-        const { data, error } = await supabase.from('support_tickets').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
-        ensureDatabaseSuccess('lecture des tickets utilisateur', error);
-        if (data) {
-          return data.map(t => ({
-            id: t.id,
-            userId: t.user_id,
-            orderId: t.order_id,
-            subjectCategory: t.subject_category,
-            subject: t.subject,
-            status: t.status,
-            assignedAgentId: t.assigned_agent_id,
-            createdAt: t.created_at,
-            updatedAt: t.updated_at
-          }));
-        }
-      } catch (err) {
-        console.error('[serverDb] getSupportTicketsByUser error:', err);
-        throw err;
-      }
+      const { data, error } = await supabase.from('support_tickets').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des tickets utilisateur', error);
+      return (data || []).map((row: any) => this.mapSupportTicketRow(row));
     }
-
-    return this.inMemoryTickets.filter(t => t.userId === userId);
+    return this.inMemoryTickets.filter(ticket => ticket.userId === userId);
   }
 
   public async getAllSupportTickets(): Promise<SupportTicket[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      try {
-        const { data, error } = await supabase.from('support_tickets').select('*').order('updated_at', { ascending: false });
-        ensureDatabaseSuccess('lecture de tous les tickets support', error);
-        if (data) {
-          return data.map(t => ({
-            id: t.id,
-            userId: t.user_id,
-            orderId: t.order_id,
-            subjectCategory: t.subject_category,
-            subject: t.subject,
-            status: t.status,
-            assignedAgentId: t.assigned_agent_id,
-            createdAt: t.created_at,
-            updatedAt: t.updated_at
-          }));
-        }
-      } catch (err) {
-        console.error('[serverDb] getAllSupportTickets error:', err);
-        throw err;
-      }
+      const { data, error } = await supabase.from('support_tickets').select('*').order('updated_at', { ascending: false });
+      ensureDatabaseSuccess('lecture de tous les tickets support', error);
+      return (data || []).map((row: any) => this.mapSupportTicketRow(row));
     }
-
-    return this.inMemoryTickets;
+    return [...this.inMemoryTickets];
   }
 
   public async getSupportMessages(ticketId: string): Promise<SupportMessage[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      try {
-        const { data, error } = await supabase.from('support_messages').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
-        ensureDatabaseSuccess('lecture des messages support', error);
-        if (data) {
-          return data.map(m => ({
-            id: m.id,
-            ticketId: m.ticket_id,
-            senderId: m.sender_id,
-            senderRole: m.sender_role,
-            message: m.message,
-            createdAt: m.created_at
-          }));
-        }
-      } catch (err) {
-        console.error('[serverDb] getSupportMessages error:', err);
-        throw err;
-      }
+      const { data, error } = await supabase.from('support_messages').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture des messages support', error);
+      return (data || []).map((row: any) => this.mapSupportMessageRow(row));
     }
-
-    return this.inMemoryMessages.filter(m => m.ticketId === ticketId);
+    return this.inMemoryMessages.filter(message => message.ticketId === ticketId);
   }
 
   public async addSupportMessage(ticketId: string, senderId: string, senderRole: 'customer' | 'admin' | 'agent', message: string): Promise<SupportMessage> {
+    const cleanMessage = message.trim();
+    if (!cleanMessage) throw new Error('Message vide.');
     const now = new Date().toISOString();
+    const ticket = await this.getSupportTicketById(ticketId);
+    if (!ticket) throw new Error('Ticket support introuvable.');
     const msg: SupportMessage = {
       id: randomUUID(),
       ticketId,
       senderId,
       senderRole,
-      message,
+      message: cleanMessage,
       createdAt: now
     };
 
     const supabase = getSupabaseServerClient();
-    const ticket = this.inMemoryTickets.find(t => t.id === ticketId)
-      || (supabase ? await this.getSupportTicketById(ticketId) : undefined);
-
     if (supabase) {
-      try {
-        const { error: messageError } = await supabase.from('support_messages').insert({
-          id: msg.id,
-          ticket_id: ticketId,
-          sender_id: senderId,
-          sender_role: senderRole,
-          message,
-          created_at: now
-        });
-        ensureDatabaseSuccess('création du message support', messageError);
+      const { error: messageError } = await supabase.from('support_messages').insert({
+        id: msg.id,
+        ticket_id: ticketId,
+        sender_id: senderId,
+        sender_role: senderRole,
+        message: cleanMessage,
+        created_at: now
+      });
+      ensureDatabaseSuccess('création du message support', messageError);
 
-        const { error: ticketError } = await supabase.from('support_tickets').update({
-          status: senderRole === 'admin' || senderRole === 'agent' ? 'in_progress' : undefined,
-          updated_at: now
-        }).eq('id', ticketId);
-        ensureDatabaseSuccess('mise à jour du ticket support', ticketError);
-      } catch (err) {
-        console.error('[serverDb] addSupportMessage error:', err);
-        throw err;
-      }
+      const updatePayload: Record<string, unknown> = { updated_at: now };
+      if (senderRole === 'admin' || senderRole === 'agent') updatePayload.status = 'in_progress';
+      const { error: ticketError } = await supabase.from('support_tickets').update(updatePayload).eq('id', ticketId);
+      ensureDatabaseSuccess('mise à jour du ticket support', ticketError);
     }
 
     this.inMemoryMessages.push(msg);
-    const memoryTicket = this.inMemoryTickets.find(t => t.id === ticketId);
+    const memoryTicket = this.inMemoryTickets.find(item => item.id === ticketId);
     if (memoryTicket) {
       memoryTicket.updatedAt = now;
-      if (senderRole === 'admin' || senderRole === 'agent') {
-        memoryTicket.status = 'in_progress';
-      }
+      if (senderRole === 'admin' || senderRole === 'agent') memoryTicket.status = 'in_progress';
     }
-
-    if ((senderRole === 'admin' || senderRole === 'agent') && ticket) {
+    await this.recordSupportEvent({
+      ticketId,
+      actorId: senderId,
+      eventType: 'message_added',
+      description: `Message ajouté par le rôle ${senderRole}.`
+    });
+    if ((senderRole === 'admin' || senderRole === 'agent')) {
       const supportOrder = ticket.orderId ? await this.getOrderById(ticket.orderId) : undefined;
       const recipientEmail = supportOrder?.customerEmail || await this.getEmailForUser(ticket.userId);
       await this.notifyUser(
         ticket.userId,
         'support_reply',
         `Réponse à votre ticket support #${ticket.id}`,
-        `Un conseiller a répondu à votre sujet "${ticket.subject}": ${message.substring(0, 80)}...`,
+        `Un conseiller a répondu à votre sujet « ${ticket.subject} » : ${cleanMessage.substring(0, 80)}${cleanMessage.length > 80 ? '…' : ''}`,
         `/account?tab=support`,
         ticket.orderId,
         recipientEmail ? {
           to: recipientEmail,
           subject: `[KURLA BEAUTY] Réponse à votre ticket #${ticket.id}`,
           template: 'support_reply',
-          data: { ticketId: ticket.id, subject: ticket.subject, message }
+          data: { ticketId: ticket.id, subject: ticket.subject, message: cleanMessage }
         } : undefined,
         `support-reply:${msg.id}`
       );
     }
-
     return msg;
   }
 
-  public async updateSupportTicketStatus(ticketId: string, status: SupportTicket['status']): Promise<void> {
-    const updatedAt = new Date().toISOString();
+  private sanitizeSupportFileName(fileName: string): string {
+    return fileName.normalize('NFKC').replace(/[\\/\0\r\n]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 180) || 'piece-jointe';
+  }
+
+  public async addSupportAttachment(
+    ticketId: string,
+    uploadedBy: string,
+    buffer: Uint8Array,
+    mimeType: SupportAttachment['mimeType'],
+    fileName: string,
+    messageId?: string
+  ): Promise<SupportAttachment> {
+    const ticket = await this.getSupportTicketById(ticketId);
+    if (!ticket) throw new Error('Ticket support introuvable.');
+    if (messageId && !(await this.getSupportMessages(ticketId)).some(message => message.id === messageId)) {
+      throw new Error('Message support lié introuvable.');
+    }
+    const allowedMimeTypes: SupportAttachment['mimeType'][] = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedMimeTypes.includes(mimeType)) throw new Error('Format de pièce jointe non pris en charge.');
+    if (!buffer.byteLength || buffer.byteLength > 5 * 1024 * 1024) throw new Error('Pièce jointe vide ou trop volumineuse (5 Mo maximum).');
+    const id = randomUUID();
+    const storagePath = `${ticketId}/${id}-${this.sanitizeSupportFileName(fileName)}`;
+    const now = new Date().toISOString();
+    const attachment: SupportAttachment = {
+      id,
+      ticketId,
+      messageId,
+      uploadedBy,
+      fileName: this.sanitizeSupportFileName(fileName),
+      mimeType,
+      sizeBytes: buffer.byteLength,
+      storagePath,
+      createdAt: now
+    };
+    const supabase = getSupabaseServerClient();
+    try {
+      if (supabase) {
+        const { error: uploadError } = await supabase.storage.from('support-attachments').upload(storagePath, buffer as any, { contentType: mimeType, upsert: false });
+        ensureDatabaseSuccess('stockage de la pièce jointe support', uploadError);
+        const { error } = await supabase.from('support_attachments').insert({
+          id,
+          ticket_id: ticketId,
+          message_id: messageId || null,
+          uploaded_by: uploadedBy,
+          file_name: attachment.fileName,
+          mime_type: mimeType,
+          size_bytes: attachment.sizeBytes,
+          storage_path: storagePath,
+          created_at: now
+        });
+        ensureDatabaseSuccess('enregistrement de la pièce jointe support', error);
+      }
+    } catch (error) {
+      if (supabase) await supabase.storage.from('support-attachments').remove([storagePath]);
+      throw error;
+    }
+    this.inMemorySupportAttachments.unshift(attachment);
+    this.inMemorySupportAttachmentBytes.set(storagePath, new Uint8Array(buffer));
+    await this.recordSupportEvent({
+      ticketId,
+      actorId: uploadedBy,
+      eventType: 'attachment_added',
+      description: `Pièce jointe ajoutée : ${attachment.fileName}.`
+    });
+    return attachment;
+  }
+
+  public async getSupportAttachments(ticketId: string): Promise<Array<SupportAttachment & { signedUrl?: string }>> {
+    const supabase = getSupabaseServerClient();
+    let attachments: SupportAttachment[];
+    if (supabase) {
+      const { data, error } = await supabase.from('support_attachments').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
+      ensureDatabaseSuccess('lecture des pièces jointes support', error);
+      attachments = (data || []).map((row: any) => ({
+        id: row.id,
+        ticketId: row.ticket_id,
+        messageId: row.message_id || undefined,
+        uploadedBy: row.uploaded_by,
+        fileName: row.file_name,
+        mimeType: row.mime_type,
+        sizeBytes: Number(row.size_bytes),
+        storagePath: row.storage_path,
+        createdAt: row.created_at
+      }));
+    } else {
+      attachments = this.inMemorySupportAttachments.filter(attachment => attachment.ticketId === ticketId);
+    }
+    return Promise.all(attachments.map(async attachment => {
+      if (!supabase) return attachment;
+      const { data, error } = await supabase.storage.from('support-attachments').createSignedUrl(attachment.storagePath, 600);
+      ensureDatabaseSuccess('génération de l’URL sécurisée de la pièce jointe', error);
+      return { ...attachment, signedUrl: data?.signedUrl };
+    }));
+  }
+
+  public async isSupportAgent(userId: string): Promise<boolean> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      try {
-        const { data, error } = await supabase.from('support_tickets').update({
-          status,
-          updated_at: updatedAt
-        }).eq('id', ticketId).select('id').maybeSingle();
-        ensureDatabaseSuccess('mise à jour du statut du ticket support', error);
-        if (!data) throw new Error('Ticket support introuvable.');
-      } catch (err) {
-        console.error('[serverDb] updateSupportTicketStatus error:', err);
-        throw err;
-      }
+      const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+      ensureDatabaseSuccess('vérification de l’agent support', error);
+      return !!data && ['support', 'admin', 'superadmin'].includes(data.role);
     }
+    return true;
+  }
 
-    const ticket = this.inMemoryTickets.find(t => t.id === ticketId);
+  public async updateSupportTicketStatus(ticketId: string, status: SupportTicket['status'], actorId?: string): Promise<void> {
+    const updatedAt = new Date().toISOString();
+    const current = await this.getSupportTicketById(ticketId);
+    if (!current) throw new Error('Ticket support introuvable.');
+    if (current.status === status) return;
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('support_tickets').update({ status, updated_at: updatedAt }).eq('id', ticketId).select('id').maybeSingle();
+      ensureDatabaseSuccess('mise à jour du statut du ticket support', error);
+      if (!data) throw new Error('Ticket support introuvable.');
+    }
+    const ticket = this.inMemoryTickets.find(item => item.id === ticketId);
     if (ticket) {
       ticket.status = status;
       ticket.updatedAt = updatedAt;
     }
+    await this.recordSupportEvent({ ticketId, actorId, eventType: 'status_changed', oldValue: current.status, newValue: status, description: `Statut support : ${status}.` });
+  }
+
+  public async updateSupportTicketPriority(ticketId: string, priority: SupportTicket['priority'], actorId?: string): Promise<SupportTicket | undefined> {
+    if (!['low', 'normal', 'high', 'urgent'].includes(priority)) throw new Error('Priorité de ticket invalide.');
+    const current = await this.getSupportTicketById(ticketId);
+    if (!current) return undefined;
+    if (current.priority === priority) return current;
+    const updatedAt = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('support_tickets').update({ priority, updated_at: updatedAt }).eq('id', ticketId).select('*').maybeSingle();
+      ensureDatabaseSuccess('mise à jour de la priorité du ticket support', error);
+      if (!data) return undefined;
+    }
+    const updated: SupportTicket = { ...current, priority, updatedAt };
+    const index = this.inMemoryTickets.findIndex(item => item.id === ticketId);
+    if (index >= 0) this.inMemoryTickets[index] = updated;
+    await this.recordSupportEvent({ ticketId, actorId, eventType: 'priority_changed', oldValue: current.priority, newValue: priority, description: `Priorité support : ${priority}.` });
+    return updated;
+  }
+
+  public async assignSupportTicket(ticketId: string, assignedAgentId: string | undefined, actorId?: string): Promise<SupportTicket | undefined> {
+    const current = await this.getSupportTicketById(ticketId);
+    if (!current) return undefined;
+    const nextAgentId = assignedAgentId?.trim() || undefined;
+    if (current.assignedAgentId === nextAgentId) return current;
+    const updatedAt = new Date().toISOString();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('support_tickets').update({ assigned_agent_id: nextAgentId || null, updated_at: updatedAt }).eq('id', ticketId).select('*').maybeSingle();
+      ensureDatabaseSuccess('affectation du ticket support', error);
+      if (!data) return undefined;
+    }
+    const updated: SupportTicket = { ...current, assignedAgentId: nextAgentId, updatedAt };
+    const index = this.inMemoryTickets.findIndex(item => item.id === ticketId);
+    if (index >= 0) this.inMemoryTickets[index] = updated;
+    await this.recordSupportEvent({ ticketId, actorId, eventType: 'assignment_changed', oldValue: current.assignedAgentId, newValue: nextAgentId, description: nextAgentId ? `Ticket affecté à ${nextAgentId}.` : 'Affectation retirée.' });
+    return updated;
   }
 
   // ============================================================
@@ -4749,6 +5337,9 @@ class SupabaseServerStore {
       carrier: row.carrier,
       method: row.method,
       price: Number(row.price || 0),
+      tariff: row.tariff == null ? Number(row.price || 0) : Number(row.tariff),
+      address: row.delivery_address || undefined,
+      country: row.country || row.delivery_address?.country || undefined,
       trackingNumber: row.tracking_number || undefined,
       trackingUrl: row.tracking_url || undefined,
       status: row.status,

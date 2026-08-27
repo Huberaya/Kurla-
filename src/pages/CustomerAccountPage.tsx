@@ -9,6 +9,7 @@ interface ServerOrder {
   total: number;
   status: string;
   customerEmail?: string;
+  shippingAddress?: any;
   createdAt: string;
   stripeSessionId?: string;
 }
@@ -30,16 +31,21 @@ export const CustomerAccountPage: React.FC = () => {
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [ticketEvents, setTicketEvents] = useState<any[]>([]);
+  const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
   const [replyText, setReplyText] = useState('');
-  const [newTicketForm, setNewTicketForm] = useState({ subject: '', category: 'order', message: '', orderId: '' });
+  const [newTicketForm, setNewTicketForm] = useState({ subject: '', category: 'commande', priority: 'normal', message: '', orderId: '' });
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
 
   const [returnsList, setReturnsList] = useState<any[]>([]);
+  const [returnHistories, setReturnHistories] = useState<Record<string, any[]>>({});
   const [showReturnModal, setShowReturnModal] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState('defect');
   const [returnComment, setReturnComment] = useState('');
 
   const [shipmentsMap, setShipmentsMap] = useState<Record<string, any>>({});
+  const [shippingAddresses, setShippingAddresses] = useState<any[]>([]);
+  const [addressForm, setAddressForm] = useState({ fullName: '', street: '', city: '', postalCode: '', country: 'FR', phone: '' });
 
   const [isOrderSuccess, setIsOrderSuccess] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -109,7 +115,16 @@ export const CustomerAccountPage: React.FC = () => {
     // 5. Load Returns
     fetch('/api/returns', { headers: authHeaders })
       .then(res => res.json())
-      .then(data => data.returns && setReturnsList(data.returns));
+      .then(data => {
+        if (!data.returns) return;
+        setReturnsList(data.returns);
+        data.returns.forEach((item: any) => fetch(`/api/returns/${item.id}/history`, { headers: authHeaders }).then(res => res.json()).then(history => setReturnHistories(prev => ({ ...prev, [item.id]: history.history || [] }))));
+      });
+
+    // 6. Load the customer's persisted delivery address book
+    fetch('/api/shipping/addresses', { headers: authHeaders })
+      .then(res => res.json())
+      .then(data => data.addresses && setShippingAddresses(data.addresses));
   };
 
   useEffect(() => {
@@ -170,6 +185,28 @@ export const CustomerAccountPage: React.FC = () => {
     loadUserData();
   };
 
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const response = await fetch('/api/shipping/addresses', {
+      method: 'POST',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addressForm, isDefault: shippingAddresses.length === 0 })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setActionMessage(data.error || 'Adresse de livraison invalide.');
+      return;
+    }
+    setAddressForm({ fullName: '', street: '', city: '', postalCode: '', country: 'FR', phone: '' });
+    loadUserData();
+    setActionMessage('Adresse de livraison enregistrée.');
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    const response = await fetch(`/api/shipping/addresses/${id}`, { method: 'DELETE', headers: authHeaders });
+    if (response.ok) loadUserData();
+  };
+
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
     await fetch('/api/notification-preferences', {
@@ -191,12 +228,13 @@ export const CustomerAccountPage: React.FC = () => {
         subject: newTicketForm.subject,
         category: newTicketForm.category,
         orderId: newTicketForm.orderId || undefined,
-        message: newTicketForm.message
+        message: newTicketForm.message,
+        priority: newTicketForm.priority
       })
     });
     if (res.ok) {
       setShowNewTicketModal(false);
-      setNewTicketForm({ subject: '', category: 'order', message: '', orderId: '' });
+      setNewTicketForm({ subject: '', category: 'commande', priority: 'normal', message: '', orderId: '' });
       loadUserData();
       setActionMessage('Votre ticket support a été soumis. Notre équipe vous répondra rapidement.');
       setTimeout(() => setActionMessage(null), 4000);
@@ -207,7 +245,32 @@ export const CustomerAccountPage: React.FC = () => {
     setSelectedTicket(tkt);
     fetch(`/api/support/tickets/${tkt.id}/messages`, { headers: authHeaders })
       .then(res => res.json())
-      .then(data => data.messages && setTicketMessages(data.messages));
+      .then(data => {
+        if (data.messages) setTicketMessages(data.messages);
+        setTicketEvents(Array.isArray(data.events) ? data.events : []);
+        setTicketAttachments(Array.isArray(data.attachments) ? data.attachments : []);
+      });
+  };
+
+  const handleUploadAttachment = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !selectedTicket) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setActionMessage('Format non pris en charge ou fichier supérieur à 5 Mo.');
+      return;
+    }
+    const response = await fetch(`/api/support/tickets/${selectedTicket.id}/attachments?fileName=${encodeURIComponent(file.name)}`, {
+      method: 'POST',
+      headers: { ...authHeaders, 'Content-Type': file.type, 'X-File-Name': file.name },
+      body: file
+    });
+    if (response.ok) loadTicketMessages(selectedTicket);
+    else {
+      const data = await response.json().catch(() => ({}));
+      setActionMessage(data.error || 'Impossible d’ajouter la pièce jointe.');
+    }
   };
 
   const handleSendReply = async (e: React.FormEvent) => {
@@ -401,6 +464,8 @@ export const CustomerAccountPage: React.FC = () => {
                         ))}
                       </div>
 
+                      {order.shippingAddress && <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs space-y-1"><p className="font-bold text-[#D49A63]">Adresse de livraison conservée</p><p className="text-[#FFF7EF]/75">{order.shippingAddress.fullName || 'Nom non renseigné'} · {order.shippingAddress.street || 'Adresse non renseignée'}, {order.shippingAddress.postalCode || 'CP non renseigné'} {order.shippingAddress.city || 'Ville non renseignée'} · {order.shippingAddress.country || 'Pays non renseigné'}</p><p className="text-[11px] text-[#FFF7EF]/50">Méthode : {order.shippingAddress.shippingMethod || 'non renseignée'} · Tarif : {order.shippingAddress.shippingCost != null ? `${Number(order.shippingAddress.shippingCost).toFixed(2)} €` : 'non renseigné'}</p></div>}
+
                       {/* Shipment Tracking Info */}
                       {shipment && (
                         <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs space-y-2">
@@ -425,15 +490,18 @@ export const CustomerAccountPage: React.FC = () => {
                               Suivre mon colis sur le site du transporteur <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
+                          {Array.isArray(shipment.history) && shipment.history.length > 0 && <div className="pt-2 border-t border-[#FFF7EF]/10 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Historique de livraison</p>{shipment.history.map((event: any) => <p key={event.id} className="text-[11px] text-[#FFF7EF]/65"><span className="font-mono text-[#D49A63]">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.status}{event.location ? ` · ${event.location}` : ''}{event.description ? ` — ${event.description}` : ''}</p>)}</div>}
                         </div>
                       )}
 
                       {/* Return Request Controls */}
                       <div className="flex items-center justify-between pt-2 border-t border-[#FFF7EF]/5">
                         {returnReq ? (
-                          <span className="text-xs font-semibold text-amber-400 bg-amber-950/40 px-3 py-1 rounded-full border border-amber-500/30">
-                            Demande de retour #{returnReq.id} ({returnReq.status})
-                          </span>
+                          <div className="text-xs font-semibold text-amber-400 bg-amber-950/40 px-3 py-1 rounded-xl border border-amber-500/30">
+                            Demande de retour #{returnReq.id} ({returnReq.status}) · {returnReq.quantity} article(s)
+                            {Array.isArray(returnReq.items) && returnReq.items.length > 0 && <div className="mt-1 text-[10px] text-[#FFF7EF]/50 font-normal">{returnReq.items.map((item: any) => `${item.productId || 'produit non renseigné'} × ${item.quantity}`).join(' · ')}</div>}
+                            {returnHistories[returnReq.id]?.length > 0 && <div className="mt-1 text-[10px] text-[#FFF7EF]/50 font-normal">{returnHistories[returnReq.id].map((event: any) => <p key={event.id}>{new Date(event.createdAt).toLocaleString('fr-FR')} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
+                          </div>
                         ) : (
                           (order.status === 'delivered' || order.status === 'shipped' || order.status === 'paid') && (
                             <button
@@ -553,7 +621,8 @@ export const CustomerAccountPage: React.FC = () => {
                       }`}
                     >
                       <h4 className="text-xs font-bold text-[#FFF7EF] truncate">{tkt.subject}</h4>
-                      <p className="text-[11px] text-[#D49A63]">Statut: {tkt.status}</p>
+                      <p className="text-[11px] text-[#D49A63]">Statut: {tkt.status} · Priorité: {tkt.priority || 'normal'}</p>
+                      {tkt.assignedAgentId && <p className="text-[10px] text-[#FFF7EF]/45">Agent : {tkt.assignedAgentId}</p>}
                       <span className="text-[10px] text-[#FFF7EF]/40 font-mono block mt-1">#{tkt.id}</span>
                     </div>
                   ))
@@ -570,7 +639,8 @@ export const CustomerAccountPage: React.FC = () => {
                   <>
                     <div className="border-b border-[#FFF7EF]/10 pb-3">
                       <h3 className="text-sm font-bold text-[#FFF7EF]">{selectedTicket.subject}</h3>
-                      <p className="text-xs text-[#D49A63]">Catégorie: {selectedTicket.subjectCategory} • Statut: {selectedTicket.status}</p>
+                      <p className="text-xs text-[#D49A63]">Catégorie: {selectedTicket.subjectCategory} • Statut: {selectedTicket.status} • Priorité: {selectedTicket.priority || 'normal'}</p>
+                      <p className="text-[11px] text-[#FFF7EF]/45 mt-1">Les événements et messages sont conservés chronologiquement. {selectedTicket.assignedAgentId ? `Agent : ${selectedTicket.assignedAgentId}` : 'Aucun agent affecté.'}</p>
                     </div>
 
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -583,13 +653,17 @@ export const CustomerAccountPage: React.FC = () => {
                               : 'bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF]/90'
                           }`}
                         >
-                          <div className="text-[10px] opacity-70 mb-0.5 font-bold uppercase">{m.senderRole}</div>
+                          <div className="text-[10px] opacity-70 mb-0.5 font-bold uppercase">{m.senderRole} · {new Date(m.createdAt).toLocaleString('fr-FR')}</div>
                           <p>{m.message}</p>
                         </div>
                       ))}
+                      {ticketAttachments.length > 0 && <div className="border-t border-[#FFF7EF]/10 pt-3 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-[#C8753D] hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-[#FFF7EF]/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
                     </div>
 
-                    <form onSubmit={handleSendReply} className="flex gap-2 pt-3 border-t border-[#FFF7EF]/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#FFF7EF]/10">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/75 cursor-pointer"><input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleUploadAttachment} />Ajouter une pièce jointe (5 Mo max)</label>
+                    </div>
+                    <form onSubmit={handleSendReply} className="flex gap-2">
                       <input
                         type="text"
                         value={replyText}
@@ -710,6 +784,19 @@ export const CustomerAccountPage: React.FC = () => {
               {saving ? 'Enregistrement...' : 'Sauvegarder le profil'}
             </button>
           </form>
+          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
+            <div><h3 className="text-lg font-serif-title font-bold">Adresses de livraison</h3><p className="text-xs text-[#FFF7EF]/55 mt-1">Ces adresses peuvent être réutilisées au checkout. L’adresse d’une commande reste conservée dans son snapshot.</p></div>
+            <div className="space-y-2">{shippingAddresses.length ? shippingAddresses.map(address => <div key={address.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-xs"><div><p className="font-semibold">{address.fullName} {address.isDefault && <span className="text-[#D49A63]">· par défaut</span>}</p><p className="text-[#FFF7EF]/60">{address.street}, {address.postalCode} {address.city} · {address.country}</p></div><button type="button" onClick={() => handleDeleteAddress(address.id)} className="text-rose-300 hover:text-rose-200" aria-label="Supprimer l’adresse"><Trash2 className="w-4 h-4" /></button></div>) : <p className="text-xs text-[#FFF7EF]/40 italic">Aucune adresse enregistrée.</p>}</div>
+            <form onSubmit={handleSaveAddress} className="grid sm:grid-cols-2 gap-2">
+              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Nom complet" value={addressForm.fullName} onChange={e => setAddressForm({ ...addressForm, fullName: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Rue et numéro" value={addressForm.street} onChange={e => setAddressForm({ ...addressForm, street: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Ville" value={addressForm.city} onChange={e => setAddressForm({ ...addressForm, city: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Code postal" value={addressForm.postalCode} onChange={e => setAddressForm({ ...addressForm, postalCode: e.target.value })} />
+              <input required maxLength={2} className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs uppercase" placeholder="Pays (ex. FR)" value={addressForm.country} onChange={e => setAddressForm({ ...addressForm, country: e.target.value.toUpperCase() })} />
+              <input className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Téléphone (facultatif)" value={addressForm.phone} onChange={e => setAddressForm({ ...addressForm, phone: e.target.value })} />
+              <button className="sm:col-span-2 px-4 py-2.5 rounded-xl bg-[#C8753D] text-white text-xs font-bold inline-flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Enregistrer l’adresse</button>
+            </form>
+          </div>
           </>
         )}
 
@@ -737,10 +824,20 @@ export const CustomerAccountPage: React.FC = () => {
                     onChange={e => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
                   >
-                    <option value="order">Commande & Suivi</option>
-                    <option value="shipping">Livraison & Colis</option>
-                    <option value="returns">Retour & Remboursement</option>
-                    <option value="routine_advice">Conseil Routine Beauté</option>
+                    <option value="commande">Commande & Suivi</option>
+                    <option value="livraison">Livraison & Colis</option>
+                    <option value="retour">Retour & Remboursement</option>
+                    <option value="conseil_ia">Conseil Routine Beauté</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#D49A63] mb-1 font-semibold">Priorité</label>
+                  <select value={newTicketForm.priority} onChange={e => setNewTicketForm({ ...newTicketForm, priority: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]">
+                    <option value="low">Basse</option>
+                    <option value="normal">Normale</option>
+                    <option value="high">Haute</option>
+                    <option value="urgent">Urgente</option>
                   </select>
                 </div>
                 <div>

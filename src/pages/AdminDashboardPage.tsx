@@ -16,6 +16,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
   const [serverOrders, setServerOrders] = useState<any[]>([]);
   const [returnsList, setReturnsList] = useState<any[]>([]);
+  const [returnHistories, setReturnHistories] = useState<Record<string, any[]>>({});
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [professionalApplications, setProfessionalApplications] = useState<any[]>([]);
   const [professionalStatusDrafts, setProfessionalStatusDrafts] = useState<Record<string, string>>({});
@@ -27,6 +28,8 @@ export const AdminDashboardPage: React.FC = () => {
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [ticketEvents, setTicketEvents] = useState<any[]>([]);
+  const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
   const [replyText, setReplyText] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -60,7 +63,11 @@ export const AdminDashboardPage: React.FC = () => {
     // 3. Fetch Returns
     fetch('/api/returns', { headers: adminHeaders })
       .then(res => res.json())
-      .then(data => data.returns && setReturnsList(data.returns))
+      .then(data => {
+        if (!data.returns) return;
+        setReturnsList(data.returns);
+        data.returns.forEach((item: any) => fetch(`/api/returns/${item.id}/history`, { headers: adminHeaders }).then(res => res.json()).then(history => setReturnHistories(prev => ({ ...prev, [item.id]: history.history || [] }))));
+      })
       .catch(err => console.error('Error returns:', err));
 
     // 4. Fetch Support Tickets
@@ -153,7 +160,11 @@ export const AdminDashboardPage: React.FC = () => {
     setSelectedTicket(ticket);
     fetch(`/api/support/tickets/${ticket.id}/messages`, { headers: adminHeaders })
       .then(res => res.json())
-      .then(data => data.messages && setTicketMessages(data.messages));
+      .then(data => {
+        if (data.messages) setTicketMessages(data.messages);
+        setTicketEvents(Array.isArray(data.events) ? data.events : []);
+        setTicketAttachments(Array.isArray(data.attachments) ? data.attachments : []);
+      });
   };
 
   const handleSendAdminReply = async (e: React.FormEvent) => {
@@ -189,6 +200,32 @@ export const AdminDashboardPage: React.FC = () => {
     } catch (err: any) {
       alert(`Erreur: ${err.message}`);
     }
+  };
+
+  const handleTicketPriorityChange = async (ticketId: string, priority: string) => {
+    const response = await fetch(`/api/admin/support/tickets/${ticketId}/priority`, {
+      method: 'POST', headers: adminHeaders, body: JSON.stringify({ priority })
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      alert(data.error || 'Impossible de modifier la priorité.');
+      return;
+    }
+    loadData();
+    if (selectedTicket?.id === ticketId) setSelectedTicket({ ...selectedTicket, priority });
+  };
+
+  const handleTicketAssignmentChange = async (ticketId: string, assignedAgentId: string) => {
+    const response = await fetch(`/api/admin/support/tickets/${ticketId}/assignment`, {
+      method: 'POST', headers: adminHeaders, body: JSON.stringify({ assignedAgentId: assignedAgentId || null })
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      alert(data.error || 'Impossible d’affecter le ticket.');
+      return;
+    }
+    loadData();
+    if (selectedTicket?.id === ticketId) setSelectedTicket({ ...selectedTicket, assignedAgentId: assignedAgentId || undefined });
   };
 
   const handleProfessionalStatusChange = async (application: any) => {
@@ -536,6 +573,8 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
 
                     {ret.comment && <p className="text-xs text-[#FFF7EF]/70 italic">"{ret.comment}"</p>}
+                    <p className="text-xs text-[#FFF7EF]/60">Lignes : {Array.isArray(ret.items) && ret.items.length > 0 ? ret.items.map((item: any) => `${item.productId || item.product_id || 'produit non renseigné'} × ${item.quantity}`).join(' · ') : 'lignes non renseignées — réconciliation requise'}</p>
+                    {returnHistories[ret.id]?.length > 0 && <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/5 text-[10px] text-[#FFF7EF]/55 space-y-1">{returnHistories[ret.id].map((event: any) => <p key={event.id}><span className="font-mono">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.actorRole} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
 
                     <div className="flex items-center gap-3 pt-2">
                       {ret.status === 'requested' && (
@@ -555,6 +594,14 @@ export const AdminDashboardPage: React.FC = () => {
                         </>
                       )}
                       {ret.status === 'approved' && (
+                        <button
+                          onClick={async () => { const response = await fetch(`/api/admin/returns/${ret.id}/status`, { method: 'POST', headers: adminHeaders, body: JSON.stringify({ status: 'received', adminComment: 'Réception physique confirmée par le SAV.' }) }); if (response.ok) loadData(); }}
+                          className="px-4 py-1.5 rounded-full bg-sky-700 hover:bg-sky-600 text-white text-xs font-bold shadow"
+                        >
+                          Confirmer la réception physique
+                        </button>
+                      )}
+                      {ret.status === 'received' && (
                         <button
                           onClick={() => handleTriggerRefund(ret.orderId, ret.id)}
                           className="px-4 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold shadow"
@@ -601,7 +648,8 @@ export const AdminDashboardPage: React.FC = () => {
                           {tkt.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#D49A63]">Catégorie: {tkt.subjectCategory}</p>
+                      <p className="text-[11px] text-[#D49A63]">Catégorie: {tkt.subjectCategory} · Priorité: {tkt.priority || 'normal'}</p>
+                      <p className="text-[10px] text-[#FFF7EF]/45">{tkt.assignedAgentId ? `Affecté à ${tkt.assignedAgentId}` : 'Non affecté'}</p>
                       <span className="text-[10px] text-[#FFF7EF]/40 block mt-1 font-mono">#{tkt.id}</span>
                     </div>
                   ))
@@ -620,9 +668,18 @@ export const AdminDashboardPage: React.FC = () => {
                       <div>
                         <h3 className="text-sm font-bold text-[#FFF7EF]">{selectedTicket.subject}</h3>
                         <p className="text-xs text-[#D49A63]">Client ID: {selectedTicket.userId} • Catégorie: {selectedTicket.subjectCategory}</p>
+                        <p className="text-[11px] text-[#FFF7EF]/45 mt-1">Historique conservé : {ticketEvents.length} événement(s) · {selectedTicket.assignedAgentId ? `agent ${selectedTicket.assignedAgentId}` : 'non affecté'}</p>
                       </div>
 
-                      <select
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <select value={selectedTicket.priority || 'normal'} onChange={(e) => handleTicketPriorityChange(selectedTicket.id, e.target.value)} className="px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]">
+                          <option value="low">low</option><option value="normal">normal</option><option value="high">high</option><option value="urgent">urgent</option>
+                        </select>
+                        <select value={selectedTicket.assignedAgentId || ''} onChange={(e) => handleTicketAssignmentChange(selectedTicket.id, e.target.value)} className="max-w-44 px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]">
+                          <option value="">Non affecté</option>
+                          {(adminDashboard?.users || []).filter((candidate: any) => ['support', 'admin', 'superadmin'].includes(candidate.role)).map((candidate: any) => <option key={candidate.id} value={candidate.id}>{candidate.email || candidate.id}</option>)}
+                        </select>
+                        <select
                         value={selectedTicket.status}
                         onChange={(e) => handleTicketStatusChange(selectedTicket.id, e.target.value)}
                         className="px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]"
@@ -632,6 +689,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <option value="resolved">resolved</option>
                         <option value="closed">closed</option>
                       </select>
+                      </div>
                     </div>
 
                     <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
@@ -651,6 +709,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <p>{m.message}</p>
                         </div>
                       ))}
+                      {ticketAttachments.length > 0 && <div className="border-t border-[#FFF7EF]/10 pt-3 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-[#C8753D] hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-[#FFF7EF]/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
                     </div>
 
                     <form onSubmit={handleSendAdminReply} className="flex gap-2 pt-3 border-t border-[#FFF7EF]/10">

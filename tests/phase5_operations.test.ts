@@ -68,10 +68,12 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   // Test 3: Passage à paid, mise à jour stock & notification
   try {
     const pBefore = await serverDb.getProductById('leave-in-hydratant');
-    const qBefore = pBefore?.stockQuantity || 0;
+    const inventoryBefore = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qBefore = pBefore?.stockQuantity ?? inventoryBefore.quantity;
     await serverDb.updateOrderStatus(orderId, 'paid');
     const pAfter = await serverDb.getProductById('leave-in-hydratant');
-    const qAfter = pAfter?.stockQuantity || 0;
+    const inventoryAfter = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qAfter = pAfter?.stockQuantity ?? inventoryAfter.quantity;
     const notifs = await serverDb.getNotifications(userA);
 
     results.push({
@@ -114,7 +116,9 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
 
   // Test 6: Passage à shipped avec tracking number
   try {
-    const trackNum = shippingService.generateTrackingNumber('colissimo');
+    // Manual mode never fabricates a tracking number: this simulates the real
+    // identifier entered by an operator after receiving it from Colissimo.
+    const trackNum = '8A12345678901';
     const trackUrl = shippingService.generateTrackingUrl('colissimo', trackNum);
     const shipment = await serverDb.upsertShipment({
       id: `ship-${Date.now()}`,
@@ -192,6 +196,7 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   // Test 10: Acceptation du retour par l'admin
   try {
     const updated = await serverDb.updateReturnStatus(returnId, 'approved', 'Retour accepté par le service client.');
+    await serverDb.updateReturnStatus(returnId, 'received', 'Réception physique confirmée.');
     results.push({
       testId: 10,
       testName: 'Validation retour par Admin',
@@ -205,13 +210,15 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   // Test 11 & 12: Remboursement Stripe test & réintégration au stock
   try {
     const pBefore = await serverDb.getProductById('leave-in-hydratant');
-    const qBefore = pBefore?.stockQuantity || 0;
+    const inventoryBefore = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qBefore = pBefore?.stockQuantity ?? inventoryBefore.quantity;
 
     const ref = await serverDb.processStripeRefund(orderId, returnId, 24, 'Retour approuvé');
 
     refundIdForRetry = ref.stripeRefundId || '';
     const pAfter = await serverDb.getProductById('leave-in-hydratant');
-    const qAfter = pAfter?.stockQuantity || 0;
+    const inventoryAfter = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qAfter = pAfter?.stockQuantity ?? inventoryAfter.quantity;
 
     results.push({
       testId: 11,
@@ -367,7 +374,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   // Test 22: Webhook de remboursement final après un remboursement partiel
   try {
     const pBeforeWebhook = await serverDb.getProductById('leave-in-hydratant');
-    const qBeforeWebhook = pBeforeWebhook?.stockQuantity || 0;
+    const inventoryBeforeWebhook = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qBeforeWebhook = pBeforeWebhook?.stockQuantity ?? inventoryBeforeWebhook.quantity;
     const webhookRefund = await serverDb.recordStripeRefundFromWebhook(orderId, {
       eventId: `evt-refund-${Date.now()}`,
       stripeRefundId: `re_webhook_${Date.now()}`,
@@ -375,7 +383,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
       currency: 'EUR'
     });
     const pAfterWebhook = await serverDb.getProductById('leave-in-hydratant');
-    const qAfterWebhook = pAfterWebhook?.stockQuantity || 0;
+    const inventoryAfterWebhook = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qAfterWebhook = pAfterWebhook?.stockQuantity ?? inventoryAfterWebhook.quantity;
     const duplicateWebhook = await serverDb.recordStripeRefundFromWebhook(orderId, {
       eventId: `evt-refund-${Date.now() - 1}`,
       stripeRefundId: webhookRefund.stripeRefundId,
@@ -383,7 +392,8 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
       currency: 'EUR'
     });
     const pAfterDuplicateWebhook = await serverDb.getProductById('leave-in-hydratant');
-    const qAfterDuplicateWebhook = pAfterDuplicateWebhook?.stockQuantity || 0;
+    const inventoryAfterDuplicateWebhook = await serverDb.getInventoryByProductId('leave-in-hydratant');
+    const qAfterDuplicateWebhook = pAfterDuplicateWebhook?.stockQuantity ?? inventoryAfterDuplicateWebhook.quantity;
     results.push({
       testId: 22,
       testName: 'Webhook final et restauration résiduelle idempotente',

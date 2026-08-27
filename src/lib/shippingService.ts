@@ -1,9 +1,23 @@
 /**
- * KURLA BEAUTY - INTERCHANGEABLE SHIPPING SERVICE
- * Supports manual provider (SHIPPING_PROVIDER=manual) and carrier integrations.
+ * KURLA BEAUTY - SHIPPING OPERATIONS
+ *
+ * Manual mode deliberately never invents tracking identifiers. An operator must
+ * enter the identifier issued by the carrier and, when needed, its real
+ * tracking URL. Carrier URL helpers only build a link around an identifier
+ * that already exists.
  */
 
 export type ShippingCarrier = 'manual' | 'colissimo' | 'mondial_relay' | 'chronopost' | 'dhl' | 'autre';
+export type ShipmentStatus = 'preparing' | 'label_created' | 'shipped' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed';
+
+export interface ShipmentEvent {
+  id: string;
+  shipmentId: string;
+  status: ShipmentStatus;
+  location?: string;
+  description?: string;
+  createdAt: string;
+}
 
 export interface ShipmentDetails {
   id?: string;
@@ -11,36 +25,49 @@ export interface ShipmentDetails {
   userId?: string;
   carrier: ShippingCarrier;
   method: string;
+  /** The tariff charged to the customer, in the order currency. */
   price: number;
+  tariff?: number;
+  address?: {
+    fullName: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    phone?: string;
+  };
+  country?: string;
   trackingNumber?: string;
   trackingUrl?: string;
-  status: 'preparing' | 'label_created' | 'shipped' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed';
+  /** Optional event data entered by operations with the status update. */
+  eventLocation?: string;
+  eventDescription?: string;
+  status: ShipmentStatus;
   shippedAt?: string;
   estimatedDelivery?: string;
   deliveredAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  history?: ShipmentEvent[];
 }
 
 export class ShippingService {
   private provider: string;
 
   constructor() {
-    this.provider = process.env.SHIPPING_PROVIDER || 'manual';
+    this.provider = (process.env.SHIPPING_PROVIDER || 'manual').trim().toLowerCase();
   }
 
   public getProviderName(): string {
     return this.provider;
   }
 
-  public generateTrackingNumber(carrier: ShippingCarrier = 'colissimo'): string {
-    const prefix = carrier === 'colissimo' ? 'FR' : carrier === 'mondial_relay' ? 'MR' : 'KB';
-    const rand = Math.floor(100000000 + Math.random() * 900000000);
-    return `${prefix}${rand}`;
-  }
-
-  public generateTrackingUrl(carrier: ShippingCarrier, trackingNumber?: string): string {
-    if (!trackingNumber || trackingNumber.trim() === '') return '#';
+  /**
+   * Build a carrier link only from an operator/carrier-provided number. This
+   * method intentionally does not create, format or guess a tracking number.
+   */
+  public generateTrackingUrl(carrier: ShippingCarrier, trackingNumber?: string): string | undefined {
+    if (!trackingNumber || trackingNumber.trim() === '') return undefined;
 
     switch (carrier) {
       case 'colissimo':
@@ -52,26 +79,34 @@ export class ShippingService {
       case 'dhl':
         return `https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=${encodeURIComponent(trackingNumber)}`;
       default:
-        return `#suivi-${trackingNumber}`;
+        // A manual/custom carrier has no trustworthy canonical URL. The
+        // operator must enter the real URL instead of receiving a fake anchor.
+        return undefined;
     }
   }
 
-  public createManualShipment(orderId: string, userId?: string, carrier: ShippingCarrier = 'manual', trackingNumber?: string, trackingUrl?: string): ShipmentDetails {
+  public createManualShipment(
+    orderId: string,
+    userId?: string,
+    carrier: ShippingCarrier = 'manual',
+    trackingNumber?: string,
+    trackingUrl?: string
+  ): ShipmentDetails {
     const finalTrackingUrl = trackingUrl || this.generateTrackingUrl(carrier, trackingNumber);
     const now = new Date().toISOString();
-    const estDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
     return {
       orderId,
       userId,
       carrier,
-      method: carrier === 'manual' ? 'Livraison Standard' : carrier.toUpperCase(),
+      method: carrier === 'manual' ? 'manual' : carrier.toUpperCase(),
       price: 0,
-      trackingNumber,
+      trackingNumber: trackingNumber?.trim() || undefined,
       trackingUrl: finalTrackingUrl,
-      status: trackingNumber ? 'in_transit' : 'preparing',
-      shippedAt: trackingNumber ? now : undefined,
-      estimatedDelivery: estDate,
+      // A tracking number alone does not prove a carrier event. Operations
+      // must explicitly set the status and dates after the parcel is handed
+      // over; missing data stays missing.
+      status: 'preparing',
       createdAt: now,
       updatedAt: now
     };
