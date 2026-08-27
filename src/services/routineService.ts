@@ -1,4 +1,5 @@
 import { AdaptiveRoutinePlan, RoutineFeedback, RoutineJournalEntry, RoutinePreferences, RoutineTask, RoutineWeatherContext } from '../lib/adaptiveRoutine';
+import { apiErrorMessage } from '../lib/apiDiagnostics';
 
 export interface AdaptiveRoutineState {
   plan: AdaptiveRoutinePlan | null;
@@ -6,10 +7,6 @@ export interface AdaptiveRoutineState {
   feedback: RoutineFeedback[];
   journal: RoutineJournalEntry[];
   persistence: 'supabase' | 'server_fallback';
-}
-
-function parseError(data: any, fallback: string): Error {
-  return new Error(typeof data?.error === 'string' ? data.error : fallback);
 }
 
 async function request<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
@@ -22,7 +19,7 @@ async function request<T>(path: string, token: string, init: RequestInit = {}): 
     }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw parseError(data, 'La demande n’a pas pu aboutir.');
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La demande n’a pas pu aboutir.'));
   return data as T;
 }
 

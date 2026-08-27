@@ -1,0 +1,12 @@
+# Contenu inutile au build Vercel : réduit l'upload sans toucher au build.
+docs/
+tests/
+supabase/
+migrations/
+data/
+AUDIT_KURLA_BEAUTY_2026-08-26.md
+RELEASE_READINESS.md
+README_FREE_DEPLOYMENT.md
+bun.lock
+.git/
+.github/

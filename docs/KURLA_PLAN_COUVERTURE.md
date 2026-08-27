@@ -39,7 +39,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | # | Action | État | Preuve vérifiée |
 |---|---|---|---|
 | 1 | Disclosure IA art. 50(1) | ✅ LIVRÉ | Bandeau UI, marquage réponse, `GET /api/ai/disclosure` vérifié en HTTP réel |
-| 2 | Retirer `MOCK_PROS` + UGC fictif | ✅ LIVRÉ | `ProfessionalsPage` corrigé. **14 fichiers importent encore `mockData`** : 9 composants (dont `UgcWallSection`, `KurlaProSection`, `TextureGallerySection`, `ConsultationBookingModal`) + 5 pages (dont `ProProfilePage`, `ProtectiveStylesPage`) |
+| 2 | Retirer `MOCK_PROS` + UGC fictif | ✅ LIVRÉ | `ProfessionalsPage` corrigé. **14 fichiers importent encore `mockData`** : 9 composants (dont `UgcWallSection`, `KurlaProSection`, `TextureGallerySection`, `ConsultationBookingModal`) + 5 pages (dont `ProProfilePage`, `ProtectiveStylesPage`). **Complété** : `ProDashboardPage` affichait un studio inventé, « 4,9/5 sur 38 avis vérifiés » et trois clientes fictives ; réécrite sur `/api/professional/me` |
 | 3 | Corriger les 2 contradictions de marque | ✅ LIVRÉ | Bicarbonate retiré, « éclaircissants » → « anti-taches » |
 | 4 | 17 tests Phase 2 sur vraie instance | ✅ **LIVRÉ** | `npm run test:integration` PASS contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1). A nécessité 4 correctifs de schéma — voir `KURLA_CHANTIERS.md` |
 | 5 | Table `ingredients` + `product_ingredients` | ✅ LIVRÉ | Migration `20260845`, module `ingredientGraph.ts`, testé |
@@ -49,17 +49,17 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 9 | Export / suppression en 1 clic | ✅ LIVRÉ | **Aucune route.** `deleteBeautyProfile` existe (`server.ts:2327`), `deleteIntelligenceData` existe dans le store, mais rien ne les expose ensemble en 1 clic |
 | 10 | Archétypes + cohortes k-anonymes | ✅ LIVRÉ | Logique + `GET /api/me/archetype`, testé |
 | 11 | KURLA Shelf | ✅ LIVRÉ | Logique + 5 endpoints + `ShelfPage` |
-| 12 | Note par archétype | ✅ LIVRÉ | `computeArchetypeRating` testé, zéro appel. Pas non plus de source de données (les `reviews` ne portent pas d'attribut de texture) |
+| 12 | Note par archétype | ✅ LIVRÉ | `computeArchetypeRating` testé, servi par `GET /api/products/:id/archetype-ratings` et **affiché sur la fiche produit** (`ArchetypeRatingsPanel`). Cohortes sous le seuil annoncées comme masquées. Limite inchangée : les `reviews` ne portent pas d'attribut de texture, donc la source d'alimentation reste à construire |
 | 13 | Wash Day OS | ✅ LIVRÉ | Logique + migration `20260846` + 3 endpoints + `WashDayPage` |
-| 14 | Timeline coiffure protectrice | ✅ LIVRÉ | Logique + endpoints + signaux stockés et lus par `assessTractionRisk` |
+| 14 | Timeline coiffure protectrice | ✅ LIVRÉ | Logique + endpoints + signaux stockés et lus par `assessTractionRisk`, **plus un écran dédié** `/account/protective-timeline` (épisodes, jauge de port, signaux d'escalade, historique) |
 | 15 | Recherche sémantique | ✅ LIVRÉ | Logique + `GET /api/search`. **Aucun écran** |
 | 16 | Détection de conflit de routine | ✅ LIVRÉ | Dans le moteur, **jamais affiché à l'utilisateur** |
 | 17 | Unifier le triage médical | ✅ LIVRÉ | `AI_GUARDRAILS.triage()` par racines, testé |
 | 18 | Découper les monolithes | 🔶 **PARTIEL** | 2 stores extraits : `intelligenceStore.ts` (1 026 l.) et `professionalStore.ts` (645 l.). Mais `server.ts` a **grossi** : **3 977 lignes** (3 265 avant le chantier A), `serverDb.ts` = **6 163 lignes**. Le découpage par domaine de `server.ts` reste à faire |
 | 19 | Réassort prédictif | ✅ LIVRÉ | `evaluateReplenishment` testé, zéro appel, aucune notification branchée |
-| 20 | Trust Score pros + co-signature | 🔶 **PARTIEL** *(Trust Score livré, co-signature toujours sans appel)* | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé mais **toujours zéro appel** côté UI |
+| 20 | Trust Score pros + co-signature | ✅ **LIVRÉ** | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé, lecture via `/api/me/endorsements`, **création via le formulaire de l'espace pro**. `POST /api/endorsements` a été verrouillée au passage : elle acceptait `professionalId` et `professionalVerified` depuis le corps de la requête, ce qui permettait de forger la co-signature d'un professionnel vérifié |
 
-**Bilan après application des migrations : 17 livrées (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19) · 2 partielles (18, 20) · 1 à faire (8). Total 20.**
+**Bilan après fermeture des restes du chantier B : 18 livrées (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20) · 1 partielle (18) · 1 à faire (8). Total 20.**
 
 Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20 passe de « Trust Score : rien » à « Trust Score livré et affiché », et l'action 18 recule en valeur relative puisque `server.ts` a grossi de 712 lignes pendant que deux stores étaient extraits.
 
@@ -67,28 +67,25 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 
 ## 3. ÉTAT RÉEL DES 50 FONCTIONNALITÉS
 
-### ✅ Livrées (14)
-**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **10** Wash Day OS · **12** Timeline protectrice · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(vérifié : `fetchProductTrust` appelé par `ProductDetailPage.tsx:119`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **47** Modularisation du moteur
+### ✅ Livrées (22)
+**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **9** Note par archétype *(affichée sur la fiche produit)* · **10** Wash Day OS · **12** Timeline protectrice *(écran dédié `/account/protective-timeline`)* · **13** Recherche sémantique *(`searchByQuery` appelé par `SmartSearchPage.tsx`)* · **14** Détection de conflit *(`ConflictCard` dans `RoutineBuilderPage.tsx:157`)* · **15** Routine Builder → panier *(`buildRoutinePlan` appelé par `RoutineBuilderPage.tsx:65`)* · **17** Intelligence des retours *(bouton par fiche dans `CatalogAdminPanel`)* · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(`fetchProductTrust` appelé par `ProductDetailPage.tsx`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **24** Co-signature professionnelle *(création dans l'espace pro, lecture via `/api/me/endorsements`)* · **25** Espace pro dossiers clients *(écran professionnel livré, lecture au périmètre consenti)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **44** Transparence IA comme badge *(`AiDisclosureBadge` sur le widget d'assistance)* · **47** Modularisation du moteur
 
-### 🟠 Logique seule — **le chantier A** (5)
-**9** Note par archétype · **16** Réassort prédictif · **17** Intelligence des retours · **21** Filtrage par juridiction · **24** Co-signature professionnelle
+### 🟠 Logique seule (2)
+**16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle · **21** Filtrage par juridiction — `POST /api/jurisdiction/assess`, pas d'écran
 
-### 🔶 Partielles (7)
-- **25** Espace pro dossiers clients — modèle de consentement par périmètre + 4 routes ; côté **client** gérable dans `/mes-reservations` (périmètre affiché, révocation en un clic), côté **professionnel** toujours sans écran
+### 🔶 Partielles (3)
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
-- **5** Purge des données fictives — 14 fichiers encore sur `mockData`
-- **13** Recherche sémantique — logique + `GET /api/search`, **aucun écran**
-- **14** Détection de conflit — moteur sans UI
-- **15** Routine Builder → panier — 5 fonctions exportées + `POST /api/routine-builder` (`server.ts:1900`), **aucun écran** (`grep` : zéro appel côté client)
-- **45** Découpage du monolithe — 1 module extrait sur 2 monolithes
+- **5** Purge des données fictives — `mockData` reste importé par plusieurs fichiers *(le tableau de bord pro, lui, a été purgé ce tour)*
+- **45** Découpage du monolithe — `server.ts` a **grossi** (4 373 lignes) pendant que deux stores étaient extraits
 
-### ⬜ À faire (21)
-**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **26** Loyalty par progression · **27** Récompense non-marchande · **28** Beauty Journey · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **44** Transparence IA comme badge *(disclosure fait, pas le badge)* · **46** Tests Supabase réels
+### ⬜ À faire (20)
+**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **26** Loyalty par progression · **27** Récompense non-marchande · **28** Beauty Journey · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
 
 ### 🚫 Exclues volontairement (3)
 **48** Virtual try-on coiffure · **49** Maquillage virtuel · **50** Place de marché créateurs
 
-> **Compte : 14 + 5 + 7 + 21 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
+> **Compte : 22 + 2 + 3 + 20 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
+
 
 ### Détail mesuré sur la feature 36 (climat / eau dure)
 
@@ -137,7 +134,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 | Fiche ingrédient publique (fonction, preuve A–D, sources) | 18 | ✅ route publique + `IngredientCardPage.tsx`, indexable |
 | Comparateur de routines | 34 | ✅ `CostSimulatorPage.tsx` |
 | Simulateur de coût annuel | 35 | ✅ `CostSimulatorPage.tsx` |
-| Transparence IA transformée en badge visible | 44 | ⬜ disclosure fait depuis le chantier 1, badge non fait |
+| Transparence IA transformée en badge visible | 44 | ✅ `AiDisclosureBadge` : disclosure en tête du widget d'assistance et rappel permanent en pied. Le widget flottant était un point d'interaction générative sans disclosure — écart à l'article 50(1) |
 
 **Critère de sortie :** au moins un pro vérifié réservable, **payable**, et capable de co-signer. Une fiche ingrédient publique et indexable.
 

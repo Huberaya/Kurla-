@@ -57,6 +57,29 @@ async function runAuthorizationNegativeTests() {
       headers: { 'x-user-id': 'attacker' }
     }, 401);
 
+    // Co-signature professionnelle : le corps de la requête déclarait autrefois
+    // `professionalVerified: true` et un `professionalId` arbitraire, ce qui
+    // permettait de forger la co-signature d'un professionnel vérifié. L'identité
+    // est désormais résolue depuis le compte authentifié.
+    const forgedEndorsement = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': 'attacker' },
+      body: JSON.stringify({
+        professionalId: 'victime-professionnelle',
+        professionalName: 'Studio usurpé',
+        professionalVerified: true,
+        clientUserId: 'cliente-victime',
+        stance: 'approved',
+        rationale: 'Co-signature forgée par un compte sans profil professionnel.',
+        isDisplayable: true
+      })
+    };
+    await expectStatus(baseUrl, '/api/endorsements', forgedEndorsement, 401);
+
+    // Espace professionnel et dossiers partagés : aucune donnée sans jeton valide.
+    await expectStatus(baseUrl, '/api/professional/me', { headers: { 'x-user-id': 'attacker' } }, 401);
+    await expectStatus(baseUrl, '/api/professional/dossier-shares', { headers: { 'x-user-id': 'attacker' } }, 401);
+
     console.log('[PASS] Negative authorization HTTP tests: forged identity/admin headers never grant access.');
   } finally {
     await new Promise<void>((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));

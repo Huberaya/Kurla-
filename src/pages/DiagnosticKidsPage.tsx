@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Baby, Heart, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { navigate } from '../lib/router';
 
 export const DiagnosticKidsPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -13,7 +14,7 @@ export const DiagnosticKidsPage: React.FC = () => {
     if (!parentalConsent) return;
     // The prototype result route carries no child-identifying data. A future
     // account flow will persist only the age band after the guardian consent.
-    window.location.href = '/diagnostic/resultat/kids-latest';
+    navigate('/diagnostic/resultat/kids-latest');
   };
 
   return (

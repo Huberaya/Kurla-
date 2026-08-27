@@ -243,7 +243,7 @@ Le test vérifie le **branchement**, pas la logique pure (déjà testée ailleur
 
 ---
 
-## CHANTIER B — CONFIANCE, PROS & ÉCOSYSTÈME ✅ (livré, non vérifié contre une base réelle)
+## CHANTIER B — CONFIANCE, PROS & ÉCOSYSTÈME ✅ (livré et vérifié contre la base réelle)
 
 **Critère de sortie visé :** au moins un professionnel vérifié, réservable et payable, capable de
 co-signer ; une page ingrédient publique et indexable.
@@ -322,13 +322,54 @@ refusé, idempotence par clé (un rejeu ne crée pas un second paiement), retrou
 confirmation idempotente (`paidAt` non re-daté), paiement inconnu → `undefined` sans exception, deux
 prestations distinctes séparées.
 
+### Compléments livrés après coup
+
+- [x] **Note par archétype sur la fiche produit** (`ArchetypeRatingsPanel`) : la route et la fonction
+      cliente existaient déjà, seule la surface manquait. Les cohortes sous le seuil de k-anonymat
+      sont annoncées comme masquées, jamais moyennées.
+- [x] **Vérification publique de la fiche** (`GET /api/products/:id/verification` +
+      `ProductVerificationPanel`). Voir la limite ci-dessous : elle est structurellement constante.
+- [x] **Intelligence des retours dans l'admin catalogue** (`CatalogAdminPanel`) : bouton par fiche,
+      raisons dominantes, cohortes concernées, signalement catalogue et limites affichés ensemble.
+- [x] **Badge de transparence IA** (`AiDisclosureBadge`, fonctionnalité 44) : ajouté au widget
+      d'assistance flottant, qui était un point d'interaction générative sans disclosure — écart
+      au regard de l'article 50(1), applicable depuis le 2 août 2026.
+- [x] **Timeline de coiffure protectrice** (`/account/protective-timeline`) : écran dédié, relié aux
+      routes existantes, avec signaux d'escalade orientant vers un professionnel.
+- [x] **Espace professionnel sur données réelles** (`/api/professional/me` + `ProDashboardPage`
+      réécrit) : la page affichait un studio inventé, une note « 4,9/5 sur 38 avis vérifiés » et trois
+      clientes fictives. Contenu fabriqué supprimé, pas maquillé.
+- [x] **Lecteur de dossier côté pro** : route `GET /api/professional/dossier-shares` + ouverture du
+      dossier dans le périmètre consenti, champ par champ.
+
 ### Non livré, assumé
 
-- [ ] Note par archétype affichée sur la fiche produit, note globale supprimée.
-- [ ] Score de confiance produit rendu public à partir des 7 statuts de validation existants.
-- [ ] Intelligence des retours exposée dans l'admin catalogue.
 - [ ] **Paiement jamais exercé contre Stripe** : aucune clé sur cet environnement. La branche 503
       est vérifiée par sonde HTTP ; le chemin nominal ne l'est pas.
+- [ ] **Suite unitaire complète contre une base réelle** : elle n'a pas vocation à exister telle
+      quelle. Voir « Liaison des stores » ci-dessous.
+
+### Limites assumées des compléments
+
+- **La vérification publique est constante par construction.** `isPublishableProduct` exige déjà les
+  7 statuts à `verified` pour qu'une fiche soit visible. Toute fiche publique affiche donc 7/7. Ce
+  n'est pas un bug : le badge est une garantie, pas une note variable. Il ne deviendra discriminant
+  que si le gate de publication est assoupli.
+- **La « note de confiance produit » n'a pas été transformée en score chiffré.** Le code porte une
+  règle explicite : les décisions de gouvernance ne sont pas renvoyées comme métadonnées client.
+  Publier un score dérivé de ces statuts l'aurait contredite. Seuls des booléens par contrôle sont
+  exposés — ni statut brut, ni note interne, ni URL de preuve, ni identité du validateur.
+
+### Liaison des stores : cause racine du « suite unitaire non verte »
+
+Le problème n'était pas les trois identifiants en dur, c'était la **liaison implicite** : la présence
+de `SUPABASE_URL` + d'une clé secrète basculait tous les stores sur la base réelle. `npm test` passait
+donc sur une machine et échouait sur une autre.
+
+`KURLA_STORE_MODE` rend le choix explicite (`memory` / `server` / `auto`) et couvre le client public
+autant que le store serveur. Tous les bancs unitaires forcent `memory` ; `tests/store_binding.test.ts`
+verrouille le comportement. `npm run test:realdb` enchaîne les bancs réellement conçus pour une base
+réelle, précédés d'une pré-vérification qui refuse de tourner en silence sur le repli mémoire.
 
 ### Passifs ouverts, déclarés
 
@@ -337,8 +378,11 @@ prestations distinctes séparées.
       `security_invoker=true`.
 - ~~**0/17 vérifications RLS** toujours.~~ **LEVÉ** : `test:integration` PASS contre l'instance
       réelle — comptes A/B isolés, ressources privées protégées, rôle admin vérifié.
-- **Aucune vérification visuelle/navigateur** des trois nouveaux écrans : vérifiés par compilation,
-      test unitaire et HTTP, pas par rendu.
+- **Aucune vérification visuelle/navigateur** des écrans : vérifiés par compilation, test unitaire et
+      HTTP, pas par rendu.
+- **Déploiement non vérifié sur Vercel** : `api/index.ts` + `vercel.json` sont en place et le handler
+      est vérifié localement derrière un `http.Server`, mais la sémantique de réécriture propre à
+      Vercel n'a pas pu être exercée ici.
 
 ---
 
@@ -359,7 +403,7 @@ prestations distinctes séparées.
 ## CHANTIER 8 — ARCHITECTURE, RÉTENTION & B2B ⬜
 
 - [ ] Découpage de `server.ts` (2 875 lignes) et `serverDb.ts` (6 124 lignes) par domaine (actions 18, 45)
-- [ ] Tests Supabase réels A/B : les 17 vérifications Phase 2 sont toujours à 0 exécution (action 46)
+- [x] ~~Tests Supabase réels A/B : 17 vérifications Phase 2 à 0 exécution~~ **LEVÉ** (action 46)
 - [ ] Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
 - [ ] Beauty Journey : narration de l'évolution
 - [ ] Abonnement KURLA+

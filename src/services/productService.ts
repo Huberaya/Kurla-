@@ -1,4 +1,5 @@
 import { Product } from '../types';
+import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface SupabaseBrand {
@@ -32,7 +33,7 @@ export interface FetchProductsResponse {
 async function fetchPublicProducts(): Promise<Product[]> {
   const response = await fetch('/api/products');
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error || 'Le catalogue publié est indisponible.');
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'Le catalogue publié est indisponible.'));
   return Array.isArray(data.products) ? data.products : [];
 }
 

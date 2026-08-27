@@ -172,7 +172,11 @@ export const ProfessionalsPage: React.FC = () => {
                   <div className="mb-4">
                     <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-1.5">
                       {pro.name}
-                      {pro.verified && <CheckCircle2 className="w-4 h-4 text-[#C8753D]" title="Identité vérifiée par KURLA" />}
+                      {pro.verified && (
+                        <span title="Identité vérifiée par KURLA" aria-label="Identité vérifiée par KURLA" className="inline-flex">
+                          <CheckCircle2 className="w-4 h-4 text-[#C8753D]" aria-hidden="true" />
+                        </span>
+                      )}
                     </h3>
                     <p className="text-xs text-[#D49A63] font-medium flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5" /> {pro.city}

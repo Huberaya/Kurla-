@@ -930,6 +930,137 @@ app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRe
   res.json({ reviews, questions, verifiedReviewCount: reviews.length, questionsCount: questions.length });
 }));
 
+/**
+ * Vérification publique d'une fiche produit.
+ *
+ * Tension assumée et documentée : le code porte la règle « les décisions de
+ * gouvernance ne sont jamais renvoyées comme métadonnées client ». Cette route
+ * la respecte — elle ne publie ni statut brut, ni note interne, ni URL de
+ * preuve, ni identifiant de validateur. Elle ne publie qu'un fait binaire par
+ * contrôle : cette vérification a-t-elle abouti, oui ou non. C'est l'information
+ * qui intéresse l'acheteur ; le reste reste côté admin.
+ */
+const PUBLIC_VERIFICATION_CHECKS: { id: string; label: string; decisive: boolean; column: string }[] = [
+  { id: 'ingredients', label: 'Composition vérifiée', decisive: true, column: 'ingredient_verification_status' },
+  { id: 'claims', label: 'Allégations contrôlées', decisive: true, column: 'claims_validation_status' },
+  { id: 'certifications', label: 'Certifications vérifiées', decisive: false, column: 'certifications_validation_status' },
+  { id: 'images', label: 'Visuels conformes', decisive: false, column: 'images_validation_status' },
+  { id: 'brand', label: 'Marque vérifiée', decisive: false, column: 'brand_verification_status' },
+  { id: 'translations', label: 'Traductions relues', decisive: false, column: 'translations_validation_status' },
+  { id: 'stock', label: 'Disponibilité confirmée', decisive: false, column: 'stock_validation_status' }
+];
+
+/** Lit un statut de contrôle sur une fiche, quel que soit le format du store. */
+function readCheckStatus(product: any, column: string): string {
+  const camel = column.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase());
+  return String(product?.[camel] ?? product?.[column] ?? '');
+}
+
+app.get('/api/products/:productId/verification', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const product = (await serverDb.getProducts({ publishedOnly: true }))
+    .find(item => item.id === req.params.productId || item.slug === req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+
+  // Source de vérité : les colonnes de statut de la fiche, celles-là mêmes que
+  // `isPublishableProduct` exige. Les événements d'audit ne servent qu'à dater
+  // la dernière vérification — sinon une fiche publiée avant l'existence de la
+  // table d'audit afficherait « non vérifiée » alors qu'elle est publiée.
+  const checks = PUBLIC_VERIFICATION_CHECKS.map(check => ({
+    id: check.id,
+    label: check.label,
+    passed: readCheckStatus(product, check.column) === 'verified'
+  }));
+
+  const events = await serverDb.getCatalogValidationEvents(product.id);
+
+  // « Vérifié » n'est jamais un compteur : il exige les deux contrôles
+  // décisifs. Un produit sans contrôle n'est pas « 0/7 », il n'est pas vérifié.
+  const verified = checks.filter(check => check.passed && PUBLIC_VERIFICATION_CHECKS.find(item => item.id === check.id)?.decisive).length
+    === PUBLIC_VERIFICATION_CHECKS.filter(item => item.decisive).length;
+
+  const verifiedAt = events.length
+    ? events.reduce((latest: string, event: any) => {
+        const at = String(event.created_at ?? event.createdAt ?? '');
+        return at > latest ? at : latest;
+      }, '')
+    : null;
+
+  res.json({
+    productId: product.id,
+    verified,
+    verifiedAt: verifiedAt || null,
+    checks,
+    note: verified
+      ? 'Contrôles décisifs aboutis. Les preuves détaillées restent internes.'
+      : 'Cette fiche n’a pas encore passé tous les contrôles décisifs. L’absence de validation n’est pas un jugement sur le produit.'
+  });
+}));
+
+/**
+ * Partages de dossier reçus par le professionnel.
+ * Sans cette liste, l'accès au dossier existe côté API mais le professionnel ne
+ * peut pas savoir qui a consenti à partager quoi avec lui.
+ */
+app.get('/api/professional/dossier-shares', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const profiles = await professionalStore.getPublicProfessionals();
+  const own = profiles.find(profile => profile.userId === user.id);
+  if (!own) {
+    res.status(403).json({ error: 'Aucun profil professionnel vérifié n’est associé à ce compte.' });
+    return;
+  }
+  const shares = await professionalStore.getActiveShares(own.id);
+  res.json({
+    professionalId: own.id,
+    shares,
+    count: shares.length,
+    note: 'Seuls les partages actifs apparaissent. Un partage révoqué ou expiré disparaît de cette liste sans effacer la trace du consentement.'
+  });
+}));
+
+/**
+ * Tableau de bord du professionnel connecté.
+ *
+ * Une seule route agrège le profil, le Trust Score, les prestations, les
+ * rendez-vous et les partages de dossier. Rien n'est inventé : si un compte n'a
+ * pas de profil professionnel vérifié, la route répond 403 et l'écran le dit,
+ * au lieu d'afficher des statistiques de démonstration.
+ */
+app.get('/api/professional/me', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const profiles = await professionalStore.getPublicProfessionals();
+  const own = profiles.find(profile => profile.userId === user.id);
+  if (!own) {
+    res.status(403).json({ error: 'Aucun profil professionnel vérifié n’est associé à ce compte.' });
+    return;
+  }
+  const [trust, services, appointments, shares] = await Promise.all([
+    professionalStore.assessTrust(own.id),
+    professionalStore.getServices(own.id),
+    professionalStore.getAppointments({ professionalId: own.id }),
+    professionalStore.getActiveShares(own.id)
+  ]);
+
+  const upcoming = appointments.filter(appointment =>
+    appointment.status !== 'cancelled_by_client'
+    && appointment.status !== 'cancelled_by_pro'
+    && new Date(appointment.scheduledAt).getTime() >= Date.now()
+  );
+
+  res.json({
+    profile: own,
+    trust,
+    bookable: professionalStore.canBeBooked(trust),
+    services,
+    appointments,
+    upcomingCount: upcoming.length,
+    shares,
+    activeShareCount: shares.length
+  });
+}));
+
 app.post('/api/products/:productId/questions', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -2088,22 +2219,64 @@ app.post('/api/jurisdiction/assess', rateLimit('jurisdiction', 30, 60_000), asyn
  * Co-signature professionnelle. Un professionnel non vérifié ne peut pas
  * co-signer publiquement : sinon l'espace devient publicitaire.
  */
-app.post('/api/endorsements', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/endorsements', rateLimit('endorsement', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);
   if (!user) return;
+
+  // L'identité du professionnel ne vient JAMAIS du corps de la requête. Avant ce
+  // correctif, `professionalId`, `professionalName` et surtout
+  // `professionalVerified` étaient lus dans le body : n'importe quel compte
+  // pouvait forger la co-signature d'un professionnel vérifié.
+  const profiles = await professionalStore.getPublicProfessionals();
+  const own = profiles.find(profile => profile.userId === user.id);
+  if (!own) {
+    res.status(403).json({ error: 'Seul un professionnel vérifié peut co-signer une routine.' });
+    return;
+  }
+  if (!own.identityVerified) {
+    res.status(403).json({ error: 'Votre identité n’a pas encore été contrôlée par KURLA.' });
+    return;
+  }
+
+  // La cliente doit avoir un lien réel avec ce professionnel : partage de dossier
+  // actif ou rendez-vous. Sinon la co-signature porterait sur une inconnue.
+  const clientUserId = typeof req.body?.clientUserId === 'string' ? req.body.clientUserId.trim() : '';
+  if (!clientUserId) {
+    res.status(400).json({ error: 'La cliente concernée est obligatoire.' });
+    return;
+  }
+  const [activeShares, appointments] = await Promise.all([
+    professionalStore.getActiveShares(own.id),
+    professionalStore.getAppointments({ professionalId: own.id })
+  ]);
+  const hasLink = activeShares.some(share => share.clientUserId === clientUserId)
+    || appointments.some(appointment => appointment.clientUserId === clientUserId);
+  if (!hasLink) {
+    res.status(403).json({ error: 'Aucun rendez-vous ni partage de dossier actif avec cette cliente.' });
+    return;
+  }
+
+  // Une co-signature affichée publiquement exige un consentement daté.
+  const clientConsentAt = typeof req.body?.clientConsentAt === 'string' ? req.body.clientConsentAt : undefined;
+  const wantsDisplay = req.body?.isDisplayable === true;
+  if (wantsDisplay && !clientConsentAt) {
+    res.status(400).json({ error: 'Une co-signature affichée publiquement exige le consentement daté de la cliente.' });
+    return;
+  }
+
   const endorsement = await intelligenceStore.createEndorsement({
-    professionalId: typeof req.body?.professionalId === 'string' ? req.body.professionalId : user.id,
-    professionalName: typeof req.body?.professionalName === 'string' ? req.body.professionalName : 'Professionnel',
-    professionalSpecialty: typeof req.body?.professionalSpecialty === 'string' ? req.body.professionalSpecialty : undefined,
-    professionalVerified: req.body?.professionalVerified === true,
-    clientUserId: typeof req.body?.clientUserId === 'string' ? req.body.clientUserId : user.id,
+    professionalId: own.id,
+    professionalName: own.displayName,
+    professionalSpecialty: own.specialty,
+    professionalVerified: own.identityVerified,
+    clientUserId,
     routinePlanId: typeof req.body?.routinePlanId === 'string' ? req.body.routinePlanId : undefined,
     productId: typeof req.body?.productId === 'string' ? req.body.productId : undefined,
     stance: req.body?.stance,
     rationale: typeof req.body?.rationale === 'string' ? req.body.rationale : '',
     amendments: Array.isArray(req.body?.amendments) ? req.body.amendments : [],
-    isDisplayable: req.body?.isDisplayable === true,
-    clientConsentAt: typeof req.body?.clientConsentAt === 'string' ? req.body.clientConsentAt : undefined
+    isDisplayable: wantsDisplay,
+    clientConsentAt
   });
   res.status(201).json({ endorsement });
 }));
@@ -4065,6 +4238,17 @@ app.post('/api/ai/support-draft', async (req: Request, res: Response) => {
   }
 });
 
+// Toute route /api non reconnue doit répondre en JSON. Sans ce garde, le repli
+// SPA (`app.get('*')` monté par startServer) renvoie index.html avec un statut
+// 200 : un client appelant une route supprimée croirait à un succès, et une API
+// absente du domaine serait indiscernable d'une erreur métier.
+app.use('/api', (req: Request, res: Response) => {
+  res.status(404).json({
+    error: `Route API inconnue : ${req.method} /api${req.path === '/' ? '' : req.path}.`,
+    code: 'API_ROUTE_NOT_FOUND'
+  });
+});
+
 // Last-resort error boundary for async routes. Critical database errors are
 // logged and returned as 5xx instead of being converted into fake success.
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
@@ -4131,7 +4315,11 @@ async function startServer() {
   await serverInitialization;
 
   if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
+    // The specifier is kept in a variable on purpose: bundlers must not be able
+    // to resolve it statically, otherwise a serverless build would trace and
+    // embed the whole Vite toolchain even though this branch never runs there.
+    const viteSpecifier = 'vite';
+    const { createServer: createViteServer } = await import(viteSpecifier);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -4175,13 +4363,53 @@ async function startServer() {
   process.once('SIGINT', () => shutdown('SIGINT'));
 }
 
+// ---------------------------------------------------------------------------
+// Serverless runtime (Vercel and compatible platforms)
+// ---------------------------------------------------------------------------
+//
+// A serverless function has no `listen()` and no place to await startup: the
+// first request can arrive before the store is ready. `prepareServerlessRuntime`
+// performs the exact same two steps as `startServer()` (production
+// configuration assertion, then store initialization) and is awaited by the
+// platform entry point in `api/index.ts` before the Express app is called.
+//
+// A startup failure is never swallowed here. It is returned as data so the
+// entry point can answer 503 with the missing variables named explicitly,
+// instead of letting every route fail with an opaque error.
+let serverlessStartup: Promise<{ ready: boolean; error: string | null }> | null = null;
+
+export function prepareServerlessRuntime(): Promise<{ ready: boolean; error: string | null }> {
+  if (!serverlessStartup) {
+    serverlessStartup = (async () => {
+      try {
+        assertProductionConfiguration();
+        await serverInitialization;
+        return { ready: true, error: null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[KURLA Serverless] Démarrage impossible:', message);
+        return { ready: false, error: message };
+      }
+    })();
+  }
+  return serverlessStartup;
+}
+
+// True when the module is loaded by a serverless platform: the platform owns
+// the HTTP listener, TLS termination and static file serving, so this process
+// must expose the app without binding a port.
+export function isServerlessRuntime(): boolean {
+  return process.env.VERCEL === '1' || process.env.KURLA_SERVERLESS === 'true';
+}
+
 // Export the Express app for HTTP authorization tests without starting a
 // second listener. Production/dev execution still starts normally.
 export { app };
 
-if (process.env.KURLA_TEST_NO_SERVER !== 'true') {
+if (!isServerlessRuntime() && process.env.KURLA_TEST_NO_SERVER !== 'true') {
   startServer().catch(error => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   });
 }
+

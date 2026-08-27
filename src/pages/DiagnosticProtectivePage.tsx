@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Sparkles } from 'lucide-react';
+import { navigate } from '../lib/router';
 
 export const DiagnosticProtectivePage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -10,7 +11,7 @@ export const DiagnosticProtectivePage: React.FC = () => {
     if (step < 2) {
       setStep(step + 1);
     } else {
-      window.location.href = '/diagnostic/resultat/protective-latest';
+      navigate('/diagnostic/resultat/protective-latest');
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, User, Users, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen, Package, Droplets } from 'lucide-react';
+import { Search, ShoppingBag, User, Users, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen, Package, Droplets , Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 
@@ -194,6 +194,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Droplets className="w-3.5 h-3.5 text-[#D49A63]" /> Mon wash day
                   </a>
                   <a
+                    href="/account/protective-timeline"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <Scissors className="w-3.5 h-3.5 text-[#D49A63]" /> Coiffures protectrices
+                  </a>
+                  <a
                     href="/recherche"
                     className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
                     onClick={() => setUserDropdownOpen(false)}
@@ -358,6 +365,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a href="/account/progress" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><NotebookPen className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Journal</a>
               <a href="/account/shelf" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Package className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Étagère</a>
               <a href="/account/wash-day" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Droplets className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Wash day</a>
+              <a href="/account/protective-timeline" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Scissors className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Protectrices</a>
               <a href="/recherche" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Search className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Recherche</a>
               <a href="/routine-builder" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Ma routine</a>
               <a href="/cout-routine" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Coût routine</a>

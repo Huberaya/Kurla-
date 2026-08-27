@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { ReturnInsightSummary } from '../lib/returnInsight';
 import { Check, CheckCircle2, FileText, Image as ImageIcon, Package, Plus, RefreshCw, Save, Upload, X } from 'lucide-react';
 
 type CatalogAdminPanelProps = {
@@ -130,6 +131,9 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('');
   const [error, setError] = useState('');
+  // Intelligence des retours : signalement equipe catalogue, jamais client.
+  const [returnInsights, setReturnInsights] = useState<Record<string, ReturnInsightSummary>>({});
+  const [insightLoading, setInsightLoading] = useState<string | null>(null);
 
   const loadCatalog = async () => {
     setBusy(true);
@@ -242,6 +246,21 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     finally { setBusy(false); }
   };
 
+  const loadReturnInsight = async (productId: string) => {
+    setInsightLoading(productId);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/return-insights/${encodeURIComponent(productId)}`, { headers });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Intelligence des retours indisponible.');
+      setReturnInsights(current => ({ ...current, [productId]: data.summary }));
+    } catch (insightError: any) {
+      setError(insightError.message || 'Intelligence des retours indisponible.');
+    } finally {
+      setInsightLoading(null);
+    }
+  };
+
   const markValidation = async (productId: string, checkType: string) => {
     if (!confirm(`Confirmer que le contrôle « ${checkType} » a été vérifié à partir d’une source réelle ?`)) return;
     try {
@@ -316,7 +335,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
         </div>
       </div>
 
-      <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({products.length})</h3><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-72 px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" /></div>{filteredProducts.length === 0 ? <p className="text-xs text-[#FFF7EF]/45">Aucune fiche catalogue.</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8753D]/15 text-[#D49A63]">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span></div><p className="text-[11px] text-[#FFF7EF]/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p></div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-[#C8753D] text-[11px] font-bold">Modifier</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div></div>)}</div>}</div>
+      <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({products.length})</h3><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-72 px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" /></div>{filteredProducts.length === 0 ? <p className="text-xs text-[#FFF7EF]/45">Aucune fiche catalogue.</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8753D]/15 text-[#D49A63]">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span></div><p className="text-[11px] text-[#FFF7EF]/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p></div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => loadReturnInsight(product.id)} disabled={insightLoading === product.id} className="px-3 py-1.5 rounded-lg bg-[#050403] border border-[#FFF7EF]/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RefreshCw className={`w-3 h-3 ${insightLoading === product.id ? 'animate-spin' : ''}`} /> Retours</button><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-[#C8753D] text-[11px] font-bold">Modifier</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div>{returnInsights[product.id] && <div className="mt-3 p-3 rounded-xl border border-[#FFF7EF]/10 bg-[#1A0F0A] space-y-2"><p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold">Intelligence des retours — interne</p><p className="text-[11px] text-[#FFF7EF]/65">{returnInsights[product.id].totalReturns} retour(s) enregistré(s), dont {returnInsights[product.id].informativeReturns} avec une raison exploitable.</p>{returnInsights[product.id].topReasons.length > 0 && <ul className="space-y-1">{returnInsights[product.id].topReasons.map(reason => <li key={reason.reason} className="text-[11px] text-[#FFF7EF]/60">• {reason.label} — {reason.count} signalement(s), {Math.round(reason.share * 100)} %</li>)}</ul>}{returnInsights[product.id].catalogAlert && <p className="text-[11px] text-amber-300 font-semibold">⚠ {returnInsights[product.id].catalogAlert}</p>}{returnInsights[product.id].archetypeHotspots.length > 0 && <p className="text-[11px] text-[#FFF7EF]/55">Cohortes concernées : {returnInsights[product.id].archetypeHotspots.map(hotspot => hotspot.archetypeId).join(', ')}.</p>}{returnInsights[product.id].limitations.length > 0 && <ul className="space-y-0.5">{returnInsights[product.id].limitations.map((limitation, index) => <li key={index} className="text-[10px] text-[#FFF7EF]/40">· {limitation}</li>)}</ul>}<p className="text-[10px] text-[#FFF7EF]/35">Ces signaux sont réservés à l’équipe catalogue. Ils ne sont jamais affichés aux clientes.</p></div>}</div>)}</div>}</div>
     </div>
   );
 };

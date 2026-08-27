@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquare, X, Send, Sparkles, ShieldAlert, Bot } from 'lucide-react';
+import { AiDisclosureBadge } from './AiDisclosureBadge';
 
 export const AiAssistantWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -70,7 +71,7 @@ export const AiAssistantWidget: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">Assistant Conseil KURLA</h3>
-                <span className="text-[10px] text-[#D49A63]">Réponses personnalisées 24/7</span>
+                <AiDisclosureBadge compact className="mt-1" />
               </div>
             </div>
             <button
@@ -145,9 +146,14 @@ export const AiAssistantWidget: React.FC = () => {
               </button>
             </form>
 
-            <div className="pt-2 flex items-center gap-1.5 text-[9px] text-[#FFF7EF]/40 justify-center">
-              <ShieldAlert className="w-3 h-3 text-[#D49A63]" />
-              <span>Conseils beauté non médicaux.</span>
+            <div className="pt-2 flex flex-col items-center gap-1 text-[9px] text-[#FFF7EF]/40">
+              <span className="font-semibold uppercase tracking-wider text-[#D49A63]">
+                Vous échangez avec une intelligence artificielle, pas avec un humain.
+              </span>
+              <span className="flex items-center gap-1.5">
+                <ShieldAlert className="w-3 h-3 text-[#D49A63]" />
+                <span>Conseils beauté non médicaux. En cas de symptôme, consultez un professionnel de santé.</span>
+              </span>
             </div>
           </div>
 

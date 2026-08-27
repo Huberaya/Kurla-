@@ -603,14 +603,15 @@ export const MOCK_ROUTINES: RoutineBundle[] = [
     badge: 'Best-Seller Bêta',
     benefit: 'Garde l’hydratation jusqu’à 5 jours sans alourdir.',
     duration: '15 minutes / 1 à 2 fois par semaine',
+    frequency: '',
     price: 64.90,
     originalPrice: 79.00,
     image: HERO_IMAGE,
     products: [MOCK_PRODUCTS[0], MOCK_PRODUCTS[2], MOCK_PRODUCTS[4]],
     steps: [
-      { number: 1, title: 'Lavage Doux & Masque', description: 'Nettoie et applique le masque hydratant 20 min.', productName: 'Masque Hydratant Porosité Forte' },
-      { number: 2, title: 'Hydratation LCO', description: 'Applique le leave-in sur cheveux très humides.', productName: 'Leave-In Hydratant Cacao & Mangue' },
-      { number: 3, title: 'Scellage Cuir Chevelu', description: 'Masse 3 gouttes d’huile pour stimuler la racine.', productName: 'Huile Cuir Chevelu Légère' }
+      { number: 1, title: 'Lavage Doux & Masque', description: 'Nettoie et applique le masque hydratant 20 min.', productName: 'Masque Hydratant Porosité Forte', productId: 'p3', quantity: 1 },
+      { number: 2, title: 'Hydratation LCO', description: 'Applique le leave-in sur cheveux très humides.', productName: 'Leave-In Hydratant Cacao & Mangue', productId: 'p1', quantity: 1 },
+      { number: 3, title: 'Scellage Cuir Chevelu', description: 'Masse 3 gouttes d’huile pour stimuler la racine.', productName: 'Huile Cuir Chevelu Légère', productId: 'p5', quantity: 1 }
     ]
   },
   {
@@ -622,14 +623,15 @@ export const MOCK_ROUTINES: RoutineBundle[] = [
     badge: 'Spécial Tresses',
     benefit: 'Évite les tiraillements, les démangeaisons et la casse des tempes.',
     duration: '3 minutes par jour',
+    frequency: '',
     price: 52.00,
     originalPrice: 63.80,
     image: PROTECTIVE_IMAGE,
     products: [MOCK_PRODUCTS[3], MOCK_PRODUCTS[4], MOCK_PRODUCTS[6]],
     steps: [
-      { number: 1, title: 'Spray Apaisant Quotidien', description: 'Vaporise à la racine des tresses pour calmer les tiraillements.', productName: 'Spray Apaisant Braids Menthe' },
-      { number: 2, title: 'Nourrir les Temples', description: 'Applique une goutte d’huile sur la ligne de pousse.', productName: 'Huile Cuir Chevelu Légère' },
-      { number: 3, title: 'Protection Nuit', description: 'Enfile ton bonnet satin ajusté XL.', productName: 'Bonnet Satin Microfibre XL' }
+      { number: 1, title: 'Spray Apaisant Quotidien', description: 'Vaporise à la racine des tresses pour calmer les tiraillements.', productName: 'Spray Apaisant Braids Menthe', productId: 'p4', quantity: 1 },
+      { number: 2, title: 'Nourrir les Temples', description: 'Applique une goutte d’huile sur la ligne de pousse.', productName: 'Huile Cuir Chevelu Légère', productId: 'p5', quantity: 1 },
+      { number: 3, title: 'Protection Nuit', description: 'Enfile ton bonnet satin ajusté XL.', productName: 'Bonnet Satin Microfibre XL', productId: 'p7', quantity: 1 }
     ]
   },
   {
@@ -641,13 +643,14 @@ export const MOCK_ROUTINES: RoutineBundle[] = [
     badge: 'Douceur Enfants',
     benefit: 'Démêlage facile, zéro larmes et cheveux doux.',
     duration: '10 minutes',
+    frequency: '',
     price: 49.00,
     originalPrice: 58.00,
     image: KIDS_CARE_IMAGE,
     products: [MOCK_PRODUCTS[0], MOCK_PRODUCTS[7], MOCK_PRODUCTS[10]],
     steps: [
-      { number: 1, title: 'Vaporisation Démêlante', description: 'Humidifie les mèches avec le spray kids.', productName: 'Kit Kids Douceur' },
-      { number: 2, title: 'Crème Coiffante Douce', description: 'Applique une noisette de leave-in avant de faire des vanilles.', productName: 'Leave-In Hydratant Cacao' }
+      { number: 1, title: 'Vaporisation Démêlante', description: 'Humidifie les mèches avec le spray kids.', productName: 'Kit Kids Douceur', productId: 'p11', quantity: 1 },
+      { number: 2, title: 'Crème Coiffante Douce', description: 'Applique une noisette de leave-in avant de faire des vanilles.', productName: 'Leave-In Hydratant Cacao', productId: 'p1', quantity: 1 }
     ]
   },
   {
@@ -659,13 +662,14 @@ export const MOCK_ROUTINES: RoutineBundle[] = [
     badge: 'Innovation Skin',
     benefit: 'Teint plus harmonieux sans altérer la carnation naturelle.',
     duration: '4 minutes matin et soir',
+    frequency: '',
     price: 58.00,
     originalPrice: 72.00,
     image: MELANIN_SKIN_IMAGE,
     products: [MOCK_PRODUCTS[5], MOCK_PRODUCTS[9]],
     steps: [
-      { number: 1, title: 'Sérum Anti-Marques (Soir)', description: 'Uniformise en douceur les zones tachées post-boutons.', productName: 'Sérum Marques Post-Imperfections' },
-      { number: 2, title: 'Sérum SPF 50+ (Matin)', description: 'Protege chaque matin avec zéro voile blanc.', productName: 'Sérum SPF 50+ Invisible' }
+      { number: 1, title: 'Sérum Anti-Marques (Soir)', description: 'Uniformise en douceur les zones tachées post-boutons.', productName: 'Sérum Marques Post-Imperfections', productId: 'p10', quantity: 1 },
+      { number: 2, title: 'Sérum SPF 50+ (Matin)', description: 'Protege chaque matin avec zéro voile blanc.', productName: 'Sérum SPF 50+ Invisible', productId: 'p6', quantity: 1 }
     ]
   }
 ];

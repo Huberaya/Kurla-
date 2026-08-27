@@ -173,12 +173,21 @@ export interface RoutineBundle {
   price: number;
   originalPrice?: number;
   image: string;
+  /**
+   * Fréquence déclarée de la routine ('' si absente). Renvoyée par
+   * `serverDb.getRoutines()` : le type client doit refléter la réponse réelle,
+   * sinon les écrans lisent un champ que le compilateur croit inexistant.
+   */
+  frequency: string;
   products: Product[];
   steps: {
     number: number;
     title: string;
     description: string;
     productName: string;
+    productId: string;
+    variantId?: string;
+    quantity: number;
   }[];
 }
 

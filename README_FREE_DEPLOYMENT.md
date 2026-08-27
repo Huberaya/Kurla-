@@ -71,6 +71,44 @@ Pour héberger l'application en ligne gratuitement sans carte bancaire ni frais 
 
 ---
 
+## 🌐 4 bis. Déploiement Vercel en un seul service (recommandé)
+
+L'application est un SPA **et** un serveur Express. Si vous déployez seulement le front, chaque appel
+`/api/*` renvoie la page 404 de l'hébergeur (`404: NOT_FOUND` + `Code: NOT_FOUND` + `ID: cdg1::…`) et
+chaque lien interne renvoie la même page, faute de repli SPA. Le dépôt embarque donc de quoi servir les
+deux depuis **un seul** déploiement Vercel :
+
+| Fichier | Rôle |
+| :--- | :--- |
+| `api/index.ts` | Fonction serverless qui expose l'application Express. Elle rejoue l'assertion de configuration production puis l'initialisation du store avant de servir, et répond `503` en nommant les variables manquantes au lieu de laisser toutes les routes échouer. |
+| `vercel.json` | `buildCommand: vite build`, `outputDirectory: dist`, réécriture `/api/:path*` vers la fonction puis repli `/(.*)` vers `index.html` pour le routage SPA. |
+| `.vercelignore` | Exclut `docs/`, `tests/`, `supabase/`, `data/` de l'upload. |
+
+Variables à renseigner dans le projet Vercel :
+
+```
+SUPABASE_URL, SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY)
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_ENABLED=true, STRIPE_WEBHOOK_SECRET
+VITE_APP_URL            # URL HTTPS publique du déploiement
+EMAIL_PROVIDER          # resend | sendgrid | postmark
+EMAIL_PROVIDER_API_KEY
+VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLIC_KEY
+```
+
+En production le serveur refuse de démarrer si l'une manque : c'est volontaire, et le message liste
+exactement ce qui manque. Ne mettez jamais `EMAIL_PROVIDER=console` en production.
+
+Deux points vérifiés localement et non vérifiables sans déployer :
+
+- le handler est exercé derrière un `http.Server` et répond sur les deux formes de chemin
+  (`/api/health` et `/health`), donc il ne dépend pas de la sémantique de réécriture de la plateforme ;
+- les fichiers statiques de `dist/` sont servis avant les réécritures, donc le repli SPA n'intercepte
+  pas les assets.
+
+Une route `/api/*` inconnue répond désormais `404` en JSON (`code: API_ROUTE_NOT_FOUND`) et non plus
+`index.html` en `200` : un client qui appelle une route supprimée ne peut plus le confondre avec un
+succès, et une API absente du domaine est distinguable d'une erreur métier.
+
 ## 🛍️ 5. Mode Stripe Test & Webhook
 
 - Les sessions Stripe Checkout s'exécutent en mode Test.
@@ -128,6 +166,38 @@ Pour la production :
 3. Gardez `EMAIL_PROVIDER=console` en local uniquement : le serveur refuse ce provider avec `NODE_ENV=production`.
 4. L’email de confirmation d’identité est géré par Supabase Auth ; le trigger de profil crée en parallèle les notifications in-app `account_created` et `email_confirmation_pending`. Configurez l’URL de redirection Supabase sur l’URL publique HTTPS de l’application.
 5. Utilisez `GET /api/admin/notification-logs` avec un JWT administrateur pour auditer les envois, les erreurs et les emails simplement journalisés.
+
+## 🧪 6 bis. Liaison des stores et tests déterministes
+
+`KURLA_STORE_MODE` contrôle la liaison des stores, côté serveur **et** client public :
+
+| Valeur | Effet |
+| :--- | :--- |
+| `auto` *(défaut)* | Base réelle si `SUPABASE_URL` + une clé secrète sont présentes, sinon repli mémoire. |
+| `memory` | Repli mémoire forcé, quelle que soit la configuration présente. |
+| `server` | Base réelle exigée ; `describeStoreBinding()` signale `unsatisfied` si les identifiants manquent. |
+
+Avant ce garde, la présence de variables d'environnement suffisait à basculer les stores sur la base
+réelle : `npm test` passait sur une machine et échouait sur une autre, sur des identifiants de fixture
+non UUID et des contraintes de clé étrangère. Tous les bancs unitaires forcent désormais `memory`, et
+`tests/store_binding.test.ts` verrouille ce comportement. Le mode `memory` couvre aussi le client
+public, sinon un banc construirait un transport realtime et dépendrait de la version de Node.
+
+```bash
+npm test                 # suite unitaire, déterministe quel que soit l'environnement
+npm run test:store-binding
+npm run test:realdb      # pré-vérification + les bancs conçus pour une base réelle
+```
+
+`npm run test:realdb` commence par `tests/real_database_preflight.test.ts`, qui crée puis supprime un
+compte de test : c'est le point de rupture réel observé lors de l'application des migrations, où GoTrue
+renvoyait `Database error creating new user` parce qu'un trigger échouait en cascade. Sans cette étape,
+une suite annoncée « base réelle » peut échouer sans explication — ou tourner en silence sur le repli
+mémoire et passer pour verte.
+
+Les types React (`@types/react`, `@types/react-dom`) sont désormais installés. Sans eux, `useState`
+valait `any` et aucun composant n'était typé : `tsc --noEmit` donnait une garantie bien plus faible
+qu'annoncé.
 
 ## 🔐 7. Rotation des secrets exposés
 

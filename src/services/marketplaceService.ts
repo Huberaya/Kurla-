@@ -1,4 +1,5 @@
 import { ProductQuestion, ProductReview } from '../types';
+import { apiErrorMessage } from '../lib/apiDiagnostics';
 
 export interface ProductTrustResponse {
   reviews: ProductReview[];
@@ -16,7 +17,7 @@ function authHeaders(accessToken?: string): HeadersInit {
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error || 'La demande n’a pas pu être traitée.');
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La demande n’a pas pu être traitée.'));
   return data as T;
 }
 
@@ -51,4 +52,27 @@ export async function createProductSubscription(productId: string, payload: { fr
     method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify(payload)
   });
   return parseResponse<{ subscription: unknown; message: string }>(response);
+}
+
+// ---------------------------------------------------------------------------
+// Vérification publique de la fiche
+// ---------------------------------------------------------------------------
+
+export interface ProductVerificationCheck {
+  id: string;
+  label: string;
+  passed: boolean;
+}
+
+export interface ProductVerificationResponse {
+  productId: string;
+  verified: boolean;
+  verifiedAt: string | null;
+  checks: ProductVerificationCheck[];
+  note: string;
+}
+
+export async function fetchProductVerification(productIdOrSlug: string): Promise<ProductVerificationResponse> {
+  const response = await fetch(`/api/products/${encodeURIComponent(productIdOrSlug)}/verification`);
+  return parseResponse<ProductVerificationResponse>(response);
 }

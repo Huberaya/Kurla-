@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Bot, Sparkles, Send, ArrowRight, MessageSquare, ShieldCheck, CheckCircle2, User, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Reveal } from '../motion/Reveal';
+import { navigate } from '../../lib/router';
 
 interface SampleQ {
   label: string;
@@ -43,7 +44,7 @@ export const AIShowcase: React.FC = () => {
   const currentQ = SAMPLE_QUESTIONS[selectedIndex];
 
   const handleAsk = (questionText: string) => {
-    window.location.href = `/assistant-beaute?prompt=${encodeURIComponent(questionText)}`;
+    navigate(`/assistant-beaute?prompt=${encodeURIComponent(questionText)}`);
   };
 
   return (

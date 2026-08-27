@@ -94,7 +94,9 @@ export const KurlaProSection: React.FC = () => {
                       <h3 className="text-lg font-serif-title font-bold text-[#111111] flex items-center gap-1.5">
                         {pro.name}
                         {pro.verified && (
-                          <CheckCircle2 className="w-4 h-4 text-[#C8753D]" title="Identité vérifiée" />
+                          <span title="Identité vérifiée" aria-label="Identité vérifiée" className="inline-flex">
+                            <CheckCircle2 className="w-4 h-4 text-[#C8753D]" aria-hidden="true" />
+                          </span>
                         )}
                       </h3>
                       <p className="text-xs text-[#C8753D] font-medium flex items-center gap-1">

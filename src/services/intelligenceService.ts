@@ -5,6 +5,7 @@
  */
 
 import { ArchetypeDerivation } from '../lib/archetype';
+import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { OutcomeObservation } from '../lib/outcomeEvidence';
 import { ProtectiveStyleEpisode } from '../lib/protectiveStyle';
 import { TractionRiskAssessment } from '../lib/protectiveStyle';
@@ -88,10 +89,6 @@ export interface ProtectiveStylesResponse {
   };
 }
 
-function parseError(data: any, fallback: string): Error {
-  return new Error(typeof data?.error === 'string' ? data.error : fallback);
-}
-
 async function request<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -102,7 +99,7 @@ async function request<T>(path: string, token: string, init: RequestInit = {}): 
     }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw parseError(data, 'La demande n’a pas pu aboutir.');
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La demande n’a pas pu aboutir.'));
   return data as T;
 }
 
@@ -314,8 +311,13 @@ export interface ArchetypeRatingsResponse {
   note: string;
 }
 
-export async function getArchetypeRatings(token: string, productId: string): Promise<ArchetypeRatingsResponse> {
-  return request<ArchetypeRatingsResponse>(`/api/products/${encodeURIComponent(productId)}/archetype-ratings`, token);
+/**
+ * Notes par archétype d'un produit. Le jeton est optionnel : la route est
+ * publique, et un visiteur non connecté voit les cohortes publiées sans la
+ * sienne.
+ */
+export async function getArchetypeRatings(productId: string, token?: string): Promise<ArchetypeRatingsResponse> {
+  return request<ArchetypeRatingsResponse>(`/api/products/${encodeURIComponent(productId)}/archetype-ratings`, token || '');
 }
 
 export interface ReplenishmentSignalResponse {
@@ -706,4 +708,94 @@ export async function fetchMyEndorsements(token: string): Promise<{
   note?: string;
 }> {
   return request('/api/me/endorsements', token);
+}
+
+// ---------------------------------------------------------------------------
+// Dossier client vu par le professionnel
+// ---------------------------------------------------------------------------
+
+export interface ProfessionalDossierSharesResponse {
+  professionalId: string;
+  shares: DossierShare[];
+  count: number;
+  note: string;
+}
+
+export interface ProfessionalDossierAccessResponse {
+  access: boolean;
+  reason?: string;
+  scope?: {
+    beautyProfile: boolean;
+    shelf: boolean;
+    outcomes: boolean;
+    protectiveStyles: boolean;
+  };
+  consentAt?: string;
+  expiresAt?: string | null;
+  data?: Record<string, unknown>;
+  note?: string;
+}
+
+/** Liste les partages de dossier actifs reçus par le professionnel connecté. */
+export async function listProfessionalDossierShares(token: string): Promise<ProfessionalDossierSharesResponse> {
+  return request<ProfessionalDossierSharesResponse>('/api/professional/dossier-shares', token);
+}
+
+/** Lit un dossier client, strictement dans le périmètre consenti. */
+export async function fetchProfessionalDossierAccess(
+  token: string,
+  clientUserId: string
+): Promise<ProfessionalDossierAccessResponse> {
+  return request<ProfessionalDossierAccessResponse>(
+    `/api/professional/dossier-access/${encodeURIComponent(clientUserId)}`,
+    token
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tableau de bord professionnel
+// ---------------------------------------------------------------------------
+
+export interface ProfessionalDashboardResponse {
+  profile: ProfessionalProfile;
+  trust: ProfessionalTrustAssessment;
+  bookable: boolean;
+  services: ProfessionalService[];
+  appointments: Appointment[];
+  upcomingCount: number;
+  shares: DossierShare[];
+  activeShareCount: number;
+}
+
+/**
+ * Données réelles du professionnel connecté. Aucun repli fictif : si le compte
+ * n'a pas de profil vérifié, l'appel échoue en 403 et l'écran l'affiche.
+ */
+export async function getMyProfessionalDashboard(token: string): Promise<ProfessionalDashboardResponse> {
+  return request<ProfessionalDashboardResponse>('/api/professional/me', token);
+}
+
+/**
+ * Création d'une co-signature professionnelle.
+ *
+ * L'identité du professionnel n'est PAS envoyée : le serveur la résout depuis le
+ * compte authentifié et refuse un corps qui la déclarerait. Seuls le périmètre
+ * métier (cliente, produit, position, justification, consentement) sont transmis.
+ */
+export async function createProfessionalEndorsement(
+  token: string,
+  input: {
+    clientUserId: string;
+    productId?: string;
+    routinePlanId?: string;
+    stance: 'approved' | 'amended' | 'contradicted';
+    rationale: string;
+    isDisplayable?: boolean;
+    clientConsentAt?: string;
+  }
+): Promise<{ endorsement: unknown }> {
+  return request<{ endorsement: unknown }>('/api/endorsements', token, {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
 }

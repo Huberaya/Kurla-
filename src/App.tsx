@@ -1,6 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSupabaseConfigured } from './lib/supabaseClient';
+import { installClientSideRouting, onRouteChange } from './lib/router';
+import { API_UNAVAILABLE_EVENT, ApiFailureDetail } from './lib/apiDiagnostics';
+import { AlertTriangle } from 'lucide-react';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -63,6 +66,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { ShelfPage } from './pages/ShelfPage';
 import { WashDayPage } from './pages/WashDayPage';
+import { ProtectiveTimelinePage } from './pages/ProtectiveTimelinePage';
 import { SmartSearchPage } from './pages/SmartSearchPage';
 import { RoutineBuilderPage } from './pages/RoutineBuilderPage';
 import { IngredientCardPage } from './pages/IngredientCardPage';
@@ -78,7 +82,10 @@ import { CartItem, Product, ProductVariant } from './types';
 
 function AppContent() {
   const { user, session } = useAuth();
-  const [pathname, setPathname] = useState(window.location.pathname);
+  // La clé inclut la query string : deux diagnostics différents partagent le
+  // même pathname et doivent pourtant provoquer un nouveau rendu.
+  const [locationKey, setLocationKey] = useState(() => `${window.location.pathname}${window.location.search}`);
+  const pathname = locationKey.split('?')[0];
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const stored = localStorage.getItem('kurla_cart_items');
@@ -101,9 +108,18 @@ function AppContent() {
     return id;
   });
 
+  // Routage interne : l'interception des liens évite un rechargement complet
+  // du document à chaque clic (voir src/lib/router.ts). L'écouteur `popstate`
+  // est installé par ce même module.
   useEffect(() => {
-    const handlePopState = () => setPathname(window.location.pathname);
-    window.addEventListener('popstate', handlePopState);
+    installClientSideRouting();
+    const unsubscribe = onRouteChange(() => {
+      setLocationKey(`${window.location.pathname}${window.location.search}`);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const authHeaders: HeadersInit = session?.access_token
@@ -150,7 +166,6 @@ function AppContent() {
     loadCart();
     return () => {
       cancelled = true;
-      window.removeEventListener('popstate', handlePopState);
     };
   }, [anonId, user?.id]);
 
@@ -201,6 +216,20 @@ function AppContent() {
     setCartItems(prev => prev.filter(i => !(i.product.id === productId && i.variantId === variantId)));
   };
 
+  // Une erreur d'infrastructure (API absente du domaine, passerelle en panne)
+  // est remontée par l'intercepteur : elle est affichée telle quelle, car un
+  // code d'hébergeur brut ne dit rien à l'utilisateur.
+  const [apiFailure, setApiFailure] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onApiFailure = (event: Event) => {
+      const detail = (event as CustomEvent<ApiFailureDetail>).detail;
+      setApiFailure(detail?.message || 'Le serveur KURLA n’est pas joignable.');
+    };
+    window.addEventListener(API_UNAVAILABLE_EVENT, onApiFailure);
+    return () => window.removeEventListener(API_UNAVAILABLE_EVENT, onApiFailure);
+  }, []);
+
   const cartCount = cartItems.reduce((acc, i) => acc + i.quantity, 0);
 
   // Router matcher logic
@@ -222,6 +251,7 @@ function AppContent() {
     if (pathname === '/account/progress') return <ProtectedRoute><ProgressJournalPage /></ProtectedRoute>;
     if (pathname === '/account/shelf') return <ProtectedRoute><ShelfPage /></ProtectedRoute>;
     if (pathname === '/account/wash-day') return <ProtectedRoute><WashDayPage /></ProtectedRoute>;
+    if (pathname === '/account/protective-timeline') return <ProtectedRoute><ProtectiveTimelinePage /></ProtectedRoute>;
     if (pathname === '/recherche') return <ProtectedRoute><SmartSearchPage /></ProtectedRoute>;
     if (pathname === '/routine-builder') return <ProtectedRoute><RoutineBuilderPage /></ProtectedRoute>;
     if (pathname === '/cout-routine') return <ProtectedRoute><CostSimulatorPage /></ProtectedRoute>;
@@ -342,7 +372,27 @@ function AppContent() {
           </div>
         )}
 
-        {renderView()}
+        {apiFailure && (
+          <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(680px,92vw)] rounded-2xl border border-red-200 bg-white px-4 py-3 shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0 text-left">
+                <p className="text-[13px] font-semibold text-[#111111]">Service KURLA indisponible</p>
+                <p className="text-[12px] leading-relaxed text-neutral-600 mt-0.5">{apiFailure}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApiFailure(null)}
+                className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-[#111111]"
+                aria-label="Fermer l’alerte"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        <React.Fragment key={locationKey}>{renderView()}</React.Fragment>
 
         <Footer />
 

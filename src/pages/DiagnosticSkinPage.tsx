@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { SkinDiagnosticAnswers } from '../types';
+import { navigate } from '../lib/router';
 
 export const DiagnosticSkinPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -41,10 +42,10 @@ export const DiagnosticSkinPage: React.FC = () => {
       });
       const data = await res.json();
       sessionStorage.setItem('kurla_diagnostic_result', JSON.stringify(data));
-      window.location.href = '/diagnostic/resultat/skin-latest';
+      navigate('/diagnostic/resultat/skin-latest');
     } catch (e) {
       console.error(e);
-      window.location.href = '/diagnostic/resultat/skin-latest';
+      navigate('/diagnostic/resultat/skin-latest');
     } finally {
       setLoading(false);
     }

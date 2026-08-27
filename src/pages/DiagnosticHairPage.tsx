@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { HairDiagnosticAnswers } from '../types';
+import { navigate } from '../lib/router';
 
 export const DiagnosticHairPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -42,10 +43,10 @@ export const DiagnosticHairPage: React.FC = () => {
       });
       const data = await res.json();
       sessionStorage.setItem('kurla_diagnostic_result', JSON.stringify(data));
-      window.location.href = '/diagnostic/resultat/hair-latest';
+      navigate('/diagnostic/resultat/hair-latest');
     } catch (e) {
       console.error(e);
-      window.location.href = '/diagnostic/resultat/hair-latest';
+      navigate('/diagnostic/resultat/hair-latest');
     } finally {
       setLoading(false);
     }
