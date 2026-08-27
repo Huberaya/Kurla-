@@ -286,6 +286,38 @@ export interface ServerOrder {
   stripePaymentIntentId?: string;
   checkoutIdempotencyKey?: string;
   shippingAddress?: any;
+  /** CHANTIER 7.6 — devise d'encaissement. EUR uniquement, jamais converti. */
+  currency?: string;
+  /** Pays de taxation : le taux dû est celui de ce pays (principe de destination). */
+  vatCountry?: string;
+  /** Total hors taxe. */
+  netAmount?: number;
+  /** TVA totale due. */
+  vatAmount?: number;
+  /** Ventilation par taux : `[{ ratePercent, netCents, vatCents }]`. */
+  vatBreakdown?: unknown;
+  /** Numéro de TVA intracommunautaire du client (exonération seulement s'il est vérifié). */
+  customerVatNumber?: string;
+}
+
+/**
+ * Champs devise/TVA d'une ligne `orders`.
+ *
+ * Lecture tolérante : ces colonnes n'existent qu'à partir de la migration
+ * `20260860000000_vat_and_currency.sql`. Avant son application, les champs sont
+ * simplement absents — la TVA reste alors lisible dans l'instantané
+ * `shipping_address.vat`, que le checkout écrit dans tous les cas.
+ */
+function mapOrderVatFields(row: any): Partial<ServerOrder> {
+  if (!row || typeof row !== 'object') return {};
+  const fields: Partial<ServerOrder> = {};
+  if (row.currency != null) fields.currency = String(row.currency);
+  if (row.vat_country != null) fields.vatCountry = String(row.vat_country);
+  if (row.net_amount != null) fields.netAmount = Number(row.net_amount);
+  if (row.vat_amount != null) fields.vatAmount = Number(row.vat_amount);
+  if (row.vat_breakdown != null) fields.vatBreakdown = row.vat_breakdown;
+  if (row.customer_vat_number != null) fields.customerVatNumber = String(row.customer_vat_number);
+  return fields;
 }
 
 export interface OrderStatusHistoryEntry {
@@ -1703,7 +1735,7 @@ class SupabaseServerStore {
     // initial history row. A retry returns the already-created order without
     // reserving its stock a second time.
     if (supabase && isInitialPayment) {
-      const { data, error } = await supabase.rpc('create_order_with_stock_reservation', {
+      const baseArgs = {
         p_order_id: order.id,
         p_user_id: order.userId || null,
         p_customer_email: order.customerEmail,
@@ -1715,7 +1747,35 @@ class SupabaseServerStore {
         p_checkout_idempotency_key: order.checkoutIdempotencyKey || null,
         p_shipping_address: order.shippingAddress || null,
         p_created_at: order.createdAt
-      });
+      };
+      // Signature étendue (migration 20260860) : devise + ventilation de TVA
+      // écrites dans la même transaction que la réservation de stock.
+      const vatArgs = {
+        p_currency: order.currency || 'EUR',
+        p_vat_country: order.vatCountry || null,
+        p_net_amount: order.netAmount ?? null,
+        p_vat_amount: order.vatAmount ?? null,
+        p_vat_breakdown: (order.vatBreakdown as any) ?? null,
+        p_customer_vat_number: order.customerVatNumber || null
+      };
+
+      let data: any = null;
+      let error: any = null;
+      ({ data, error } = await supabase.rpc('create_order_with_stock_reservation', { ...baseArgs, ...vatArgs }));
+
+      // 42883 / PGRST202 : la fonction étendue n'existe pas encore en base. On
+      // retombe sur la signature historique au lieu de bloquer un paiement, mais
+      // bruyamment : les colonnes de TVA ne seront pas remplies tant que la
+      // migration n'est pas appliquée. La TVA reste dans l'instantané JSONB.
+      const missingSignature = !!error && (error.code === '42883' || error.code === 'PGRST202');
+      if (missingSignature) {
+        console.error(
+          '[serverDb] create_order_with_stock_reservation sans paramètres TVA : ' +
+          'appliquez la migration 20260860000000_vat_and_currency.sql. ' +
+          'La TVA de cette commande n’est stockée que dans shipping_address.vat.'
+        );
+        ({ data, error } = await supabase.rpc('create_order_with_stock_reservation', baseArgs));
+      }
       ensureDatabaseSuccess('création atomique de la commande et réservation du stock', error);
       const row: any = Array.isArray(data) ? data[0] : data;
       if (!row) throw new Error('[Supabase] création atomique de la commande: réponse vide');
@@ -1731,7 +1791,13 @@ class SupabaseServerStore {
         checkoutIdempotencyKey: row.checkout_idempotency_key ?? order.checkoutIdempotencyKey,
         shippingAddress: row.shipping_address ?? order.shippingAddress,
         createdAt: row.created_at || order.createdAt,
-        updatedAt: row.updated_at || order.updatedAt
+        updatedAt: row.updated_at || order.updatedAt,
+        currency: row.currency ?? order.currency ?? 'EUR',
+        vatCountry: row.vat_country ?? order.vatCountry,
+        netAmount: row.net_amount != null ? Number(row.net_amount) : order.netAmount,
+        vatAmount: row.vat_amount != null ? Number(row.vat_amount) : order.vatAmount,
+        vatBreakdown: row.vat_breakdown ?? order.vatBreakdown,
+        customerVatNumber: row.customer_vat_number ?? order.customerVatNumber
       };
       const persistedIndex = this.inMemoryOrders.findIndex(existing => existing.id === persistedOrder.id);
       if (persistedIndex >= 0) this.inMemoryOrders[persistedIndex] = persistedOrder;
@@ -1856,7 +1922,8 @@ class SupabaseServerStore {
           checkoutIdempotencyKey: data.checkout_idempotency_key,
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
-          updatedAt: data.updated_at
+          updatedAt: data.updated_at,
+          ...mapOrderVatFields(data)
         };
       }
     }
@@ -1893,7 +1960,8 @@ class SupabaseServerStore {
           checkoutIdempotencyKey: d.checkout_idempotency_key,
           shippingAddress: d.shipping_address,
           createdAt: d.created_at,
-          updatedAt: d.updated_at
+          updatedAt: d.updated_at,
+          ...mapOrderVatFields(d)
         }));
         return supaOrders;
       }
@@ -2060,7 +2128,8 @@ class SupabaseServerStore {
           checkoutIdempotencyKey: data.checkout_idempotency_key,
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
-          updatedAt: data.updated_at
+          updatedAt: data.updated_at,
+          ...mapOrderVatFields(data)
         };
       }
     }
@@ -2114,7 +2183,13 @@ class SupabaseServerStore {
         checkoutIdempotencyKey: row.checkout_idempotency_key ?? order.checkoutIdempotencyKey,
         shippingAddress: row.shipping_address ?? order.shippingAddress,
         createdAt: row.created_at || order.createdAt,
-        updatedAt: row.updated_at || order.updatedAt
+        updatedAt: row.updated_at || order.updatedAt,
+        currency: row.currency ?? order.currency ?? 'EUR',
+        vatCountry: row.vat_country ?? order.vatCountry,
+        netAmount: row.net_amount != null ? Number(row.net_amount) : order.netAmount,
+        vatAmount: row.vat_amount != null ? Number(row.vat_amount) : order.vatAmount,
+        vatBreakdown: row.vat_breakdown ?? order.vatBreakdown,
+        customerVatNumber: row.customer_vat_number ?? order.customerVatNumber
       };
       const index = this.inMemoryOrders.findIndex(existing => existing.id === updated.id);
       if (index >= 0) this.inMemoryOrders[index] = updated;
@@ -5706,7 +5781,8 @@ class SupabaseServerStore {
       checkoutIdempotencyKey: row.checkout_idempotency_key || undefined,
       shippingAddress: row.shipping_address,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      ...mapOrderVatFields(row)
     });
     const mapRefund = (row: any) => mapRefundRow(row);
     const mapShipment = (row: any) => ({
@@ -5967,7 +6043,8 @@ class SupabaseServerStore {
           checkoutIdempotencyKey: data.checkout_idempotency_key,
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
-          updatedAt: data.updated_at
+          updatedAt: data.updated_at,
+          ...mapOrderVatFields(data)
         }));
 
         const { data: refundData, error: refundsError } = await supabase.from('refunds').select('*');

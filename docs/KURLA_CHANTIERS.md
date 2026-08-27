@@ -644,9 +644,82 @@ Non vérifié : aucun écran n'a été rendu dans un navigateur (limitation cons
 du chantier) ; le sélecteur FR/EN est donc validé par ses fonctions, pas
 visuellement.
 
+### 7.6 — Devises et TVA 🔶 (code livré, migration à appliquer)
+
+La commande ne stockait qu'un `total` TTC. Le taux appliqué, la part de TVA et le
+pays de taxation n'étaient nulle part : aucune facture reconstituable, et le taux
+français de 20 % s'appliquait implicitement à toute l'Europe alors qu'une vente à
+un particulier allemand est taxée à **19 %** (principe de destination, directive
+2006/112/CE art. 33, déclaré via l'OSS). `products.vat_rate` et
+`price_includes_vat` existaient en base mais n'étaient **jamais lus** au paiement.
+
+**Trois règles appliquées**
+1. Le taux dû est celui du **pays de livraison**, pas celui du vendeur.
+2. Un prix TTC **ne change pas de montant** : la TVA est déduite du prix
+   réellement encaissé (`TVA = TTC × taux / (100 + taux)`), le net obtenu par
+   soustraction — donc `net + TVA = TTC` tient exactement, au centime. Un prix
+   hors taxe, lui, est majoré de la TVA avant encaissement : un particulier ne
+   peut pas être facturé HT.
+3. L'auto-liquidation B2B (art. 138/196) n'est accordée **que sur un numéro
+   vérifié auprès de VIES**. Un numéro bien formé ne prouve rien.
+
+**Modules** (purs, testables sans HTTP)
+- `src/lib/vat.ts` — 8 taux normaux **sourcés et datés** (FR 20, BE 21, LU 17,
+  DE 19, ES 21, IT 22, NL 21, PT 23), bornés aux pays de `SHIPPING_OPTIONS` :
+  publier un taux pour un pays non desservi laisserait croire qu'on y vend.
+  Provenance croisée, dont le briefing EPRS du Parlement européen (janv. 2026).
+  Calcul ligne par ligne, port réparti **au prorata** avec reliquat sur la
+  dernière ligne, ventilation par taux, formats de numéros de TVA.
+- `src/lib/checkoutVat.ts` — `priceCheckoutWithVat()`, **la fonction que la route
+  de checkout appelle**. Extraite du handler pour une raison précise : tant
+  qu'elle vivait au milieu du HTTP, aucun banc ne pouvait l'exercer.
+- `src/lib/currency.ts` — EUR comme devise d'encaissement, formatage localisé
+  (`18,90 €` / `€18.90`), tout l'argent en centimes entiers. **Aucune table de
+  conversion** : un taux non sourcé serait un fait inventé, et un prix affiché
+  qu'on ne peut pas encaisser serait une promesse fausse. `assertSettlementCurrency`
+  refuse au lieu d'arrondir.
+- `src/lib/viesVerification.ts` — endpoint réel de la Commission, **échec fermé**
+  (panne, saturation `MS_MAX_CONCURRENT_REQ`, HTTP ≠ 200, `valid ≠ true` ⇒
+  « non vérifié » ⇒ TVA normale). Désactivé par défaut
+  (`VIES_VERIFICATION_ENABLED`) : le paiement ne dépend d'aucun service tiers.
+
+**Vérifié en HTTP réel** (sonde jetable : serveur démarré, produit rendu
+publiable, POST sur `/api/stripe/create-checkout-session`, livraison en
+Allemagne, 2 × 18,90 € + port 8,90 €) :
+```
+total 46,70 € · vatCountry DE · net 39,24 € · TVA 7,46 € · breakdown [{19 %, 3924, 746}]
+ligne : unitCents 1890 (inchangé) · vatRate 19 · vatAmount 6,04 € · lineTotal 37,80 €
+port : gross 890 · net 748 · TVA 142 · taux relevé au 2026-08-28
+```
+`39,24 + 7,46 = 46,70` exactement. Stripe a échoué (clé factice) **après** la
+persistance, ce qui a aussi exercé le chemin d'échec : commande passée en
+`payment_failed`. La sonde a été supprimée après usage.
+
+`tests/chantier_7_vat.test.ts` (branché dans `npm test`) : taux épinglés et bornés,
+identité net + TVA = TTC, taux de destination, port proratisé sans perte,
+auto-liquidation refusée sans vérification, VIES en échec fermé sur cinq scénarios
+(`fetch` injecté — la fonction réelle est exécutée), devise refusée, et
+`priceCheckoutWithVat` appelée directement. Validé par **quatre** mutations
+(DE 19→20, vérification ignorée, VIES non fail-closed, double taxation d'un prix
+HT : toutes détectées — la dernière a révélé un défaut réel avant livraison).
+
+**Ce qui manque, explicitement**
+- La migration `20260860000000_vat_and_currency.sql` est **écrite mais non
+  appliquée** : aucun jeton d'administration Supabase dans cet environnement.
+  Elle ajoute `orders.currency` (verrouillé EUR par CHECK), `vat_country`,
+  `net_amount`, `vat_amount`, `vat_breakdown`, `customer_vat_number`, les mêmes
+  champs par ligne, et étend le RPC de création de commande — **sans supprimer
+  l'ancienne signature**, devenue un relais : l'ordre d'application n'a donc
+  aucune importance et aucun paiement ne peut être interrompu.
+- En attendant, `serverDb` tente la signature étendue, et sur `42883`/`PGRST202`
+  retombe sur l'ancienne en journalisant bruyamment. La TVA reste lisible dans
+  l'instantané `shipping_address.vat`, écrit dans tous les cas.
+- L'encaissement multidevise reste à faire avec Stripe (reporté en fin de
+  chantiers) : les RPC de paiement et de remboursement refusent déjà toute devise
+  autre qu'EUR en base.
+
 ### Restant
 
-- [ ] **7.6** Devises et TVA
 - [ ] **7.7** Filtrage réglementaire par juridiction via
       `ingredient_jurisdiction_restrictions` (3 lignes seedées : rétinol, acide
       salicylique, hydroquinone)

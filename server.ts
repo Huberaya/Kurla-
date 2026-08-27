@@ -24,6 +24,10 @@ import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
 import { UserRole } from './src/types';
 import { calculateShippingCents, normalizeShippingAddress, ShippingMethod } from './src/lib/shippingRules';
+import { isReverseChargeEligible, vatRateForCountry } from './src/lib/vat';
+import { priceCheckoutWithVat } from './src/lib/checkoutVat';
+import { verifyVatNumber } from './src/lib/viesVerification';
+import { fromCents, toCents } from './src/lib/currency';
 import { calculateKurlaFit } from './src/lib/kurlaFit';
 import { createEmptyBeautyProfile, normalizeBeautyProfile, calculateProfileConfidence, BeautyProfilePhoto } from './src/lib/beautyProfile';
 import { normalizeWeatherContext } from './src/lib/adaptiveRoutine';
@@ -652,8 +656,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Verify product publication, variant pricing and stock against the
     // customer catalogue. Client-provided prices and availability are ignored.
     const customerCatalog = await serverDb.getProducts({ publishedOnly: true });
-    const verifiedItems: any[] = [];
-    let calculatedTotal = 0;
+    const pricedItems: any[] = [];
     const requestedByVariant = new Map<string, number>();
 
     for (const rawItem of items) {
@@ -703,25 +706,77 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
 
       // Ignore client price parameter — compute strictly using server DB price
       const dbPrice = variant ? effectiveVariantPrice(variant) : Number(dbProduct.price);
-      const itemTotal = dbPrice * quantity;
-      calculatedTotal += itemTotal;
+      // Le sens du prix stocké (TTC ou hors taxe) décide de ce qui est facturable
+      // à un particulier : un prix hors taxe ne peut pas être encaissé tel quel.
+      const priceIncludesVat = variant && variant.price_includes_vat !== undefined
+        ? variant.price_includes_vat !== false
+        : dbProduct.priceIncludesVat !== false;
+      const declaredVatRate = Number(
+        (variant && variant.vat_rate != null ? variant.vat_rate : dbProduct.vatRate) ?? 20
+      );
 
-      verifiedItems.push({
+      pricedItems.push({
         productId: dbProduct.id,
         variantId: rawItem.variant_id || rawItem.variantId,
         quantity,
-        price: dbPrice,
+        unitAmountCents: toCents(dbPrice),
+        unitPrice: dbPrice,
         name: dbProduct.name,
         image: dbProduct.image,
-        slug: dbProduct.slug
+        slug: dbProduct.slug,
+        priceIncludesVat,
+        declaredVatRate
       });
     }
 
-    const subtotalCents = Math.round(calculatedTotal * 100);
-    const shippingCents = calculateShippingCents(subtotalCents, normalizedShippingAddress.country, shippingMethod);
-    const finalTotalCents = subtotalCents + shippingCents;
-    const finalTotal = Number((finalTotalCents / 100).toFixed(2));
-    console.log(`[Stripe Checkout] Sous-total: ${calculatedTotal.toFixed(2)} EUR, livraison: ${(shippingCents / 100).toFixed(2)} EUR, total: ${finalTotal.toFixed(2)} EUR`);
+    const shippingCents = calculateShippingCents(
+      pricedItems.reduce((sum, item) => sum + item.unitAmountCents * item.quantity, 0),
+      normalizedShippingAddress.country,
+      shippingMethod
+    );
+
+    // ── TVA (chantier 7.6) ──────────────────────────────────────────────────
+    // Le taux dû est celui du pays de livraison, pas celui du vendeur : une
+    // vente à un particulier allemand est taxée à 19 %, pas à 20 %.
+    if (vatRateForCountry(normalizedShippingAddress.country) === null) {
+      return res.status(400).json({
+        error: `TVA indéterminée pour le pays « ${normalizedShippingAddress.country} ». Commande refusée.`
+      });
+    }
+
+    // Auto-liquidation B2B : uniquement sur un numéro vérifié auprès de VIES.
+    // Toute absence de vérification laisse la TVA normale s'appliquer.
+    const submittedVatNumber = typeof req.body.vatNumber === 'string' ? req.body.vatNumber : undefined;
+    const vatVerification = submittedVatNumber
+      ? await verifyVatNumber({ country: normalizedShippingAddress.country, vatNumber: submittedVatNumber })
+      : null;
+    const reverseCharge = isReverseChargeEligible({
+      country: normalizedShippingAddress.country,
+      vatNumberVerified: vatVerification?.verified === true,
+      customerVatNumber: vatVerification?.vatNumber ?? null
+    });
+    if (submittedVatNumber && !reverseCharge.eligible) {
+      console.log(`[Stripe Checkout] Auto-liquidation écartée : ${reverseCharge.reason}`);
+    }
+
+    // Tarification et TVA : la même fonction est exercée par
+    // `tests/chantier_7_vat.test.ts`, donc ce qui est facturé ici est du code
+    // testé, pas une copie vérifiée à côté.
+    const pricing = priceCheckoutWithVat({
+      pricedItems,
+      shippingCents,
+      country: normalizedShippingAddress.country,
+      reverseChargeEligible: reverseCharge.eligible,
+      customerVatNumber: vatVerification?.vatNumber ?? null
+    });
+    const { vat, verifiedItems, itemsGrossCents, finalTotalCents, finalTotal } = pricing;
+
+    console.log(
+      `[Stripe Checkout] Pays ${vat.country} · taux ${vat.ratePercent}% · articles ${fromCents(itemsGrossCents).toFixed(2)} EUR · ` +
+      `port ${fromCents(shippingCents).toFixed(2)} EUR · net ${fromCents(vat.totalNetCents).toFixed(2)} EUR · ` +
+      `TVA ${fromCents(vat.totalVatCents).toFixed(2)} EUR · total ${finalTotal.toFixed(2)} EUR` +
+      `${vat.reverseCharge ? ' · auto-liquidation' : ''}`
+    );
 
     // Save order with user_id, shipping details and status payment_pending_webhook.
     // The shipping cost is stored in the order snapshot so the customer and
@@ -734,11 +789,29 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       status: 'payment_pending_webhook',
       customerEmail: email,
       checkoutIdempotencyKey,
+      // Devise et TVA : la commande porte de quoi reconstituer la facture, sans
+      // dépendre d'un recalcul ultérieur des taux (qui peuvent changer).
+      currency: 'EUR',
+      vatCountry: vat.country,
+      netAmount: fromCents(vat.totalNetCents),
+      vatAmount: fromCents(vat.totalVatCents),
+      vatBreakdown: vat.breakdown,
+      customerVatNumber: vat.customerVatNumber || undefined,
       shippingAddress: {
         ...normalizedShippingAddress,
         shippingMethod,
-        shippingCost: Number((shippingCents / 100).toFixed(2)),
-        subtotal: Number(calculatedTotal.toFixed(2))
+        shippingCost: fromCents(shippingCents),
+        subtotal: fromCents(itemsGrossCents),
+        // Instantané complet : taux, date de relevé, ventilation, port et, le cas
+        // échéant, numéro de TVA vérifié. C'est la preuve de ce qui a été appliqué.
+        vat: {
+          ...vat,
+          shippingAmountCents: shippingCents,
+          reverseChargeReason: reverseCharge.reason,
+          vatCheckedAt: vatVerification?.checkedAt ?? null,
+          vatRequestIdentifier: vatVerification?.requestIdentifier ?? null,
+          traderName: vatVerification?.traderName ?? null
+        }
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -751,7 +824,9 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
           name: item.name,
           images: item.image ? [item.image] : [],
         },
-        unit_amount: Math.round(item.price * 100),
+        // Montant réellement encaissé, en centimes : identique au prix catalogue
+        // pour un prix TTC, réduit au net sous auto-liquidation vérifiée.
+        unit_amount: item.unitCents,
       },
       quantity: item.quantity,
     }));

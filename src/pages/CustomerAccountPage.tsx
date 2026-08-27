@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { User, ShoppingBag, Sparkles, MapPin, Calendar, CheckCircle2, Heart, Clock, AlertCircle, Save, LogOut, ShieldCheck, Bell, MessageSquare, RotateCcw, Truck, Send, Check, Trash2, Settings, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { formatMoney, toCents } from '../lib/currency';
+import { formatVatRate } from '../lib/vat';
 import { UserProfile } from '../types';
 
+/**
+ * Forme client d'une commande.
+ *
+ * Copie locale du `ServerOrder` de `src/lib/serverDb.ts` (le type serveur n'est
+ * pas importable ici sans embarquer le store). Les champs de TVA du chantier 7.6
+ * sont optionnels : ils n'arrivent que si la migration
+ * `20260860000000_vat_and_currency.sql` est appliquée, et l'affichage s'efface
+ * proprement sinon.
+ */
 interface ServerOrder {
   id: string;
   items: any[];
@@ -12,6 +23,12 @@ interface ServerOrder {
   shippingAddress?: any;
   createdAt: string;
   stripeSessionId?: string;
+  currency?: string;
+  vatCountry?: string;
+  netAmount?: number;
+  vatAmount?: number;
+  vatBreakdown?: { ratePercent: number; netCents: number; vatCents: number }[];
+  customerVatNumber?: string;
 }
 
 export const CustomerAccountPage: React.FC = () => {
@@ -439,8 +456,18 @@ export const CustomerAccountPage: React.FC = () => {
                         <div>
                           <span className="text-xs text-[#D49A63] font-semibold font-mono">{order.id}</span>
                           <p className="text-xs text-[#FFF7EF]/50 mt-0.5">
-                            Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} • {Number(order.total).toFixed(2)} €
+                            Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} • {formatMoney(toCents(Number(order.total)))}
                           </p>
+                          {order.vatAmount != null && (
+                            <p className="text-[11px] text-[#FFF7EF]/40 mt-0.5">
+                              dont TVA{order.vatCountry ? ` (${order.vatCountry}${
+                                Array.isArray(order.vatBreakdown) && order.vatBreakdown.length === 1
+                                  ? ` · ${formatVatRate(Number((order.vatBreakdown[0] as any).ratePercent))}`
+                                  : ''
+                              })` : ''} : {formatMoney(toCents(Number(order.vatAmount)))}
+                              {order.netAmount != null ? ` · HT ${formatMoney(toCents(Number(order.netAmount)))}` : ''}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${

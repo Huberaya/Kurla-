@@ -3,6 +3,9 @@ import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle
 import { CartItem } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
+import { computeOrderVat, formatVatRate } from '../lib/vat';
+import { formatMoney, toCents } from '../lib/currency';
+import { useI18n } from '../lib/I18nProvider';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -63,11 +66,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   if (!isOpen) return null;
 
+  const { locale } = useI18n();
   const total = items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0);
   const subtotalCents = Math.round(total * 100);
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
   const orderTotalCents = subtotalCents + shippingCents;
+
+  /**
+   * Estimation de TVA au taux du pays de livraison. Le serveur recalcule tout
+   * avant paiement : cette ligne informe, elle ne fait pas foi.
+   */
+  const vatPreview = React.useMemo(() => {
+    if (!shippingOption || items.length === 0) return null;
+    try {
+      return computeOrderVat({
+        lines: items.map(item => ({
+          amountCents: toCents(unitPrice(item) * item.quantity),
+          includesVat: (item.product as any)?.priceIncludesVat !== false
+        })),
+        shippingAmountCents: shippingCents,
+        country: shippingAddress.country
+      });
+    } catch {
+      // Pays non desservi ou montant invalide : on n'affiche rien plutôt qu'un
+      // montant faux.
+      return null;
+    }
+  }, [items, shippingOption, shippingCents, shippingAddress.country]);
 
   const handleStartCheckout = async () => {
     const email = user?.email || guestEmail.trim();
@@ -393,16 +419,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             <div className="flex justify-between text-sm text-[#FFF7EF]">
               <span className="text-[#FFF7EF]/70">Sous-total :</span>
-              <span>{total.toFixed(2)} €</span>
+              <span>{formatMoney(subtotalCents, locale)}</span>
             </div>
             <div className="flex justify-between text-sm text-[#FFF7EF]">
               <span className="text-[#FFF7EF]/70">Livraison :</span>
-              <span>{(shippingCents / 100).toFixed(2)} €</span>
+              <span>{formatMoney(shippingCents, locale)}</span>
             </div>
             <div className="flex justify-between text-base text-[#FFF7EF] border-t border-[#FFF7EF]/10 pt-3">
               <span className="font-semibold">Total estimé :</span>
-              <span className="font-bold">{(orderTotalCents / 100).toFixed(2)} €</span>
+              <span className="font-bold">{formatMoney(orderTotalCents, locale)}</span>
             </div>
+            {vatPreview && (
+              <div className="flex justify-between text-[11px] text-[#FFF7EF]/60">
+                <span>dont TVA ({formatVatRate(vatPreview.ratePercent ?? 0)} · {vatPreview.country}) :</span>
+                <span>{formatMoney(vatPreview.totalVatCents, locale)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
               <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
@@ -418,7 +450,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <span>Commander maintenant ({(orderTotalCents / 100).toFixed(2)} €)</span>
+                  <span>Commander maintenant ({formatMoney(orderTotalCents, locale)})</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
