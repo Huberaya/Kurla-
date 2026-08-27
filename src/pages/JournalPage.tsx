@@ -1,8 +1,9 @@
 import React from 'react';
 import { BookOpen, Clock, ArrowRight } from 'lucide-react';
-import { MOCK_ARTICLES } from '../data/mockData';
+import { usePublishedArticles } from '../services/articleService';
 
 export const JournalPage: React.FC = () => {
+  const { articles, loading, error } = usePublishedArticles();
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,18 +23,21 @@ export const JournalPage: React.FC = () => {
 
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {MOCK_ARTICLES.map((article) => (
+          {loading && <p className="md:col-span-3 text-center text-sm text-[#FFF7EF]/50">Chargement des articles publiés…</p>}
+          {!loading && error && <p className="md:col-span-3 text-center text-sm text-rose-300">{error}</p>}
+          {!loading && !error && articles.length === 0 && <p className="md:col-span-3 text-center text-sm text-[#FFF7EF]/50">Aucun article publié pour le moment.</p>}
+          {articles.map((article) => (
             <article
               key={article.id}
               className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 hover:border-[#C8753D]/40 transition-all overflow-hidden shadow-xl flex flex-col justify-between group"
             >
               <div>
                 <div className="relative h-60 overflow-hidden">
-                  <img
+                  {article.image ? <img
                     src={article.image}
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center"><BookOpen className="w-10 h-10 text-[#C8753D]" /></div>}
                   <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#050403]/80 backdrop-blur-md text-xs font-semibold text-[#D49A63]">
                     {article.category}
                   </span>

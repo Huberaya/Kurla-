@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
+import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, profile, session, signOut } = useAuth();
@@ -9,9 +10,10 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'operations'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
+  const [adminDashboard, setAdminDashboard] = useState<any>(null);
   const [serverOrders, setServerOrders] = useState<any[]>([]);
   const [returnsList, setReturnsList] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
@@ -43,7 +45,13 @@ export const AdminDashboardPage: React.FC = () => {
       .then(data => data.metrics && setMetrics(data.metrics))
       .catch(err => console.error('Error metrics:', err));
 
-    // 2. Fetch Orders
+    // 2. Fetch the admin-only operational read model
+    fetch('/api/admin/dashboard', { headers: adminHeaders })
+      .then(res => res.json())
+      .then(data => data.dashboard && setAdminDashboard(data.dashboard))
+      .catch(err => console.error('Error admin dashboard:', err));
+
+    // 3. Fetch Orders
     fetch('/api/orders', { headers: adminHeaders })
       .then(res => res.json())
       .then(data => data.orders && setServerOrders(data.orders))
@@ -61,7 +69,7 @@ export const AdminDashboardPage: React.FC = () => {
       .then(data => data.tickets && setSupportTickets(data.tickets))
       .catch(err => console.error('Error tickets:', err));
 
-    // 5. Fetch persisted KURLA Pro applications
+    // 6. Fetch persisted KURLA Pro applications
     fetch('/api/admin/professional-applications', { headers: adminHeaders })
       .then(res => res.json())
       .then(data => data.applications && setProfessionalApplications(data.applications))
@@ -267,7 +275,8 @@ export const AdminDashboardPage: React.FC = () => {
             { id: 'returns', label: `Retours & Remboursements (${returnsList.length})`, icon: RotateCcw },
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
             { id: 'pros', label: 'Certifications Pros', icon: Users },
-            { id: 'catalog', label: 'Catalogue produits', icon: Package }
+            { id: 'catalog', label: 'Catalogue produits', icon: Package },
+            { id: 'operations', label: 'Gestion quotidienne', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -298,9 +307,9 @@ export const AdminDashboardPage: React.FC = () => {
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-[#FFF7EF] block">
-                  {metrics?.revenueTest?.toFixed(2) || '0.00'} €
+                  {metrics ? `${metrics.revenueTest.toFixed(2)} €` : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">Cumul des commandes au statut PAID</span>
+                <span className="text-[11px] text-[#FFF7EF]/50 block">Commandes réglées, moins les remboursements persistés</span>
               </div>
 
               <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
@@ -309,7 +318,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-[#FFF7EF] block">
-                  {metrics?.avgOrderValue?.toFixed(2) || '0.00'} €
+                  {metrics ? `${metrics.avgOrderValue.toFixed(2)} €` : '—'}
                 </span>
                 <span className="text-[11px] text-[#FFF7EF]/50 block">Valeur moyenne par commande payée</span>
               </div>
@@ -320,9 +329,9 @@ export const AdminDashboardPage: React.FC = () => {
                   <ShoppingBag className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-[#FFF7EF] block">
-                  {metrics?.totalOrders || 0}
+                  {metrics ? metrics.totalOrders : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">{metrics?.todayOrdersCount || 0} aujourd'hui</span>
+                <span className="text-[11px] text-[#FFF7EF]/50 block">{metrics ? metrics.todayOrdersCount : '—'} aujourd'hui</span>
               </div>
 
               <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
@@ -331,11 +340,23 @@ export const AdminDashboardPage: React.FC = () => {
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-[#FFF7EF] block">
-                  {metrics?.openTicketsCount || 0}
+                  {metrics ? metrics.openTicketsCount : '—'}
                 </span>
                 <span className="text-[11px] text-[#FFF7EF]/50 block">En cours de traitement</span>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-rose-300">Remboursements persistés</span><strong className="text-2xl block">{metrics ? metrics.refundsCount : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Transactions pending ou finalisées</span></div>
+              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-amber-300">Recherches sans résultat</span><strong className="text-2xl block">{metrics ? metrics.searchesWithoutResultsCount : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Événements persistés, requêtes ≥ 2 caractères</span></div>
+              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-sky-300">Utilisation IA</span><strong className="text-2xl block">{metrics?.aiUsageRate == null ? (metrics ? 'Non calculable' : '—') : `${metrics.aiUsageRate.toFixed(1)} %`}</strong><span className="text-[11px] text-[#FFF7EF]/45">Utilisateurs inscrits ayant utilisé l’IA</span></div>
+              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? (metrics.popularProducts?.length || 0) : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Classement issu des lignes de commandes réglées</span></div>
+            </div>
+
+            {(metrics?.topZeroResultSearches?.length > 0 || metrics?.popularProducts?.length > 0) && <div className="grid lg:grid-cols-2 gap-6">
+              {metrics?.topZeroResultSearches?.length > 0 && <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Requêtes à examiner</h2><div className="flex flex-wrap gap-2">{metrics.topZeroResultSearches.map((item: any) => <span key={item.query} className="px-3 py-2 rounded-xl bg-[#050403] text-xs text-[#D49A63]">{item.query} · {item.count}</span>)}</div></div>}
+              {metrics?.popularProducts?.length > 0 && <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{metrics.popularProducts.map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
+            </div>}
 
             {/* Inventory Stock Alerts */}
             <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
@@ -660,12 +681,18 @@ export const AdminDashboardPage: React.FC = () => {
             headers={adminHeaders}
             onSuccess={(message) => {
               setActionSuccess(message);
+              loadData();
               setTimeout(() => setActionSuccess(''), 4000);
             }}
           />
         )}
 
-        {/* TAB 6: CERTIFICATIONS PROS */}
+        {/* TAB 6: DAILY OPERATIONS */}
+        {activeTab === 'operations' && (
+          <AdminOperationsPanel dashboard={adminDashboard} headers={adminHeaders} onReload={loadData} />
+        )}
+
+        {/* TAB 7: CERTIFICATIONS PROS */}
         {activeTab === 'pros' && (
           <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
             <div>

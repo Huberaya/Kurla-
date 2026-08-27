@@ -1,6 +1,7 @@
-import React from 'react';
-import { ArrowLeft, Clock, Share2, Sparkles, ArrowRight } from 'lucide-react';
-import { MOCK_ARTICLES } from '../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Clock, Share2, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
+import { Article } from '../types';
+import { fetchPublishedArticle } from '../services/articleService';
 import { NotFoundPage } from './NotFoundPage';
 
 interface ArticleDetailPageProps {
@@ -8,7 +9,15 @@ interface ArticleDetailPageProps {
 }
 
 export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) => {
-  const article = MOCK_ARTICLES.find(a => a.slug === slug);
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchPublishedArticle(slug).then(value => { if (active) setArticle(value); }).catch(() => { if (active) setArticle(null); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [slug]);
+  if (loading) return <div className="min-h-screen pt-40 bg-[#050403] text-[#FFF7EF] text-center text-sm">Chargement de l’article…</div>;
   if (!article) return <NotFoundPage />;
 
   return (
@@ -42,11 +51,11 @@ export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) =>
 
         {/* Featured Image */}
         <div className="relative aspect-[16/9] rounded-3xl overflow-hidden border border-[#FFF7EF]/10 mb-12 shadow-2xl">
-          <img
+          {article.image ? <img
             src={article.image}
             alt={article.title}
             className="w-full h-full object-cover"
-          />
+          /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center"><BookOpen className="w-12 h-12 text-[#C8753D]" /></div>}
         </div>
 
         {/* Article Body */}
@@ -54,35 +63,18 @@ export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) =>
           <p className="font-normal text-xl text-[#FFF7EF] leading-relaxed">
             {article.excerpt}
           </p>
-
-          <p>
-            Comprendre la structure de sa fibre capillaire ou de son épiderme est la première étape vers une beauté sereine. Sur cheveux 4A à 4C, la forme hélicoïdale de la spirale empêche le sébum naturel produit par le cuir chevelu d'irriguer facilement jusqu'aux pointes.
-          </p>
-
-          <h3 className="text-2xl font-serif-title font-bold text-[#FFF7EF] pt-4">
-            1. Le rôle déterminant de la porosité
-          </h3>
-          <p>
-            Lorsque les cuticules sont très ouvertes (porosité forte), l'eau pénètre instantanément mais s'évapore tout aussi vite au contact de l'air ambiant. C'est pourquoi l'utilisation d'une méthode structurée de scellage (Leave-in Crème + Élixir d'huiles pures) est indispensable pour verrouiller l'hydratation.
-          </p>
-
-          <h3 className="text-2xl font-serif-title font-bold text-[#FFF7EF] pt-4">
-            2. Les erreurs courantes à éviter
-          </h3>
-          <ul className="list-disc pl-6 space-y-2 text-sm text-[#FFF7EF]/80">
-            <li>Appliquer de l'huile pure sur un cheveu complètement sec. L'huile isole et empêche l'eau de pénétrer ultérieurement.</li>
-            <li>Employer des shampoings clarifiants trop agressifs sans masque reconstituant après chaque lavage.</li>
-            <li>Démêler les cheveux crépus 4C à sec sans leave-in ni eau tiède.</li>
-          </ul>
-
-          <div className="p-6 rounded-2xl bg-[#1A0F0A] border border-[#C8753D]/30 my-8 space-y-2">
-            <h4 className="text-sm font-serif-title font-bold text-[#D49A63] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#C8753D]" /> Conseil de l'expert KURLA
-            </h4>
-            <p className="text-xs text-[#FFF7EF]/80 italic">
-              « Privilégiez toujours un démêlage aux doigts doux en humidifiant au préalable par sections. Ne forcez jamais sur un nœud. »
-            </p>
-          </div>
+          <div className="whitespace-pre-wrap">{article.content}</div>
+          {article.faq && article.faq.length > 0 && (
+            <div className="p-6 rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4">
+              <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF]">Questions fréquentes</h2>
+              {article.faq.map((item, index) => (
+                <div key={`${item.question}-${index}`} className="space-y-1">
+                  <h3 className="text-sm font-semibold text-[#D49A63]">{item.question}</h3>
+                  <p className="text-sm">{item.answer}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CTA Diagnostic */}

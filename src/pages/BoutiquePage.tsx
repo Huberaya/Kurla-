@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X, 
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart, 
@@ -175,6 +175,21 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
     profile, hasKurlaProfile
   ]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) return;
+    const timer = window.setTimeout(() => {
+      fetch('/api/search-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, country: selectedCountry === 'tous' ? undefined : selectedCountry })
+      }).catch(() => {
+        // Search telemetry is best effort and must never block the catalog.
+      });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery, selectedCountry]);
 
   const activeNeedObj = useMemo(() => {
     if (!selectedNeedId) return null;

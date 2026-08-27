@@ -448,6 +448,14 @@ class SupabaseServerStore {
   private inMemoryAiMessages: Map<string, AiAssistantMessage[]> = new Map();
   private inMemoryAiFeedback: Array<{ userId: string; sessionId?: string; messageId?: string; rating: AiFeedbackRating; comment?: string; createdAt: string }> = [];
   private inMemoryAiHumanReviews: AiHumanReview[] = [];
+  private inMemoryAdminAuditLogs: Array<{ id: string; action: string; userId?: string; details: Record<string, unknown>; createdAt: string }> = [];
+  private inMemoryAdminBrands: any[] = [];
+  private inMemoryAdminCategories: any[] = [];
+  private inMemoryAdminArticles: any[] = [];
+  private inMemoryAdminSources: any[] = [];
+  private inMemoryAdminCoupons: any[] = [];
+  private inMemoryAdminSearchEvents: Array<{ id: string; query: string; resultCount: number; country?: string; userId?: string; createdAt: string }> = [];
+  private inMemoryAdminAiUsageEvents: Array<{ id: string; requestType: string; succeeded: boolean; userId?: string; createdAt: string }> = [];
   private processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
@@ -3994,6 +4002,376 @@ class SupabaseServerStore {
   }
 
   // ============================================================
+  // ADMIN DASHBOARD: DAILY OPERATIONS, CONTENT AND AUDIT
+  // ============================================================
+  private async writeAdminAudit(adminId: string, action: string, details: Record<string, unknown>): Promise<void> {
+    const entry = { id: randomUUID(), action, userId: adminId, details, createdAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('audit_logs').insert({
+        id: entry.id,
+        action,
+        user_id: adminId,
+        details,
+        created_at: entry.createdAt
+      });
+      ensureDatabaseSuccess(`journalisation de l’action admin « ${action} »`, error);
+    }
+    this.inMemoryAdminAuditLogs.unshift(entry);
+  }
+
+  public async recordAdminAudit(adminId: string, action: string, details: Record<string, unknown>): Promise<void> {
+    await this.writeAdminAudit(adminId, action, details);
+  }
+
+  public async getActiveAiKnowledgeSources(): Promise<any[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('ai_knowledge_sources').select('*').eq('active', true).eq('validation_status', 'validated').order('updated_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des sources IA actives', error);
+      return (data || []).map(row => this.mapAiSource(row));
+    }
+    return this.inMemoryAdminSources.filter(source => source.active && source.validationStatus === 'validated');
+  }
+
+  private mapPublicArticle(row: any): any {
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      excerpt: row.excerpt || '',
+      readTime: row.read_time || '',
+      author: row.author || '',
+      imageUrl: row.image_url || '',
+      content: row.content || '',
+      faq: Array.isArray(row.faq) ? row.faq : [],
+      publishedAt: row.published_at || row.created_at
+    };
+  }
+
+  public async getPublishedArticles(): Promise<any[]> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('content_articles').select('id, slug, title, category, excerpt, read_time, author, image_url, content, faq, published_at, created_at').eq('status', 'published').order('published_at', { ascending: false }).order('created_at', { ascending: false });
+    ensureDatabaseSuccess('lecture des articles publiés', error);
+    return (data || []).map(row => this.mapPublicArticle(row));
+  }
+
+  public async getPublishedArticle(slug: string): Promise<any | undefined> {
+    const articles = await this.getPublishedArticles();
+    return articles.find(article => article.slug === slug);
+  }
+
+  private mapAdminArticle(row: any): any {
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      excerpt: row.excerpt || '',
+      readTime: row.read_time || '',
+      author: row.author || '',
+      imageUrl: row.image_url || '',
+      content: row.content || '',
+      faq: Array.isArray(row.faq) ? row.faq : [],
+      relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
+      status: row.status,
+      publishedAt: row.published_at || undefined,
+      createdBy: row.created_by || undefined,
+      updatedBy: row.updated_by || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  private mapAiSource(row: any): any {
+    return {
+      id: row.id,
+      title: row.title,
+      domains: Array.isArray(row.domains) ? row.domains : [],
+      content: row.content || '',
+      sourceLabel: row.source_label,
+      validationStatus: row.validation_status,
+      active: row.active === true,
+      evidenceUrl: row.evidence_url || '',
+      lastReviewedAt: row.last_reviewed_at || undefined,
+      createdBy: row.created_by || undefined,
+      updatedBy: row.updated_by || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  private mapCoupon(row: any): any {
+    return {
+      code: row.code,
+      description: row.description || '',
+      discountType: row.discount_type,
+      discountValue: Number(row.discount_value),
+      currency: row.currency,
+      minimumOrderAmount: Number(row.minimum_order_amount || 0),
+      startsAt: row.starts_at || undefined,
+      endsAt: row.ends_at || undefined,
+      maxUses: row.max_uses == null ? undefined : Number(row.max_uses),
+      usedCount: Number(row.used_count || 0),
+      active: row.active === true,
+      createdBy: row.created_by || undefined,
+      updatedBy: row.updated_by || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  /** Admin-only read model. It intentionally lives behind the server auth
+   * boundary: raw operational rows are never included in public catalog APIs. */
+  public async getAdminDashboardData(): Promise<any> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) {
+      return {
+        brands: [...this.inMemoryAdminBrands],
+        categories: [...this.inMemoryAdminCategories],
+        products: await this.getAdminCatalogProducts(),
+        variants: [],
+        images: [],
+        inventory: [],
+        orders: [...this.inMemoryOrders],
+        payments: [],
+        refunds: [...this.inMemoryRefunds],
+        shipments: Array.from(this.inMemoryShipments.values()),
+        returns: [...this.inMemoryReturns],
+        users: [],
+        professionals: [...this.inMemoryProfessionalApplications],
+        articles: [...this.inMemoryAdminArticles],
+        aiSources: [...this.inMemoryAdminSources],
+        reviews: [...this.inMemoryProductReviews],
+        notifications: [...this.inMemoryNotifications],
+        coupons: [...this.inMemoryAdminCoupons],
+        roles: [],
+        logs: [...this.inMemoryAdminAuditLogs]
+      };
+    }
+
+    const [brands, categories, variants, images, inventory, orders, payments, refunds, shipments, returns, users, professionals, articles, aiSources, reviews, notifications, coupons, logs] = await Promise.all([
+      supabase.from('brands').select('*').order('name').limit(500),
+      supabase.from('categories').select('*').order('name').limit(500),
+      supabase.from('product_variants').select('*').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('product_images').select('*').order('position').limit(1000),
+      supabase.from('inventory').select('*').order('updated_at', { ascending: false }).limit(1000),
+      supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('refunds').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('shipments').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('returns').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('profiles').select('id, email, full_name, phone, role, avatar_url, created_at, updated_at').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('professional_applications').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('content_articles').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('ai_knowledge_sources').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('reviews').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('coupons').select('*').order('updated_at', { ascending: false }).limit(500),
+      supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500)
+    ]);
+
+    const reads: Array<[string, { error?: { message?: string } | null }]> = [
+      ['brands', brands], ['categories', categories], ['variantes', variants], ['images', images], ['inventaire', inventory],
+      ['commandes', orders], ['paiements', payments], ['remboursements', refunds], ['expéditions', shipments], ['retours', returns],
+      ['utilisateurs', users], ['professionnels', professionals], ['articles', articles], ['sources IA', aiSources], ['avis', reviews],
+      ['notifications', notifications], ['coupons', coupons], ['logs d’audit', logs]
+    ];
+    reads.forEach(([label, result]) => ensureDatabaseSuccess(`lecture admin ${label}`, result.error));
+
+    const mapOrder = (row: any): ServerOrder => ({
+      id: row.id,
+      userId: row.user_id || undefined,
+      customerEmail: row.customer_email,
+      items: Array.isArray(row.items) ? row.items : [],
+      total: Number(row.total || 0),
+      status: row.status,
+      stripeSessionId: row.stripe_session_id || undefined,
+      stripePaymentIntentId: row.stripe_payment_intent_id || undefined,
+      checkoutIdempotencyKey: row.checkout_idempotency_key || undefined,
+      shippingAddress: row.shipping_address,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+    const mapRefund = (row: any) => mapRefundRow(row);
+    const mapShipment = (row: any) => ({
+      id: row.id,
+      orderId: row.order_id,
+      userId: row.user_id || undefined,
+      carrier: row.carrier,
+      method: row.method,
+      price: Number(row.price || 0),
+      trackingNumber: row.tracking_number || undefined,
+      trackingUrl: row.tracking_url || undefined,
+      status: row.status,
+      shippedAt: row.shipped_at || undefined,
+      estimatedDelivery: row.estimated_delivery || undefined,
+      deliveredAt: row.delivered_at || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+    const mapReturn = (row: any) => ({
+      id: row.id,
+      orderId: row.order_id,
+      userId: row.user_id,
+      reason: row.reason,
+      items: Array.isArray(row.items) ? row.items : [],
+      quantity: Number(row.quantity || 0),
+      status: row.status,
+      comment: row.comment || undefined,
+      adminComment: row.admin_comment || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+    const mapNotification = (row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      title: row.title,
+      message: row.message,
+      link: row.link || undefined,
+      orderId: row.order_id || undefined,
+      read: row.read === true,
+      createdAt: row.created_at,
+      deliveredAt: row.delivered_at || undefined,
+      errorMessage: row.error_message || undefined
+    });
+
+    return {
+      brands: brands.data || [],
+      categories: categories.data || [],
+      products: await this.getAdminCatalogProducts(),
+      variants: variants.data || [],
+      images: images.data || [],
+      inventory: inventory.data || [],
+      orders: (orders.data || []).map(mapOrder),
+      payments: payments.data || [],
+      refunds: (refunds.data || []).map(mapRefund),
+      shipments: (shipments.data || []).map(mapShipment),
+      returns: (returns.data || []).map(mapReturn),
+      users: users.data || [],
+      professionals: professionals.data || [],
+      articles: (articles.data || []).map(row => this.mapAdminArticle(row)),
+      aiSources: (aiSources.data || []).map(row => this.mapAiSource(row)),
+      reviews: reviews.data || [],
+      notifications: (notifications.data || []).map(mapNotification),
+      coupons: (coupons.data || []).map(row => this.mapCoupon(row)),
+      roles: ['customer', 'professional', 'support', 'editor', 'admin', 'superadmin'].map(role => ({ role })),
+      logs: logs.data || []
+    };
+  }
+
+  public async saveAdminEntity(adminId: string, entity: 'brand' | 'category' | 'article' | 'ai_source' | 'coupon', input: any): Promise<any> {
+    const supabase = getSupabaseServerClient();
+    const now = new Date().toISOString();
+    let saved: any;
+    if (entity === 'brand') {
+      const name = typeof input?.name === 'string' ? input.name.trim().slice(0, 180) : '';
+      if (!name) throw new Error('Le nom de la marque est obligatoire.');
+      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const payload = { id, name, logo_url: typeof input.logoUrl === 'string' ? input.logoUrl.trim().slice(0, 2000) || null : null, description: typeof input.description === 'string' ? input.description.trim().slice(0, 4000) || null : null, updated_at: now };
+      if (supabase) { const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de la marque', error); saved = data; }
+      else { saved = { ...payload, created_at: now }; this.inMemoryAdminBrands = [saved, ...this.inMemoryAdminBrands.filter(brand => brand.id !== id)]; }
+    } else if (entity === 'category') {
+      const name = typeof input?.name === 'string' ? input.name.trim().slice(0, 180) : '';
+      const slug = typeof input?.slug === 'string' ? input.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').slice(0, 160) : '';
+      if (!name || !slug) throw new Error('Le nom et le slug de la catégorie sont obligatoires.');
+      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const payload = { id, slug, name, description: typeof input.description === 'string' ? input.description.trim().slice(0, 4000) || null : null, updated_at: now };
+      if (supabase) { const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de la catégorie', error); saved = data; }
+      else { saved = { ...payload, created_at: now }; this.inMemoryAdminCategories = [saved, ...this.inMemoryAdminCategories.filter(category => category.id !== id)]; }
+    } else if (entity === 'article') {
+      const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 240) : '';
+      const slug = typeof input?.slug === 'string' ? input.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').slice(0, 180) : '';
+      const content = typeof input?.content === 'string' ? input.content.trim().slice(0, 100000) : '';
+      if (!title || !slug || !content) throw new Error('Le titre, le slug et le contenu de l’article sont obligatoires.');
+      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const status = ['draft', 'published', 'archived'].includes(input.status) ? input.status : 'draft';
+      const payload = { id, slug, title, category: typeof input.category === 'string' ? input.category.trim().slice(0, 100) || 'non-classe' : 'non-classe', excerpt: typeof input.excerpt === 'string' ? input.excerpt.trim().slice(0, 1000) || null : null, read_time: typeof input.readTime === 'string' ? input.readTime.trim().slice(0, 80) || null : null, author: typeof input.author === 'string' ? input.author.trim().slice(0, 160) || null : null, image_url: typeof input.imageUrl === 'string' ? input.imageUrl.trim().slice(0, 2000) || null : null, content, faq: Array.isArray(input.faq) ? input.faq.slice(0, 30) : [], related_product_ids: Array.isArray(input.relatedProductIds) ? input.relatedProductIds.filter((id: unknown) => typeof id === 'string').slice(0, 50) : [], status, published_at: status === 'published' ? (input.publishedAt || now) : null, created_by: adminId, updated_by: adminId, updated_at: now };
+      if (supabase) { const { data, error } = await supabase.from('content_articles').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de l’article', error); saved = this.mapAdminArticle(data); }
+      else { saved = this.mapAdminArticle({ ...payload, created_at: now }); this.inMemoryAdminArticles = [saved, ...this.inMemoryAdminArticles.filter(article => article.id !== id)]; }
+    } else if (entity === 'ai_source') {
+      const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 240) : '';
+      const content = typeof input?.content === 'string' ? input.content.trim().slice(0, 50000) : '';
+      const sourceLabel = typeof input?.sourceLabel === 'string' ? input.sourceLabel.trim().slice(0, 240) : '';
+      if (!title || !content || !sourceLabel) throw new Error('Le titre, le contenu et la source de la fiche IA sont obligatoires.');
+      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const validationStatus = ['pending', 'validated', 'rejected'].includes(input.validationStatus) ? input.validationStatus : 'pending';
+      const active = validationStatus === 'validated' && input.active === true;
+      const payload = { id, title, domains: Array.isArray(input.domains) ? input.domains.filter((item: unknown) => typeof item === 'string').map((item: string) => item.trim().toLowerCase()).filter(Boolean).slice(0, 40) : [], content, source_label: sourceLabel, validation_status: validationStatus, active, evidence_url: typeof input.evidenceUrl === 'string' ? input.evidenceUrl.trim().slice(0, 2000) || null : null, last_reviewed_at: validationStatus === 'validated' ? now : null, created_by: adminId, updated_by: adminId, updated_at: now };
+      if (supabase) { const { data, error } = await supabase.from('ai_knowledge_sources').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de la source IA', error); saved = this.mapAiSource(data); }
+      else { saved = this.mapAiSource({ ...payload, created_at: now }); this.inMemoryAdminSources = [saved, ...this.inMemoryAdminSources.filter(source => source.id !== id)]; }
+    } else {
+      const code = typeof input?.code === 'string' ? input.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 40) : '';
+      const discountType = input.discountType === 'fixed_amount' ? 'fixed_amount' : 'percentage';
+      const discountValue = Number(input.discountValue);
+      if (!code || !Number.isFinite(discountValue) || discountValue <= 0 || (discountType === 'percentage' && discountValue > 100)) throw new Error('Code ou remise coupon invalide.');
+      const payload = { code, description: typeof input.description === 'string' ? input.description.trim().slice(0, 500) || null : null, discount_type: discountType, discount_value: discountValue, currency: typeof input.currency === 'string' ? input.currency.toUpperCase().slice(0, 3) : 'EUR', minimum_order_amount: Math.max(0, Number(input.minimumOrderAmount || 0)), starts_at: input.startsAt || null, ends_at: input.endsAt || null, max_uses: input.maxUses == null || input.maxUses === '' ? null : Math.max(1, Math.floor(Number(input.maxUses))), active: input.active === true, updated_by: adminId, updated_at: now };
+      if (supabase) { const { data, error } = await supabase.from('coupons').upsert(payload, { onConflict: 'code' }).select('*').single(); ensureDatabaseSuccess('enregistrement du coupon', error); saved = this.mapCoupon(data); }
+      else { saved = this.mapCoupon({ ...payload, used_count: 0, created_at: now }); this.inMemoryAdminCoupons = [saved, ...this.inMemoryAdminCoupons.filter(coupon => coupon.code !== code)]; }
+    }
+    await this.writeAdminAudit(adminId, `admin_${entity}_save`, { entity, id: saved?.id || saved?.code, status: saved?.status, active: saved?.active });
+    return saved;
+  }
+
+  public async updateAdminUserRole(adminId: string, targetUserId: string, role: string, adminRole: string): Promise<any | undefined> {
+    if (!['customer', 'professional', 'support', 'editor', 'admin', 'superadmin'].includes(role)) throw new Error('Rôle invalide.');
+    if (targetUserId === adminId) throw new Error('Un administrateur ne peut pas modifier son propre rôle.');
+    if (role === 'superadmin' && adminRole !== 'superadmin') throw new Error('Seul un superadmin peut attribuer ce rôle.');
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return undefined;
+    const { data, error } = await supabase.from('profiles').update({ role, updated_at: new Date().toISOString() }).eq('id', targetUserId).select('id, email, full_name, phone, role, avatar_url, created_at, updated_at').maybeSingle();
+    ensureDatabaseSuccess('mise à jour du rôle utilisateur', error);
+    if (!data) return undefined;
+    await this.writeAdminAudit(adminId, 'admin_user_role_update', { targetUserId, role });
+    return data;
+  }
+
+  public async updateAdminReviewStatus(adminId: string, reviewId: string, status: string): Promise<any | undefined> {
+    if (!['pending', 'approved', 'rejected'].includes(status)) throw new Error('Statut d’avis invalide.');
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return undefined;
+    const { data, error } = await supabase.from('reviews').update({ status, updated_at: new Date().toISOString() }).eq('id', reviewId).select('*').maybeSingle();
+    ensureDatabaseSuccess('mise à jour du statut de l’avis', error);
+    if (!data) return undefined;
+    await this.writeAdminAudit(adminId, 'admin_review_status_update', { reviewId, status });
+    return data;
+  }
+
+  public async updateAdminPaymentStatus(adminId: string, paymentId: string, status: string): Promise<any | undefined> {
+    if (!['pending', 'succeeded', 'failed', 'refunded', 'partially_refunded'].includes(status)) throw new Error('Statut de paiement invalide.');
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return undefined;
+    const { data, error } = await supabase.from('payments').update({ status, updated_at: new Date().toISOString() }).eq('id', paymentId).select('*').maybeSingle();
+    ensureDatabaseSuccess('mise à jour du statut du paiement', error);
+    if (!data) return undefined;
+    await this.writeAdminAudit(adminId, 'admin_payment_status_update', { paymentId, status });
+    return data;
+  }
+
+  public async recordCatalogSearch(query: string, resultCount: number, country?: string, userId?: string): Promise<void> {
+    const normalizedQuery = query.trim().slice(0, 200);
+    if (normalizedQuery.length < 2 || !Number.isSafeInteger(resultCount) || resultCount < 0) return;
+    const event = { id: randomUUID(), query: normalizedQuery, resultCount, country, userId, createdAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('catalog_search_events').insert({ id: event.id, query: event.query, result_count: event.resultCount, country: event.country || null, user_id: event.userId || null, created_at: event.createdAt });
+      ensureDatabaseSuccess('enregistrement de la recherche catalogue', error);
+    } else this.inMemoryAdminSearchEvents.unshift(event);
+  }
+
+  public async recordAiUsage(requestType: string, succeeded: boolean, userId?: string): Promise<void> {
+    const event = { id: randomUUID(), requestType: requestType.slice(0, 80), succeeded, userId, createdAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('ai_usage_events').insert({ id: event.id, request_type: event.requestType, succeeded, user_id: userId || null, created_at: event.createdAt });
+      ensureDatabaseSuccess('enregistrement de l’utilisation IA', error);
+    } else this.inMemoryAdminAiUsageEvents.unshift(event);
+  }
+
+  // ============================================================
   // PHASE 5: REAL ADMIN ANALYTICS METRICS
   // ============================================================
   public async getAdminAnalyticsMetrics(): Promise<any> {
@@ -4004,6 +4382,9 @@ class SupabaseServerStore {
     let supaProfilesCount = 0;
     let supaTicketsCount = 0;
     let supaEventsCount = 0;
+    let supaSearchEvents: Array<{ query: string; result_count: number }> = [];
+    let supaAiUsageEvents: Array<{ user_id?: string | null; succeeded: boolean }> = [];
+    let supaRefundCount = 0;
 
     if (supabase) {
       try {
@@ -4032,13 +4413,25 @@ class SupabaseServerStore {
         ensureDatabaseSuccess('comptage des profils pour les métriques', profilesError);
         supaProfilesCount = pCount || 0;
 
-        const { count: tCount, error: ticketsError } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true });
-        ensureDatabaseSuccess('comptage des tickets pour les métriques', ticketsError);
+        const { count: tCount, error: ticketsError } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress']);
+        ensureDatabaseSuccess('comptage des tickets ouverts pour les métriques', ticketsError);
         supaTicketsCount = tCount || 0;
 
         const { count: eCount, error: eventsError } = await supabase.from('stripe_events').select('*', { count: 'exact', head: true });
         ensureDatabaseSuccess('comptage des événements Stripe pour les métriques', eventsError);
         supaEventsCount = eCount || 0;
+
+        const { data: searchData, error: searchError } = await supabase.from('catalog_search_events').select('query, result_count');
+        ensureDatabaseSuccess('lecture des recherches catalogue pour les métriques', searchError);
+        supaSearchEvents = searchData || [];
+
+        const { data: aiUsageData, error: aiUsageError } = await supabase.from('ai_usage_events').select('user_id, succeeded');
+        ensureDatabaseSuccess('lecture de l’utilisation IA pour les métriques', aiUsageError);
+        supaAiUsageEvents = aiUsageData || [];
+
+        const { count: refundCount, error: refundCountError } = await supabase.from('refunds').select('*', { count: 'exact', head: true }).in('status', ['succeeded', 'completed', 'pending']);
+        ensureDatabaseSuccess('comptage des remboursements pour les métriques', refundCountError);
+        supaRefundCount = refundCount || 0;
       } catch (err) {
         console.error('[serverDb] getAdminAnalyticsMetrics error:', err);
         throw err;
@@ -4069,7 +4462,35 @@ class SupabaseServerStore {
     const shippedOrders = sourceOrders.filter(order => order.status === 'shipped' || order.status === 'delivered');
     const refundedOrders = sourceOrders.filter(order => order.status === 'refunded' || order.status === 'partially_refunded');
 
-    const avgOrderValue = paidOrders.length > 0 ? revenueTest / paidOrders.length : 0;
+    // AOV is deliberately calculated from persisted paid orders, not from a
+    // fixture. Refunds are shown separately and do not rewrite order history.
+    const avgOrderValue = paidOrders.length > 0 ? grossRevenue / paidOrders.length : 0;
+    const searchEvents: any[] = supabase ? supaSearchEvents : this.inMemoryAdminSearchEvents;
+    const zeroResultSearches = searchEvents.filter(event => Number(event.result_count ?? event.resultCount) === 0);
+    const zeroResultByQuery = new Map<string, number>();
+    zeroResultSearches.forEach(event => {
+      const query = String(event.query).trim();
+      zeroResultByQuery.set(query, (zeroResultByQuery.get(query) || 0) + 1);
+    });
+    const topZeroResultSearches = Array.from(zeroResultByQuery.entries())
+      .map(([query, count]) => ({ query, count }))
+      .sort((a, b) => b.count - a.count || a.query.localeCompare(b.query))
+      .slice(0, 10);
+    const aiUsageEvents: any[] = supabase ? supaAiUsageEvents : this.inMemoryAdminAiUsageEvents;
+    const activeAiUsers = new Set(aiUsageEvents.filter(event => event.succeeded && (event.user_id || event.userId)).map(event => event.user_id || event.userId));
+    const aiUsageRate = supaProfilesCount > 0 ? (activeAiUsers.size / supaProfilesCount) * 100 : null;
+    const popularProductCounts = new Map<string, number>();
+    paidOrders.forEach(order => (order.items || []).forEach((item: any) => {
+      const productId = item.productId || item.product_id;
+      const quantity = Number(item.quantity || 0);
+      if (productId && quantity > 0) popularProductCounts.set(productId, (popularProductCounts.get(productId) || 0) + quantity);
+    }));
+    const productById = new Map(products.map(product => [product.id, product]));
+    const popularProducts = Array.from(popularProductCounts.entries())
+      .map(([productId, quantity]) => ({ productId, name: productById.get(productId)?.name || 'Produit non renseigné', quantity }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10);
+    const inMemoryRefundCount = this.inMemoryRefunds.filter(refund => ['succeeded', 'completed', 'pending'].includes(refund.status)).length;
 
     const lowStockProducts = products.filter(p => p.stockQuantity < 5 && p.stockQuantity > 0);
     const outOfStockProducts = products.filter(p => p.stockQuantity === 0 || !p.inStock);
@@ -4085,9 +4506,15 @@ class SupabaseServerStore {
       processingOrdersCount: processingOrders.length,
       shippedOrdersCount: shippedOrders.length,
       refundedOrdersCount: refundedOrders.length,
+      refundsCount: supabase ? supaRefundCount : inMemoryRefundCount,
       avgOrderValue,
       lowStockProducts,
       outOfStockProducts,
+      popularProducts,
+      searchesWithoutResultsCount: zeroResultSearches.length,
+      topZeroResultSearches,
+      aiUsageRate,
+      aiUsageEventsCount: aiUsageEvents.length,
       openTicketsCount: supabase
         ? supaTicketsCount
         : this.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length,

@@ -1061,6 +1061,17 @@ app.post('/api/admin/catalog/import/supplier', asyncRoute(async (req: Authentica
   }
 }));
 
+app.get('/api/articles', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  const articles = await serverDb.getPublishedArticles();
+  res.json({ articles });
+}));
+
+app.get('/api/articles/:slug', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const article = await serverDb.getPublishedArticle(req.params.slug);
+  if (!article) return res.status(404).json({ error: 'Article non disponible.' });
+  res.json({ article });
+}));
+
 app.get('/api/routines', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
   const routines = await serverDb.getRoutines();
   res.json({ routines, count: routines.length });
@@ -1112,6 +1123,24 @@ async function getAvailableCatalog(country = 'FR'): Promise<AvailableCatalogEntr
       notIdealIf: product.notIdealIf,
       product
     }));
+}
+
+async function selectOperationalKnowledgeCards(query: string, domains: string[] = []): Promise<any[]> {
+  const staticCards = selectKnowledgeCards(query, domains);
+  const terms = `${query} ${domains.join(' ')}`.toLocaleLowerCase('fr-FR');
+  const persistedSources = await serverDb.getActiveAiKnowledgeSources();
+  const persistedCards = persistedSources
+    .filter(source => Array.isArray(source.domains) && source.domains.some((domain: string) => terms.includes(domain.toLocaleLowerCase('fr-FR'))))
+    .map(source => ({
+      id: source.id,
+      title: source.title,
+      domains: source.domains,
+      content: source.content,
+      sourceLabel: source.sourceLabel,
+      status: 'validated',
+      evidenceUrl: source.evidenceUrl
+    }));
+  return [...persistedCards, ...staticCards.filter(card => !persistedCards.some(source => source.id === card.id))].slice(0, 5);
 }
 
 function normalizeAiLocale(value: unknown): string {
@@ -1305,6 +1334,7 @@ app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), asyncRoute(
   const token = bearerToken(req);
   const user = await authenticateRequest(req);
   if (token && !user) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
+  void serverDb.recordAiUsage('assistant', true, user?.id).catch(error => console.error('[AI] usage event error:', error));
 
   const locale = normalizeAiLocale(req.body?.locale);
   const country = normalizeAiCountry(req.body?.country);
@@ -1317,7 +1347,7 @@ app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), asyncRoute(
   const profileRecord = user ? await serverDb.getBeautyProfile(user.id) : undefined;
   const profile = profileRecord?.profile;
   const needs = queryNeeds(`${objective || ''} ${query}`);
-  const cards = selectKnowledgeCards(query, needs);
+  const cards = await selectOperationalKnowledgeCards(query, needs);
   const fullCatalog = await getAvailableCatalog(country);
   const maxPrice = budgetLimit(profile);
   const catalog = maxPrice === undefined ? fullCatalog : fullCatalog.filter(entry => entry.price <= maxPrice);
@@ -1479,9 +1509,10 @@ app.post('/api/ai/routine-result', rateLimit('ai-routine', 20, 60_000), asyncRou
       sensibilite: ['peau_sensible']
     };
   const needs = Array.from(new Set([...queryNeeds(`${diagnosticType} ${answerText}`, diagnosticType), ...(diagnosticPriorityMap[String(answers.priority)] || [])]));
-  const cards = selectKnowledgeCards(answerText, [diagnosticType, ...needs]);
+  const cards = await selectOperationalKnowledgeCards(answerText, [diagnosticType, ...needs]);
   const authenticatedUser = await authenticateRequest(req);
   if (bearerToken(req) && !authenticatedUser) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });
+  void serverDb.recordAiUsage('routine_result', true, authenticatedUser?.id).catch(error => console.error('[AI] usage event error:', error));
   const profileRecord = authenticatedUser ? await serverDb.getBeautyProfile(authenticatedUser.id) : undefined;
   const profile = profileRecord?.profile;
   const diagnosticBudget = typeof answers.budget === 'string' ? ({ moins_40: 40, '40_70': 70, '70_100': 100, premium: Number.POSITIVE_INFINITY } as Record<string, number>)[answers.budget] : undefined;
@@ -1927,6 +1958,7 @@ app.post('/api/admin/professional-applications/:id/status', asyncRoute(async (re
       typeof adminComment === 'string' && adminComment.trim() ? adminComment.trim() : undefined
     );
     if (!application) return res.status(404).json({ error: 'Candidature Pro introuvable.' });
+    await serverDb.recordAdminAudit(admin.id, 'admin_professional_application_status_update', { applicationId: application.id, status });
     res.json({ application });
   } catch (err) {
     console.error('[ProApplications] status update error:', err);
@@ -2036,6 +2068,7 @@ app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRe
   try {
     const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined);
     if (!ret) return res.status(404).json({ error: 'Demande de retour introuvable.' });
+    await serverDb.recordAdminAudit(admin.id, 'admin_return_status_update', { returnId: ret.id, status });
     res.json({ returnRequest: ret });
   } catch (err: any) {
     res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le statut du retour.') });
@@ -2066,6 +2099,7 @@ app.post('/api/admin/refunds', asyncRoute(async (req: AuthenticatedRequest, res:
       typeof reason === 'string' && reason.trim() ? reason.trim() : undefined,
       idempotencyKey
     );
+    await serverDb.recordAdminAudit(admin.id, 'admin_refund_create', { orderId, returnId, amount: refund.amount, refundId: refund.id });
     res.json({ refund });
   } catch (err: any) {
     res.status(400).json({ error: safeApiError(err, 'Impossible de traiter le remboursement.') });
@@ -2142,6 +2176,7 @@ app.post('/api/admin/support/tickets/:id/status', asyncRoute(async (req: Authent
   const ticket = await getOwnedTicket(req.params.id, admin);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
   await serverDb.updateSupportTicketStatus(ticket.id, status as any);
+  await serverDb.recordAdminAudit(admin.id, 'admin_support_ticket_status_update', { ticketId: ticket.id, status });
   res.json({ success: true });
 }));
 
@@ -2173,12 +2208,139 @@ app.get('/api/admin/orders/:id/history', asyncRoute(async (req: AuthenticatedReq
   res.json({ history });
 }));
 
-// 7. Admin Real Dashboard Analytics API
+// 7. Admin Real Dashboard Analytics and Operations API
 app.get('/api/admin/metrics', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   const metrics = await serverDb.getAdminAnalyticsMetrics();
   res.json({ metrics });
+}));
+
+app.get('/api/admin/dashboard', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const dashboard = await serverDb.getAdminDashboardData();
+  res.json({ dashboard });
+}));
+
+app.post('/api/admin/entities/:entity', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const allowedEntities = ['brand', 'category', 'article', 'ai_source', 'coupon'];
+  if (!allowedEntities.includes(req.params.entity)) return res.status(404).json({ error: 'Entité admin inconnue.' });
+  try {
+    const saved = await serverDb.saveAdminEntity(admin.id, req.params.entity as any, req.body || {});
+    res.status(201).json({ entity: saved });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette entité.') });
+  }
+}));
+
+app.patch('/api/admin/entities/:entity/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const allowedEntities = ['brand', 'category', 'article', 'ai_source', 'coupon'];
+  if (!allowedEntities.includes(req.params.entity)) return res.status(404).json({ error: 'Entité admin inconnue.' });
+  try {
+    const saved = await serverDb.saveAdminEntity(admin.id, req.params.entity as any, { ...(req.body || {}), id: req.params.id });
+    res.json({ entity: saved });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modifier cette entité.') });
+  }
+}));
+
+app.post('/api/admin/users/:id/role', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  if (typeof req.body?.role !== 'string') return res.status(400).json({ error: 'Rôle manquant.' });
+  try {
+    const user = await serverDb.updateAdminUserRole(admin.id, req.params.id, req.body.role, admin.role);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+    res.json({ user });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le rôle.') });
+  }
+}));
+
+app.post('/api/admin/reviews/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const review = await serverDb.updateAdminReviewStatus(admin.id, req.params.id, req.body?.status);
+    if (!review) return res.status(404).json({ error: 'Avis introuvable.' });
+    res.json({ review });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modérer cet avis.') });
+  }
+}));
+
+app.post('/api/admin/payments/:id/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const payment = await serverDb.updateAdminPaymentStatus(admin.id, req.params.id, req.body?.status);
+    if (!payment) return res.status(404).json({ error: 'Paiement introuvable.' });
+    res.json({ payment });
+  } catch (err: any) {
+    res.status(400).json({ error: safeApiError(err, 'Impossible de modifier ce paiement.') });
+  }
+}));
+
+app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const order = await serverDb.getOrderById(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+  const allowedCarriers = ['manual', 'colissimo', 'mondial_relay', 'chronopost', 'dhl', 'autre'];
+  const allowedStatuses = ['preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed'];
+  const carrier = typeof req.body?.carrier === 'string' && allowedCarriers.includes(req.body.carrier) ? req.body.carrier : 'manual';
+  const status = typeof req.body?.status === 'string' && allowedStatuses.includes(req.body.status) ? req.body.status : 'preparing';
+  const shipment = await serverDb.upsertShipment({
+    id: typeof req.body?.id === 'string' ? req.body.id : randomUUID(),
+    orderId: order.id,
+    userId: order.userId,
+    carrier: carrier as any,
+    method: typeof req.body?.method === 'string' ? req.body.method.trim().slice(0, 80) : 'standard',
+    price: Number.isFinite(Number(req.body?.price)) ? Number(req.body.price) : 0,
+    trackingNumber: typeof req.body?.trackingNumber === 'string' ? req.body.trackingNumber.trim().slice(0, 160) || undefined : undefined,
+    trackingUrl: typeof req.body?.trackingUrl === 'string' ? req.body.trackingUrl.trim().slice(0, 2000) || undefined : undefined,
+    status: status as any,
+    shippedAt: req.body?.shippedAt,
+    estimatedDelivery: req.body?.estimatedDelivery,
+    deliveredAt: req.body?.deliveredAt,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  await serverDb.recordAdminAudit(admin.id, 'admin_shipment_update', { orderId: order.id, status, carrier });
+  res.json({ shipment });
+}));
+
+app.post('/api/admin/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const { userId, title, message, type, link, orderId } = req.body || {};
+  const allowedTypes = ['account_created', 'email_confirmation_pending', 'payment_pending', 'payment_confirmed', 'payment_failed', 'order_processing', 'order_packed', 'order_shipped', 'order_delivered', 'refund_created', 'return_requested', 'support_reply', 'low_stock', 'routine_reminder'];
+  if (typeof userId !== 'string' || typeof title !== 'string' || typeof message !== 'string' || !title.trim() || !message.trim() || !allowedTypes.includes(type)) {
+    return res.status(400).json({ error: 'Destinataire, type, titre et message sont obligatoires.' });
+  }
+  const notification = await serverDb.sendNotification(userId, type, title.trim().slice(0, 240), message.trim().slice(0, 4000), typeof link === 'string' ? link.trim().slice(0, 1000) : undefined, typeof orderId === 'string' ? orderId : undefined);
+  await serverDb.recordAdminAudit(admin.id, 'admin_notification_send', { userId, type, notificationId: notification.id });
+  res.status(201).json({ notification });
+}));
+
+// Public search telemetry is reduced to an event (never raw customer data).
+// The result count is recomputed from the published server catalogue so the
+// admin KPI cannot trust a client-provided statistic.
+app.post('/api/search-events', rateLimit('search-events', 60, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const query = typeof req.body?.query === 'string' ? req.body.query.trim().slice(0, 200) : '';
+  if (query.length < 2) return res.status(400).json({ error: 'Recherche trop courte.' });
+  const country = typeof req.body?.country === 'string' ? req.body.country.trim().slice(0, 2).toUpperCase() : undefined;
+  const products = await serverDb.getPublicProducts();
+  const term = query.toLocaleLowerCase('fr-FR');
+  const resultCount = products.filter(product => [product.name, product.brand, product.category, product.description, ...(product.keyIngredients || [])].filter(Boolean).some((value: unknown) => String(value).toLocaleLowerCase('fr-FR').includes(term))).length;
+  const user = await authenticateRequest(req);
+  await serverDb.recordCatalogSearch(query, resultCount, country, user?.id);
+  res.status(202).json({ accepted: true });
 }));
 
 // AI Endpoint: Support Assistant Draft

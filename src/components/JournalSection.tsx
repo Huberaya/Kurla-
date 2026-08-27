@@ -1,8 +1,9 @@
 import React from 'react';
 import { BookOpen, Clock, ArrowRight } from 'lucide-react';
-import { MOCK_ARTICLES } from '../data/mockData';
+import { usePublishedArticles } from '../services/articleService';
 
 export const JournalSection: React.FC = () => {
+  const { articles, loading } = usePublishedArticles();
   return (
     <section className="py-24 bg-[#FFFDF9] text-[#111111] relative border-t border-[#E8E1DA]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,18 +32,20 @@ export const JournalSection: React.FC = () => {
 
         {/* 3 Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {MOCK_ARTICLES.map((article) => (
+          {loading && <p className="md:col-span-3 text-sm text-[#111111]/55">Chargement des articles publiés…</p>}
+          {!loading && articles.length === 0 && <p className="md:col-span-3 text-sm text-[#111111]/55">Aucun article publié pour le moment.</p>}
+          {articles.slice(0, 3).map((article) => (
             <article
               key={article.id}
               className="rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] hover:border-[#C8753D] transition-all overflow-hidden shadow-xs hover:shadow-xl flex flex-col justify-between group"
             >
               <div>
                 <div className="relative h-56 overflow-hidden">
-                  <img
+                  {article.image ? <img
                     src={article.image}
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  /> : <div className="w-full h-full bg-[#E8E1DA] flex items-center justify-center"><BookOpen className="w-10 h-10 text-[#C8753D]" /></div>}
                   <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#FFFDF9]/90 backdrop-blur-md text-[11px] font-semibold text-[#111111] border border-[#E8E1DA]">
                     {article.category}
                   </span>
