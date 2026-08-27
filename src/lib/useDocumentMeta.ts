@@ -38,6 +38,48 @@ function removeMeta(selector: 'name' | 'property', key: string): void {
   document.head.querySelector(`meta[${selector}="${key}"]`)?.remove();
 }
 
+/**
+ * Injecte ou remplace un bloc JSON-LD identifié, pour que les appels successifs
+ * ne créent pas de doublons. Le `type` est imposé : c'est lui qui rend le bloc
+ * lisible par les moteurs sans être exécuté.
+ */
+function upsertJsonLd(id: string, data: unknown): void {
+  let element = document.getElementById(id) as HTMLScriptElement | null;
+  if (!element) {
+    element = document.createElement('script');
+    element.id = id;
+    element.type = 'application/ld+json';
+    document.head.appendChild(element);
+  }
+  element.textContent = JSON.stringify(data);
+}
+
+function removeJsonLd(id: string): void {
+  document.getElementById(id)?.remove();
+}
+
+function organizationJsonLd(origin: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: origin,
+    logo: `${origin}/og-default.png`,
+    description:
+      'Plateforme européenne dédiée aux cheveux texturés, peaux riches en mélanine et beauté afro/multiculturelle.',
+  };
+}
+
+function websiteJsonLd(origin: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: origin,
+    inLanguage: LOCALE.split('_')[0],
+  };
+}
+
 function absoluteUrl(path: string): string {
   if (typeof window === 'undefined') return path;
   return `${window.location.origin}${path}`;
@@ -84,18 +126,26 @@ export function useDocumentMeta(match: RouteMetaMatch | null): void {
 
     // Une page non indexable ne doit pas non plus être partageable comme
     // contenu : son URL contient souvent un identifiant de session.
+    const origin = typeof window === 'undefined' ? '' : window.location.origin;
     if (meta.indexable) {
       upsertMeta('property', 'og:url', canonical);
       upsertMeta('property', 'og:image', absoluteUrl(DEFAULT_OG_IMAGE));
       upsertMeta('name', 'twitter:card', 'summary_large_image');
       upsertMeta('name', 'twitter:title', meta.title);
       upsertMeta('name', 'twitter:description', meta.description);
+      // Données structurées de base : l'identité du site. Les types par page
+      // (Product, Article, BreadcrumbList) suivront avec le prérendu du
+      // sous-chantier 7.3, quand ils pourront être injectés dans le HTML statique.
+      upsertJsonLd('ld-organization', organizationJsonLd(origin));
+      upsertJsonLd('ld-website', websiteJsonLd(origin));
     } else {
       removeMeta('property', 'og:url');
       removeMeta('property', 'og:image');
       removeMeta('name', 'twitter:card');
       removeMeta('name', 'twitter:title');
       removeMeta('name', 'twitter:description');
+      removeJsonLd('ld-organization');
+      removeJsonLd('ld-website');
     }
   }, [match?.canonicalPath, match?.meta.title, match?.meta.description, match?.meta.indexable, match]);
 }
