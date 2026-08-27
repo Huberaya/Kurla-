@@ -183,6 +183,7 @@ function mapRefundRow(row: any): CustomerRefund {
     stockRestored: row.stock_restored === true,
     items: Array.isArray(row.items) ? row.items.map((item: any) => ({
       productId: item.productId || item.product_id,
+      variantId: item.variantId || item.variant_id || undefined,
       quantity: Number(item.quantity)
     })) : [],
     status: row.status,
@@ -326,7 +327,7 @@ export interface CustomerRefund {
   stripeRefundId?: string;
   idempotencyKey?: string;
   stockRestored?: boolean;
-  items?: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
+  items?: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
   status: 'pending' | 'succeeded' | 'failed' | 'completed';
   createdAt: string;
 }
@@ -422,7 +423,7 @@ class SupabaseServerStore {
   private inMemoryProducts: any[] = [];
   private inMemoryOrders: ServerOrder[] = [];
   private inMemoryCarts: Map<string, any[]> = new Map();
-  private inMemoryInventory: Map<string, { quantity: number; reserved_quantity: number }> = new Map();
+  private inMemoryInventory: Map<string, { quantity: number; reserved_quantity: number; available_quantity?: number }> = new Map();
   private inMemoryStripeEvents: StripeEventLog[] = [];
   private inMemoryStatusHistory: OrderStatusHistoryEntry[] = [];
   private inMemoryNotifications: UserNotification[] = [];
@@ -447,6 +448,49 @@ class SupabaseServerStore {
   private inMemoryAiSessions: Map<string, AiAssistantSession> = new Map();
   private inMemoryAiMessages: Map<string, AiAssistantMessage[]> = new Map();
   private inMemoryAiFeedback: Array<{ userId: string; sessionId?: string; messageId?: string; rating: AiFeedbackRating; comment?: string; createdAt: string }> = [];
+  private localStockOperation: Promise<void> = Promise.resolve();
+
+  private async withLocalStockLock<T>(operation: () => Promise<T>): Promise<T> {
+    let release!: () => void;
+    const previous = this.localStockOperation;
+    this.localStockOperation = new Promise<void>(resolve => { release = resolve; });
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
+  }
+
+  private async reserveLocalStockUnlocked(items: ServerOrderItem[]): Promise<void> {
+    const previousValues = new Map<string, { quantity: number; reserved_quantity: number; available_quantity?: number }>();
+    try {
+      for (const item of items) {
+        const product = await this.getProductById(item.productId);
+        const realId = product ? product.id : item.productId;
+        const inventory = item.variantId
+          ? await this.getInventoryByVariantId(realId, item.variantId)
+          : await this.getInventoryByProductId(realId);
+        const key = item.variantId ? `${realId}:${item.variantId}` : realId;
+        if (!previousValues.has(key)) previousValues.set(key, {
+          quantity: inventory.quantity,
+          reserved_quantity: inventory.reserved_quantity,
+          available_quantity: inventory.available_quantity
+        });
+        const available = inventory.available_quantity ?? (inventory.quantity - inventory.reserved_quantity);
+        if (available < item.quantity) throw new Error(`Stock insuffisant pour le produit ${item.productId}.`);
+        const reservedQuantity = inventory.reserved_quantity + item.quantity;
+        this.inMemoryInventory.set(key, {
+          quantity: inventory.quantity,
+          reserved_quantity: reservedQuantity,
+          available_quantity: inventory.quantity - reservedQuantity
+        });
+      }
+    } catch (error) {
+      for (const [key, value] of previousValues) this.inMemoryInventory.set(key, value);
+      throw error;
+    }
+  }
   private inMemoryAiHumanReviews: AiHumanReview[] = [];
   private inMemoryAdminAuditLogs: Array<{ id: string; action: string; userId?: string; details: Record<string, unknown>; createdAt: string }> = [];
   private inMemoryAdminBrands: any[] = [];
@@ -524,7 +568,7 @@ class SupabaseServerStore {
       ensureDatabaseSuccess('lecture du catalogue', error);
       const { data: variants, error: variantsError } = await supabase.from('product_variants').select('*');
       ensureDatabaseSuccess('lecture des variantes produit', variantsError);
-      const { data: inventoryRows, error: inventoryError } = await supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity');
+      const { data: inventoryRows, error: inventoryError } = await supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity, available_quantity');
       ensureDatabaseSuccess('lecture du stock catalogue', inventoryError);
       const { data: imageRows, error: imagesError } = await supabase.from('product_images').select('*').order('position', { ascending: true });
       ensureDatabaseSuccess('lecture des images catalogue', imagesError);
@@ -553,11 +597,18 @@ class SupabaseServerStore {
       const mapped = (data || []).map((p: any) => {
         const productVariants = (variantsByProduct.get(p.id) || []).map((variant: any) => {
           const stock = inventoryByKey.get(`${p.id}:${variant.id}`);
-          return stock ? { ...variant, stock_quantity: stock.quantity, reserved_quantity: stock.reserved_quantity } : variant;
+          return stock ? {
+            ...variant,
+            stock_quantity: stock.quantity,
+            reserved_quantity: stock.reserved_quantity,
+            available_quantity: stock.available_quantity ?? Number(stock.quantity) - Number(stock.reserved_quantity || 0)
+          } : variant;
         });
         const baseStock = inventoryByKey.get(`${p.id}:`);
-        const baseAvailable = baseStock ? Number(baseStock.quantity) - Number(baseStock.reserved_quantity || 0) : Number(p.stock_quantity || 0);
-        const variantAvailable = productVariants.some((variant: any) => Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0) > 0);
+        const baseAvailable = baseStock
+          ? Number(baseStock.available_quantity ?? Number(baseStock.quantity) - Number(baseStock.reserved_quantity || 0))
+          : Number(p.stock_quantity || 0);
+        const variantAvailable = productVariants.some((variant: any) => Number(variant.available_quantity ?? (Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0))) > 0);
         return {
         id: p.id,
         slug: p.slug,
@@ -1371,35 +1422,23 @@ class SupabaseServerStore {
     return (await this.getRoutines()).find(routine => routine.slug === slug);
   }
 
-  private async syncInventoryToSupabase(realId: string, quantity: number, reserved_quantity: number): Promise<void> {
+  private async syncInventoryToSupabase(realId: string, quantity: number, _reserved_quantity: number): Promise<void> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return;
     try {
-      const { data, error: selectError } = await supabase.from('inventory').select('id').eq('product_id', realId).is('variant_id', null).maybeSingle();
-      ensureDatabaseSuccess('lecture inventory', selectError);
-      if (data?.id) {
-        const { error } = await supabase.from('inventory').update({
-          quantity,
-          reserved_quantity,
-          updated_at: new Date().toISOString()
-        }).eq('id', data.id);
-        ensureDatabaseSuccess('mise à jour inventory', error);
-      } else {
-        const { error } = await supabase.from('inventory').insert({
-          product_id: realId,
-          quantity,
-          reserved_quantity,
-          updated_at: new Date().toISOString()
-        });
-        ensureDatabaseSuccess('création inventory', error);
-      }
+      const { error } = await supabase.rpc('set_inventory_quantity_atomic', {
+        p_product_id: realId,
+        p_variant_id: null,
+        p_quantity: quantity
+      });
+      ensureDatabaseSuccess('mise à jour atomique de l’inventaire', error);
     } catch (err) {
       console.error('[serverDb] syncInventoryToSupabase error:', err);
       throw err;
     }
   }
 
-  public async getInventoryByProductId(productId: string): Promise<{ quantity: number; reserved_quantity: number }> {
+  public async getInventoryByProductId(productId: string): Promise<{ quantity: number; reserved_quantity: number; available_quantity: number }> {
     const product = await this.getProductById(productId);
     const realId = product ? product.id : productId;
 
@@ -1411,12 +1450,12 @@ class SupabaseServerStore {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity').eq('product_id', realId).is('variant_id', null).maybeSingle();
+        const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity, available_quantity').eq('product_id', realId).is('variant_id', null).maybeSingle();
         ensureDatabaseSuccess('lecture de l’inventaire', error);
         if (data) {
           const q = Number(data.quantity);
           const resQ = Number(data.reserved_quantity || 0);
-          const val = { quantity: q, reserved_quantity: resQ };
+          const val = { quantity: q, reserved_quantity: resQ, available_quantity: Number(data.available_quantity ?? q - resQ) };
           this.inMemoryInventory.set(realId, val);
           if (realId !== productId) this.inMemoryInventory.set(productId, val);
           return val;
@@ -1427,10 +1466,14 @@ class SupabaseServerStore {
       }
     }
 
-    if (memInv) return memInv;
+    if (memInv) return {
+      quantity: memInv.quantity,
+      reserved_quantity: memInv.reserved_quantity,
+      available_quantity: memInv.available_quantity ?? memInv.quantity - memInv.reserved_quantity
+    };
 
     const defaultQty = product && typeof product.stockQuantity === 'number' ? product.stockQuantity : 50;
-    const defaultInv = { quantity: defaultQty, reserved_quantity: 0 };
+    const defaultInv = { quantity: defaultQty, reserved_quantity: 0, available_quantity: defaultQty };
     this.inMemoryInventory.set(realId, defaultInv);
     if (realId !== productId) this.inMemoryInventory.set(productId, defaultInv);
     return defaultInv;
@@ -1438,43 +1481,48 @@ class SupabaseServerStore {
 
   public async getAvailableStock(productId: string): Promise<number> {
     const inv = await this.getInventoryByProductId(productId);
-    return Math.max(0, inv.quantity - inv.reserved_quantity);
+    return Math.max(0, inv.available_quantity ?? (inv.quantity - inv.reserved_quantity));
   }
 
-  public async getInventoryByVariantId(productId: string, variantId: string): Promise<{ quantity: number; reserved_quantity: number }> {
+  public async getInventoryByVariantId(productId: string, variantId: string): Promise<{ quantity: number; reserved_quantity: number; available_quantity: number }> {
     const product = await this.getProductById(productId);
     const realId = product ? product.id : productId;
     const cacheKey = `${realId}:${variantId}`;
     const cached = this.inMemoryInventory.get(cacheKey);
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity').eq('product_id', realId).eq('variant_id', variantId).maybeSingle();
+      const { data, error } = await supabase.from('inventory').select('id, quantity, reserved_quantity, available_quantity').eq('product_id', realId).eq('variant_id', variantId).maybeSingle();
       ensureDatabaseSuccess('lecture de l’inventaire de la variante', error);
       if (data) {
-        const value = { quantity: Number(data.quantity), reserved_quantity: Number(data.reserved_quantity || 0) };
+        const quantity = Number(data.quantity);
+        const reservedQuantity = Number(data.reserved_quantity || 0);
+        const value = { quantity, reserved_quantity: reservedQuantity, available_quantity: Number(data.available_quantity ?? quantity - reservedQuantity) };
         this.inMemoryInventory.set(cacheKey, value);
         return value;
       }
     }
-    if (cached) return cached;
+    if (cached) return {
+      quantity: cached.quantity,
+      reserved_quantity: cached.reserved_quantity,
+      available_quantity: cached.available_quantity ?? cached.quantity - cached.reserved_quantity
+    };
     const variant = product?.variants?.find((item: any) => item.id === variantId);
-    const value = { quantity: Number(variant?.stock_quantity || variant?.stockQuantity || 0), reserved_quantity: Number(variant?.reserved_quantity || variant?.reservedQuantity || 0) };
+    const quantity = Number(variant?.stock_quantity || variant?.stockQuantity || 0);
+    const reservedQuantity = Number(variant?.reserved_quantity || variant?.reservedQuantity || 0);
+    const value = { quantity, reserved_quantity: reservedQuantity, available_quantity: quantity - reservedQuantity };
     this.inMemoryInventory.set(cacheKey, value);
     return value;
   }
 
-  private async syncVariantInventoryToSupabase(productId: string, variantId: string, quantity: number, reserved_quantity: number): Promise<void> {
+  private async syncVariantInventoryToSupabase(productId: string, variantId: string, quantity: number, _reserved_quantity: number): Promise<void> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return;
-    const { data: existing, error: lookupError } = await supabase.from('inventory').select('id').eq('product_id', productId).eq('variant_id', variantId).maybeSingle();
-    ensureDatabaseSuccess('lecture de l’inventaire de la variante', lookupError);
-    if (existing?.id) {
-      const { error } = await supabase.from('inventory').update({ quantity, reserved_quantity, updated_at: new Date().toISOString() }).eq('id', existing.id);
-      ensureDatabaseSuccess('mise à jour de l’inventaire de la variante', error);
-    } else {
-      const { error } = await supabase.from('inventory').insert({ product_id: productId, variant_id: variantId, quantity, reserved_quantity, updated_at: new Date().toISOString() });
-      ensureDatabaseSuccess('création de l’inventaire de la variante', error);
-    }
+    const { error } = await supabase.rpc('set_inventory_quantity_atomic', {
+      p_product_id: productId,
+      p_variant_id: variantId,
+      p_quantity: quantity
+    });
+    ensureDatabaseSuccess('mise à jour atomique de l’inventaire de la variante', error);
   }
 
   public async saveOrder(order: ServerOrder): Promise<ServerOrder> {
@@ -1488,26 +1536,50 @@ class SupabaseServerStore {
     }
     const isInitialPayment = isNewOrder && (order.status === 'payment_pending_webhook' || order.status === 'pending_payment');
 
-    // Reserve stock on initial order creation. The Supabase path uses row
-    // locks inside PostgreSQL so concurrent checkouts cannot oversell. No
-    // in-memory order is exposed until all required persistent writes pass.
-    if (isInitialPayment) {
-      if (supabase) {
-        const { error: reserveError } = await supabase.rpc('reserve_stock_for_order', {
-          p_items: order.items.map(item => ({ product_id: item.productId, variant_id: item.variantId || null, quantity: item.quantity }))
-        });
-        ensureDatabaseSuccess('réservation atomique du stock', reserveError);
-      } else {
-        for (const item of order.items) {
-          const product = await this.getProductById(item.productId);
-          const realId = product ? product.id : item.productId;
-          const inv = await this.getInventoryByProductId(realId);
-          const newResQ = inv.reserved_quantity + item.quantity;
-          const val = { quantity: inv.quantity, reserved_quantity: newResQ };
-          this.inMemoryInventory.set(realId, val);
-          if (realId !== item.productId) this.inMemoryInventory.set(item.productId, val);
-        }
-      }
+    // The checkout RPC owns the complete transaction: it locks and reserves
+    // inventory, then creates the order, its lines, payment ledger row and
+    // initial history row. A retry returns the already-created order without
+    // reserving its stock a second time.
+    if (supabase && isInitialPayment) {
+      const { data, error } = await supabase.rpc('create_order_with_stock_reservation', {
+        p_order_id: order.id,
+        p_user_id: order.userId || null,
+        p_customer_email: order.customerEmail,
+        p_items: order.items,
+        p_total: order.total,
+        p_status: order.status,
+        p_stripe_session_id: order.stripeSessionId || null,
+        p_stripe_payment_intent_id: order.stripePaymentIntentId || null,
+        p_checkout_idempotency_key: order.checkoutIdempotencyKey || null,
+        p_shipping_address: order.shippingAddress || null,
+        p_created_at: order.createdAt
+      });
+      ensureDatabaseSuccess('création atomique de la commande et réservation du stock', error);
+      const row: any = Array.isArray(data) ? data[0] : data;
+      if (!row) throw new Error('[Supabase] création atomique de la commande: réponse vide');
+      const persistedOrder: ServerOrder = {
+        id: row.id || order.id,
+        userId: row.user_id ?? order.userId,
+        customerEmail: row.customer_email || order.customerEmail,
+        items: Array.isArray(row.items) ? row.items : order.items,
+        total: Number(row.total ?? order.total),
+        status: row.status || order.status,
+        stripeSessionId: row.stripe_session_id ?? order.stripeSessionId,
+        stripePaymentIntentId: row.stripe_payment_intent_id ?? order.stripePaymentIntentId,
+        checkoutIdempotencyKey: row.checkout_idempotency_key ?? order.checkoutIdempotencyKey,
+        shippingAddress: row.shipping_address ?? order.shippingAddress,
+        createdAt: row.created_at || order.createdAt,
+        updatedAt: row.updated_at || order.updatedAt
+      };
+      const persistedIndex = this.inMemoryOrders.findIndex(existing => existing.id === persistedOrder.id);
+      if (persistedIndex >= 0) this.inMemoryOrders[persistedIndex] = persistedOrder;
+      else this.inMemoryOrders.unshift(persistedOrder);
+      return persistedOrder;
+    }
+
+    // Local-only fallback. Supabase never reaches this multi-step branch.
+    if (isInitialPayment && !supabase) {
+      await this.withLocalStockLock(() => this.reserveLocalStockUnlocked(order.items));
     }
 
     if (supabase) {
@@ -1849,42 +1921,156 @@ class SupabaseServerStore {
     const order = await this.getOrderById(orderId);
     if (!order) return undefined;
 
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      // PostgreSQL locks the order first, then mutates the corresponding
+      // inventory rows, payment ledger and history in one transaction. This
+      // is deliberately the only Supabase path for payment/expiration
+      // transitions; webhook retries are no-ops once the status is committed.
+      const { data, error } = await supabase.rpc('transition_order_stock', {
+        p_order_id: order.id,
+        p_new_status: newStatus,
+        p_stripe_payment_intent_id: extra?.stripePaymentIntentId || null,
+        p_changed_by: extra?.changedBy || null,
+        p_changed_by_role: extra?.changedByRole || 'system',
+        p_reason: extra?.reason || `Transition atomique vers ${newStatus}`,
+        p_restock_items: extra?.restockItems || []
+      });
+      ensureDatabaseSuccess('transition atomique de commande et de stock', error);
+      const row: any = Array.isArray(data) ? data[0] : data;
+      if (!row) throw new Error('[Supabase] transition atomique de commande: réponse vide');
+      const updated: ServerOrder = {
+        id: row.id || order.id,
+        userId: row.user_id ?? order.userId,
+        customerEmail: row.customer_email || order.customerEmail,
+        items: Array.isArray(row.items) ? row.items : order.items,
+        total: Number(row.total ?? order.total),
+        status: row.status || newStatus,
+        stripeSessionId: row.stripe_session_id ?? order.stripeSessionId,
+        stripePaymentIntentId: row.stripe_payment_intent_id ?? order.stripePaymentIntentId,
+        checkoutIdempotencyKey: row.checkout_idempotency_key ?? order.checkoutIdempotencyKey,
+        shippingAddress: row.shipping_address ?? order.shippingAddress,
+        createdAt: row.created_at || order.createdAt,
+        updatedAt: row.updated_at || order.updatedAt
+      };
+      const index = this.inMemoryOrders.findIndex(existing => existing.id === updated.id);
+      if (index >= 0) this.inMemoryOrders[index] = updated;
+      else this.inMemoryOrders.unshift(updated);
+
+      if (order.status !== updated.status && updated.userId) {
+        const type = updated.status === 'paid' ? 'payment_confirmed' : `order_${updated.status}`;
+        const title = `Mise à jour commande #${updated.id}`;
+        await this.sendNotification(updated.userId, type, title,
+          `Le statut de votre commande est désormais : ${updated.status.toUpperCase()}`,
+          `/account?tab=orders`, updated.id);
+        await emailService.sendEmail({
+          to: updated.customerEmail,
+          subject: `[KURLA BEAUTY] ${title}`,
+          template: type as any,
+          data: { orderId: updated.id, total: updated.total, status: updated.status }
+        });
+      }
+      return updated;
+    }
+
+    // Explicit local-only fallback used by the test/development store. The
+    // configured Supabase store never executes these independent writes.
     if (order.status === newStatus) {
-      // Multiple Stripe event types can confirm the same payment. Updating a
-      // newly learned PaymentIntent is allowed, but it must not restock,
-      // append a second payment row, or create another status transition.
       if (extra?.stripePaymentIntentId && order.stripePaymentIntentId !== extra.stripePaymentIntentId) {
         order.stripePaymentIntentId = extra.stripePaymentIntentId;
         order.updatedAt = new Date().toISOString();
-        const supabase = getSupabaseServerClient();
-        if (supabase) {
-          const { error } = await supabase.from('orders').update({
-            stripe_payment_intent_id: order.stripePaymentIntentId,
-            updated_at: order.updatedAt
-          }).eq('id', order.id);
-          ensureDatabaseSuccess('mise à jour du PaymentIntent de la commande', error);
-        }
         const index = this.inMemoryOrders.findIndex(existing => existing.id === order.id);
         if (index >= 0) this.inMemoryOrders[index] = order;
-        else if (supabase) this.inMemoryOrders.unshift(order);
       }
       return order;
     }
 
     const oldStatus = order.status;
-
-    // Validate transition
     if (!this.isTransitionAllowed(oldStatus, newStatus)) {
       throw new Error(`Transition de statut invalide : impossible de passer de '${oldStatus}' à '${newStatus}'.`);
     }
 
+    const nextUpdatedAt = new Date().toISOString();
+    const nextPaymentIntent = extra?.stripePaymentIntentId || order.stripePaymentIntentId;
+
+    await this.withLocalStockLock(async () => {
+      if ((oldStatus === 'payment_pending_webhook' || oldStatus === 'pending_payment' || oldStatus === 'payment_failed') && newStatus === 'paid') {
+      if (oldStatus === 'payment_failed') await this.reserveLocalStockUnlocked(order.items);
+      for (const item of order.items) {
+        const product = await this.getProductById(item.productId);
+        const realId = product ? product.id : item.productId;
+        const inventory = item.variantId
+          ? await this.getInventoryByVariantId(realId, item.variantId)
+          : await this.getInventoryByProductId(realId);
+        if (inventory.quantity < item.quantity || inventory.reserved_quantity < item.quantity) {
+          throw new Error(`Stock réservé incohérent pour le produit ${item.productId}.`);
+        }
+        const quantity = inventory.quantity - item.quantity;
+        const reservedQuantity = inventory.reserved_quantity - item.quantity;
+        const key = item.variantId ? `${realId}:${item.variantId}` : realId;
+        this.inMemoryInventory.set(key, { quantity, reserved_quantity: reservedQuantity, available_quantity: quantity - reservedQuantity });
+        const productIndex = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
+        const inMemoryProduct = productIndex >= 0 ? this.inMemoryProducts[productIndex] : undefined;
+        const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === item.variantId);
+        if (item.variantId && inMemoryVariant) {
+          inMemoryVariant.stock_quantity = quantity;
+          inMemoryVariant.reserved_quantity = reservedQuantity;
+        } else if (inMemoryProduct) {
+          inMemoryProduct.stockQuantity = quantity;
+          inMemoryProduct.inStock = quantity > 0;
+        }
+      }
+    } else if ((oldStatus === 'payment_pending_webhook' || oldStatus === 'pending_payment') && (newStatus === 'payment_failed' || newStatus === 'cancelled')) {
+      for (const item of order.items) {
+        const product = await this.getProductById(item.productId);
+        const realId = product ? product.id : item.productId;
+        const inventory = item.variantId
+          ? await this.getInventoryByVariantId(realId, item.variantId)
+          : await this.getInventoryByProductId(realId);
+        if (inventory.reserved_quantity < item.quantity) {
+          throw new Error(`Réservation de stock incohérente pour le produit ${item.productId}.`);
+        }
+        const reservedQuantity = inventory.reserved_quantity - item.quantity;
+        const key = item.variantId ? `${realId}:${item.variantId}` : realId;
+        this.inMemoryInventory.set(key, {
+          quantity: inventory.quantity,
+          reserved_quantity: reservedQuantity,
+          available_quantity: inventory.quantity - reservedQuantity
+        });
+      }
+    } else if (
+      ['paid', 'processing', 'packed', 'shipped', 'delivered', 'return_requested', 'partially_refunded'].includes(oldStatus)
+      && (newStatus === 'refunded' || newStatus === 'partially_refunded')
+    ) {
+      const itemsToRestore = extra?.restockItems || (newStatus === 'refunded' ? order.items : []);
+      for (const item of itemsToRestore) {
+        const product = await this.getProductById(item.productId);
+        const realId = product ? product.id : item.productId;
+        const inventory = item.variantId
+          ? await this.getInventoryByVariantId(realId, item.variantId)
+          : await this.getInventoryByProductId(realId);
+        const quantity = inventory.quantity + item.quantity;
+        const key = item.variantId ? `${realId}:${item.variantId}` : realId;
+        this.inMemoryInventory.set(key, {
+          quantity,
+          reserved_quantity: inventory.reserved_quantity,
+          available_quantity: quantity - inventory.reserved_quantity
+        });
+        const productIndex = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
+        const inMemoryProduct = productIndex >= 0 ? this.inMemoryProducts[productIndex] : undefined;
+        const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === item.variantId);
+        if (item.variantId && inMemoryVariant) inMemoryVariant.stock_quantity = quantity;
+        else if (inMemoryProduct) {
+          inMemoryProduct.stockQuantity = quantity;
+          inMemoryProduct.inStock = true;
+        }
+      }
+      }
+    });
+
     order.status = newStatus;
-    order.updatedAt = new Date().toISOString();
-    if (extra?.stripePaymentIntentId) order.stripePaymentIntentId = extra.stripePaymentIntentId;
-
-    const supabase = getSupabaseServerClient();
-
-    // Log status transition into audit trail
+    order.updatedAt = nextUpdatedAt;
+    order.stripePaymentIntentId = nextPaymentIntent;
     await this.logOrderStatusHistory(
       orderId,
       oldStatus,
@@ -1895,140 +2081,16 @@ class SupabaseServerStore {
       'admin_dashboard'
     );
 
-    // Handle stock transitions
-    // Case 1: Payment Confirmed (payment_pending_webhook / pending_payment / payment_failed -> paid)
-    if ((oldStatus === 'payment_pending_webhook' || oldStatus === 'pending_payment' || oldStatus === 'payment_failed') && newStatus === 'paid') {
-      for (const item of order.items) {
-        const product = await this.getProductById(item.productId);
-        const realId = product ? product.id : item.productId;
-        const variantId = item.variantId;
-        const inv = variantId
-          ? await this.getInventoryByVariantId(realId, variantId)
-          : await this.getInventoryByProductId(realId);
-        const newQ = Math.max(0, inv.quantity - item.quantity);
-        const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
-        const val = { quantity: newQ, reserved_quantity: newResQ };
-        if (!supabase) {
-          this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, val);
-          const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-          const inMemoryProduct = pIdx >= 0 ? this.inMemoryProducts[pIdx] : undefined;
-          const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === variantId);
-          if (inMemoryVariant && variantId) {
-            inMemoryVariant.stock_quantity = newQ;
-            inMemoryVariant.reserved_quantity = newResQ;
-          } else if (inMemoryProduct) {
-            inMemoryProduct.stockQuantity = newQ;
-            inMemoryProduct.inStock = newQ > 0;
-          }
-        }
+    const index = this.inMemoryOrders.findIndex(existing => existing.id === order.id);
+    if (index >= 0) this.inMemoryOrders[index] = order;
+    else this.inMemoryOrders.unshift(order);
 
-        if (supabase && !variantId) {
-          const { error } = await supabase.from('products').update({
-            stock_quantity: newQ,
-            in_stock: newQ > 0,
-            updated_at: new Date().toISOString()
-          }).eq('id', realId);
-          ensureDatabaseSuccess('mise à jour du stock produit', error);
-          await this.syncInventoryToSupabase(realId, newQ, newResQ);
-        } else if (variantId) {
-          await this.syncVariantInventoryToSupabase(realId, variantId, newQ, newResQ);
-        }
-      }
-    }
-    // Case 2: Payment Failed / Cancelled (payment_pending_webhook / pending_payment -> payment_failed / cancelled)
-    else if ((oldStatus === 'payment_pending_webhook' || oldStatus === 'pending_payment') && (newStatus === 'payment_failed' || newStatus === 'cancelled')) {
-      for (const item of order.items) {
-        const product = await this.getProductById(item.productId);
-        const realId = product ? product.id : item.productId;
-        const variantId = item.variantId;
-        const inv = variantId
-          ? await this.getInventoryByVariantId(realId, variantId)
-          : await this.getInventoryByProductId(realId);
-        const newResQ = Math.max(0, inv.reserved_quantity - item.quantity);
-        if (!supabase) this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, { quantity: inv.quantity, reserved_quantity: newResQ });
-        if (variantId) await this.syncVariantInventoryToSupabase(realId, variantId, inv.quantity, newResQ);
-        else await this.syncInventoryToSupabase(realId, inv.quantity, newResQ);
-      }
-    }
-    // Case 3: Refunds restore only the returned quantities. A direct full
-    // refund transition keeps the legacy behavior and restores all items;
-    // processStripeRefund passes an explicit item list for partial returns.
-    else if (
-      ['paid', 'processing', 'packed', 'shipped', 'delivered', 'return_requested', 'partially_refunded'].includes(oldStatus)
-      && (newStatus === 'refunded' || newStatus === 'partially_refunded')
-    ) {
-      const itemsToRestore = extra?.restockItems || (newStatus === 'refunded' ? order.items : []);
-      for (const item of itemsToRestore) {
-        const product = await this.getProductById(item.productId);
-        const realId = product ? product.id : item.productId;
-        const variantId = item.variantId;
-        const inv = variantId
-          ? await this.getInventoryByVariantId(realId, variantId)
-          : await this.getInventoryByProductId(realId);
-        const newQ = inv.quantity + item.quantity;
-        const val = { quantity: newQ, reserved_quantity: inv.reserved_quantity };
-        if (!supabase) {
-          this.inMemoryInventory.set(variantId ? `${realId}:${variantId}` : realId, val);
-          const pIdx = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-          const inMemoryProduct = pIdx >= 0 ? this.inMemoryProducts[pIdx] : undefined;
-          const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === variantId);
-          if (inMemoryVariant && variantId) {
-            inMemoryVariant.stock_quantity = newQ;
-          } else if (inMemoryProduct) {
-            inMemoryProduct.stockQuantity = newQ;
-            inMemoryProduct.inStock = true;
-          }
-        }
-
-        if (supabase && !variantId) {
-          const { error } = await supabase.from('products').update({
-            stock_quantity: newQ,
-            in_stock: true,
-            updated_at: new Date().toISOString()
-          }).eq('id', realId);
-          ensureDatabaseSuccess('restauration du stock produit', error);
-          await this.syncInventoryToSupabase(realId, newQ, inv.reserved_quantity);
-        } else if (variantId) {
-          await this.syncVariantInventoryToSupabase(realId, variantId, newQ, inv.reserved_quantity);
-        }
-      }
-    }
-
-    // Save order changes in the local cache only after the persistent path,
-    // when one is configured, has accepted the operation.
-    const idx = this.inMemoryOrders.findIndex(o => o.id === order.id);
-    if (!supabase && idx >= 0) this.inMemoryOrders[idx] = order;
-
-    if (supabase) {
-      const { error: orderError } = await supabase.from('orders').update({
-        status: newStatus,
-        stripe_payment_intent_id: order.stripePaymentIntentId || null,
-        updated_at: order.updatedAt
-      }).eq('id', order.id);
-      ensureDatabaseSuccess('mise à jour du statut de commande', orderError);
-
-      const { error: paymentError } = await supabase.from('payments').insert({
-        order_id: order.id,
-        amount: order.total,
-        currency: 'EUR',
-        status: newStatus,
-        stripe_payment_intent_id: order.stripePaymentIntentId || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-      ensureDatabaseSuccess('création du paiement de statut', paymentError);
-      if (idx >= 0) this.inMemoryOrders[idx] = order;
-      else this.inMemoryOrders.unshift(order);
-    }
-
-    // Trigger Notification & Email for customer
     if (order.userId) {
       const type = newStatus === 'paid' ? 'payment_confirmed' : `order_${newStatus}`;
       const title = `Mise à jour commande #${order.id}`;
-      const msgText = `Le statut de votre commande est désormais : ${newStatus.toUpperCase()}`;
-
-      await this.sendNotification(order.userId, type, title, msgText, `/account?tab=orders`, order.id);
-
+      await this.sendNotification(order.userId, type, title,
+        `Le statut de votre commande est désormais : ${newStatus.toUpperCase()}`,
+        `/account?tab=orders`, order.id);
       await emailService.sendEmail({
         to: order.customerEmail,
         subject: `[KURLA BEAUTY] ${title}`,
@@ -2413,7 +2475,8 @@ class SupabaseServerStore {
       throw new Error(`La commande #${orderId} n’est pas éligible à une demande de retour depuis le statut '${order.status}'.`);
     }
 
-    const orderQuantities = new Map(order.items.map(item => [item.productId, item.quantity]));
+    const keyFor = (productId: string, variantId?: string) => `${productId}::${variantId || ''}`;
+    const orderQuantities = new Map(order.items.map(item => [keyFor(item.productId, item.variantId), item.quantity]));
     const alreadyRequested = new Map<string, number>();
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -2429,9 +2492,11 @@ class SupabaseServerStore {
         }
         for (const item of previous.items) {
           const productId = item?.productId || item?.product_id;
+          const variantId = item?.variantId || item?.variant_id || undefined;
           const quantity = Number(item?.quantity);
-          if (typeof productId === 'string' && Number.isSafeInteger(quantity) && quantity > 0) {
-            alreadyRequested.set(productId, (alreadyRequested.get(productId) || 0) + quantity);
+          const key = typeof productId === 'string' ? keyFor(productId, variantId) : '';
+          if (key && Number.isSafeInteger(quantity) && quantity > 0) {
+            alreadyRequested.set(key, (alreadyRequested.get(key) || 0) + quantity);
           }
         }
       }
@@ -2440,27 +2505,31 @@ class SupabaseServerStore {
         if (previous.orderId !== orderId || ['rejected', 'cancelled'].includes(previous.status)) continue;
         for (const item of previous.items || []) {
           const productId = item?.productId || item?.product_id;
+          const variantId = item?.variantId || item?.variant_id || undefined;
           const quantity = Number(item?.quantity);
-          if (typeof productId === 'string' && Number.isSafeInteger(quantity) && quantity > 0) {
-            alreadyRequested.set(productId, (alreadyRequested.get(productId) || 0) + quantity);
+          const key = typeof productId === 'string' ? keyFor(productId, variantId) : '';
+          if (key && Number.isSafeInteger(quantity) && quantity > 0) {
+            alreadyRequested.set(key, (alreadyRequested.get(key) || 0) + quantity);
           }
         }
       }
     }
 
-    const normalizedItems = new Map<string, { productId: string; quantity: number }>();
+    const normalizedItems = new Map<string, { productId: string; variantId?: string; quantity: number }>();
     for (const item of items) {
       const productId = item?.productId || item?.product_id;
+      const variantId = item?.variantId || item?.variant_id || undefined;
       const quantity = Number(item?.quantity);
       if (typeof productId !== 'string' || !Number.isSafeInteger(quantity) || quantity < 1) {
         throw new Error('Ligne de retour invalide.');
       }
-      const nextQuantity = (normalizedItems.get(productId)?.quantity || 0) + quantity;
-      const totalRequested = (alreadyRequested.get(productId) || 0) + nextQuantity;
-      if (!orderQuantities.has(productId) || totalRequested > orderQuantities.get(productId)!) {
+      const key = keyFor(productId, variantId);
+      const nextQuantity = (normalizedItems.get(key)?.quantity || 0) + quantity;
+      const totalRequested = (alreadyRequested.get(key) || 0) + nextQuantity;
+      if (!orderQuantities.has(key) || totalRequested > orderQuantities.get(key)!) {
         throw new Error(`Quantité retournée invalide pour le produit ${productId}.`);
       }
-      normalizedItems.set(productId, { productId, quantity: nextQuantity });
+      normalizedItems.set(key, { productId, variantId, quantity: nextQuantity });
     }
 
     const normalizedReturnItems = Array.from(normalizedItems.values());
@@ -2699,8 +2768,9 @@ class SupabaseServerStore {
     amountCents: number,
     remainingCents: number,
     previousRefunds: CustomerRefund[] = []
-  ): Promise<Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>> {
-    const orderItems = new Map(order.items.map(item => [item.productId, item]));
+  ): Promise<Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>> {
+    const keyFor = (productId: string, variantId?: string) => `${productId}::${variantId || ''}`;
+    const orderItems = new Map(order.items.map(item => [keyFor(item.productId, item.variantId), item]));
     const previouslyRestored = new Map<string, number>();
     const unknownPreviousStock = previousRefunds.some(refund =>
       ['succeeded', 'completed'].includes(refund.status)
@@ -2715,7 +2785,8 @@ class SupabaseServerStore {
     for (const refund of previousRefunds) {
       if (['succeeded', 'completed'].includes(refund.status) && refund.stockRestored) {
         for (const item of refund.items || []) {
-          previouslyRestored.set(item.productId, (previouslyRestored.get(item.productId) || 0) + item.quantity);
+          const key = keyFor(item.productId, item.variantId);
+          previouslyRestored.set(key, (previouslyRestored.get(key) || 0) + item.quantity);
         }
       }
     }
@@ -2736,28 +2807,36 @@ class SupabaseServerStore {
       }
       requestedItems = order.items.map(item => ({
         productId: item.productId,
-        quantity: item.quantity - (previouslyRestored.get(item.productId) || 0)
+        variantId: item.variantId,
+        quantity: item.quantity - (previouslyRestored.get(keyFor(item.productId, item.variantId)) || 0)
       })).filter(item => item.quantity > 0);
     }
 
-    const requestedQuantities = new Map<string, number>();
+    const requestedQuantities = new Map<string, { productId: string; variantId?: string; quantity: number }>();
     for (const item of requestedItems) {
       const productId = item?.productId || item?.product_id;
+      const variantId = item?.variantId || item?.variant_id || undefined;
       const quantity = Number(item?.quantity);
       if (typeof productId !== 'string' || !Number.isSafeInteger(quantity) || quantity < 1) {
         throw new Error(`Quantité remboursée invalide pour le produit ${productId || 'inconnu'}.`);
       }
-      requestedQuantities.set(productId, (requestedQuantities.get(productId) || 0) + quantity);
+      const key = keyFor(productId, variantId);
+      const existing = requestedQuantities.get(key);
+      requestedQuantities.set(key, {
+        productId,
+        variantId,
+        quantity: (existing?.quantity || 0) + quantity
+      });
     }
 
-    const refundItems = Array.from(requestedQuantities, ([productId, requestedQuantity]) => {
-      const orderItem = orderItems.get(productId);
-      const alreadyRestored = previouslyRestored.get(productId) || 0;
+    const refundItems = Array.from(requestedQuantities.values()).map(item => {
+      const orderItem = orderItems.get(keyFor(item.productId, item.variantId));
+      const alreadyRestored = previouslyRestored.get(keyFor(item.productId, item.variantId)) || 0;
       const availableQuantity = (orderItem?.quantity || 0) - alreadyRestored;
-      if (!orderItem || requestedQuantity > availableQuantity) {
-        throw new Error(`Quantité remboursée invalide pour le produit ${productId}.`);
+      if (!orderItem || item.quantity > availableQuantity) {
+        throw new Error(`Quantité remboursée invalide pour le produit ${item.productId}.`);
       }
-      return { productId, quantity: requestedQuantity };
+      return item;
     });
 
     if (refundItems.length === 0) {
@@ -2765,7 +2844,7 @@ class SupabaseServerStore {
     }
 
     const maximumItemAmountCents = refundItems.reduce((sum, item) => {
-      const orderItem = orderItems.get(item.productId)!;
+      const orderItem = orderItems.get(keyFor(item.productId, item.variantId))!;
       return sum + Math.round(orderItem.price * 100) * item.quantity;
     }, 0);
     if (amountCents > maximumItemAmountCents) {
@@ -2775,20 +2854,31 @@ class SupabaseServerStore {
     return refundItems;
   }
 
-  private async restoreLocalRefundStock(order: ServerOrder, items: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>): Promise<void> {
+  private async restoreLocalRefundStock(order: ServerOrder, items: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>): Promise<void> {
     for (const item of items) {
       const product = await this.getProductById(item.productId);
       const realId = product ? product.id : item.productId;
-      const inventory = await this.getInventoryByProductId(realId);
+      const inventory = item.variantId
+        ? await this.getInventoryByVariantId(realId, item.variantId)
+        : await this.getInventoryByProductId(realId);
       const quantity = inventory.quantity + item.quantity;
-      const updatedInventory = { quantity, reserved_quantity: inventory.reserved_quantity };
-      this.inMemoryInventory.set(realId, updatedInventory);
-      if (realId !== item.productId) this.inMemoryInventory.set(item.productId, updatedInventory);
+      const updatedInventory = {
+        quantity,
+        reserved_quantity: inventory.reserved_quantity,
+        available_quantity: quantity - inventory.reserved_quantity
+      };
+      const key = item.variantId ? `${realId}:${item.variantId}` : realId;
+      this.inMemoryInventory.set(key, updatedInventory);
+      if (!item.variantId && realId !== item.productId) this.inMemoryInventory.set(item.productId, updatedInventory);
 
       const productIndex = this.inMemoryProducts.findIndex(p => p.id === realId || p.slug === item.productId);
-      if (productIndex >= 0) {
-        this.inMemoryProducts[productIndex].stockQuantity = quantity;
-        this.inMemoryProducts[productIndex].inStock = true;
+      const inMemoryProduct = productIndex >= 0 ? this.inMemoryProducts[productIndex] : undefined;
+      const inMemoryVariant = inMemoryProduct?.variants?.find((candidate: any) => candidate.id === item.variantId);
+      if (item.variantId && inMemoryVariant) {
+        inMemoryVariant.stock_quantity = quantity;
+      } else if (inMemoryProduct) {
+        inMemoryProduct.stockQuantity = quantity;
+        inMemoryProduct.inStock = true;
       }
     }
   }
@@ -2802,7 +2892,7 @@ class SupabaseServerStore {
     stripeRefundId?: string;
     idempotencyKey: string;
     status: 'pending' | 'succeeded';
-    items: Array<Pick<ServerOrderItem, 'productId' | 'quantity'>>;
+    items: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
     applyStock: boolean;
   }): Promise<CustomerRefund> {
     const supabase = getSupabaseServerClient();
@@ -2817,7 +2907,11 @@ class SupabaseServerStore {
         p_stripe_refund_id: input.stripeRefundId || null,
         p_idempotency_key: input.idempotencyKey,
         p_status: input.status,
-        p_items: input.items,
+        p_items: input.items.map(item => ({
+          product_id: item.productId,
+          variant_id: item.variantId || null,
+          quantity: item.quantity
+        })),
         p_apply_stock: input.applyStock
       });
       ensureDatabaseSuccess('finalisation atomique du remboursement', error);

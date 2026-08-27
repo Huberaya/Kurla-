@@ -658,7 +658,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       if (!variant && dbProduct.inStock === false) return res.status(400).json({ error: `Le produit "${dbProduct.name}" est actuellement en rupture de stock.` });
 
       const availableStock = variant
-        ? Math.max(0, Number(variant.stock_quantity) - Number(variant.reserved_quantity || 0))
+        ? Math.max(0, Number(variant.available_quantity ?? (Number(variant.stock_quantity) - Number(variant.reserved_quantity || 0))))
         : await serverDb.getAvailableStock(dbProduct.id);
       const requestedQuantity = requestedByVariant.get(requestedKey) || quantity;
       if (requestedQuantity > availableStock) {
@@ -2187,6 +2187,9 @@ app.post('/api/admin/orders/:id/status', asyncRoute(async (req: AuthenticatedReq
   const orderId = req.params.id;
   const { status, reason } = req.body || {};
   if (typeof status !== 'string') return res.status(400).json({ error: 'Statut de commande invalide.' });
+  if (status === 'refunded' || status === 'partially_refunded') {
+    return res.status(400).json({ error: 'Utilisez le flux de remboursement pour restaurer le stock et garantir l’idempotence.' });
+  }
 
   try {
     const updated = await serverDb.updateOrderStatus(orderId, status as any, {
