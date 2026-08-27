@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import type { RouteMetaMatch } from './routeMeta';
+import type { Locale } from './i18n';
+import { localizeRouteMeta } from './routeTranslations';
 
 /**
  * Application des métadonnées de route au document.
@@ -11,8 +13,27 @@ import type { RouteMetaMatch } from './routeMeta';
  */
 
 const SITE_NAME = 'KURLA Beauty';
-const LOCALE = 'fr_FR';
+/** `og:locale` au format attendu par Open Graph (`langue_PAYS`). */
+const OG_LOCALE: Record<Locale, string> = { fr: 'fr_FR', en: 'en_GB' };
 const DEFAULT_OG_IMAGE = '/og-default.png';
+
+/**
+ * Synchronise les `<link rel="alternate" hreflang>` : on retire ceux qui ne
+ * font plus partie de la route courante, sinon les alternates d'une page
+ * traduite restent collés à la page suivante après une navigation.
+ */
+function syncHreflang(alternates: { hreflang: string; href: string }[]): void {
+  document.head.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]').forEach(el => {
+    el.remove();
+  });
+  alternates.forEach(({ hreflang, href }) => {
+    const link = document.createElement('link');
+    link.rel = 'alternate';
+    link.hreflang = hreflang;
+    link.href = href;
+    document.head.appendChild(link);
+  });
+}
 
 function upsertMeta(selector: 'name' | 'property', key: string, content: string): void {
   let element = document.head.querySelector<HTMLMetaElement>(`meta[${selector}="${key}"]`);
@@ -70,13 +91,13 @@ function organizationJsonLd(origin: string) {
   };
 }
 
-function websiteJsonLd(origin: string) {
+function websiteJsonLd(origin: string, locale: Locale) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: SITE_NAME,
     url: origin,
-    inLanguage: LOCALE.split('_')[0],
+    inLanguage: locale,
   };
 }
 
@@ -102,11 +123,18 @@ export function useDocumentMeta(match: RouteMetaMatch | null): void {
       upsertMeta('name', 'robots', 'noindex, nofollow');
       removeMeta('property', 'og:url');
       document.head.querySelector('link[rel="canonical"]')?.remove();
+      syncHreflang([]);
       return;
     }
 
-    const { meta, canonicalPath } = match;
+    const origin = typeof window === 'undefined' ? '' : window.location.origin;
 
+    // La locale pilote la langue déclarée, le titre et le canonique. Une route
+    // non traduite garde son canonique français : on ne crée pas de doublon.
+    const localized = localizeRouteMeta(match.meta, match.locale, match.basePath, origin);
+    const { meta, canonicalPath, alternates } = localized;
+
+    document.documentElement.lang = match.locale;
     document.title = meta.title;
     upsertMeta('name', 'description', meta.description);
     upsertMeta(
@@ -117,16 +145,16 @@ export function useDocumentMeta(match: RouteMetaMatch | null): void {
 
     const canonical = absoluteUrl(canonicalPath);
     upsertLink('canonical', canonical);
+    syncHreflang(meta.indexable ? alternates : []);
 
     upsertMeta('property', 'og:site_name', SITE_NAME);
-    upsertMeta('property', 'og:locale', LOCALE);
+    upsertMeta('property', 'og:locale', OG_LOCALE[match.locale]);
     upsertMeta('property', 'og:type', canonicalPath === '/' ? 'website' : 'article');
     upsertMeta('property', 'og:title', meta.title);
     upsertMeta('property', 'og:description', meta.description);
 
     // Une page non indexable ne doit pas non plus être partageable comme
     // contenu : son URL contient souvent un identifiant de session.
-    const origin = typeof window === 'undefined' ? '' : window.location.origin;
     if (meta.indexable) {
       upsertMeta('property', 'og:url', canonical);
       upsertMeta('property', 'og:image', absoluteUrl(DEFAULT_OG_IMAGE));
@@ -137,7 +165,7 @@ export function useDocumentMeta(match: RouteMetaMatch | null): void {
       // (Product, Article, BreadcrumbList) suivront avec le prérendu du
       // sous-chantier 7.3, quand ils pourront être injectés dans le HTML statique.
       upsertJsonLd('ld-organization', organizationJsonLd(origin));
-      upsertJsonLd('ld-website', websiteJsonLd(origin));
+      upsertJsonLd('ld-website', websiteJsonLd(origin, match.locale));
     } else {
       removeMeta('property', 'og:url');
       removeMeta('property', 'og:image');
@@ -147,5 +175,12 @@ export function useDocumentMeta(match: RouteMetaMatch | null): void {
       removeJsonLd('ld-organization');
       removeJsonLd('ld-website');
     }
-  }, [match?.canonicalPath, match?.meta.title, match?.meta.description, match?.meta.indexable, match]);
+  }, [
+    match?.canonicalPath,
+    match?.locale,
+    match?.meta.title,
+    match?.meta.description,
+    match?.meta.indexable,
+    match,
+  ]);
 }

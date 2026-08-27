@@ -2,6 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, User, Users, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen, Package, Droplets , Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
+import { useI18n } from '../lib/I18nProvider';
+import { localizedPath, splitLocale, type Locale } from '../lib/i18n';
+
+/**
+ * Sélecteur de langue.
+ *
+ * Un `button` plutôt qu'un lien : la bascule doit fonctionner sur la page
+ * courante (on reste où l'on est, seule la locale change) et ne dépend pas
+ * d'une version anglaise existante. `aria-pressed` dit aux lecteurs d'écran
+ * quelle langue est active.
+ */
+const LanguageSwitcher: React.FC<{
+  locale: Locale;
+  locales: readonly Locale[];
+  onSwitch: (locale: Locale) => void;
+  scrolled: boolean;
+}> = ({ locale, locales, onSwitch, scrolled }) => (
+  <div
+    role="group"
+    aria-label="Langue / Language"
+    className={`flex items-center rounded-full border px-1 py-0.5 ${
+      scrolled ? 'border-[#E8E1DA] bg-[#F8F2EC]' : 'border-white/20 bg-white/10'
+    }`}
+  >
+    {locales.map((option) => {
+      const isActive = option === locale;
+      return (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onSwitch(option)}
+          aria-pressed={isActive}
+          title={option === 'fr' ? 'Français' : 'English'}
+          className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-colors ${
+            isActive
+              ? 'bg-[#C8753D] text-white'
+              : scrolled
+                ? 'text-[#111111]/60 hover:text-[#C8753D]'
+                : 'text-white/70 hover:text-white'
+          }`}
+        >
+          {option}
+        </button>
+      );
+    })}
+  </div>
+);
 
 interface NavbarProps {
   cartCount: number;
@@ -17,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentPath = '/'
 }) => {
   const { user, profile, signOut } = useAuth();
+  const { locale, locales, t, switchTo } = useI18n();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -30,22 +78,28 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Les chemins restent non préfixés : c'est `localizedPath` qui ajoute la
+  // locale au moment du rendu. Le libellé, lui, vient du dictionnaire.
   const primaryNavLinks = [
-    { label: 'Diagnostic', href: '/diagnostic/cheveux' },
-    { label: 'Assistant IA', href: '/assistant-beaute' },
-    { label: 'Boutique', href: '/boutique' },
-    { label: 'Outils', href: '/outils' },
-    { label: 'KURLA Pro', href: '/professionnels' },
-    { label: 'Communauté', href: '/community' },
+    { label: t('nav.diagnostic'), path: '/diagnostic/cheveux' },
+    { label: t('nav.assistant'), path: '/assistant-beaute' },
+    { label: t('nav.shop'), path: '/boutique' },
+    { label: t('nav.tools'), path: '/outils' },
+    { label: t('nav.pro'), path: '/professionnels' },
+    { label: t('nav.community'), path: '/community' },
   ];
 
   const subModules = [
-    { label: 'KURLA Kids', href: '/kids' },
-    { label: 'Protective Styles', href: '/protective-styles' },
-    { label: 'Peaux Mélaninées', href: '/melanin-skin' },
-    { label: 'Hommes Grooming', href: '/hommes' },
-    { label: 'Famille', href: '/famille' },
+    { label: t('nav.kids'), path: '/kids' },
+    { label: t('nav.protectiveStyles'), path: '/protective-styles' },
+    { label: t('nav.melaninSkin'), path: '/melanin-skin' },
+    { label: t('nav.men'), path: '/hommes' },
+    { label: t('nav.family'), path: '/famille' },
   ];
+
+  // L'état actif se compare sur le chemin sans locale, sinon depuis /en/ plus
+  // aucun lien ne se surligne.
+  const activePath = splitLocale(currentPath).rest;
 
   return (
     <header
@@ -57,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Logo */}
-        <a href="/" className="flex items-center gap-2 group shrink-0">
+        <a href={localizedPath('/', locale)} className="flex items-center gap-2 group shrink-0">
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-serif-title font-bold text-lg shadow-md shadow-[#C8753D]/30 group-hover:scale-105 transition-transform">
             K
           </div>
@@ -78,11 +132,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6">
           {primaryNavLinks.map((link) => {
-            const isActive = currentPath === link.href;
+            const isActive = activePath === link.path;
             return (
               <a
-                key={link.label}
-                href={link.href}
+                key={link.path}
+                href={localizedPath(link.path, locale)}
                 className={`text-xs font-semibold transition-colors relative py-1 ${
                   scrolled
                     ? isActive ? 'text-[#C8753D]' : 'text-[#111111]/85 hover:text-[#C8753D]'
@@ -100,14 +154,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Action Icons & Copper CTA */}
         <div className="flex items-center gap-2.5">
+          <LanguageSwitcher locale={locale} locales={locales} onSwitch={switchTo} scrolled={scrolled} />
+
           {/* Search Button */}
           <button
             onClick={onOpenSearch}
             className={`p-2 rounded-full transition-colors ${
               scrolled ? 'text-[#111111] hover:bg-[#F8F2EC]' : 'text-white hover:bg-white/10'
             }`}
-            title="Rechercher"
-            aria-label="Rechercher"
+            title={t('nav.search')}
+            aria-label={t('nav.search')}
           >
             <Search className="w-4 h-4" />
           </button>
@@ -270,7 +326,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <User className="w-3.5 h-3.5 text-[#C8753D]" />
-              <span className="hidden sm:inline">Connexion</span>
+              <span className="hidden sm:inline">{t('nav.login')}</span>
             </button>
           )}
 
@@ -298,10 +354,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Primary Copper CTA: Diagnostic Gratuit */}
           <a
-            href="/diagnostic/cheveux"
+            href={localizedPath('/diagnostic/cheveux', locale)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold tracking-wide shadow-md shadow-[#C8753D]/20 transition-all transform hover:-translate-y-0.5"
           >
-            <Sparkles className="w-3.5 h-3.5" /> Diagnostic (2 min)
+            <Sparkles className="w-3.5 h-3.5" /> {t('nav.diagnosticCta')}
           </a>
 
           {/* Mobile Menu Button */}
@@ -323,8 +379,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <nav className="flex flex-col space-y-2">
             {primaryNavLinks.map((link) => (
               <a
-                key={link.label}
-                href={link.href}
+                key={link.path}
+                href={localizedPath(link.path, locale)}
                 className="text-sm font-semibold text-[#111111] hover:text-[#C8753D] py-2 border-b border-[#E8E1DA] flex items-center justify-between"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -336,13 +392,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="pt-2">
             <span className="text-[10px] uppercase font-bold text-[#C8753D] tracking-wider block mb-2">
-              Espaces Spécialisés
+              {t('nav.spaces')}
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs">
               {subModules.map((sub) => (
                 <a
-                  key={sub.label}
-                  href={sub.href}
+                  key={sub.path}
+                  href={localizedPath(sub.path, locale)}
                   className="p-2.5 rounded-xl bg-[#F8F2EC] border border-[#E8E1DA] font-semibold text-[#111111] hover:border-[#C8753D] text-center"
                   onClick={() => setMobileMenuOpen(false)}
                 >

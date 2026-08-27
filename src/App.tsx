@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { I18nProvider } from './lib/I18nProvider';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { installClientSideRouting, onRouteChange } from './lib/router';
 import { API_UNAVAILABLE_EVENT, ApiFailureDetail } from './lib/apiDiagnostics';
@@ -260,10 +261,15 @@ function AppContent() {
 }
 
 export function App() {
+  // I18nProvider au-dessus d'AuthProvider : la locale vient de l'URL et doit
+  // être disponible même quand la session est en cours de résolution, sinon le
+  // chrome clignote en français avant de basculer.
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </I18nProvider>
   );
 }
 

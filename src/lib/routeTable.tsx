@@ -200,7 +200,7 @@ export interface ResolvedRoute {
 export function resolveRoute(pathname: string): ResolvedRoute | null {
   const meta = matchRouteMeta(pathname);
   if (!meta) return null;
-  const entry = ENTRIES_BY_PATH.get(meta.canonicalPath);
+  const entry = ENTRIES_BY_PATH.get(meta.basePath);
   if (!entry) return null;
   return { entry, params: meta.params, meta };
 }

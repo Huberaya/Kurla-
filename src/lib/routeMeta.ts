@@ -12,6 +12,13 @@
  * (`/routines` avant `/routines/:slug`).
  */
 
+import type { Locale } from './i18n';
+import { DEFAULT_LOCALE, localizedPath, splitLocale } from './i18n';
+// Import de valeur : la règle « pas de version anglaise traduite ⇒ canonique
+// français » doit avoir une seule source. `routeTranslations` n'importe
+// `routeMeta` que pour son type, donc il n'y a pas de cycle d'exécution.
+import { hasEnglishVersion } from './routeTranslations';
+
 export type ChangeFrequency = 'always' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 export interface RouteMeta {
@@ -455,7 +462,11 @@ export interface RouteMetaMatch {
   meta: RouteMeta;
   /** Valeurs capturées, ex. `{ slug: 'masque-karite' }`. */
   params: Record<string, string>;
-  /** Chemin canonique : celui à déclarer dans `<link rel="canonical">`. */
+  /** Locale détectée depuis le préfixe de chemin (`/en/…`), `fr` sinon. */
+  locale: Locale;
+  /** Chemin canonique sans locale : c'est la clef de la table de routes. */
+  basePath: string;
+  /** Chemin canonique localisé : celui à déclarer dans `<link canonical>`. */
   canonicalPath: string;
   /** Vrai quand la correspondance vient d'un alias et non du chemin principal. */
   isAlias: boolean;
@@ -466,7 +477,8 @@ export interface RouteMetaMatch {
  * correspond : l'appelant décide alors du traitement (page 404).
  */
 export function matchRouteMeta(pathname: string): RouteMetaMatch | null {
-  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  const { locale, rest } = splitLocale(pathname);
+  const normalized = rest.length > 1 ? rest.replace(/\/+$/, '') : rest;
   for (const route of COMPILED) {
     const found = route.regex.exec(normalized);
     if (!found) continue;
@@ -474,10 +486,15 @@ export function matchRouteMeta(pathname: string): RouteMetaMatch | null {
     route.paramNames.forEach((name, index) => {
       params[name] = decodeURIComponent(found[index + 1]);
     });
+    // Une URL `/en/…` dont la page n'est pas traduite canonise vers le français :
+    // publier un canonique anglais vers un contenu français créerait un doublon.
+    const servedInEnglish = locale !== DEFAULT_LOCALE && hasEnglishVersion(route.canonical);
     return {
       meta: route.meta,
       params,
-      canonicalPath: route.canonical,
+      locale,
+      basePath: route.canonical,
+      canonicalPath: servedInEnglish ? localizedPath(route.canonical, locale) : route.canonical,
       isAlias: route.canonical !== normalized,
     };
   }

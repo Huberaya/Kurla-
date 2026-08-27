@@ -17,6 +17,8 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
+import { englishBasePaths, hasEnglishVersion } from '../src/lib/routeTranslations';
+import { hreflangAlternates, localizedPath } from '../src/lib/i18n';
 import { fetchIngredientPages } from './seoEntities';
 import type { EntityPage } from './seoEntities';
 
@@ -44,11 +46,32 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function urlBlock(loc: string, changefreq?: string, priority?: number, now?: string): string {
+/**
+ * Alternates de langue au format sitemap : `<xhtml:link rel="alternate" …>`.
+ * Vides pour une route sans version traduite — on ne déclare pas une version
+ * anglaise qui n'existe pas.
+ */
+function alternateLinks(basePath: string): string {
+  if (!hasEnglishVersion(basePath)) return '';
+  return hreflangAlternates(basePath, SITE_URL)
+    .map(alternate =>
+      `    <xhtml:link rel="alternate" hreflang="${escapeXml(alternate.hreflang)}" ` +
+      `href="${escapeXml(alternate.href)}" />\n`)
+    .join('');
+}
+
+function urlBlock(
+  loc: string,
+  changefreq?: string,
+  priority?: number,
+  now?: string,
+  basePath?: string,
+): string {
   const freq = changefreq ? `    <changefreq>${changefreq}</changefreq>\n` : '';
   const prio = priority !== undefined ? `    <priority>${priority.toFixed(1)}</priority>\n` : '';
   const lastmod = now ? `    <lastmod>${now}</lastmod>\n` : '';
-  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod}${freq}${prio}  </url>`;
+  const alternates = basePath ? alternateLinks(basePath) : '';
+  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod}${freq}${prio}${alternates}  </url>`;
 }
 
 /**
@@ -60,7 +83,24 @@ export function buildSitemap(extra: EntityPage[] = []): string {
   const now = todayIso();
   const urls = indexableRoutes()
     .filter(route => !route.path.includes(':'))
-    .map(route => urlBlock(absoluteUrl(route.path), route.changefreq, route.priority, now));
+    .map(route => urlBlock(absoluteUrl(route.path), route.changefreq, route.priority, now, route.path));
+
+  // Versions anglaises : uniquement les routes dont le corps est réellement
+  // traduit (cf. routeTranslations.ts). Chaque couple fr/en déclare les mêmes
+  // alternates, y compris x-default.
+  for (const basePath of englishBasePaths()) {
+    const route = indexableRoutes().find(candidate => candidate.path === basePath);
+    if (!route) continue;
+    urls.push(
+      urlBlock(
+        `${SITE_URL}${localizedPath(basePath, 'en')}`,
+        route.changefreq,
+        route.priority,
+        now,
+        basePath,
+      )
+    );
+  }
 
   // Pages d'entités générées depuis le graphe (action 37, volet ingrédient).
   for (const page of extra) {
@@ -70,7 +110,8 @@ export function buildSitemap(extra: EntityPage[] = []): string {
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<!-- Généré par scripts/generateSitemap.ts depuis src/lib/routeMeta.ts. Ne pas éditer. -->\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" ` +
+    `xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
     urls.join('\n') +
     `\n</urlset>\n`
   );
@@ -93,10 +134,17 @@ export function disallowPattern(path: string): string {
 
 export function buildRobots(): string {
   const privatePaths = ROUTE_META.filter(route => !route.indexable);
+  // Les chemins privés existent aussi sous `/en/…` : le préfixe `/account` ne
+  // couvre pas `/en/account`. Sans ces doublons, l'espace compte en anglais
+  // resterait explorable alors que son équivalent français est bloqué.
+  const disallowCandidates = privatePaths.flatMap(route => {
+    const pattern = disallowPattern(route.path);
+    return [pattern, localizedPath(pattern, 'en')];
+  });
   const all = Array.from(
     new Set([
       '/api/',
-      ...privatePaths.map(route => disallowPattern(route.path)),
+      ...disallowCandidates,
     ])
   ).sort((a, b) => a.length - b.length || a.localeCompare(b));
 
@@ -129,10 +177,12 @@ async function main(): Promise<void> {
   await writeFile('dist/robots.txt', robots, 'utf8');
 
   const urlCount = (sitemap.match(/<loc>/g) || []).length;
+  const enCount = englishBasePaths().length;
   const disallowCount = (robots.match(/Disallow:/g) || []).length;
+  const alternateCount = (sitemap.match(/<xhtml:link/g) || []).length;
   console.log(
-    `[SEO] sitemap.xml : ${urlCount} URLs (${urlCount - entities.length} statiques + ${entities.length} ingrédients) ` +
-    `· robots.txt : ${disallowCount} Disallow. Base : ${SITE_URL}.`
+    `[SEO] sitemap.xml : ${urlCount} URLs (${urlCount - entities.length - enCount} statiques + ${enCount} anglaises + ${entities.length} ingrédients) ` +
+    `· ${alternateCount} alternates hreflang · robots.txt : ${disallowCount} Disallow. Base : ${SITE_URL}.`
   );
 }
 

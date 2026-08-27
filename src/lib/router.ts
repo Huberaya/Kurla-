@@ -19,6 +19,8 @@
  * évite seulement de le solliciter à chaque clic.
  */
 
+import { DEFAULT_LOCALE, localizedPath, splitLocale } from './i18n';
+
 type PathnameListener = (pathname: string) => void;
 
 const listeners = new Set<PathnameListener>();
@@ -35,7 +37,10 @@ function emit(pathname: string): void {
  * Navigation interne. Une URL hors origine (Stripe, lien externe) bascule sur
  * un vrai rechargement : on ne cherche jamais à router en dehors de l'app.
  */
-export function navigate(to: string, options: { replace?: boolean } = {}): void {
+export function navigate(
+  to: string,
+  options: { replace?: boolean; preserveLocale?: boolean } = {},
+): void {
   const target = new URL(to, window.location.origin);
 
   if (target.origin !== window.location.origin) {
@@ -43,19 +48,33 @@ export function navigate(to: string, options: { replace?: boolean } = {}): void 
     return;
   }
 
-  const sameLocation = target.pathname === window.location.pathname
+  // Préserve la locale courante : depuis /en/, un lien interne nu (/boutique)
+  // doit rester en anglais (/en/boutique), sinon chaque clic ramènerait au
+  // français et la locale choisie ne tiendrait pas deux navigations.
+  let pathname = target.pathname;
+  const preserveLocale = options.preserveLocale !== false;
+  const { locale: currentLocale } = splitLocale(window.location.pathname);
+  if (preserveLocale && currentLocale !== DEFAULT_LOCALE
+    && target.pathname.startsWith('/') && !target.pathname.startsWith('//')) {
+    const { locale: targetLocale } = splitLocale(target.pathname);
+    if (targetLocale === DEFAULT_LOCALE) {
+      pathname = localizedPath(target.pathname, currentLocale);
+    }
+  }
+
+  const sameLocation = pathname === window.location.pathname
     && target.search === window.location.search
     && target.hash === window.location.hash;
   if (sameLocation) return;
 
-  const nextUrl = `${target.pathname}${target.search}${target.hash}`;
+  const nextUrl = `${pathname}${target.search}${target.hash}`;
   if (options.replace) {
     window.history.replaceState(window.history.state, '', nextUrl);
   } else {
     window.history.pushState({}, '', nextUrl);
   }
 
-  emit(target.pathname);
+  emit(pathname);
   // Une ancre interne doit atteindre sa cible ; sinon on repart en haut de page.
   if (target.hash) {
     const anchor = document.getElementById(target.hash.slice(1));

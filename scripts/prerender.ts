@@ -30,6 +30,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
 import type { RouteMeta } from '../src/lib/routeMeta';
+import { EN_ROUTE_CONTENT, englishBasePaths, localizeRouteMeta } from '../src/lib/routeTranslations';
+import { localizedPath, splitLocale, type Locale } from '../src/lib/i18n';
 import { fetchIngredientPages } from './seoEntities';
 
 const SITE_URL = (
@@ -65,18 +67,45 @@ function nameTag(name: string, content: string): string {
   return `<meta name="${name}" content="${escapeHtml(content)}" />`;
 }
 
+/** `og:locale` au format Open Graph, aligné sur `useDocumentMeta`. */
+const OG_LOCALE: Record<Locale, string> = { fr: 'fr_FR', en: 'en_GB' };
+
+function alternateTags(alternates: { hreflang: string; href: string }[]): string[] {
+  return alternates.map(alternate =>
+    `<link rel="alternate" hreflang="${escapeHtml(alternate.hreflang)}" href="${escapeHtml(alternate.href)}" />`);
+}
+
 /**
  * Réécrit la coquille HTML pour une route donnée.
  *
  * Fonction pure : le banc l'appelle sur un gabarit en mémoire, sans toucher au
  * système de fichiers, donc on teste le code livré.
  */
-export function buildRouteHtml(template: string, route: RouteMeta, siteUrl: string): string {
+/**
+ * @param route  Métadonnées dans la langue servie. Pour une version anglaise,
+ *               `path` est déjà préfixé (`/en/manifeste`) et le titre est anglais.
+ * @param locale Locale de la page produite.
+ */
+export function buildRouteHtml(
+  template: string,
+  route: RouteMeta,
+  siteUrl: string,
+  locale: Locale = 'fr',
+): string {
   const canonical = `${siteUrl}${route.path}`;
   const title = escapeHtml(route.title);
   const description = escapeHtml(route.description);
 
+  // Les alternates dépendent de l'existence d'une version anglaise, jamais de
+  // la locale demandée : la page française d'une route traduite doit annoncer
+  // son équivalent anglais, et inversement.
+  const basePath = splitLocale(route.path).rest;
+  const { alternates } = localizeRouteMeta(route, locale, basePath, siteUrl);
+
   let html = template;
+
+  // La langue du document doit suivre le contenu servi.
+  html = html.replace(/<html lang="[^"]*"/, `<html lang="${locale}"`);
 
   // Titre unique par route.
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`);
@@ -89,9 +118,10 @@ export function buildRouteHtml(template: string, route: RouteMeta, siteUrl: stri
 
   const headExtra = [
     `<link rel="canonical" href="${canonical}" />`,
+    ...alternateTags(alternates),
     nameTag('robots', 'index, follow'),
     metaTag('og:site_name', 'KURLA Beauty'),
-    metaTag('og:locale', 'fr_FR'),
+    metaTag('og:locale', OG_LOCALE[locale]),
     metaTag('og:type', route.path === '/' ? 'website' : 'article'),
     metaTag('og:title', route.title),
     metaTag('og:description', route.description),
@@ -104,7 +134,7 @@ export function buildRouteHtml(template: string, route: RouteMeta, siteUrl: stri
       name: route.title,
       description: route.description,
       url: canonical,
-      inLanguage: 'fr',
+      inLanguage: locale,
       isPartOf: { '@type': 'WebSite', name: 'KURLA Beauty', url: siteUrl },
     })}</script>`,
   ].join('\n    ');
@@ -156,8 +186,30 @@ async function main(): Promise<void> {
     written += 1;
   }
 
+  // Versions anglaises : uniquement les routes réellement traduites. Publier
+  // une page `/en/…` dont le corps resterait français serait un doublon de
+  // langue — cf. la règle de routeTranslations.ts.
+  let english = 0;
+  for (const basePath of englishBasePaths()) {
+    const base = indexableRoutes().find(route => route.path === basePath);
+    if (!base || base.path.includes(':')) continue;
+    const copy = EN_ROUTE_CONTENT[basePath];
+    const meta: RouteMeta = {
+      ...base,
+      path: localizedPath(basePath, 'en'),
+      title: copy.title,
+      description: copy.description,
+    };
+    const html = buildRouteHtml(template, meta, SITE_URL, 'en');
+    const file = join('dist', meta.path.slice(1), 'index.html');
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, html, 'utf8');
+    written += 1;
+    english += 1;
+  }
+
   console.log(
-    `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${entities.length} ingrédients) ` +
+    `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${english} anglaises + ${entities.length} ingrédients) ` +
     `avec <head> et amorce de contenu. Base : ${SITE_URL}.`
   );
 }

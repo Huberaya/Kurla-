@@ -18,6 +18,8 @@ import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
+import { englishBasePaths } from '../src/lib/routeTranslations';
+import { localizedPath } from '../src/lib/i18n';
 import { buildSitemap, buildRobots, disallowPattern } from '../scripts/generateSitemap';
 
 function runSeoTests(): void {
@@ -30,17 +32,23 @@ function runSeoTests(): void {
     sitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>'),
     'Le sitemap doit commencer par un en-tête XML.'
   );
-  assert.ok(sitemap.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'),
+  assert.ok(sitemap.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'),
     'Le sitemap doit déclarer l’espace de noms sitemaps.org.');
+  assert.ok(sitemap.includes('xmlns:xhtml="http://www.w3.org/1999/xhtml"'),
+    'Le sitemap doit déclarer l’espace de noms xhtml, requis pour les alternates hreflang.');
 
   // Structure : chaque <url> doit être refermé et contenir exactement un <loc>.
-  const urlBlocks = sitemap.match(/<url>[\s\S]*?<\/url>/g) || [];
+  const urlBlocks: string[] = sitemap.match(/<url>[\s\S]*?<\/url>/g) || [];
   const locCount = (sitemap.match(/<loc>/g) || []).length;
   assert.equal(urlBlocks.length, locCount, 'Chaque bloc <url> doit contenir un <loc>.');
   assert.equal((sitemap.match(/<\/url>/g) || []).length, urlBlocks.length, 'Tous les <url> doivent être refermés.');
 
-  // Le jeu d'URLs doit être exactement celui des routes publiables statiques.
-  const expectedPaths = indexableRoutes().filter(route => !route.path.includes(':')).map(route => route.path);
+  // Le jeu d'URLs doit être exactement celui des routes publiables statiques,
+  // plus les versions anglaises réellement traduites.
+  const expectedPaths = [
+    ...indexableRoutes().filter(route => !route.path.includes(':')).map(route => route.path),
+    ...englishBasePaths().map(path => localizedPath(path, 'en')),
+  ];
   const listedLocs = urlBlocks.map(block => {
     const m = block.match(/<loc>([^<]+)<\/loc>/);
     return m ? m[1] : '';
@@ -76,6 +84,22 @@ function runSeoTests(): void {
   const staticOnly = buildSitemap();
   assert.ok(!staticOnly.includes('/ingredient/glycerin'), 'Sans entité fournie, pas d’URL ingrédient.');
 
+  // Alternates hreflang : présents pour une route traduite, absents ailleurs.
+  // Un alternate vers une page non traduite serait une déclaration fausse.
+  const manifestoBlock = urlBlocks.find(block => block.includes('/manifeste</loc>'));
+  assert.ok(manifestoBlock, 'La page française /manifeste doit être dans le sitemap.');
+  for (const expected of ['hreflang="fr"', 'hreflang="en"', 'hreflang="x-default"']) {
+    assert.ok(manifestoBlock!.includes(expected), `/manifeste doit déclarer ${expected}.`);
+  }
+  const boutiqueBlock = urlBlocks.find(block => block.includes('/boutique</loc>'));
+  assert.ok(boutiqueBlock, 'La page /boutique doit être dans le sitemap.');
+  assert.ok(!boutiqueBlock!.includes('xhtml:link'),
+    'Une route sans version anglaise ne doit déclarer aucun alternate hreflang.');
+  const enManifesto = urlBlocks.find(block => block.includes('/en/manifeste</loc>'));
+  assert.ok(enManifesto, 'La version anglaise /en/manifeste doit être publiée.');
+  assert.ok(enManifesto!.includes('hreflang="x-default"'),
+    'La version anglaise doit déclarer les mêmes alternates que la française.');
+
   // -------------------------------------------------------------------
   // 2. robots.txt : le privé est bloqué, le public ne l'est pas.
   // -------------------------------------------------------------------
@@ -97,9 +121,13 @@ function runSeoTests(): void {
   const blocked = (path: string) => disallows.some(p => path === p || path.startsWith(p));
   const mustBlock = ['/account', '/account/shelf', '/admin', '/pro/dashboard', '/recherche',
     '/routine-builder', '/cout-routine', '/mes-reservations', '/famille',
-    '/commande/confirmation', '/diagnostic/resultat/x', '/api/health'];
+    '/commande/confirmation', '/diagnostic/resultat/x', '/api/health',
+    // Les mêmes espaces privés existent sous /en/ : le préfixe français ne les
+    // couvre pas, ils doivent être bloqués explicitement.
+    '/en/account', '/en/account/shelf', '/en/admin', '/en/pro/dashboard', '/en/famille'];
   const mustAllow = ['/', '/boutique', '/diagnostic/cheveux', '/guides/ingredients',
-    '/professionnels', '/melanin-skin', '/journal', '/ingredient/glycerin', '/manifeste'];
+    '/professionnels', '/melanin-skin', '/journal', '/ingredient/glycerin', '/manifeste',
+    '/en', '/en/manifeste', '/en/melanin-skin', '/en/protective-styles', '/en/boutique'];
   for (const path of mustBlock) assert.ok(blocked(path), `${path} doit être bloqué par robots.txt`);
   for (const path of mustAllow) assert.ok(!blocked(path), `${path} ne doit pas être bloqué par robots.txt`);
 
@@ -126,8 +154,9 @@ function runSeoTests(): void {
   assert.equal(height, 630, `Hauteur OG attendue 630, obtenue ${height}.`);
 
   console.log(
-    `[PASS] Chantier 7.2 : sitemap ${locCount} URLs (exactement les routes publiques statiques), ` +
-    `robots ${disallows.length} règles sans redondance, privé bloqué / public ouvert, OG 1200x630.`
+    `[PASS] Chantier 7.2 : sitemap ${locCount} URLs (${expectedPaths.length - englishBasePaths().length} statiques + ` +
+    `${englishBasePaths().length} anglaises), ${(sitemap.match(/<xhtml:link/g) || []).length} alternates hreflang, ` +
+    `robots ${disallows.length} règles sans redondance (fr + en), privé bloqué / public ouvert, OG 1200x630.`
   );
 }
 
