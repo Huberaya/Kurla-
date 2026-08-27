@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && tsx scripts/generateSitemap.ts && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --loader:.jpg=dataurl --loader:.png=dataurl --loader:.svg=dataurl --loader:.webp=dataurl --outfile=dist/server.cjs",
+    "build": "vite build && tsx scripts/generateSitemap.ts && tsx scripts/prerender.ts && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --loader:.jpg=dataurl --loader:.png=dataurl --loader:.svg=dataurl --loader:.webp=dataurl --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
@@ -19,7 +19,7 @@
     "test:ai-product": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/ai_assistant_product.test.ts",
     "test:marketplace": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/marketplace_trust.test.ts",
     "test:adaptive-routines": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/adaptive_routines.test.ts",
-    "test": "export KURLA_STORE_MODE=memory && npm run test:store-binding && npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && npm run test:chantier-b && npm run test:chantier-7 && npm run test:chantier-7-seo && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test": "export KURLA_STORE_MODE=memory && npm run test:store-binding && npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && npm run test:chantier-b && npm run test:chantier-7 && npm run test:chantier-7-seo && npm run test:chantier-7-prerender && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:catalog": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/catalog_management.test.ts",
     "test:admin-dashboard": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/admin_dashboard.test.ts",
@@ -37,7 +37,8 @@
     "test:chantier-b:realdb": "KURLA_STORE_MODE=server tsx tests/chantier_b_professional.test.ts",
     "test:schema-contract": "KURLA_STORE_MODE=server tsx tests/schema_query_contract.integration.test.ts",
     "test:chantier-7": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_routing.test.ts",
-    "test:chantier-7-seo": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_seo.test.ts"
+    "test:chantier-7-seo": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_seo.test.ts",
+    "test:chantier-7-prerender": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_prerender.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
