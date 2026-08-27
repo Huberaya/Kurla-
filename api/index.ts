@@ -107,6 +107,31 @@ function withApiPrefix(url: string): string {
  * jeton de projet Vercel, alors la fonction rapporte elle-même son état.
  * Ne publie que des NOMS de variables et des chemins — jamais de valeur.
  */
+/** Variables exigées par `assertProductionConfiguration()`. Les valeurs ne sont
+ *  jamais publiées : seulement leur longueur, et le texte pour celles qui ne
+ *  sont pas secrètes. */
+const REQUIRED_VARS = [
+  'SUPABASE_URL',
+  'SUPABASE_SECRET_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_ENABLED',
+  'STRIPE_WEBHOOK_SECRET',
+  'VITE_APP_URL',
+  'EMAIL_PROVIDER',
+  'EMAIL_PROVIDER_API_KEY',
+];
+const NON_SECRET_VARS = new Set(['SUPABASE_URL', 'STRIPE_WEBHOOK_ENABLED', 'VITE_APP_URL', 'EMAIL_PROVIDER']);
+
+function describeRequiredVars(): Array<Record<string, unknown>> {
+  return REQUIRED_VARS.map((key) => {
+    const value = process.env[key] ?? '';
+    const entry: Record<string, unknown> = { key, longueur: value.length, remplie: value.trim().length > 0 };
+    if (NON_SECRET_VARS.has(key)) entry.valeur = value;
+    return entry;
+  });
+}
+
 function diagnostics(req: IncomingMessage, res: ServerResponse): void {
   let files: string[] = [];
   try {
@@ -131,16 +156,16 @@ function diagnostics(req: IncomingMessage, res: ServerResponse): void {
     importMetaUrl: typeof import.meta === 'undefined' ? 'indisponible' : import.meta.url,
     cwd: process.cwd(),
     envCount: Object.keys(process.env).length,
-    envNames: Object.keys(process.env).sort(),
+    variablesRequises: describeRequiredVars(),
     serverFilePresent: files.includes('_server.cjs'),
     siblings: files.sort(),
   });
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  // Déclenché par chemin OU par en-tête : la réécriture `/api/:path*` de
-  // vercel.json peut transformer l'URL vue par la fonction, donc le chemin seul
-  // n'est pas un déclencheur fiable.
+  // Déclenché par chemin OU par en-tête. La réécriture `/api/:path*` de
+  // vercel.json ajoute `?path=<route>` à l'URL reçue, donc une comparaison
+  // stricte du chemin ne matche jamais : on teste l'inclusion.
   if (String(req.url).includes('__diag') || req.headers['x-kurla-diag'] === '1') {
     diagnostics(req, res);
     return;
