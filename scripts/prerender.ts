@@ -30,6 +30,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
 import type { RouteMeta } from '../src/lib/routeMeta';
+import { fetchIngredientPages } from './seoEntities';
 
 const SITE_URL = (
   process.env.SITEMAP_BASE_URL ||
@@ -136,9 +137,28 @@ async function main(): Promise<void> {
     written += 1;
   }
 
+  // Pages d'entités : les fiches ingrédient vérifiées, lues dans la base. Sans
+  // base disponible, la liste est vide et rien n'est écrit (dégradation douce).
+  const entities = await fetchIngredientPages();
+  for (const page of entities) {
+    const meta: RouteMeta = {
+      path: page.path,
+      title: page.title,
+      description: page.description,
+      indexable: true,
+      changefreq: 'monthly',
+      priority: 0.7,
+    };
+    const html = buildRouteHtml(template, meta, SITE_URL);
+    const file = join('dist', page.path.replace(/^\//, ''), 'index.html');
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, html, 'utf8');
+    written += 1;
+  }
+
   console.log(
-    `[SEO] prérendu : ${written} pages statiques avec <head> et amorce de contenu ` +
-    `(${routes.length} routes publiques). Base : ${SITE_URL}.`
+    `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${entities.length} ingrédients) ` +
+    `avec <head> et amorce de contenu. Base : ${SITE_URL}.`
   );
 }
 

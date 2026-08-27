@@ -33,12 +33,13 @@
     "test:chantier-b": "KURLA_STORE_MODE=memory tsx tests/chantier_b_professional.test.ts",
     "test:store-binding": "tsx tests/store_binding.test.ts",
     "test:realdb-preflight": "KURLA_STORE_MODE=server tsx tests/real_database_preflight.test.ts",
-    "test:realdb": "npm run test:realdb-preflight && npm run test:integration && npm run test:atomic-stock-integration && npm run test:schema-contract && npm run test:chantier-b:realdb",
+    "test:realdb": "npm run test:realdb-preflight && npm run test:integration && npm run test:atomic-stock-integration && npm run test:schema-contract && npm run test:chantier-b:realdb && npm run test:chantier-7-ingredients",
     "test:chantier-b:realdb": "KURLA_STORE_MODE=server tsx tests/chantier_b_professional.test.ts",
     "test:schema-contract": "KURLA_STORE_MODE=server tsx tests/schema_query_contract.integration.test.ts",
     "test:chantier-7": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_routing.test.ts",
     "test:chantier-7-seo": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_seo.test.ts",
-    "test:chantier-7-prerender": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_prerender.test.ts"
+    "test:chantier-7-prerender": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_prerender.test.ts",
+    "test:chantier-7-ingredients": "tsx tests/chantier_7_ingredients.realdb.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

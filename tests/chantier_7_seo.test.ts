@@ -65,6 +65,17 @@ function runSeoTests(): void {
     assert.match(block, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/, 'lastmod doit être une date ISO.');
   }
 
+  // Injection d'entités : le sitemap doit pouvoir porter des pages lues en base
+  // (ingrédients vérifiés), et rester statique quand la liste est vide.
+  const withEntity = buildSitemap([{ path: '/ingredient/glycerin', title: 'Glycerin', description: 'Humectant.' }]);
+  assert.ok(
+    withEntity.includes('<loc>https://kurlabeauty.vercel.app/ingredient/glycerin</loc>'),
+    'Le sitemap doit porter l’URL d’une entité fournie.'
+  );
+  assert.ok(withEntity.includes('<changefreq>monthly</changefreq>'), 'Une entité doit porter une fréquence.');
+  const staticOnly = buildSitemap();
+  assert.ok(!staticOnly.includes('/ingredient/glycerin'), 'Sans entité fournie, pas d’URL ingrédient.');
+
   // -------------------------------------------------------------------
   // 2. robots.txt : le privé est bloqué, le public ne l'est pas.
   // -------------------------------------------------------------------

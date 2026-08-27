@@ -17,6 +17,8 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
+import { fetchIngredientPages } from './seoEntities';
+import type { EntityPage } from './seoEntities';
 
 const SITE_URL = (
   process.env.SITEMAP_BASE_URL ||
@@ -42,24 +44,28 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function buildSitemap(): string {
+function urlBlock(loc: string, changefreq?: string, priority?: number, now?: string): string {
+  const freq = changefreq ? `    <changefreq>${changefreq}</changefreq>\n` : '';
+  const prio = priority !== undefined ? `    <priority>${priority.toFixed(1)}</priority>\n` : '';
+  const lastmod = now ? `    <lastmod>${now}</lastmod>\n` : '';
+  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${lastmod}${freq}${prio}  </url>`;
+}
+
+/**
+ * Construit le sitemap. `extra` reçoit les pages d'entités lues dans la base
+ * (ingrédients vérifiés) : elles n'existent que si la base répond, et le sitemap
+ * reste valide sans elles.
+ */
+export function buildSitemap(extra: EntityPage[] = []): string {
   const now = todayIso();
   const urls = indexableRoutes()
-    // Seules les routes statiques ont une URL aujourd'hui ; les motifs
-    // paramétrés attendent 7.4.
     .filter(route => !route.path.includes(':'))
-    .map(route => {
-      const changefreq = route.changefreq ? `    <changefreq>${route.changefreq}</changefreq>\n` : '';
-      const priority = route.priority !== undefined ? `    <priority>${route.priority.toFixed(1)}</priority>\n` : '';
-      return (
-        `  <url>\n` +
-        `    <loc>${escapeXml(absoluteUrl(route.path))}</loc>\n` +
-        `    <lastmod>${now}</lastmod>\n` +
-        changefreq +
-        priority +
-        `  </url>`
-      );
-    });
+    .map(route => urlBlock(absoluteUrl(route.path), route.changefreq, route.priority, now));
+
+  // Pages d'entités générées depuis le graphe (action 37, volet ingrédient).
+  for (const page of extra) {
+    urls.push(urlBlock(`${SITE_URL}${page.path}`, 'monthly', 0.7, now));
+  }
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
@@ -116,7 +122,8 @@ export function buildRobots(): string {
 
 async function main(): Promise<void> {
   await mkdir('dist', { recursive: true });
-  const sitemap = buildSitemap();
+  const entities = await fetchIngredientPages();
+  const sitemap = buildSitemap(entities);
   const robots = buildRobots();
   await writeFile('dist/sitemap.xml', sitemap, 'utf8');
   await writeFile('dist/robots.txt', robots, 'utf8');
@@ -124,8 +131,8 @@ async function main(): Promise<void> {
   const urlCount = (sitemap.match(/<loc>/g) || []).length;
   const disallowCount = (robots.match(/Disallow:/g) || []).length;
   console.log(
-    `[SEO] sitemap.xml : ${urlCount} URLs statiques · robots.txt : ${disallowCount} Disallow. ` +
-    `Base : ${SITE_URL}. Les URLs d'entités arrivent en 7.4.`
+    `[SEO] sitemap.xml : ${urlCount} URLs (${urlCount - entities.length} statiques + ${entities.length} ingrédients) ` +
+    `· robots.txt : ${disallowCount} Disallow. Base : ${SITE_URL}.`
   );
 }
 
