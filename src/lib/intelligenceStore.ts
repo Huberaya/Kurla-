@@ -209,7 +209,10 @@ class KurlaIntelligenceStore {
           derived_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
         // Le comptage passe par la base, source de vérité, pas par le cache local.
-        const { count } = await supabase.from('user_archetypes').select('id', { count: 'exact', head: true }).eq('archetype_id', derivation.id);
+        // `user_archetypes` n'a pas de colonne `id` : la table est clee par
+        // `user_id` (l'upsert ci-dessus utilise deja onConflict: 'user_id').
+        // Compter les `user_id` compte donc les membres, une fois chacun.
+        const { count } = await supabase.from('user_archetypes').select('user_id', { count: 'exact', head: true }).eq('archetype_id', derivation.id);
         const memberCount = count || 0;
         await supabase.from('archetypes').update({
           member_count: memberCount,
@@ -755,9 +758,14 @@ class KurlaIntelligenceStore {
     const buckets = new Map<string, { label: string; ratings: number[] }>();
 
     if (supabase) {
+      // `reviews` n'a aucune cle etrangere vers `user_archetypes` : les deux
+      // pointent vers `profiles`. L'imbrication directe etait refusee par
+      // PostgREST (PGRST200, aucune relation de cle etrangere trouvee), donc la
+      // note par archetype echouait des qu'un avis approuve existait. Le chemin
+      // reel est reviews -> profiles -> user_archetypes.
       const { data, error } = await supabase
         .from('reviews')
-        .select('rating, user_archetypes(archetype_id, archetypes(label_fr))')
+        .select('rating, profiles(user_archetypes(archetype_id, archetypes(label_fr)))')
         .eq('product_id', id)
         .eq('status', 'approved');
       ensureSuccess('lecture des avis par archétype', error);
@@ -766,7 +774,8 @@ class KurlaIntelligenceStore {
         // selon la cardinalité inférée. Le reste du store traite déjà les lignes
         // en `any` pour cette raison ; on reste cohérent.
         const row = raw as any;
-        const link = Array.isArray(row.user_archetypes) ? row.user_archetypes[0] : row.user_archetypes;
+        const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+        const link = Array.isArray(profile?.user_archetypes) ? profile.user_archetypes[0] : profile?.user_archetypes;
         const archetypeId = link?.archetype_id;
         if (!archetypeId) continue;
         const archetypeRow = Array.isArray(link?.archetypes) ? link.archetypes[0] : link?.archetypes;
@@ -857,28 +866,42 @@ class KurlaIntelligenceStore {
   public async getReturnInsightRecords(productId?: string): Promise<ReturnInsightRecord[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      let query = supabase
+      // `returns` ne porte aucune colonne produit : le panier retourne est dans
+      // `items` (jsonb), chaque ligne portant `productId` ou `product_id`. Filtrer
+      // sur une colonne `product_id` faisait echouer la requete en 42703. Un retour
+      // multi-produits est eclate en un enregistrement par produit, faute de quoi
+      // il serait attribue a un seul d'entre eux et fausserait le decompte.
+      const { data, error } = await supabase
         .from('returns')
-        .select('id, order_id, product_id, insight_reason, insight_texture_mismatch, insight_ingredient_suspected, insight_shared, created_at, profiles(user_archetypes(archetype_id))')
+        .select('id, order_id, items, insight_reason, insight_texture_mismatch, insight_ingredient_suspected, insight_shared, created_at, profiles(user_archetypes(archetype_id))')
         .not('insight_reason', 'is', null);
-      if (productId) query = query.eq('product_id', productId);
-      const { data, error } = await query;
       ensureSuccess('lecture des retours motivés', error);
-      return (data || []).map((row: any) => {
+
+      const records: ReturnInsightRecord[] = [];
+      for (const row of (data || []) as any[]) {
         const link = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
         const archetype = Array.isArray(link?.user_archetypes) ? link.user_archetypes[0] : link?.user_archetypes;
-        return {
-          returnId: row.id,
-          orderId: row.order_id || '',
-          productId: row.product_id || undefined,
-          ingredientSuspected: row.insight_ingredient_suspected || undefined,
-          archetypeId: archetype?.archetype_id || undefined,
-          reason: row.insight_reason,
-          textureMismatch: row.insight_texture_mismatch === true,
-          isShared: row.insight_shared === true,
-          createdAt: row.created_at
-        };
-      });
+        const ids = (Array.isArray(row.items) ? row.items : [])
+          .map((item: any) => item?.productId ?? item?.product_id)
+          .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0);
+        const productIds = Array.from(new Set<string>(ids));
+        // Un retour sans produit identifiable reste compte, sans attribution.
+        for (const id of (productIds.length > 0 ? productIds : [undefined])) {
+          if (productId && id !== productId) continue;
+          records.push({
+            returnId: row.id,
+            orderId: row.order_id || '',
+            productId: id,
+            ingredientSuspected: row.insight_ingredient_suspected || undefined,
+            archetypeId: archetype?.archetype_id || undefined,
+            reason: row.insight_reason,
+            textureMismatch: row.insight_texture_mismatch === true,
+            isShared: row.insight_shared === true,
+            createdAt: row.created_at
+          });
+        }
+      }
+      return records;
     }
     return this.returnInsights.filter(record => !productId || record.productId === productId);
   }

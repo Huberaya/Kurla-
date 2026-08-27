@@ -422,6 +422,39 @@ sont maintenant gardés par `isUuid()` et répondent « introuvable » (`undefin
 l'environnement hérité**. Le banc annonçait tester la base réelle sans la toucher. Ajout de
 `test:chantier-b:realdb` (`KURLA_STORE_MODE=server`), vers lequel `test:realdb` pointe désormais.
 
+### Trois requêtes que le code envoyait et que la base refusait
+
+Rien de tout cela n'est visible à la compilation : les noms de tables, de colonnes et les
+imbrications sont des chaînes. Un store en mémoire ne les voit pas non plus, puisqu'il ne connaît
+pas le schéma. Les trois défauts suivants ne se révélaient qu'en production, sous forme d'erreurs
+SQL remontées par PostgREST.
+
+| Requête | Réponse de la base | Correctif |
+|---|---|---|
+| `user_archetypes.select('id')` (`intelligenceStore.ts`, comptage des membres d'un archétype) | `42703 column user_archetypes.id does not exist` | La table est clé par `user_id` — l'upsert voisin utilise déjà `onConflict: 'user_id'`. Comptage sur `user_id`. |
+| `returns.select('… product_id …')` (`getReturnInsightRecords`) | `42703 column returns.product_id does not exist` | Le panier retourné est dans `items` (jsonb). Un retour multi-produits est éclaté en un enregistrement par produit, faute de quoi il serait attribué à un seul et fausserait le décompte. |
+| `reviews(user_archetypes(…))` (`getArchetypeRatingsForProduct`) | `PGRST200` — aucune clé étrangère entre `reviews` et `user_archetypes` | Les deux tables pointent vers `profiles`. Le chemin réel est `reviews → profiles → user_archetypes`. |
+
+Les deux premières cassaient la note par archétype et l'intelligence des retours ; la troisième
+cassait la note par archétype dès qu'un avis approuvé existait.
+
+Chacune a été vérifiée **à l'exécution contre la base réelle**, pas seulement recompilée :
+`syncUserArchetype` sur un compte neuf, `getReturnInsightRecords` sur trois retours réels dont un
+multi-produits (4 enregistrements attendus, 4 obtenus ; filtre par produit conforme ; retour sans
+produit identifiable conservé sans attribution), `getArchetypeRatingsForProduct` sur cinq avis
+approuvés (un archétype, `publishable=true`, note 4,2).
+
+### Filet ajouté : `test:schema-contract`
+
+Un banc qui rejoue contre la base réelle **chacune des 92 requêtes `select` distinctes** écrites
+dans le code (127 sites), extraites à l'exécution depuis `src/` et `server.ts`. Toute requête
+refusée fait échouer le banc avec la table, la ligne d'origine et le code d'erreur PostgreSQL.
+Intégré à `test:realdb`.
+
+Le banc a été validé par mutation : une colonne inventée le fait bien échouer
+(`42703 column reviews.cette_colonne_n_existe_pas does not exist`), et il repasse après
+restauration. Un filet qui ne peut pas échouer ne serait pas un filet.
+
 ### Passifs ouverts, déclarés
 
 - ~~**La migration `20260848` n'a pas été exécutée** contre une base réelle.~~
