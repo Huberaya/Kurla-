@@ -38,6 +38,14 @@ const serverInitialization = process.env.NODE_ENV === 'production' && !isSupabas
       console.log('[ServerDB] Supabase store initialized successfully.');
     });
 
+// Cette promesse est creee au chargement du module, donc avant que quiconque
+// l'attende. Un rejet non observe a cet instant est un `unhandledRejection`,
+// qui sur une plateforme serverless fait tomber l'invocation entiere
+// (FUNCTION_INVOCATION_FAILED) sans laisser de message exploitable. Le rejet
+// reste observable par `await serverInitialization` dans les deux chemins de
+// demarrage ; ce gestionnaire empeche seulement le crash au niveau processus.
+serverInitialization.catch(() => undefined);
+
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
