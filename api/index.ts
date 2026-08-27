@@ -102,8 +102,39 @@ function withApiPrefix(url: string): string {
   return `/api${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
+/**
+ * Diagnostic temporaire : les journaux d'exécution ne sont pas lisibles avec un
+ * jeton de projet Vercel, alors la fonction rapporte elle-même son état.
+ * Ne publie que des NOMS de variables et des chemins — jamais de valeur.
+ */
+function diagnostics(res: ServerResponse): void {
+  let files: string[] = [];
+  try {
+    files = requireCjs('node:fs').readdirSync(requireCjs('node:path').dirname(requireCjs('node:url').fileURLToPath(import.meta.url)));
+  } catch (error) {
+    files = [`lecture impossible: ${error instanceof Error ? error.message : String(error)}`];
+  }
+  answerJson(res, 200, {
+    node: process.version,
+    nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
+    importMetaUrl: typeof import.meta === 'undefined' ? 'indisponible' : import.meta.url,
+    cwd: process.cwd(),
+    envCount: Object.keys(process.env).length,
+    envNames: Object.keys(process.env).sort(),
+    serverFilePresent: files.includes('_server.cjs'),
+    siblings: files.sort(),
+  });
+}
+
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   req.url = withApiPrefix(req.url || '/');
+
+  if (req.url === '/api/__diag') {
+    diagnostics(res);
+    return;
+  }
 
   const server = loadServer();
   if (!server) {
