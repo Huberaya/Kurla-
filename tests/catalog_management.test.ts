@@ -2,7 +2,7 @@ import { serverDb } from '../src/lib/serverDb';
 
 async function runCatalogManagementTests() {
   await serverDb.initialize([]);
-  const adminId = 'admin-catalog-test';
+  const adminId = '00000000-0000-4000-8000-000000000a01';
 
   const imported = await serverDb.importCatalogCsv(adminId, [
     'name;slug;brand;price;vat_rate;stock_quantity;country_availability;categories;audiences;composition;warnings',

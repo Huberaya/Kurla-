@@ -65,6 +65,10 @@ import { ShelfPage } from './pages/ShelfPage';
 import { WashDayPage } from './pages/WashDayPage';
 import { SmartSearchPage } from './pages/SmartSearchPage';
 import { RoutineBuilderPage } from './pages/RoutineBuilderPage';
+import { IngredientCardPage } from './pages/IngredientCardPage';
+import { ProfessionalDirectoryPage } from './pages/ProfessionalDirectoryPage';
+import { CostSimulatorPage } from './pages/CostSimulatorPage';
+import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 
 // Modals & Widgets
 import { CartDrawer } from './components/CartDrawer';
@@ -220,6 +224,8 @@ function AppContent() {
     if (pathname === '/account/wash-day') return <ProtectedRoute><WashDayPage /></ProtectedRoute>;
     if (pathname === '/recherche') return <ProtectedRoute><SmartSearchPage /></ProtectedRoute>;
     if (pathname === '/routine-builder') return <ProtectedRoute><RoutineBuilderPage /></ProtectedRoute>;
+    if (pathname === '/cout-routine') return <ProtectedRoute><CostSimulatorPage /></ProtectedRoute>;
+    if (pathname === '/mes-reservations') return <ProtectedRoute><MyAppointmentsPage /></ProtectedRoute>;
     if (pathname === '/account/saved') return <ProtectedRoute><SavedPage /></ProtectedRoute>;
     if (pathname === '/famille') return <ProtectedRoute requiredRoleLabel="membre de KURLA"><FamilySpacePage /></ProtectedRoute>;
     if (pathname === '/account') return <ProtectedRoute><CustomerAccountPage /></ProtectedRoute>;
@@ -241,6 +247,14 @@ function AppContent() {
       const slug = pathname.replace('/produit/', '');
       return <ProductDetailPage slug={slug} onAddToCart={handleAddToCart} />;
     }
+
+    // Fiche ingrédient PUBLIQUE et indexable : aucune authentification, sinon
+    // un moteur de recherche ne peut pas l'atteindre et elle ne sert à rien.
+    if (pathname.startsWith('/ingredient/')) {
+      const ingredientId = pathname.replace('/ingredient/', '');
+      return <IngredientCardPage ingredientId={ingredientId} />;
+    }
+    if (pathname === '/pros-verifies') return <ProfessionalDirectoryPage />;
 
     if (pathname === '/routines') return <RoutinesPage />;
     if (pathname.startsWith('/routines/')) {

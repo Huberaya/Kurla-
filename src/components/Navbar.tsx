@@ -207,6 +207,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#D49A63]" /> Construire ma routine
                   </a>
+                  <a
+                    href="/cout-routine"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#D49A63]" /> Coût de ma routine
+                  </a>
+                  <a
+                    href="/pros-verifies"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#D49A63]" /> Pros vérifiés
+                  </a>
+                  <a
+                    href="/mes-reservations"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#D49A63]" /> Mes réservations
+                  </a>
 
                   {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
                     <a
@@ -339,6 +360,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a href="/account/wash-day" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Droplets className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Wash day</a>
               <a href="/recherche" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Search className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Recherche</a>
               <a href="/routine-builder" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Ma routine</a>
+              <a href="/cout-routine" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Coût routine</a>
+              <a href="/pros-verifies" className="py-2.5 rounded-xl border border-[#E8E1DA] text-[#111111] text-center text-xs font-semibold" onClick={() => setMobileMenuOpen(false)}><Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#C8753D]" /> Pros vérifiés</a>
             </div>
           </div>
         </div>

@@ -55,23 +55,26 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 15 | Recherche sémantique | ✅ LIVRÉ | Logique + `GET /api/search`. **Aucun écran** |
 | 16 | Détection de conflit de routine | ✅ LIVRÉ | Dans le moteur, **jamais affiché à l'utilisateur** |
 | 17 | Unifier le triage médical | ✅ LIVRÉ | `AI_GUARDRAILS.triage()` par racines, testé |
-| 18 | Découper les monolithes | 🔶 **PARTIEL** | `intelligenceStore.ts` extrait. `server.ts` = **3 265 lignes**, `serverDb.ts` = **6 163 lignes** |
+| 18 | Découper les monolithes | 🔶 **PARTIEL** | 2 stores extraits : `intelligenceStore.ts` (1 026 l.) et `professionalStore.ts` (645 l.). Mais `server.ts` a **grossi** : **3 977 lignes** (3 265 avant le chantier A), `serverDb.ts` = **6 163 lignes**. Le découpage par domaine de `server.ts` reste à faire |
 | 19 | Réassort prédictif | ✅ LIVRÉ | `evaluateReplenishment` testé, zéro appel, aucune notification branchée |
-| 20 | Trust Score pros + co-signature | 🔶 **PARTIEL** *(co-signature branchée, Trust Score à faire)* | `proEndorsement.ts` testé mais zéro appel. Trust Score pros : **rien** |
+| 20 | Trust Score pros + co-signature | 🔶 **PARTIEL** *(Trust Score livré, co-signature toujours sans appel)* | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé mais **toujours zéro appel** côté UI |
 
-**Bilan après chantier A : 16 livrées (1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19) · 2 partielles (18, 20) · 1 à faire (8) · 1 bloqué (4). Total 20.**
+**Bilan après chantier B : 16 livrées (1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19) · 2 partielles (18, 20) · 1 à faire (8) · 1 bloqué (4). Total 20.**
+
+Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20 passe de « Trust Score : rien » à « Trust Score livré et affiché », et l'action 18 recule en valeur relative puisque `server.ts` a grossi de 712 lignes pendant que deux stores étaient extraits.
 
 ---
 
 ## 3. ÉTAT RÉEL DES 50 FONCTIONNALITÉS
 
-### ✅ Livrées (9)
-**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **10** Wash Day OS · **12** Timeline protectrice · **19** Score de confiance produit public *(vérifié : `fetchProductTrust` appelé par `ProductDetailPage.tsx:119`)* · **47** Modularisation du moteur
+### ✅ Livrées (14)
+**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **10** Wash Day OS · **12** Timeline protectrice · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(vérifié : `fetchProductTrust` appelé par `ProductDetailPage.tsx:119`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **47** Modularisation du moteur
 
 ### 🟠 Logique seule — **le chantier A** (5)
 **9** Note par archétype · **16** Réassort prédictif · **17** Intelligence des retours · **21** Filtrage par juridiction · **24** Co-signature professionnelle
 
-### 🔶 Partielles (6)
+### 🔶 Partielles (7)
+- **25** Espace pro dossiers clients — modèle de consentement par périmètre + 4 routes ; côté **client** gérable dans `/mes-reservations` (périmètre affiché, révocation en un clic), côté **professionnel** toujours sans écran
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
 - **5** Purge des données fictives — 14 fichiers encore sur `mockData`
 - **13** Recherche sémantique — logique + `GET /api/search`, **aucun écran**
@@ -79,13 +82,13 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 - **15** Routine Builder → panier — 5 fonctions exportées + `POST /api/routine-builder` (`server.ts:1900`), **aucun écran** (`grep` : zéro appel côté client)
 - **45** Découpage du monolithe — 1 module extrait sur 2 monolithes
 
-### ⬜ À faire (27)
-**3** Rendu serveur · **11** Diagnostic photo · **18** Fiche ingrédient publique · **20** i18n/devises/TVA · **22** Trust Score pros · **23** Réservation + paiement · **25** Espace pro dossiers clients · **26** Loyalty par progression · **27** Récompense non-marchande · **28** Beauty Journey · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **34** Comparateur de routines · **35** Coût annuel · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **44** Transparence IA comme badge *(disclosure fait, pas le badge)* · **46** Tests Supabase réels
+### ⬜ À faire (21)
+**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **26** Loyalty par progression · **27** Récompense non-marchande · **28** Beauty Journey · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **44** Transparence IA comme badge *(disclosure fait, pas le badge)* · **46** Tests Supabase réels
 
 ### 🚫 Exclues volontairement (3)
 **48** Virtual try-on coiffure · **49** Maquillage virtuel · **50** Place de marché créateurs
 
-> **Compte : 9 + 5 + 6 + 27 + 3 = 50.**
+> **Compte : 14 + 5 + 7 + 21 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
 
 ### Détail mesuré sur la feature 36 (climat / eau dure)
 
@@ -123,19 +126,22 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 ---
 
-### CHANTIER B — CONFIANCE, PROS & ÉCOSYSTÈME
+### CHANTIER B — CONFIANCE, PROS & ÉCOSYSTÈME ✅ (partiel)
 
-| Tâche | Fonctionnalités |
-|---|---|
-| Trust Score pros : identité, diplôme, vérification, avis réels | 22, action 20 |
-| Réservation + paiement de prestation (aucune table `appointments` n'existe) | 23 |
-| Espace pro : dossiers clients partagés avec consentement explicite | 25 |
-| Fiche ingrédient publique (fonction, preuve A–D, sources) | 18 |
-| Comparateur de routines | 34 |
-| Simulateur de coût annuel | 35 |
-| Transparence IA transformée en badge visible | 44 |
+| Tâche | Fonctionnalités | État |
+|---|---|---|
+| Trust Score pros : identité, diplôme, vérification, avis réels | 22, action 20 | ✅ `professionalTrust.ts` pur + testé, route, écran |
+| Réservation de prestation | 23 | ✅ routes, store, écran, consentement au partage |
+| **Paiement de prestation** | 23 | ⬜ table `service_payments` créée, **aucune route ne l'appelle** |
+| Espace pro : dossiers clients partagés avec consentement explicite | 25 | 🔶 modèle par périmètre + 4 routes, **aucun écran pro** |
+| Fiche ingrédient publique (fonction, preuve A–D, sources) | 18 | ✅ route publique + `IngredientCardPage.tsx`, indexable |
+| Comparateur de routines | 34 | ✅ `CostSimulatorPage.tsx` |
+| Simulateur de coût annuel | 35 | ✅ `CostSimulatorPage.tsx` |
+| Transparence IA transformée en badge visible | 44 | ⬜ disclosure fait depuis le chantier 1, badge non fait |
 
-**Critère de sortie :** au moins un pro vérifié réservable, payable, et capable de co-signer. Une fiche ingrédient publique et indexable.
+**Critère de sortie :** au moins un pro vérifié réservable, **payable**, et capable de co-signer. Une fiche ingrédient publique et indexable.
+
+**Résultat : la fiche ingrédient publique est atteinte. Le critère pro ne l'est pas** — la réservation est livrée, le paiement de prestation et la co-signature dans l'UI ne le sont pas. Détail complet dans `docs/KURLA_CHANTIERS.md`.
 
 ---
 

@@ -260,9 +260,23 @@ CREATE POLICY "Admins manage returns" ON public.returns
   FOR ALL USING (public.is_admin());
 
 -- REFUNDS: User views ONLY their own, admin manages
+-- CORRECTION (vérifiée sur l'instance réelle, projet Kurla eu-west-1) :
+-- `public.refunds` est créée par 20260804_init_kurla_schema avec 8 colonnes et
+-- SANS `user_id`. La politique originale référençait donc une colonne absente
+-- et faisait échouer toute la migration — qui a pourtant été enregistrée comme
+-- appliquée. C'est la cause racine de la dérive de schéma constatée.
+--
+-- On joint via `orders`, comme le fait déjà la politique `order_status_history`
+-- ci-dessus. `serverDb.ts` ne filtre d'ailleurs jamais `refunds` par
+-- utilisateur : uniquement par order_id, idempotency_key et stripe_refund_id.
 DROP POLICY IF EXISTS "Users view own refunds" ON public.refunds;
 CREATE POLICY "Users view own refunds" ON public.refunds
-  FOR SELECT USING (user_id = auth.uid() OR public.is_admin());
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.orders o
+      WHERE o.id = refunds.order_id AND (o.user_id = auth.uid() OR public.is_admin())
+    )
+  );
 
 DROP POLICY IF EXISTS "Admins manage refunds" ON public.refunds;
 CREATE POLICY "Admins manage refunds" ON public.refunds

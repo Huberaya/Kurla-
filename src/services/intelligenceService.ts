@@ -11,6 +11,53 @@ import { TractionRiskAssessment } from '../lib/protectiveStyle';
 import { ShelfItem } from '../lib/shelf';
 import { DailyTask, WashDayPlan, WashDayTask } from '../lib/washDay';
 
+// Types IMPORTÉS des modules purs plutôt que redéclarés à la main : une
+// interface copiée diverge silencieusement du serveur, et `request<T>()` fait
+// confiance à l'annotation — tsc ne peut alors rien voir. `import type` est
+// effacé à la compilation : aucun runtime Node n'entre dans le bundle.
+import type {
+  ProfessionalTrustAssessment,
+  ReviewSummary,
+  TrustComponent
+} from '../lib/professionalTrust';
+import type {
+  AnnualCostSimulation,
+  CostLine,
+  CostLineItem,
+  RoutineComparison,
+  RoutineComparisonItem,
+  RoutineProfile
+} from '../lib/routineEconomics';
+import type {
+  Appointment,
+  DossierShare,
+  ProfessionalProfile,
+  ProfessionalService,
+  ServicePayment
+} from '../lib/professionalStore';
+import type { ContradictionAction, ProfessionalEndorsement } from '../lib/proEndorsement';
+import type { IngredientEvidence } from '../lib/ingredientGraph';
+
+export type {
+  ProfessionalTrustAssessment,
+  ReviewSummary,
+  TrustComponent,
+  AnnualCostSimulation,
+  CostLine,
+  CostLineItem,
+  RoutineComparison,
+  RoutineComparisonItem,
+  RoutineProfile,
+  Appointment,
+  DossierShare,
+  ProfessionalProfile,
+  ProfessionalService,
+  IngredientEvidence,
+  ServicePayment,
+  ContradictionAction,
+  ProfessionalEndorsement
+};
+
 export interface ShelfVerdictResponse {
   needsPurchase: boolean;
   gaps: { routineStep: string; label: string; message: string; critical: boolean }[];
@@ -474,4 +521,189 @@ export async function buildRoutinePlan(
     method: 'POST',
     body: JSON.stringify(input)
   });
+}
+
+// ---------------------------------------------------------------------------
+// CHANTIER B — Confiance, pros & écosystème
+// ---------------------------------------------------------------------------
+
+/**
+ * Sous-ensemble publié par `GET /api/professionals/verified`.
+ * Dérivé de `ProfessionalProfile` par `Pick` : si le schéma change, cette
+ * projection cesse de compiler au lieu de renvoyer `undefined` à l'écran.
+ */
+export type PublicProfessionalSummary = Pick<
+  ProfessionalProfile,
+  'id' | 'displayName' | 'city' | 'profession' | 'specialty' | 'qualificationLabel' | 'verifiedExperienceYears'
+>;
+
+export type AppointmentStatusValue = Appointment['status'];
+
+/** Annuaire public des professionnels vérifiés, avec Trust Score. */
+export async function fetchVerifiedProfessionals(): Promise<{
+  professionals: { profile: PublicProfessionalSummary; trust: ProfessionalTrustAssessment }[];
+  total: number;
+  note?: string;
+}> {
+  return request('/api/professionals/verified', '');
+}
+
+export async function fetchProfessionalTrust(token: string, professionalId: string): Promise<{ assessment: ProfessionalTrustAssessment }> {
+  return request(`/api/professionals/${encodeURIComponent(professionalId)}/trust`, token);
+}
+
+export async function fetchProfessionalServices(token: string, professionalId: string): Promise<{ professionalId: string; services: ProfessionalService[] }> {
+  return request(`/api/professionals/${encodeURIComponent(professionalId)}/services`, token);
+}
+
+export async function requestAppointment(
+  token: string,
+  input: {
+    professionalId: string;
+    serviceId?: string;
+    scheduledAt?: string;
+    clientNotes?: string;
+    dossierShareConsent?: boolean;
+  }
+): Promise<{ appointment: Appointment; note: string }> {
+  return request('/api/appointments', token, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function fetchMyAppointments(token: string): Promise<{ appointments: Appointment[] }> {
+  return request('/api/appointments', token);
+}
+
+export async function setAppointmentStatus(
+  token: string,
+  appointmentId: string,
+  status: AppointmentStatusValue,
+  cancelledReason?: string
+): Promise<{ appointment?: Appointment }> {
+  return request(`/api/appointments/${encodeURIComponent(appointmentId)}/status`, token, {
+    method: 'POST',
+    body: JSON.stringify({ status, cancelledReason })
+  });
+}
+
+export async function grantDossierShare(
+  token: string,
+  input: {
+    professionalId: string;
+    appointmentId?: string;
+    scope: { beautyProfile?: boolean; shelf?: boolean; outcomes?: boolean; protectiveStyles?: boolean };
+    expiresAt?: string;
+  }
+): Promise<{ share: DossierShare }> {
+  return request('/api/dossier-shares', token, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function fetchMyDossierShares(token: string): Promise<{ shares: DossierShare[] }> {
+  return request('/api/dossier-shares', token);
+}
+
+export async function revokeDossierShare(token: string, shareId: string): Promise<{ revoked: boolean; note: string }> {
+  return request(`/api/dossier-shares/${encodeURIComponent(shareId)}`, token, { method: 'DELETE' });
+}
+
+/** Fiche ingrédient publique — appelable sans authentification. */
+export async function fetchIngredientCard(ingredientId: string): Promise<{
+  ingredient: Record<string, unknown> | null;
+  evidence: IngredientEvidence[];
+  restrictions: Record<string, unknown>[];
+  bestEvidence: { evidence: IngredientEvidence | null; transposable: boolean; caveat?: string };
+  note?: string;
+  error?: string;
+}> {
+  return request(`/api/ingredients/${encodeURIComponent(ingredientId)}/card`, '');
+}
+
+// ---------------------------------------------------------------------------
+// CHANTIER B — Économie de routine
+// ---------------------------------------------------------------------------
+
+/** Le serveur complète l'`id` s'il manque : l'appelant n'a pas à l'inventer. */
+export type CostLineItemInput = Omit<CostLineItem, 'id'> & { id?: string };
+export type RoutineProfileInput = Omit<RoutineProfile, 'items'> & { items: CostLineItemInput[] };
+
+export async function simulateRoutineCost(token: string, items: CostLineItemInput[]): Promise<{ simulation: AnnualCostSimulation }> {
+  return request('/api/routines/cost-simulation', token, {
+    method: 'POST',
+    body: JSON.stringify({ items })
+  });
+}
+
+export async function compareRoutineProfiles(
+  token: string,
+  a: RoutineProfileInput,
+  b: RoutineProfileInput
+): Promise<{ comparison: RoutineComparison }> {
+  return request('/api/routines/compare', token, {
+    method: 'POST',
+    body: JSON.stringify({ a, b })
+  });
+}
+
+// ---------------------------------------------------------------------------
+// CHANTIER B — Paiement de prestation
+// ---------------------------------------------------------------------------
+
+/**
+ * Ouvre une session de paiement Stripe pour une prestation.
+ *
+ * Renvoie une URL de redirection, pas un `client_secret` : le projet n'embarque
+ * pas `@stripe/stripe-js`, le paiement est donc hébergé par Stripe comme pour
+ * le checkout produit.
+ */
+export async function createServiceCheckout(token: string, appointmentId: string): Promise<{
+  payment: ServicePayment;
+  sessionId: string;
+  url: string | null;
+  amountCents: number;
+  currency: string;
+  serviceName: string;
+}> {
+  return request(`/api/appointments/${encodeURIComponent(appointmentId)}/checkout`, token, {
+    method: 'POST'
+  });
+}
+
+export async function confirmServicePayment(
+  token: string,
+  paymentId: string,
+  appointmentId: string
+): Promise<{ payment: ServicePayment; note: string }> {
+  return request(`/api/service-payments/${encodeURIComponent(paymentId)}/confirm`, token, {
+    method: 'POST',
+    body: JSON.stringify({ appointmentId })
+  });
+}
+
+export async function fetchAppointmentPayments(token: string, appointmentId: string): Promise<{ payments: ServicePayment[] }> {
+  return request(`/api/appointments/${encodeURIComponent(appointmentId)}/payments`, token);
+}
+
+// ---------------------------------------------------------------------------
+// CHANTIER B — Co-signature professionnelle côté client
+// ---------------------------------------------------------------------------
+
+export interface EndorsementGate {
+  allowed: boolean;
+  reason?: string;
+  disclaimer?: string;
+}
+
+export interface MyEndorsementEntry {
+  endorsement: ProfessionalEndorsement;
+  gate: EndorsementGate;
+  action: ContradictionAction;
+}
+
+/** Mes co-signatures : ce qu'un professionnel a dit de ma routine. */
+export async function fetchMyEndorsements(token: string): Promise<{
+  endorsements: MyEndorsementEntry[];
+  total: number;
+  contradicted: number;
+  note?: string;
+}> {
+  return request('/api/me/endorsements', token);
 }

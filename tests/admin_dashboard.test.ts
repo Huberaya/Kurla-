@@ -43,7 +43,7 @@ assert.doesNotMatch(source, /totalOrders:\s*\d+/);
 assert.doesNotMatch(source, /revenueTest:\s*\d+(?:\.\d+)?/);
 
 await serverDb.initialize([]);
-const createdArticle = await serverDb.saveAdminEntity('admin-test', 'article', {
+const createdArticle = await serverDb.saveAdminEntity('00000000-0000-4000-8000-000000000a02', 'article', {
   title: 'Article de test admin',
   slug: 'article-test-admin',
   content: 'Contenu contrôlé par le test.',

@@ -19,7 +19,7 @@
     "test:ai-product": "KURLA_TEST_NO_SERVER=true tsx tests/ai_assistant_product.test.ts",
     "test:marketplace": "KURLA_TEST_NO_SERVER=true tsx tests/marketplace_trust.test.ts",
     "test:adaptive-routines": "KURLA_TEST_NO_SERVER=true tsx tests/adaptive_routines.test.ts",
-    "test": "npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test": "npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && npm run test:chantier-b && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:catalog": "KURLA_TEST_NO_SERVER=true tsx tests/catalog_management.test.ts",
     "test:admin-dashboard": "KURLA_TEST_NO_SERVER=true tsx tests/admin_dashboard.test.ts",
@@ -29,7 +29,8 @@
     "test:atomic-stock-integration": "tsx tests/phase7_atomic_stock.integration.test.ts",
     "test:kurla-intelligence": "KURLA_TEST_NO_SERVER=true tsx tests/kurla_intelligence.test.ts",
     "test:recommendation-engine": "KURLA_TEST_NO_SERVER=true tsx tests/recommendation_engine.test.ts",
-    "test:chantier-a": "KURLA_TEST_NO_SERVER=true tsx tests/chantier_a_wiring.test.ts"
+    "test:chantier-a": "KURLA_TEST_NO_SERVER=true tsx tests/chantier_a_wiring.test.ts",
+    "test:chantier-b": "tsx tests/chantier_b_professional.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

@@ -1,9 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
+  BadgeCheck,
   Check,
   Clock,
   Loader2,
+  MessageSquareQuote,
   Package,
   ShoppingCart,
   Sparkles,
@@ -13,8 +15,11 @@ import { useAuth } from '../context/AuthContext';
 import {
   buildRoutinePlan,
   BuiltRoutineResponse,
+  fetchMyEndorsements,
+  MyEndorsementEntry,
   RoutineConflict
 } from '../services/intelligenceService';
+import { ENDORSEMENT_STANCE_LABELS, EndorsementStance } from '../lib/proEndorsement';
 
 const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
 const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-1.5';
@@ -287,7 +292,133 @@ export const RoutineBuilderPage: React.FC = () => {
             )}
           </div>
         )}
+
+        <EndorsementPanel token={token} />
       </div>
+    </div>
+  );
+};
+
+const STANCE_STYLES: Record<EndorsementStance, string> = {
+  approved: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+  amended: 'bg-amber-50 border-amber-200 text-amber-900',
+  contradicted: 'bg-red-50 border-red-200 text-red-900'
+};
+
+/**
+ * CO-SIGNATURE PROFESSIONNELLE — ce qu'un humain a dit de ma routine.
+ *
+ * Le sens du pont compte : ce n'est pas l'IA qui oriente vers un professionnel,
+ * c'est le professionnel qui valide, ajuste ou contredit ce que l'IA a proposé.
+ *
+ * Deux règles d'affichage qui ne sont pas cosmétiques :
+ *  - une co-signature non affichable (pro non vérifié, ou consentement absent)
+ *    n'est pas montrée, et la raison est dite ;
+ *  - une contradiction est mise en avant, pas noyée. C'est le signal le plus
+ *    utile de tout le système : il corrige le moteur.
+ */
+const EndorsementPanel: React.FC<{ token?: string }> = ({ token }) => {
+  const [entries, setEntries] = useState<MyEndorsementEntry[]>([]);
+  const [note, setNote] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    setLoading(true);
+    fetchMyEndorsements(token)
+      .then(response => {
+        if (!active) return;
+        setEntries(response.endorsements);
+        setNote(response.note || null);
+      })
+      .catch(caught => {
+        if (active) setError(caught instanceof Error ? caught.message : 'Co-signatures indisponibles.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  if (!token) return null;
+  if (loading) {
+    return (
+      <div className={`${cardClass} flex items-center gap-2 text-sm text-[#666666]`}>
+        <Loader2 className="w-4 h-4 animate-spin text-[#C8753D]" /> Chargement des co-signatures…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className={`${cardClass} flex items-start gap-2 text-sm text-[#666666]`}>
+        <AlertTriangle className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" /> {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cardClass}>
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquareQuote className="w-4 h-4 text-[#C8753D]" />
+        <h2 className="text-lg font-bold">Avis d’un professionnel sur ma routine</h2>
+      </div>
+
+      {entries.length === 0 ? (
+        <p className="text-sm text-[#666666] leading-relaxed">
+          {note || 'Aucun professionnel n’a encore revu votre routine.'}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {entries.map(({ endorsement, gate, action }) => (
+            <div
+              key={endorsement.id}
+              className={`rounded-xl border p-4 ${STANCE_STYLES[endorsement.stance]}`}
+            >
+              <div className="flex items-center gap-2 text-xs font-bold mb-2">
+                <BadgeCheck className="w-3.5 h-3.5" />
+                {ENDORSEMENT_STANCE_LABELS[endorsement.stance]} · {endorsement.professionalName}
+                {endorsement.professionalSpecialty ? ` · ${endorsement.professionalSpecialty}` : ''}
+              </div>
+
+              <p className="text-sm leading-relaxed">{endorsement.rationale}</p>
+
+              {endorsement.amendments.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {endorsement.amendments.map((amendment, index) => (
+                    <li key={index} className="text-xs leading-relaxed">
+                      <span className="font-semibold">{amendment.target}</span> : {amendment.original}
+                      {' → '}
+                      <span className="font-semibold">{amendment.replacement}</span>
+                      {amendment.reason ? ` — ${amendment.reason}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {gate.allowed ? (
+                <>
+                  {action.applyOverride && (
+                    <p className="text-xs mt-3 pt-3 border-t border-current/20 leading-relaxed font-medium">
+                      {action.message}
+                    </p>
+                  )}
+                  {gate.disclaimer && (
+                    <p className="text-[11px] mt-2 opacity-75 leading-relaxed">{gate.disclaimer}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[11px] mt-3 pt-3 border-t border-current/20 opacity-80 leading-relaxed">
+                  Non affichable publiquement : {gate.reason}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

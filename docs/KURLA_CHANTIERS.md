@@ -241,15 +241,100 @@ Le test vérifie le **branchement**, pas la logique pure (déjà testée ailleur
 
 ---
 
+## CHANTIER B — CONFIANCE, PROS & ÉCOSYSTÈME ✅ (livré, non vérifié contre une base réelle)
 
+**Critère de sortie visé :** au moins un professionnel vérifié, réservable et payable, capable de
+co-signer ; une page ingrédient publique et indexable.
 
-- [ ] Trust Score pros : identité, diplôme, vérification (action 20)
-- [ ] Réservation + paiement de prestation (il n'existe aucune table `appointments`)
-- [ ] Co-signature professionnelle branchée sur l'UI de routine
-- [ ] Espace pro : dossiers clients partagés avec consentement
-- [ ] Note par archétype affichée sur la fiche produit, note globale supprimée
-- [ ] Score de confiance produit rendu public à partir des 7 statuts de validation existants
-- [ ] Intelligence des retours exposée dans l'admin catalogue
+**Le second est atteint et vérifié. Le premier est livré dans le code mais pas démontré** : la
+chaîne réservation → paiement → co-signature existe de bout en bout, mais aucune clé Stripe ni
+instance Supabase n'est configurée ici, donc aucun professionnel réel n'a pu être vérifié, réservé
+ni payé. Le critère est satisfait structurellement, pas empiriquement.
+
+### Livré
+
+**Logique pure** (aucune dépendance Supabase, testée unitairement) :
+
+- `src/lib/professionalTrust.ts` — Trust Score. Poids sommant à 100 : identité vérifiée 30 ·
+  qualification au dossier 25 · charte signée 15 · avis issus de prestations réelles 20 · accord
+  avec les recommandations de l'IA 10. Seuils : `MINIMUM_REVIEWS_FOR_RATING = 5`,
+  `MINIMUM_ENDORSEMENTS_FOR_RATE = 10`. En dessous, la valeur est `null` et la raison de suppression
+  est retournée — jamais 0. `publishable` dépend de l'identité seule (condition d'entrée, pas une
+  composante) : on peut être vérifié sans avis, l'inverse jamais. Chaque composante est restituée
+  avec son état et une phrase lisible, y compris celles qui manquent.
+- `src/lib/routineEconomics.ts` — simulateur de coût annuel et comparateur. Rendement non déclaré →
+  `null` + limitation, jamais une estimation ; un total partiel est annoncé comme partiel
+  (« Au moins X € ») et non comme un total. Le comparateur porte sur le coût et le temps, les deux
+  seules dimensions comparables sans juger de l'efficacité.
+
+**Persistance** : `src/lib/professionalStore.ts` (singleton, Supabase sinon mémoire) et
+`supabase/migrations/20260848000000_professional_trust_booking.sql` — 6 tables, 1 vue, RLS.
+`professional_profiles` est distinct de `professional_applications` : une candidature est de
+l'historique, un profil est un état courant. `service_payments` est distinct de `payments` parce que
+`payments.order_id` est `NOT NULL REFERENCES orders` — le rendre nullable aurait affaibli tous les
+paiements produits existants. `professional_reviews` porte `UNIQUE (appointment_id)` et
+`service_delivered` : seuls les avis rattachés à une prestation effectuée comptent, ce qui est la
+seule façon d'empêcher une moyenne achetable. `client_dossier_shares` énumère des périmètres
+(`scope_beauty_profile|shelf|outcomes|protective_styles`) — « tout le dossier » n'existe pas.
+
+**13 routes** : annuaire vérifié public · Trust Score détaillé · prestations · réservation ·
+statut de réservation · avis · partage de dossier (accorder / lister / révoquer) · accès pro au
+dossier consenti · vérification d'identité (admin) · fiche ingrédient publique · simulation de coût ·
+comparaison de routines.
+
+**3 écrans** : `IngredientCardPage.tsx` (publique, sans authentification, donc indexable),
+`ProfessionalDirectoryPage.tsx`, `CostSimulatorPage.tsx`. Routes `/ingredient/:id` et
+`/pros-verifies` publiques, `/cout-routine` protégée ; liens ajoutés à la navigation.
+
+**Test** : `tests/chantier_b_professional.test.ts` — 14 blocs, câblé dans `npm test`.
+
+### Correction importante faite dans ce chantier
+
+Les interfaces client et deux écrans avaient d'abord été écrits contre **une API inventée**. `tsc`
+passait à 0 parce que `request<T>()` fait confiance à l'annotation : des types cohérents mais faux
+des deux côtés compilent parfaitement, et les écrans auraient affiché `undefined` en production.
+Corrigé en **important les types réels** des modules purs (`import type`, effacé à la compilation,
+donc aucun runtime Node dans le bundle). Toute dérive future est désormais une erreur de
+compilation, plus un bug silencieux. C'est le test unitaire qui a révélé l'écart, pas le
+compilateur.
+
+### Complété après le premier rapport
+
+Le premier rapport de ce chantier déclarait le paiement et la co-signature non livrés. Ils le sont
+désormais :
+
+- **Paiement de prestation** — `ServicePayment` + 4 méthodes dans `professionalStore.ts`, 3 routes
+  (`POST /api/appointments/:id/checkout`, `POST /api/service-payments/:id/confirm`,
+  `GET /api/appointments/:id/payments`), écran `MyAppointmentsPage.tsx` sur `/mes-reservations`.
+  **Session de Checkout et non PaymentIntent** : le projet n'embarque ni `@stripe/stripe-js` ni
+  `@stripe/react-stripe-js`, donc un `client_secret` aurait été inutilisable côté client. On suit le
+  pattern du checkout produit (redirection hébergée) plutôt que d'inventer une intégration Elements
+  impossible à terminer. Le statut de paiement est **relu chez Stripe** avant confirmation : le
+  retour `?paid=1` n'est jamais traité comme une preuve.
+- **Co-signature dans l'UI** — `GET /api/me/endorsements` + panneau `EndorsementPanel` dans
+  `RoutineBuilderPage.tsx`. Une co-signature non affichable (pro non vérifié ou consentement absent)
+  n'est pas montrée et la raison est dite ; une contradiction est mise en avant, pas noyée.
+
+**Test étendu** : 6 blocs supplémentaires sur le chemin mémoire du paiement — montant invalide
+refusé, idempotence par clé (un rejeu ne crée pas un second paiement), retrouver par PaymentIntent,
+confirmation idempotente (`paidAt` non re-daté), paiement inconnu → `undefined` sans exception, deux
+prestations distinctes séparées.
+
+### Non livré, assumé
+
+- [ ] Note par archétype affichée sur la fiche produit, note globale supprimée.
+- [ ] Score de confiance produit rendu public à partir des 7 statuts de validation existants.
+- [ ] Intelligence des retours exposée dans l'admin catalogue.
+- [ ] **Paiement jamais exercé contre Stripe** : aucune clé sur cet environnement. La branche 503
+      est vérifiée par sonde HTTP ; le chemin nominal ne l'est pas.
+
+### Passifs ouverts, déclarés
+
+- **La migration `20260848` n'a pas été exécutée** contre une base réelle : écrite et relue, pas
+      appliquée. Aucune des 6 tables n'existe encore.
+- **0/17 vérifications RLS** toujours, pour la même raison.
+- **Aucune vérification visuelle/navigateur** des trois nouveaux écrans : vérifiés par compilation,
+      test unitaire et HTTP, pas par rendu.
 
 ---
 
@@ -296,7 +381,13 @@ Le test vérifie le **branchement**, pas la logique pure (déjà testée ailleur
 | `tests/kurla_intelligence.test.ts` | PASS — ~120 assertions |
 | `tests/recommendation_engine.test.ts` | PASS — moteur v2, recherche sémantique, routine builder |
 | `tests/chantier_a_wiring.test.ts` | PASS — les cinq branchements, RGPD, écrans, purge, vocabulaires |
+| `tests/chantier_b_professional.test.ts` | PASS — 14 blocs : Trust Score (poids, seuils, null assumé), économie de routine (rendement absent, total partiel, comparateur) |
+| `tests/chantier_b_professional.test.ts` — bloc paiement | PASS — 6 blocs sur le chemin mémoire : montant invalide refusé, idempotence par clé, retrouver par intent, confirmation idempotente (`paidAt` non re-daté), inconnu → `undefined`, deux prestations séparées |
 | Serveur démarré, routes testées en HTTP réel | pages 200 · 7 endpoints protégés 401 · 5 endpoints publics 200 JSON |
+| Serveur relancé sur le code du chantier B, 14 routes sondées | 8 protégées → 401 · `/api/professionals/verified` 200 · identifiant inconnu → 404 (corrigé depuis un 500) · fiche ingrédient sans base → 503 assumé |
+| Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
+| 4 routes paiement/co-signature sondées | 401 sans token |
+| 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
 | `npm test` (suite complète) | exit 0 |
 | Vérifications Phase 2 (RLS réelle) | **0/17 exécutées** — aucune instance Supabase réelle dans cet environnement |
 

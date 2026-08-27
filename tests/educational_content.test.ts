@@ -11,12 +11,12 @@ assert.match(migration, /translations/);
 assert.match(migration, /Public read published educational content/);
 
 await serverDb.initialize([]);
-await serverDb.saveAdminEntity('admin-test', 'content', {
+await serverDb.saveAdminEntity('00000000-0000-4000-8000-000000000a02', 'content', {
   title: 'Brouillon', slug: 'brouillon', content: 'Contenu en revue', status: 'draft'
 });
 assert.equal((await serverDb.getPublishedArticles()).length, 0, 'un brouillon ne doit pas être public');
 
-await serverDb.saveAdminEntity('admin-test', 'content', {
+await serverDb.saveAdminEntity('00000000-0000-4000-8000-000000000a02', 'content', {
   title: 'Guide cuir chevelu', slug: 'guide-cuir-chevelu', content: 'Contenu vérifié', status: 'published',
   contentType: 'guide', topic: 'scalp_health', language: 'fr', author: 'Équipe éditoriale',
   evidenceLevel: 'moderate',
@@ -30,7 +30,7 @@ assert.equal(published[0].topic, 'scalp_health');
 assert.equal(published[0].sources[0].label, 'Référence éditoriale');
 assert.equal(published[0].evidenceLevel, 'moderate');
 
-await assert.rejects(() => serverDb.saveAdminEntity('admin-test', 'content', {
+await assert.rejects(() => serverDb.saveAdminEntity('00000000-0000-4000-8000-000000000a02', 'content', {
   title: 'Publication incomplète', slug: 'publication-incomplete', content: 'Texte', status: 'published',
   contentType: 'article', topic: 'general', language: 'fr', author: 'Auteur'
 }), /source/);
