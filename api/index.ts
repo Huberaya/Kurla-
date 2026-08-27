@@ -107,14 +107,23 @@ function withApiPrefix(url: string): string {
  * jeton de projet Vercel, alors la fonction rapporte elle-même son état.
  * Ne publie que des NOMS de variables et des chemins — jamais de valeur.
  */
-function diagnostics(res: ServerResponse): void {
+function diagnostics(req: IncomingMessage, res: ServerResponse): void {
   let files: string[] = [];
   try {
     files = requireCjs('node:fs').readdirSync(requireCjs('node:path').dirname(requireCjs('node:url').fileURLToPath(import.meta.url)));
   } catch (error) {
     files = [`lecture impossible: ${error instanceof Error ? error.message : String(error)}`];
   }
+  const h = req.headers || {};
   answerJson(res, 200, {
+    urlVueParLaFonction: req.url,
+    method: req.method,
+    entetesDeRoutage: {
+      'x-matched-path': h['x-matched-path'],
+      'x-vercel-original-path': h['x-vercel-original-path'],
+      'x-forwarded-host': h['x-forwarded-host'],
+      'x-forwarded-proto': h['x-forwarded-proto'],
+    },
     node: process.version,
     nodeEnv: process.env.NODE_ENV,
     vercel: process.env.VERCEL,
@@ -129,12 +138,15 @@ function diagnostics(res: ServerResponse): void {
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  req.url = withApiPrefix(req.url || '/');
-
-  if (req.url === '/api/__diag') {
-    diagnostics(res);
+  // Déclenché par chemin OU par en-tête : la réécriture `/api/:path*` de
+  // vercel.json peut transformer l'URL vue par la fonction, donc le chemin seul
+  // n'est pas un déclencheur fiable.
+  if (String(req.url).includes('__diag') || req.headers['x-kurla-diag'] === '1') {
+    diagnostics(req, res);
     return;
   }
+
+  req.url = withApiPrefix(req.url || '/');
 
   const server = loadServer();
   if (!server) {
