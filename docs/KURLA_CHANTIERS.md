@@ -585,10 +585,67 @@ elle produirait des milliers de pages au contenu mince et dupliqué — nuisible
 référencement et contraire au principe « KURLA ne devine pas ». Elle ne devient
 pertinente que quand `ingredient_archetype_outcomes` aura de vraies mesures.
 
+### 7.5 — Internationalisation (fr/en) et hreflang ✅
+
+Le site était monolingue : aucune locale, aucun `hreflang`, tout le chrome codé
+en dur en français dans les composants.
+
+- `src/lib/i18n.ts` (pur, ni React ni navigateur) : `splitLocale`,
+  `localizedPath`, `hreflangAlternates`. Le français reste **non préfixé**, donc
+  aucune URL historique ne bouge ; l'anglais passe sous `/en/`. `/england` n'est
+  pas pris pour de l'anglais, la query string survit à la localisation.
+- `src/lib/translations.ts` : 82 clés (nav, footer, 3 pages). `en` est typé sur
+  la structure de `fr` : une clé manquante ou surnuméraire est une **erreur de
+  compilation** (TS2741, vérifié par mutation). 9 termes sont volontairement
+  identiques (`KURLA Pro`, `Marketplace`, `Phase`…) et listés comme tels dans le
+  banc : une traduction paresseuse (copie du français) fait échouer le test.
+- `src/lib/I18nProvider.tsx` : la locale vient de l'**URL**, suivie via
+  `onRouteChange`. Un état isolé reviendrait au français à chaque rechargement,
+  favori partagé ou arrivée directe sur une page prérendue.
+- `router.ts` : `navigate()` préserve la locale courante — depuis `/en/`, un lien
+  interne nu reste anglais, sinon la langue choisie ne tiendrait pas deux clics.
+  `preserveLocale: false` sert à la bascule de langue.
+- `routeMeta.ts` / `routeTable.tsx` : `matchRouteMeta` découpe la locale et expose
+  `basePath` (clef de la table) + un canonique localisé.
+
+**Règle de publication (`routeTranslations.ts`)** : une URL `/en/…` n'est déclarée
+version anglaise (hreflang, sitemap, prérendu) **que si le corps de la page est
+réellement traduit**. Sinon elle canonise vers le français : pas de doublon indexé,
+pas d'alternate mensonger. Publier `hreflang="en"` vers une page dont le texte est
+français serait une déclaration fausse — exactement ce que KURLA s'interdit.
+
+Pages intégralement traduites : `/manifeste`, `/melanin-skin`,
+`/protective-styles`. Le corps des 19 autres routes publiques reste français :
+elles sont servies sous `/en/` (chrome anglais, canonique français, aucun
+hreflang) et seront traduites progressivement — ajouter une page se résume à
+écrire ses chaînes dans le dictionnaire et son chemin dans `EN_ROUTE_CONTENT`.
+
+Vérifié en ligne (déploiement `b0357d6`) :
+- `/en/manifeste` sert `<html lang="en">`, `<title>The KURLA manifesto</title>`,
+  `<h1>` anglais, canonique `/en/manifeste`, `og:locale en_GB`, et les 3
+  alternates `fr` / `en` / `x-default`. Idem `/en/melanin-skin` et
+  `/en/protective-styles`.
+- `/manifeste` (français) déclare la même paire d'alternates : un hreflang posé
+  sur une seule des deux versions n'est pas pris en compte de façon fiable.
+- `sitemap.xml` : **38 URLs** (22 statiques + 13 ingrédients + 3 anglaises),
+  **18 alternates** `xhtml:link`, espace de noms `xmlns:xhtml` déclaré.
+- `robots.txt` : **21 Disallow**, dont 10 sous `/en/` — le préfixe `/account` ne
+  couvrait pas `/en/account`, l'espace compte anglais aurait fui vers l'index.
+- `/boutique` (non traduit) : 0 alternate.
+
+`tests/chantier_7_i18n.test.ts` (branché dans `npm test`) exerce le code livré, y
+compris `navigate()` sur un `window` minimal : persistance de la locale, absence
+de double préfixe, bascule vers le français, sortie du routeur pour une URL
+externe. Validé par mutation (`hasEnglishVersion` forcée à `true`, préservation de
+locale désactivée : les deux détectées). Banc SEO étendu : alternates présents sur
+une route traduite et absents ailleurs, privé bloqué en fr **et** en.
+
+Non vérifié : aucun écran n'a été rendu dans un navigateur (limitation constante
+du chantier) ; le sélecteur FR/EN est donc validé par ses fonctions, pas
+visuellement.
+
 ### Restant
 
-- [ ] **7.5** Internationalisation : framework de traduction, extraction des
-      chaînes, `hreflang`
 - [ ] **7.6** Devises et TVA
 - [ ] **7.7** Filtrage réglementaire par juridiction via
       `ingredient_jurisdiction_restrictions` (3 lignes seedées : rétinol, acide
