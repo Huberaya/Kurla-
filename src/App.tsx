@@ -3,76 +3,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSupabaseConfigured } from './lib/supabaseClient';
 import { installClientSideRouting, onRouteChange } from './lib/router';
 import { API_UNAVAILABLE_EVENT, ApiFailureDetail } from './lib/apiDiagnostics';
+import { resolveRoute } from './lib/routeTable';
+import type { RouteContext } from './lib/routeTable';
+import { useDocumentMeta } from './lib/useDocumentMeta';
 import { AlertTriangle } from 'lucide-react';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
-import { HeroSection } from './components/HeroSection';
-import { BenefitStrip } from './components/BenefitStrip';
-import { HairSkinSection } from './components/landing/HairSkinSection';
-import { ChooseNeedSection } from './components/ChooseNeedSection';
-import { AIShowcase } from './components/landing/AIShowcase';
-import { BoutiquePreviewSection } from './components/landing/BoutiquePreviewSection';
-import { CommunitySection } from './components/landing/CommunitySection';
-import { KidsMenSection } from './components/landing/KidsMenSection';
-import { DiagnosticPreviewSection } from './components/DiagnosticPreviewSection';
-import { RoutineCarouselSection } from './components/RoutineCarouselSection';
-import { TextureGallerySection } from './components/TextureGallerySection';
-import { BeautyHouseSection } from './components/BeautyHouseSection';
-import { KurlaProSection } from './components/KurlaProSection';
-import { UgcWallSection } from './components/UgcWallSection';
-import { JournalSection } from './components/JournalSection';
-import { WaitlistSection } from './components/WaitlistSection';
-import { Footer } from './components/Footer';
-
-// Pages
-import { DiagnosticHairPage } from './pages/DiagnosticHairPage';
-import { DiagnosticSkinPage } from './pages/DiagnosticSkinPage';
-import { DiagnosticResultPage } from './pages/DiagnosticResultPage';
-import { DiagnosticKidsPage } from './pages/DiagnosticKidsPage';
-import { DiagnosticProtectivePage } from './pages/DiagnosticProtectivePage';
-import { BoutiquePage } from './pages/BoutiquePage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { RoutinesPage } from './pages/RoutinesPage';
-import { RoutineDetailPage } from './pages/RoutineDetailPage';
-import { ProfessionalsPage } from './pages/ProfessionalsPage';
-import { ProProfilePage } from './pages/ProProfilePage';
-import { ProApplicationPage } from './pages/ProApplicationPage';
-import { JournalPage } from './pages/JournalPage';
-import { ArticleDetailPage } from './pages/ArticleDetailPage';
-import { CustomerAccountPage } from './pages/CustomerAccountPage';
-import { ProDashboardPage } from './pages/ProDashboardPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { ManifestePage } from './pages/ManifestePage';
-
-// Strategic Roadmap Pages
-import { AiBeautyAssistantPage } from './pages/AiBeautyAssistantPage';
-import { KurlaIdPage } from './pages/KurlaIdPage';
-import { HairIdPage } from './pages/HairIdPage';
-import { SkinIdPage } from './pages/SkinIdPage';
-import { RoutineIdPage } from './pages/RoutineIdPage';
-import { RoutineTrackerPage } from './pages/RoutineTrackerPage';
-import { ProgressJournalPage } from './pages/ProgressJournalPage';
-import { SavedPage } from './pages/SavedPage';
-import { KidsModulePage } from './pages/KidsModulePage';
-import { ProtectiveStylesPage } from './pages/ProtectiveStylesPage';
-import { MelaninSkinPage } from './pages/MelaninSkinPage';
-import { MenGroomingPage } from './pages/MenGroomingPage';
-import { ToolsPage } from './pages/ToolsPage';
-import { IngredientsGuidePage } from './pages/IngredientsGuidePage';
-import { CommunityPage } from './pages/CommunityPage';
-import { FamilySpacePage } from './pages/FamilySpacePage';
-import { LegalPage } from './pages/LegalPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
-import { ShelfPage } from './pages/ShelfPage';
-import { WashDayPage } from './pages/WashDayPage';
-import { ProtectiveTimelinePage } from './pages/ProtectiveTimelinePage';
-import { SmartSearchPage } from './pages/SmartSearchPage';
-import { RoutineBuilderPage } from './pages/RoutineBuilderPage';
-import { IngredientCardPage } from './pages/IngredientCardPage';
-import { ProfessionalDirectoryPage } from './pages/ProfessionalDirectoryPage';
-import { CostSimulatorPage } from './pages/CostSimulatorPage';
-import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
+import { Footer } from './components/Footer';
 
 // Modals & Widgets
 import { CartDrawer } from './components/CartDrawer';
@@ -181,7 +119,7 @@ function AppContent() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        ...(session?.access_token ? { Authorization: 'Bearer ' + session.access_token } : {})
       },
       body: JSON.stringify({
         anonymousId: anonId,
@@ -202,7 +140,6 @@ function AppContent() {
     });
     setIsCartOpen(true);
   };
-
 
   const handleUpdateQuantity = (productId: string, quantity: number, variantId?: string) => {
     if (quantity <= 0) {
@@ -232,124 +169,30 @@ function AppContent() {
 
   const cartCount = cartItems.reduce((acc, i) => acc + i.quantity, 0);
 
-  // Router matcher logic
+  // Résolution déclarative : la table de routes porte à la fois le composant,
+  // l'exigence d'authentification et les métadonnées. Une URL inconnue donne
+  // `null`, et c'est le seul cas où la page 404 est rendue.
+  const resolved = resolveRoute(pathname);
+  useDocumentMeta(resolved ? resolved.meta : null);
+
   const renderView = () => {
-    if (pathname === '/assistant-beaute') return <AiBeautyAssistantPage />;
+    if (!resolved) return <NotFoundPage />;
 
-    if (pathname === '/diagnostic/cheveux') return <DiagnosticHairPage />;
-    if (pathname === '/diagnostic/peau') return <DiagnosticSkinPage />;
-    if (pathname === '/diagnostic/enfant') return <DiagnosticKidsPage />;
-    if (pathname === '/diagnostic/protective-style') return <DiagnosticProtectivePage />;
-    if (pathname.startsWith('/diagnostic/resultat/')) return <DiagnosticResultPage />;
+    const context: RouteContext = {
+      params: resolved.params,
+      search: new URLSearchParams(window.location.search),
+      onAddToCart: handleAddToCart,
+    };
+    const view = resolved.entry.render(context);
 
-    // KURLA ID & Account Pages (Protected)
-    if (pathname === '/account/kurla-id') return <ProtectedRoute><KurlaIdPage /></ProtectedRoute>;
-    if (pathname === '/account/hair-id') return <ProtectedRoute><HairIdPage /></ProtectedRoute>;
-    if (pathname === '/account/skin-id') return <ProtectedRoute><SkinIdPage /></ProtectedRoute>;
-    if (pathname === '/account/routine-id') return <ProtectedRoute><RoutineIdPage /></ProtectedRoute>;
-    if (pathname === '/account/routine-tracker') return <ProtectedRoute><RoutineTrackerPage /></ProtectedRoute>;
-    if (pathname === '/account/progress') return <ProtectedRoute><ProgressJournalPage /></ProtectedRoute>;
-    if (pathname === '/account/shelf') return <ProtectedRoute><ShelfPage /></ProtectedRoute>;
-    if (pathname === '/account/wash-day') return <ProtectedRoute><WashDayPage /></ProtectedRoute>;
-    if (pathname === '/account/protective-timeline') return <ProtectedRoute><ProtectiveTimelinePage /></ProtectedRoute>;
-    if (pathname === '/recherche') return <ProtectedRoute><SmartSearchPage /></ProtectedRoute>;
-    if (pathname === '/routine-builder') return <ProtectedRoute><RoutineBuilderPage /></ProtectedRoute>;
-    if (pathname === '/cout-routine') return <ProtectedRoute><CostSimulatorPage /></ProtectedRoute>;
-    if (pathname === '/mes-reservations') return <ProtectedRoute><MyAppointmentsPage /></ProtectedRoute>;
-    if (pathname === '/account/saved') return <ProtectedRoute><SavedPage /></ProtectedRoute>;
-    if (pathname === '/famille') return <ProtectedRoute requiredRoleLabel="membre de KURLA"><FamilySpacePage /></ProtectedRoute>;
-    if (pathname === '/account') return <ProtectedRoute><CustomerAccountPage /></ProtectedRoute>;
-
-    // Specialized Category Modules
-    if (pathname === '/kids') return <KidsModulePage />;
-    if (pathname === '/protective-styles') return <ProtectiveStylesPage />;
-    if (pathname === '/melanin-skin') return <MelaninSkinPage />;
-    if (pathname === '/hommes') return <MenGroomingPage />;
-    if (pathname === '/outils' || pathname === '/guides/outils') return <ToolsPage />;
-    if (pathname === '/guides/ingredients') return <IngredientsGuidePage />;
-    if (pathname === '/community') return <CommunityPage />;
-
-    if (pathname === '/boutique') {
-      const params = new URLSearchParams(window.location.search);
-      return <BoutiquePage onAddToCart={handleAddToCart} selectedCategory={params.get('category') || 'tous'} />;
-    }
-    if (pathname.startsWith('/produit/')) {
-      const slug = pathname.replace('/produit/', '');
-      return <ProductDetailPage slug={slug} onAddToCart={handleAddToCart} />;
-    }
-
-    // Fiche ingrédient PUBLIQUE et indexable : aucune authentification, sinon
-    // un moteur de recherche ne peut pas l'atteindre et elle ne sert à rien.
-    if (pathname.startsWith('/ingredient/')) {
-      const ingredientId = pathname.replace('/ingredient/', '');
-      return <IngredientCardPage ingredientId={ingredientId} />;
-    }
-    if (pathname === '/pros-verifies') return <ProfessionalDirectoryPage />;
-
-    if (pathname === '/routines') return <RoutinesPage />;
-    if (pathname.startsWith('/routines/')) {
-      const slug = pathname.replace('/routines/', '');
-      return <RoutineDetailPage slug={slug} onAddToCart={handleAddToCart} />;
-    }
-
-    if (pathname === '/professionnels') return <ProfessionalsPage />;
-    if (pathname === '/professionnels/rejoindre') return <ProApplicationPage />;
-    if (pathname.startsWith('/professionnels/profil/')) {
-      const slug = pathname.replace('/professionnels/profil/', '');
-      return <ProProfilePage slug={slug} />;
-    }
-
-    if (pathname === '/journal') return <JournalPage />;
-    if (pathname.startsWith('/journal/')) {
-      const slug = pathname.replace('/journal/', '');
-      return <ArticleDetailPage slug={slug} />;
-    }
-
-    if (pathname === '/pro/dashboard') {
-      return (
-        <ProtectedRoute allowedRoles={['professional', 'admin', 'superadmin']} requiredRoleLabel="professionnel certifié">
-          <ProDashboardPage />
-        </ProtectedRoute>
-      );
-    }
-
-    if (pathname === '/admin') {
-      return (
-        <ProtectedRoute allowedRoles={['admin', 'superadmin']} requiredRoleLabel="administrateur">
-          <AdminDashboardPage />
-        </ProtectedRoute>
-      );
-    }
-    if (pathname === '/manifeste') return <ManifestePage />;
-    if (pathname === '/cgv') return <LegalPage kind="cgv" />;
-    if (pathname === '/confidentialite') return <LegalPage kind="confidentialite" />;
-    if (pathname === '/commande/confirmation') {
-      const params = new URLSearchParams(window.location.search);
-      return <OrderConfirmationPage sessionId={params.get('session_id') || undefined} orderId={params.get('order_id') || undefined} />;
-    }
-
-    if (pathname !== '/') return <NotFoundPage />;
-
-    // Home Page Full Template Layout
+    if (!resolved.entry.auth) return view;
     return (
-      <main className="w-full overflow-hidden">
-        <HeroSection />
-        <BenefitStrip />
-        <HairSkinSection />
-        <ChooseNeedSection />
-        <AIShowcase />
-        <BoutiquePreviewSection />
-        <CommunitySection />
-        <KidsMenSection />
-        <DiagnosticPreviewSection />
-        <RoutineCarouselSection />
-        <TextureGallerySection />
-        <BeautyHouseSection />
-        <KurlaProSection />
-        <UgcWallSection />
-        <JournalSection />
-        <WaitlistSection />
-      </main>
+      <ProtectedRoute
+        allowedRoles={resolved.entry.auth.roles}
+        requiredRoleLabel={resolved.entry.auth.roleLabel}
+      >
+        {view}
+      </ProtectedRoute>
     );
   };
 

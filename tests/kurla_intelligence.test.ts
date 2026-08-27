@@ -65,6 +65,7 @@ import {
 } from '../src/lib/proEndorsement';
 import { AI_GUARDRAILS, AI_TRANSPARENCY } from '../src/lib/ai/guardrails';
 import { intelligenceStore } from '../src/lib/intelligenceStore';
+import { resolveRoute } from '../src/lib/routeTable';
 import { createEmptyBeautyProfile } from '../src/lib/beautyProfile';
 
 const NOW = new Date('2026-08-27T09:00:00.000Z');
@@ -568,11 +569,15 @@ async function runKurlaIntelligenceTests() {
   // Sans UI, la couche d'intelligence ne collecte rien et le MOAT ne démarre pas.
   const shelfPageSource = await readFile(new URL('../src/pages/ShelfPage.tsx', import.meta.url), 'utf8');
   const washDayPageSource = await readFile(new URL('../src/pages/WashDayPage.tsx', import.meta.url), 'utf8');
-  const appSource = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const navbarSource = await readFile(new URL('../src/components/Navbar.tsx', import.meta.url), 'utf8');
 
-  assert.ok(appSource.includes("'/account/shelf'"), 'Le Shelf doit avoir une route.');
-  assert.ok(appSource.includes("'/account/wash-day'"), 'Le Wash Day OS doit avoir une route.');
+  // Depuis le chantier 7.1, le routage est déclaratif (`src/lib/routeTable.tsx`).
+  // On vérifie donc la résolution réelle de la route plutôt que la présence
+  // d'une chaîne dans `App.tsx` : chercher le texte ne prouvait pas que l'URL
+  // menait quelque part, alors que `resolveRoute` traverse le vrai chemin.
+  assert.ok(resolveRoute('/account/shelf'), 'Le Shelf doit avoir une route.');
+  assert.ok(resolveRoute('/account/wash-day'), 'Le Wash Day OS doit avoir une route.');
+  assert.ok(resolveRoute('/account/protective-timeline'), 'La timeline protectrice doit avoir une route.');
   assert.ok(navbarSource.includes('/account/shelf'), 'Le Shelf doit être accessible depuis la navigation.');
   assert.ok(navbarSource.includes('/account/wash-day'), 'Le Wash Day OS doit être accessible depuis la navigation.');
 

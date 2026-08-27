@@ -19,7 +19,7 @@
     "test:ai-product": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/ai_assistant_product.test.ts",
     "test:marketplace": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/marketplace_trust.test.ts",
     "test:adaptive-routines": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/adaptive_routines.test.ts",
-    "test": "export KURLA_STORE_MODE=memory && npm run test:store-binding && npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && npm run test:chantier-b && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test": "export KURLA_STORE_MODE=memory && npm run test:store-binding && npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:family-space && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && npm run test:kurla-intelligence && npm run test:recommendation-engine && npm run test:chantier-a && npm run test:chantier-b && npm run test:chantier-7 && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:catalog": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/catalog_management.test.ts",
     "test:admin-dashboard": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/admin_dashboard.test.ts",
@@ -35,7 +35,8 @@
     "test:realdb-preflight": "KURLA_STORE_MODE=server tsx tests/real_database_preflight.test.ts",
     "test:realdb": "npm run test:realdb-preflight && npm run test:integration && npm run test:atomic-stock-integration && npm run test:schema-contract && npm run test:chantier-b:realdb",
     "test:chantier-b:realdb": "KURLA_STORE_MODE=server tsx tests/chantier_b_professional.test.ts",
-    "test:schema-contract": "KURLA_STORE_MODE=server tsx tests/schema_query_contract.integration.test.ts"
+    "test:schema-contract": "KURLA_STORE_MODE=server tsx tests/schema_query_contract.integration.test.ts",
+    "test:chantier-7": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/chantier_7_routing.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

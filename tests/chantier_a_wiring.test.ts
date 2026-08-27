@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 
 import { intelligenceStore } from '../src/lib/intelligenceStore';
+import { resolveRoute } from '../src/lib/routeTable';
 import { computeArchetypeRating } from '../src/lib/outcomeEvidence';
 import { evaluateReplenishment } from '../src/lib/shelf';
 import { checkJurisdiction } from '../src/lib/ingredientGraph';
@@ -324,9 +325,10 @@ async function runChantierATests(): Promise<void> {
   assert.match(routinePage, /alreadyOwned/, 'Une étape déjà possédée ne doit pas être revendue.');
   assert.match(routinePage, /unfulfilled/, 'Une étape non pourvue doit être déclarée.');
 
-  const appSource = await readFile('src/App.tsx', 'utf-8');
-  assert.match(appSource, /pathname === '\/recherche'/, 'La recherche doit être routée.');
-  assert.match(appSource, /pathname === '\/routine-builder'/, 'Le routine builder doit être routé.');
+  // Depuis le chantier 7.1, le routage est déclaratif : on vérifie que l'URL
+  // résout réellement, au lieu de chercher le texte de l'ancienne cascade.
+  assert.ok(resolveRoute('/recherche'), 'La recherche doit être routée.');
+  assert.ok(resolveRoute('/routine-builder'), 'Le routine builder doit être routé.');
 
   const navSource = await readFile('src/components/Navbar.tsx', 'utf-8');
   assert.match(navSource, /href="\/recherche"/, 'La recherche doit être accessible depuis la navigation.');
