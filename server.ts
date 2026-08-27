@@ -5,7 +5,17 @@ import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import Stripe from 'stripe';
 import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from './src/lib/ai/systemPrompt';
-import { AI_GUARDRAILS } from './src/lib/ai/guardrails';
+import { AI_GUARDRAILS, AI_TRANSPARENCY } from './src/lib/ai/guardrails';
+import { intelligenceStore } from './src/lib/intelligenceStore';
+import { buildShelfVerdict, deriveAvoidedIngredients, isRoutineStep, summarizeAbandonments, RoutineStep } from './src/lib/shelf';
+import { assessTractionRisk, buildRecoveryProtocol, summarizeTractionHistory } from './src/lib/protectiveStyle';
+import { readAggregate } from './src/lib/outcomeEvidence';
+import { returnInsightPrompt } from './src/lib/returnInsight';
+import { evaluateCohort } from './src/lib/archetype';
+import { buildRecommendations, explainLearning } from './src/lib/recommendationEngine';
+import { describeIntent, parseSearchIntent, searchByIntent } from './src/lib/semanticSearch';
+import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from './src/lib/routineBuilder';
+import { buildDailyTasks, buildWashDayPlan, WashDayEvent } from './src/lib/washDay';
 import { formatKnowledgeContext, selectKnowledgeCards } from './src/lib/ai/knowledgeBase';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { getSupabaseAuthVerifier, getSupabaseServerClient, isSupabaseServerConfigured } from './src/lib/supabaseClient';
@@ -1441,16 +1451,15 @@ function sanitizeStructuredAnswer(raw: any, query: string, locale: string, cards
   return answer;
 }
 
-function medicalTriage(query: string): { emergency: boolean; review: boolean; message: string } {
-  const value = query.toLowerCase();
-  const emergencyTerms = ['difficulté à respirer', 'difficulte a respirer', 'difficulty breathing', 'gonflement de la gorge', 'swelling of the throat', 'gonflement langue', 'swollen tongue', 'brûlure chimique grave', 'brulure chimique grave', 'chemical burn', 'saignement abondant', 'heavy bleeding'];
-  const reviewTerms = [...AI_GUARDRAILS.medicalFlagsKeywords, 'infection', 'fièvre', 'fever', 'douleur intense', 'severe pain', 'chute massive', 'massive hair loss', 'diagnostic', 'prescription'];
-  const emergency = emergencyTerms.some(term => value.includes(term));
-  const review = emergency || reviewTerms.some(term => value.includes(term));
-  const message = emergency
-    ? 'Des signes potentiellement urgents sont mentionnés. Appelez immédiatement le 15 ou le 112 en France, ou le numéro d’urgence local, et ne mettez pas de nouveau cosmétique sur la zone concernée.'
-    : 'Votre description mérite un avis professionnel. KURLA ne pose pas de diagnostic et ne remplace pas un médecin, un dermatologue ou un pharmacien.';
-  return { emergency, review, message };
+/**
+ * Triage médical — délègue à AI_GUARDRAILS, source unique de vérité.
+ *
+ * L'ancienne implémentation locale comparait des phrases exactes : « j'ai la
+ * gorge qui gonfle » ou « je n'arrive plus à respirer » ne déclenchaient rien.
+ * La correspondance par racines corrige ce trou de couverture.
+ */
+function medicalTriage(query: string): { emergency: boolean; review: boolean; message: string; matched: string[] } {
+  return AI_GUARDRAILS.triage(query);
 }
 
 const AI_DISCLAIMER = "Les réponses KURLA sont des informations et conseils cosmétiques. Elles ne constituent ni un diagnostic, ni une prescription, ni un avis médical.";
@@ -1555,7 +1564,702 @@ app.post('/api/ai/assistant', rateLimit('ai-assistant', 30, 60_000), asyncRoute(
   if (!answer) answer = fallbackAnswer(query, locale, cards, recommendationCatalog, fits, needs, profile);
 
   const persistence = await persistAiExchange(user, session, query, JSON.stringify(answer), { kind: 'structured_answer', modelUsed, profileConfidence: profileRecord?.confidence || null, country, locale, objective }, cards.map(card => card.id), answer.uncertainty);
-  res.json({ isMedicalRedirect: false, requiresHumanReview: false, answer, disclaimer: AI_DISCLAIMER, profileAvailable: !!profile, profileConfidence: profileRecord?.confidence, ...persistence });
+  // Article 50(1) du règlement (UE) 2024/1689 : la nature artificielle de
+  // l'interlocuteur est renvoyée avec chaque réponse, et non seulement dans
+  // les CGU ou via un libellé ambigu.
+  res.json({
+    isMedicalRedirect: false,
+    requiresHumanReview: false,
+    answer,
+    disclaimer: AI_DISCLAIMER,
+    aiGenerated: true,
+    aiDisclosure: AI_TRANSPARENCY.disclosure,
+    aiResponseMarker: AI_TRANSPARENCY.responseMarker,
+    profileAvailable: !!profile,
+    profileConfidence: profileRecord?.confidence,
+    ...persistence
+  });
+}));
+
+/**
+ * Divulgation centralisée pour tout point d'entrée qui expose une interaction
+ * avec l'assistant. Une seule source de texte, pour que la conformité ne dépende
+ * pas de la vigilance de chaque route.
+ */
+app.get('/api/ai/disclosure', (_req: Request, res: Response) => {
+  res.json({
+    aiGenerated: true,
+    disclosure: AI_TRANSPARENCY.disclosure,
+    responseMarker: AI_TRANSPARENCY.responseMarker,
+    disclaimer: AI_DISCLAIMER,
+    regulatoryBasis: 'Règlement (UE) 2024/1689, article 50(1), applicable depuis le 2 août 2026.'
+  });
+});
+
+// ============================================================
+// KURLA INTELLIGENCE — Shelf, archétype, résultats, coiffures
+// ============================================================
+
+/**
+ * KURLA Shelf : l'inventaire réel de l'utilisateur.
+ * C'est ce qui permet de passer de « que veux-tu acheter ? » à
+ * « que te manque-t-il vraiment ? ».
+ */
+app.get('/api/shelf', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ items: await intelligenceStore.getShelf(user.id) });
+}));
+
+app.post('/api/shelf', rateLimit('shelf-write', 60, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const item = await intelligenceStore.addShelfItem(user.id, req.body || {});
+    res.status(201).json({ item });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Article invalide.' });
+  }
+}));
+
+app.patch('/api/shelf/:itemId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const item = await intelligenceStore.updateShelfItem(user.id, String(req.params.itemId), req.body || {});
+    if (!item) return res.status(404).json({ error: 'Article introuvable ou non autorisé.' });
+    res.json({ item });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Mise à jour invalide.' });
+  }
+}));
+
+app.delete('/api/shelf/:itemId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const removed = await intelligenceStore.deleteShelfItem(user.id, String(req.params.itemId));
+  if (!removed) return res.status(404).json({ error: 'Article introuvable ou non autorisé.' });
+  res.json({ success: true });
+}));
+
+/**
+ * Verdict d'achat. Peut répondre « vous n'avez rien à acheter » : c'est
+ * volontaire. Une plateforme qui sait dire non gagne une confiance qu'aucune
+ * promotion n'achète.
+ */
+app.post('/api/shelf/verdict', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const items = await intelligenceStore.getShelf(user.id);
+  const requested = Array.isArray(req.body?.requiredSteps) ? req.body.requiredSteps : undefined;
+  const requiredSteps = (requested && requested.length > 0
+    ? requested.filter((step: unknown): step is RoutineStep => isRoutineStep(step))
+    : ['cleanse', 'condition', 'leave_in', 'seal_oil']) as RoutineStep[];
+  res.json({
+    ...buildShelfVerdict(items, requiredSteps),
+    avoidedIngredients: deriveAvoidedIngredients(items),
+    abandonmentPatterns: summarizeAbandonments(items)
+  });
+}));
+
+/**
+ * Archétype courant. Les dimensions non renseignées restent non renseignées :
+ * KURLA ne complète jamais un champ inconnu.
+ */
+app.get('/api/me/archetype', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const profileRecord = await serverDb.getBeautyProfile(user.id);
+  const derivation = await intelligenceStore.syncUserArchetype(user.id, profileRecord?.profile);
+  const cohort = evaluateCohort(derivation.id, derivation.labelFr, intelligenceStore.getArchetypeMemberCount(derivation.id));
+  res.json({ archetype: derivation, cohort });
+}));
+
+/**
+ * Boucle d'apprentissage. C'est ici que `routine_feedback` cessait d'être un
+ * cimetière de données : chaque observation est rattachée à un archétype et
+ * alimente l'agrégat publié.
+ */
+app.post('/api/outcomes', rateLimit('outcome-write', 60, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const profileRecord = await serverDb.getBeautyProfile(user.id);
+  try {
+    const observation = await intelligenceStore.recordOutcome(user.id, req.body || {}, profileRecord?.profile);
+    res.status(201).json({ observation });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Observation invalide.' });
+  }
+}));
+
+app.get('/api/outcomes', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ observations: await intelligenceStore.getOutcomes(user.id) });
+}));
+
+/**
+ * Efficacité d'un ingrédient pour l'archétype de l'utilisateur.
+ * Sous le seuil de k-anonymité, la réponse dit explicitement que KURLA ne sait
+ * pas encore — jamais de conclusion tirée de trois observations.
+ */
+app.get('/api/ingredients/:ingredientId/evidence', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const ingredientId = String(req.params.ingredientId);
+  const climateContext = typeof req.query.climate === 'string' ? req.query.climate : undefined;
+  const { aggregate } = await intelligenceStore.getIngredientOutcomeEvidence(user.id, ingredientId, { climateContext });
+  const profileRecord = await serverDb.getBeautyProfile(user.id);
+  const derivation = await intelligenceStore.syncUserArchetype(user.id, profileRecord?.profile);
+  const reading = readAggregate(aggregate, {
+    ingredientLabel: ingredientId,
+    archetypeLabel: derivation.labelFr,
+    climateLabel: climateContext
+  });
+  res.json({ ingredientId, archetypeId: derivation.id, reading });
+}));
+
+// --- Timeline de coiffure protectrice --------------------------------------
+
+app.get('/api/protective-styles', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const episodes = await intelligenceStore.getProtectiveStyles(user.id);
+  res.json({
+    episodes,
+    assessments: episodes.map(episode => assessTractionRisk(episode)),
+    history: summarizeTractionHistory(episodes)
+  });
+}));
+
+app.post('/api/protective-styles', rateLimit('protective-style-write', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const created = await intelligenceStore.startProtectiveStyle(user.id, req.body || {});
+    res.status(201).json({ episode: created, assessment: assessTractionRisk(created) });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Coiffure invalide.' });
+  }
+}));
+
+app.post('/api/protective-styles/:episodeId/signals', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const updated = await intelligenceStore.addProtectiveStyleSignal(user.id, String(req.params.episodeId), req.body?.signal);
+    if (!updated) return res.status(404).json({ error: 'Coiffure introuvable ou non autorisée.' });
+    const assessment = assessTractionRisk(updated);
+    res.json({
+      episode: updated,
+      assessment,
+      recoveryProtocol: buildRecoveryProtocol(assessment)
+    });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Signal invalide.' });
+  }
+}));
+
+app.post('/api/protective-styles/:episodeId/close', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const updated = await intelligenceStore.closeProtectiveStyle(user.id, String(req.params.episodeId), typeof req.body?.reason === 'string' ? req.body.reason : undefined);
+  if (!updated) return res.status(404).json({ error: 'Coiffure introuvable ou non autorisée.' });
+  res.json({ episode: updated, assessment: assessTractionRisk(updated) });
+}));
+
+// --- Wash Day OS -----------------------------------------------------------
+
+/**
+ * Plan du wash day courant. Le plan est reconstruit à chaque appel à partir du
+ * cycle réel et du contexte : une routine par cycle n'est pas une liste figée.
+ */
+app.get('/api/wash-day', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const cycle = await intelligenceStore.getWashDayCycle(user.id);
+  const episodes = await intelligenceStore.getProtectiveStyles(user.id);
+  const activeStyle = episodes.find(episode => !episode.removedAt);
+
+  // Climat : le serveur récupère déjà l'humidité ailleurs pour la routine
+  // adaptative. Sans elle, `buildWashDayPlan` ne peut pas justifier un pré-poo
+  // ni adapter le coiffage — la logique existe mais reste muette.
+  const weather = normalizeWeatherContext(req.query);
+  const humidityPercent = weather?.humidityPercent ?? null;
+
+  // Événements : une coiffure protectrice active est un événement du cycle.
+  // Le déclarer ici ferme le trou entre la timeline protectrice et le wash day.
+  const events: WashDayEvent[] = activeStyle
+    ? [{ kind: 'protective_style', occurredAt: activeStyle.installedAt, note: activeStyle.style }]
+    : [];
+
+  const plan = buildWashDayPlan({
+    cycle: {
+      intervalDays: cycle.intervalDays,
+      lastWashDayAt: cycle.lastWashDayAt,
+      deepConditionEveryNWashDays: cycle.deepConditionEveryNWashDays,
+      proteinEveryNWashDays: cycle.proteinEveryNWashDays
+    },
+    events,
+    humidityPercent,
+    hardWater: cycle.hardWater,
+    ownedProductLabels: (await intelligenceStore.getShelf(user.id))
+      .filter(item => item.status === 'in_use' || item.status === 'owned')
+      .map(item => item.freeLabel || item.productId || '')
+      .filter(Boolean)
+  });
+  res.json({
+    cycle,
+    plan,
+    dailyTasks: buildDailyTasks({
+      nightProtection: cycle.nightProtection,
+      protectiveStyleActive: Boolean(activeStyle)
+    }),
+    activeProtectiveStyle: activeStyle
+      ? { episode: activeStyle, assessment: assessTractionRisk(activeStyle) }
+      : null
+  });
+}));
+
+app.put('/api/wash-day', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const cycle = await intelligenceStore.saveWashDayCycle(user.id, req.body || {});
+  res.json({ cycle });
+}));
+
+app.post('/api/wash-day/mark-done', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const cycle = await intelligenceStore.markWashDayDone(user.id, typeof req.body?.at === 'string' ? req.body.at : undefined);
+  res.json({ cycle });
+}));
+
+// ============================================================
+// CHANTIER A — Fermer les trous
+// Chaque route ici existe pour sortir une fonction pure de l'état
+// « logique seule » : testée mais jamais appelée par rien.
+// ============================================================
+
+/**
+ * RGPD art. 15 — export en 1 clic. Tout ce que KURLA détient sur l'utilisateur,
+ * dans un seul fichier, sans qu'il ait à nous écrire.
+ *
+ * Les commandes ne sont PAS supprimées par la route de suppression : les
+ * obligations comptables et fiscales imposent leur conservation. C'est dit
+ * explicitement dans la réponse plutôt que laissé à deviner.
+ */
+app.get('/api/me/data', rateLimit('me-data', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const [
+    orders,
+    returns,
+    addresses,
+    notifications,
+    notificationPreferences,
+    beautyProfile,
+    beautyProfileHistory,
+    aiSessions,
+    supportTickets,
+    adaptiveRoutine,
+    shelf,
+    outcomes,
+    protectiveStyles,
+    washDayCycle
+  ] = await Promise.all([
+    serverDb.getOrdersByCustomer(user.email, user.id),
+    serverDb.getReturnsByUser(user.id),
+    serverDb.getShippingAddresses(user.id),
+    serverDb.getNotifications(user.id),
+    serverDb.getNotificationPreferences(user.id),
+    serverDb.getBeautyProfile(user.id),
+    serverDb.getBeautyProfileHistory(user.id),
+    serverDb.getAiSessions(user.id),
+    serverDb.getSupportTicketsByUser(user.id),
+    serverDb.getAdaptiveRoutineState(user.id),
+    intelligenceStore.getShelf(user.id),
+    intelligenceStore.getOutcomes(user.id),
+    intelligenceStore.getProtectiveStyles(user.id),
+    intelligenceStore.getWashDayCycle(user.id)
+  ]);
+
+  const archetype = intelligenceStore.getUserArchetype(user.id);
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="kurla-export-${user.id}.json"`);
+  res.json({
+    exportedAt: new Date().toISOString(),
+    account: { id: user.id, email: user.email, role: user.role },
+    data: {
+      beautyProfile: beautyProfile ?? null,
+      beautyProfileHistory,
+      archetype: archetype
+        ? { id: archetype.id, labelFr: archetype.labelFr, confidence: archetype.confidence, knownDimensions: archetype.knownDimensions }
+        : null,
+      shelf,
+      outcomeObservations: outcomes,
+      protectiveStyles,
+      washDayCycle,
+      adaptiveRoutine,
+      orders,
+      returns,
+      shippingAddresses: addresses,
+      notifications,
+      notificationPreferences,
+      aiSessions,
+      supportTickets
+    },
+    retention: {
+      orders: 'Les commandes et factures sont conservées pour les obligations comptables et fiscales, même après suppression du compte.',
+      anonymised: 'Les observations de résultat partagées sont conservées de façon agrégée et k-anonyme : elles ne permettent plus de vous identifier.'
+    }
+  });
+}));
+
+/**
+ * RGPD art. 17 — suppression en 1 clic. Supprime le profil, les photos, les
+ * sessions d'IA, les données d'intelligence et les routines adaptatives.
+ * Conserve les commandes (obligation légale) et le déclare.
+ */
+app.delete('/api/account', rateLimit('account-delete', 5, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  // Confirmation explicite : une suppression ne doit pas partir sur un clic accidentel.
+  const confirm = typeof req.body?.confirm === 'string' ? req.body.confirm.trim().toUpperCase() : '';
+  if (confirm !== 'SUPPRIMER') {
+    res.status(400).json({
+      error: 'Confirmation requise : envoyez { "confirm": "SUPPRIMER" }.',
+      retained: ['orders', 'invoices']
+    });
+    return;
+  }
+
+  await serverDb.deleteBeautyProfilePhotos(user.id);
+  await serverDb.deleteBeautyProfile(user.id);
+  await serverDb.deleteAiSessions(user.id);
+  await serverDb.deleteAdaptiveRoutineData(user.id);
+  await intelligenceStore.deleteIntelligenceData(user.id);
+
+  res.json({
+    deleted: true,
+    deletedAt: new Date().toISOString(),
+    purged: ['beautyProfile', 'beautyProfilePhotos', 'aiSessions', 'adaptiveRoutine', 'intelligenceData'],
+    retained: [
+      { what: 'orders', why: 'Obligation comptable et fiscale.' },
+      { what: 'invoices', why: 'Obligation comptable et fiscale.' }
+    ],
+    note: 'La fermeture du compte d’authentification Supabase doit être faite côté admin : un token utilisateur ne peut pas révoquer sa propre session de façon fiable.'
+  });
+}));
+
+/**
+ * Note par archétype — la fin de la note globale. Sous le seuil k, la note
+ * n'est pas publiée : `computeArchetypeRating` renvoie `publishable: false`
+ * avec la raison, et on la transmet telle quelle au lieu de masquer.
+ */
+app.get('/api/products/:productId/archetype-ratings', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const productId = String(req.params.productId || '').trim();
+  if (!productId) {
+    res.status(400).json({ error: 'Identifiant produit manquant.' });
+    return;
+  }
+  const ratings = await intelligenceStore.getArchetypeRatingsForProduct(productId);
+  const viewerArchetype = req.authUser ? intelligenceStore.getUserArchetype(req.authUser.id) : undefined;
+  res.json({
+    productId,
+    ratings,
+    viewerArchetypeId: viewerArchetype?.id ?? null,
+    viewerRating: viewerArchetype ? ratings.find(item => item.archetypeId === viewerArchetype.id) ?? null : null,
+    note: 'KURLA n’affiche plus de note globale : une note moyenne mélange des cheveux qui ne se ressemblent pas.'
+  });
+}));
+
+/**
+ * Réassort prédictif. Sans consommation déclarée, la réponse dit qu'elle ne
+ * peut pas estimer — elle ne devine pas.
+ */
+app.get('/api/shelf/replenishment', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const weeklyUsagePercent = Number(req.query.weeklyUsagePercent ?? 10);
+  const { signals, due } = await intelligenceStore.evaluateShelfReplenishment(user.id, weeklyUsagePercent);
+
+  // Branche le réassort sur les notifications existantes. La clé de déduplication
+  // empêche de renvoyer la même alerte à chaque appel.
+  for (const signal of due) {
+    await serverDb.sendNotification(
+      user.id,
+      'replenishment',
+      'Bientôt à court',
+      signal.message,
+      '/account/shelf',
+      undefined,
+      `replenishment:${signal.itemId}`
+    );
+  }
+
+  res.json({
+    weeklyUsagePercent: Number.isFinite(weeklyUsagePercent) ? weeklyUsagePercent : null,
+    signals,
+    due,
+    limitations: signals.filter(signal => signal.daysUntilEmpty === null).length > 0
+      ? ['Certains articles n’ont pas de consommation déclarée : aucune date de fin n’est estimée pour eux.']
+      : []
+  });
+}));
+
+/**
+ * Intelligence des retours — collecte. Un retour est plus informatif qu'un
+ * avis : les avis viennent des acheteurs satisfaits.
+ */
+app.post('/api/returns/:returnId/insight', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const returnId = String(req.params.returnId || '').trim();
+  if (!returnId) {
+    res.status(400).json({ error: 'Identifiant de retour manquant.' });
+    return;
+  }
+  const record = await intelligenceStore.recordReturnInsight(user.id, returnId, {
+    orderId: req.body?.orderId,
+    productId: req.body?.productId,
+    reason: req.body?.reason,
+    textureMismatch: req.body?.textureMismatch,
+    ingredientSuspected: req.body?.ingredientSuspected,
+    // Consentement explicite, jamais pré-coché.
+    shared: req.body?.shared
+  });
+  res.status(201).json({ record });
+}));
+
+/** Le formulaire de retour motivé : la question et ses options, servies par l'API. */
+app.get('/api/returns/insight-prompt', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  res.json(returnInsightPrompt());
+}));
+
+/** Intelligence des retours — surface admin. Jamais exposée à l'utilisateur. */
+app.get('/api/admin/return-insights/:productId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const productId = String(req.params.productId || '').trim();
+  if (!productId) {
+    res.status(400).json({ error: 'Identifiant produit manquant.' });
+    return;
+  }
+  const soldQuantity = req.query.soldQuantity !== undefined ? Number(req.query.soldQuantity) : undefined;
+  const summary = await intelligenceStore.summarizeProductReturns(
+    productId,
+    Number.isFinite(soldQuantity as number) ? (soldQuantity as number) : undefined
+  );
+  res.json({ summary });
+}));
+
+/**
+ * Filtrage réglementaire par juridiction. Une même formule peut être légale
+ * dans l'UE et interdite ailleurs — c'est un différenciateur d'internationalisation.
+ */
+app.post('/api/jurisdiction/assess', rateLimit('jurisdiction', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const jurisdiction = String(req.body?.jurisdiction || '').trim().toUpperCase();
+  if (!jurisdiction) {
+    res.status(400).json({ error: 'Jurisdiction requise (ex. FR, US, JP).' });
+    return;
+  }
+  const ingredientIds = Array.isArray(req.body?.ingredientIds)
+    ? (req.body.ingredientIds as unknown[]).filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    : [];
+  const findings = await intelligenceStore.assessJurisdiction(ingredientIds, jurisdiction);
+  res.json({
+    jurisdiction,
+    findings,
+    blocked: findings.filter(finding => finding.status === 'prohibited').length,
+    limitations: findings.length === 0
+      ? ['Aucune restriction connue pour ces ingrédients dans cette juridiction : cela ne vaut pas garantie de conformité.']
+      : []
+  });
+}));
+
+/**
+ * Co-signature professionnelle. Un professionnel non vérifié ne peut pas
+ * co-signer publiquement : sinon l'espace devient publicitaire.
+ */
+app.post('/api/endorsements', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const endorsement = await intelligenceStore.createEndorsement({
+    professionalId: typeof req.body?.professionalId === 'string' ? req.body.professionalId : user.id,
+    professionalName: typeof req.body?.professionalName === 'string' ? req.body.professionalName : 'Professionnel',
+    professionalSpecialty: typeof req.body?.professionalSpecialty === 'string' ? req.body.professionalSpecialty : undefined,
+    professionalVerified: req.body?.professionalVerified === true,
+    clientUserId: typeof req.body?.clientUserId === 'string' ? req.body.clientUserId : user.id,
+    routinePlanId: typeof req.body?.routinePlanId === 'string' ? req.body.routinePlanId : undefined,
+    productId: typeof req.body?.productId === 'string' ? req.body.productId : undefined,
+    stance: req.body?.stance,
+    rationale: typeof req.body?.rationale === 'string' ? req.body.rationale : '',
+    amendments: Array.isArray(req.body?.amendments) ? req.body.amendments : [],
+    isDisplayable: req.body?.isDisplayable === true,
+    clientConsentAt: typeof req.body?.clientConsentAt === 'string' ? req.body.clientConsentAt : undefined
+  });
+  res.status(201).json({ endorsement });
+}));
+
+/** Ce que le client voit : seulement ce qui est affichable, avec le disclaimer. */
+app.get('/api/products/:productId/endorsements', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const productId = String(req.params.productId || '').trim();
+  if (!productId) {
+    res.status(400).json({ error: 'Identifiant produit manquant.' });
+    return;
+  }
+  const all = await intelligenceStore.getEndorsements({ productId });
+  const endorsements = all
+    .map(endorsement => ({ endorsement, gate: intelligenceStore.resolveEndorsementDisplay(endorsement) }))
+    .filter(entry => entry.gate.allowed)
+    .map(entry => ({ ...entry.endorsement, disclaimer: entry.gate.disclaimer }));
+  res.json({
+    productId,
+    endorsements,
+    hidden: all.length - endorsements.length,
+    note: 'Les co-signatures non vérifiées ou sans consentement client ne sont pas affichées.'
+  });
+}));
+
+/**
+ * Ce que l'IA doit faire face à une contradiction professionnelle : s'aligner
+ * pour cet utilisateur et signaler le désaccord à l'équipe. Jamais ignorer.
+ */
+app.post('/api/endorsements/:endorsementId/apply', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const endorsementId = String(req.params.endorsementId || '').trim();
+  const found = (await intelligenceStore.getEndorsements({ clientUserId: user.id }))
+    .find(endorsement => endorsement.id === endorsementId);
+  if (!found) {
+    res.status(404).json({ error: 'Co-signature introuvable pour ce compte.' });
+    return;
+  }
+  res.json({ endorsement: found, action: intelligenceStore.applyProfessionalJudgement(found) });
+}));
+
+/** Taux d'accord d'un professionnel avec l'IA : la métrique d'honnêteté de KURLA. */
+app.get('/api/professionals/:professionalId/endorsement-impact', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const professionalId = String(req.params.professionalId || '').trim();
+  if (!professionalId) {
+    res.status(400).json({ error: 'Identifiant professionnel manquant.' });
+    return;
+  }
+  const endorsements = await intelligenceStore.getEndorsements({ professionalId });
+  res.json({ professionalId, impact: intelligenceStore.getProfessionalImpact(professionalId, endorsements) });
+}));
+
+// ============================================================
+// CHANTIER 5 — Moteur v2, recherche sémantique, routine builder
+// ============================================================
+
+/**
+ * Construit le contexte du moteur depuis les données réelles de l'utilisateur :
+ * profil, étagère, observations, abandons. C'est ici que la boucle se referme —
+ * le feedback cesse d'être collecté pour rien.
+ */
+async function buildEngineContext(user: AuthenticatedUser, options: { budgetLimit?: number } = {}) {
+  const profileRecord = await serverDb.getBeautyProfile(user.id);
+  const shelf = await intelligenceStore.getShelf(user.id);
+  const observations = await intelligenceStore.getOutcomes(user.id);
+  return {
+    profile: profileRecord?.profile,
+    shelf,
+    observations,
+    avoidedIngredientIds: deriveAvoidedIngredients(shelf).map(entry => entry.ingredientId),
+    budgetLimit: options.budgetLimit
+  };
+}
+
+/**
+ * Recommandations. Chaque résultat porte la trace complète de ses ajustements :
+ * un score final sans trace n'est pas renvoyé.
+ */
+app.post('/api/recommendations', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const country = normalizeAiCountry(req.body?.country);
+  const budgetLimit = typeof req.body?.budgetLimit === 'number' && Number.isFinite(req.body.budgetLimit) && req.body.budgetLimit > 0
+    ? req.body.budgetLimit
+    : undefined;
+  const context = await buildEngineContext(user, { budgetLimit });
+  const catalog = await getAvailableCatalog(country);
+  const result = buildRecommendations(
+    catalog.map(entry => entry.product as any),
+    context
+  );
+  res.json({
+    ...result,
+    learning: explainLearning(result),
+    context: {
+      shelfSize: context.shelf.length,
+      observationCount: context.observations.length,
+      avoidedIngredients: context.avoidedIngredientIds,
+      profileAvailable: Boolean(context.profile)
+    }
+  });
+}));
+
+/**
+ * Recherche sémantique. Renvoie ce que KURLA a compris ET ce qu'elle n'a pas
+ * compris : une contrainte mal interprétée doit être visible, pas devinée.
+ */
+app.get('/api/search', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const rawQuery = typeof req.query.q === 'string' ? req.query.q : '';
+  const intent = parseSearchIntent(rawQuery);
+  const country = normalizeAiCountry(req.query.country);
+  const catalog = await getAvailableCatalog(country);
+  const matches = searchByIntent(
+    catalog.map(entry => entry.product as any),
+    intent
+  );
+  res.json({
+    intent,
+    interpretation: describeIntent(intent),
+    results: matches.slice(0, 24),
+    total: matches.length
+  });
+}));
+
+/**
+ * Routine Builder : relie l'IA au commerce. Une étape déjà couverte par
+ * l'étagère n'est pas ajoutée au panier, et une étape non pourvue est déclarée
+ * plutôt que remplie avec un produit approximatif.
+ */
+app.post('/api/routine-builder', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const country = normalizeAiCountry(req.body?.country);
+  const budgetLimit = typeof req.body?.budgetLimit === 'number' && Number.isFinite(req.body.budgetLimit) && req.body.budgetLimit > 0
+    ? req.body.budgetLimit
+    : undefined;
+
+  const context = await buildEngineContext(user, { budgetLimit });
+  const catalog = await getAvailableCatalog(country);
+  const engine = buildRecommendations(catalog.map(entry => entry.product as any), context);
+
+  const requestedSteps = Array.isArray(req.body?.requestedSteps)
+    ? req.body.requestedSteps.filter((step: unknown): step is RoutineStep => isRequestedRoutineStep(step))
+    : [];
+
+  const routine = buildRoutine(
+    engine.recommendations,
+    context.shelf,
+    {
+      goal: typeof req.body?.goal === 'string' ? req.body.goal.trim().slice(0, 200) : '',
+      budgetLimit,
+      availableMinutesPerDay: typeof req.body?.availableMinutesPerDay === 'number' ? req.body.availableMinutesPerDay : undefined,
+      experienceLevel: isExperienceLevel(req.body?.experienceLevel) ? req.body.experienceLevel : undefined,
+      requestedSteps
+    },
+    engine.conflicts
+  );
+
+  res.json({ routine, summary: engine.summary });
 }));
 
 // Consent-aware AI history and feedback APIs.
@@ -2011,6 +2715,25 @@ app.get('/api/beauty-recommendations', asyncRoute(async (req: AuthenticatedReque
 // KURLA Pro applications may be submitted by guests. If a valid Supabase
 // session is present, it is attached for follow-up; the form fields remain
 // authoritative for the application contact details.
+/**
+ * Annuaire public des professionnels vérifiés.
+ *
+ * Remplace `MOCK_PROS`, qui affichait en production de faux noms, de faux
+ * avatars, de fausses notes et de fausses adresses réelles marqués
+ * `verified: true`. Un annuaire vide est un état légitime : la page l'affiche
+ * comme tel au lieu d'inventer des personnes.
+ */
+app.get('/api/professionals', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  const directory = await serverDb.getPublicProfessionalDirectory();
+  res.json({
+    professionals: directory,
+    total: directory.length,
+    note: directory.length === 0
+      ? 'Aucun professionnel vérifié n’a encore été approuvé. KURLA n’affiche que des profils contrôlés.'
+      : undefined
+  });
+}));
+
 app.post('/api/professional-applications', rateLimit('professional-application', 5, 60 * 60 * 1000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const body = req.body || {};
   const fields = ['name', 'email', 'phone', 'city', 'profession', 'experience'] as const;

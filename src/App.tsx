@@ -61,6 +61,10 @@ import { FamilySpacePage } from './pages/FamilySpacePage';
 import { LegalPage } from './pages/LegalPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
+import { ShelfPage } from './pages/ShelfPage';
+import { WashDayPage } from './pages/WashDayPage';
+import { SmartSearchPage } from './pages/SmartSearchPage';
+import { RoutineBuilderPage } from './pages/RoutineBuilderPage';
 
 // Modals & Widgets
 import { CartDrawer } from './components/CartDrawer';
@@ -212,6 +216,10 @@ function AppContent() {
     if (pathname === '/account/routine-id') return <ProtectedRoute><RoutineIdPage /></ProtectedRoute>;
     if (pathname === '/account/routine-tracker') return <ProtectedRoute><RoutineTrackerPage /></ProtectedRoute>;
     if (pathname === '/account/progress') return <ProtectedRoute><ProgressJournalPage /></ProtectedRoute>;
+    if (pathname === '/account/shelf') return <ProtectedRoute><ShelfPage /></ProtectedRoute>;
+    if (pathname === '/account/wash-day') return <ProtectedRoute><WashDayPage /></ProtectedRoute>;
+    if (pathname === '/recherche') return <ProtectedRoute><SmartSearchPage /></ProtectedRoute>;
+    if (pathname === '/routine-builder') return <ProtectedRoute><RoutineBuilderPage /></ProtectedRoute>;
     if (pathname === '/account/saved') return <ProtectedRoute><SavedPage /></ProtectedRoute>;
     if (pathname === '/famille') return <ProtectedRoute requiredRoleLabel="membre de KURLA"><FamilySpacePage /></ProtectedRoute>;
     if (pathname === '/account') return <ProtectedRoute><CustomerAccountPage /></ProtectedRoute>;

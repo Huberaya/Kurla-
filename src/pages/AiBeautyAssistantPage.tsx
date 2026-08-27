@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, BookOpen, Check, ExternalLink, Flag, Globe2, History, MessageSquare, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, UserCheck, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, BookOpen, Bot, Check, ExternalLink, Flag, Globe2, History, MessageSquare, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, UserCheck, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getAiHistory, getAiSessionHistory, queryBeautyAssistant, requestAiHumanReview, sendAiFeedback, deleteAiHistory } from '../lib/ai/assistant';
 import { AssistantResponse } from '../lib/ai/contracts';
@@ -147,6 +147,18 @@ export const AiBeautyAssistantPage: React.FC = () => {
           </p>
         </header>
 
+        {/* Article 50(1) du règlement (UE) 2024/1689, applicable depuis le
+            2 août 2026 : la nature artificielle de l'interlocuteur doit être
+            perceptible dans l'interaction elle-même, pas seulement dans les
+            CGU ni via un libellé ambigu. */}
+        <div role="note" aria-live="polite" className="max-w-3xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-2xl border border-[#C8753D]/30 bg-[#C8753D]/5">
+          <Bot className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-[13px] leading-relaxed text-[#111111]/80">
+            <strong className="font-semibold text-[#111111]">Vous échangez avec KURLA AI, un assistant d’intelligence artificielle.</strong>{' '}
+            Ce n’est pas un humain, et ce n’est pas un professionnel de santé. Les réponses sont des conseils cosmétiques générés par une IA : elles ne constituent ni un diagnostic, ni une prescription.
+          </p>
+        </div>
+
         <section className="bg-[#F8F2EC] border border-[#E8E1DA] rounded-3xl p-4 sm:p-6 mb-8 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <label className="text-xs font-semibold text-[#111111]/70">
@@ -217,7 +229,7 @@ export const AiBeautyAssistantPage: React.FC = () => {
                     {answer.sources.length > 0 && <div className="pt-3 border-t border-[#E8E1DA]"><span className="text-[10px] uppercase font-bold tracking-wider text-[#111111]/60 flex items-center gap-1 mb-2"><BookOpen className="w-3 h-3" /> Informations utilisées</span><div className="flex flex-wrap gap-2">{answer.sources.map(source => <span key={source.id} className="text-[10px] px-2 py-1 rounded-full border border-[#E8E1DA] bg-[#F8F2EC]" title={source.status === 'internal_review_pending' ? 'Fiche interne en attente de revue professionnelle' : 'Fiche validée'}>{source.label} · {source.status === 'validated' ? 'validée' : 'revue en attente'}</span>)}</div></div>}
                   </>}
                   <div className="pt-3 border-t border-[#E8E1DA]/60 flex flex-wrap items-center gap-2"><span className="text-[10px] text-[#111111]/45 mr-1">Cette réponse vous aide ?</span><button onClick={() => handleFeedback(index, 'helpful')} className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] flex items-center gap-1"><Check className="w-3 h-3" /> Oui</button><button onClick={() => handleFeedback(index, 'incorrect')} className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-[10px]">À corriger</button><button onClick={() => handleFeedback(index, 'unsafe')} className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 text-[10px] flex items-center gap-1"><Flag className="w-3 h-3" /> Risquée</button>{item.response.requiresHumanReview && <button onClick={() => handleHumanReview(index)} className="px-2.5 py-1 rounded-full bg-[#C8753D]/10 text-[#8b4b24] text-[10px] flex items-center gap-1"><UserCheck className="w-3 h-3" /> Demander une revue</button>}<span className="text-[10px] text-[#111111]/50">{feedbackState[index] || reviewState[index]}</span></div>
-                  <p className="text-[10px] text-[#111111]/40 italic">{item.response.disclaimer}</p>
+                  <p className="text-[10px] text-[#111111]/40 italic">Réponse générée par une intelligence artificielle. {item.response.disclaimer}</p>
                 </div></div>
               </div>;
             })}

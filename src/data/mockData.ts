@@ -714,7 +714,7 @@ export const MOCK_PROS: ProfessionalPro[] = [
       PROTECTIVE_IMAGE
     ],
     bio: 'Passionné par la culture et le développement des locks saines depuis plus de 10 ans. Spécialisé en retwisting naturel à l’aloe vera et soin des jeunes locks.',
-    specialties: ['Départ de Locks', 'Retwisting & Interlocking', 'Soin Detox Bicarbonate/Vinaigre', 'Microlocks'],
+    specialties: ['Départ de Locks', 'Retwisting & Interlocking', 'Soin clarifiant doux sans résidus', 'Microlocks'],
     services: [
       { id: 's3', name: 'Retwisting & Hydratation', duration: '2h00', price: 75, description: 'Tour de tête complet avec massage aux huiles végétales.' },
       { id: 's4', name: 'Bain Detox Locks Profond', duration: '1h15', price: 50, description: 'Nettoyage en profondeur pour éliminer tout résidu de produit.' }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Video, 
   Calendar, 
@@ -15,7 +15,22 @@ import {
   Lock,
   Star
 } from 'lucide-react';
-import { MOCK_PROS } from '../data/mockData';
+/**
+ * Ce composant lisait auparavant `MOCK_PROS` : de faux noms, de faux avatars
+ * et des notes inventées, présentés comme réservables. C'était la pire des
+ * fictions du dépôt — elle engageait l'utilisateur dans une prise de rendez-vous
+ * avec un professionnel qui n'existe pas.
+ *
+ * Désormais : seuls les professionnels approuvés par un administrateur sont
+ * proposés. S'il n'y en a aucun, la modal le dit au lieu d'inventer.
+ */
+interface DirectoryProfessional {
+  id: string;
+  name: string;
+  city: string;
+  profession: string;
+  verified: boolean;
+}
 
 export interface VirtualConsultation {
   id: string;
@@ -79,6 +94,24 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 }) => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
+  // Annuaire réel. Les hooks doivent précéder le `return null` ci-dessous.
+  const [professionals, setProfessionals] = useState<DirectoryProfessional[]>([]);
+  const [directoryLoaded, setDirectoryLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetch('/api/professionals')
+      .then(response => (response.ok ? response.json() : Promise.reject(new Error('annuaire indisponible'))))
+      .then(payload => {
+        if (cancelled) return;
+        setProfessionals(Array.isArray(payload?.professionals) ? payload.professionals : []);
+        setDirectoryLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setDirectoryLoaded(true); });
+    return () => { cancelled = true; };
+  }, [isOpen]);
+
   // Form State
   const [selectedService, setSelectedService] = useState<VirtualConsultation>(CONSULTATION_TYPES[0]);
   const [selectedProId, setSelectedProId] = useState<string>(preSelectedProId || 'any');
@@ -140,7 +173,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
     setStep(4);
   };
 
-  const selectedProObj = MOCK_PROS.find(p => p.id === selectedProId);
+  const selectedProObj = professionals.find(p => p.id === selectedProId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
@@ -262,7 +295,20 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                     </div>
                   </div>
 
-                  {MOCK_PROS.map((pro) => {
+                  {professionals.length === 0 && (
+                    <div className="p-3 rounded-2xl border border-[#FFF7EF]/10 bg-[#050403]">
+                      <div className="text-xs font-bold text-[#FFF7EF] mb-1">
+                        Aucun professionnel vérifié pour l&apos;instant
+                      </div>
+                      <div className="text-[10px] text-[#FFF7EF]/60 leading-relaxed">
+                        {directoryLoaded
+                          ? 'Choisissez « 1er expert dispo » : votre demande sera traitée dès qu\'un professionnel vérifié sera disponible. KURLA n\'invente pas de profil pour remplir la liste.'
+                          : 'Chargement de l\'annuaire…'}
+                      </div>
+                    </div>
+                  )}
+
+                  {professionals.map((pro) => {
                     const isSelected = selectedProId === pro.id;
                     return (
                       <div
@@ -274,17 +320,15 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                             : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#FFF7EF]/30'
                         }`}
                       >
-                        <img
-                          src={pro.avatar}
-                          alt={pro.name}
-                          className="w-10 h-10 rounded-full object-cover border border-[#C8753D]/50 shrink-0"
-                        />
+                        <div className="w-10 h-10 rounded-full bg-[#C8753D]/20 border border-[#C8753D]/50 shrink-0 flex items-center justify-center text-sm font-bold text-[#D49A63]">
+                          {pro.name.trim().charAt(0).toUpperCase()}
+                        </div>
                         <div className="min-w-0">
-                          <div className="text-xs font-bold text-[#FFF7EF] truncate">{pro.name}</div>
-                          <div className="text-[10px] text-[#D49A63] truncate flex items-center gap-1">
-                            <Star className="w-2.5 h-2.5 fill-current text-amber-400" />
-                            <span>{pro.rating}</span>
+                          <div className="text-xs font-bold text-[#FFF7EF] truncate flex items-center gap-1">
+                            {pro.name}
+                            {pro.verified && <CheckCircle2 className="w-3 h-3 text-[#C8753D] shrink-0" />}
                           </div>
+                          <div className="text-[10px] text-[#D49A63] truncate">{pro.profession}</div>
                         </div>
                       </div>
                     );

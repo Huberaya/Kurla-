@@ -463,6 +463,21 @@ export interface ProfessionalApplication {
   updatedAt: string;
 }
 
+/**
+ * Ce qui est publiable d'un professionnel. Ni email, ni téléphone, ni note
+ * inventée : un annuaire n'affiche que ce qui a été vérifié.
+ */
+export interface PublicProfessionalEntry {
+  id: string;
+  name: string;
+  city: string;
+  profession: string;
+  experience: string;
+  portfolioUrl?: string;
+  verified: boolean;
+  approvedAt: string;
+}
+
 export interface AiAssistantSession {
   id: string;
   userId: string;
@@ -4974,6 +4989,30 @@ class SupabaseServerStore {
       }));
     }
     return [...this.inMemoryProfessionalApplications];
+  }
+
+  /**
+   * Annuaire public des professionnels.
+   *
+   * Deux règles strictes, opposées à ce que faisait `MOCK_PROS` :
+   *  - seuls les profils approuvés par un administrateur apparaissent ;
+   *  - aucune donnée de contact (email, téléphone) n'est exposée publiquement.
+   *
+   * Un annuaire vide est un état normal et honnête : on l'affiche comme tel,
+   * plutôt que de le remplir de personnes qui n'existent pas.
+   */
+  public async getPublicProfessionalDirectory(): Promise<PublicProfessionalEntry[]> {
+    const approved = (await this.getProfessionalApplications()).filter(application => application.status === 'approved');
+    return approved.map(application => ({
+      id: application.id,
+      name: application.name,
+      city: application.city,
+      profession: application.profession,
+      experience: application.experience,
+      portfolioUrl: application.portfolioUrl,
+      verified: true,
+      approvedAt: application.updatedAt
+    }));
   }
 
   public async updateProfessionalApplication(id: string, status: ProfessionalApplicationStatus, adminComment?: string): Promise<ProfessionalApplication | undefined> {

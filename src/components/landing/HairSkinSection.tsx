@@ -18,7 +18,7 @@ export const HairSkinSection: React.FC = () => {
 
   const skinFeatures = [
     { title: 'Peaux Sèches & Déshydratées', desc: 'Baumes riches en acides gras précieux, squalane et céramides apaisantes.' },
-    { title: 'Taches & Hyperpigmentation', desc: 'Sérums éclaircissants ciblés (Niacinamide, Acide Kojique, Vitamine C sans irritation).' },
+    { title: 'Taches & Hyperpigmentation', desc: 'Sérums anti-taches et unifiants ciblés (Niacinamide, Acide Kojique, Vitamine C sans irritation), associés à une protection solaire quotidienne.' },
     { title: 'Peaux Sensibles & Réactives', desc: 'Formules ultra-douces sans parfum synthétique, tolérance optimale mélaninée.' },
     { title: 'Rasage & Poils Incarnés', desc: 'Soin d’avant et d’après rasage, solutions exfoliatrices douces mâchoire & cou.' },
     { title: 'Photoprotection Solaire Invisible', desc: 'Écrans solaires SPF30/50 sans voile blanc ni fini gras sur carnactions sombres.' },
