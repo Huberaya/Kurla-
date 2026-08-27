@@ -558,15 +558,41 @@ du HTML. Corrigé par `safeJsonLd` (`<` échappé en `\u003c`, JSON valide).
 `tests/chantier_7_prerender.test.ts` validé par mutation (amorce supprimée,
 canonique supprimé, titre hostile : tous détectés).
 
+### 7.4 — Fiches ingrédient publiques et pages depuis le graphe 🔶 (volet fiche livré)
+
+Le graphe (chantier 2) était créé mais vide : la fiche publique `/ingredient/:id`
+ne servait rien et le sitemap ne listait aucune entité.
+
+- Migration `20260851000000_seed_knowledge_graph.sql` : 13 ingrédients INCI réels
+  (fonctions, niveau de preuve honnête A/B, `source_kind` consensus/regulatory).
+  **Aucune URL ni référence inventée, aucune statistique fabriquée.** Les
+  restrictions juridictionnelles sont des faits publics (rétinol 0,3 % UE, acide
+  salicylique 2 %, hydroquinone interdite). `ingredient_archetype_outcomes` n'est
+  **pas** seedé : ces mesures doivent venir de retours réels, jamais d'une
+  invention.
+- `scripts/seoEntities.ts` lit les ingrédients vérifiés dans la base (dégradation
+  douce : sans credentials, liste vide, le build ne casse jamais).
+- `generateSitemap` et `prerender` les incluent : sitemap 22 → 35 URLs, une page
+  prérendue par ingrédient. Vérifié en ligne : `/ingredient/glycerin` sert un
+  titre/h1/canonique distincts en HTML brut, fiche publique 200.
+- Bancs : injection d'entités dans le banc SEO ;
+  `tests/chantier_7_ingredients.realdb.test.ts` (branché dans `test:realdb`) exige
+  le jeu seedé depuis la base réelle, SKIP sans credentials.
+
+**Reste dans 7.4** : la matrice « ingrédient × problème × texture × ville »
+(action 37). Volontairement différée : sans données de retours par ville/problème,
+elle produirait des milliers de pages au contenu mince et dupliqué — nuisible au
+référencement et contraire au principe « KURLA ne devine pas ». Elle ne devient
+pertinente que quand `ingredient_archetype_outcomes` aura de vraies mesures.
+
 ### Restant
 
-- [ ] **7.4** Fiches ingrédient publiques et pages générées depuis le graphe :
-      ingrédient × problème × texture × ville (action 37)
 - [ ] **7.5** Internationalisation : framework de traduction, extraction des
       chaînes, `hreflang`
 - [ ] **7.6** Devises et TVA
 - [ ] **7.7** Filtrage réglementaire par juridiction via
-      `ingredient_jurisdiction_restrictions` (table actuellement **vide**)
+      `ingredient_jurisdiction_restrictions` (3 lignes seedées : rétinol, acide
+      salicylique, hydroquinone)
 
 
 ---
