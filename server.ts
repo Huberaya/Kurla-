@@ -4290,10 +4290,6 @@ function assertProductionConfiguration(): void {
   if (!isSupabaseServerConfigured()) {
     missing.push('SUPABASE_URL + SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY)');
   }
-  if (!process.env.STRIPE_SECRET_KEY) missing.push('STRIPE_SECRET_KEY');
-  if (process.env.STRIPE_WEBHOOK_ENABLED !== 'true' || !process.env.STRIPE_WEBHOOK_SECRET) {
-    missing.push('STRIPE_WEBHOOK_ENABLED=true + STRIPE_WEBHOOK_SECRET');
-  }
 
   const appUrl = process.env.VITE_APP_URL;
   try {
@@ -4313,9 +4309,38 @@ function assertProductionConfiguration(): void {
   if (missing.length > 0) {
     throw new Error(
       `[KURLA Startup] Configuration production incomplète. Variables requises : ${missing.join(', ')}. ` +
-      'Le serveur ne démarre pas en production avec un stockage, un paiement, un webhook ou un fournisseur email non configuré.'
+      'Le serveur ne démarre pas en production sans stockage ni fournisseur email configuré.'
     );
   }
+
+  // Stripe n'est pas une exigence de démarrage : sans clé, le catalogue, les
+  // comptes, les avis, l'archétype et les réservations restent fonctionnels, et
+  // chaque route de paiement répond déjà 503 explicitement (elle ne simule
+  // jamais un succès). Bloquer tout le serveur ici rendrait l'application
+  // entière indisponible pour une capacité que l'on peut activer plus tard.
+  warnIfPaymentUnavailable();
+}
+
+/** Capacité de paiement réellement utilisable : clé présente ET webhook
+ *  cohérent. Exposé pour que l'état soit lisible sans deviner. */
+export function isPaymentConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+export function isPaymentWebhookConfigured(): boolean {
+  return process.env.STRIPE_WEBHOOK_ENABLED === 'true' && Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+}
+
+function warnIfPaymentUnavailable(): void {
+  const pending: string[] = [];
+  if (!isPaymentConfigured()) pending.push('STRIPE_SECRET_KEY');
+  if (!isPaymentWebhookConfigured()) pending.push('STRIPE_WEBHOOK_ENABLED=true + STRIPE_WEBHOOK_SECRET');
+  if (pending.length === 0) return;
+  console.warn(
+    `[KURLA Startup] Paiement indisponible : ${pending.join(', ')} non configuré. ` +
+    'Le serveur démarre quand même ; les routes de paiement répondront 503 et aucun ' +
+    'paiement ne sera simulé comme réussi.'
+  );
 }
 
 async function startServer() {
