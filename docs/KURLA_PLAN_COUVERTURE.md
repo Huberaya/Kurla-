@@ -41,7 +41,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 1 | Disclosure IA art. 50(1) | ✅ LIVRÉ | Bandeau UI, marquage réponse, `GET /api/ai/disclosure` vérifié en HTTP réel |
 | 2 | Retirer `MOCK_PROS` + UGC fictif | ✅ LIVRÉ | `ProfessionalsPage` corrigé. **14 fichiers importent encore `mockData`** : 9 composants (dont `UgcWallSection`, `KurlaProSection`, `TextureGallerySection`, `ConsultationBookingModal`) + 5 pages (dont `ProProfilePage`, `ProtectiveStylesPage`) |
 | 3 | Corriger les 2 contradictions de marque | ✅ LIVRÉ | Bicarbonate retiré, « éclaircissants » → « anti-taches » |
-| 4 | 17 tests Phase 2 sur vraie instance | ⬜ **BLOQUÉ** | `Supabase Configured=false`. `supabase_integration.test.ts` sort en early-return. Impossible sans instance réelle |
+| 4 | 17 tests Phase 2 sur vraie instance | ✅ **LIVRÉ** | `npm run test:integration` PASS contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1). A nécessité 4 correctifs de schéma — voir `KURLA_CHANTIERS.md` |
 | 5 | Table `ingredients` + `product_ingredients` | ✅ LIVRÉ | Migration `20260845`, module `ingredientGraph.ts`, testé |
 | 6 | Normaliser les vocabulaires | ✅ LIVRÉ | Tables `kurla_taxonomies` (l.126) et `kurla_taxonomy_terms` (l.133) créées, **mais 0 `INSERT`** dans toute la migration, et **aucune migration des colonnes `TEXT[]` existantes** |
 | 7 | Brancher `routine_feedback` sur le moteur | ✅ LIVRÉ | `outcome_observations` → `getOutcomes()` → `buildRecommendations`. Testé avec preuve citable (`obs-1`/`obs-2`) |
@@ -59,7 +59,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 19 | Réassort prédictif | ✅ LIVRÉ | `evaluateReplenishment` testé, zéro appel, aucune notification branchée |
 | 20 | Trust Score pros + co-signature | 🔶 **PARTIEL** *(Trust Score livré, co-signature toujours sans appel)* | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé mais **toujours zéro appel** côté UI |
 
-**Bilan après chantier B : 16 livrées (1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19) · 2 partielles (18, 20) · 1 à faire (8) · 1 bloqué (4). Total 20.**
+**Bilan après application des migrations : 17 livrées (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19) · 2 partielles (18, 20) · 1 à faire (8). Total 20.**
 
 Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20 passe de « Trust Score : rien » à « Trust Score livré et affiché », et l'action 18 recule en valeur relative puisque `server.ts` a grossi de 712 lignes pendant que deux stores étaient extraits.
 

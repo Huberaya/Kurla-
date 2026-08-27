@@ -234,10 +234,12 @@ Le test vérifie le **branchement**, pas la logique pure (déjà testée ailleur
 
 ### Passifs ouverts, déclarés
 
-- **0/17 vérifications RLS** — aucune instance Supabase réelle ici.
+- ~~**0/17 vérifications RLS** — aucune instance Supabase réelle ici.~~
+  **LEVÉ** : `npm run test:integration` passe contre l'instance réelle (projet `qzwgsarfdegqtfdnqiql`, eu-west-1).
 - **Aucune vérification visuelle/navigateur** des deux nouveaux écrans : vérifiés par compilation, tests de câblage et HTTP 200, pas par rendu.
 - **`GET /api/*` sur route inconnue renvoie encore du HTML 200** — vérifié ce jour (`content-type: text/html`). Catch-all SPA, pas une faille d'autorisation. Corrigé en chantier G.
-- **La migration `20260847` n'a pas été exécutée** contre une base réelle : écrite et relue, pas appliquée.
+- ~~**La migration `20260847` n'a pas été exécutée** contre une base réelle.~~
+  **LEVÉ** : appliquée, enregistrée dans `supabase_migrations.schema_migrations`.
 
 ---
 
@@ -330,9 +332,11 @@ prestations distinctes séparées.
 
 ### Passifs ouverts, déclarés
 
-- **La migration `20260848` n'a pas été exécutée** contre une base réelle : écrite et relue, pas
-      appliquée. Aucune des 6 tables n'existe encore.
-- **0/17 vérifications RLS** toujours, pour la même raison.
+- ~~**La migration `20260848` n'a pas été exécutée** contre une base réelle.~~
+      **LEVÉ** : les 6 tables existent, la vue `professional_dossier_access` est en
+      `security_invoker=true`.
+- ~~**0/17 vérifications RLS** toujours.~~ **LEVÉ** : `test:integration` PASS contre l'instance
+      réelle — comptes A/B isolés, ressources privées protégées, rôle admin vérifié.
 - **Aucune vérification visuelle/navigateur** des trois nouveaux écrans : vérifiés par compilation,
       test unitaire et HTTP, pas par rendu.
 
@@ -389,6 +393,6 @@ prestations distinctes séparées.
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
 | `npm test` (suite complète) | exit 0 |
-| Vérifications Phase 2 (RLS réelle) | **0/17 exécutées** — aucune instance Supabase réelle dans cet environnement |
+| Vérifications Phase 2 (RLS réelle) | **PASS** contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
 
 Le dernier point est le seul passif ouvert. Il ne peut pas être levé ici : il exige une instance Supabase réelle.
