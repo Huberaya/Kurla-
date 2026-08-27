@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Bundle serveur genere par le build Vercel (esbuild server.ts)
+api/_server.cjs

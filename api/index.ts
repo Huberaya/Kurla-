@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 /**
@@ -8,6 +9,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  * l'hébergeur pour chaque appel `/api/*`, et l'application affiche un
  * « NOT_FOUND » d'infrastructure au lieu d'une erreur métier.
  *
+ * Pourquoi un bundle précompilé plutôt qu'un `import '../server'` :
+ * `package.json` déclare `"type": "module"` et `tsconfig.json` `module: ESNext`.
+ * Le chargeur ESM de Node exige alors l'extension dans chaque spécificateur
+ * relatif, alors que tout `src/**` importe sans extension (`./src/lib/serverDb`).
+ * Compiler tel quel produit une cascade de `Cannot find module`. Le serveur est
+ * donc bundlé par esbuild en `api/_server.cjs` pendant le build Vercel
+ * (`--packages=external` : les dépendances restent résolues depuis
+ * `node_modules`), ce qui supprime tout import relatif à l'exécution.
+ *
  * Deux points non négociables :
  *
  * 1. Le chemin conserve son préfixe `/api`. Selon la forme de la réécriture
@@ -17,52 +27,58 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  *    lieu de dépendre d'une sémantique de plateforme.
  *
  * 2. Le démarrage est attendu avant de servir. `startServer()` n'est jamais
- *    appelé ici : c'est la plateforme qui possède le listener. `prepareServerlessRuntime()`
- *    rejoue l'assertion de configuration production puis l'initialisation du
- *    store, exactement comme le fait le processus persistant.
+ *    appelé ici : c'est la plateforme qui possède le listener.
+ *    `prepareServerlessRuntime()` rejoue l'assertion de configuration production
+ *    puis l'initialisation du store, exactement comme le fait le processus
+ *    persistant.
+ *
+ * Aucune erreur n'est laissée opaque : un échec de chargement ou de démarrage
+ * est répondu en JSON avec le message réel, parce que les journaux d'exécution
+ * ne sont pas toujours accessibles et qu'une 500 de plateforme ne dit rien.
  */
 
-// Le module serveur est charge a la premiere invocation et non a l'import : un
-// echec de chargement (module introuvable dans le bundle, dependance native
-// absente) doit pouvoir etre repondu en JSON plutot que de produire une 500
-// opaque de plateforme sans aucun message exploitable.
-// L'extension `.js` est obligatoire. `tsconfig.json` declare `module: ESNext`,
-// donc TypeScript emet de l'ESM et conserve les specificateurs tels quels : un
-// `import('../server')` sans extension devient introuvable pour le chargeur ESM
-// de Node une fois compile (`Cannot find module '/var/task/server' imported
-// from /var/task/api/index.js`). TypeScript resout `../server.js` sur
-// `../server.ts` a la compilation, et l'extension subsiste a l'execution.
-let serverModule: Promise<typeof import('../server.js')> | null = null;
-function loadServer(): Promise<typeof import('../server.js')> {
-  serverModule = serverModule || import('../server.js');
-  return serverModule;
+interface ServerBundle {
+  app: (req: never, res: never) => void;
+  prepareServerlessRuntime: () => Promise<{ ready: boolean; error: string | null }>;
 }
 
-let startup: Promise<{ ready: boolean; error: string | null }> | null = null;
-
-function withApiPrefix(url: string): string {
-  if (url === '/api' || url.startsWith('/api/') || url.startsWith('/api?')) return url;
-  return `/api${url.startsWith('/') ? '' : '/'}${url}`;
-}
-
-/** Forme plate : sans `strictNullChecks`, une union discriminée ne se réduit
- *  pas de façon fiable à la compilation. */
+/** Forme plate : sans `strictNullChecks`, une union discriminée ne se réduit pas
+ *  de façon fiable à la compilation. */
 interface StartupOutcome {
   ready: boolean;
   error: string | null;
   crashed: boolean;
 }
 
+// `_server.cjs` est du CommonJS dans un paquet `"type": "module"` : il faut un
+// `require`, et celui d'ESM se construit depuis l'URL du module courant.
+const requireCjs = createRequire(import.meta.url);
+
+let serverModule: ServerBundle | null = null;
+let loadFailure: string | null = null;
+
+function loadServer(): ServerBundle | null {
+  if (serverModule) return serverModule;
+  if (loadFailure) return null;
+  try {
+    serverModule = requireCjs('./_server.cjs') as ServerBundle;
+    return serverModule;
+  } catch (error) {
+    loadFailure = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    return null;
+  }
+}
+
+let startup: Promise<{ ready: boolean; error: string | null }> | null = null;
+
 /**
  * `prepareServerlessRuntime()` est contractuellement censée retourner l'échec
- * comme donnée. Si elle lève malgré tout, l'invocation ne doit pas pour autant
- * se terminer en 500 opaque : on répond en JSON avec le message réel.
+ * comme donnée. Si elle lève malgré tout, l'invocation ne doit pas se terminer
+ * en 500 opaque : on répond en JSON avec le message réel.
  */
-async function runStartup(
-  prepare: () => Promise<{ ready: boolean; error: string | null }>
-): Promise<StartupOutcome> {
+async function runStartup(server: ServerBundle): Promise<StartupOutcome> {
   try {
-    startup = startup || prepare();
+    startup = startup || server.prepareServerlessRuntime();
     const value = await startup;
     return { ready: value.ready, error: value.error, crashed: false };
   } catch (error) {
@@ -81,24 +97,25 @@ function answerJson(res: ServerResponse, status: number, payload: unknown): void
   res.end(JSON.stringify(payload));
 }
 
+function withApiPrefix(url: string): string {
+  if (url === '/api' || url.startsWith('/api/') || url.startsWith('/api?')) return url;
+  return `/api${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   req.url = withApiPrefix(req.url || '/');
 
-  let app: (req: never, res: never) => void;
-  let prepareServerlessRuntime: () => Promise<{ ready: boolean; error: string | null }>;
-  try {
-    ({ app, prepareServerlessRuntime } = await loadServer());
-  } catch (error) {
+  const server = loadServer();
+  if (!server) {
     answerJson(res, 500, {
       error: 'Le serveur KURLA n’a pas pu être chargé.',
-      detail: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      detail: loadFailure,
+      hint: 'Le bundle api/_server.cjs doit être produit par le build (esbuild server.ts --bundle --outfile=api/_server.cjs).',
     });
     return;
   }
 
-  // Memoized: one platform container performs the startup sequence once and
-  // every warm invocation reuses the result.
-  const { ready, error, crashed } = await runStartup(prepareServerlessRuntime);
+  const { ready, error, crashed } = await runStartup(server);
 
   if (crashed) {
     answerJson(res, 500, {
@@ -117,6 +134,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  // Express accepts the platform request/response pair directly.
-  app(req as never, res as never);
+  // Express accepte directement la paire requête/réponse de la plateforme.
+  server.app(req as never, res as never);
 }
