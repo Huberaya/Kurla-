@@ -27,6 +27,17 @@ function valueOrMissing(value?: string | null): string {
   return value?.trim() ? value : missing;
 }
 
+function ageBandLabel(value?: Product['recommendedAgeBand']): string {
+  switch (value) {
+    case 'baby': return 'Bébé';
+    case 'child': return 'Enfant';
+    case 'teen': return 'Adolescent';
+    case 'adult': return 'Adulte';
+    case 'all_ages': return 'Tous âges';
+    default: return missing;
+  }
+}
+
 function imageTrustLabel(value?: NonNullable<Product['galleryImages']>[number]['imageTrust']): string {
   switch (value) {
     case 'brand_provided': return 'Image fournie par la marque';
@@ -185,6 +196,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               <InfoCard title="Texture, parfum & usage" icon={<RefreshCw className="w-4 h-4 text-[#D49A63]" />}><p>Texture : {valueOrMissing(product.texture)}</p><p>Parfum : {valueOrMissing(product.fragrance)}</p><p>Fréquence : {valueOrMissing(product.usageFrequency)}</p><p>Mode d’emploi : {valueOrMissing(product.howToUse)}</p></InfoCard>
               <InfoCard title="Format & rendement" icon={<PackageCheck className="w-4 h-4 text-[#D49A63]" />}><p>Format : {valueOrMissing(product.sizeLabel)}</p><p>Rendement estimé : {valueOrMissing(product.estimatedYield)}</p></InfoCard>
             </div>
+
+            <section className="rounded-2xl border border-[#D49A63]/30 bg-[#D49A63]/10 p-4 text-xs text-[#FFF7EF]/80">
+              <h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Public concerné & précautions</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <p><strong className="text-[#FFF7EF]">Âge recommandé</strong><br />{product.recommendedAgeBand && product.recommendedAgeBand !== 'not_provided' ? `${ageBandLabel(product.recommendedAgeBand)}${product.recommendedAgeMin !== undefined ? ` · dès ${product.recommendedAgeMin} ans` : ''}${product.recommendedAgeMax !== undefined ? ` · jusqu’à ${product.recommendedAgeMax} ans` : ''}` : missing}</p>
+                <p><strong className="text-[#FFF7EF]">Sécurité mineur</strong><br />{product.minorSafetyStatus === 'verified' ? 'Vérifiée' : product.minorSafetyStatus === 'pending' ? 'En cours de vérification' : 'Non renseignée'}</p>
+                <p><strong className="text-[#FFF7EF]">Actifs réservés aux adultes</strong><br />{product.adultOnlyActives?.length ? `Présents : ${product.adultOnlyActives.join(' · ')}` : 'Non signalés dans la fiche'}</p>
+                <p><strong className="text-[#FFF7EF]">Supervision parentale</strong><br />{product.parentalSupervisionRequired ? 'Requise' : 'Non indiquée'}</p>
+                <p><strong className="text-[#FFF7EF]">Visuel pour mineur</strong><br />{product.imageSupervisionStatus === 'verified' ? 'Validé' : product.imageSupervisionStatus === 'pending' ? 'À valider' : 'Non renseigné'}</p>
+              </div>
+              {product.audienceTags?.length ? <p className="mt-3 text-[#FFF7EF]/60">Publics documentés : {product.audienceTags.join(' · ')}</p> : null}
+            </section>
           </div>
         </div>
 

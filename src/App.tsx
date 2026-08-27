@@ -57,6 +57,7 @@ import { MenGroomingPage } from './pages/MenGroomingPage';
 import { ToolsPage } from './pages/ToolsPage';
 import { IngredientsGuidePage } from './pages/IngredientsGuidePage';
 import { CommunityPage } from './pages/CommunityPage';
+import { FamilySpacePage } from './pages/FamilySpacePage';
 import { LegalPage } from './pages/LegalPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
@@ -212,6 +213,7 @@ function AppContent() {
     if (pathname === '/account/routine-tracker') return <ProtectedRoute><RoutineTrackerPage /></ProtectedRoute>;
     if (pathname === '/account/progress') return <ProtectedRoute><ProgressJournalPage /></ProtectedRoute>;
     if (pathname === '/account/saved') return <ProtectedRoute><SavedPage /></ProtectedRoute>;
+    if (pathname === '/famille') return <ProtectedRoute requiredRoleLabel="membre de KURLA"><FamilySpacePage /></ProtectedRoute>;
     if (pathname === '/account') return <ProtectedRoute><CustomerAccountPage /></ProtectedRoute>;
 
     // Specialized Category Modules

@@ -11,13 +11,13 @@ export const KidsModulePage: React.FC = () => {
         <div className="rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] p-8 sm:p-12 mb-12 flex flex-col md:flex-row items-center gap-8 shadow-sm">
           <div className="flex-1 space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-semibold">
-              <Heart className="w-4 h-4" /> KURLA Kids • Soins Cheveux Enfants
+              <Heart className="w-4 h-4" /> KURLA Kids • Bébés, enfants et adolescents
             </div>
             <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111]">
-              Comprendre & Soigner les Cheveux de Son Enfant Sans Douleur
+              Des soins doux, adaptés à chaque âge, avec les parents aux commandes
             </h1>
             <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
-              Un espace bienveillant et déculpabilisant dédié aux parents : routines en 20 minutes, démêlage magique sans larmes et coiffures protectrices respectueuses du cuir chevelu des tout-petits.
+              Un espace pour les parents : repères par tranche d’âge, routines courtes, démêlage respectueux et conseils pour les bébés, enfants et adolescents. Les recommandations restent cosmétiques et ne remplacent pas l’avis d’un professionnel de santé.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <a
@@ -32,6 +32,7 @@ export const KidsModulePage: React.FC = () => {
               >
                 <BookOpen className="w-4 h-4 text-[#C8753D]" /> Poser une question à l'IA Kids
               </a>
+              <a href="/famille" className="px-6 py-3.5 rounded-full border border-[#C8753D]/40 text-[#C8753D] text-xs font-semibold flex items-center gap-2"><Heart className="w-4 h-4" /> Créer un espace famille</a>
             </div>
           </div>
 
@@ -48,10 +49,10 @@ export const KidsModulePage: React.FC = () => {
               <Clock className="w-5 h-5" />
             </div>
             <h3 className="text-base font-serif-title font-bold text-[#111111] mb-2">
-              Routine Express 20 Min
+              Routines adaptées à l’âge
             </h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Pas besoin d'y passer l'après-midi. Séparer en 4 grosses vanilles, vaporiser la brume magique, appliquer le baume fondant et démêler doucement de bas en haut.
+              Bébé, enfant ou adolescent : le temps, la fréquence et les accessoires se choisissent selon la tranche d’âge, la texture et le confort observé. Rien n’est présenté comme universel.
             </p>
           </div>
 
@@ -60,10 +61,10 @@ export const KidsModulePage: React.FC = () => {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <h3 className="text-base font-serif-title font-bold text-[#111111] mb-2">
-              Formules Hypoallergéniques
+              Produits doux, vérifiés séparément
             </h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Sans huiles essentielles irritantes, sans phtalates ni sulfates agressifs. Conçues pour le cuir chevelu sensible des enfants à partir de 3 ans.
+              KURLA n’invente aucune certification ni promesse de tolérance. L’âge recommandé, les actifs réservés aux adultes, les précautions et la supervision parentale doivent être renseignés dans la fiche produit.
             </p>
           </div>
 
@@ -72,10 +73,10 @@ export const KidsModulePage: React.FC = () => {
               <Heart className="w-5 h-5" />
             </div>
             <h3 className="text-base font-serif-title font-bold text-[#111111] mb-2">
-              Démêlage Sans Larmes
+              Accessoires et gestes respectueux
             </h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Utiliser exclusivement la brosse flex ergonomique sur cheveux gorgés de baume. Jamais de peigne fin sur cheveux secs.
+              Brosse, bonnet satin et accessoires sont proposés seulement quand leur public et leur usage sont documentés. En cas de douleur, on arrête et on adapte le geste.
             </p>
           </div>
 
@@ -93,7 +94,7 @@ export const KidsModulePage: React.FC = () => {
                 Mon enfant pleure dès que je sors la brosse, que faire ?
               </span>
               <p className="text-[#111111]/70 font-light leading-relaxed">
-                Ne jamais démêler à sec. Transforme le moment en rituels : lecture d'un conte, miroir personnel, ou vaporisateur rigolo. Laisse-le participer en tenant sa brosse.
+                Arrêter si le geste fait mal, puis reprendre avec une section plus petite et un produit dont l’âge recommandé est clairement renseigné. Un inconfort ou une douleur persistante mérite un avis professionnel.
               </p>
             </div>
 
@@ -102,10 +103,16 @@ export const KidsModulePage: React.FC = () => {
                 À quelle fréquence laver ses cheveux ?
               </span>
               <p className="text-[#111111]/70 font-light leading-relaxed">
-                Tous les 7 à 10 jours avec un shampooing doux spécial enfants. En milieu de semaine, une simple ré-humidification au vaporisateur suffit.
+                Il n’existe pas une fréquence valable pour tous. Elle dépend de l’âge, de l’activité, de la coiffure et du confort du cuir chevelu. La fiche du produit doit rester la référence d’usage.
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 mb-12">
+          <div className="p-5 rounded-2xl bg-white border border-[#E8E1DA] text-xs"><strong className="block mb-2">Bébés</strong><p className="text-[#111111]/65">Priorité à la douceur, à la supervision et à la vérification de l’âge recommandé. Aucun actif adulte par défaut.</p></div>
+          <div className="p-5 rounded-2xl bg-white border border-[#E8E1DA] text-xs"><strong className="block mb-2">Enfants</strong><p className="text-[#111111]/65">Routines simples, accessoires adaptés et temps de soin réaliste, sans photo ni donnée d’enfant nécessaire.</p></div>
+          <div className="p-5 rounded-2xl bg-white border border-[#E8E1DA] text-xs"><strong className="block mb-2">Adolescents</strong><p className="text-[#111111]/65">Plus d’autonomie, mais toujours un profil séparé et des produits dont la sécurité mineur est documentée.</p></div>
         </div>
 
         {/* Warning Banner */}
@@ -114,7 +121,7 @@ export const KidsModulePage: React.FC = () => {
           <div>
             <span className="font-bold block mb-0.5">Note de Sécurité Enfants :</span>
             <p className="font-light leading-relaxed">
-              Éviter les tresses très serrées ou rajouts artificiels lourds chez les jeunes enfants pour préserver leurs follicules pileux en pleine croissance.
+              L’âge recommandé, la présence éventuelle d’actifs réservés aux adultes et la nécessité d’une supervision doivent être vérifiés pour chaque produit. Les images d’enfants sont publiées uniquement après contrôle éditorial ; KURLA ne demande pas de photo pour utiliser cet espace.
             </p>
           </div>
         </div>

@@ -54,6 +54,7 @@ export const Footer: React.FC = () => {
               <h4 className="font-semibold text-[#FFF7EF] uppercase tracking-wider mb-4">Espaces & Légal</h4>
               <ul className="space-y-2.5">
                 <li><a href="/account" className="hover:text-[#C8753D] transition-colors">Espace Client</a></li>
+                <li><a href="/famille" className="hover:text-[#C8753D] transition-colors">Espace Famille</a></li>
                 <li><a href="/pro/dashboard" className="hover:text-[#C8753D] transition-colors">Espace Pro</a></li>
                 <li><a href="/cgv" className="hover:text-[#C8753D] transition-colors">CGV & Mentions</a></li>
                 <li><a href="/confidentialite" className="hover:text-[#C8753D] transition-colors">Confidentialité</a></li>

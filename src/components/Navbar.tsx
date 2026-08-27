@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, User, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen } from 'lucide-react';
+import { Search, ShoppingBag, User, Users, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 
@@ -44,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Protective Styles', href: '/protective-styles' },
     { label: 'Peaux Mélaninées', href: '/melanin-skin' },
     { label: 'Hommes Grooming', href: '/hommes' },
+    { label: 'Famille', href: '/famille' },
   ];
 
   return (
@@ -149,6 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => setUserDropdownOpen(false)}
                   >
                     <User className="w-3.5 h-3.5 text-[#C8753D]" /> Mon Compte & Routines
+                  </a>
+                  <a
+                    href="/famille"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-[#FFF7EF]/10 transition-colors"
+                    onClick={() => setUserDropdownOpen(false)}
+                  >
+                    <Users className="w-3.5 h-3.5 text-[#D49A63]" /> Espace Famille
                   </a>
                   <a
                     href="/account/kurla-id"

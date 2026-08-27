@@ -144,6 +144,14 @@ export interface Product {
   disclaimer?: string;
   needs?: string[]; // E.g., ['hydrater_cheveux', 'reduire_casse', 'taches_hyperpigmentation']
   countryAvailability?: string[]; // E.g., ['FR', 'BE', 'DOM', 'AFR', 'INT']
+  audienceTags?: string[];
+  recommendedAgeBand?: 'baby' | 'child' | 'teen' | 'adult' | 'all_ages' | 'not_provided';
+  recommendedAgeMin?: number;
+  recommendedAgeMax?: number;
+  minorSafetyStatus?: 'verified' | 'pending' | 'not_provided';
+  adultOnlyActives?: string[];
+  parentalSupervisionRequired?: boolean;
+  imageSupervisionStatus?: 'verified' | 'pending' | 'not_provided';
   communityBrand?: boolean; // Marque de la communauté afro-descendante
   isNew?: boolean;
   isPromo?: boolean;

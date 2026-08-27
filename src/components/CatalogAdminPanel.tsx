@@ -48,6 +48,13 @@ type ProductDraft = {
   certifications: string;
   catalogCategoryTags: string[];
   targetAudiences: string[];
+  recommendedAgeBand: string;
+  recommendedAgeMin: string;
+  recommendedAgeMax: string;
+  minorSafetyStatus: 'verified' | 'pending' | 'not_provided';
+  adultOnlyActives: string;
+  parentalSupervisionRequired: boolean;
+  imageSupervisionStatus: 'verified' | 'pending' | 'not_provided';
   sourceSupplier: string;
   supplierSku: string;
   variants: VariantDraft[];
@@ -58,7 +65,7 @@ const emptyDraft = (): ProductDraft => ({
   name: '', slug: '', brand: '', category: 'cheveux', subCategory: '', price: '', originalPrice: '', promotionPrice: '',
   promotionStartsAt: '', promotionEndsAt: '', isPromo: false, vatRate: '20', priceIncludesVat: true, stockQuantity: '0',
   isActive: false, countryAvailability: 'FR', description: '', image: '', imageOwnershipStatus: 'unverified', images: '', ingredients: '', inci: '', warnings: '',
-  certifications: '[]', catalogCategoryTags: [], targetAudiences: [], sourceSupplier: '', supplierSku: '', variants: []
+  certifications: '[]', catalogCategoryTags: [], targetAudiences: [], recommendedAgeBand: 'not_provided', recommendedAgeMin: '', recommendedAgeMax: '', minorSafetyStatus: 'not_provided', adultOnlyActives: '', parentalSupervisionRequired: false, imageSupervisionStatus: 'not_provided', sourceSupplier: '', supplierSku: '', variants: []
 });
 
 function inputClass(): string {
@@ -98,8 +105,15 @@ function draftFromProduct(product: any): ProductDraft {
     imageOwnershipStatus: product.imageOwnershipStatus || product.image_ownership_status || 'unverified',
     images: (product.galleryImages || []).map((image: any) => image.url).filter(Boolean).join('\n'), ingredients: (product.ingredients || []).join(' | '),
     inci: product.inci || '', warnings: (product.warnings || []).join(' | '), certifications: JSON.stringify(product.certifications || [], null, 2),
-    catalogCategoryTags: product.catalogCategoryTags || [], targetAudiences: product.targetAudiences || [], sourceSupplier: product.sourceSupplier || '',
-    supplierSku: product.supplierSku || '', variants: (product.variants || []).map(variantFromApi)
+    catalogCategoryTags: product.catalogCategoryTags || [], targetAudiences: product.targetAudiences || [],
+    recommendedAgeBand: product.recommendedAgeBand || product.recommended_age_band || 'not_provided',
+    recommendedAgeMin: String(product.recommendedAgeMin ?? product.recommended_age_min ?? ''),
+    recommendedAgeMax: String(product.recommendedAgeMax ?? product.recommended_age_max ?? ''),
+    minorSafetyStatus: product.minorSafetyStatus || product.minor_safety_status || 'not_provided',
+    adultOnlyActives: (product.adultOnlyActives || product.adult_only_actives || []).join(' | '),
+    parentalSupervisionRequired: product.parentalSupervisionRequired === true || product.parental_supervision_required === true,
+    imageSupervisionStatus: product.imageSupervisionStatus || product.image_supervision_status || 'not_provided',
+    sourceSupplier: product.sourceSupplier || '', supplierSku: product.supplierSku || '', variants: (product.variants || []).map(variantFromApi)
   };
 }
 
@@ -169,7 +183,15 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
       vatRate: draft.vatRate, priceIncludesVat: draft.priceIncludesVat, stockQuantity: draft.stockQuantity, isActive: draft.isActive,
       countryAvailability: splitLines(draft.countryAvailability).map(country => country.toUpperCase()), description: draft.description, image: draft.image, imageOwnershipStatus: draft.imageOwnershipStatus,
       images: splitLines(draft.images).map(url => ({ url, ownershipStatus: draft.imageOwnershipStatus, validationStatus: 'pending' })), ingredients: splitLines(draft.ingredients), inci: draft.inci, warnings: splitLines(draft.warnings), certifications,
-      catalogCategoryTags: draft.catalogCategoryTags, targetAudiences: draft.targetAudiences, sourceSupplier: draft.sourceSupplier, supplierSku: draft.supplierSku,
+      catalogCategoryTags: draft.catalogCategoryTags, targetAudiences: draft.targetAudiences,
+      recommendedAgeBand: draft.recommendedAgeBand,
+      recommendedAgeMin: draft.recommendedAgeMin || undefined,
+      recommendedAgeMax: draft.recommendedAgeMax || undefined,
+      minorSafetyStatus: draft.minorSafetyStatus,
+      adultOnlyActives: splitLines(draft.adultOnlyActives),
+      parentalSupervisionRequired: draft.parentalSupervisionRequired,
+      imageSupervisionStatus: draft.imageSupervisionStatus,
+      sourceSupplier: draft.sourceSupplier, supplierSku: draft.supplierSku,
       variants: draft.variants.map(variant => ({ id: variant.id, name: variant.name, price: variant.price || draft.price, stockQuantity: variant.stockQuantity, sku: variant.sku,
         optionType: variant.size ? 'size' : variant.format ? 'format' : variant.shade ? 'shade' : variant.scent ? 'scent' : undefined,
         optionValue: variant.size || variant.format || variant.shade || variant.scent || undefined, formatLabel: variant.format, color: variant.color, shade: variant.shade,
@@ -277,6 +299,8 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
 
           <div className="space-y-2"><span className={labelClass()}>Catégories administrées</span><div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-3 rounded-xl bg-[#050403]">{categories.map(category => <label key={category.slug} className="text-[11px] flex items-center gap-2"><input type="checkbox" checked={draft.catalogCategoryTags.includes(category.slug)} onChange={() => toggleValue('catalogCategoryTags', category.slug)} />{category.label}</label>)}</div></div>
           <div className="space-y-2"><span className={labelClass()}>Publics</span><div className="flex flex-wrap gap-2 p-3 rounded-xl bg-[#050403]">{audiences.map(audience => <label key={audience.slug} className="text-[11px] flex items-center gap-2"><input type="checkbox" checked={draft.targetAudiences.includes(audience.slug)} onChange={() => toggleValue('targetAudiences', audience.slug)} />{audience.label}</label>)}</div></div>
+
+          <div className="p-4 rounded-2xl bg-[#050403] border border-[#C8753D]/25 space-y-3"><div><p className={labelClass()}>Sécurité enfants et adolescents</p><p className="text-[11px] text-[#FFF7EF]/50 mt-1">Aucun produit n’est proposé à un mineur sans âge recommandé, vérification de sécurité et visuel validé.</p></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><select value={draft.recommendedAgeBand} onChange={e => setField('recommendedAgeBand', e.target.value)} className={inputClass()}><option value="not_provided">Âge recommandé non renseigné</option><option value="baby">Bébé</option><option value="child">Enfant</option><option value="teen">Adolescent</option><option value="adult">Adulte</option><option value="all_ages">Tous âges</option></select><input type="number" min="0" placeholder="Âge min." value={draft.recommendedAgeMin} onChange={e => setField('recommendedAgeMin', e.target.value)} className={inputClass()} /><input type="number" min="0" placeholder="Âge max." value={draft.recommendedAgeMax} onChange={e => setField('recommendedAgeMax', e.target.value)} className={inputClass()} /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><select value={draft.minorSafetyStatus} onChange={e => setField('minorSafetyStatus', e.target.value)} className={inputClass()}><option value="not_provided">Sécurité mineur non renseignée</option><option value="pending">Sécurité mineur à vérifier</option><option value="verified">Sécurité mineur vérifiée</option></select><select value={draft.imageSupervisionStatus} onChange={e => setField('imageSupervisionStatus', e.target.value)} className={inputClass()}><option value="not_provided">Images non supervisées</option><option value="pending">Images à superviser</option><option value="verified">Images supervisées</option></select></div><textarea rows={2} value={draft.adultOnlyActives} onChange={e => setField('adultOnlyActives', e.target.value)} className={inputClass()} placeholder="Actifs réservés aux adultes, si la source en mentionne (séparer par |)" /><label className="flex items-center gap-2 text-[11px] text-[#FFF7EF]/75"><input type="checkbox" checked={draft.parentalSupervisionRequired} onChange={e => setField('parentalSupervisionRequired', e.target.checked)} /> Supervision parentale nécessaire à l’utilisation</label></div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><label className="space-y-1"><span className={labelClass()}>Composition / ingrédients</span><textarea rows={3} value={draft.ingredients} onChange={e => setField('ingredients', e.target.value)} className={inputClass()} placeholder="Séparer par |" /></label><label className="space-y-1"><span className={labelClass()}>INCI</span><textarea rows={3} value={draft.inci} onChange={e => setField('inci', e.target.value)} className={inputClass()} /></label><label className="space-y-1"><span className={labelClass()}>Avertissements</span><textarea rows={3} value={draft.warnings} onChange={e => setField('warnings', e.target.value)} className={inputClass()} placeholder="Uniquement ceux fournis par la source" /></label><label className="space-y-1"><span className={labelClass()}>Certifications (JSON)</span><textarea rows={3} value={draft.certifications} onChange={e => setField('certifications', e.target.value)} className={inputClass()} placeholder='[] si non renseigné' /></label></div>
           <label className="space-y-1 block"><span className={labelClass()}>Description</span><textarea rows={3} value={draft.description} onChange={e => setField('description', e.target.value)} className={inputClass()} /></label>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, UserCheck, Baby, ShieldAlert, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, UserCheck, Baby, ShieldAlert, Sparkles, Check, Users } from 'lucide-react';
 import { MEN_GROOMING_IMAGE, KIDS_CARE_IMAGE } from '../../data/mockData';
 import { Reveal } from '../motion/Reveal';
 
@@ -48,12 +48,12 @@ export const KidsMenSection: React.FC = () => {
                 {/* Feature Bullet Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {[
-                    "Baumes apaisants rasage",
-                    "Huiles de pousse barbe",
-                    "Anti-poils incarnés mâchoire",
-                    "Soins waves & cuirs chevelus",
-                    "Shampooings barbe purifiants",
-                    "SPF30+ invisible effet mat"
+                    "Barbe & moustache",
+                    "Rasage et poils incarnés",
+                    "Waves, locks & cheveux courts",
+                    "Peau et cuir chevelu",
+                    "Cheveux crépus & entretien",
+                    "Protection solaire à vérifier"
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs font-medium text-[#111111]">
                       <span className="w-4 h-4 rounded-full bg-[#C8753D]/20 text-[#C8753D] flex items-center justify-center shrink-0">
@@ -93,7 +93,7 @@ export const KidsMenSection: React.FC = () => {
                 {/* Header Badge */}
                 <div className="flex items-center justify-between mb-6">
                   <span className="px-3.5 py-1.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-                    <Baby className="w-4 h-4 text-white" /> Espace KURLA Kids (Dès 3 ans)
+                    <Baby className="w-4 h-4 text-white" /> Espace KURLA Kids · Bébés, enfants et ados
                   </span>
                   <span className="text-xs font-bold text-[#C8753D] uppercase tracking-wider">Douceur Sans Larmes</span>
                 </div>
@@ -108,12 +108,12 @@ export const KidsMenSection: React.FC = () => {
                 {/* Feature Bullet Grid */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {[
-                    "Shampooings doux sans sulfates",
-                    "Sprays démêlants instantanés",
-                    "Bonnets satin taille enfant",
-                    "Laits hydratants guimauve",
-                    "Brosses démêlantes souples",
-                    "Protection solaire pédiatrique"
+                    "Produits avec âge recommandé",
+                    "Accessoires adaptés",
+                    "Routines parent-enfant",
+                    "Pas d’actif adulte sans validation",
+                    "Images supervisées",
+                    "Données mineurs minimisées"
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs font-medium text-[#111111]">
                       <span className="w-4 h-4 rounded-full bg-[#C8753D]/20 text-[#C8753D] flex items-center justify-center shrink-0">
@@ -142,13 +142,10 @@ export const KidsMenSection: React.FC = () => {
                 <span>Tous les produits Kids mentionnent l'âge minimum recommandé (dès 3 ans) et les précautions d'emploi.</span>
               </div>
 
-              <a
-                href="/kids"
-                className="w-full py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 shadow-md"
-              >
-                <span>Découvrir l'espace KURLA Kids</span>
-                <ArrowRight className="w-4 h-4" />
-              </a>
+                <div className="flex flex-col gap-2">
+                  <a href="/kids" className="w-full py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 shadow-md"><span>Découvrir l'espace KURLA Kids</span><ArrowRight className="w-4 h-4" /></a>
+                  <a href="/famille" className="w-full py-3 rounded-full border border-[#C8753D]/40 text-[#C8753D] font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2"><span>Créer un espace Famille</span><Users className="w-4 h-4" /></a>
+                </div>
             </div>
           </Reveal>
 

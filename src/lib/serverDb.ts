@@ -6,6 +6,7 @@ import { emailService, EmailDeliveryResult, EmailMessage } from './emailService'
 import { shippingService, ShippingCarrier, ShipmentDetails, ShipmentEvent, ShipmentStatus } from './shippingService';
 import { getShippingOption, normalizeShippingAddress, ShippingAddressInput, SHIPPING_OPTIONS } from './shippingRules';
 import { EDUCATIONAL_CONTENT_TYPES, EDUCATIONAL_TOPICS, EVIDENCE_LEVELS, EducationalContentSource, normalizeContentSources, normalizeContentTranslations } from './educationalContent';
+import { CURRENT_FAMILY_CONSENT_VERSION, FamilyAgeBand, FamilyConsentStatus, FamilyPlanStatus, FamilyPlanType, isMinorAgeBand, isProductSuitableForAgeBand, normalizeFamilyMemberInput, normalizeFamilyPlanInput } from './familyProfiles';
 import {
   BeautyProfile,
   BeautyProfileHistoryEntry,
@@ -141,6 +142,14 @@ export function toPublicProduct(product: any): any {
     certifications: product.certifications || [],
     returnsPolicy: product.returnsPolicy,
     shippingInfo: { ...(product.shippingInfo || product.shippingPolicy || {}), countries: product.countryAvailability || [] },
+    audienceTags: Array.isArray(product.targetAudiences) ? product.targetAudiences : (Array.isArray(product.audienceTags) ? product.audienceTags : []),
+    recommendedAgeBand: product.recommendedAgeBand || product.recommended_age_band,
+    recommendedAgeMin: product.recommendedAgeMin == null ? (product.recommended_age_min == null ? undefined : Number(product.recommended_age_min)) : Number(product.recommendedAgeMin),
+    recommendedAgeMax: product.recommendedAgeMax == null ? (product.recommended_age_max == null ? undefined : Number(product.recommended_age_max)) : Number(product.recommendedAgeMax),
+    minorSafetyStatus: product.minorSafetyStatus || product.minor_safety_status || 'not_provided',
+    adultOnlyActives: Array.isArray(product.adultOnlyActives) ? product.adultOnlyActives : (Array.isArray(product.adult_only_actives) ? product.adult_only_actives : []),
+    parentalSupervisionRequired: product.parentalSupervisionRequired === true || product.parental_supervision_required === true,
+    imageSupervisionStatus: product.imageSupervisionStatus || product.image_supervision_status || 'not_provided',
     variants,
     verifiedReviewCount: 0,
     questionsCount: 0,
@@ -532,6 +541,9 @@ class SupabaseServerStore {
   private inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   private inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
   private inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
+  private inMemoryFamilySpaces: Map<string, any> = new Map();
+  private inMemoryFamilyMembers: Map<string, any> = new Map();
+  private inMemoryFamilyPlans: Map<string, any> = new Map();
   private inMemoryRoutinePlans: Map<string, AdaptiveRoutinePlan> = new Map();
   private inMemoryRoutineFeedback: Map<string, RoutineFeedback[]> = new Map();
   private inMemoryRoutineJournal: Map<string, RoutineJournalEntry[]> = new Map();
@@ -753,6 +765,14 @@ class SupabaseServerStore {
         isPromo: isPromotionActive(p),
         catalogCategoryTags: p.catalog_category_tags || [],
         targetAudiences: p.target_audiences || [],
+        audienceTags: p.audience_tags || [],
+        recommendedAgeBand: p.recommended_age_band || undefined,
+        recommendedAgeMin: p.recommended_age_min == null ? undefined : Number(p.recommended_age_min),
+        recommendedAgeMax: p.recommended_age_max == null ? undefined : Number(p.recommended_age_max),
+        minorSafetyStatus: p.minor_safety_status || 'not_provided',
+        adultOnlyActives: p.adult_only_actives || [],
+        parentalSupervisionRequired: p.parental_supervision_required === true,
+        imageSupervisionStatus: p.image_supervision_status || 'not_provided',
         vatRate: p.vat_rate == null ? undefined : Number(p.vat_rate),
         priceIncludesVat: p.price_includes_vat !== false,
         promotionPrice: p.promotion_price == null ? undefined : Number(p.promotion_price),
@@ -989,6 +1009,19 @@ class SupabaseServerStore {
     const targetAudiences = array(source.targetAudiences ?? source.target_audiences);
     const unknownAudience = targetAudiences.find(audience => !validAudiences.has(audience));
     if (unknownAudience) throw new Error(`Public inconnu : ${unknownAudience}.`);
+    const audienceTags = array(source.audienceTags ?? source.audience_tags);
+    const ageBand = text(source.recommendedAgeBand ?? source.recommended_age_band, 40);
+    const validAgeBands = new Set(['baby', 'child', 'teen', 'adult', 'all_ages', 'not_provided']);
+    if (ageBand && !validAgeBands.has(ageBand)) throw new Error(`Tranche d’âge recommandée invalide pour « ${name} ».`);
+    const ageMin = number(source.recommendedAgeMin ?? source.recommended_age_min);
+    const ageMax = number(source.recommendedAgeMax ?? source.recommended_age_max);
+    if ((ageMin !== undefined && (!Number.isInteger(ageMin) || ageMin < 0)) || (ageMax !== undefined && (!Number.isInteger(ageMax) || ageMax < 0)) || (ageMin !== undefined && ageMax !== undefined && ageMax < ageMin)) throw new Error(`Âge recommandé incohérent pour « ${name} ».`);
+    const minorSafetyStatus = ['verified', 'pending', 'not_provided'].includes(source.minorSafetyStatus ?? source.minor_safety_status) ? (source.minorSafetyStatus ?? source.minor_safety_status) : existing?.minorSafetyStatus || existing?.minor_safety_status || 'not_provided';
+    const imageSupervisionStatus = ['verified', 'pending', 'not_provided'].includes(source.imageSupervisionStatus ?? source.image_supervision_status) ? (source.imageSupervisionStatus ?? source.image_supervision_status) : existing?.imageSupervisionStatus || existing?.image_supervision_status || 'not_provided';
+    const adultOnlyActives = array(source.adultOnlyActives ?? source.adult_only_actives);
+    const parentalSupervisionRequired = source.parentalSupervisionRequired === undefined && source.parental_supervision_required === undefined
+      ? existing?.parentalSupervisionRequired === true || existing?.parental_supervision_required === true
+      : parseBoolean(source.parentalSupervisionRequired ?? source.parental_supervision_required, false);
     const countries = array(source.countryAvailability ?? source.country_availability).map(country => country.toUpperCase());
     if (countries.some(country => country !== 'INT' && !/^[A-Z]{2}$/.test(country))) throw new Error(`Pays de disponibilité invalide pour « ${name} ».`);
 
@@ -1092,6 +1125,14 @@ class SupabaseServerStore {
       subCategory: text(source.subCategory || source.subcategory || source.sub_category_tag, 160),
       catalogCategoryTags,
       targetAudiences,
+      audienceTags,
+      recommendedAgeBand: ageBand || undefined,
+      recommendedAgeMin: ageMin,
+      recommendedAgeMax: ageMax,
+      minorSafetyStatus,
+      adultOnlyActives,
+      parentalSupervisionRequired,
+      imageSupervisionStatus,
       countryAvailability: countries,
       description: text(source.description, 10000),
       image,
@@ -1216,6 +1257,14 @@ class SupabaseServerStore {
         sub_category_tag: normalized.subCategory || null,
         catalog_category_tags: normalized.catalogCategoryTags,
         target_audiences: normalized.targetAudiences,
+        audience_tags: normalized.audienceTags,
+        recommended_age_band: normalized.recommendedAgeBand || null,
+        recommended_age_min: normalized.recommendedAgeMin ?? null,
+        recommended_age_max: normalized.recommendedAgeMax ?? null,
+        minor_safety_status: normalized.minorSafetyStatus,
+        adult_only_actives: normalized.adultOnlyActives,
+        parental_supervision_required: normalized.parentalSupervisionRequired,
+        image_supervision_status: normalized.imageSupervisionStatus,
         country_availability: normalized.countryAvailability,
         description: normalized.description || null,
         image_url: normalized.image || null,
@@ -4157,6 +4206,250 @@ class SupabaseServerStore {
     this.inMemoryBeautyProfiles.delete(userId);
     this.inMemoryBeautyProfileHistory.delete(userId);
     this.inMemoryBeautyProfilePhotos.delete(userId);
+  }
+
+  // ============================================================
+  // FAMILY PROFILES, CHILD SAFETY & SHARED PLANS
+  // ============================================================
+  private mapFamilySpaceRow(row: any): any {
+    return { id: row.id, ownerUserId: row.owner_user_id || row.ownerUserId, name: row.name || 'Ma famille', createdAt: row.created_at || row.createdAt, updatedAt: row.updated_at || row.updatedAt };
+  }
+
+  private mapFamilyMemberRow(row: any): any {
+    return {
+      id: row.id,
+      familyId: row.family_id || row.familyId,
+      displayName: row.display_name || row.displayName,
+      profileKind: row.profile_kind || row.profileKind,
+      ageBand: row.age_band || row.ageBand,
+      consentStatus: row.consent_status || row.consentStatus || 'not_required',
+      consentVersion: row.consent_version || row.consentVersion || undefined,
+      consentAt: row.consent_at || row.consentAt || undefined,
+      carePreferences: row.care_preferences && typeof row.care_preferences === 'object' ? row.care_preferences : (row.carePreferences || {}),
+      createdAt: row.created_at || row.createdAt,
+      updatedAt: row.updated_at || row.updatedAt
+    };
+  }
+
+  private mapFamilyPlanRow(row: any): any {
+    return {
+      id: row.id,
+      familyId: row.family_id || row.familyId,
+      createdBy: row.created_by || row.createdBy,
+      title: row.title,
+      planType: row.plan_type || row.planType,
+      audience: row.audience || 'shared',
+      memberIds: Array.isArray(row.member_ids) ? row.member_ids : (Array.isArray(row.memberIds) ? row.memberIds : []),
+      productIds: Array.isArray(row.product_ids) ? row.product_ids : (Array.isArray(row.productIds) ? row.productIds : []),
+      schedule: Array.isArray(row.schedule) ? row.schedule : [],
+      notes: row.notes || undefined,
+      status: row.status,
+      createdAt: row.created_at || row.createdAt,
+      updatedAt: row.updated_at || row.updatedAt
+    };
+  }
+
+  public async getFamilyDashboard(userId: string): Promise<{ spaces: any[]; members: any[]; plans: any[] }> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data: spaceRows, error: spacesError } = await supabase.from('family_spaces').select('*').eq('owner_user_id', userId).order('updated_at', { ascending: false });
+      ensureDatabaseSuccess('lecture des espaces famille', spacesError);
+      const familyIds = (spaceRows || []).map((row: any) => row.id);
+      if (!familyIds.length) return { spaces: [], members: [], plans: [] };
+      const [{ data: memberRows, error: membersError }, { data: planRows, error: plansError }] = await Promise.all([
+        supabase.from('family_members').select('*').in('family_id', familyIds).order('updated_at', { ascending: false }),
+        supabase.from('family_plans').select('*').in('family_id', familyIds).order('updated_at', { ascending: false })
+      ]);
+      ensureDatabaseSuccess('lecture des profils famille', membersError);
+      ensureDatabaseSuccess('lecture des plans famille', plansError);
+      return {
+        spaces: (spaceRows || []).map(row => this.mapFamilySpaceRow(row)),
+        members: (memberRows || []).map(row => this.mapFamilyMemberRow(row)),
+        plans: (planRows || []).map(row => this.mapFamilyPlanRow(row))
+      };
+    }
+    const spaces = [...this.inMemoryFamilySpaces.values()].filter(space => space.ownerUserId === userId);
+    const familyIds = new Set(spaces.map(space => space.id));
+    return {
+      spaces: spaces.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))),
+      members: [...this.inMemoryFamilyMembers.values()].filter(member => familyIds.has(member.familyId)).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))),
+      plans: [...this.inMemoryFamilyPlans.values()].filter(plan => familyIds.has(plan.familyId)).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    };
+  }
+
+  public async createFamilySpace(userId: string, input: any = {}): Promise<any> {
+    const name = typeof input?.name === 'string' ? input.name.trim().slice(0, 120) : '';
+    if (!name) throw new Error('Le nom de l’espace famille est obligatoire.');
+    const space = { id: randomUUID(), ownerUserId: userId, name, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('family_spaces').insert({ id: space.id, owner_user_id: userId, name }).select('*').single();
+      ensureDatabaseSuccess('création de l’espace famille', error);
+      return this.mapFamilySpaceRow(data);
+    }
+    this.inMemoryFamilySpaces.set(space.id, space);
+    return space;
+  }
+
+  private async getOwnedFamilySpace(userId: string, familyId: string): Promise<any | undefined> {
+    if (!isUuid(familyId)) return undefined;
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('family_spaces').select('*').eq('id', familyId).eq('owner_user_id', userId).maybeSingle();
+      ensureDatabaseSuccess('vérification de l’espace famille', error);
+      return data ? this.mapFamilySpaceRow(data) : undefined;
+    }
+    const space = this.inMemoryFamilySpaces.get(familyId);
+    return space?.ownerUserId === userId ? space : undefined;
+  }
+
+  public async saveFamilyMember(userId: string, input: any): Promise<any> {
+    const familyId = typeof input?.familyId === 'string' ? input.familyId.trim() : '';
+    if (!(await this.getOwnedFamilySpace(userId, familyId))) throw new Error('Espace famille introuvable.');
+    const dashboard = await this.getFamilyDashboard(userId);
+    const existing = input?.id ? dashboard.members.find(member => member.id === input.id) : undefined;
+    if (input?.id && !existing) throw new Error('Profil familial introuvable.');
+    const consentProvided = typeof input?.parentalConsent === 'boolean';
+    const normalized = normalizeFamilyMemberInput({
+      ...input,
+      parentalConsent: consentProvided ? input.parentalConsent : existing?.consentStatus === 'granted'
+    });
+    const now = new Date().toISOString();
+    let consentStatus = normalized.consentStatus;
+    let consentVersion = normalized.consentVersion;
+    let consentAt = normalized.parentalConsent ? now : undefined;
+    if (existing && !consentProvided && isMinorAgeBand(normalized.ageBand)) {
+      consentStatus = existing.consentStatus;
+      consentVersion = existing.consentVersion;
+      consentAt = existing.consentAt;
+    } else if (existing && isMinorAgeBand(normalized.ageBand) && !normalized.parentalConsent && existing.consentStatus === 'granted') {
+      consentStatus = 'revoked';
+      consentVersion = undefined;
+      consentAt = undefined;
+    }
+    const id = existing?.id || (isUuid(input?.id) ? input.id : randomUUID());
+    const row = {
+      id,
+      familyId,
+      displayName: normalized.displayName,
+      profileKind: normalized.profileKind,
+      ageBand: normalized.ageBand,
+      consentStatus,
+      consentVersion,
+      consentAt,
+      carePreferences: normalized.carePreferences,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('family_members').upsert({
+        id,
+        family_id: familyId,
+        display_name: row.displayName,
+        profile_kind: row.profileKind,
+        age_band: row.ageBand,
+        consent_status: row.consentStatus,
+        consent_version: row.consentVersion || null,
+        consent_at: row.consentAt || null,
+        care_preferences: row.carePreferences,
+        created_at: row.createdAt,
+        updated_at: now
+      }, { onConflict: 'id' }).select('*').single();
+      ensureDatabaseSuccess('enregistrement du profil familial', error);
+      return this.mapFamilyMemberRow(data);
+    }
+    this.inMemoryFamilyMembers.set(id, row);
+    return row;
+  }
+
+  public async deleteFamilyMember(userId: string, memberId: string): Promise<void> {
+    const dashboard = await this.getFamilyDashboard(userId);
+    const member = dashboard.members.find(item => item.id === memberId);
+    if (!member) throw new Error('Profil familial introuvable.');
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('family_members').delete().eq('id', memberId);
+      ensureDatabaseSuccess('suppression du profil familial', error);
+    }
+    this.inMemoryFamilyMembers.delete(memberId);
+  }
+
+  public async saveFamilyPlan(userId: string, input: any): Promise<any> {
+    const familyId = typeof input?.familyId === 'string' ? input.familyId.trim() : '';
+    if (!(await this.getOwnedFamilySpace(userId, familyId))) throw new Error('Espace famille introuvable.');
+    const dashboard = await this.getFamilyDashboard(userId);
+    const familyMembers = dashboard.members.filter(member => member.familyId === familyId);
+    const normalized = normalizeFamilyPlanInput({
+      ...input,
+      planType: input.planType || input.plan_type,
+      memberIds: input.memberIds || input.member_ids,
+      productIds: input.productIds || input.product_ids
+    });
+    const memberMap = new Map(familyMembers.map(member => [member.id, member]));
+    if (normalized.memberIds.some(memberId => !isUuid(memberId) || !memberMap.has(memberId))) throw new Error('Un profil ciblé n’appartient pas à cet espace famille.');
+    if (normalized.audience === 'selected' && normalized.memberIds.length === 0) throw new Error('Sélectionnez au moins un profil familial.');
+    const targetMembers = normalized.audience === 'selected' ? normalized.memberIds.map(memberId => memberMap.get(memberId)!).filter(Boolean) : familyMembers;
+    const minorMembers = targetMembers.filter(member => isMinorAgeBand(member.ageBand));
+    if (normalized.status === 'active' && minorMembers.some(member => member.consentStatus !== 'granted')) throw new Error('Le consentement parental est requis avant d’activer un plan impliquant un mineur.');
+
+    if (normalized.productIds.length > 0) {
+      const products = await this.getProducts({ publishedOnly: true });
+      for (const productId of normalized.productIds) {
+        const product = products.find(item => item.id === productId || item.slug === productId);
+        if (!product) throw new Error(`Produit non publié ou indisponible : ${productId}.`);
+        if (minorMembers.some(member => !isProductSuitableForAgeBand(product, member.ageBand))) {
+          throw new Error(`Le produit « ${product.name} » n’est pas documenté comme adapté à tous les profils mineurs ciblés.`);
+        }
+      }
+    }
+    const existing = input?.id ? dashboard.plans.find(plan => plan.id === input.id && plan.familyId === familyId) : undefined;
+    if (input?.id && !existing) throw new Error('Plan familial introuvable.');
+    const now = new Date().toISOString();
+    const id = existing?.id || (isUuid(input?.id) ? input.id : randomUUID());
+    const row = {
+      id, familyId, createdBy: userId, title: normalized.title, planType: normalized.planType,
+      audience: normalized.audience, memberIds: normalized.memberIds, productIds: normalized.productIds,
+      schedule: normalized.schedule, notes: normalized.notes, status: normalized.status,
+      createdAt: existing?.createdAt || now, updatedAt: now
+    };
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('family_plans').upsert({
+        id, family_id: familyId, created_by: userId, title: row.title, plan_type: row.planType,
+        audience: row.audience, member_ids: row.memberIds, product_ids: row.productIds,
+        schedule: row.schedule, notes: row.notes || null, status: row.status,
+        created_at: row.createdAt, updated_at: now
+      }, { onConflict: 'id' }).select('*').single();
+      ensureDatabaseSuccess('enregistrement du plan familial', error);
+      return this.mapFamilyPlanRow(data);
+    }
+    this.inMemoryFamilyPlans.set(id, row);
+    return row;
+  }
+
+  public async deleteFamilyPlan(userId: string, planId: string): Promise<void> {
+    const dashboard = await this.getFamilyDashboard(userId);
+    const plan = dashboard.plans.find(item => item.id === planId);
+    if (!plan) throw new Error('Plan familial introuvable.');
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('family_plans').delete().eq('id', planId);
+      ensureDatabaseSuccess('suppression du plan familial', error);
+    }
+    this.inMemoryFamilyPlans.delete(planId);
+  }
+
+  public async getFamilyProducts(ageBand?: string, audience?: string): Promise<any[]> {
+    const products = await this.getProducts({ publishedOnly: true });
+    return products.filter(product => {
+      if (ageBand && isMinorAgeBand(ageBand) && !isProductSuitableForAgeBand(product, ageBand)) return false;
+      if (audience === 'men') {
+        const audiences = [...(product.targetAudiences || []), ...(product.audienceTags || [])];
+        return audiences.includes('hommes') || product.category === 'hommes' || product.subCategoryTag === 'barbe';
+      }
+      return true;
+    }).map(toPublicProduct);
   }
 
   // ============================================================

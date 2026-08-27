@@ -14,10 +14,10 @@ export const MenGroomingPage: React.FC = () => {
               <Scissors className="w-4 h-4 text-[#C8753D]" /> Hommes Grooming & Barbershop
             </div>
             <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111]">
-              Waves, Barbe Hydratée, Locks & Soin Anti-Boutons de Rasage
+              Barbe, moustache, waves, locks et cheveux courts : le soin pensé pour les hommes
             </h1>
             <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
-              La routine épurée en 3 étapes pour hommes : entretien du contour, barbe souple sans poil incarné et cuir chevelu assaini sous le durag.
+              Un espace pour explorer le rasage, les poils incarnés, la peau, le cuir chevelu, les waves, les locks, les cheveux crépus et les soins du corps. Les fiches distinguent les besoins sans promesse de résultat automatique.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <a
@@ -46,7 +46,7 @@ export const MenGroomingPage: React.FC = () => {
             <span className="text-xs font-bold text-[#C8753D] uppercase block mb-1">Étape 1</span>
             <h3 className="text-base font-bold text-[#111111] mb-2">Nettoyer & Apaiser le Rasage</h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Utiliser la lotion florale apaisante pour refermer les pores et prévenir les boutons de rasage et poils incarnés sur le col.
+              Préparer la peau avec un geste doux et un produit dont l’usage est renseigné. En cas de poils incarnés répétés ou de lésion, demander un avis professionnel plutôt que multiplier les actifs.
             </p>
           </div>
 
@@ -54,7 +54,7 @@ export const MenGroomingPage: React.FC = () => {
             <span className="text-xs font-bold text-[#C8753D] uppercase block mb-1">Étape 2</span>
             <h3 className="text-base font-bold text-[#111111] mb-2">Hydrater la Barbe & Waves</h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Quelques gouttes d'huile de jojoba & baobab massées du menton jusqu'aux racines pour assouplir le poil dur.
+              Choisir un soin dont la texture, le parfum, les ingrédients et les précautions sont renseignés, puis l’appliquer selon l’étiquette sur barbe ou moustache.
             </p>
           </div>
 
@@ -62,10 +62,25 @@ export const MenGroomingPage: React.FC = () => {
             <span className="text-xs font-bold text-[#C8753D] uppercase block mb-1">Étape 3</span>
             <h3 className="text-base font-bold text-[#111111] mb-2">Brosser & Compresser (Durag)</h3>
             <p className="text-xs text-[#111111]/70 font-light leading-relaxed">
-              Passer la brosse en poil de sanglier doux pour plaquer les waves et poser le durag en satin pour fixer la mémoire de forme.
+              Waves, locks ou cheveux courts : privilégier l’accessoire adapté à la longueur et au confort du cuir chevelu, sans serrer ni prolonger un geste inconfortable.
             </p>
           </div>
         </div>
+
+        <section className="space-y-6">
+          <div><span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold">Explorer par besoin</span><h2 className="text-2xl font-serif-title font-bold mt-1">Le grooming ne se résume pas à la barbe.</h2><p className="text-sm text-[#111111]/65 mt-2">Chaque espace pourra afficher uniquement les produits et conseils dont le public, les ingrédients et les précautions sont documentés.</p></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[
+            ['Barbe & moustache', 'Entretien, texture et confort du poil'],
+            ['Rasage', 'Préparer, raser et apaiser sans promesse'],
+            ['Poils incarnés', 'Repères de soin et signaux d’alerte'],
+            ['Peau & corps', 'Hydratation, zones sèches et gestes simples'],
+            ['Cuir chevelu', 'Cheveux courts, crépus et confort'],
+            ['Waves & locks', 'Entretien, accessoires et tension'],
+            ['Protection solaire', 'Choisir selon les informations de la fiche'],
+            ['Conseils hommes', 'Contenus éditoriaux dédiés']
+          ].map(([title, description]) => <div key={title} className="p-5 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] hover:border-[#C8753D] transition-colors"><h3 className="font-semibold text-sm">{title}</h3><p className="text-xs text-[#111111]/60 mt-2 leading-relaxed">{description}</p><ArrowRight className="w-4 h-4 text-[#C8753D] mt-4" /></div>)}</div>
+          <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs"><strong className="block mb-1">À surveiller</strong>Une douleur, une irritation persistante, une plaie ou une réaction importante ne se traite pas avec un conseil cosmétique : arrêtez le geste et demandez un avis médical.</div>
+        </section>
 
       </div>
     </div>
