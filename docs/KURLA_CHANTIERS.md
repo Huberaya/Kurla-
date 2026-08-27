@@ -507,10 +507,32 @@ présence d'une chaîne dans `App.tsx`. Ils testent désormais la résolution r�
 via `resolveRoute()` : chercher du texte ne prouvait pas que l'URL menait quelque
 part.
 
+### 7.2 — Socle SEO technique ✅
+
+`robots.txt` et `sitemap.xml` sont **générés au build** depuis `routeMeta.ts`, la
+même source que le rendu, par `scripts/generateSitemap.ts`. Ajouter une route
+publiable met à jour le sitemap sans rien toucher d'autre ; une page privée sort
+du sitemap et entre dans les Disallow.
+
+- `sitemap.xml` : les 22 routes publiques statiques, avec `lastmod`, `changefreq`,
+  `priority`. Pas d'URL d'entité : en générer vers des pages que rien ne sert
+  serait un leurre pour le moteur ; c'est l'objet de 7.4.
+- `robots.txt` : `Allow: /` + Disallow minimisés par préfixe (`/account` couvre
+  ses sous-routes), `/api/` bloqué, `Sitemap:` pointé.
+- `public/og-default.png` : carte Open Graph 1200×630 aux couleurs de la marque.
+- `useDocumentMeta.ts` : JSON-LD `Organization` + `WebSite` sur les pages
+  indexables ; les types par page (Product, Article) suivront au prérendu.
+
+Vérifié en ligne : `/robots.txt` 200 `text/plain`, `/sitemap.xml` 200
+`application/xml` (22 URLs), `/og-default.png` 200 `image/png` — la réécriture
+SPA ne les avale pas. `tests/chantier_7_seo.test.ts` validé par mutation (page
+privée indexable détectée). Deux mutations sont non détectables par conception et
+sont documentées dans le commit : retirer une route (l'attendu est dérivé de la
+même table — la complétude est le filet du banc 7.1) et ajouter une règle
+redondante (la minimisation la neutralise, c'est elle qu'on teste).
+
 ### Restant
 
-- [ ] **7.2** Socle SEO technique : `robots.txt`, `sitemap.xml` généré depuis
-      `routeMeta`, image Open Graph par défaut, données structurées JSON-LD
 - [ ] **7.3** Prérendu au build (action 8) : HTML statique par route indexable
 - [ ] **7.4** Fiches ingrédient publiques et pages générées depuis le graphe :
       ingrédient × problème × texture × ville (action 37)
