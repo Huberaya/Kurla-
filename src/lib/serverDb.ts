@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServerClient, isSupabaseServerConfigured } from './supabaseClient';
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from './catalogManagement';
-import { emailService } from './emailService';
+import { emailService, EmailDeliveryResult, EmailMessage } from './emailService';
 import { shippingService, ShippingCarrier, ShipmentDetails } from './shippingService';
 import {
   BeautyProfile,
@@ -251,6 +251,17 @@ export type OrderStatus =
   | 'return_requested'
   | 'returned';
 
+function emailTemplateForOrderStatus(status: OrderStatus): EmailMessage['template'] {
+  if (status === 'paid') return 'payment_confirmed';
+  if (status === 'payment_failed') return 'payment_failed';
+  if (status === 'return_requested') return 'return_requested';
+  if (status === 'returned') return 'order_returned';
+  if (status === 'refunded') return 'order_refunded';
+  if (status === 'partially_refunded') return 'order_partially_refunded';
+  if (status === 'cancelled') return 'order_cancelled';
+  return `order_${status}` as EmailMessage['template'];
+}
+
 export interface ServerOrder {
   id: string;
   userId?: string;
@@ -286,6 +297,7 @@ export interface UserNotification {
   message: string;
   link?: string;
   orderId?: string;
+  dedupeKey?: string;
   read: boolean;
   createdAt: string;
   deliveredAt?: string;
@@ -299,6 +311,18 @@ export interface NotificationPreference {
   marketingEmails: boolean;
   inAppNotifications: boolean;
   updatedAt: string;
+}
+
+export interface NotificationDeliveryLog {
+  id: string;
+  userId?: string;
+  notificationId?: string;
+  channel: 'in_app' | 'email';
+  status: 'sent' | 'logged' | 'failed' | 'skipped';
+  provider?: string;
+  messageId?: string;
+  error?: string;
+  createdAt: string;
 }
 
 export interface CustomerReturn {
@@ -427,6 +451,7 @@ class SupabaseServerStore {
   private inMemoryStripeEvents: StripeEventLog[] = [];
   private inMemoryStatusHistory: OrderStatusHistoryEntry[] = [];
   private inMemoryNotifications: UserNotification[] = [];
+  private inMemoryNotificationLogs: NotificationDeliveryLog[] = [];
   private inMemoryPreferences: Map<string, NotificationPreference> = new Map();
   private inMemoryShipments: Map<string, ShipmentDetails> = new Map();
   private inMemoryReturns: CustomerReturn[] = [];
@@ -1203,6 +1228,14 @@ class SupabaseServerStore {
         }
       }
       await this.syncInventoryToSupabase(normalized.id, normalized.stockQuantity, 0);
+      await this.notifyLowStock(normalized.id, { quantity: normalized.stockQuantity, productName: normalized.name });
+      for (const variant of normalized.variants || []) {
+        await this.notifyLowStock(normalized.id, {
+          variantId: variant.id,
+          quantity: variant.stockQuantity,
+          productName: `${normalized.name} (${variant.name})`
+        });
+      }
 
       if (normalized.imagesProvided) {
         const { error: deleteImagesError } = await supabase.from('product_images').delete().eq('product_id', normalized.id);
@@ -1917,6 +1950,7 @@ class SupabaseServerStore {
     changedByRole?: string;
     reason?: string;
     restockItems?: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
+    emailData?: Record<string, unknown>;
   }): Promise<ServerOrder | undefined> {
     const order = await this.getOrderById(orderId);
     if (!order) return undefined;
@@ -1957,18 +1991,30 @@ class SupabaseServerStore {
       if (index >= 0) this.inMemoryOrders[index] = updated;
       else this.inMemoryOrders.unshift(updated);
 
-      if (order.status !== updated.status && updated.userId) {
+      if (order.status !== updated.status) {
         const type = updated.status === 'paid' ? 'payment_confirmed' : `order_${updated.status}`;
         const title = `Mise à jour commande #${updated.id}`;
-        await this.sendNotification(updated.userId, type, title,
-          `Le statut de votre commande est désormais : ${updated.status.toUpperCase()}`,
-          `/account?tab=orders`, updated.id);
-        await emailService.sendEmail({
+        const email: EmailMessage = {
           to: updated.customerEmail,
           subject: `[KURLA BEAUTY] ${title}`,
-          template: type as any,
-          data: { orderId: updated.id, total: updated.total, status: updated.status }
-        });
+          template: emailTemplateForOrderStatus(updated.status),
+          data: { orderId: updated.id, total: updated.total, status: updated.status, ...(extra?.emailData || {}) }
+        };
+        if (updated.userId) {
+          await this.notifyUser(
+            updated.userId,
+            type,
+            title,
+            `Le statut de votre commande est désormais : ${updated.status.toUpperCase()}`,
+            `/account?tab=orders`,
+            updated.id,
+            email,
+            `order-status:${updated.id}:${updated.status}`
+          );
+        } else {
+          await this.sendTransactionalEmail(email);
+        }
+        if (updated.status === 'paid') await this.notifyLowStockForOrder(updated);
       }
       return updated;
     }
@@ -2085,18 +2131,30 @@ class SupabaseServerStore {
     if (index >= 0) this.inMemoryOrders[index] = order;
     else this.inMemoryOrders.unshift(order);
 
-    if (order.userId) {
+    {
       const type = newStatus === 'paid' ? 'payment_confirmed' : `order_${newStatus}`;
       const title = `Mise à jour commande #${order.id}`;
-      await this.sendNotification(order.userId, type, title,
-        `Le statut de votre commande est désormais : ${newStatus.toUpperCase()}`,
-        `/account?tab=orders`, order.id);
-      await emailService.sendEmail({
+      const email: EmailMessage = {
         to: order.customerEmail,
         subject: `[KURLA BEAUTY] ${title}`,
-        template: type as any,
-        data: { orderId: order.id, total: order.total, status: newStatus }
-      });
+        template: emailTemplateForOrderStatus(newStatus),
+        data: { orderId: order.id, total: order.total, status: newStatus, ...(extra?.emailData || {}) }
+      };
+      if (order.userId) {
+        await this.notifyUser(
+          order.userId,
+          type,
+          title,
+          `Le statut de votre commande est désormais : ${newStatus.toUpperCase()}`,
+          `/account?tab=orders`,
+          order.id,
+          email,
+          `order-status:${order.id}:${newStatus}`
+        );
+      } else {
+        await this.sendTransactionalEmail(email);
+      }
+      if (newStatus === 'paid') await this.notifyLowStockForOrder(order);
     }
 
     return order;
@@ -2193,7 +2251,19 @@ class SupabaseServerStore {
   // ============================================================
   // PHASE 5: USER NOTIFICATIONS & PREFERENCES
   // ============================================================
-  public async sendNotification(userId: string, type: string, title: string, message: string, link?: string, orderId?: string): Promise<UserNotification> {
+  public async sendNotification(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    link?: string,
+    orderId?: string,
+    dedupeKey?: string
+  ): Promise<UserNotification> {
+    const existingLocal = dedupeKey && this.inMemoryNotifications.find(notification => notification.dedupeKey === dedupeKey);
+    if (existingLocal) return existingLocal;
+
+    const createdAt = new Date().toISOString();
     const notif: UserNotification = {
       id: randomUUID(),
       userId,
@@ -2202,15 +2272,16 @@ class SupabaseServerStore {
       message,
       link,
       orderId,
+      dedupeKey,
       read: false,
-      createdAt: new Date().toISOString(),
-      deliveredAt: new Date().toISOString()
+      createdAt,
+      deliveredAt: createdAt
     };
 
     const supabase = getSupabaseServerClient();
     if (supabase) {
       try {
-        const { error: notificationError } = await supabase.from('notifications').insert({
+        const payload = {
           id: notif.id,
           user_id: userId,
           type,
@@ -2218,20 +2289,51 @@ class SupabaseServerStore {
           message,
           link: link || null,
           order_id: orderId || null,
+          dedupe_key: dedupeKey || null,
           read: false,
-          created_at: notif.createdAt,
-          delivered_at: notif.deliveredAt
-        });
-        ensureDatabaseSuccess('création de la notification', notificationError);
-
-        const { error: logError } = await supabase.from('notification_logs').insert({
-          user_id: userId,
-          notification_id: notif.id,
-          channel: 'in_app',
-          status: 'sent',
-          created_at: notif.createdAt
-        });
-        ensureDatabaseSuccess('création du journal de notification', logError);
+          created_at: createdAt,
+          delivered_at: createdAt
+        };
+        const request = dedupeKey
+          ? supabase.from('notifications').upsert(payload, { onConflict: 'dedupe_key', ignoreDuplicates: true }).select('*').maybeSingle()
+          : supabase.from('notifications').insert(payload).select('*').single();
+        const { data, error } = await request;
+        ensureDatabaseSuccess('création de la notification', error);
+        let row = data;
+        if (!row && dedupeKey) {
+          const existingResult = await supabase.from('notifications').select('*').eq('dedupe_key', dedupeKey).maybeSingle();
+          ensureDatabaseSuccess('lecture de la notification dédupliquée', existingResult.error);
+          row = existingResult.data;
+        }
+        const persisted = row ? {
+          id: row.id,
+          userId: row.user_id,
+          type: row.type,
+          title: row.title,
+          message: row.message,
+          link: row.link || undefined,
+          orderId: row.order_id || undefined,
+          dedupeKey: row.dedupe_key || undefined,
+          read: row.read === true,
+          createdAt: row.created_at,
+          deliveredAt: row.delivered_at || undefined,
+          errorMessage: row.error_message || undefined
+        } : notif;
+        const existingIndex = this.inMemoryNotifications.findIndex(notification => notification.id === persisted.id);
+        if (existingIndex >= 0) this.inMemoryNotifications[existingIndex] = persisted;
+        else this.inMemoryNotifications.unshift(persisted);
+        if (data?.id === notif.id || !dedupeKey) {
+          await this.logNotificationDelivery({
+            id: randomUUID(),
+            userId,
+            notificationId: persisted.id,
+            channel: 'in_app',
+            status: 'sent',
+            provider: 'supabase',
+            createdAt
+          });
+        }
+        return persisted;
       } catch (err) {
         console.error('[serverDb] sendNotification error:', err);
         throw err;
@@ -2239,7 +2341,318 @@ class SupabaseServerStore {
     }
 
     this.inMemoryNotifications.unshift(notif);
+    await this.logNotificationDelivery({
+      id: randomUUID(),
+      userId,
+      notificationId: notif.id,
+      channel: 'in_app',
+      status: 'sent',
+      provider: 'memory',
+      createdAt
+    });
     return notif;
+  }
+
+  private async logNotificationDelivery(log: NotificationDeliveryLog): Promise<void> {
+    this.inMemoryNotificationLogs.unshift(log);
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.from('notification_logs').insert({
+        id: log.id,
+        user_id: log.userId || null,
+        notification_id: log.notificationId || null,
+        channel: log.channel,
+        status: log.status === 'skipped' ? 'logged' : log.status,
+        provider: log.provider || null,
+        provider_message_id: log.messageId || null,
+        error: log.error || (log.status === 'skipped' ? 'Notification email désactivée par les préférences.' : null),
+        created_at: log.createdAt
+      });
+      ensureDatabaseSuccess('journalisation de la livraison de notification', error);
+    } catch (err) {
+      // A delivery-log outage must never be reported as a successful delivery
+      // or roll back an already committed order/status transition.
+      console.error('[serverDb] notification delivery log error:', err);
+    }
+  }
+
+  private async getEmailForUser(userId: string): Promise<string | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('profiles').select('email').eq('id', userId).maybeSingle();
+      ensureDatabaseSuccess('lecture de l’adresse email utilisateur', error);
+      return typeof data?.email === 'string' && data.email.includes('@') ? data.email : undefined;
+    }
+    const localOrder = this.inMemoryOrders.find(order => order.userId === userId);
+    return localOrder?.customerEmail;
+  }
+
+  private async recordEmailDelivery(
+    message: EmailMessage,
+    result: EmailDeliveryResult,
+    userId?: string,
+    notificationId?: string
+  ): Promise<void> {
+    const logStatus: NotificationDeliveryLog['status'] = result.delivered
+      ? 'sent'
+      : result.status === 'failed' ? 'failed' : 'logged';
+    const error = result.error || (!result.delivered ? 'Mode console : email journalisé localement, non envoyé.' : undefined);
+    await this.logNotificationDelivery({
+      id: randomUUID(),
+      userId,
+      notificationId,
+      channel: 'email',
+      status: logStatus,
+      provider: result.provider,
+      messageId: result.messageId,
+      error,
+      createdAt: new Date().toISOString()
+    });
+
+    if (notificationId && result.status === 'failed') {
+      const supabase = getSupabaseServerClient();
+      if (supabase) {
+        const { error: notificationError } = await supabase.from('notifications')
+          .update({ error_message: result.error || 'Échec du fournisseur email.' })
+          .eq('id', notificationId);
+        if (notificationError) console.error('[serverDb] notification error update failed:', notificationError);
+      }
+    }
+  }
+
+  public async notifyPaymentPending(order: ServerOrder): Promise<void> {
+    const email: EmailMessage = {
+      to: order.customerEmail,
+      subject: `[KURLA BEAUTY] Paiement en attente pour la commande #${order.id}`,
+      template: 'payment_pending',
+      data: { orderId: order.id, total: order.total }
+    };
+    if (order.userId) {
+      await this.notifyUser(
+        order.userId,
+        'payment_pending',
+        'Paiement en attente',
+        `Votre commande #${order.id} est enregistrée et attend la confirmation du paiement.`,
+        `/account?tab=orders`,
+        order.id,
+        email,
+        `payment-pending:${order.id}`
+      );
+    } else {
+      await this.sendTransactionalEmail(email);
+    }
+  }
+
+  public async notifyDueRoutineReminders(userId: string, tasks: RoutineTask[]): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10);
+    const recipientEmail = await this.getEmailForUser(userId);
+    const dueTasks = tasks.filter(task => task.status === 'pending' && task.scheduledFor <= today);
+    for (const task of dueTasks) {
+      await this.notifyUser(
+        userId,
+        'routine_reminder',
+        'Rappel de votre routine',
+        `Votre tâche « ${task.title} » est prévue aujourd’hui.${task.description ? ` ${task.description}` : ''}`,
+        `/account?tab=routine`,
+        undefined,
+        recipientEmail ? {
+          to: recipientEmail,
+          subject: '[KURLA BEAUTY] Rappel de votre routine',
+          template: 'routine_reminder',
+          data: { taskId: task.id, taskTitle: task.title, scheduledFor: task.scheduledFor }
+        } : undefined,
+        `routine-reminder:${userId}:${task.id}:${task.scheduledFor}`
+      );
+    }
+  }
+
+  public async notifyLowStock(
+    productId: string,
+    options: { variantId?: string; quantity?: number; productName?: string } = {}
+  ): Promise<void> {
+    const threshold = Math.max(0, Number(process.env.LOW_STOCK_THRESHOLD || 5));
+    const supabase = getSupabaseServerClient();
+    let quantity = options.quantity;
+    let productName = options.productName || productId;
+
+    if (supabase && quantity === undefined) {
+      const inventoryQuery = supabase.from('inventory').select('quantity, reserved_quantity').eq('product_id', productId);
+      const scopedQuery = options.variantId ? inventoryQuery.eq('variant_id', options.variantId) : inventoryQuery.is('variant_id', null);
+      const { data: inventory, error: inventoryError } = await scopedQuery.maybeSingle();
+      ensureDatabaseSuccess('lecture du stock pour alerte', inventoryError);
+      if (inventory) quantity = Math.max(0, Number(inventory.quantity || 0) - Number(inventory.reserved_quantity || 0));
+      const { data: product, error: productError } = await supabase.from('products').select('name').eq('id', productId).maybeSingle();
+      ensureDatabaseSuccess('lecture du nom du produit pour alerte stock', productError);
+      if (product?.name) productName = product.name;
+      if (options.variantId) {
+        const { data: variant, error: variantError } = await supabase.from('product_variants').select('name').eq('id', options.variantId).maybeSingle();
+        ensureDatabaseSuccess('lecture du nom de la variante pour alerte stock', variantError);
+        if (variant?.name) productName = `${productName} (${variant.name})`;
+      }
+    }
+
+    if (quantity === undefined) {
+      const product = this.inMemoryProducts.find(item => item.id === productId);
+      const variant = options.variantId && Array.isArray(product?.variants)
+        ? product.variants.find((item: any) => item.id === options.variantId)
+        : undefined;
+      quantity = Number(variant?.stockQuantity ?? variant?.stock_quantity ?? product?.stockQuantity ?? product?.stock_quantity ?? 0);
+      productName = options.productName || variant?.name || product?.name || productName;
+    }
+    if (!Number.isFinite(quantity) || quantity > threshold) return;
+
+    if (!supabase) return;
+    const { data: admins, error: adminError } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .in('role', ['admin', 'superadmin']);
+    ensureDatabaseSuccess('lecture des destinataires des alertes stock', adminError);
+
+    for (const admin of admins || []) {
+      if (!admin.id || typeof admin.email !== 'string' || !admin.email.includes('@')) continue;
+      const title = `Stock faible : ${productName}`;
+      await this.notifyUser(
+        admin.id,
+        'low_stock',
+        title,
+        `${productName} est bientôt en rupture : ${quantity} unité(s) disponible(s).`,
+        '/admin?tab=inventory',
+        undefined,
+        {
+          to: admin.email,
+          subject: `[KURLA BEAUTY] ${title}`,
+          template: 'low_stock',
+          data: { productName, quantity, threshold, productId, variantId: options.variantId }
+        },
+        `low-stock:${productId}:${options.variantId || 'product'}:${quantity}`
+      );
+    }
+  }
+
+  public async notifyLowStockForOrder(order: ServerOrder): Promise<void> {
+    for (const item of order.items || []) {
+      await this.notifyLowStock(item.productId, { variantId: item.variantId });
+    }
+  }
+
+  public async sendTransactionalEmail(
+    message: EmailMessage,
+    userId?: string,
+    notificationId?: string
+  ): Promise<EmailDeliveryResult> {
+    let result: EmailDeliveryResult;
+    try {
+      result = await emailService.sendEmail(message);
+    } catch (err: any) {
+      result = {
+        success: false,
+        delivered: false,
+        status: 'failed',
+        provider: emailService.getProviderName(),
+        error: err?.message || 'Erreur inattendue du service email.'
+      };
+    }
+    await this.recordEmailDelivery(message, result, userId, notificationId);
+    return result;
+  }
+
+  public async notifyUser(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    link: string | undefined,
+    orderId: string | undefined,
+    email: EmailMessage | undefined,
+    dedupeKey?: string
+  ): Promise<{ notification: UserNotification; email?: EmailDeliveryResult }> {
+    let preferences: NotificationPreference;
+    try {
+      preferences = await this.getNotificationPreferences(userId);
+    } catch (err: any) {
+      const error = err?.message || 'Préférences de notification indisponibles.';
+      console.error('[serverDb] notification preferences unavailable:', error);
+      const notification: UserNotification = {
+        id: randomUUID(), userId, type, title, message, link, orderId,
+        dedupeKey, read: false, createdAt: new Date().toISOString(), errorMessage: error
+      };
+      if (!email) return { notification };
+      const failed: EmailDeliveryResult = {
+        success: false,
+        delivered: false,
+        status: 'failed',
+        provider: emailService.getProviderName(),
+        error: `Préférences de notification indisponibles : ${error}`
+      };
+      await this.recordEmailDelivery(email, failed, userId);
+      return { notification, email: failed };
+    }
+
+    let notification: UserNotification;
+    if (preferences.inAppNotifications) {
+      try {
+        notification = await this.sendNotification(userId, type, title, message, link, orderId, dedupeKey);
+      } catch (err: any) {
+        const error = err?.message || 'Échec de création de la notification in-app.';
+        console.error('[serverDb] in-app notification unavailable:', error);
+        notification = {
+          id: randomUUID(), userId, type, title, message, link, orderId,
+          dedupeKey, read: false, createdAt: new Date().toISOString(), errorMessage: error
+        };
+        await this.logNotificationDelivery({
+          id: randomUUID(), userId, channel: 'in_app', status: 'failed', error,
+          createdAt: new Date().toISOString()
+        });
+      }
+    } else {
+      notification = {
+        id: randomUUID(), userId, type, title, message, link, orderId,
+        dedupeKey, read: false, createdAt: new Date().toISOString()
+      };
+    }
+    const notificationId = preferences.inAppNotifications && !notification.errorMessage ? notification.id : undefined;
+    if (!email) return { notification };
+
+    if (!preferences.emailNotifications || !preferences.transactionalEmails) {
+      const skipped: EmailDeliveryResult = {
+        success: false,
+        delivered: false,
+        status: 'logged',
+        provider: emailService.getProviderName(),
+        error: 'Email transactionnel désactivé par les préférences utilisateur.'
+      };
+      await this.recordEmailDelivery(email, skipped, userId, notificationId);
+      return { notification, email: skipped };
+    }
+
+    const result = await this.sendTransactionalEmail(email, userId, notificationId);
+    return { notification, email: result };
+  }
+
+  public async getNotificationDeliveryLogs(userId?: string, limit = 100): Promise<NotificationDeliveryLog[]> {
+    const safeLimit = Math.min(500, Math.max(1, Math.floor(limit)));
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      let query = supabase.from('notification_logs').select('*').order('created_at', { ascending: false }).limit(safeLimit);
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
+      ensureDatabaseSuccess('lecture du journal de livraison des notifications', error);
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        userId: row.user_id || undefined,
+        notificationId: row.notification_id || undefined,
+        channel: row.channel,
+        status: row.status,
+        provider: row.provider || undefined,
+        messageId: row.provider_message_id || undefined,
+        error: row.error || undefined,
+        createdAt: row.created_at
+      }));
+    }
+    return this.inMemoryNotificationLogs
+      .filter(log => !userId || log.userId === userId)
+      .slice(0, safeLimit);
   }
 
   public async getNotifications(userId: string): Promise<UserNotification[]> {
@@ -2257,6 +2670,7 @@ class SupabaseServerStore {
             message: n.message,
             link: n.link,
             orderId: n.order_id,
+            dedupeKey: n.dedupe_key || undefined,
             read: n.read,
             createdAt: n.created_at,
             deliveredAt: n.delivered_at,
@@ -2570,7 +2984,21 @@ class SupabaseServerStore {
 
     this.inMemoryReturns.unshift(ret);
     await this.logOrderStatusHistory(orderId, undefined, 'return_requested', userId, 'customer', ret.reason, 'customer_action');
-    await this.sendNotification(userId, 'return_requested', 'Demande de retour enregistrée', `Votre demande de retour pour la commande #${orderId} a été reçue.`, `/account?tab=returns`, orderId);
+    await this.notifyUser(
+      userId,
+      'return_requested',
+      'Demande de retour enregistrée',
+      `Votre demande de retour pour la commande #${orderId} a été reçue.`,
+      `/account?tab=returns`,
+      orderId,
+      {
+        to: order.customerEmail,
+        subject: `[KURLA BEAUTY] Demande de retour pour la commande #${orderId}`,
+        template: 'return_requested',
+        data: { orderId, returnId: ret.id }
+      },
+      `return-created:${ret.id}`
+    );
 
     return ret;
   }
@@ -2692,13 +3120,22 @@ class SupabaseServerStore {
     if (index >= 0) this.inMemoryReturns[index] = updatedReturn;
     else if (!supabase) this.inMemoryReturns.unshift(updatedReturn);
 
-    await this.sendNotification(
+    const returnMessage = `Le statut de votre retour pour la commande #${updatedReturn.orderId} est désormais : ${status.toUpperCase()}. ${adminComment ? 'Note admin : ' + adminComment : ''}`;
+    const returnOrder = await this.getOrderById(updatedReturn.orderId);
+    await this.notifyUser(
       updatedReturn.userId,
-      status === 'approved' ? 'refund_created' : 'return_requested',
+      'return_requested',
       `Mise à jour de votre retour #${updatedReturn.id}`,
-      `Le statut de votre retour pour la commande #${updatedReturn.orderId} est désormais : ${status.toUpperCase()}. ${adminComment ? 'Note admin : ' + adminComment : ''}`,
+      returnMessage,
       `/account?tab=returns`,
-      updatedReturn.orderId
+      updatedReturn.orderId,
+      returnOrder?.customerEmail ? {
+        to: returnOrder.customerEmail,
+        subject: `[KURLA BEAUTY] Mise à jour de votre retour #${updatedReturn.id}`,
+        template: 'return_requested',
+        data: { orderId: updatedReturn.orderId, status, returnId: updatedReturn.id }
+      } : undefined,
+      `return-status:${updatedReturn.id}:${status}`
     );
 
     return updatedReturn;
@@ -3056,22 +3493,28 @@ class SupabaseServerStore {
       applyStock: refundStatus === 'succeeded'
     });
 
-    if (refundStatus === 'succeeded' && order.userId) {
-      await this.sendNotification(
-        order.userId,
-        'refund_created',
-        'Remboursement effectué',
-        `Un remboursement de ${(refundCents / 100).toFixed(2)} EUR a été émis pour votre commande #${orderId}.`,
-        `/account?tab=refunds`,
-        orderId
-      );
-
-      await emailService.sendEmail({
+    if (refundStatus === 'succeeded') {
+      const title = 'Remboursement effectué';
+      const refundEmail: EmailMessage = {
         to: order.customerEmail,
         subject: `[KURLA BEAUTY] Remboursement effectué pour votre commande #${orderId}`,
         template: 'refund_created',
         data: { orderId, amount: refundCents / 100, reason }
-      });
+      };
+      if (order.userId) {
+        await this.notifyUser(
+          order.userId,
+          'refund_created',
+          title,
+          `Un remboursement de ${(refundCents / 100).toFixed(2)} EUR a été émis pour votre commande #${orderId}.`,
+          `/account?tab=refunds`,
+          orderId,
+          refundEmail,
+          `refund:${idempotencyKey}`
+        );
+      } else {
+        await this.sendTransactionalEmail(refundEmail);
+      }
     }
 
     return refund;
@@ -4058,13 +4501,22 @@ class SupabaseServerStore {
     }
 
     if ((senderRole === 'admin' || senderRole === 'agent') && ticket) {
-      await this.sendNotification(
+      const supportOrder = ticket.orderId ? await this.getOrderById(ticket.orderId) : undefined;
+      const recipientEmail = supportOrder?.customerEmail || await this.getEmailForUser(ticket.userId);
+      await this.notifyUser(
         ticket.userId,
         'support_reply',
         `Réponse à votre ticket support #${ticket.id}`,
         `Un conseiller a répondu à votre sujet "${ticket.subject}": ${message.substring(0, 80)}...`,
         `/account?tab=support`,
-        ticket.orderId
+        ticket.orderId,
+        recipientEmail ? {
+          to: recipientEmail,
+          subject: `[KURLA BEAUTY] Réponse à votre ticket #${ticket.id}`,
+          template: 'support_reply',
+          data: { ticketId: ticket.id, subject: ticket.subject, message }
+        } : undefined,
+        `support-reply:${msg.id}`
       );
     }
 
@@ -4327,6 +4779,7 @@ class SupabaseServerStore {
       message: row.message,
       link: row.link || undefined,
       orderId: row.order_id || undefined,
+      dedupeKey: row.dedupe_key || undefined,
       read: row.read === true,
       createdAt: row.created_at,
       deliveredAt: row.delivered_at || undefined,

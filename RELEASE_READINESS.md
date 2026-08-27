@@ -115,10 +115,11 @@ Les vérifications locales ont été exécutées via `npm test`, `npm run lint` 
 - **Chantier 3 — Panier & Commandes Persistantes** : panier normalisé et validé côté serveur, remplacement atomique via `replace_cart`, RLS stricte sur `carts`/`cart_items`, réservation de stock sous verrous PostgreSQL, déduplication des lignes et idempotence du checkout.
 - **Phase 3** : contrôles locaux réussis ; la persistance Supabase réelle dépend de l'application de `20260828000000_cart_order_integrity.sql` et d'un projet configuré.
 - **Phase 4** : 7/7 contrôles locaux réussis sur les webhooks Stripe, les transitions tardives, l’idempotence et le stock.
-- **Chantier 5 — opérations métier et administration** : 24/24 contrôles locaux réussis ; UUID opérationnels compatibles avec Supabase, expédition unique par commande, retours liés au propriétaire et aux quantités commandées, isolation support/notifications, et métriques basées sur une seule source avec revenu net après remboursements.
+- **Chantier 5 — opérations métier et administration** : 25/25 contrôles locaux réussis ; UUID opérationnels compatibles avec Supabase, expédition unique par commande, retours liés au propriétaire et aux quantités commandées, isolation support/notifications, et métriques basées sur une seule source avec revenu net après remboursements.
+- **Chantier 13 — notifications, emails et opérations** : dispatch centralisé in-app/email, préférences appliquées, déduplication, logs de provider/statut, rappels de routine, alertes stock faible et distinction stricte du mode console non envoyé. La migration `20260840000000_notifications_delivery_operations.sql` et la configuration SPF/DKIM restent à appliquer/valider sur l’environnement réel.
 - **Chantier 6 — durcissement production** : tests locaux dédiés réussis ; en-têtes de sécurité, corrélation `X-Request-Id`, limites de payload, rate limiting API, CORS explicite, erreurs publiques sans détails internes, arrêt gracieux, configuration de démarrage stricte et fournisseurs email/Stripe avec timeouts bornés.
 - **Chantier 2 — remboursements** : l’appel `stripe.refunds.create` utilise une clé d’idempotence ; la migration `20260827000000_refund_integrity.sql` ajoute le ledger, les contraintes d’unicité, la restauration atomique du stock et la réservation atomique des webhooks.
-- **Migrations** : les migrations explicites `20260826000000_harden_existing_schema.sql`, `20260827000000_refund_integrity.sql`, `20260828000000_cart_order_integrity.sql` et `20260829000000_operations_integrity.sql` sont contrôlées statiquement par la suite locale. Elles doivent encore être appliquées sur la base réelle.
+- **Migrations** : les migrations explicites `20260826000000_harden_existing_schema.sql`, `20260827000000_refund_integrity.sql`, `20260828000000_cart_order_integrity.sql`, `20260829000000_operations_integrity.sql` et `20260840000000_notifications_delivery_operations.sql` sont contrôlées statiquement par la suite locale. Elles doivent encore être appliquées sur la base réelle.
 - **Audits Build & Linting** :
   - `npm run lint` (`tsc --noEmit`) : 0 erreur de typage.
   - `npm run build` : compilation réussie (`dist/server.cjs` et `dist/index.html`).
@@ -181,8 +182,8 @@ Les contrôles locaux du chantier 1 sont réalisés ; les validations externes c
 - [x] Les retours vérifient le propriétaire de la commande, son statut, les lignes commandées et les quantités déjà demandées.
 - [x] Les routes client/admin conservent l’isolation des commandes, retours, expéditions, notifications et tickets support.
 - [x] Les métriques admin utilisent exclusivement la source configurée et exposent le revenu brut et net après remboursements confirmés.
-- [x] Les tests locaux Phase 5 couvrent 24 scénarios.
-- [ ] Appliquer `20260829000000_operations_integrity.sql` et rejouer les tests avec Supabase réel.
+- [x] Les tests locaux Phase 5 couvrent 25 scénarios, dont le dispatch email centralisé, les logs provider et les préférences.
+- [ ] Appliquer `20260829000000_operations_integrity.sql` et `20260840000000_notifications_delivery_operations.sql`, puis rejouer les tests avec Supabase réel.
 
 ### Chantier 6 — Durcissement production
 

@@ -736,8 +736,9 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Persist and reserve stock before creating an external Stripe session.
     // A failed Stripe call can then release the reservation through the order
     // state machine instead of leaving an untracked checkout.
-    await serverDb.saveOrder(newOrder);
+    const persistedOrder = await serverDb.saveOrder(newOrder);
     persistedOrderId = orderId;
+    await serverDb.notifyPaymentPending(persistedOrder);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -1588,6 +1589,7 @@ async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promis
 // ============================================================
 async function routinePayload(userId: string) {
   const state = await serverDb.getAdaptiveRoutineState(userId);
+  await serverDb.notifyDueRoutineReminders(userId, state.tasks);
   return {
     plan: state.plan || null,
     tasks: state.tasks,
@@ -2298,6 +2300,8 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
   const allowedStatuses = ['preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed'];
   const carrier = typeof req.body?.carrier === 'string' && allowedCarriers.includes(req.body.carrier) ? req.body.carrier : 'manual';
   const status = typeof req.body?.status === 'string' && allowedStatuses.includes(req.body.status) ? req.body.status : 'preparing';
+  const trackingNumber = typeof req.body?.trackingNumber === 'string' ? req.body.trackingNumber.trim().slice(0, 160) || undefined : undefined;
+  const trackingUrl = typeof req.body?.trackingUrl === 'string' ? req.body.trackingUrl.trim().slice(0, 2000) || undefined : undefined;
   const shipment = await serverDb.upsertShipment({
     id: typeof req.body?.id === 'string' ? req.body.id : randomUUID(),
     orderId: order.id,
@@ -2305,8 +2309,8 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
     carrier: carrier as any,
     method: typeof req.body?.method === 'string' ? req.body.method.trim().slice(0, 80) : 'standard',
     price: Number.isFinite(Number(req.body?.price)) ? Number(req.body.price) : 0,
-    trackingNumber: typeof req.body?.trackingNumber === 'string' ? req.body.trackingNumber.trim().slice(0, 160) || undefined : undefined,
-    trackingUrl: typeof req.body?.trackingUrl === 'string' ? req.body.trackingUrl.trim().slice(0, 2000) || undefined : undefined,
+    trackingNumber,
+    trackingUrl,
     status: status as any,
     shippedAt: req.body?.shippedAt,
     estimatedDelivery: req.body?.estimatedDelivery,
@@ -2314,19 +2318,60 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+
+  const shipmentToOrderStatus: Record<string, 'processing' | 'packed' | 'shipped' | 'delivered'> = {
+    preparing: 'processing',
+    label_created: 'packed',
+    shipped: 'shipped',
+    in_transit: 'shipped',
+    out_for_delivery: 'shipped',
+    delivered: 'delivered'
+  };
+  const orderStatus = shipmentToOrderStatus[status];
+  let resultingOrderStatus = order.status;
+  if (orderStatus && order.status !== orderStatus && serverDb.isTransitionAllowed(order.status, orderStatus)) {
+    const updatedOrder = await serverDb.updateOrderStatus(order.id, orderStatus, {
+      changedBy: admin.id,
+      changedByRole: admin.role,
+      reason: `Mise à jour expédition : ${status}`,
+      emailData: { carrier, trackingNumber, trackingUrl }
+    });
+    resultingOrderStatus = updatedOrder?.status || orderStatus;
+  }
   await serverDb.recordAdminAudit(admin.id, 'admin_shipment_update', { orderId: order.id, status, carrier });
-  res.json({ shipment });
+  res.json({ shipment, orderStatus: resultingOrderStatus });
+}));
+
+app.get('/api/admin/notification-logs', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const limit = Number(req.query.limit || 100);
+  const logs = await serverDb.getNotificationDeliveryLogs(undefined, Number.isFinite(limit) ? limit : 100);
+  res.json({ logs });
 }));
 
 app.post('/api/admin/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   const { userId, title, message, type, link, orderId } = req.body || {};
-  const allowedTypes = ['account_created', 'email_confirmation_pending', 'payment_pending', 'payment_confirmed', 'payment_failed', 'order_processing', 'order_packed', 'order_shipped', 'order_delivered', 'refund_created', 'return_requested', 'support_reply', 'low_stock', 'routine_reminder'];
+  const allowedTypes = [
+    'account_created', 'email_confirmation_pending', 'payment_pending', 'payment_confirmed', 'payment_failed',
+    'order_created', 'order_processing', 'order_packed', 'order_shipped', 'order_delivered', 'order_cancelled', 'order_returned',
+    'refund_created', 'order_refunded', 'order_partially_refunded', 'return_requested', 'support_reply', 'low_stock', 'routine_reminder'
+  ];
   if (typeof userId !== 'string' || typeof title !== 'string' || typeof message !== 'string' || !title.trim() || !message.trim() || !allowedTypes.includes(type)) {
     return res.status(400).json({ error: 'Destinataire, type, titre et message sont obligatoires.' });
   }
-  const notification = await serverDb.sendNotification(userId, type, title.trim().slice(0, 240), message.trim().slice(0, 4000), typeof link === 'string' ? link.trim().slice(0, 1000) : undefined, typeof orderId === 'string' ? orderId : undefined);
+  const { notification } = await serverDb.notifyUser(
+    userId,
+    type,
+    title.trim().slice(0, 240),
+    message.trim().slice(0, 4000),
+    typeof link === 'string' ? link.trim().slice(0, 1000) : undefined,
+    typeof orderId === 'string' ? orderId : undefined,
+    undefined,
+    `admin-notification:${admin.id}:${Date.now()}`
+  );
   await serverDb.recordAdminAudit(admin.id, 'admin_notification_send', { userId, type, notificationId: notification.id });
   res.status(201).json({ notification });
 }));

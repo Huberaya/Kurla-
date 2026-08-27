@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { serverDb } from '../src/lib/serverDb';
-import { emailService } from '../src/lib/emailService';
 import { shippingService } from '../src/lib/shippingService';
 
 export interface Phase5TestResult {
@@ -45,17 +44,22 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
   // Test 2: Notification "commande reçue" et log d'email
   try {
     const notif = await serverDb.sendNotification(userA, 'order_created', 'Commande reçue', `Commande #${orderId} enregistrée.`, `/account?tab=orders`, orderId);
-    const emailResult = await emailService.sendEmail({
+    const emailResult = await serverDb.sendTransactionalEmail({
       to: emailA,
       subject: `[KURLA BEAUTY] Commande #${orderId} reçue`,
       template: 'order_created',
       data: { orderId, total: 48 }
-    });
+    }, userA, notif.id);
+    const deliveryLogs = await serverDb.getNotificationDeliveryLogs(userA);
     results.push({
       testId: 2,
       testName: 'Notification et log email transactionnel',
-      passed: uuidPattern.test(notif.id) && emailResult.success,
-      details: `Notification in-app créée avec UUID (#${notif.id}) et email provider (${emailService.getProviderName()}) loggé.`
+      passed: uuidPattern.test(notif.id)
+        && emailResult.success
+        && emailResult.delivered === false
+        && emailResult.status === 'logged'
+        && deliveryLogs.some(log => log.channel === 'email' && log.status === 'logged' && log.provider === 'console'),
+      details: `Notification in-app créée avec UUID (#${notif.id}) ; email provider console journalisé explicitement comme non envoyé.`
     });
   } catch (err: any) {
     results.push({ testId: 2, testName: 'Notification et log email transactionnel', passed: false, details: err.message });
@@ -452,6 +456,43 @@ export async function runPhase5OperationsTests(): Promise<Phase5TestResult[]> {
     });
   } catch (err: any) {
     results.push({ testId: 24, testName: 'Unicité de l’expédition par commande', passed: false, details: err.message });
+  }
+
+  // Test 25: Préférences respectées et email console explicitement non livré
+  try {
+    await serverDb.updateNotificationPreferences(userA, {
+      emailNotifications: false,
+      inAppNotifications: false
+    });
+    const before = (await serverDb.getNotifications(userA)).length;
+    const routed = await serverDb.notifyUser(
+      userA,
+      'routine_reminder',
+      'Rappel test',
+      'Rappel non envoyé lorsque les préférences le désactivent.',
+      '/account?tab=routine',
+      undefined,
+      {
+        to: emailA,
+        subject: '[KURLA BEAUTY] Rappel test',
+        template: 'routine_reminder',
+        data: { taskTitle: 'Test', scheduledFor: new Date().toISOString().slice(0, 10) }
+      },
+      `preference-test:${Date.now()}`
+    );
+    const after = (await serverDb.getNotifications(userA)).length;
+    const logs = await serverDb.getNotificationDeliveryLogs(userA);
+    const latest = logs.find(log => log.channel === 'email');
+    results.push({
+      testId: 25,
+      testName: 'Préférences et distinction email non livré',
+      passed: before === after && routed.email?.delivered === false && routed.email?.status === 'logged'
+        && latest?.error?.includes('désactivé'),
+      details: `In-app inchangée (${before} -> ${after}), email marqué ${routed.email?.status} / delivered=${routed.email?.delivered}.`
+    });
+    await serverDb.updateNotificationPreferences(userA, { emailNotifications: true, inAppNotifications: true });
+  } catch (err: any) {
+    results.push({ testId: 25, testName: 'Préférences et distinction email non livré', passed: false, details: err.message });
   }
 
   return results;

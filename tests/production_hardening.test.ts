@@ -55,7 +55,9 @@ async function runProductionHardeningTests() {
       template: 'order_created',
       data: { orderId: 'hardening', total: 1 }
     });
-    if (productionConsoleEmail.success) throw new Error('Console email provider is still accepted in production.');
+    if (productionConsoleEmail.success || productionConsoleEmail.delivered || productionConsoleEmail.status !== 'failed' || productionConsoleEmail.provider !== 'console') {
+      throw new Error('Console email provider is still accepted or reported as delivered in production.');
+    }
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;
 

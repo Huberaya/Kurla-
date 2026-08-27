@@ -111,6 +111,24 @@ Les opérations métier utilisent enfin `20260829000000_operations_integrity.sql
 - En production, le serveur refuse de démarrer sans Supabase serveur, Stripe + webhook signé, URL publique HTTPS et fournisseur email réel.
 - `EMAIL_PROVIDER=console` est strictement réservé au développement. Les providers `resend`, `sendgrid` et `postmark` utilisent leurs API avec timeout de 10 secondes ; Stripe utilise un timeout de 15 secondes et des retries réseau bornés.
 
+### Notifications et emails transactionnels (chantier 13)
+
+Le serveur centralise chaque événement métier dans `serverDb.notifyUser()` : la notification in-app et l’email partagent une clé d’idempotence, les préférences `inAppNotifications` et email sont appliquées, et chaque tentative est écrite dans `notification_logs`. Les statuts distinguent explicitement :
+
+- `sent` / `delivered: true` : le provider réel a accepté l’email et son identifiant est conservé ;
+- `logged` / `delivered: false` : mode `console` en développement ou email désactivé par les préférences ; ce n’est jamais présenté comme un envoi ;
+- `failed` / `delivered: false` : configuration ou API fournisseur en erreur, avec le message journalisé.
+
+Les déclencheurs couvrent la création et confirmation de compte, les étapes de paiement, préparation, emballage, expédition et livraison, retours/remboursements, support, stock faible et rappels de routine. La migration `20260840000000_notifications_delivery_operations.sql` ajoute les clés de déduplication, le provider/ID message dans les logs et les notices de compte. Appliquez-la après `20260839000000_atomic_stock_lifecycle.sql`.
+
+Pour la production :
+
+1. Choisissez `resend`, `sendgrid` ou `postmark` et placez uniquement la clé API dans les variables secrètes du déploiement (`EMAIL_PROVIDER_API_KEY`).
+2. Vérifiez le domaine d’envoi chez le fournisseur. Publiez exactement les enregistrements **SPF** et **DKIM** fournis par celui-ci, puis attendez leur validation avant de passer `EMAIL_FROM` sur ce domaine. Ajoutez `EMAIL_REPLY_TO` pour les réponses support.
+3. Gardez `EMAIL_PROVIDER=console` en local uniquement : le serveur refuse ce provider avec `NODE_ENV=production`.
+4. L’email de confirmation d’identité est géré par Supabase Auth ; le trigger de profil crée en parallèle les notifications in-app `account_created` et `email_confirmation_pending`. Configurez l’URL de redirection Supabase sur l’URL publique HTTPS de l’application.
+5. Utilisez `GET /api/admin/notification-logs` avec un JWT administrateur pour auditer les envois, les erreurs et les emails simplement journalisés.
+
 ## 🔐 7. Rotation des secrets exposés
 
 Les anciennes clés ou mots de passe présents dans l'historique public doivent être considérés comme compromis. Depuis les consoles Supabase, GitHub et de l'hébergeur :
