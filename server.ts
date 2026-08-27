@@ -1073,6 +1073,30 @@ app.post('/api/admin/catalog/import/supplier', asyncRoute(async (req: Authentica
   }
 }));
 
+app.get('/api/content', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const contentType = typeof req.query.type === 'string' ? req.query.type.trim() : '';
+  const topic = typeof req.query.topic === 'string' ? req.query.topic.trim() : '';
+  const contents = (await serverDb.getPublishedArticles()).filter(content =>
+    (!contentType || content.contentType === contentType) && (!topic || content.topic === topic)
+  );
+  res.json({ contents, count: contents.length });
+}));
+
+app.get('/api/content/:slug', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const content = await serverDb.getPublishedArticle(req.params.slug);
+  if (!content) return res.status(404).json({ error: 'Contenu non disponible.' });
+  res.json({ content });
+}));
+
+app.get('/api/journal', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const topic = typeof req.query.topic === 'string' ? req.query.topic.trim() : '';
+  const type = typeof req.query.type === 'string' ? req.query.type.trim() : '';
+  const contents = (await serverDb.getPublishedArticles()).filter(content =>
+    (!topic || content.topic === topic) && (!type || content.contentType === type)
+  );
+  res.json({ contents, count: contents.length });
+}));
+
 app.get('/api/articles', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
   const articles = await serverDb.getPublishedArticles();
   res.json({ articles });
@@ -2374,7 +2398,7 @@ app.get('/api/admin/dashboard', asyncRoute(async (req: AuthenticatedRequest, res
 app.post('/api/admin/entities/:entity', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const allowedEntities = ['brand', 'category', 'article', 'ai_source', 'coupon'];
+  const allowedEntities = ['brand', 'category', 'article', 'content', 'ai_source', 'coupon'];
   if (!allowedEntities.includes(req.params.entity)) return res.status(404).json({ error: 'Entité admin inconnue.' });
   try {
     const saved = await serverDb.saveAdminEntity(admin.id, req.params.entity as any, req.body || {});
@@ -2387,7 +2411,7 @@ app.post('/api/admin/entities/:entity', asyncRoute(async (req: AuthenticatedRequ
 app.patch('/api/admin/entities/:entity/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const allowedEntities = ['brand', 'category', 'article', 'ai_source', 'coupon'];
+  const allowedEntities = ['brand', 'category', 'article', 'content', 'ai_source', 'coupon'];
   if (!allowedEntities.includes(req.params.entity)) return res.status(404).json({ error: 'Entité admin inconnue.' });
   try {
     const saved = await serverDb.saveAdminEntity(admin.id, req.params.entity as any, { ...(req.body || {}), id: req.params.id });

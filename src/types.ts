@@ -207,9 +207,20 @@ export interface Article {
   excerpt: string;
   readTime: string;
   date: string;
+  createdAt?: string;
   author: string;
   image: string;
   content: string;
+  contentType?: 'article' | 'video' | 'guide' | 'ingredient_sheet' | 'routine';
+  topic?: string;
+  language?: string;
+  updatedAt?: string;
+  sources?: Array<{ label: string; url?: string; publisher?: string; accessedAt?: string; note?: string }>;
+  evidenceLevel?: 'not_provided' | 'low' | 'moderate' | 'high' | 'expert_consensus';
+  medicalWarning?: string;
+  translations?: Record<string, { title: string; excerpt?: string; content: string; medicalWarning?: string }>;
+  mediaUrl?: string;
+  duration?: string;
   faq?: { question: string; answer: string }[];
   relatedProducts?: string[];
 }

@@ -14,8 +14,30 @@ const buttonClass = 'inline-flex items-center justify-center gap-2 px-3 py-2 rou
 const mutedButtonClass = 'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 hover:border-[#C8753D]/60 text-[#FFF7EF]/80 text-xs font-semibold disabled:opacity-40';
 
 function emptyArticle() {
-  return { title: '', slug: '', category: '', excerpt: '', readTime: '', author: '', imageUrl: '', content: '', status: 'draft' };
+  return {
+    title: '', slug: '', category: '', contentType: 'article', topic: '', language: '',
+    excerpt: '', readTime: '', author: '', imageUrl: '', mediaUrl: '', duration: '', content: '',
+    sources: '[]', evidenceLevel: 'not_provided', medicalWarning: '', translations: '{}',
+    relatedProductIds: [], status: 'draft'
+  };
 }
+function articleFormFromRow(row: any) {
+  return {
+    ...emptyArticle(),
+    ...row,
+    imageUrl: row.imageUrl || row.image_url || '',
+    contentType: row.contentType || row.content_type || 'article',
+    topic: row.topic || '',
+    language: row.language || '',
+    mediaUrl: row.mediaUrl || row.media_url || '',
+    evidenceLevel: row.evidenceLevel || row.evidence_level || 'not_provided',
+    medicalWarning: row.medicalWarning || row.medical_warning || '',
+    relatedProductIds: Array.isArray(row.relatedProductIds) ? row.relatedProductIds : (Array.isArray(row.related_product_ids) ? row.related_product_ids : []),
+    sources: JSON.stringify(Array.isArray(row.sources) ? row.sources : [], null, 2),
+    translations: JSON.stringify(row.translations && typeof row.translations === 'object' ? row.translations : {}, null, 2)
+  };
+}
+
 function emptySource() {
   return { title: '', domains: '', sourceLabel: '', evidenceUrl: '', content: '', validationStatus: 'pending', active: false };
 }
@@ -86,7 +108,7 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
       body: JSON.stringify(value)
     });
     if (result) {
-      if (entity === 'article') setArticleForm(emptyArticle());
+      if (entity === 'article' || entity === 'content') setArticleForm(emptyArticle());
       if (entity === 'ai_source') setSourceForm(emptySource());
       if (entity === 'coupon') setCouponForm(emptyCoupon());
     }
@@ -161,7 +183,31 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
   );
 
   const renderArticles = () => (
-    <div className="grid xl:grid-cols-[1fr_430px] gap-6"><div className="space-y-3">{rows.articles?.length ? rows.articles.filter((article: any) => matches(article.title, article.slug, article.status, article.category)).map((article: any) => <div key={article.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 flex justify-between gap-3"><div><p className="text-sm font-semibold">{article.title}</p><p className="text-[11px] text-[#D49A63]">/{article.slug} · {article.status}</p></div><button className={mutedButtonClass} onClick={() => setArticleForm({ ...article })}><Pencil className="w-3.5 h-3.5" /> Modifier</button></div>) : renderEmpty('Aucun article persistant. Créez un brouillon pour commencer.')}</div><form className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-2.5" onSubmit={e => { e.preventDefault(); saveEntity('article', { ...articleForm, relatedProductIds: articleForm.relatedProductIds || [] }, articleForm.id); }}><h3 className="text-sm font-semibold">{articleForm.id ? 'Modifier un article' : 'Nouvel article éditorial'}</h3><input className={inputClass} placeholder="Titre" value={articleForm.title} onChange={e => setArticleForm({ ...articleForm, title: e.target.value })} /><input className={inputClass} placeholder="slug-de-l-article" value={articleForm.slug} onChange={e => setArticleForm({ ...articleForm, slug: e.target.value })} /><div className="grid grid-cols-2 gap-2"><input className={inputClass} placeholder="Catégorie" value={articleForm.category} onChange={e => setArticleForm({ ...articleForm, category: e.target.value })} /><select className={inputClass} value={articleForm.status} onChange={e => setArticleForm({ ...articleForm, status: e.target.value })}><option value="draft">draft</option><option value="published">published</option><option value="archived">archived</option></select></div><input className={inputClass} placeholder="Auteur (facultatif)" value={articleForm.author} onChange={e => setArticleForm({ ...articleForm, author: e.target.value })} /><input className={inputClass} placeholder="URL image facultative" value={articleForm.imageUrl} onChange={e => setArticleForm({ ...articleForm, imageUrl: e.target.value })} /><input className={inputClass} placeholder="Temps de lecture (facultatif)" value={articleForm.readTime} onChange={e => setArticleForm({ ...articleForm, readTime: e.target.value })} /><textarea className={inputClass} rows={2} placeholder="Extrait" value={articleForm.excerpt} onChange={e => setArticleForm({ ...articleForm, excerpt: e.target.value })} /><textarea className={inputClass} rows={8} placeholder="Contenu éditorial obligatoire" value={articleForm.content} onChange={e => setArticleForm({ ...articleForm, content: e.target.value })} /><div className="flex gap-2"><button className={buttonClass}><Save className="w-3.5 h-3.5" /> Enregistrer l’article</button>{articleForm.id && <button type="button" className={mutedButtonClass} onClick={() => setArticleForm(emptyArticle())}>Nouveau</button>}</div></form></div>
+    <div className="grid xl:grid-cols-[1fr_500px] gap-6">
+      <div className="space-y-3">
+        {rows.articles?.length ? rows.articles.filter((article: any) => matches(article.title, article.slug, article.status, article.category, article.contentType, article.topic)).map((article: any) => <div key={article.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 flex justify-between gap-3"><div><p className="text-sm font-semibold">{article.title}</p><p className="text-[11px] text-[#D49A63]">/{article.slug} · {article.contentType || 'article'} · {article.status}</p><p className="text-[11px] text-[#FFF7EF]/45">{article.topic || 'thématique non renseignée'} · auteur : {article.author || 'non renseigné'} · preuve : {article.evidenceLevel || 'non renseignée'}</p></div><button className={mutedButtonClass} onClick={() => setArticleForm(articleFormFromRow(article))}><Pencil className="w-3.5 h-3.5" /> Modifier</button></div>) : renderEmpty('Aucun contenu éditorial persistant. Créez un brouillon pour commencer.')}
+      </div>
+      <form className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto" onSubmit={e => { e.preventDefault(); saveEntity('content', { ...articleForm, relatedProductIds: typeof articleForm.relatedProductIds === 'string' ? articleForm.relatedProductIds.split(',').map((id: string) => id.trim()).filter(Boolean) : (articleForm.relatedProductIds || []) }, articleForm.id); }}>
+        <h3 className="text-sm font-semibold">{articleForm.id ? 'Modifier un contenu éditorial' : 'Nouveau contenu éditorial'}</h3>
+        <p className="text-[11px] text-[#FFF7EF]/45">Les champs manquants restent explicitement non renseignés. Une publication est bloquée sans auteur, source, niveau de preuve, langue et traduction.</p>
+        <input className={inputClass} required placeholder="Titre obligatoire" value={articleForm.title} onChange={e => setArticleForm({ ...articleForm, title: e.target.value })} />
+        <input className={inputClass} required placeholder="slug-du-contenu" value={articleForm.slug} onChange={e => setArticleForm({ ...articleForm, slug: e.target.value })} />
+        <div className="grid grid-cols-2 gap-2"><select className={inputClass} value={articleForm.contentType} onChange={e => setArticleForm({ ...articleForm, contentType: e.target.value })}><option value="article">Article</option><option value="video">Vidéo</option><option value="guide">Guide</option><option value="ingredient_sheet">Fiche ingrédient</option><option value="routine">Routine éditoriale</option></select><select className={inputClass} value={articleForm.status} onChange={e => setArticleForm({ ...articleForm, status: e.target.value })}><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></div>
+        <div className="grid grid-cols-2 gap-2"><select className={inputClass} value={articleForm.topic} onChange={e => setArticleForm({ ...articleForm, topic: e.target.value })}><option value="">Thématique non renseignée</option><option value="general">Général</option><option value="men">Conseils hommes</option><option value="children">Conseils enfants</option><option value="braids">Tresses</option><option value="locks">Locks</option><option value="beard">Barbe</option><option value="sunscreen">Protection solaire</option><option value="colored_hair">Cheveux colorés</option><option value="relaxed_hair">Cheveux défrisés</option><option value="sensitive_skin">Peau sensible</option><option value="hyperpigmentation">Hyperpigmentation</option><option value="scalp_health">Santé du cuir chevelu</option></select><input className={inputClass} placeholder="Langue principale (fr)" value={articleForm.language} onChange={e => setArticleForm({ ...articleForm, language: e.target.value })} /></div>
+        <input className={inputClass} placeholder="Auteur (obligatoire avant publication)" value={articleForm.author} onChange={e => setArticleForm({ ...articleForm, author: e.target.value })} />
+        <input className={inputClass} placeholder="Catégorie d’affichage (facultative)" value={articleForm.category} onChange={e => setArticleForm({ ...articleForm, category: e.target.value })} />
+        <input className={inputClass} placeholder="URL image facultative" value={articleForm.imageUrl} onChange={e => setArticleForm({ ...articleForm, imageUrl: e.target.value })} />
+        <div className="grid grid-cols-2 gap-2"><input className={inputClass} placeholder="URL média (obligatoire pour vidéo publiée)" value={articleForm.mediaUrl} onChange={e => setArticleForm({ ...articleForm, mediaUrl: e.target.value })} /><input className={inputClass} placeholder="Durée facultative" value={articleForm.duration} onChange={e => setArticleForm({ ...articleForm, duration: e.target.value })} /></div>
+        <div className="grid grid-cols-2 gap-2"><input className={inputClass} placeholder="Temps de lecture facultatif" value={articleForm.readTime} onChange={e => setArticleForm({ ...articleForm, readTime: e.target.value })} /><select className={inputClass} value={articleForm.evidenceLevel} onChange={e => setArticleForm({ ...articleForm, evidenceLevel: e.target.value })}><option value="not_provided">Preuve non renseignée</option><option value="low">Faible</option><option value="moderate">Modérée</option><option value="high">Élevée</option><option value="expert_consensus">Consensus d’experts</option></select></div>
+        <textarea className={inputClass} rows={2} placeholder="Extrait facultatif" value={articleForm.excerpt} onChange={e => setArticleForm({ ...articleForm, excerpt: e.target.value })} />
+        <textarea className={inputClass} rows={8} required placeholder="Contenu éditorial obligatoire" value={articleForm.content} onChange={e => setArticleForm({ ...articleForm, content: e.target.value })} />
+        <textarea className={inputClass} rows={3} placeholder="Avertissement médical éventuel" value={articleForm.medicalWarning} onChange={e => setArticleForm({ ...articleForm, medicalWarning: e.target.value })} />
+        <input className={inputClass} placeholder="IDs des produits associés, séparés par des virgules (facultatif)" value={Array.isArray(articleForm.relatedProductIds) ? articleForm.relatedProductIds.join(', ') : (articleForm.relatedProductIds || '')} onChange={e => setArticleForm({ ...articleForm, relatedProductIds: e.target.value })} />
+        <textarea className={inputClass + ' font-mono'} rows={5} placeholder={'Sources JSON, ex. [{"label":"Nom de la source","url":"https://..."}]'} value={articleForm.sources} onChange={e => setArticleForm({ ...articleForm, sources: e.target.value })} />
+        <textarea className={inputClass + ' font-mono'} rows={7} placeholder={'Traductions JSON, ex. {"fr":{"title":"...","content":"..."}}'} value={articleForm.translations} onChange={e => setArticleForm({ ...articleForm, translations: e.target.value })} />
+        <div className="flex gap-2"><button className={buttonClass} disabled={busy === 'save-content'}><Save className="w-3.5 h-3.5" /> Enregistrer le contenu</button>{articleForm.id && <button type="button" className={mutedButtonClass} onClick={() => setArticleForm(emptyArticle())}>Nouveau</button>}</div>
+      </form>
+    </div>
   );
 
   const renderSources = () => (

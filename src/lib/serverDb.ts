@@ -5,6 +5,7 @@ import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoole
 import { emailService, EmailDeliveryResult, EmailMessage } from './emailService';
 import { shippingService, ShippingCarrier, ShipmentDetails, ShipmentEvent, ShipmentStatus } from './shippingService';
 import { getShippingOption, normalizeShippingAddress, ShippingAddressInput, SHIPPING_OPTIONS } from './shippingRules';
+import { EDUCATIONAL_CONTENT_TYPES, EDUCATIONAL_TOPICS, EVIDENCE_LEVELS, EducationalContentSource, normalizeContentSources, normalizeContentTranslations } from './educationalContent';
 import {
   BeautyProfile,
   BeautyProfileHistoryEntry,
@@ -5169,27 +5170,64 @@ class SupabaseServerStore {
   }
 
   private mapPublicArticle(row: any): any {
+    const contentType = row.content_type || row.contentType || 'article';
+    const topic = row.topic;
+    const language = row.language;
+    const sources = row.sources;
+    const translations = row.translations;
     return {
       id: row.id,
       slug: row.slug,
       title: row.title,
       category: row.category,
+      contentType,
+      topic: topic || undefined,
+      language: language || undefined,
       excerpt: row.excerpt || '',
-      readTime: row.read_time || '',
+      readTime: row.read_time || row.readTime || '',
       author: row.author || '',
-      imageUrl: row.image_url || '',
+      imageUrl: row.image_url || row.imageUrl || '',
       content: row.content || '',
+      mediaUrl: row.media_url || row.mediaUrl || undefined,
+      duration: row.duration || undefined,
+      sources: Array.isArray(sources) ? sources : [],
+      evidenceLevel: row.evidence_level || row.evidenceLevel || 'not_provided',
+      medicalWarning: row.medical_warning || row.medicalWarning || undefined,
+      translations: translations && typeof translations === 'object' && !Array.isArray(translations) ? translations : {},
       faq: Array.isArray(row.faq) ? row.faq : [],
-      publishedAt: row.published_at || row.created_at
+      relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : (Array.isArray(row.relatedProductIds) ? row.relatedProductIds : []),
+      publishedAt: row.published_at || row.publishedAt || row.created_at || row.createdAt,
+      createdAt: row.created_at || row.createdAt,
+      updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt
     };
+  }
+
+  private isPublicEducationalContent(content: any): boolean {
+    const evidenceLevel = content.evidence_level || content.evidenceLevel;
+    const contentType = content.content_type || content.contentType || 'article';
+    const translations = content.translations;
+    const mediaUrl = content.media_url || content.mediaUrl;
+    return content.status === 'published'
+      && typeof content.author === 'string' && content.author.trim() !== ''
+      && typeof content.language === 'string' && content.language.trim() !== ''
+      && typeof content.topic === 'string' && content.topic.trim() !== ''
+      && typeof content.content === 'string' && content.content.trim() !== ''
+      && Array.isArray(content.sources) && content.sources.length > 0
+      && evidenceLevel !== 'not_provided'
+      && (contentType !== 'video' || (typeof mediaUrl === 'string' && mediaUrl.trim() !== ''))
+      && translations && typeof translations === 'object' && !Array.isArray(translations)
+      && Object.keys(translations).length > 0;
   }
 
   public async getPublishedArticles(): Promise<any[]> {
     const supabase = getSupabaseServerClient();
-    if (!supabase) return [];
-    const { data, error } = await supabase.from('content_articles').select('id, slug, title, category, excerpt, read_time, author, image_url, content, faq, published_at, created_at').eq('status', 'published').order('published_at', { ascending: false }).order('created_at', { ascending: false });
-    ensureDatabaseSuccess('lecture des articles publiés', error);
-    return (data || []).map(row => this.mapPublicArticle(row));
+    if (!supabase) return this.inMemoryAdminArticles
+      .filter(content => this.isPublicEducationalContent(content))
+      .sort((a, b) => String(b.published_at || b.created_at || '').localeCompare(String(a.published_at || a.created_at || '')))
+      .map(content => this.mapPublicArticle(content));
+    const { data, error } = await supabase.from('content_articles').select('id, slug, title, category, content_type, topic, language, excerpt, read_time, author, image_url, content, media_url, duration, sources, evidence_level, medical_warning, translations, faq, related_product_ids, published_at, created_at, updated_at').eq('status', 'published').order('published_at', { ascending: false }).order('created_at', { ascending: false });
+    ensureDatabaseSuccess('lecture des contenus éducatifs publiés', error);
+    return (data || []).filter(row => this.isPublicEducationalContent(row)).map(row => this.mapPublicArticle(row));
   }
 
   public async getPublishedArticle(slug: string): Promise<any | undefined> {
@@ -5203,11 +5241,20 @@ class SupabaseServerStore {
       slug: row.slug,
       title: row.title,
       category: row.category,
+      contentType: row.content_type || 'article',
+      topic: row.topic || undefined,
+      language: row.language || undefined,
       excerpt: row.excerpt || '',
       readTime: row.read_time || '',
       author: row.author || '',
       imageUrl: row.image_url || '',
       content: row.content || '',
+      mediaUrl: row.media_url || undefined,
+      duration: row.duration || undefined,
+      sources: Array.isArray(row.sources) ? row.sources : [],
+      evidenceLevel: row.evidence_level || 'not_provided',
+      medicalWarning: row.medical_warning || undefined,
+      translations: row.translations && typeof row.translations === 'object' && !Array.isArray(row.translations) ? row.translations : {},
       faq: Array.isArray(row.faq) ? row.faq : [],
       relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
       status: row.status,
@@ -5401,7 +5448,7 @@ class SupabaseServerStore {
     };
   }
 
-  public async saveAdminEntity(adminId: string, entity: 'brand' | 'category' | 'article' | 'ai_source' | 'coupon', input: any): Promise<any> {
+  public async saveAdminEntity(adminId: string, entity: 'brand' | 'category' | 'article' | 'content' | 'ai_source' | 'coupon', input: any): Promise<any> {
     const supabase = getSupabaseServerClient();
     const now = new Date().toISOString();
     let saved: any;
@@ -5420,15 +5467,63 @@ class SupabaseServerStore {
       const payload = { id, slug, name, description: typeof input.description === 'string' ? input.description.trim().slice(0, 4000) || null : null, updated_at: now };
       if (supabase) { const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de la catégorie', error); saved = data; }
       else { saved = { ...payload, created_at: now }; this.inMemoryAdminCategories = [saved, ...this.inMemoryAdminCategories.filter(category => category.id !== id)]; }
-    } else if (entity === 'article') {
+    } else if (entity === 'article' || entity === 'content') {
       const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 240) : '';
       const slug = typeof input?.slug === 'string' ? input.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').slice(0, 180) : '';
       const content = typeof input?.content === 'string' ? input.content.trim().slice(0, 100000) : '';
-      if (!title || !slug || !content) throw new Error('Le titre, le slug et le contenu de l’article sont obligatoires.');
-      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const author = typeof input?.author === 'string' ? input.author.trim().slice(0, 160) : '';
+      const language = typeof input?.language === 'string' ? input.language.trim().toLowerCase().slice(0, 20) : '';
+      const contentType = typeof input?.contentType === 'string' ? input.contentType.trim() : 'article';
+      const topic = typeof input?.topic === 'string' ? input.topic.trim() : '';
+      const evidenceLevel = typeof input?.evidenceLevel === 'string' ? input.evidenceLevel.trim() : 'not_provided';
+      if (!title || !slug || !content) throw new Error('Le titre, le slug et le contenu sont obligatoires.');
+      if (language && !/^[a-z]{2}(?:-[a-z]{2})?$/.test(language)) throw new Error('La langue principale doit être au format ISO simple (ex. fr ou en).');
+      if (!(EDUCATIONAL_CONTENT_TYPES as readonly string[]).includes(contentType)) throw new Error('Type de contenu éducatif invalide.');
+      if (topic && !(EDUCATIONAL_TOPICS as readonly string[]).includes(topic)) throw new Error('Thématique éducative invalide.');
+      if (!(EVIDENCE_LEVELS as readonly string[]).includes(evidenceLevel)) throw new Error('Niveau de preuve invalide.');
+      const sources: EducationalContentSource[] = normalizeContentSources(input?.sources);
+      const translations = normalizeContentTranslations(input?.translations);
+      const mediaUrl = typeof input?.mediaUrl === 'string' ? input.mediaUrl.trim().slice(0, 2000) : '';
+      if (mediaUrl && !/^https?:\/\/[^\s]+$/i.test(mediaUrl)) throw new Error('L’URL du média est invalide.');
       const status = ['draft', 'published', 'archived'].includes(input.status) ? input.status : 'draft';
-      const payload = { id, slug, title, category: typeof input.category === 'string' ? input.category.trim().slice(0, 100) || 'non-classe' : 'non-classe', excerpt: typeof input.excerpt === 'string' ? input.excerpt.trim().slice(0, 1000) || null : null, read_time: typeof input.readTime === 'string' ? input.readTime.trim().slice(0, 80) || null : null, author: typeof input.author === 'string' ? input.author.trim().slice(0, 160) || null : null, image_url: typeof input.imageUrl === 'string' ? input.imageUrl.trim().slice(0, 2000) || null : null, content, faq: Array.isArray(input.faq) ? input.faq.slice(0, 30) : [], related_product_ids: Array.isArray(input.relatedProductIds) ? input.relatedProductIds.filter((id: unknown) => typeof id === 'string').slice(0, 50) : [], status, published_at: status === 'published' ? (input.publishedAt || now) : null, created_by: adminId, updated_by: adminId, updated_at: now };
-      if (supabase) { const { data, error } = await supabase.from('content_articles').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement de l’article', error); saved = this.mapAdminArticle(data); }
+      if (status === 'published') {
+        if (!author) throw new Error('L’auteur est obligatoire avant publication.');
+        if (!language) throw new Error('La langue principale est obligatoire avant publication.');
+        if (!topic) throw new Error('La thématique est obligatoire avant publication.');
+        if (!sources.length) throw new Error('Une publication doit comporter au moins une source.');
+        if (evidenceLevel === 'not_provided') throw new Error('Un niveau de preuve doit être renseigné avant publication.');
+        if (!Object.keys(translations).length) throw new Error('Ajoutez au moins une traduction avant publication.');
+        if (contentType === 'video' && !mediaUrl) throw new Error('Une vidéo publiée doit comporter une URL média.');
+      }
+      const id = isUuid(input?.id) ? input.id : randomUUID();
+      const payload = {
+        id,
+        slug,
+        title,
+        category: typeof input.category === 'string' ? input.category.trim().slice(0, 100) || topic || 'non-classe' : topic || 'non-classe',
+        content_type: contentType,
+        topic: topic || null,
+        language: language || null,
+        excerpt: typeof input.excerpt === 'string' ? input.excerpt.trim().slice(0, 1000) || null : null,
+        read_time: typeof input.readTime === 'string' ? input.readTime.trim().slice(0, 80) || null : null,
+        author: author || null,
+        image_url: typeof input.imageUrl === 'string' ? input.imageUrl.trim().slice(0, 2000) || null : null,
+        content,
+        media_url: mediaUrl || null,
+        duration: typeof input.duration === 'string' ? input.duration.trim().slice(0, 80) || null : null,
+        sources,
+        evidence_level: evidenceLevel,
+        medical_warning: typeof input.medicalWarning === 'string' ? input.medicalWarning.trim().slice(0, 2000) || null : null,
+        translations,
+        faq: Array.isArray(input.faq) ? input.faq.slice(0, 30) : [],
+        related_product_ids: Array.isArray(input.relatedProductIds) ? input.relatedProductIds.filter((productId: unknown) => typeof productId === 'string').slice(0, 50) : [],
+        status,
+        published_at: status === 'published' ? (input.publishedAt || now) : null,
+        created_by: adminId,
+        updated_by: adminId,
+        updated_at: now
+      };
+      if (supabase) { const { data, error } = await supabase.from('content_articles').upsert(payload, { onConflict: 'id' }).select('*').single(); ensureDatabaseSuccess('enregistrement du contenu éducatif', error); saved = this.mapAdminArticle(data); }
       else { saved = this.mapAdminArticle({ ...payload, created_at: now }); this.inMemoryAdminArticles = [saved, ...this.inMemoryAdminArticles.filter(article => article.id !== id)]; }
     } else if (entity === 'ai_source') {
       const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 240) : '';

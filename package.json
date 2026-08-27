@@ -19,10 +19,11 @@
     "test:ai-product": "KURLA_TEST_NO_SERVER=true tsx tests/ai_assistant_product.test.ts",
     "test:marketplace": "KURLA_TEST_NO_SERVER=true tsx tests/marketplace_trust.test.ts",
     "test:adaptive-routines": "KURLA_TEST_NO_SERVER=true tsx tests/adaptive_routines.test.ts",
-    "test": "npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
+    "test": "npm run test:authorization && npm run test:hardening && npm run test:marketplace && npm run test:catalog && npm run test:admin-dashboard && npm run test:educational-content && npm run test:adaptive-routines && npm run test:beauty-profile && npm run test:ai-product && npm run test:atomic-stock && tsx tests/supabase.test.ts && tsx tests/phase5_operations.test.ts && tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:catalog": "KURLA_TEST_NO_SERVER=true tsx tests/catalog_management.test.ts",
     "test:admin-dashboard": "KURLA_TEST_NO_SERVER=true tsx tests/admin_dashboard.test.ts",
+    "test:educational-content": "KURLA_TEST_NO_SERVER=true tsx tests/educational_content.test.ts",
     "test:atomic-stock": "KURLA_TEST_NO_SERVER=true tsx tests/phase7_atomic_stock.test.ts",
     "test:atomic-stock-integration": "tsx tests/phase7_atomic_stock.integration.test.ts"
   },

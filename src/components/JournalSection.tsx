@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Clock, ArrowRight } from 'lucide-react';
 import { usePublishedArticles } from '../services/articleService';
+import { contentTypeLabel, topicLabel } from '../lib/educationalContent';
 
 export const JournalSection: React.FC = () => {
   const { articles, loading } = usePublishedArticles();
@@ -46,9 +47,14 @@ export const JournalSection: React.FC = () => {
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   /> : <div className="w-full h-full bg-[#E8E1DA] flex items-center justify-center"><BookOpen className="w-10 h-10 text-[#C8753D]" /></div>}
-                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#FFFDF9]/90 backdrop-blur-md text-[11px] font-semibold text-[#111111] border border-[#E8E1DA]">
-                    {article.category}
-                  </span>
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    <span className="px-3 py-1 rounded-full bg-[#FFFDF9]/90 backdrop-blur-md text-[11px] font-semibold text-[#111111] border border-[#E8E1DA]">
+                      {contentTypeLabel(article.contentType || 'article')}
+                    </span>
+                    {article.topic && <span className="px-3 py-1 rounded-full bg-[#FFFDF9]/90 backdrop-blur-md text-[11px] text-[#111111] border border-[#E8E1DA]">
+                      {topicLabel(article.topic)}
+                    </span>}
+                  </div>
                 </div>
 
                 <div className="p-6 space-y-3">
