@@ -531,9 +531,35 @@ sont documentées dans le commit : retirer une route (l'attendu est dérivé de 
 même table — la complétude est le filet du banc 7.1) et ajouter une règle
 redondante (la minimisation la neutralise, c'est elle qu'on teste).
 
+### 7.3 — Prérendu au build (action 8) ✅
+
+`scripts/prerender.ts` écrit, pour chaque route publique statique,
+`dist/<chemin>/index.html` : la coquille Vite dont le `<head>` porte déjà les
+métadonnées de la route (titre, description, canonique, OG, robots, JSON-LD) et
+dont le corps contient une amorce (`<h1>` + description). Un moteur qui n'exécute
+pas JavaScript reçoit un titre, une description et un `<h1>` distincts par route —
+vérifié en ligne sur le HTML brut de `/`, `/boutique`, `/melanin-skin`,
+`/guides/ingredients`, `/diagnostic/cheveux`.
+
+Pourquoi pas un `renderToString` complet : nos pages lisent leurs données dans des
+`useEffect` au montage, que `renderToString` n'exécute pas ; un vrai SSR de contenu
+exigerait de brancher le build sur Supabase et sur les pages du graphe (7.4). Le
+prérendu n'utilise que `routeMeta.ts` (données pures, ni React, ni navigateur).
+
+Piège rencontré et consigné : `buildCommand` est limité à **256 caractères** ;
+l'ajout du prérendu faisait 266 et le déploiement passait en ERROR avec un journal
+de build vide. La chaîne complète vit désormais dans `scripts/build-vercel.sh`,
+`vercel.json` délégant par `buildCommand = bash scripts/build-vercel.sh`.
+
+Bug trouvé par le banc : `JSON.stringify` ne protège pas la balise fermante de
+`<script>` dans le bloc JSON-LD ; un titre hostile fermait la balise et injectait
+du HTML. Corrigé par `safeJsonLd` (`<` échappé en `\u003c`, JSON valide).
+
+`tests/chantier_7_prerender.test.ts` validé par mutation (amorce supprimée,
+canonique supprimé, titre hostile : tous détectés).
+
 ### Restant
 
-- [ ] **7.3** Prérendu au build (action 8) : HTML statique par route indexable
 - [ ] **7.4** Fiches ingrédient publiques et pages générées depuis le graphe :
       ingrédient × problème × texture × ville (action 37)
 - [ ] **7.5** Internationalisation : framework de traduction, extraction des
