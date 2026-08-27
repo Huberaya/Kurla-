@@ -26,9 +26,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 // echec de chargement (module introuvable dans le bundle, dependance native
 // absente) doit pouvoir etre repondu en JSON plutot que de produire une 500
 // opaque de plateforme sans aucun message exploitable.
-let serverModule: Promise<typeof import('../server')> | null = null;
-function loadServer(): Promise<typeof import('../server')> {
-  serverModule = serverModule || import('../server');
+// L'extension `.js` est obligatoire. `tsconfig.json` declare `module: ESNext`,
+// donc TypeScript emet de l'ESM et conserve les specificateurs tels quels : un
+// `import('../server')` sans extension devient introuvable pour le chargeur ESM
+// de Node une fois compile (`Cannot find module '/var/task/server' imported
+// from /var/task/api/index.js`). TypeScript resout `../server.js` sur
+// `../server.ts` a la compilation, et l'extension subsiste a l'execution.
+let serverModule: Promise<typeof import('../server.js')> | null = null;
+function loadServer(): Promise<typeof import('../server.js')> {
+  serverModule = serverModule || import('../server.js');
   return serverModule;
 }
 
