@@ -1,6 +1,28 @@
 -- CHANTIER — Contenus éducatifs et journal
 -- The existing content_articles table becomes the editorial content library.
 -- Legacy rows keep their data but are not newly marked as evidence-backed.
+-- The IF NOT EXISTS guard also lets an operator repair a deployment where the
+-- historical CMS migration was recorded but the table was never created.
+
+CREATE TABLE IF NOT EXISTS public.content_articles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'non-classe',
+  excerpt TEXT,
+  read_time TEXT,
+  author TEXT,
+  image_url TEXT,
+  content TEXT NOT NULL DEFAULT '',
+  faq JSONB NOT NULL DEFAULT '[]'::jsonb,
+  related_product_ids TEXT[] NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  published_at TIMESTAMPTZ,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 ALTER TABLE public.content_articles
   ADD COLUMN IF NOT EXISTS content_type TEXT NOT NULL DEFAULT 'article',
@@ -25,6 +47,11 @@ ALTER TABLE public.content_articles
 
 CREATE INDEX IF NOT EXISTS idx_content_articles_editorial_filters
   ON public.content_articles(status, content_type, topic, updated_at DESC);
+
+ALTER TABLE public.content_articles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage articles" ON public.content_articles;
+CREATE POLICY "Admins manage articles" ON public.content_articles
+  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- A published item must expose enough provenance for a reader to understand
 -- what is known and what remains unprovided. Existing incomplete rows are kept
