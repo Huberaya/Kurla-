@@ -346,8 +346,9 @@ prestations distinctes séparées.
 
 - [ ] **Paiement jamais exercé contre Stripe** : aucune clé sur cet environnement. La branche 503
       est vérifiée par sonde HTTP ; le chemin nominal ne l'est pas.
-- [ ] **Suite unitaire complète contre une base réelle** : elle n'a pas vocation à exister telle
-      quelle. Voir « Liaison des stores » ci-dessous.
+- [x] **Les bancs conçus pour une base réelle tournent contre l'instance réelle** :
+      `npm run test:realdb` vert (4 bancs). La suite unitaire complète, elle, reste en mémoire par
+      conception — voir « Liaison des stores » ci-dessous.
 
 ### Limites assumées des compléments
 
@@ -370,6 +371,56 @@ donc sur une machine et échouait sur une autre.
 autant que le store serveur. Tous les bancs unitaires forcent `memory` ; `tests/store_binding.test.ts`
 verrouille le comportement. `npm run test:realdb` enchaîne les bancs réellement conçus pour une base
 réelle, précédés d'une pré-vérification qui refuse de tourner en silence sur le repli mémoire.
+
+### Validation contre l'instance réelle : ce qu'elle a révélé
+
+`npm run test:realdb` est désormais vert contre `qzwgsarfdegqtfdnqiql` : pré-vérification, 17
+contrôles RLS, cycle de vie atomique du stock, bancs professionnels et paiement de prestation.
+Y arriver a exigé de corriger des défauts réels, pas seulement des tests.
+
+**1. Trois migrations étaient enregistrées comme appliquées sans l'avoir été.**
+`20260826`, `20260827` et `20260828` figuraient dans `supabase_migrations.schema_migrations`, mais
+leurs effets étaient absents : `orders.checkout_idempotency_key` manquait (donc aucune idempotence
+de checkout en base), `refunds` n'avait que ses 8 colonnes d'origine sur 15, et les fonctions
+`claim_stripe_event`, `mark_stripe_event_error` et `replace_cart` n'existaient pas. Les trois
+fichiers sont intégralement idempotents (`IF NOT EXISTS`, `DROP … IF EXISTS` avant chaque
+contrainte et politique, `CREATE OR REPLACE`) : ils ont été rejoués.
+
+**2. Rejouer une migration ancienne rétrograde les fonctions.** Les trois fichiers redéfinissent
+`reserve_stock_for_order` et `release_stock_for_order`, également redéfinies plus tard par
+`20260834` puis `20260839`. Le rejeu de `20260828` a imposé sa version, qui ne lit que
+`product_id` et ignore `productId` — d'où `Invalid order stock line`. `20260839` a été rejoué pour
+restaurer la définition la plus récente. **Règle : une migration rejouée doit être suivie du rejeu
+de toutes celles qui redéfinissent les mêmes objets.**
+
+**3. Un vrai bug SQL dans le cycle de stock.** Les quatre fonctions de `20260839`
+(`reserve_stock_for_order`, `release_stock_for_order`, `restore_stock_atomic`,
+`transition_order_stock`) ordonnaient leurs lignes par `ORDER BY product_id, variant_id::TEXT`
+sous un `GROUP BY 1, 2`. Sous `GROUP BY`, une expression d'`ORDER BY` ne peut pas référencer un
+alias de sortie : PostgreSQL résout alors `variant_id` parmi les colonnes d'entrée, qui se limitent
+à `value`. Résultat : `42703 column "variant_id" does not exist` dès la première réservation.
+**Aucune de ces quatre fonctions n'avait jamais pu s'exécuter.** Corrigé en `ORDER BY 1, 2`
+(ordinaux de sortie, même ordre déterministe, donc mêmes verrous `FOR UPDATE` dans le même ordre).
+Migration de rattrapage : `20260850000000_fix_stock_lifecycle_ordering.sql`.
+
+**4. Deux bancs dépendaient de données ambiantes ou d'un schéma mémoire.**
+`tests/phase7_atomic_stock.integration.test.ts` prenait le premier produit actif du catalogue :
+l'instance réelle compte 16 produits et **0 actif**, ce qui est l'état normal d'un catalogue
+gouverné (une fiche importée reste en brouillon tant que les contrôles de confiance ne sont pas
+confirmés). `tests/chantier_b_professional.test.ts` utilisait l'identifiant littéral
+`appt-test-1`, refusé par une colonne UUID. Les deux bancs construisent désormais leur propre
+chaîne (produit + inventaire ; comptes → fiche pro → prestation → réservation) et la détruisent.
+
+**5. Un défaut de code réel.** En base, un identifiant hors format n'est pas « introuvable » :
+PostgREST répond 400 et `ensureSuccess` transformait l'absence en exception.
+`markServicePaymentPaid('inexistant')` levait au lieu de retourner `undefined` — alors que c'est le
+chemin d'un webhook Stripe rejoué. Onze points d'accès par identifiant de `professionalStore.ts`
+sont maintenant gardés par `isUuid()` et répondent « introuvable » (`undefined`, `[]`, `false`).
+
+**6. Un banc « base réelle » tournait en mémoire.** `test:realdb` enchaînait
+`npm run test:chantier-b`, dont le préfixe `KURLA_STORE_MODE=memory` **l'emporte sur
+l'environnement hérité**. Le banc annonçait tester la base réelle sans la toucher. Ajout de
+`test:chantier-b:realdb` (`KURLA_STORE_MODE=server`), vers lequel `test:realdb` pointe désormais.
 
 ### Passifs ouverts, déclarés
 

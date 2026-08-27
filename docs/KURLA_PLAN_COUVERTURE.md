@@ -41,7 +41,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 1 | Disclosure IA art. 50(1) | ✅ LIVRÉ | Bandeau UI, marquage réponse, `GET /api/ai/disclosure` vérifié en HTTP réel |
 | 2 | Retirer `MOCK_PROS` + UGC fictif | ✅ LIVRÉ | `ProfessionalsPage` corrigé. **14 fichiers importent encore `mockData`** : 9 composants (dont `UgcWallSection`, `KurlaProSection`, `TextureGallerySection`, `ConsultationBookingModal`) + 5 pages (dont `ProProfilePage`, `ProtectiveStylesPage`). **Complété** : `ProDashboardPage` affichait un studio inventé, « 4,9/5 sur 38 avis vérifiés » et trois clientes fictives ; réécrite sur `/api/professional/me` |
 | 3 | Corriger les 2 contradictions de marque | ✅ LIVRÉ | Bicarbonate retiré, « éclaircissants » → « anti-taches » |
-| 4 | 17 tests Phase 2 sur vraie instance | ✅ **LIVRÉ** | `npm run test:integration` PASS contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1). A nécessité 4 correctifs de schéma — voir `KURLA_CHANTIERS.md` |
+| 4 | 17 tests Phase 2 sur vraie instance | ✅ **LIVRÉ** | `npm run test:realdb` PASS contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : pré-vérification, 17 contrôles RLS, cycle de stock atomique, bancs pros, paiement de prestation. A nécessité 4 correctifs de schéma puis le rejeu de 3 migrations jamais appliquées — voir `KURLA_CHANTIERS.md` |
 | 5 | Table `ingredients` + `product_ingredients` | ✅ LIVRÉ | Migration `20260845`, module `ingredientGraph.ts`, testé |
 | 6 | Normaliser les vocabulaires | ✅ LIVRÉ | Tables `kurla_taxonomies` (l.126) et `kurla_taxonomy_terms` (l.133) créées, **mais 0 `INSERT`** dans toute la migration, et **aucune migration des colonnes `TEXT[]` existantes** |
 | 7 | Brancher `routine_feedback` sur le moteur | ✅ LIVRÉ | `outcome_observations` → `getOutcomes()` → `buildRecommendations`. Testé avec preuve citable (`obs-1`/`obs-2`) |
@@ -309,8 +309,8 @@ Aucun chantier n'est déclaré terminé sans :
 
 | Passif | Pourquoi il reste ouvert |
 |---|---|
-| 17 vérifications RLS jamais exécutées | Aucune instance Supabase réelle dans cet environnement |
+| ~~17 vérifications RLS jamais exécutées~~ **LEVÉ** | `npm run test:realdb` vert contre `qzwgsarfdegqtfdnqiql` : 17 contrôles RLS, cycle de stock atomique, bancs pros et paiement de prestation |
 | Aucune vérification visuelle/navigateur des écrans Shelf et Wash Day | Vérifiés par compilation, tests de câblage et HTTP 200 — pas par rendu |
-| `GET /api/*` sur route inconnue renvoie du HTML 200 | Catch-all SPA. Pas une faille d'autorisation — les routes protégées renvoient bien 401. Corrigé en G |
+| `GET /api/*` sur route inconnue renvoie du HTML 200 | Catch-all SPA. Pas une faille d'autorisation — les routes protégées renvoient bien 401. Corrigé : un 404 JSON `API_ROUTE_NOT_FOUND` est enregistré avant le catch-all |
 | Art. 50(2) marquage machine-readable | Échéance 2 déc. 2026 pour les systèmes déjà sur le marché. À traiter en B |
 | Art. 50(4) exemption éditoriale | Encodée dans `AI_TRANSPARENCY.editorialExemptionNote`, **non appliquée dans le CMS** |

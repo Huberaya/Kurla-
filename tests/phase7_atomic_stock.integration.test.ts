@@ -24,13 +24,33 @@ async function rpc(name: string, args: Record<string, unknown>) {
 }
 
 async function main() {
-  const { data: product, error: productError } = await db
-    .from('products')
-    .select('id, name, price, stock_quantity')
-    .eq('is_active', true)
-    .limit(1)
-    .single();
-  if (productError || !product) throw new Error(`Produit de test indisponible: ${productError?.message || 'absent'}`);
+  // Le banc crée son propre produit et sa propre ligne d'inventaire : il ne doit
+  // pas dépendre de l'état ambiant du catalogue. Sur une instance gouvernée, les
+  // fiches importées restent en brouillon tant que les contrôles de confiance ne
+  // sont pas confirmés — l'instance réelle compte 16 produits et 0 actif, ce qui
+  // faisait échouer ce banc alors qu'aucun code n'était en cause.
+  const fixtureId = `phase7-${suffix}`;
+  const fixtureName = `Produit de test Phase 7 (${suffix})`;
+  const fixturePrice = 10;
+
+  const { error: productError } = await db.from('products').insert({
+    id: fixtureId,
+    slug: `phase7-${suffix}`,
+    name: fixtureName,
+    price: fixturePrice,
+    catalog_status: 'draft'
+  });
+  if (productError) throw new Error(`Produit de test impossible à créer: ${productError.message}`);
+
+  const product = { id: fixtureId, name: fixtureName, price: fixturePrice, stock_quantity: 0 };
+
+  const { error: inventoryInsertError } = await db.from('inventory').insert({
+    product_id: fixtureId,
+    variant_id: null,
+    quantity: 0,
+    reserved_quantity: 0
+  });
+  if (inventoryInsertError) throw new Error(`Inventaire de test impossible à créer: ${inventoryInsertError.message}`);
 
   const { data: before, error: inventoryError } = await db
     .from('inventory')
@@ -179,11 +199,20 @@ async function main() {
       }
     }
     await db.from('orders').delete().in('id', orderIds);
-    await db.rpc('set_inventory_quantity_atomic', {
-      p_product_id: product.id,
-      p_variant_id: null,
-      p_quantity: originalQuantity
-    });
+
+    // Le produit de test est détruit et sa ligne d'inventaire suit par cascade
+    // (ON DELETE CASCADE) : la restauration du stock n'a plus d'objet. Elle reste
+    // tentée en secours si la suppression est refusée, pour ne pas laisser de
+    // réservation orpheline sur l'instance.
+    const { error: cleanupError } = await db.from('products').delete().eq('id', product.id);
+    if (cleanupError) {
+      await db.rpc('set_inventory_quantity_atomic', {
+        p_product_id: product.id,
+        p_variant_id: null,
+        p_quantity: originalQuantity
+      });
+      console.error(`[AVERTISSEMENT] Produit de test non supprimé: ${cleanupError.message}`);
+    }
   }
 }
 

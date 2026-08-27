@@ -159,7 +159,7 @@ BEGIN
       SUM((value->>'quantity')::INTEGER)::INTEGER AS quantity
     FROM jsonb_array_elements(COALESCE(p_items, '[]'::JSONB)) AS line(value)
     GROUP BY 1, 2
-    ORDER BY product_id, variant_id::TEXT
+    ORDER BY 1, 2
   LOOP
     v_product_stock := NULL;
     v_variant_stock := NULL;
@@ -232,7 +232,7 @@ BEGIN
       SUM((value->>'quantity')::INTEGER)::INTEGER AS quantity
     FROM jsonb_array_elements(COALESCE(p_items, '[]'::JSONB)) AS line(value)
     GROUP BY 1, 2
-    ORDER BY product_id, variant_id::TEXT
+    ORDER BY 1, 2
   LOOP
     IF v_item.product_id IS NULL OR v_item.quantity IS NULL OR v_item.quantity < 1 THEN
       RAISE EXCEPTION 'Invalid order stock line';
@@ -377,7 +377,7 @@ BEGIN
       SUM((value->>'quantity')::INTEGER)::INTEGER AS quantity
     FROM jsonb_array_elements(p_items) AS line(value)
     GROUP BY 1, 2
-    ORDER BY product_id, variant_id::TEXT
+    ORDER BY 1, 2
   LOOP
     IF v_item.product_id IS NULL OR v_item.quantity IS NULL OR v_item.quantity < 1 THEN
       RAISE EXCEPTION 'Invalid stock restoration line';
@@ -515,7 +515,7 @@ BEGIN
         SUM((value->>'quantity')::INTEGER)::INTEGER AS quantity
       FROM jsonb_array_elements(v_order.items) AS line(value)
       GROUP BY 1, 2
-      ORDER BY product_id, variant_id::TEXT
+      ORDER BY 1, 2
     LOOP
       IF v_item.variant_id IS NULL THEN
         UPDATE public.products

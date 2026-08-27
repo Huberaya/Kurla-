@@ -13,7 +13,9 @@ import {
   compareRoutines,
   simulateAnnualCost
 } from '../src/lib/routineEconomics';
+import { randomUUID } from 'node:crypto';
 import { professionalStore } from '../src/lib/professionalStore';
+import { getSupabaseServerClient } from '../src/lib/supabaseClient';
 
 const base: ProfessionalTrustInput = {
   professionalId: 'pro-1',
@@ -335,8 +337,7 @@ async function runChantierBTests() {
  * webhook Stripe rejoué ne doit ni créer un second paiement, ni re-dater un
  * paiement déjà confirmé.
  */
-async function runServicePaymentTests() {
-  const appointmentId = 'appt-test-1';
+async function runServicePaymentAssertions(appointmentId: string) {
 
   // ------------------------------------------------------------------
   // 1. Montant invalide refusé
@@ -437,6 +438,127 @@ async function runServicePaymentTests() {
   }
 
   console.log('[PASS] chantiers b service payment');
+}
+
+/**
+ * Construit une reservation reelle lorsque le store est branche sur Supabase.
+ *
+ * Le banc tournait historiquement sur le chemin memoire, ou un identifiant de
+ * reservation est une chaine libre. En base, `service_payments.appointment_id`
+ * est un UUID dote d'une cle etrangere vers `appointments` : la chaine
+ * `appt-test-1` y est refusee par `invalid input syntax for type uuid`. Le banc
+ * construit donc sa propre chaine profiles -> professionnel -> prestation ->
+ * reservation, puis la detruit, pour ne dependre d'aucune donnee ambiante.
+ */
+async function createAppointmentFixture(): Promise<{
+  appointmentId: string;
+  dispose: () => Promise<void>;
+}> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return { appointmentId: 'appt-test-1', dispose: async () => {} };
+  }
+
+  const suffix = Date.now();
+  const professionalId = randomUUID();
+  const serviceId = randomUUID();
+  const appointmentId = randomUUID();
+
+  // `profiles.id` porte une cle etrangere vers `auth.users` (invisible depuis
+  // information_schema faute de droits sur le schema auth) : un UUID invente est
+  // refuse par `profiles_id_fkey`. On cree donc de vrais comptes ; le trigger
+  // `on_auth_user_created` cree leur profil public a la volee.
+  const createdUsers: string[] = [];
+  const accounts: Array<{ label: string; email: string }> = [
+    { label: 'compte du professionnel', email: `pro-${suffix}@kurla.test` },
+    { label: 'compte du client', email: `client-${suffix}@kurla.test` }
+  ];
+  for (const account of accounts) {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: account.email,
+      password: `Kurla-${suffix}-Test!`,
+      email_confirm: true
+    });
+    if (error || !data?.user?.id) {
+      throw new Error(`Fixture de reservation (${account.label}) impossible a creer: ${error?.message || 'utilisateur absent'}`);
+    }
+    createdUsers.push(data.user.id);
+  }
+  const [professionalUserId, clientUserId] = createdUsers;
+
+  // Les constructeurs PostgREST sont thenables sans etre de vrais Promise : le
+  // type annonce est donc PromiseLike, seule forme commune exploitable ici.
+  type InsertResult = { error: { message: string } | null };
+  const inserts: Array<{ label: string; insert: () => PromiseLike<InsertResult> }> = [
+    {
+      label: 'fiche professionnelle',
+      insert: () => supabase.from('professional_profiles').insert({
+        id: professionalId,
+        user_id: professionalUserId,
+        display_name: `Professionnel de test ${suffix}`,
+        city: 'Paris',
+        profession: 'Coiffeuse'
+      })
+    },
+    {
+      label: 'prestation',
+      insert: () => supabase.from('professional_services').insert({
+        id: serviceId,
+        professional_id: professionalId,
+        name: 'Soin de test',
+        duration_minutes: 60,
+        price_cents: 4500
+      })
+    },
+    {
+      label: 'reservation',
+      insert: () => supabase.from('appointments').insert({
+        id: appointmentId,
+        professional_id: professionalId,
+        client_user_id: clientUserId,
+        service_id: serviceId,
+        scheduled_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+        duration_minutes: 60
+      })
+    }
+  ];
+
+  for (const step of inserts) {
+    const { error } = await step.insert();
+    if (error) throw new Error(`Fixture de reservation (${step.label}) impossible a creer: ${error.message}`);
+  }
+
+  return {
+    appointmentId,
+    dispose: async () => {
+      // Ordre inverse des cles etrangeres. `appointments.professional_id` est en
+      // RESTRICT : la reservation doit disparaitre avant la fiche professionnelle.
+      const cleanup: Array<[string, string, string]> = [
+        ['service_payments', 'appointment_id', appointmentId],
+        ['appointments', 'id', appointmentId],
+        ['professional_services', 'id', serviceId],
+        ['professional_profiles', 'id', professionalId]
+      ];
+      for (const [table, column, value] of cleanup) {
+        const { error } = await supabase.from(table).delete().eq(column, value);
+        if (error) console.error(`[AVERTISSEMENT] nettoyage de ${table}: ${error.message}`);
+      }
+      // Supprimer les comptes entraine leurs profils en cascade.
+      for (const userId of createdUsers) {
+        const { error } = await supabase.auth.admin.deleteUser(userId);
+        if (error) console.error(`[AVERTISSEMENT] nettoyage du compte ${userId}: ${error.message}`);
+      }
+    }
+  };
+}
+
+async function runServicePaymentTests() {
+  const { appointmentId, dispose } = await createAppointmentFixture();
+  try {
+    await runServicePaymentAssertions(appointmentId);
+  } finally {
+    await dispose();
+  }
 }
 
 runChantierBTests()

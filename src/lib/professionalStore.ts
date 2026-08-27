@@ -25,6 +25,20 @@ function ensureSuccess(operation: string, error: { message?: string } | null | u
   if (error) throw new Error(`[Supabase] ${operation}: ${error.message || 'opération refusée'}`);
 }
 
+/**
+ * Les identifiants de réservation, de paiement, de partage et de profil sont des
+ * UUID en base. Une valeur hors format n'y est donc pas « introuvable » :
+ * PostgREST répond 400 `invalid input syntax for type uuid`, et `ensureSuccess`
+ * transformerait une simple absence en exception. Les chemins atteignables
+ * depuis un webhook Stripe ou une route publique doivent répondre
+ * « introuvable », pas échouer.
+ */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | undefined | null): boolean {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
 function iso(value: unknown): string | undefined {
   return typeof value === 'string' && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toISOString() : undefined;
 }
@@ -268,6 +282,7 @@ class KurlaProfessionalStore {
   private async ownerOf(professionalId: string): Promise<string | undefined> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(professionalId)) return undefined;
       const { data } = await supabase.from('professional_profiles')
         .select('user_id').eq('id', professionalId).maybeSingle();
       return data?.user_id || undefined;
@@ -290,6 +305,7 @@ class KurlaProfessionalStore {
   public async getProfessional(professionalId: string): Promise<ProfessionalProfile | undefined> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(professionalId)) return undefined;
       const { data, error } = await supabase.from('professional_profiles')
         .select('*').eq('id', professionalId).maybeSingle();
       ensureSuccess('lecture du professionnel', error);
@@ -356,6 +372,7 @@ class KurlaProfessionalStore {
   public async getDeliveredRatings(professionalId: string): Promise<number[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(professionalId)) return [];
       const { data, error } = await supabase.from('professional_reviews')
         .select('rating').eq('professional_id', professionalId).eq('service_delivered', true);
       ensureSuccess('lecture des avis vérifiés', error);
@@ -407,6 +424,7 @@ class KurlaProfessionalStore {
   public async getServices(professionalId: string): Promise<ProfessionalService[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(professionalId)) return [];
       const { data, error } = await supabase.from('professional_services')
         .select('*').eq('professional_id', professionalId).eq('is_active', true);
       ensureSuccess('lecture des prestations', error);
@@ -507,6 +525,7 @@ class KurlaProfessionalStore {
     }
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(appointmentId)) return undefined;
       const { data, error } = await supabase.from('appointments')
         .update({
           status,
@@ -530,6 +549,8 @@ class KurlaProfessionalStore {
   public async getAppointments(filter: { clientUserId?: string; professionalId?: string } = {}): Promise<Appointment[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if ((filter.clientUserId && !isUuid(filter.clientUserId)) ||
+          (filter.professionalId && !isUuid(filter.professionalId))) return [];
       let query = supabase.from('appointments').select('*').order('scheduled_at');
       if (filter.clientUserId) query = query.eq('client_user_id', filter.clientUserId);
       if (filter.professionalId) query = query.eq('professional_id', filter.professionalId);
@@ -614,6 +635,7 @@ class KurlaProfessionalStore {
   public async revokeDossierShare(clientUserId: string, shareId: string): Promise<boolean> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(shareId) || !isUuid(clientUserId)) return false;
       const { data, error } = await supabase.from('client_dossier_shares')
         .update({ revoked_at: new Date().toISOString() })
         .eq('id', shareId)
@@ -636,6 +658,7 @@ class KurlaProfessionalStore {
   public async getActiveShares(professionalId: string, now: Date = new Date()): Promise<DossierShare[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(professionalId)) return [];
       const { data, error } = await supabase.from('professional_dossier_access')
         .select('*').eq('professional_id', professionalId);
       ensureSuccess('lecture des dossiers partagés', error);
@@ -651,6 +674,7 @@ class KurlaProfessionalStore {
   public async getClientShares(clientUserId: string): Promise<DossierShare[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(clientUserId)) return [];
       const { data, error } = await supabase.from('client_dossier_shares')
         .select('*').eq('client_user_id', clientUserId);
       ensureSuccess('lecture des partages du client', error);
@@ -745,6 +769,7 @@ class KurlaProfessionalStore {
     const supabase = getSupabaseServerClient();
 
     if (supabase) {
+      if (!isUuid(paymentId)) return undefined;
       const { data: existing, error } = await supabase.from('service_payments')
         .select('*').eq('id', paymentId).maybeSingle();
       ensureSuccess('lecture du paiement de prestation', error);
@@ -792,6 +817,7 @@ class KurlaProfessionalStore {
   public async getServicePaymentsForAppointment(appointmentId: string): Promise<ServicePayment[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
+      if (!isUuid(appointmentId)) return [];
       const { data, error } = await supabase.from('service_payments')
         .select('*').eq('appointment_id', appointmentId).order('created_at');
       ensureSuccess('lecture des paiements de la réservation', error);
