@@ -1,12 +1,18 @@
-# Contenu inutile au build Vercel : réduit l'upload sans toucher au build.
-docs/
-tests/
-supabase/
-migrations/
-data/
-AUDIT_KURLA_BEAUTY_2026-08-26.md
-RELEASE_READINESS.md
-README_FREE_DEPLOYMENT.md
-bun.lock
-.git/
-.github/
+# Contenu inutile au build Vercel : reduit l'upload sans toucher au build.
+#
+# Les motifs sont ANCRES A LA RACINE (barre oblique initiale). Un motif comme
+# "data/" sans barre oblique correspond a n'importe quelle profondeur : il
+# supprimait src/data/mockData.ts et faisait echouer le build Vercel sur
+# 'Could not resolve "../../data/mockData"'. Le build restait alors sur le
+# dernier deploiement reussi, donc sur une version anterieure a vercel.json.
+/docs/
+/tests/
+/supabase/
+/migrations/
+/data/
+/AUDIT_KURLA_BEAUTY_2026-08-26.md
+/RELEASE_READINESS.md
+/README_FREE_DEPLOYMENT.md
+/bun.lock
+/.git/
+/.github/
