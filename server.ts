@@ -2132,6 +2132,9 @@ app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRe
   if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
     return res.status(400).json({ error: 'Statut de retour invalide.' });
   }
+  if (status === 'refunded') {
+    return res.status(400).json({ error: 'Utilisez le flux de remboursement idempotent pour finaliser un retour.' });
+  }
 
   try {
     const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined, admin.id, admin.role === 'support' ? 'support' : 'admin');
