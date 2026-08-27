@@ -120,7 +120,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Idempotency-Key, X-Anonymous-Id, X-Request-Id');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).end();
   next();
 });
@@ -227,6 +227,18 @@ function safeApiError(error: unknown, fallback: string): string {
     return error.message;
   }
   return fallback;
+}
+
+function effectiveVariantPrice(variant: any): number {
+  const promotionPrice = Number(variant?.promotion_price ?? variant?.promotionPrice);
+  const basePrice = Number(variant?.price);
+  const startsAt = variant?.promotion_starts_at ?? variant?.promotionStartsAt;
+  const endsAt = variant?.promotion_ends_at ?? variant?.promotionEndsAt;
+  const now = new Date();
+  const active = Number.isFinite(promotionPrice) && promotionPrice >= 0 && promotionPrice <= basePrice
+    && (!startsAt || !Number.isNaN(new Date(startsAt).getTime()) && new Date(startsAt) <= now)
+    && (!endsAt || !Number.isNaN(new Date(endsAt).getTime()) && new Date(endsAt) >= now);
+  return active ? promotionPrice : basePrice;
 }
 
 // Lazy Stripe Initialization
@@ -437,7 +449,13 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
   }
 });
 
-app.use(express.json({ limit: '100kb', strict: true }));
+// Keep the general API body limit strict while allowing authenticated catalog
+// feeds to carry a bounded CSV/JSON document. The cart hardening limit remains
+// 100kb and is still covered by the production checks.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const isCatalogFeed = req.path.startsWith('/api/admin/catalog/import/');
+  return express.json({ limit: isCatalogFeed ? '2mb' : '100kb', strict: true })(req, res, next);
+});
 
 // Cart API Endpoints (public.carts & public.cart_items)
 // Guest carts use an anonymous browser id; authenticated carts always use the
@@ -651,7 +669,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       }
 
       // Ignore client price parameter — compute strictly using server DB price
-      const dbPrice = variant ? Number(variant.price) : Number(dbProduct.price);
+      const dbPrice = variant ? effectiveVariantPrice(variant) : Number(dbProduct.price);
       const itemTotal = dbPrice * quantity;
       calculatedTotal += itemTotal;
 
@@ -955,6 +973,92 @@ app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: Authent
   if (!admin) return;
   await serverDb.updateCatalogStatus(req.params.productId, req.body?.status);
   res.json({ ok: true });
+}));
+
+// ============================================================
+// PRODUCT CATALOG MANAGEMENT
+// ============================================================
+// These endpoints expose governance fields only to verified admins. The
+// browser never writes products directly to Supabase and cannot publish a
+// record by sending a status flag: publication still requires every trust
+// check to be recorded through the validation endpoint above.
+app.get('/api/admin/catalog/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const products = await serverDb.getAdminCatalogProducts();
+    res.json({ products, count: products.length });
+  } catch (error) {
+    console.error('[Catalog] admin list error:', error);
+    res.status(500).json({ error: safeApiError(error, 'Impossible de charger le catalogue administrable.') });
+  }
+}));
+
+app.get('/api/admin/catalog/taxonomy', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  res.json(await serverDb.getCatalogTaxonomy());
+}));
+
+app.get('/api/admin/catalog/imports', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  res.json({ imports: await serverDb.getCatalogImports() });
+}));
+
+app.post('/api/admin/catalog/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await serverDb.importCatalogRecords(admin.id, [req.body || {}], 'manual');
+    if (result.rejected > 0) return res.status(400).json({ error: result.errors[0]?.message || 'Produit catalogue invalide.', result });
+    res.status(201).json({ product: result.products[0], import: result });
+  } catch (error) {
+    console.error('[Catalog] manual product error:', error);
+    res.status(400).json({ error: safeApiError(error, 'Impossible d’enregistrer ce produit catalogue.') });
+  }
+}));
+
+app.patch('/api/admin/catalog/products/:productId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const product = await serverDb.saveCatalogProduct(admin.id, { ...(req.body || {}), id: req.params.productId });
+    res.json({ product });
+  } catch (error) {
+    console.error('[Catalog] product update error:', error);
+    res.status(400).json({ error: safeApiError(error, 'Impossible de modifier ce produit catalogue.') });
+  }
+}));
+
+app.post('/api/admin/catalog/import/csv', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const csv = req.body?.csv;
+  if (typeof csv !== 'string' || !csv.trim() || csv.length > 2 * 1024 * 1024) {
+    return res.status(400).json({ error: 'CSV vide ou supérieur à 2 Mo.' });
+  }
+  try {
+    const result = await serverDb.importCatalogCsv(admin.id, csv, typeof req.body?.fileName === 'string' ? req.body.fileName.slice(0, 255) : undefined);
+    res.status(result.rejected > 0 && result.imported === 0 ? 400 : 201).json({ import: result });
+  } catch (error) {
+    console.error('[Catalog] CSV import error:', error);
+    res.status(400).json({ error: safeApiError(error, 'Impossible de lire ce fichier CSV.') });
+  }
+}));
+
+app.post('/api/admin/catalog/import/supplier', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const supplier = typeof req.body?.supplier === 'string' ? req.body.supplier.trim().slice(0, 240) : '';
+  if (!supplier || !Array.isArray(req.body?.records)) return res.status(400).json({ error: 'Fournisseur et tableau de produits obligatoires.' });
+  try {
+    const result = await serverDb.importCatalogRecords(admin.id, req.body.records, 'supplier', supplier);
+    res.status(result.rejected > 0 && result.imported === 0 ? 400 : 201).json({ import: result });
+  } catch (error) {
+    console.error('[Catalog] supplier import error:', error);
+    res.status(400).json({ error: safeApiError(error, 'Impossible d’importer le flux fournisseur.') });
+  }
 }));
 
 app.get('/api/routines', asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {

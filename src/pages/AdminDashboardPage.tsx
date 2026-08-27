@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, profile, session, signOut } = useAuth();
@@ -8,7 +9,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [serverOrders, setServerOrders] = useState<any[]>([]);
@@ -265,7 +266,8 @@ export const AdminDashboardPage: React.FC = () => {
             { id: 'orders', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
             { id: 'returns', label: `Retours & Remboursements (${returnsList.length})`, icon: RotateCcw },
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
-            { id: 'pros', label: 'Certifications Pros', icon: Users }
+            { id: 'pros', label: 'Certifications Pros', icon: Users },
+            { id: 'catalog', label: 'Catalogue produits', icon: Package }
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -652,7 +654,18 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5: CERTIFICATIONS PROS */}
+        {/* TAB 5: PRODUCT CATALOG */}
+        {activeTab === 'catalog' && (
+          <CatalogAdminPanel
+            headers={adminHeaders}
+            onSuccess={(message) => {
+              setActionSuccess(message);
+              setTimeout(() => setActionSuccess(''), 4000);
+            }}
+          />
+        )}
+
+        {/* TAB 6: CERTIFICATIONS PROS */}
         {activeTab === 'pros' && (
           <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
             <div>

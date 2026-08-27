@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServerClient, isSupabaseServerConfigured } from './supabaseClient';
-import { MOCK_PRODUCTS } from '../data/mockData';
+import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from './catalogManagement';
 import { emailService } from './emailService';
 import { shippingService, ShippingCarrier, ShipmentDetails } from './shippingService';
 import {
@@ -34,7 +34,32 @@ function ensureDatabaseSuccess(operation: string, error: { message?: string } | 
   }
 }
 
+function isPromotionActive(product: any, now = new Date()): boolean {
+  if (product?.isPromo !== true && product?.is_promo !== true) return false;
+  const promotionPrice = Number(product?.promotionPrice ?? product?.promotion_price);
+  if (!Number.isFinite(promotionPrice) || promotionPrice < 0) return false;
+  const startsAt = product?.promotionStartsAt ?? product?.promotion_starts_at;
+  const endsAt = product?.promotionEndsAt ?? product?.promotion_ends_at;
+  if (startsAt && Number.isNaN(new Date(startsAt).getTime())) return false;
+  if (endsAt && Number.isNaN(new Date(endsAt).getTime())) return false;
+  if (startsAt && new Date(startsAt) > now) return false;
+  if (endsAt && new Date(endsAt) < now) return false;
+  return true;
+}
+
+function effectiveCatalogPrice(product: any): number {
+  return isPromotionActive(product) ? Number(product.promotionPrice ?? product.promotion_price) : Number(product.price);
+}
+
 function isPublishableProduct(product: any): boolean {
+  const ingredients = product?.ingredients || product?.keyIngredients || [];
+  const inci = typeof product?.inci === 'string' ? product.inci.trim() : '';
+  const images = product?.galleryImages || [];
+  const imageUrl = product?.image || product?.image_url;
+  const countries = product?.countryAvailability || product?.country_availability || [];
+  const hasPromotionFacts = !product?.isPromo && !product?.is_promo
+    ? true
+    : isPromotionActive(product);
   return product?.is_active === true
     && product?.catalog_status === 'published'
     && product?.ingredient_verification_status === 'verified'
@@ -44,12 +69,23 @@ function isPublishableProduct(product: any): boolean {
     && product?.certifications_validation_status === 'verified'
     && product?.translations_validation_status === 'verified'
     && product?.brand_verification_status === 'verified'
-    && ['brand_provided', 'licensed'].includes(product?.image_ownership_status);
+    && ['brand_provided', 'licensed'].includes(product?.image_ownership_status)
+    && typeof product?.brand === 'string' && product.brand.trim() !== ''
+    && ((Array.isArray(ingredients) && ingredients.length > 0) || inci !== '')
+    && ((Array.isArray(images) && images.length > 0) || typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl))
+    && Array.isArray(countries) && countries.length > 0
+    && hasPromotionFacts;
 }
 
 /** Strip catalog governance and operational fields before data reaches a
  * browser. Admin evidence remains available through admin-only endpoints. */
 export function toPublicProduct(product: any): any {
+  const verifiedGalleryImages = Array.isArray(product.galleryImages)
+    ? product.galleryImages.filter((image: any) =>
+      (!image.validationStatus || image.validationStatus === 'verified')
+      && (!image.imageTrust || ['brand_provided', 'licensed'].includes(image.imageTrust))
+    )
+    : [];
   const variants = (product.variants || []).map((variant: any) => {
     const stockQuantity = Number(variant.stock_quantity ?? variant.stockQuantity ?? 0);
     const reservedQuantity = Number(variant.reserved_quantity ?? variant.reservedQuantity ?? 0);
@@ -59,7 +95,7 @@ export function toPublicProduct(product: any): any {
       label: variant.name || variant.label || variant.option_value || 'Option',
       optionType: variant.option_type || variant.optionType,
       optionValue: variant.option_value || variant.optionValue,
-      price: Number(variant.price),
+      price: isPromotionActive({ ...variant, isPromo: true }) ? Number(variant.promotion_price) : Number(variant.price),
       stockQuantity: Math.max(0, stockQuantity - reservedQuantity),
       inStock: variant.is_active !== false && stockQuantity > reservedQuantity
     };
@@ -71,12 +107,14 @@ export function toPublicProduct(product: any): any {
     brand: product.brand,
     category: product.category,
     subCategory: product.subCategory,
-    price: Number(product.price),
-    originalPrice: product.originalPrice,
+    price: effectiveCatalogPrice(product),
+    originalPrice: isPromotionActive(product) ? (product.originalPrice ?? Number(product.price)) : product.originalPrice,
     rating: 0,
     reviewsCount: 0,
     image: product.image || '',
-    galleryImages: product.image ? [{ url: product.image, label: 'Image du catalogue', type: 'hero', imageTrust: product.imageOwnershipStatus }] : [],
+    galleryImages: verifiedGalleryImages.length > 0
+      ? verifiedGalleryImages.map(({ validationStatus: _validationStatus, ...image }: any) => image)
+      : product.image ? [{ url: product.image, label: 'Image du catalogue', type: 'hero', imageTrust: product.imageOwnershipStatus }] : [],
     badges: Array.isArray(product.badges) ? product.badges : [],
     forWho: product.forWho || '',
     notIdealIf: product.notIdealIf || '',
@@ -107,9 +145,13 @@ export function toPublicProduct(product: any): any {
     inStock: product.inStock === true || variants.some((variant: any) => variant.inStock),
     needs: product.needs || product.concerns || [],
     countryAvailability: product.countryAvailability || [],
+    catalogCategoryTags: product.catalogCategoryTags || [],
+    targetAudiences: product.targetAudiences || [],
+    warnings: product.warnings || [],
+    promotionPrice: isPromotionActive(product) ? Number(product.promotionPrice ?? product.promotion_price) : undefined,
     communityBrand: product.communityBrand === true,
     isNew: product.isNew === true,
-    isPromo: product.isPromo === true
+    isPromo: isPromotionActive(product)
   };
 }
 
@@ -409,7 +451,7 @@ class SupabaseServerStore {
   private processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
-  public async initialize(defaultProducts: any[] = MOCK_PRODUCTS): Promise<void> {
+  public async initialize(defaultProducts: any[] = []): Promise<void> {
     this.inMemoryProducts = defaultProducts;
 
     const supabase = getSupabaseServerClient();
@@ -465,15 +507,32 @@ class SupabaseServerStore {
     }
   }
 
-  public async getProducts(options: { publishedOnly?: boolean } = {}): Promise<any[]> {
+  public async getProducts(options: { publishedOnly?: boolean; includeInactive?: boolean } = {}): Promise<any[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      const { data, error } = await supabase.from('products').select('*').eq('is_active', true);
+      let productsQuery = supabase.from('products').select('*');
+      if (!options.includeInactive) productsQuery = productsQuery.eq('is_active', true);
+      const { data, error } = await productsQuery;
       ensureDatabaseSuccess('lecture du catalogue', error);
       const { data: variants, error: variantsError } = await supabase.from('product_variants').select('*');
       ensureDatabaseSuccess('lecture des variantes produit', variantsError);
       const { data: inventoryRows, error: inventoryError } = await supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity');
       ensureDatabaseSuccess('lecture du stock catalogue', inventoryError);
+      const { data: imageRows, error: imagesError } = await supabase.from('product_images').select('*').order('position', { ascending: true });
+      ensureDatabaseSuccess('lecture des images catalogue', imagesError);
+      const imagesByProduct = new Map<string, any[]>();
+      (imageRows || []).forEach((image: any) => {
+        const lines = imagesByProduct.get(image.product_id) || [];
+        lines.push({
+          id: image.id,
+          url: image.url,
+          label: image.alt || 'Image du catalogue',
+          type: image.image_type || 'gallery',
+          imageTrust: image.ownership_status || 'unverified',
+          validationStatus: image.validation_status || 'pending'
+        });
+        imagesByProduct.set(image.product_id, lines);
+      });
       const inventoryByKey = new Map<string, any>();
       (inventoryRows || []).forEach((row: any) => inventoryByKey.set(`${row.product_id}:${row.variant_id || ''}`, row));
       const variantsByProduct = new Map<string, any[]>();
@@ -496,8 +555,9 @@ class SupabaseServerStore {
         slug: p.slug,
         name: p.name,
         brand: p.brand,
-        price: Number(p.price),
-        originalPrice: p.original_price == null ? undefined : Number(p.original_price),
+        price: effectiveCatalogPrice(p),
+        basePrice: Number(p.price),
+        originalPrice: p.original_price == null ? (isPromotionActive(p) ? Number(p.price) : undefined) : Number(p.original_price),
         rating: p.rating == null ? 0 : Number(p.rating),
         reviewsCount: Number(p.reviews_count || 0),
         inStock: p.in_stock === true && (productVariants.length > 0 ? variantAvailable : baseAvailable > 0),
@@ -505,7 +565,8 @@ class SupabaseServerStore {
         category: p.category,
         subCategory: p.subcategory,
         description: p.description || '',
-        image: p.image_url || '',
+        image: p.image_url || imagesByProduct.get(p.id)?.[0]?.url || '',
+        galleryImages: imagesByProduct.get(p.id) || [],
         ingredients: p.ingredients || [],
         inci: p.inci || '',
         forWho: p.for_who || '',
@@ -521,6 +582,9 @@ class SupabaseServerStore {
         concerns: p.concerns || [],
         needs: p.concerns || [],
         countryAvailability: p.country_availability || [],
+        isActive: p.is_active === true,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
         benefitPrimary: p.benefit_primary,
         texture: p.texture,
         fragrance: p.fragrance,
@@ -537,7 +601,19 @@ class SupabaseServerStore {
         shippingInfo: { ...(p.shipping_policy || {}), countries: p.country_availability || [] },
         communityBrand: p.community_brand === true,
         isNew: p.is_new === true,
-        isPromo: p.is_promo === true,
+        isPromo: isPromotionActive(p),
+        catalogCategoryTags: p.catalog_category_tags || [],
+        targetAudiences: p.target_audiences || [],
+        vatRate: p.vat_rate == null ? undefined : Number(p.vat_rate),
+        priceIncludesVat: p.price_includes_vat !== false,
+        promotionPrice: p.promotion_price == null ? undefined : Number(p.promotion_price),
+        promotionStartsAt: p.promotion_starts_at,
+        promotionEndsAt: p.promotion_ends_at,
+        warnings: p.warnings || [],
+        sourceSupplier: p.source_supplier || undefined,
+        supplierSku: p.supplier_sku || undefined,
+        lastImportedAt: p.last_imported_at,
+        catalogUpdatedBy: p.catalog_updated_by,
         catalogStatus: p.catalog_status,
         ingredientVerificationStatus: p.ingredient_verification_status,
         claimsValidationStatus: p.claims_validation_status,
@@ -726,6 +802,470 @@ class SupabaseServerStore {
     }
     this.inMemoryProductSubscriptions.push(subscription);
     return subscription;
+  }
+
+  private normalizeCatalogProductInput(input: any, existing?: any): any {
+    const source = { ...(existing || {}), ...(input || {}) };
+    const text = (value: unknown, max = 5000): string | undefined => {
+      if (typeof value !== 'string') return undefined;
+      const trimmed = value.trim();
+      return trimmed ? trimmed.slice(0, max) : undefined;
+    };
+    const array = (value: unknown): string[] => Array.isArray(value)
+      ? value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 100)
+      : typeof value === 'string' ? value.split(/[|;]/).map(item => item.trim()).filter(Boolean).slice(0, 100) : [];
+    const number = (value: unknown, fallback?: number): number | undefined => {
+      if (value === undefined || value === null || value === '') return fallback;
+      const parsed = Number(String(value).replace(',', '.'));
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+    const slugify = (value: string): string => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180);
+    const name = text(source.name || source.nom, 240);
+    if (!name) throw new Error('Le nom du produit est obligatoire.');
+    const slug = slugify(text(source.slug || source.handle, 180) || name);
+    if (!slug) throw new Error('Le slug produit est obligatoire.');
+    const price = number(source.price ?? source.prix);
+    if (price === undefined || price < 0) throw new Error(`Prix invalide pour « ${name} » : renseignez un montant positif ou nul.`);
+
+    const categoryRaw = text(source.category || source.department || source.departement, 80);
+    const categoryKey = categoryRaw?.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const category = categoryKey?.includes('peau') ? 'peau' : categoryKey?.includes('cheveu') ? 'cheveux' : categoryRaw ? categoryRaw : undefined;
+    if (category && !['cheveux', 'peau'].includes(category)) throw new Error(`Département inconnu pour « ${name} ». Utilisez cheveux ou peau.`);
+
+    const validCategories = new Set<string>(CATALOG_CATEGORIES.map(item => item.slug));
+    const catalogCategoryTags = array(source.catalogCategoryTags ?? source.catalog_category_tags ?? source.categoryTags);
+    const unknownCategory = catalogCategoryTags.find(tag => !validCategories.has(tag));
+    if (unknownCategory) throw new Error(`Catégorie catalogue inconnue : ${unknownCategory}.`);
+    const validAudiences = new Set<string>(CATALOG_AUDIENCES.map(item => item.slug));
+    const targetAudiences = array(source.targetAudiences ?? source.target_audiences);
+    const unknownAudience = targetAudiences.find(audience => !validAudiences.has(audience));
+    if (unknownAudience) throw new Error(`Public inconnu : ${unknownAudience}.`);
+    const countries = array(source.countryAvailability ?? source.country_availability).map(country => country.toUpperCase());
+    if (countries.some(country => country !== 'INT' && !/^[A-Z]{2}$/.test(country))) throw new Error(`Pays de disponibilité invalide pour « ${name} ».`);
+
+    const rawImages = typeof source.images === 'string' ? parseJsonCell(source.images, []) : source.images;
+    const imagesProvided = rawImages !== undefined;
+    const images = imagesProvided
+      ? (Array.isArray(rawImages) ? rawImages : [])
+        .map((image: any) => typeof image === 'string' ? { url: image } : image)
+        .filter((image: any) => image && typeof image.url === 'string' && image.url.trim())
+        .map((image: any, index: number) => ({
+          url: image.url.trim().slice(0, 2000),
+          alt: text(image.alt || image.label, 300),
+          position: Number.isInteger(image.position) ? image.position : index,
+          imageType: ['hero', 'gallery', 'detail'].includes(image.imageType || image.type) ? (image.imageType || image.type) : index === 0 ? 'hero' : 'gallery',
+          ownershipStatus: ['brand_provided', 'licensed', 'editorial', 'illustrative', 'unverified'].includes(image.ownershipStatus || image.imageTrust) ? (image.ownershipStatus || image.imageTrust) : 'unverified',
+          validationStatus: ['verified', 'pending', 'rejected', 'not_provided'].includes(image.validationStatus) ? image.validationStatus : 'pending',
+          sourceNote: text(image.sourceNote, 1000)
+        }))
+        .filter((image: any) => /^https?:\/\//i.test(image.url)).slice(0, 30)
+      : undefined;
+    if (imagesProvided && Array.isArray(rawImages) && rawImages.length > 0 && images.length === 0) throw new Error(`Aucune URL d’image exploitable pour « ${name} ».`);
+
+    const rawVariants = typeof source.variants === 'string' ? parseJsonCell(source.variants, []) : source.variants;
+    const variantsProvided = rawVariants !== undefined;
+    const variants = variantsProvided
+      ? (Array.isArray(rawVariants) ? rawVariants : []).map((variant: any, index: number) => {
+        const variantName = text(variant?.name || variant?.label || variant?.optionValue || variant?.option_value, 240);
+        if (!variantName) throw new Error(`La variante ${index + 1} de « ${name} » doit avoir un nom.`);
+        const variantPrice = number(variant.price, price);
+        const stockQuantity = number(variant.stockQuantity ?? variant.stock_quantity, 0);
+        if (variantPrice === undefined || variantPrice < 0 || stockQuantity === undefined || !Number.isSafeInteger(stockQuantity) || stockQuantity < 0) {
+          throw new Error(`Prix ou stock invalide pour la variante « ${variantName} ».`);
+        }
+        return {
+          id: isUuid(variant.id) ? variant.id : randomUUID(),
+          name: variantName,
+          sku: text(variant.sku, 120),
+          barcode: text(variant.barcode, 120),
+          price: variantPrice,
+          stockQuantity,
+          isActive: variant.isActive === undefined && variant.is_active === undefined ? true : parseBoolean(variant.isActive ?? variant.is_active, true),
+          optionType: text(variant.optionType || variant.option_type, 40),
+          optionValue: text(variant.optionValue || variant.option_value, 240),
+          weightGrams: number(variant.weightGrams ?? variant.weight_grams),
+          formatLabel: text(variant.formatLabel || variant.format_label, 120),
+          shade: text(variant.shade, 120),
+          color: text(variant.color, 120),
+          scent: text(variant.scent, 120),
+          vatRate: number(variant.vatRate ?? variant.vat_rate),
+          promotionPrice: number(variant.promotionPrice ?? variant.promotion_price),
+          promotionStartsAt: text(variant.promotionStartsAt || variant.promotion_starts_at, 80),
+          promotionEndsAt: text(variant.promotionEndsAt || variant.promotion_ends_at, 80)
+        };
+      })
+      : undefined;
+
+    const stockQuantity = number(source.stockQuantity ?? source.stock_quantity ?? source.stock, 0);
+    if (stockQuantity === undefined || !Number.isSafeInteger(stockQuantity) || stockQuantity < 0) throw new Error(`Stock invalide pour « ${name} ».`);
+    const vatRate = number(source.vatRate ?? source.vat_rate ?? source.tva, 20);
+    if (vatRate === undefined || vatRate < 0 || vatRate > 100) throw new Error(`TVA invalide pour « ${name} ».`);
+    const promotionPrice = number(source.promotionPrice ?? source.promotion_price);
+    if (promotionPrice !== undefined && (promotionPrice < 0 || promotionPrice > price)) throw new Error(`Prix promotionnel invalide pour « ${name} ».`);
+    const isPromo = source.isPromo === undefined && source.is_promo === undefined ? promotionPrice !== undefined : parseBoolean(source.isPromo ?? source.is_promo, false);
+    if (isPromo && promotionPrice === undefined) throw new Error(`La promotion de « ${name} » est signalée mais son prix est absent.`);
+    const toIso = (value: unknown): string | undefined => {
+      if (value === undefined || value === null || value === '') return undefined;
+      const date = new Date(String(value));
+      if (Number.isNaN(date.getTime())) throw new Error(`Date catalogue invalide pour « ${name} ».`);
+      return date.toISOString();
+    };
+    const promotionStartsAt = toIso(source.promotionStartsAt ?? source.promotion_starts_at);
+    const promotionEndsAt = toIso(source.promotionEndsAt ?? source.promotion_ends_at);
+    if (promotionStartsAt && promotionEndsAt && new Date(promotionEndsAt) < new Date(promotionStartsAt)) throw new Error(`Période promotionnelle incohérente pour « ${name} ».`);
+    const image = text(source.image || source.image_url, 2000) || images?.[0]?.url;
+    if (image && !/^https?:\/\//i.test(image)) throw new Error(`URL d’image invalide pour « ${name} ».`);
+    const imageOwnershipStatus = ['brand_provided', 'licensed', 'editorial', 'illustrative', 'unverified'].includes(source.imageOwnershipStatus)
+      ? source.imageOwnershipStatus
+      : images?.[0]?.ownershipStatus || existing?.imageOwnershipStatus || existing?.image_ownership_status || 'unverified';
+    const id = text(source.id, 240) || existing?.id || `product-${randomUUID()}`;
+    const active = source.isActive === undefined && source.is_active === undefined
+      ? existing?.isActive ?? existing?.is_active ?? false
+      : parseBoolean(source.isActive ?? source.is_active, false);
+    const effectiveInStock = variantsProvided ? variants.some((variant: any) => variant.isActive && variant.stockQuantity > 0) : stockQuantity > 0;
+    return {
+      id,
+      slug,
+      name,
+      brand: text(source.brand, 240),
+      price,
+      originalPrice: number(source.originalPrice ?? source.original_price),
+      promotionPrice,
+      promotionStartsAt,
+      promotionEndsAt,
+      vatRate,
+      priceIncludesVat: source.priceIncludesVat === undefined && source.price_includes_vat === undefined ? true : parseBoolean(source.priceIncludesVat ?? source.price_includes_vat, true),
+      isPromo,
+      stockQuantity,
+      inStock: source.inStock === undefined && source.in_stock === undefined ? effectiveInStock : parseBoolean(source.inStock ?? source.in_stock, effectiveInStock),
+      isActive: active,
+      category,
+      subCategory: text(source.subCategory || source.subcategory || source.sub_category_tag, 160),
+      catalogCategoryTags,
+      targetAudiences,
+      countryAvailability: countries,
+      description: text(source.description, 10000),
+      image,
+      images,
+      imageOwnershipStatus,
+      imagesProvided,
+      variants,
+      variantsProvided,
+      ingredients: array(source.ingredients || source.keyIngredients),
+      inci: text(source.inci, 12000),
+      warnings: array(source.warnings),
+      certifications: Array.isArray(typeof source.certifications === 'string' ? parseJsonCell(source.certifications, []) : source.certifications)
+        ? (typeof source.certifications === 'string' ? parseJsonCell(source.certifications, []) : source.certifications).slice(0, 50)
+        : [],
+      hairTypes: array(source.hairTypes || source.hair_types || source.targetHairTypes),
+      skinTypes: array(source.skinTypes || source.skin_types || source.targetSkinTypes),
+      concerns: array(source.concerns || source.needs),
+      sourceSupplier: text(source.sourceSupplier || source.source_supplier || source.supplier, 240),
+      supplierSku: text(source.supplierSku || source.supplier_sku, 240),
+      benefitPrimary: text(source.benefitPrimary, 500),
+      forWho: text(source.forWho, 1000),
+      notIdealIf: text(source.notIdealIf, 1000),
+      howToUse: text(source.howToUse, 3000),
+      routineStep: text(source.routineStep, 300),
+      texture: text(source.texture, 240),
+      fragrance: text(source.fragrance, 240),
+      usageFrequency: text(source.usageFrequency, 240),
+      sizeLabel: text(source.sizeLabel, 120),
+      estimatedYield: text(source.estimatedYield, 240),
+      ingredientRoles: Array.isArray(source.ingredientRoles) ? source.ingredientRoles.slice(0, 50) : [],
+      allergens: array(source.allergens),
+      containsFragrance: typeof source.containsFragrance === 'boolean' ? source.containsFragrance : undefined,
+      originCountry: text(source.originCountry, 80),
+      returnsPolicy: text(source.returnsPolicy, 3000),
+      shippingPolicy: source.shippingPolicy && typeof source.shippingPolicy === 'object' ? source.shippingPolicy : {},
+      lastImportedAt: new Date().toISOString()
+    };
+  }
+
+  private catalogAdminView(product: any): any {
+    return {
+      ...product,
+      price: product.basePrice ?? product.price,
+      isActive: product.isActive ?? product.is_active ?? false,
+      catalogStatus: product.catalogStatus ?? product.catalog_status ?? 'draft',
+      validation: {
+        ingredients: product.ingredientVerificationStatus ?? product.ingredient_verification_status ?? 'not_provided',
+        claims: product.claimsValidationStatus ?? product.claims_validation_status ?? 'not_provided',
+        images: product.imagesValidationStatus ?? product.images_validation_status ?? 'not_provided',
+        stock: product.stockValidationStatus ?? product.stock_validation_status ?? 'not_provided',
+        certifications: product.certificationsValidationStatus ?? product.certifications_validation_status ?? 'not_provided',
+        translations: product.translationsValidationStatus ?? product.translations_validation_status ?? 'not_provided',
+        brand: product.brandVerificationStatus ?? product.brand_verification_status ?? 'not_provided'
+      },
+      lastCatalogUpdatedAt: product.lastCatalogUpdatedAt ?? product.last_catalog_updated_at,
+      lastCatalogReviewedAt: product.lastCatalogReviewedAt ?? product.last_catalog_reviewed_at
+    };
+  }
+
+  public async getAdminCatalogProducts(): Promise<any[]> {
+    return (await this.getProducts({ includeInactive: true })).map(product => this.catalogAdminView(product));
+  }
+
+  public async getCatalogTaxonomy(): Promise<{ categories: any[]; audiences: any[] }> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data: categories, error: categoryError } = await supabase.from('catalog_categories').select('slug, department, label, sort_order, active').eq('active', true).order('sort_order');
+      ensureDatabaseSuccess('lecture des catégories catalogue', categoryError);
+      return { categories: categories || [], audiences: [...CATALOG_AUDIENCES] };
+    }
+    return { categories: [...CATALOG_CATEGORIES], audiences: [...CATALOG_AUDIENCES] };
+  }
+
+  public async saveCatalogProduct(adminId: string, input: any): Promise<any> {
+    const allProducts = await this.getProducts({ includeInactive: true });
+    const requestedId = typeof input?.id === 'string' ? input.id.trim() : undefined;
+    const requestedSlug = typeof input?.slug === 'string' ? input.slug.trim() : undefined;
+    const requestedSupplier = typeof input?.sourceSupplier === 'string' ? input.sourceSupplier.trim() : typeof input?.supplier === 'string' ? input.supplier.trim() : undefined;
+    const requestedSupplierSku = typeof input?.supplierSku === 'string' ? input.supplierSku.trim() : typeof input?.supplier_sku === 'string' ? input.supplier_sku.trim() : undefined;
+    const existing = allProducts.find(product =>
+      (requestedId && product.id === requestedId)
+      || (requestedSlug && product.slug === requestedSlug)
+      || (requestedSupplier && requestedSupplierSku && product.sourceSupplier === requestedSupplier && product.supplierSku === requestedSupplierSku)
+    );
+    const normalized = this.normalizeCatalogProductInput(input, existing);
+    if (existing && normalized.id !== existing.id) normalized.id = existing.id;
+    const now = new Date().toISOString();
+    const imagesChanged = normalized.imagesProvided === true;
+    const supabase = getSupabaseServerClient();
+    let savedProduct: any = { ...existing, ...normalized, id: normalized.id };
+
+    if (supabase) {
+      const quality = {
+        catalog_status: existing?.catalogStatus || existing?.catalog_status || 'draft',
+        ingredient_verification_status: existing?.ingredientVerificationStatus || existing?.ingredient_verification_status || 'not_provided',
+        claims_validation_status: existing?.claimsValidationStatus || existing?.claims_validation_status || 'not_provided',
+        images_validation_status: imagesChanged ? 'pending' : (existing?.imagesValidationStatus || existing?.images_validation_status || 'not_provided'),
+        stock_validation_status: existing?.stockValidationStatus || existing?.stock_validation_status || 'not_provided',
+        certifications_validation_status: existing?.certificationsValidationStatus || existing?.certifications_validation_status || 'not_provided',
+        translations_validation_status: existing?.translationsValidationStatus || existing?.translations_validation_status || 'not_provided',
+        brand_verification_status: existing?.brandVerificationStatus || existing?.brand_verification_status || 'not_provided',
+        image_ownership_status: imagesChanged ? normalized.imageOwnershipStatus : (existing?.imageOwnershipStatus || existing?.image_ownership_status || 'unverified')
+      };
+      const payload: Record<string, unknown> = {
+        id: normalized.id,
+        slug: normalized.slug,
+        name: normalized.name,
+        brand: normalized.brand || null,
+        price: normalized.price,
+        original_price: normalized.originalPrice ?? null,
+        promotion_price: normalized.promotionPrice ?? null,
+        promotion_starts_at: normalized.promotionStartsAt || null,
+        promotion_ends_at: normalized.promotionEndsAt || null,
+        vat_rate: normalized.vatRate,
+        price_includes_vat: normalized.priceIncludesVat,
+        is_promo: normalized.isPromo,
+        in_stock: normalized.inStock,
+        stock_quantity: normalized.stockQuantity,
+        is_active: normalized.isActive,
+        category: normalized.category || null,
+        subcategory: normalized.subCategory || null,
+        sub_category_tag: normalized.subCategory || null,
+        catalog_category_tags: normalized.catalogCategoryTags,
+        target_audiences: normalized.targetAudiences,
+        country_availability: normalized.countryAvailability,
+        description: normalized.description || null,
+        image_url: normalized.image || null,
+        ingredients: normalized.ingredients,
+        inci: normalized.inci || null,
+        warnings: normalized.warnings,
+        certifications: normalized.certifications,
+        hair_types: normalized.hairTypes,
+        skin_types: normalized.skinTypes,
+        concerns: normalized.concerns,
+        source_supplier: normalized.sourceSupplier || null,
+        supplier_sku: normalized.supplierSku || null,
+        benefit_primary: normalized.benefitPrimary || null,
+        for_who: normalized.forWho || null,
+        not_ideal_if: normalized.notIdealIf || null,
+        how_to_use: normalized.howToUse || null,
+        routine_step: normalized.routineStep || null,
+        texture: normalized.texture || null,
+        fragrance: normalized.fragrance || null,
+        usage_frequency: normalized.usageFrequency || null,
+        size_label: normalized.sizeLabel || null,
+        estimated_yield: normalized.estimatedYield || null,
+        ingredient_roles: normalized.ingredientRoles,
+        allergens: normalized.allergens,
+        contains_fragrance: normalized.containsFragrance ?? null,
+        origin_country: normalized.originCountry || null,
+        returns_policy: normalized.returnsPolicy || null,
+        shipping_policy: normalized.shippingPolicy,
+        last_imported_at: normalized.lastImportedAt,
+        catalog_updated_by: adminId,
+        last_catalog_updated_at: now,
+        updated_at: now,
+        ...quality
+      };
+      const { data, error } = await supabase.from('products').upsert(payload, { onConflict: 'id' }).select('*').single();
+      ensureDatabaseSuccess('enregistrement du produit catalogue', error);
+      savedProduct = { ...savedProduct, ...data };
+
+      if (normalized.variantsProvided) {
+        const { data: currentVariants, error: variantLookupError } = await supabase.from('product_variants').select('id').eq('product_id', normalized.id);
+        ensureDatabaseSuccess('lecture des variantes existantes', variantLookupError);
+        const retained = new Set<string>();
+        for (const variant of normalized.variants || []) {
+          retained.add(variant.id);
+          const { error: variantError } = await supabase.from('product_variants').upsert({
+            id: variant.id,
+            product_id: normalized.id,
+            name: variant.name,
+            sku: variant.sku || null,
+            price: variant.price,
+            stock_quantity: variant.stockQuantity,
+            is_active: variant.isActive,
+            option_type: variant.optionType || null,
+            option_value: variant.optionValue || null,
+            weight_grams: variant.weightGrams || null,
+            format_label: variant.formatLabel || null,
+            shade: variant.shade || null,
+            color: variant.color || null,
+            scent: variant.scent || null,
+            barcode: variant.barcode || null,
+            vat_rate: variant.vatRate ?? null,
+            promotion_price: variant.promotionPrice ?? null,
+            promotion_starts_at: variant.promotionStartsAt || null,
+            promotion_ends_at: variant.promotionEndsAt || null,
+            updated_at: now
+          }, { onConflict: 'id' });
+          ensureDatabaseSuccess('enregistrement d’une variante catalogue', variantError);
+          await this.syncVariantInventoryToSupabase(normalized.id, variant.id, variant.stockQuantity, 0);
+        }
+        for (const current of currentVariants || []) {
+          if (!retained.has(current.id)) {
+            const { error: deactivateError } = await supabase.from('product_variants').update({ is_active: false, updated_at: now }).eq('id', current.id);
+            ensureDatabaseSuccess('désactivation d’une variante catalogue', deactivateError);
+          }
+        }
+      }
+      await this.syncInventoryToSupabase(normalized.id, normalized.stockQuantity, 0);
+
+      if (normalized.imagesProvided) {
+        const { error: deleteImagesError } = await supabase.from('product_images').delete().eq('product_id', normalized.id);
+        ensureDatabaseSuccess('remplacement des images catalogue', deleteImagesError);
+        if (normalized.images.length > 0) {
+          const { error: imageError } = await supabase.from('product_images').insert(normalized.images.map((image: any) => ({
+            product_id: normalized.id,
+            url: image.url,
+            alt: image.alt || null,
+            position: image.position,
+            image_type: image.imageType,
+            ownership_status: image.ownershipStatus,
+            validation_status: image.validationStatus,
+            source_note: image.sourceNote || null,
+            updated_at: now
+          })));
+          ensureDatabaseSuccess('enregistrement des images catalogue', imageError);
+        }
+      }
+      return this.catalogAdminView({
+        ...savedProduct,
+        ...normalized,
+        id: normalized.id,
+        catalogStatus: quality.catalog_status,
+        ingredientVerificationStatus: quality.ingredient_verification_status,
+        claimsValidationStatus: quality.claims_validation_status,
+        imagesValidationStatus: quality.images_validation_status,
+        stockValidationStatus: quality.stock_validation_status,
+        certificationsValidationStatus: quality.certifications_validation_status,
+        translationsValidationStatus: quality.translations_validation_status,
+        brandVerificationStatus: quality.brand_verification_status,
+        imageOwnershipStatus: quality.image_ownership_status,
+        lastCatalogUpdatedAt: now
+      });
+    }
+
+    const memoryRecord = {
+      ...savedProduct,
+      ...normalized,
+      id: normalized.id,
+      catalog_status: existing?.catalog_status || existing?.catalogStatus || 'draft',
+      ingredient_verification_status: existing?.ingredient_verification_status || existing?.ingredientVerificationStatus || 'not_provided',
+      claims_validation_status: existing?.claims_validation_status || existing?.claimsValidationStatus || 'not_provided',
+      images_validation_status: imagesChanged ? 'pending' : (existing?.images_validation_status || existing?.imagesValidationStatus || 'not_provided'),
+      stock_validation_status: existing?.stock_validation_status || existing?.stockValidationStatus || 'not_provided',
+      certifications_validation_status: existing?.certifications_validation_status || existing?.certificationsValidationStatus || 'not_provided',
+      translations_validation_status: existing?.translations_validation_status || existing?.translationsValidationStatus || 'not_provided',
+      brand_verification_status: existing?.brand_verification_status || existing?.brandVerificationStatus || 'not_provided',
+      image_ownership_status: imagesChanged ? normalized.imageOwnershipStatus : (existing?.image_ownership_status || existing?.imageOwnershipStatus || 'unverified'),
+      last_catalog_updated_at: now,
+      last_imported_at: normalized.lastImportedAt,
+      variants: normalized.variantsProvided ? normalized.variants.map((variant: any) => ({ ...variant, stock_quantity: variant.stockQuantity, reserved_quantity: 0 })) : (existing?.variants || []),
+      galleryImages: normalized.imagesProvided ? normalized.images : (existing?.galleryImages || [])
+    };
+    const index = this.inMemoryProducts.findIndex(product => product.id === normalized.id);
+    if (index >= 0) this.inMemoryProducts[index] = memoryRecord;
+    else this.inMemoryProducts.unshift(memoryRecord);
+    return this.catalogAdminView(memoryRecord);
+  }
+
+  private async createCatalogImportAudit(adminId: string, sourceType: 'manual' | 'csv' | 'supplier', rowsReceived: number, supplier?: string, fileName?: string): Promise<string> {
+    const id = randomUUID();
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('catalog_imports').insert({ id, initiated_by: adminId, source_type: sourceType, supplier: supplier || null, file_name: fileName || null, rows_received: rowsReceived, status: 'processing' });
+      ensureDatabaseSuccess('création du journal d’import catalogue', error);
+    }
+    return id;
+  }
+
+  private async finishCatalogImportAudit(importId: string, result: { imported: number; rejected: number; errors: any[] }): Promise<void> {
+    const status = result.rejected > 0 ? (result.imported > 0 ? 'completed_with_errors' : 'failed') : 'completed';
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error } = await supabase.from('catalog_imports').update({ status, rows_imported: result.imported, rows_rejected: result.rejected, error_report: result.errors, completed_at: new Date().toISOString() }).eq('id', importId);
+      ensureDatabaseSuccess('clôture du journal d’import catalogue', error);
+    }
+  }
+
+  public async importCatalogRecords(adminId: string, records: any[], sourceType: 'manual' | 'supplier' | 'csv', supplier?: string, fileName?: string): Promise<any> {
+    if (!Array.isArray(records) || records.length === 0) throw new Error('Aucune ligne catalogue à importer.');
+    if (records.length > 1000) throw new Error('Un import est limité à 1 000 lignes par opération.');
+    const importId = await this.createCatalogImportAudit(adminId, sourceType, records.length, supplier, fileName);
+    const result = { importId, imported: 0, rejected: 0, errors: [] as any[], products: [] as any[] };
+    for (let index = 0; index < records.length; index += 1) {
+      const raw = { ...(records[index] || {}) };
+      if (sourceType === 'supplier' && supplier && !raw.sourceSupplier && !raw.source_supplier) raw.sourceSupplier = supplier;
+      try {
+        const product = await this.saveCatalogProduct(adminId, raw);
+        result.imported += 1;
+        result.products.push(product);
+        const supabase = getSupabaseServerClient();
+        if (supabase) {
+          const { error } = await supabase.from('catalog_import_rows').insert({ import_id: importId, row_number: index + 1, external_key: String(raw.supplierSku || raw.supplier_sku || raw.id || raw.slug || ''), status: 'imported' });
+          ensureDatabaseSuccess('journalisation d’une ligne d’import catalogue', error);
+        }
+      } catch (error: any) {
+        result.rejected += 1;
+        const message = error?.message || 'Ligne catalogue rejetée.';
+        result.errors.push({ row: index + 1, message });
+        const supabase = getSupabaseServerClient();
+        if (supabase) {
+          const { error: rowError } = await supabase.from('catalog_import_rows').insert({ import_id: importId, row_number: index + 1, external_key: String(raw.supplierSku || raw.supplier_sku || raw.id || raw.slug || ''), status: 'rejected', error_message: message });
+          ensureDatabaseSuccess('journalisation d’une erreur d’import catalogue', rowError);
+        }
+      }
+    }
+    await this.finishCatalogImportAudit(importId, result);
+    return result;
+  }
+
+  public async importCatalogCsv(adminId: string, csv: string, fileName?: string): Promise<any> {
+    const rows = parseCatalogCsv(csv).map(catalogCsvRowToInput);
+    return this.importCatalogRecords(adminId, rows, 'csv', undefined, fileName);
+  }
+
+  public async getCatalogImports(limit = 30): Promise<any[]> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('catalog_imports').select('*').order('created_at', { ascending: false }).limit(Math.min(100, Math.max(1, limit)));
+    ensureDatabaseSuccess('lecture du journal des imports catalogue', error);
+    return data || [];
   }
 
   public async recordCatalogValidation(adminId: string, productId: string, checkType: string, status: 'passed' | 'failed' | 'pending', evidenceUrl?: string, note?: string): Promise<void> {
