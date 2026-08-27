@@ -470,17 +470,56 @@ restauration. Un filet qui ne peut pas échouer ne serait pas un filet.
 
 ---
 
-## CHANTIER 7 — SEO, SSR & INTERNATIONALISATION ⬜
+## CHANTIER 7 — SEO, SSR & INTERNATIONALISATION 🔶 (en cours)
 
 **Le chantier le plus coûteux, donc à décider tôt.** Aujourd'hui : 1 URL indexable.
 
-- [ ] Rendu serveur ou prérendu (action 8)
-- [ ] Vrai routeur à la place de la cascade de `if (pathname === ...)`
-- [ ] Métadonnées par page, sitemap, robots, hreflang, Open Graph
-- [ ] Pages générées depuis le graphe : ingrédient × problème × texture × ville (action 37)
-- [ ] Fiches ingrédient publiques
-- [ ] i18n + devises + TVA
-- [ ] Filtrage réglementaire par juridiction via `ingredient_jurisdiction_restrictions`
+Le chantier est subdivisé en sept sous-chantiers, chacun livrable et vérifiable
+séparément. L'ordre n'est pas celui de la liste d'origine : le routeur passe en
+premier parce que le sitemap, le prérendu et l'i18n se dérivent tous de la même
+table de routes. Le faire après aurait obligé à tenir trois listes à jour.
+
+### 7.1 — Routeur déclaratif et métadonnées par page ✅
+
+La cascade de 40 `if (pathname === ...)` de `App.tsx` est remplacée par une table
+déclarative. La correspondance de chemin est **partagée** entre le rendu et les
+métadonnées : une route ne peut pas exister sans son titre, ni l'inverse.
+
+- `src/lib/routeMeta.ts` — 47 routes : titre, description, indexabilité, canonique,
+  fréquence et poids sitemap. **Aucun import React**, pour qu'un script de build
+  puisse la lire sans charger l'application.
+- `src/lib/routeTable.tsx` — composant et exigence d'authentification par route.
+  `auditRouteTable()` détecte toute divergence entre les deux fichiers.
+- `src/lib/useDocumentMeta.ts` — titre, description, canonique, robots et Open
+  Graph appliqués au document ; `noindex, nofollow` sur les pages privées.
+- `src/pages/HomePage.tsx` — la composition d'accueil devient une page comme les
+  autres.
+
+Vérification : `tests/chantier_7_routing.test.ts`, les 48 URLs historiques figées
+comme fixture, validé par quatre mutations (route supprimée, composant sans
+métadonnées, page privée indexable, motif paramétré masquant une route statique).
+Une première version prétendait tester la priorité d'ordre : elle ne pouvait pas
+échouer, puisque `:param` capture un segment et qu'aucun motif ne se recouvre.
+Remplacée par une vraie détection de recouvrement.
+
+Deux bancs existants (`kurla_intelligence`, `chantier_a_wiring`) vérifiaient la
+présence d'une chaîne dans `App.tsx`. Ils testent désormais la résolution réelle
+via `resolveRoute()` : chercher du texte ne prouvait pas que l'URL menait quelque
+part.
+
+### Restant
+
+- [ ] **7.2** Socle SEO technique : `robots.txt`, `sitemap.xml` généré depuis
+      `routeMeta`, image Open Graph par défaut, données structurées JSON-LD
+- [ ] **7.3** Prérendu au build (action 8) : HTML statique par route indexable
+- [ ] **7.4** Fiches ingrédient publiques et pages générées depuis le graphe :
+      ingrédient × problème × texture × ville (action 37)
+- [ ] **7.5** Internationalisation : framework de traduction, extraction des
+      chaînes, `hreflang`
+- [ ] **7.6** Devises et TVA
+- [ ] **7.7** Filtrage réglementaire par juridiction via
+      `ingredient_jurisdiction_restrictions` (table actuellement **vide**)
+
 
 ---
 
