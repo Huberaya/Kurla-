@@ -265,5 +265,15 @@ GRANT EXECUTE ON FUNCTION public.create_order_with_stock_reservation(
   TEXT, TEXT, NUMERIC, NUMERIC, JSONB, TEXT
 ) TO service_role;
 
-COMMENT ON FUNCTION public.create_order_with_stock_reservation IS
+-- Deux surcharges coexistent désormais (relais 11 paramètres + version étendue) :
+-- sans liste d'arguments, COMMENT ON lève 42725 « function name is not unique ».
+COMMENT ON FUNCTION public.create_order_with_stock_reservation(
+  TEXT, UUID, TEXT, JSONB, NUMERIC, TEXT, TEXT, TEXT, TEXT, JSONB, TIMESTAMPTZ,
+  TEXT, TEXT, NUMERIC, NUMERIC, JSONB, TEXT
+) IS
   'Crée la commande, ses lignes, sa ligne de paiement et son historique, et réserve le stock, dans une seule transaction. Écrit aussi la devise et la ventilation de TVA. Idempotent sur la clé de checkout.';
+
+COMMENT ON FUNCTION public.create_order_with_stock_reservation(
+  TEXT, UUID, TEXT, JSONB, NUMERIC, TEXT, TEXT, TEXT, TEXT, JSONB, TIMESTAMPTZ
+) IS
+  'Relais de compatibilité (signature d’origine) : délègue à la version étendue avec des valeurs NULL pour la devise et la TVA. Existe pour qu’aucun déploiement en cours ne casse pendant la montée de version.';

@@ -24,7 +24,9 @@ import {
   assessProductCompliance,
   complianceLabel,
   jurisdictionForCountry,
+  parseDeclaredIngredient,
 } from '../src/lib/jurisdiction';
+import { resolveIngredient } from '../src/lib/ingredientGraph';
 import { buildRecommendations } from '../src/lib/recommendationEngine';
 import { SHIPPING_OPTIONS } from '../src/lib/shippingRules';
 
@@ -282,6 +284,58 @@ async function runJurisdictionTests(): Promise<void> {
     0,
     'Aucun produit du catalogue ne doit être exclu par une restriction d’une autre juridiction.'
   );
+
+  // -------------------------------------------------------------------
+  // 12. Le catalogue réel écrit la concentration dans le libellé.
+  // -------------------------------------------------------------------
+  assert.deepEqual(parseDeclaredIngredient('Acide Salicylique 1.5%'), {
+    name: 'Acide Salicylique',
+    concentrationPercent: 1.5,
+  });
+  assert.deepEqual(parseDeclaredIngredient('Niacinamide 4 %'), { name: 'Niacinamide', concentrationPercent: 4 });
+  assert.deepEqual(parseDeclaredIngredient('Vitamine C 10,5 %'), { name: 'Vitamine C', concentrationPercent: 10.5 });
+  assert.deepEqual(parseDeclaredIngredient('Glycérine Végétale'), {
+    name: 'Glycérine Végétale',
+    concentrationPercent: null,
+  }, 'Sans pourcentage, aucune concentration n’est inventée.');
+  assert.deepEqual(parseDeclaredIngredient(undefined), { name: '', concentrationPercent: null });
+
+  // Cas réel relevé en base le 2026-08-28 : produit p13, « Acide Salicylique 1.5% »,
+  // limite européenne 2 %. La résolution passe par l'alias français ajouté par la
+  // migration 20260861000000, puis le pourcentage est confronté à la limite.
+  const realCatalog = [
+    { id: 'salicylic-acid', inciName: 'Salicylic Acid', inciNameNormalized: 'salicylic acid', commonNames: ['BHA', 'acide salicylique'] },
+  ];
+  const declared = parseDeclaredIngredient('Acide Salicylique 1.5%');
+  const resolvedReal = resolveIngredient(declared.name, realCatalog as any);
+  assert.equal(resolvedReal?.id, 'salicylic-acid', 'L’alias français doit résoudre vers l’entité du graphe.');
+
+  const realCase = assessProductCompliance({
+    ingredients: [{
+      ingredientId: resolvedReal!.id,
+      declaredConcentrationPercent: declared.concentrationPercent,
+      concentrationSource: 'declared_name',
+      declaredLabel: 'Acide Salicylique 1.5%',
+    }],
+    restrictions: EU_RESTRICTIONS,
+    jurisdiction: 'EU',
+  });
+  assert.equal(realCase.verdict, 'restricted');
+  assert.equal(realCase.sellable, true);
+  assert.equal(realCase.findings[0].withinLimit, true, '1,5 % pour une limite de 2 % : dans la limite.');
+  assert.equal(realCase.findings[0].concentrationSource, 'declared_name');
+  const provenance = realCase.limitations.join(' ');
+  assert.match(provenance, /Acide Salicylique 1.5%/, 'La provenance du chiffre doit être citée.');
+  assert.match(provenance, /pas dans une liaison structurée/, 'Un pourcentage lu dans le libellé n’est pas une analyse.');
+
+  // Une liaison structurée prime : même ingrédient, source différente.
+  const linkedCase = assessProductCompliance({
+    ingredients: [{ ingredientId: 'salicylic-acid', declaredConcentrationPercent: 1.5, concentrationSource: 'linked' }],
+    restrictions: EU_RESTRICTIONS,
+    jurisdiction: 'EU',
+  });
+  assert.equal(linkedCase.findings[0].concentrationSource, 'linked');
+  assert.equal(linkedCase.limitations.some(text => /libellé déclaré/.test(text)), false);
 
   console.log(
     `[PASS] Chantier 7.7 : ${Object.keys(JURISDICTION_BY_COUNTRY).length} pays desservis rattachés au droit cosmétique ` +

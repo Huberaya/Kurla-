@@ -55,6 +55,38 @@ export interface DeclaredProductIngredient {
    * c'est le cas le plus fréquent, et il doit le rester visible.
    */
   declaredConcentrationPercent?: number | null;
+  /**
+   * D'où vient la concentration. `linked` : liaison structurée
+   * `product_ingredients`. `declared_name` : lue dans le libellé déclaré
+   * (« Acide Salicylique 1.5 % »). La provenance est affichée, jamais fondue
+   * dans le verdict.
+   */
+  concentrationSource?: 'linked' | 'declared_name';
+  /** Libellé d'origine, cité quand la concentration en est issue. */
+  declaredLabel?: string;
+}
+
+/**
+ * Sépare une concentration déclarée à même le libellé.
+ *
+ * Le catalogue réel écrit « Acide Salicylique 1.5 % » ou « Niacinamide 4 % » :
+ * le pourcentage fait partie de la déclaration du marchand, pas du nom de
+ * l'ingrédient. Le lire n'est pas deviner — c'est parser ce qui est écrit. Le
+ * pourcentage reste signalé comme provenant du libellé (`declared_name`), jamais
+ * confondu avec une liaison structurée `product_ingredients`.
+ */
+export function parseDeclaredIngredient(declared: unknown): {
+  name: string;
+  concentrationPercent: number | null;
+} {
+  const raw = typeof declared === 'string' ? declared.trim() : '';
+  const match = raw.match(/(\d+(?:[.,]\d+)?)\s*%\s*$/);
+  if (!match) return { name: raw, concentrationPercent: null };
+  const parsed = Number(match[1].replace(',', '.'));
+  return {
+    name: raw.slice(0, match.index).trim(),
+    concentrationPercent: Number.isFinite(parsed) ? parsed : null,
+  };
 }
 
 export type ComplianceVerdict =
@@ -71,6 +103,8 @@ export type ComplianceVerdict =
 
 export interface ComplianceFinding {
   ingredientId: string;
+  /** Provenance de la concentration confrontée à la limite. */
+  concentrationSource: 'linked' | 'declared_name' | null;
   status: JurisdictionStatus;
   limitPercent: number | null;
   declaredConcentrationPercent: number | null;
@@ -112,14 +146,22 @@ export function assessProductCompliance(input: {
   const jurisdiction = String(input.jurisdiction || '').trim().toUpperCase();
   if (!jurisdiction) throw new Error('Juridiction requise pour évaluer la conformité.');
 
-  const declared = new Map<string, number | null>();
+  const declared = new Map<
+    string,
+    { concentration: number | null; source: 'linked' | 'declared_name' | null; label: string | null }
+  >();
   for (const ingredient of input.ingredients || []) {
     if (!ingredient?.ingredientId) continue;
     const value = ingredient.declaredConcentrationPercent;
-    declared.set(
-      ingredient.ingredientId,
-      typeof value === 'number' && Number.isFinite(value) ? value : null
-    );
+    declared.set(ingredient.ingredientId, {
+      concentration: typeof value === 'number' && Number.isFinite(value) ? value : null,
+      source: typeof value === 'number' && Number.isFinite(value)
+        ? (ingredient.concentrationSource === 'declared_name' ? 'declared_name' : 'linked')
+        : null,
+      label: typeof ingredient.declaredLabel === 'string' && ingredient.declaredLabel.trim()
+        ? ingredient.declaredLabel.trim()
+        : null,
+    });
   }
 
   const applicable = Array.from(input.restrictions || []).filter(
@@ -143,9 +185,10 @@ export function assessProductCompliance(input: {
   }
 
   const findings: ComplianceFinding[] = [];
-  for (const [ingredientId, declaredConcentration] of declared) {
+  for (const [ingredientId, entry] of declared) {
     const restriction = applicable.find(item => item.ingredientId === ingredientId);
     if (!restriction || restriction.status === 'allowed') continue;
+    const declaredConcentration = entry.concentration;
 
     const limit = typeof restriction.limitPercent === 'number' && Number.isFinite(restriction.limitPercent)
       ? restriction.limitPercent
@@ -166,6 +209,7 @@ export function assessProductCompliance(input: {
 
     findings.push({
       ingredientId,
+      concentrationSource: entry.source,
       status: restriction.status,
       limitPercent: limit,
       declaredConcentrationPercent: declaredConcentration,
@@ -184,6 +228,15 @@ export function assessProductCompliance(input: {
   const unknownHit = findings.some(finding => finding.status === 'unknown');
 
   const limitations: string[] = [];
+  for (const finding of findings) {
+    if (finding.concentrationSource !== 'declared_name') continue;
+    const label = declared.get(finding.ingredientId)?.label;
+    limitations.push(
+      `La concentration de ${finding.ingredientId} (${finding.declaredConcentrationPercent} %) est lue dans ` +
+      `le libellé déclaré${label ? ` « ${label} »` : ''}, pas dans une liaison structurée ` +
+      '`product_ingredients`. Elle vaut déclaration du marchand, pas analyse de laboratoire.'
+    );
+  }
   if (findings.some(finding => finding.status === 'restricted' && finding.withinLimit === null)) {
     limitations.push(
       'Au moins une concentration n’est pas déclarée : la conformité à la limite réglementaire ' +

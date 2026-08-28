@@ -703,10 +703,19 @@ auto-liquidation refusée sans vérification, VIES en échec fermé sur cinq sc�
 (DE 19→20, vérification ignorée, VIES non fail-closed, double taxation d'un prix
 HT : toutes détectées — la dernière a révélé un défaut réel avant livraison).
 
+**Migration appliquée le 2026-08-28** (jeton d'administration fourni depuis) :
+`orders` porte ses 6 colonnes (`currency` défaut `'EUR'`, `vat_country`,
+`net_amount`, `vat_amount`, `vat_breakdown`, `customer_vat_number`),
+`order_items` ses 4, les 4 contraintes sont en place, et **deux signatures** du
+RPC coexistent (11 paramètres = relais, 17 paramètres = version étendue,
+`EXECUTE` accordé à `service_role`). Un correctif a été nécessaire avant
+application : le `COMMENT ON FUNCTION` final, sans liste d'arguments, levait
+`42725 function name is not unique` une fois les deux surcharges créées. La
+migration est atomique : elle est revenue en arrière toute seule avant d'être
+corrigée puis réappliquée.
+
 **Ce qui manque, explicitement**
-- La migration `20260860000000_vat_and_currency.sql` est **écrite mais non
-  appliquée** : aucun jeton d'administration Supabase dans cet environnement.
-  Elle ajoute `orders.currency` (verrouillé EUR par CHECK), `vat_country`,
+- ~~Migration non appliquée~~ **LEVÉ.** Elle ajoute `orders.currency` (verrouillé EUR par CHECK), `vat_country`,
   `net_amount`, `vat_amount`, `vat_breakdown`, `customer_vat_number`, les mêmes
   champs par ligne, et étend le RPC de création de commande — **sans supprimer
   l'ancienne signature**, devenue un relais : l'ordre d'application n'a donc
@@ -774,18 +783,47 @@ test:chantier-7-jurisdiction-integration`) démarre le vrai serveur, injecte deu
 produits publiables et exerce les routes en HTTP. **Il a trouvé un défaut réel
 avant livraison** : quand le client Supabase est absent, la porte du checkout
 laissait passer la vente (fail-open) alors que le graphe illisible la refusait.
-Corrigé — les deux cas renvoient désormais 503.
+Corrigé — les deux cas renvoient désormais 503. **8 mutations sur 8 tuées** au
+total (les cinq premières, puis : pourcentage jamais lu, provenance masquée,
+limite devenue exclusive).
+
+**Vérifié sur la base réelle, le 2026-08-28.** Serveur démarré contre l'instance
+`qzwgsarfdegqtfdnqiql` avec la clé de service, produit `p13` du catalogue réel
+(« Acide Salicylique 1.5% », « Huile d'Arbre à Thé », « Aloe Vera »,
+« Allantoïne ») : verdict **`restricted`**, `sellable: true`, `salicylic-acid`
+résolu, limite 2 %, déclaré 1,5 %, `withinLimit: true`, référence
+« Règlement (CE) n° 1223/2009, annexe III », **1 ingrédient résolu sur 8
+déclarés**, limitation de provenance affichée. Produit `p6` (« Niacinamide 4 % »,
+« Squalane Végétal »…) : 2 résolus sur 8, aucune restriction applicable →
+**`no_data`**, et non « conforme ». Le checkout, sur le même serveur, charge le
+graphe réel sans erreur (400 « produit non disponible à la vente » pour une fiche
+non publiable, jamais 503).
+
+**Deux trous découverts à cette occasion, et comblés.** Sans eux le filtre aurait
+tourné à vide sur le catalogue réel :
+1. **Les libellés portent la concentration** (« Acide Salicylique 1.5% »,
+   « Niacinamide 4 % ») : `parseDeclaredIngredient` la sépare du nom. Ce n'est pas
+   une estimation, c'est la déclaration du marchand — elle reste signalée
+   `concentrationSource: 'declared_name'` dans la constatation comme dans la
+   limitation (« elle vaut déclaration du marchand, pas analyse de laboratoire »).
+   Une liaison `product_ingredients` prime toujours sur elle.
+2. **Le graphe ne connaissait que les noms INCI anglais** alors que le catalogue
+   est en français : migration `20260861000000_ingredient_common_names_fr.sql`
+   (appliquée) ajoute des alias non ambigus — `acide salicylique`,
+   `glycérine végétale`, `squalane végétal`, `nicotinamide`, `panthénol`,
+   `acide ascorbique`. Aucune entité créée, aucun rapprochement approximatif : la
+   vitamine E, le zinc PCA et l'acide tranexamique du catalogue restent hors
+   graphe, et l'évaluation le déclare.
 
 **Ce qui manque, explicitement**
-- La branche « base réelle » de ce banc d'intégration n'a **pas pu être exécutée
-  ici** : aucun credential Supabase dans cet environnement. Ce qui est prouvé,
-  c'est l'échec fermé ; le verdict `prohibited` sur données réelles reste à
-  constater une première fois en production.
 - `product_ingredients` (liaison produit ↔ ingrédient avec
-  `declared_concentration_percent`) est lue quand elle existe mais reste vide :
-  les concentrations ne sont donc pas déclarées, et l'évaluation le dit au lieu de
-  les présumer dans la limite. Renseigner cette table transforme des
-  avertissements en verdicts.
+  `declared_concentration_percent`) est lue quand elle existe mais reste **vide**
+  (0 ligne, vérifié en base) : les concentrations viennent donc du libellé quand il
+  en porte un, et l'évaluation le dit au lieu de les présumer dans la limite.
+  Renseigner cette table transforme les avertissements restants en verdicts.
+- Le graphe couvre **13 ingrédients** ; le catalogue en déclare davantage. Tant
+  qu'une entité manque, la fiche répond « statut non évalué » — réponse honnête,
+  qui appelle l'extension du graphe plutôt qu'un rapprochement approximatif.
 - La résolution nom → ingrédient passe par `resolveIngredient` : un nom de la
   fiche non reconnu reste hors graphe (`X ingrédient(s) non couvert(s)` affiché),
   il n'est jamais deviné.
@@ -835,7 +873,8 @@ _Chantier 7 terminé._
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
 | `npm test` (suite complète) | exit 0 — **81 bancs PASS** |
-| `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée. **5 mutations sur 5 tuées** |
+| `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
+| Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/chantier_7_jurisdiction.integration.test.ts` (hors chaîne) | PASS en mode sans base : pays non desservi refusé (400), checkout en échec fermé (503), produit conforme non bloqué. **A révélé un fail-open réel, corrigé.** Branche « base réelle » non exécutée ici |
 | Vérifications Phase 2 (RLS réelle) | **PASS** contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
 
