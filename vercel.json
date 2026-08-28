@@ -9,7 +9,7 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,
-      "includeFiles": "api/_server.cjs"
+      "includeFiles": "{api/_server.cjs,dist/index.html}"
     }
   },
   "rewrites": [
@@ -19,7 +19,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api"
     }
   ]
 }

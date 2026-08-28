@@ -33,9 +33,28 @@ const SITE_URL = (
 
 let cachedShell: string | null = null;
 
+/**
+ * Coquille de secours.
+ *
+ * Une fonction serverless n'emporte que les fichiers déclarés dans
+ * `includeFiles`. Si la coquille construite manque, on répond quand même — avec
+ * un document minimal — plutôt que de transformer un 404 en erreur 500.
+ */
+const FALLBACK_SHELL = `<!doctype html>
+<html lang="fr"><head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KURLA Beauty</title>
+    <meta name="description" content="KURLA Beauty" />
+  </head><body><div id="root"></div></body></html>`;
+
 async function readShell(distPath: string): Promise<string> {
   if (cachedShell !== null) return cachedShell;
-  cachedShell = await readFile(path.join(distPath, 'index.html'), 'utf8');
+  try {
+    cachedShell = await readFile(path.join(distPath, 'index.html'), 'utf8');
+  } catch {
+    cachedShell = FALLBACK_SHELL;
+  }
   return cachedShell;
 }
 

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import type { AddressInfo } from 'node:net';
 
 import { applySeoHead, matchKnownRoute, stripSeoTags } from '../src/lib/seoHead';
@@ -188,6 +189,19 @@ async function runSeoTests(): Promise<void> {
   } finally {
     await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())));
   }
+
+  // ---------------------------------------------------------------------
+  // 5. En mode serverless, le serveur monte le repli tout seul.
+  //    C'est le défaut qui faisait répondre 200 en production : le montage
+  //    vivait dans startServer(), que Vercel n'appelle jamais.
+  // ---------------------------------------------------------------------
+  const probe = execFileSync('npx', ['tsx', 'tests/support/serverless_probe.ts'], {
+    cwd: process.cwd(),
+    env: { ...process.env, KURLA_STORE_MODE: 'memory', KURLA_SERVERLESS: 'true' },
+    encoding: 'utf8'
+  });
+  assert.match(probe, /STATUS:404/, `en mode serverless, un chemin inconnu doit répondre 404 — reçu : ${probe.trim()}`);
+  assert.match(probe, /NOINDEX:oui/, 'le 404 serverless porte bien noindex');
 
   console.log('[PASS] SEO banc : tête appliquée sans doublon, fiche produit avec sa canonique et son JSON-LD, chemin inconnu en 404 franc.');
 }

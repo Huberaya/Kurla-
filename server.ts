@@ -2114,6 +2114,19 @@ export function isServerlessRuntime(): boolean {
   return process.env.VERCEL === '1' || process.env.KURLA_SERVERLESS === 'true';
 }
 
+/**
+ * CHANTIER 13 — le repli SPA doit exister dans les deux modes d'exécution.
+ *
+ * Il était monté dans `startServer()`, que le mode serverless n'appelle jamais :
+ * sur Vercel, aucune route HTML n'atteignait donc le serveur, et `vercel.json`
+ * servait `index.html` avec un statut 200 pour n'importe quel chemin. Le montage
+ * n'est pas fait au niveau module sans condition : en développement, il
+ * précéderait les middlewares Vite et avalerait toutes les requêtes.
+ */
+if (isServerlessRuntime()) {
+  mountSpaFallback(app);
+}
+
 // Export the Express app for HTTP authorization tests without starting a
 // second listener. Production/dev execution still starts normally.
 export { app };
