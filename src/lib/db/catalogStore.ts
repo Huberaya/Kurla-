@@ -192,6 +192,25 @@ export async function getProductById(store: SupabaseServerStore, idOrSlug: strin
     return products.find(p => p.id === idOrSlug || p.slug === idOrSlug);
   }
 
+/**
+ * CHANTIER 14 — chargement **administratif**, produits désactivés inclus.
+ *
+ * `getProductById` filtre `is_active = true`, ce qui est juste pour une route
+ * publique : un produit désactivé ne doit pas être servi. Mais toute la chaîne
+ * de préparation passait par lui, et le verrou remontait : impossible de
+ * rattacher une composition, d'enregistrer une vérification, ou même de
+ * **réactiver** un produit — `updateCatalogStatus` ne trouvait plus le produit
+ * qu'elle devait changer de statut. Les 16 produits du catalogue réel étant
+ * désactivés, aucune opération de préparation n'était possible sur aucun.
+ *
+ * Le choix est donc explicite dans le nom : la visibilité publique reste
+ * filtrée par `getProductById`, la préparation passe par ici.
+ */
+export async function getProductForAdministration(store: SupabaseServerStore, idOrSlug: string): Promise<any | undefined> {
+    const products = await getProducts(store, { includeInactive: true });
+    return products.find(p => String(p.id) === idOrSlug || String(p.slug) === idOrSlug);
+  }
+
 export async function getPublicProducts(store: SupabaseServerStore): Promise<any[]> {
     return (await getProducts(store, { publishedOnly: true })).map(toPublicProduct);
   }
@@ -869,8 +888,21 @@ export async function getCatalogImports(store: SupabaseServerStore, limit = 30):
     return data || [];
   }
 
-export async function recordCatalogValidation(store: SupabaseServerStore, adminId: string, productId: string, checkType: string, status: 'passed' | 'failed' | 'pending', evidenceUrl?: string, note?: string): Promise<void> {
-    if (!await getProductById(store, productId)) throw new Error('Produit introuvable.');
+/**
+ * Enregistre une vérification de catalogue : l'événement (traçable) puis le
+ * statut qui en découle sur le produit.
+ *
+ * CHANTIER 14 — `adminId` accepte `null`. Deux raisons, toutes deux vérifiées :
+ * la colonne `validator_id` est nullable (sa contrainte externe est
+ * `ON DELETE SET NULL`), et un contrôle automatique n'a pas d'auteur humain à
+ * qui l'attribuer. Écrire l'identifiant d'un compte qui n'a rien vérifié
+ * fabriquerait une attribution fausse dans un journal de conformité ; le
+ * laisser vide, avec une note qui nomme le contrôle, dit la vérité.
+ */
+export async function recordCatalogValidation(store: SupabaseServerStore, adminId: string | null, productId: string, checkType: string, status: 'passed' | 'failed' | 'pending', evidenceUrl?: string, note?: string): Promise<void> {
+    // Vérifier un produit désactivé est le cas normal : c'est avant activation
+    // que la préparation a lieu.
+    if (!await getProductForAdministration(store, productId)) throw new Error('Produit introuvable.');
     const checkColumns: Record<string, string> = {
       ingredients: 'ingredient_verification_status', claims: 'claims_validation_status', images: 'images_validation_status',
       stock: 'stock_validation_status', brand: 'brand_verification_status', certifications: 'certifications_validation_status', translations: 'translations_validation_status'
@@ -907,7 +939,9 @@ export async function getCatalogValidationEvents(store: SupabaseServerStore, pro
 
 export async function updateCatalogStatus(store: SupabaseServerStore, productId: string, status: 'draft' | 'pending_review' | 'published' | 'unavailable'): Promise<void> {
     if (!['draft', 'pending_review', 'published', 'unavailable'].includes(status)) throw new Error('Statut catalogue invalide.');
-    const existing = await getProductById(store, productId);
+    // Changer le statut d'un produit désactivé est précisément l'usage : sans
+    // ce chargement, aucune réactivation n'était possible.
+    const existing = await getProductForAdministration(store, productId);
     if (!existing) throw new Error('Produit introuvable.');
 
     /**
@@ -959,15 +993,28 @@ export async function createProductQuestion(store: SupabaseServerStore, userId: 
  * La liste des manques est nominative : dire « non publiable » sans dire quoi
  * ne permet à personne d'agir.
  */
-export async function getCatalogPublicationReadiness(store: SupabaseServerStore, productId: string): Promise<{
+/**
+ * CHANTIER 14 — évaluation pure de la préparation à la publication.
+ *
+ * Extraite de `getCatalogPublicationReadiness` pour une raison précise : le
+ * rapport global lisait déjà toutes les lignes du catalogue, puis rappelait le
+ * getter unitaire produit par produit. Or `getProductById` passe par
+ * `getProducts()` **sans option**, donc filtre `is_active = true` : un produit
+ * désactivé disparaissait du rapport, et comme l'appel était enveloppé dans un
+ * `.catch(() => null)` le produit était simplement sauté. Résultat mesuré en
+ * production : 16 produits en base, rapport annonçant « produits : 0 ».
+ *
+ * Un rapport de gouvernance qui omet les lignes qu'il est censé auditer est
+ * plus dangereux qu'un rapport absent : il se lit comme « rien à faire ».
+ * L'évaluation prend donc la ligne en paramètre ; le getter ne fait plus que la
+ * charger.
+ */
+export function evaluateCatalogPublicationReadiness(product: any, productId?: string): {
   productId: string;
   checkedAt: string;
   ready: boolean;
   missing: Array<{ field: string; label: string }>;
-}> {
-  const product = await getProductById(store, productId);
-  if (!product) throw new Error('Produit introuvable.');
-
+} {
   const missing: Array<{ field: string; label: string }> = [];
   const requireVerified = (field: string, label: string) => {
     if (product[field] !== 'verified') missing.push({ field, label: `${label} non vérifié(e)` });
@@ -1005,11 +1052,24 @@ export async function getCatalogPublicationReadiness(store: SupabaseServerStore,
   if (isPromo && !isPromotionActive(product)) missing.push({ field: 'promotion', label: 'promotion annoncée mais inactive ou expirée' });
 
   return {
-    productId,
+    productId: productId || String(product.id || ''),
     checkedAt: new Date().toISOString(),
     ready: missing.length === 0,
     missing
   };
+}
+
+export async function getCatalogPublicationReadiness(store: SupabaseServerStore, productId: string): Promise<{
+  productId: string;
+  checkedAt: string;
+  ready: boolean;
+  missing: Array<{ field: string; label: string }>;
+}> {
+  // L'admin prépare des produits désactivés : la préparation doit pouvoir les
+  // nommer, sinon la réponse est « introuvable » pour un produit qui existe.
+  const product = await getProductForAdministration(store, productId);
+  if (!product) throw new Error('Produit introuvable.');
+  return evaluateCatalogPublicationReadiness(product, productId);
 }
 
 /**
@@ -1043,8 +1103,7 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
   for (const row of rows) {
     const product = row;
     const productId = String(product.id);
-    const readiness = await getCatalogPublicationReadiness(store, productId).catch(() => null);
-    if (!readiness) continue;
+    const readiness = evaluateCatalogPublicationReadiness(product, productId);
     const status = String(product.catalog_status || product.catalogStatus || 'draft');
     if (status === 'published') publishedStatus += 1;
     if (readiness.ready) readyToPublish += 1;

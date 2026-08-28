@@ -1,7 +1,8 @@
 import { getSupabaseServerClient } from '../supabaseClient';
 import { normalizeInciName, resolveIngredient } from '../ingredientGraph';
+import { parseDeclaredIngredient } from '../jurisdiction';
 import type { IngredientLinkSource } from '../ingredientGraph';
-import { getProductById } from './catalogStore';
+import { getProductById, getProducts } from './catalogStore';
 import { ensureDatabaseSuccess } from './internal';
 
 import { INGREDIENT_LINK_SOURCES } from '../ingredientGraph';
@@ -129,7 +130,10 @@ export async function attachProductIngredients(
   productId: string,
   items: IngredientLinkInput[]
 ): Promise<IngredientLinkResult> {
-  const product = await getProductById(store, productId);
+  // Même règle que `linkDeclaredIngredients` : rattacher une composition est un
+  // acte de préparation, il précède l'activation du produit.
+  const candidates = await getProducts(store, { includeInactive: true });
+  const product = candidates.find((item: any) => String(item.id) === productId || String(item.slug) === productId);
   if (!product) throw new Error('Produit introuvable.');
   if (!Array.isArray(items) || items.length === 0) throw new Error('Aucun ingrédient à rattacher.');
 
@@ -185,7 +189,17 @@ export async function linkDeclaredIngredients(
   productId: string,
   source: IngredientLinkSource = 'declared'
 ): Promise<IngredientLinkResult> {
-  const product = await getProductById(store, productId);
+  /**
+   * CHANTIER 14 — préparer un produit ne dépend pas de son activation.
+   *
+   * `getProductById` filtre `is_active = true` : rattacher la composition d'un
+   * produit désactivé était impossible, alors que c'est précisément ce qu'il
+   * faut faire **avant** de l'activer — la composition est une condition de
+   * publication, pas une conséquence. Les 16 produits du catalogue réel sont
+   * désactivés ; sans ce correctif aucun ne pouvait être préparé.
+   */
+  const candidates = await getProducts(store, { includeInactive: true });
+  const product = candidates.find((item: any) => String(item.id) === productId || String(item.slug) === productId);
   if (!product) throw new Error('Produit introuvable.');
 
   const declared = Array.isArray(product.ingredients) ? product.ingredients.filter((name: unknown) => typeof name === 'string' && name.trim() !== '') : [];
@@ -194,8 +208,24 @@ export async function linkDeclaredIngredients(
   const links: ProductIngredientLink[] = [];
   const rejected: RejectedIngredient[] = [];
 
+  /**
+   * CHANTIER 14 — la concentration fait partie du libellé, pas du nom.
+   *
+   * Constat mesuré en production : `resolveIngredient` recevait la mention
+   * brute. Or le catalogue réel écrit « Niacinamide 5 % », « Acide Salicylique
+   * 1.5 % » — la résolution échouait alors que l'entité existe, et
+   * `parseDeclaredIngredient` (écrit exactement pour ça, sa doc cite ces deux
+   * exemples) n'était appelé par personne ici. Résultat : 44 mentions
+   * déclarées non rattachées sur 16 produits, dont une partie par simple
+   * suffixe de pourcentage.
+   *
+   * On parse ce qui est écrit, on ne devine toujours rien : si le nom une fois
+   * débarrassé de son pourcentage ne correspond à aucune entité, la mention
+   * reste `rejected`. Le pourcentage, lui, est porté sur la liaison.
+   */
   declared.forEach((name: string, index) => {
-    const resolved = resolveIngredient(name, catalog);
+    const parsed = parseDeclaredIngredient(name);
+    const resolved = resolveIngredient(parsed.name, catalog) || resolveIngredient(name, catalog);
     if (!resolved) {
       rejected.push({ declared: name, reason: 'Aucune correspondance dans le référentiel — à créer ou à corriger, jamais deviné.' });
       return;
@@ -204,6 +234,7 @@ export async function linkDeclaredIngredients(
       productId,
       ingredientId: resolved.id,
       inciRank: index + 1,
+      declaredConcentrationPercent: parsed.concentrationPercent,
       isKeyIngredient: index === 0,
       source
     });
@@ -241,8 +272,28 @@ export async function linkAllDeclaredIngredients(store: SupabaseServerStore): Pr
   let linksCreated = 0;
 
   for (const productId of productIds) {
-    const already = await getProductIngredientLinks(store, productId);
-    if (already.length > 0) continue;
+    /**
+     * CHANTIER 14 — un produit déjà **partiellement** rattaché n'est pas un
+     * produit rattaché.
+     *
+     * Le lot s'arrêtait dès la première liaison existante : les produits liés
+     * à moitié le restaient pour toujours, et le rapport de couverture
+     * n'avait plus aucun moyen de les rattraper. On ne relance le produit que
+     * s'il reste des mentions déclarées sans liaison — et `persistLinks`
+     * reste idempotent, il ne duplique pas les lignes existantes.
+     */
+    const existingLinks = await getProductIngredientLinks(store, productId);
+    const supabaseClient = getSupabaseServerClient();
+    let declaredCount = 0;
+    if (supabaseClient) {
+      const { data: productRow, error: productError } = await supabaseClient.from('products').select('ingredients').eq('id', productId).maybeSingle();
+      ensureDatabaseSuccess('lecture de la composition déclarée', productError);
+      declaredCount = Array.isArray(productRow?.ingredients) ? productRow.ingredients.filter((value: unknown) => typeof value === 'string' && value.trim() !== '').length : 0;
+    } else {
+      const product = store.inMemoryProducts.find((item: any) => String(item.id) === productId);
+      declaredCount = Array.isArray(product?.ingredients) ? product.ingredients.filter((value: unknown) => typeof value === 'string' && value.trim() !== '').length : 0;
+    }
+    if (existingLinks.length > 0 && existingLinks.length >= declaredCount) continue;
     const result = await linkDeclaredIngredients(store, productId);
     if (result.links.length === 0 && result.rejected.length === 0) continue;
     linksCreated += result.links.length;

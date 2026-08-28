@@ -437,6 +437,50 @@ d'Express, sans `noindex`).
   de diagnostic) continuent de servir la coquille en 200 : rien n'est inventé,
   mais elles n'ont pas encore de tête propre. C'est la limite déclarée.
 
+### CHANTIER 14 — PUBLIER DES PRODUITS : CE QUI BLOQUAIT VRAIMENT ⚠️ (en cours, ouvert le 29/08/2026)
+
+Demande : « publier des produits ». 16 produits en base, 0 publié. Le premier
+rapport de préparation a répondu **« produits : 0 »** — pour un catalogue de 16
+lignes. C'est ce chiffre faux qui a ouvert le chantier.
+
+**Ce qui a été mesuré avant de toucher au code**
+
+| Constat | Preuve |
+|---|---|
+| Les 16 produits sont `catalog_status = 'unavailable'` **et** `is_active = false` | requête groupée sur `public.products` : 16 lignes, une seule combinaison |
+| Les 7 vérifications sont à `not_provided`, les droits visuels à `unverified` | mêmes 16 lignes |
+| Le rapport de préparation annonçait 0 produit | `getCatalogPublicationReadinessReport` rechargeait chaque ligne via `getProductById` (filtré `is_active = true`) dans un `.catch(() => null)` : chaque produit était **sauté en silence** |
+| Aucun profil `admin`/`superadmin` en base | `public.profiles` : 2 lignes, les deux `customer` — la surface d'administration est donc inaccessible, personne ne pouvait enregistrer ces vérifications |
+| 12 champs de conseil vides sur 16 produits | `benefit_primary`, `for_who`, `not_ideal_if`, `how_to_use`, `texture`, `usage_frequency`, `estimated_yield`, `returns_policy`, `badges`, `warnings`, `inci` : **0 ligne remplie** ; seuls `name` et `description` le sont |
+
+**Ce qui a été corrigé**
+
+1. **`getProductById` filtrait les produits désactivés, et toute la préparation passait par lui.** Il était donc impossible de rattacher une composition, d'enregistrer une vérification, ou même de **réactiver** un produit (`updateCatalogStatus` ne trouvait plus le produit qu'elle devait changer de statut). Ajout de `getProductForAdministration` : la visibilité publique reste filtrée, la préparation ne l'est plus. (`src/lib/db/catalogStore.ts`)
+2. **Le rapport d'audit ne cache plus rien.** L'évaluation est extraite en fonction pure `evaluateCatalogPublicationReadiness(product)` ; le rapport évalue la ligne qu'il a déjà lue au lieu de la recharger. Banc : un produit désactivé apparaît avec son blocage nommé.
+3. **Le lieur de composition ignorait `parseDeclaredIngredient`.** « Niacinamide 5 % » ne résolvait pas alors que l'entité existe — le parseur écrit pour ce cas précis (sa doc cite cet exemple) n'était appelé par personne. La concentration est maintenant lue sur le libellé et portée sur la liaison.
+4. **Le lieur sautait tout produit déjà partiellement lié** : les produits rattachés à moitié le restaient pour toujours. Relancé en production : **+24 liaisons sur 11 produits**, sans duplication (l'écriture est un upsert sur `product_id,ingredient_id`).
+5. **Il n'existait aucun contrôle d'allégations.** La publication exigeait `claims_validation_status = 'verified'` alors que rien ne produisait cette vérification : le statut ne pouvait qu'être laissé vide ou coché sans trace. Ajout de `src/lib/catalogClaims.ts` (5 règles, 53 motifs, cadre 1223/2009 art. 2 et 655/2013) et de `scripts/verifyCatalogPublication.ts`.
+
+**Ce qui a été vérifié pour de vrai** — 80 événements dans `catalog_validation_events`, chacun avec sa méthode en note :
+
+| Contrôle | Résultat | Ce que la note dit |
+|---|---|---|
+| allégations | 16 réussis | crible lexical sur 2 champs / ~150 caractères — **et la note précise que ce n'est pas une validation juridique** |
+| stock | 16 réussis | cohérence `in_stock`/`stock_quantity` — pas un inventaire physique |
+| certifications | 16 réussis | aucune certification revendiquée : rien à justifier |
+| traductions | 16 réussis | fiche monolingue, aucune colonne traduite dans le schéma |
+| composition | **3 réussis, 13 échecs** | les mentions non rattachées sont nommées une à une |
+
+**Ce qui bloque encore, et pourquoi ce n'est pas du code**
+
+- `images`, `brand`, droits sur les visuels : **attestations humaines**. Aucune trace automatique ne peut les produire, et écrire `verified` sans preuve transformerait une donnée de conformité en drapeau décoratif.
+- 13 compositions incomplètes. Les mentions manquantes se répartissent en : entités absentes du référentiel (Vitamine E, Cocamidopropyl Betaine, Huile de Caméline…), **mentions ambiguës qu'il est interdit de deviner** (« Protéine de Soie végétale » est contradictoire, « Vitamin C Ester » désigne au moins deux substances différentes), un **manque de conformité réel** (p6, SPF 50+ : « Filtres Solaires Organiques invisibles » n'est pas un ingrédient — un solaire doit déclarer ses filtres UV), et 4 accessoires textiles dont la « composition » est un matériau, pas un INCI.
+- Les fiches sont des squelettes : publier 16 pages sans mode d'emploi ni contre-indications mettrait en ligne 16 pages creuses.
+
+**Volontairement non fait** : aucune entité ingrédient créée sur une hypothèse ; aucun `verified` écrit sans contrôle réel ; aucune publication forcée en contournant la porte.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
