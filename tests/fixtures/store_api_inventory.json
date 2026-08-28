@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T18:51:48.232Z",
+  "generatedAt": "2026-08-28T18:57:31.151Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -65,6 +65,8 @@
     "getBrandTestRequests/0",
     "getCart/2",
     "getCatalogImports/0",
+    "getCatalogPublicationReadiness/1",
+    "getCatalogPublicationReadinessReport/0",
     "getCatalogTaxonomy/0",
     "getCatalogValidationEvents/1",
     "getCreatorApplication/1",

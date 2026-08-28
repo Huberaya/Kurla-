@@ -213,6 +213,40 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 ---
 
+### CHANTIER 10 — BLOC B : CATALOGUE & GRAPHE (en cours)
+
+Deux constats vérifiés dans le code avant d'écrire, pas déduits d'un tableau :
+
+1. **`product_ingredients` était lu par cinq mécanismes** (compliance produit,
+   filtrage juridictionnel, score de confiance, Texture Gap Report, note par
+   archétype) **et écrit par aucun**. Le graphe n'était pas incomplet : il était
+   impossible à alimenter.
+2. **`catalog_status` pouvait passer à `published` sans aucune vérification.**
+   `isPublishableProduct` filtrait l'affichage, donc le produit restait invisible
+   — mais le statut, lui, servait de condition dans des politiques en base
+   (`20260845` l.388). Un statut qui ne correspond à rien est pire qu'un statut
+   absent.
+
+| Livré | Preuve |
+|---|---|
+| **B1 — couche d'écriture du graphe** | `src/lib/db/ingredientLinkStore.ts` : rattachement par identifiant ou mention déclarée, rang = ordre de concentration, provenance portée par ligne (`declared` / `inci_label` / `brand_confirmed` / `lab_analysed`), alimentation en lot avec rapport des mentions non résolues, couverture mesurée. **Aucune correspondance devinée** : ce qui n'existe pas dans le référentiel est rendu à l'opérateur. Routes `POST /api/admin/catalog/:productId/ingredients`, `POST /api/admin/catalog/ingredients/link-declared`, `GET /api/admin/catalog/ingredient-coverage`. Banc `tests/kurla_ingredient_graph.test.ts` |
+| **B2 — la publication veut dire quelque chose** | `getCatalogPublicationReadiness` reprend les exigences de `isPublishableProduct` moins le statut lui-même, et `updateCatalogStatus` **refuse** `published` tant qu'elles ne sont pas satisfaites (422 avec la liste nominative des manques). Rapport `GET /api/admin/catalog/publication-readiness` : `publishedStatus` ≠ `readyToPublish`, et `publishedButNotListable` compte les statuts menteurs. Banc `tests/kurla_catalog_publication.test.ts` ; le banc `catalog_management` existant a été **renforcé** (il vérifiait le filtrage lecture, il vérifie désormais le refus écriture) |
+
+**Ce que B1/B2 ne règlent pas, et qui reste ouvert :**
+
+- **Les données.** En production `product_ingredients` est vide et aucun produit
+  n'est publié. La couche d'écriture existe ; l'alimenter exige soit des listes
+  INCI réelles par produit, soit des vérifications réellement effectuées
+  (visuels, allégations, stock, certifications). **Ni l'un ni l'autre ne
+  s'invente** : le lot `link-declared` ne rattache que ce qui correspond au
+  référentiel existant (~13 ingrédients) et rend le reste.
+- **B3 — vocabulaires contrôlés à l'écriture** : les termes de référence existent
+  (`20260847`, 5 taxonomies / 55 termes) mais rien ne valide `concerns`,
+  `hair_types` ou `needs` contre eux au moment de l'écriture produit.
+- **État non vérifié ce tour** : le compte exact de produits publiés et de
+  liaisons en base réelle n'a pas pu être relu (aucun identifiant de base
+  disponible). Les chiffres cités proviennent de la dernière lecture connue.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

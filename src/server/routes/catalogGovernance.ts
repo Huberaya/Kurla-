@@ -144,4 +144,28 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     res.json({ routines, count: routines.length });
   }));
 
+  /**
+   * CHANTIER 10 (bloc B2) — état de préparation à la publication.
+   *
+   * Répond à la question « pourquoi ma boutique est vide » autrement qu'en
+   * comptant des statuts : produit par produit, ce qui manque nommément.
+   */
+  app.get('/api/admin/catalog/publication-readiness', rateLimit('admin-publication-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const report = await serverDb.getCatalogPublicationReadinessReport();
+    res.json(report);
+  }));
+
+  app.get('/api/admin/catalog/:productId/readiness', rateLimit('admin-product-readiness', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const readiness = await serverDb.getCatalogPublicationReadiness(req.params.productId);
+      res.json(readiness);
+    } catch (error) {
+      return res.status(404).json({ error: error instanceof Error ? error.message : 'Produit introuvable.' });
+    }
+  }));
+
 }

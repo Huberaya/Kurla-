@@ -42,7 +42,15 @@ async function runCatalogManagementTests() {
   if (edited.variants.length !== 1 || edited.variants[0].formatLabel !== '250 ml' || edited.variants[0].scent !== 'vanille') throw new Error('Variant size/format/color/scent fields were not persisted.');
   if ((await serverDb.getPublicProducts()).some(item => item.id === product.id)) throw new Error('An unvalidated catalog product was published.');
 
-  await serverDb.updateCatalogStatus(product.id, 'published');
+  // Bloc B2 : la porte de publication est appliquée à l'ÉCRITURE. Le changement
+  // de statut est refusé — garantie plus forte que le simple filtrage lecture.
+  let publicationRefused = false;
+  try {
+    await serverDb.updateCatalogStatus(product.id, 'published');
+  } catch (error) {
+    publicationRefused = error instanceof Error && /Publication refusée/.test(error.message);
+  }
+  if (!publicationRefused) throw new Error('Un produit non vérifié a pu passer au statut publié.');
   if ((await serverDb.getPublicProducts()).some(item => item.id === product.id)) throw new Error('Status alone bypassed the catalog trust gate.');
 
   console.log('[PASS] Catalog management: CSV/supplier-ready ingestion, rejected rows, taxonomy, pricing, VAT, promotions, variants, inventory and non-public validation gate verified.');

@@ -1080,8 +1080,19 @@ app.post('/api/admin/catalog/validation', asyncRoute(async (req: AuthenticatedRe
 app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  await serverDb.updateCatalogStatus(req.params.productId, req.body?.status);
-  res.json({ ok: true });
+  try {
+    await serverDb.updateCatalogStatus(req.params.productId, req.body?.status);
+    res.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Changement de statut impossible.';
+    // Un refus de publication n'est pas une erreur serveur : on rend les
+    // exigences manquantes pour que l'administration sache quoi produire.
+    if (message.startsWith('Publication refusée')) {
+      const readiness = await serverDb.getCatalogPublicationReadiness(req.params.productId).catch(() => null);
+      return res.status(422).json({ error: message, ready: false, missing: readiness?.missing ?? [] });
+    }
+    return res.status(400).json({ error: message });
+  }
 }));
 
 // ============================================================

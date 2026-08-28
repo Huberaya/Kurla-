@@ -879,7 +879,27 @@ export async function getCatalogValidationEvents(store: SupabaseServerStore, pro
 
 export async function updateCatalogStatus(store: SupabaseServerStore, productId: string, status: 'draft' | 'pending_review' | 'published' | 'unavailable'): Promise<void> {
     if (!['draft', 'pending_review', 'published', 'unavailable'].includes(status)) throw new Error('Statut catalogue invalide.');
-    if (!await getProductById(store, productId)) throw new Error('Produit introuvable.');
+    const existing = await getProductById(store, productId);
+    if (!existing) throw new Error('Produit introuvable.');
+
+    /**
+     * CHANTIER 10 (bloc B2) — la porte de publication est appliquée à
+     * l'ÉCRITURE, pas seulement à la lecture.
+     *
+     * Jusqu'ici `isPublishableProduct` filtrait l'affichage, mais rien
+     * n'empêchait de passer un produit à `published` sans aucune vérification.
+     * Le statut mentait alors deux fois : l'administration voyait « publié »
+     * pour un produit invisible, et ce même statut sert de condition dans des
+     * politiques en base (`product_ingredients` ne devient lisible que pour un
+     * produit publié). Un statut qui ne correspond à rien est pire qu'un
+     * statut absent.
+     */
+    if (status === 'published') {
+      const readiness = await getCatalogPublicationReadiness(store, productId);
+      if (!readiness.ready) {
+        throw new Error(`Publication refusée — ${readiness.missing.length} exigence(s) non satisfaite(s) : ${readiness.missing.map(item => item.label).join(' ; ')}.`);
+      }
+    }
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { error } = await supabase.from('products').update({ catalog_status: status, last_catalog_updated_at: new Date().toISOString() }).eq('id', productId);
@@ -901,4 +921,121 @@ export async function createProductQuestion(store: SupabaseServerStore, userId: 
   const questionRecord = await createProductQuestionInner(store, userId, productId, question, email);
   await recordLoyaltySafely(store, userId, 'question_asked', questionRecord.id);
   return questionRecord;
+}
+
+/**
+ * CHANTIER 10 (bloc B2) — état de préparation à la publication.
+ *
+ * Reprend exactement les exigences de `isPublishableProduct`, **moins** le
+ * statut lui-même (sinon un brouillon ne pourrait jamais devenir publiable).
+ * La liste des manques est nominative : dire « non publiable » sans dire quoi
+ * ne permet à personne d'agir.
+ */
+export async function getCatalogPublicationReadiness(store: SupabaseServerStore, productId: string): Promise<{
+  productId: string;
+  checkedAt: string;
+  ready: boolean;
+  missing: Array<{ field: string; label: string }>;
+}> {
+  const product = await getProductById(store, productId);
+  if (!product) throw new Error('Produit introuvable.');
+
+  const missing: Array<{ field: string; label: string }> = [];
+  const requireVerified = (field: string, label: string) => {
+    if (product[field] !== 'verified') missing.push({ field, label: `${label} non vérifié(e)` });
+  };
+
+  if (product.is_active !== true && product.is_active !== undefined) missing.push({ field: 'is_active', label: 'produit désactivé' });
+  requireVerified('ingredient_verification_status', 'composition');
+  requireVerified('claims_validation_status', 'allégations');
+  requireVerified('images_validation_status', 'visuels');
+  requireVerified('stock_validation_status', 'stock');
+  requireVerified('certifications_validation_status', 'certifications');
+  requireVerified('translations_validation_status', 'traductions');
+  requireVerified('brand_verification_status', 'marque');
+
+  if (!['brand_provided', 'licensed'].includes(product.image_ownership_status)) {
+    missing.push({ field: 'image_ownership_status', label: 'droits sur les visuels non établis (brand_provided ou licensed)' });
+  }
+  if (typeof product.brand !== 'string' || product.brand.trim() === '') {
+    missing.push({ field: 'brand', label: 'marque absente' });
+  }
+
+  const ingredients = Array.isArray(product.ingredients) ? product.ingredients : [];
+  const inci = typeof product.inci === 'string' ? product.inci.trim() : '';
+  if (ingredients.length === 0 && inci === '') missing.push({ field: 'ingredients', label: 'composition déclarée vide' });
+
+  const gallery = Array.isArray(product.galleryImages) ? product.galleryImages : [];
+  const imageUrl = product.image || product.image_url;
+  const hasImage = gallery.length > 0 || (typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl));
+  if (!hasImage) missing.push({ field: 'images', label: 'aucun visuel exploitable' });
+
+  const countries = product.countryAvailability || product.country_availability || [];
+  if (!Array.isArray(countries) || countries.length === 0) missing.push({ field: 'country_availability', label: 'aucun marché renseigné' });
+
+  const isPromo = Boolean(product.isPromo ?? product.is_promo);
+  if (isPromo && !isPromotionActive(product)) missing.push({ field: 'promotion', label: 'promotion annoncée mais inactive ou expirée' });
+
+  return {
+    productId,
+    checkedAt: new Date().toISOString(),
+    ready: missing.length === 0,
+    missing
+  };
+}
+
+/**
+ * Vue d'ensemble : combien de produits sont réellement publiables, et ce qui
+ * bloque chacun. C'est la réponse à « pourquoi ma boutique est vide » — une
+ * question à laquelle un tableau de bord qui compte les statuts ne répond pas.
+ */
+export async function getCatalogPublicationReadinessReport(store: SupabaseServerStore): Promise<{
+  generatedAt: string;
+  products: number;
+  readyToPublish: number;
+  publishedStatus: number;
+  publishedButNotListable: number;
+  perProduct: Array<{ productId: string; title: string; catalogStatus: string; ready: boolean; missing: string[] }>;
+}> {
+  const supabase = getSupabaseServerClient();
+  let rows: any[] = [];
+  if (supabase) {
+    const { data, error } = await supabase.from('products').select('*');
+    ensureDatabaseSuccess('lecture du catalogue pour l’état de publication', error);
+    rows = data || [];
+  } else {
+    rows = store.inMemoryProducts;
+  }
+
+  const perProduct: Array<{ productId: string; title: string; catalogStatus: string; ready: boolean; missing: string[] }> = [];
+  let readyToPublish = 0;
+  let publishedStatus = 0;
+  let publishedButNotListable = 0;
+
+  for (const row of rows) {
+    const product = row;
+    const productId = String(product.id);
+    const readiness = await getCatalogPublicationReadiness(store, productId).catch(() => null);
+    if (!readiness) continue;
+    const status = String(product.catalog_status || product.catalogStatus || 'draft');
+    if (status === 'published') publishedStatus += 1;
+    if (readiness.ready) readyToPublish += 1;
+    if (status === 'published' && !isPublishableProduct(product)) publishedButNotListable += 1;
+    perProduct.push({
+      productId,
+      title: String(product.title || product.name || productId),
+      catalogStatus: status,
+      ready: readiness.ready,
+      missing: readiness.missing.map(item => item.label)
+    });
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    products: perProduct.length,
+    readyToPublish,
+    publishedStatus,
+    publishedButNotListable,
+    perProduct
+  };
 }
