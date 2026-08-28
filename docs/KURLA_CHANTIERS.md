@@ -878,6 +878,20 @@ panier, les commandes, l'administration, le garde-fou d'erreurs et le démarrage
 **Résultat : `server.ts` passe de 4 795 à 2 019 lignes (−58 %)**, 163 routes
 inchangées, `tsc --noEmit` exit 0, `npm test` exit 0 (**82 bancs**), build exit 0.
 
+Sonde HTTP sur serveur réel (base `qzwgsarfdegqtfdnqiql`) : `/api/health` 200,
+`/api/professionals/verified` 200, `/api/ai/disclosure` 200, `/api/search` 200,
+`/api/products` 200, fiche ingrédient 200, `compliance?country=US` 400, catch-all
+**404 JSON** — et `/api/family`, `/api/shelf`, `/api/beauty-profile`,
+`/api/routine`, `/api/me/endorsements` renvoient **401** : les neuf modules
+répondent, leurs gardes d'authentification aussi.
+
+**Une régression réelle attrapée au passage.** Six bancs vérifiaient « le serveur
+expose X » en **grepant le texte de `server.ts`** : le découpage les a cassés, et
+surtout ils ne prouvaient rien d'autre que la présence d'une chaîne dans un
+fichier. Corrigé par `tests/support/serverSources.ts`, qui lit toute la surface
+serveur (`server.ts` + `src/server/**`) ; pour « la route est-elle servie ? »,
+c'est désormais l'inventaire des routes montées qui tranche.
+
 #### 8.2a — le store commence à se découper (livré)
 
 Deux filets d'abord, la découpe ensuite :
@@ -906,24 +920,39 @@ de vrai, pas seulement callable.
 
 **Résultat 8.2a : `serverDb.ts` 6 240 → 4 906 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0.
-Sonde HTTP sur serveur réel (base `qzwgsarfdegqtfdnqiql`) : `/api/health` 200,
-`/api/professionals/verified` 200, `/api/ai/disclosure` 200, `/api/search` 200,
-`/api/products` 200, fiche ingrédient 200, `compliance?country=US` 400, catch-all
-**404 JSON** — et `/api/family`, `/api/shelf`, `/api/beauty-profile`,
-`/api/routine`, `/api/me/endorsements` renvoient **401** : les neuf modules
-répondent, leurs gardes d'authentification aussi.
 
-**Une régression réelle attrapée au passage.** Six bancs vérifiaient « le serveur
-expose X » en **grepant le texte de `server.ts`** : le découpage les a cassés, et
-surtout ils ne prouvaient rien d'autre que la présence d'une chaîne dans un
-fichier. Corrigé par `tests/support/serverSources.ts`, qui lit toute la surface
-serveur (`server.ts` + `src/server/**`) ; pour « la route est-elle servie ? »,
-c'est désormais l'inventaire des routes montées qui tranche.
+#### 8.2b — six domaines de plus (livré)
+
+| Module | Lignes | Contenu |
+| --- | --- | --- |
+| `src/lib/db/returnsStore.ts` | 797 | retours clients, remboursements Stripe, idempotence, restauration de stock |
+| `src/lib/db/adminStore.ts` | 679 | audit, contenu éditorial, sources IA, coupons, tableau de bord, analytique, idempotence des webhooks |
+| `src/lib/db/shippingStore.ts` | 388 | adresses, tarifs, expéditions et suivi transporteur |
+| `src/lib/db/adaptiveRoutineStore.ts` | 311 | routines adaptatives, journal de progression, retours d'expérience |
+| `src/lib/db/aiSessionStore.ts` | 161 | sessions de l'assistant, notes, revue humaine |
+| `src/lib/db/professionalApplicationStore.ts` | 128 | candidatures des professionnels, annuaire public |
+
+**Deux pièges attrapés par les filets, pas par moi.**
+
+1. En déplaçant `getStripeServerClient` et `mapRefundRow` dans `returnsStore.ts`,
+   l'inventaire de l'API a signalé **deux méthodes nouvelles** sur le store :
+   `bindDomain` recolle toutes les fonctions exportées d'un module de domaine.
+   Les deux aides ont donc été isolées dans `src/lib/db/refundSupport.ts`.
+2. Le banc `admin_dashboard.test.ts` **grepait le texte de `serverDb.ts`** pour
+   vérifier que les KPI ne sont pas codés en dur — exactement le travers corrigé
+   en 8.1 sur six autres bancs. Il lit désormais toute la surface du store, et une
+   **preuve comportementale** s'y est ajoutée : enregistrer une recherche sans
+   résultat doit incrémenter `searchesWithoutResultsCount`.
+
+**Résultat 8.2b : `serverDb.ts` 4 906 → 2 492 lignes**, `tsc` exit 0, `npm test`
+exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 707,2 kb), **166 méthodes
+inchangées** (nom + arité), sonde d'exécution étendue à **32 appels réels**
+couvrant les neuf domaines extraits.
+
 
 **Ce qui manque, explicitement**
-- `serverDb.ts` a perdu 1 334 lignes (8.2a) mais **reste à 4 906** : commandes,
-  retours/remboursements, livraison, catalogue, stock, routines, sessions IA,
-  candidatures pros et administration y vivent encore → 8.2b.
+- `serverDb.ts` est passé de 6 240 à **2 492 lignes** (8.2a + 8.2b) : il ne reste
+  que le catalogue, les commandes/panier et les déclarations de types → 8.2c.
 - **Les 40 champs `inMemory*` sont passés de `private` à `public`** pour que les
   modules de domaine les lisent. Recul d'encapsulation assumé, documenté dans
   l'en-tête de la classe ; aucun code hors `src/lib/db/` n'y touche (grep).
@@ -936,7 +965,8 @@ c'est désormais l'inventaire des routes montées qui tranche.
 ### Restant
 
 - [x] ~~**8.2a** Filet + premiers domaines sortis de `serverDb.ts`~~ **FAIT** — inventaire runtime des **166 méthodes** (nom + arité) figé dans `tests/fixtures/store_api_inventory.json` ; composition `src/lib/db/bind.ts` (`bindDomain` + type `Curried`, arité préservée) ; **4 domaines extraits** dans `src/lib/db/` : notifications/e-mail (562 l.), support (446 l.), famille (269 l.), profil beauté (184 l.) ; aides partagées dans `internal.ts` ; sonde d'exécution `tests/store_composition.test.ts` (**21 méthodes réellement appelées**). `serverDb.ts` : **6 240 → 4 906 lignes**.
-- [ ] **8.2b** Domaines restants de `serverDb.ts` : commandes, retours/remboursements, livraison, catalogue, stock, routines adaptatives, sessions IA, candidatures pros, admin/analytics/audit
+- [x] ~~**8.2b** Domaines restants de `serverDb.ts`~~ **FAIT (hors catalogue et commandes)** — six modules de plus : administration/contenu/analytique + idempotence des webhooks (679 l.), retours/remboursements (797 l.), livraison (388 l.), routines adaptatives (311 l.), sessions de l'assistant IA (161 l.), candidatures professionnelles (128 l.). **`serverDb.ts` : 4 906 → 2 492 lignes** (6 240 au départ du chantier, **−60 %**).
+- [ ] **8.2c** Deux domaines encore dans `serverDb.ts` : le **catalogue** (~1 000 l. : produits, avis, questions, liste d'attente, abonnements, import CSV, gouvernance) et les **commandes/panier** (~750 l., les plus couplés : verrou de stock, TVA, notifications, livraison, remboursements). S'y ajoutent ~540 lignes de déclarations de types, qui gagneraient à partir dans `src/lib/db/types.ts`.
 - [ ] **8.3** Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
 - [ ] **8.4** Beauty Journey : narration de l'évolution
 - [ ] **8.5** Abonnement KURLA+

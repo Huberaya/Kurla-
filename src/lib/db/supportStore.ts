@@ -191,7 +191,7 @@ export async function getSupportTicketsByUser(store: SupabaseServerStore, userId
     return store.inMemoryTickets.filter(ticket => ticket.userId === userId);
   }
 
-export async function getAllSupportTickets(store: SupabaseServerStore, ): Promise<SupportTicket[]> {
+export async function getAllSupportTickets(store: SupabaseServerStore): Promise<SupportTicket[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { data, error } = await supabase.from('support_tickets').select('*').order('updated_at', { ascending: false });

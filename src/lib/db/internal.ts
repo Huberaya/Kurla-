@@ -13,6 +13,21 @@ export function ensureDatabaseSuccess(operation: string, error: { message?: stri
   }
 }
 
+import type { ServerOrder } from '../serverDb';
+
+/** Colonnes TVA d'une commande, absentes des lignes antérieures à la migration 7.6. */
+export function mapOrderVatFields(row: any): Partial<ServerOrder> {
+  if (!row || typeof row !== 'object') return {};
+  const fields: Partial<ServerOrder> = {};
+  if (row.currency != null) fields.currency = String(row.currency);
+  if (row.vat_country != null) fields.vatCountry = String(row.vat_country);
+  if (row.net_amount != null) fields.netAmount = Number(row.net_amount);
+  if (row.vat_amount != null) fields.vatAmount = Number(row.vat_amount);
+  if (row.vat_breakdown != null) fields.vatBreakdown = row.vat_breakdown;
+  if (row.customer_vat_number != null) fields.customerVatNumber = String(row.customer_vat_number);
+  return fields;
+}
+
 export function isUuid(value: string | undefined): value is string {
   return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

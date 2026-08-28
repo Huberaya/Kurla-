@@ -87,12 +87,35 @@ async function run(): Promise<void> {
   const byUser = await check('getSupportTicketsByUser', () => serverDb.getSupportTicketsByUser(uid));
   assert.ok(Array.isArray(byUser) && byUser.length >= 1, 'le ticket créé doit être rattaché à son utilisateur');
 
+  // --- livraison (src/lib/db/shippingStore.ts) -------------------------------
+  await check('getShippingAddresses', () => serverDb.getShippingAddresses(uid));
+  await check('getShippingRates', () => serverDb.getShippingRates('FR'));
+  await check('getShipmentByOrderId', () => serverDb.getShipmentByOrderId('commande-inexistante'));
+
+  // --- retours et remboursements (src/lib/db/returnsStore.ts) ----------------
+  await check('getReturnsByUser', () => serverDb.getReturnsByUser(uid));
+  await check('getAllReturns', () => serverDb.getAllReturns());
+
+  // --- sessions de l'assistant IA (src/lib/db/aiSessionStore.ts) -------------
+  await check('getAiSessions', () => serverDb.getAiSessions(uid));
+
+  // --- candidatures professionnelles (professionalApplicationStore.ts) -------
+  await check('getProfessionalApplications', () => serverDb.getProfessionalApplications());
+  const directory = await check('getPublicProfessionalDirectory', () => serverDb.getPublicProfessionalDirectory());
+  assert.ok(Array.isArray(directory), 'l’annuaire public des professionnels doit être une liste');
+
+  // --- administration (src/lib/db/adminStore.ts) -----------------------------
+  await check('recordCatalogSearch', async () => serverDb.recordCatalogSearch('sonde composition', 0));
+  const adminMetrics = await check('getAdminAnalyticsMetrics', () => serverDb.getAdminAnalyticsMetrics());
+  assert.ok(adminMetrics && typeof adminMetrics.searchesWithoutResultsCount === 'number', 'les KPI admin doivent être agrégés');
+  await check('recordAdminAudit', () => serverDb.recordAdminAudit(uid, 'sonde_composition', { source: 'banc' }));
+
   // --- noyau resté dans serverDb.ts ------------------------------------------
   await check('getProducts', () => serverDb.getProducts());
   await check('getStatusSummary', async () => serverDb.getStatusSummary());
 
   assert.deepEqual(failures, [], `appels en échec sur le store composé :\n${failures.join('\n')}`);
-  assert.ok(calls >= 20, `trop peu de méthodes exercées : ${calls}`);
+  assert.ok(calls >= 30, `trop peu de méthodes exercées : ${calls}`);
   console.log(
     `[PASS] Chantier 8.2 : ${calls} méthodes des domaines extraits appelées avec succès sur le store composé.`
   );

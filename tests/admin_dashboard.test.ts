@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import http from 'node:http';
 
 process.env.KURLA_TEST_NO_SERVER = 'true';
@@ -34,8 +34,13 @@ assertIncludes(migration, 'CREATE POLICY "Admins manage articles"', 'RLS article
 assertIncludes(migration, 'CREATE POLICY "Admins manage AI knowledge sources"', 'RLS sources IA');
 assertIncludes(migration, 'CREATE POLICY "Admins manage coupons"', 'RLS coupons');
 
-const source = readFileSync('src/lib/serverDb.ts', 'utf8');
-assert.match(source, /const sourceOrders: ServerOrder\[\] = supabase \? supaOrders : this\.inMemoryOrders/);
+// CHANTIER 8.2b — le store est découpé par domaine : les KPI d'administration
+// vivent désormais dans `src/lib/db/adminStore.ts`. Les gardes anti-valeurs-en-dur
+// lisent donc toute la surface du store, pas un seul fichier.
+const source = [readFileSync('src/lib/serverDb.ts', 'utf8')]
+  .concat(readdirSync('src/lib/db').map(file => readFileSync(`src/lib/db/${file}`, 'utf8')))
+  .join('\n');
+assert.match(source, /const sourceOrders: ServerOrder\[\] = supabase \? supaOrders : store\.inMemoryOrders/);
 assert.match(source, /searchesWithoutResultsCount: zeroResultSearches\.length/);
 assert.match(source, /popularProducts/);
 assert.match(source, /aiUsageRate/);
@@ -57,6 +62,18 @@ const metrics = await serverDb.getAdminAnalyticsMetrics();
 for (const key of ['totalOrders', 'revenueTest', 'avgOrderValue', 'refundsCount', 'searchesWithoutResultsCount', 'popularProducts', 'aiUsageRate', 'openTicketsCount']) {
   assert.ok(Object.prototype.hasOwnProperty.call(metrics, key), `métrique ${key} absente`);
 }
+
+// Preuve comportementale que les KPI sont agrégés et non codés en dur : une
+// recherche sans résultat enregistrée doit faire bouger le compteur.
+const metricsBeforeSearches = await serverDb.getAdminAnalyticsMetrics();
+await serverDb.recordCatalogSearch('introuvable', 0);
+await serverDb.recordCatalogSearch('hydratation', 7);
+const metricsAfterSearches = await serverDb.getAdminAnalyticsMetrics();
+assert.equal(
+  metricsAfterSearches.searchesWithoutResultsCount,
+  (metricsBeforeSearches.searchesWithoutResultsCount ?? 0) + 1,
+  'une recherche sans résultat doit incrémenter le KPI correspondant'
+);
 
 const dashboardResponse = await requestApp('/api/admin/dashboard');
 assert.equal(dashboardResponse.status, 401, 'le dashboard admin doit refuser une requête sans JWT');
