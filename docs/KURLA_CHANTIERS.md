@@ -1273,6 +1273,70 @@ des données déjà publiques : le catalogue vérifié et le score d'adéquation
 (`dist/server.cjs` 807,4 kb, `dist/api-docs/index.html` prérendu), inventaire
 **184 routes** (+5), méthodes inchangées (**187**), rien retiré.
 
+#### 8.6c1 — Programme experts/créateurs + rémunération au résultat (livré)
+
+**Subdivision du chantier 8.6c** : 8.6c1 couvre les features 39 et 40,
+indissociables — un programme de créateurs sans règle de rémunération se
+transforme en régie publicitaire. La feature 41 (espace marque) reste en 8.6c2.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/lib/creatorProgram.ts` | Règles pures : `computeCreatorStanding` (poids 45/25/30, plafond de pénalité, `MIN_CONTRIBUTIONS_TO_RANK = 3`), `computeCreatorPayout` (1,50 €/résultat, seuil 3, revue au-delà de 60 % de négatifs), `CREATOR_TRANSITIONS`, `ATTRIBUTION_VALUES` |
+| `src/lib/db/creatorStore.ts` | 11 méthodes : candidature, revue, attributions, classement, versement, annuaire public |
+| `src/server/routes/creators.ts` | `GET /api/creators/program` · `GET /api/creators` · `POST /api/creators/apply` · `GET /api/creators/me` · `POST /api/creators/attributions` · `GET /api/admin/creators` · `POST /api/admin/creators/:id/review` |
+| `supabase/migrations/20260864000000_creator_program.sql` | 4 tables, 1 RPC `SECURITY DEFINER`, RLS sans politique d'écriture |
+| `/createurs` | Page **publique et indexable**, prérendue : règles chargées depuis l'API, annuaire, candidature |
+| `tests/creator_program.test.ts` | 10 plans de vérification (règles pures, store, routes) |
+
+**Deux règles structurantes, et le piège qu'elles évitent.**
+
+1. **La visibilité ne s'achète pas.** Les poids portent sur les contributions
+   (45), les appuis de professionnels vérifiés (25) et les résultats déclarés
+   (25→30). Le banc ajoute un champ `budgetAds: 50000` en contrebande sur la
+   candidature : le score ne bouge pas d'un point. Aucune table ne permet
+   d'enregistrer un placement — il n'existe pas de chemin pour en acheter un.
+2. **Un clic ne vaut rien.** `ATTRIBUTION_VALUES` met clic, ajout à l'étagère et
+   achat à **0** ; seul `outcome_declared` vaut 1. La règle est doublée en base
+   par deux contraintes (`only_outcomes_are_paid`, `outcomes_pay_exactly_one`) :
+   une répartition différente est impossible à écrire, y compris par
+   l'administration.
+3. **Le piège évité : payer moins un résultat négatif.** Cela inciterait les
+   créateurs à ne rapporter que du positif — exactement l'inverse de ce que vaut
+   un retour d'expérience. Le taux est **identique quel que soit le signe**
+   (vérifié : 10 positifs et 5 négatifs rapportent la même somme). Une part de
+   négatifs supérieure à 60 % met le versement **en revue** ; elle ne le réduit
+   pas.
+
+**Les compteurs de visibilité ne sont pas déclaratifs.** Ils sont comptés sur des
+faits existants : contenus publiés signés du nom affiché (3 semés comptent, un
+brouillon et un autre auteur non), co-signatures liées au profil professionnel
+(`approved`/`amended` = appui, `contradicted` = contradiction), attributions
+`outcome_declared`. Sans fait enregistré, tout vaut zéro — et zéro s'affiche.
+
+**Publier exige une vérification, deux fois.** `canTransitionCreator` refuse
+`applied → published` côté serveur, et `review_creator_application` rejoue la
+même règle en SQL (`rejected` n'a aucune transition sortante). Le banc vérifie
+les deux refus, la suspension réversible, et la disparition de l'annuaire.
+
+**Ce qui manque, explicitement**
+- **La migration `20260864` n'est pas appliquée** sur l'instance réelle (comme
+  `20260863`) : les routes fonctionnent en mode mémoire, et échoueront contre la
+  base tant que la migration n'est pas jouée.
+- **Aucun versement réel** : Stripe est différé. `computeCreatorPayout` calcule
+  un montant dû ; rien ne le paie.
+- **Les contributions ne comptent que les articles** : une réponse d'expert ou
+  une carte de savoir validée n'est pas encore un fait comptable, faute de
+  producteur branché.
+- Aucun producteur n'appelle encore `POST /api/creators/attributions` depuis un
+  écran : la déclaration de résultat sur une recommandation de créateur n'a pas
+  de surface.
+- Aucun rendu navigateur vérifié pour `/createurs`.
+
+**Résultat 8.6c1 :** `tsc` exit 0, `npm test` exit 0 (**90 bancs**), build exit 0
+(`dist/server.cjs` 833,7 kb, `dist/createurs/index.html` prérendu), inventaire
+**191 routes** (+7), **198 méthodes** (+11), rien retiré, **24 routes statiques
+prérendues** (+1 : `/createurs`).
+
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
 inchangées** (nom + arité), **49 appels réels** sur le store composé.
@@ -1302,7 +1366,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement — **chantier long, subdivisé** :
   - [x] ~~**8.6a** Texture Gap Report (feature 30)~~ **FAIT (rapport) — la surface B2B reste à faire** : `src/lib/textureGap.ts` (cœur pur + `concernsFromProfile` + `aggregateTextureGap`), `src/lib/db/textureGapStore.ts` (lecture et agrégation), `GET /api/intelligence/texture-gap` **réservé à l'administration**, écran `/admin/texture-gap`, banc `tests/texture_gap.test.ts`. **La feature 30 passe en 🔶 partielle, pas en ✅** : le rapport existe et est k-anonyme, mais il n'y a ni compte B2B ni contrat encadrant la revente, et la couverture du catalogue est inconnue tant que `product_ingredients` est vide — le rapport rend donc `donnees_insuffisantes` plutôt que des angles morts.
   - [x] ~~**8.6b** API catalogue + scoring (feature 31)~~ **FAIT** — `src/server/routes/publicApi.ts` : 5 endpoints publics en lecture seule (`/api/v1/manifest`, `/api/v1/products`, `/api/v1/products/:idOrSlug`, `/api/v1/scoring/schema`, `POST /api/v1/scoring/fit`) + page publique indexable `/api-docs` (prérendue). **Scoring sans état** : le profil envoyé n'est enregistré nulle part, vérifié par l'état du store avant/après. Un score vaut `null` quand rien n'est déclaré — jamais 0, car 0 voudrait dire « mauvais produit ».
-  - [ ] **8.6c** Espace marque et tests produits ciblés (41), programme experts/créateurs (39), rémunération au résultat (40)
+  - [x] ~~**8.6c1** Programme experts/créateurs (39) + rémunération au résultat (40)~~ **FAIT** — règles pures, store, 7 routes, migration `20260864`, page publique `/createurs`, 10 plans de vérification.
+  - [ ] **8.6c2** Espace marque et tests produits ciblés (41)
 - [ ] **8.7** Application mobile
 
 - [x] ~~Tests Supabase réels A/B : 17 vérifications Phase 2 à 0 exécution~~ **LEVÉ** (action 46)
@@ -1333,7 +1398,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **89 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **90 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1350,6 +1415,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.6a** — `tests/texture_gap.test.ts` | PASS — 9 plans de vérification : cellule sous 30 absente de la sortie (l'archétype ne fuit pas), angles morts classés par cohorte, trou de donnée ≠ angle mort, `coverage: null` sans dénominateur, agrégation 40 membres → 1 cellule, produit rattaché trois fois compté une fois, « aucun »/« je ne sais pas » non comptés comme besoins, store : 32 profils → 2 cellules et **0 angle mort affirmé** sur catalogue vide, route 401 sans jeton |
 | **Chantier 8.6b** — `tests/public_api.test.ts` | PASS — 7 plans de vérification : manifeste conforme aux endpoints montés, catalogue servi au publié uniquement (1 sur 3 semés, retiré → 404), **scoring sans état** (6 collections du store inchangées), profil vide → `score: null` et `evaluable: false`, profil renseigné → score 100 et raisons, 7 catégories jamais exposées, aucune promesse ni vocabulaire médical, 5 routes v1 inexistantes → 404 |
 | **Chantier 8.6b** — inventaires | **184 routes** (+5 endpoints v1) · **187 méthodes** (inchangé) · **23 routes statiques prérendues** (+1 : `/api-docs`) |
+| **Chantier 8.6c1** — `tests/creator_program.test.ts` | PASS — 10 plans de vérification : clic/shelf/achat à 0, 1 000 clics → 0 centime, 10 résultats déclarés → 1 500 centimes, **même taux pour 10 positifs et 5 négatifs**, 70 % de négatifs → revue sans versement, budget en contrebande sans effet sur la visibilité, publication réservée aux profils vérifiés, visibilité comptée sur 3 contenus publiés et 4 résultats déclarés (11/100), règles du programme publiées sans compte |
+| **Chantier 8.6c1** — inventaires | **191 routes** (+7) · **198 méthodes** (+11) · **24 routes statiques prérendues** (+1 : `/createurs`), rien retiré |
 | **Chantier 8.6a** — inventaires | **179 routes** (+1 : `GET /api/intelligence/texture-gap`) · **187 méthodes** (+1 : `getTextureGapReport`), rien retiré |
 | **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |

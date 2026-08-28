@@ -58,6 +58,7 @@ import type {
   OrderStatus,
   OrderStatusHistoryEntry,
   ProductSubscription,
+  CreatorApplication,
   ProfessionalApplication,
   ProfessionalApplicationStatus,
   PublicProfessionalEntry,
@@ -77,6 +78,7 @@ import type {
 // imports `from '../serverDb'` existants continuent de fonctionner.
 export * from './db/types';
 export { toPublicProduct };
+import type { CreatorAttribution } from './creatorProgram';
 import { bindDomain, Curried } from './db/bind';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
@@ -85,6 +87,7 @@ import * as supportStore from './db/supportStore';
 import * as adaptiveRoutineStore from './db/adaptiveRoutineStore';
 import * as aiSessionStore from './db/aiSessionStore';
 import * as professionalApplicationStore from './db/professionalApplicationStore';
+import * as creatorStore from './db/creatorStore';
 import * as shippingStore from './db/shippingStore';
 import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
@@ -133,6 +136,8 @@ export class SupabaseServerStore {
   public inMemorySupportAttachments: SupportAttachment[] = [];
   public inMemorySupportAttachmentBytes: Map<string, Uint8Array> = new Map();
   public inMemoryProfessionalApplications: ProfessionalApplication[] = [];
+  public inMemoryCreatorApplications: CreatorApplication[] = [];
+  public inMemoryCreatorAttributions: Map<string, CreatorAttribution[]> = new Map();
   public inMemoryProductReviews: MarketplaceReview[] = [];
   public inMemoryProductQuestions: MarketplaceQuestion[] = [];
   public inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
@@ -334,6 +339,7 @@ bindDomain(storeInstance, supportStore);
 bindDomain(storeInstance, adaptiveRoutineStore);
 bindDomain(storeInstance, aiSessionStore);
 bindDomain(storeInstance, professionalApplicationStore);
+bindDomain(storeInstance, creatorStore);
 bindDomain(storeInstance, shippingStore);
 bindDomain(storeInstance, returnsStore);
 bindDomain(storeInstance, adminStore);
@@ -354,6 +360,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof adaptiveRoutineStore>
   & Curried<typeof aiSessionStore>
   & Curried<typeof professionalApplicationStore>
+  & Curried<typeof creatorStore>
   & Curried<typeof shippingStore>
   & Curried<typeof returnsStore>
   & Curried<typeof adminStore>

@@ -261,6 +261,30 @@ export interface ShippingRateRecord {
   updatedAt: string;
 }
 
+import type { CreatorKind, CreatorStatus } from '../creatorProgram';
+
+/**
+ * CHANTIER 8.6c1 — candidature au programme experts/créateurs.
+ * `professionalProfileId` relie le créateur à un profil professionnel déjà
+ * vérifié du même compte : c'est par ce lien que ses appuis et ses
+ * contradictions sont comptés. Sans lien, ils restent à zéro.
+ */
+export interface CreatorApplication {
+  id: string;
+  userId: string;
+  displayName: string;
+  kind: CreatorKind;
+  specialty: string;
+  biography: string;
+  portfolioUrl: string | null;
+  professionalProfileId: string | null;
+  status: CreatorStatus;
+  appliedAt: string;
+  verifiedAt: string | null;
+  publishedAt: string | null;
+  adminComment: string | null;
+}
+
 export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
 
 export interface ProfessionalApplication {

@@ -59,6 +59,7 @@ import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
 import { registerBeautyJourneyRoutes } from './src/server/routes/beautyJourney';
 import { registerMembershipRoutes } from './src/server/routes/membership';
 import { registerPublicApiRoutes } from './src/server/routes/publicApi';
+import { registerCreatorRoutes } from './src/server/routes/creators';
 import {
   activateMembershipFromCheckoutSession,
   cancelMembershipFromSubscription,
@@ -1098,6 +1099,7 @@ registerLoyaltyRoutes(app);
 registerBeautyJourneyRoutes(app);
 registerMembershipRoutes(app);
 registerPublicApiRoutes(app);
+registerCreatorRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS

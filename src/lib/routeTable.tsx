@@ -36,6 +36,7 @@ import { BeautyJourneyPage } from '../pages/BeautyJourneyPage';
 import { KurlaPlusPage } from '../pages/KurlaPlusPage';
 import { TextureGapPage } from '../pages/TextureGapPage';
 import { ApiDocsPage } from '../pages/ApiDocsPage';
+import { CreatorsPage } from '../pages/CreatorsPage';
 import { SavedPage } from '../pages/SavedPage';
 import { KidsModulePage } from '../pages/KidsModulePage';
 import { ProtectiveStylesPage } from '../pages/ProtectiveStylesPage';
@@ -150,6 +151,7 @@ export const ROUTES: RouteEntry[] = [
 
   // Professionnels
   { path: '/pros-verifies', render: () => <ProfessionalDirectoryPage /> },
+  { path: '/createurs', render: () => <CreatorsPage /> },
   { path: '/api-docs', render: () => <ApiDocsPage /> },
   { path: '/professionnels', render: () => <ProfessionalsPage /> },
   { path: '/professionnels/rejoindre', render: () => <ProApplicationPage /> },

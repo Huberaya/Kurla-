@@ -75,13 +75,18 @@ function runPrerenderTests(): void {
     'Une description hostile ne doit pas injecter de balise.');
 
   // La liste prérendue doit être exactement les routes publiques statiques.
-  // 22 routes à la fin du chantier 7, 23 depuis le chantier 8.6b qui ajoute
-  // `/api-docs` : la documentation de l'API publique est une page indexable.
+  // 22 routes à la fin du chantier 7, 23 au chantier 8.6b (`/api-docs`),
+  // 24 au chantier 8.6c1 (`/createurs`) : les règles de visibilité et de
+  // rémunération du programme experts/créateurs sont publiques et indexables.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 23, `Attendu 23 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 24, `Attendu 24 routes statiques, obtenu ${staticPublic.length}.`);
   assert.ok(
     staticPublic.some(route => route.path === '/api-docs'),
     'La documentation de l’API publique doit être prérendue.'
+  );
+  assert.ok(
+    staticPublic.some(route => route.path === '/createurs'),
+    'Le programme experts/créateurs doit être prérendu : ses règles sont publiques.'
   );
 
   console.log(

@@ -351,6 +351,15 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/createurs',
+    title: 'Programme experts et créateurs | KURLA',
+    description:
+      'Les experts et créateurs sont classés par contributions vérifiées et payés sur les résultats déclarés par les membres. Aucun emplacement à acheter : un clic, un ajout à l’étagère ou un achat ne déclenche aucun versement.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.5,
+  },
+  {
     path: '/api-docs',
     title: 'API publique catalogue et scoring | KURLA',
     description:
