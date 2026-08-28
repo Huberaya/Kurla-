@@ -126,6 +126,8 @@ export class SupabaseServerStore {
   /** CHANTIER 10 (bloc B1) — référentiel d'ingrédients et liaisons produit × ingrédient. */
   public inMemoryIngredients: any[] = [];
   public inMemoryProductIngredients: import('./ingredientGraph').ProductIngredientLink[] = [];
+  /** Provenance vérifiée de chaque ingrédient (source, URL, date, niveau de preuve). */
+  public inMemoryIngredientProvenance: Array<{ id: string; ingredientId: string; sourceLabel: string; sourceUrl: string; retrievedAt: string; casNumber?: string | null; evidenceTier: 1 | 2; note?: string }> = [];
   /** CHANTIER 10 (bloc B3) — vocabulaires contrôlés (miroir de la migration 20260847). */
   public inMemoryTaxonomies: Array<{ id: string; label: string; description: string }> = [];
   public inMemoryTaxonomyTerms: any[] = [];

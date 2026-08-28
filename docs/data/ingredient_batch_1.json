@@ -1,0 +1,530 @@
+{
+  "batch": 1,
+  "generatedAt": "2026-08-28",
+  "source": "PubChem (NIH/NLM)",
+  "note": "CosIng sondé et écarté : interface JavaScript sans point d'accès données public.",
+  "verifiedCount": 9,
+  "identifiedCount": 14,
+  "rejectedCount": 2,
+  "verified": [
+    {
+      "id": "glycerin",
+      "inciProposed": "Glycerin",
+      "query": "glycerol",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 753,
+      "inciVerified": "glycerin",
+      "pubchemTitle": "Glycerol",
+      "molecularFormula": "C3H8O3",
+      "casNumber": "56-81-5",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/753",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "glycérine",
+        "glycérine végétale"
+      ],
+      "family": "polyols",
+      "origin": "végétal ou synthèse"
+    },
+    {
+      "id": "niacinamide",
+      "inciProposed": "Niacinamide",
+      "query": "niacinamide",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 936,
+      "inciVerified": "niacinamide",
+      "pubchemTitle": "Nicotinamide",
+      "molecularFormula": "C6H6N2O",
+      "casNumber": "98-92-0",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/936",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "vitamine B3",
+        "niacinamide"
+      ],
+      "family": "vitamines",
+      "origin": "synthèse"
+    },
+    {
+      "id": "panthenol",
+      "inciProposed": "Panthenol",
+      "query": "panthenol",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 4678,
+      "inciVerified": "panthenol",
+      "pubchemTitle": "DL-panthenol",
+      "molecularFormula": "C9H19NO4",
+      "casNumber": "16485-10-2",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/4678",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "provitamine B5",
+        "panthénol"
+      ],
+      "family": "vitamines",
+      "origin": "synthèse"
+    },
+    {
+      "id": "squalane",
+      "inciProposed": "Squalane",
+      "query": "squalane",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 8089,
+      "inciVerified": "SQUALANE",
+      "pubchemTitle": "Squalane",
+      "molecularFormula": "C30H62",
+      "casNumber": "111-01-3",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/8089",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "squalane végétal",
+        "squalane"
+      ],
+      "family": "lipides",
+      "origin": "végétal"
+    },
+    {
+      "id": "allantoin",
+      "inciProposed": "Allantoin",
+      "query": "allantoin",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 204,
+      "inciVerified": "allantoin",
+      "pubchemTitle": "Allantoin",
+      "molecularFormula": "C4H6N4O3",
+      "casNumber": "97-59-6",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/204",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "allantoïne",
+        "allantoine"
+      ],
+      "family": "actifs",
+      "origin": "synthèse ou végétal"
+    },
+    {
+      "id": "salicylic_acid",
+      "inciProposed": "Salicylic Acid",
+      "query": "salicylic acid",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 338,
+      "inciVerified": "salicylic acid",
+      "pubchemTitle": "Salicylic Acid",
+      "molecularFormula": "C7H6O3",
+      "casNumber": "69-72-7",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/338",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "acide salicylique",
+        "bha"
+      ],
+      "family": "acides",
+      "origin": "synthèse ou végétal"
+    },
+    {
+      "id": "tranexamic_acid",
+      "inciProposed": "Tranexamic Acid",
+      "query": "tranexamic acid",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 5526,
+      "inciVerified": "tranexamic acid",
+      "pubchemTitle": "4-(Aminomethyl)cyclohexanecarboxylic acid",
+      "molecularFormula": "C8H15NO2",
+      "casNumber": "701-54-2",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/5526",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "acide tranexamique"
+      ],
+      "family": "actifs",
+      "origin": "synthèse"
+    },
+    {
+      "id": "zinc_pca",
+      "inciProposed": "Zinc PCA",
+      "query": "zinc pca",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 11602214,
+      "inciVerified": "Zinc PCA",
+      "pubchemTitle": "Zinc pidolate",
+      "molecularFormula": "C10H12N2O6Zn",
+      "casNumber": "15454-75-8",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/11602214",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "zinc pca",
+        "pca de zinc"
+      ],
+      "family": "minéraux",
+      "origin": "synthèse"
+    },
+    {
+      "id": "melaleuca_alternifolia",
+      "inciProposed": "Melaleuca Alternifolia Leaf Oil",
+      "query": "melaleuca alternifolia leaf oil",
+      "status": "verified",
+      "reason": "",
+      "tier": 1,
+      "cid": 22833361,
+      "inciVerified": "Melaleuca alternifolia leaf oil",
+      "pubchemTitle": "Oils, Melaleuca",
+      "molecularFormula": "C28H60O4P2S4Zn",
+      "casNumber": "8022-72-8",
+      "sourceLabel": "PubChem (NIH/NLM) — INCI présent dans la liste de synonymes, numéro CAS publié",
+      "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/compound/22833361",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile d'arbre à thé",
+        "tea tree"
+      ],
+      "family": "huiles essentielles",
+      "origin": "végétal"
+    }
+  ],
+  "identified": [
+    {
+      "id": "butyrospermum_parkii",
+      "inciProposed": "Butyrospermum Parkii Butter",
+      "query": "butyrospermum parkii",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Butyrospermum Parkii",
+      "taxid": "292385",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/292385",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "beurre de karité",
+        "karité"
+      ],
+      "family": "beurres",
+      "origin": "végétal"
+    },
+    {
+      "id": "mangifera_indica",
+      "inciProposed": "Mangifera Indica Seed Butter",
+      "query": "mangifera indica",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Mangifera Indica",
+      "taxid": "29780",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/29780",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "beurre de mangue"
+      ],
+      "family": "beurres",
+      "origin": "végétal"
+    },
+    {
+      "id": "simmondsia_chinensis",
+      "inciProposed": "Simmondsia Chinensis Seed Oil",
+      "query": "simmondsia chinensis",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Simmondsia Chinensis",
+      "taxid": "3999",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/3999",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile de jojoba",
+        "jojoba"
+      ],
+      "family": "huiles",
+      "origin": "végétal"
+    },
+    {
+      "id": "helianthus_annuus",
+      "inciProposed": "Helianthus Annuus Seed Oil",
+      "query": "sunflower seed oil",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Helianthus Annuus",
+      "taxid": "4232",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/4232",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile de tournesol",
+        "tournesol"
+      ],
+      "family": "huiles",
+      "origin": "végétal"
+    },
+    {
+      "id": "argania_spinosa",
+      "inciProposed": "Argania Spinosa Kernel Oil",
+      "query": "argania spinosa",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Argania Spinosa",
+      "taxid": "2945705",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/2945705",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile d'argan",
+        "argan"
+      ],
+      "family": "huiles",
+      "origin": "végétal"
+    },
+    {
+      "id": "persea_gratissima",
+      "inciProposed": "Persea Gratissima Oil",
+      "query": "persea gratissima",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Persea Gratissima",
+      "taxid": "3435",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/3435",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile d'avocat",
+        "avocat"
+      ],
+      "family": "huiles",
+      "origin": "végétal"
+    },
+    {
+      "id": "ricinus_communis",
+      "inciProposed": "Ricinus Communis Seed Oil",
+      "query": "ricinus communis",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Ricinus Communis",
+      "taxid": "3988",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/3988",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile de carapate",
+        "carapate",
+        "huile de ricin",
+        "black castor oil"
+      ],
+      "family": "huiles",
+      "origin": "végétal"
+    },
+    {
+      "id": "aloe_barbadensis",
+      "inciProposed": "Aloe Barbadensis Leaf Juice",
+      "query": "aloe barbadensis",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Aloe Barbadensis",
+      "taxid": "34199",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/34199",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "aloe vera",
+        "aloès"
+      ],
+      "family": "extraits",
+      "origin": "végétal"
+    },
+    {
+      "id": "rosmarinus_officinalis",
+      "inciProposed": "Rosmarinus Officinalis Leaf Oil",
+      "query": "rosmarinus officinalis",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Rosmarinus Officinalis",
+      "taxid": "39367",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/39367",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "huile de romarin",
+        "romarin à cinéole"
+      ],
+      "family": "huiles essentielles",
+      "origin": "végétal"
+    },
+    {
+      "id": "althaea_officinalis",
+      "inciProposed": "Althaea Officinalis Root Extract",
+      "query": "althaea officinalis",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Althaea Officinalis",
+      "taxid": "145745",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/145745",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "extrait de guimauve",
+        "guimauve"
+      ],
+      "family": "extraits",
+      "origin": "végétal"
+    },
+    {
+      "id": "avena_sativa",
+      "inciProposed": "Avena Sativa Kernel Extract",
+      "query": "avena sativa",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Avena Sativa",
+      "taxid": "4498",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/4498",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "avoine douce",
+        "avoine colloïdale"
+      ],
+      "family": "extraits",
+      "origin": "végétal"
+    },
+    {
+      "id": "theobroma_cacao",
+      "inciProposed": "Theobroma Cacao Extract",
+      "query": "theobroma cacao",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Theobroma Cacao",
+      "taxid": "3641",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/3641",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "extrait de cacao",
+        "cacao"
+      ],
+      "family": "extraits",
+      "origin": "végétal"
+    },
+    {
+      "id": "hydrolyzed_rice",
+      "inciProposed": "Hydrolyzed Rice Protein",
+      "query": "rice protein",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Hydrolyzed Rice",
+      "taxid": "4530",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/4530",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "protéine de riz"
+      ],
+      "family": "protéines",
+      "origin": "végétal"
+    },
+    {
+      "id": "mentha_piperita",
+      "inciProposed": "Mentha Piperita Oil",
+      "query": "mentha piperita",
+      "status": "identified",
+      "reason": "",
+      "tier": 2,
+      "cid": null,
+      "inciVerified": null,
+      "binomialVerified": "Mentha Piperita",
+      "taxid": "34256",
+      "casNumber": null,
+      "sourceLabel": "NCBI Taxonomy — espèce vérifiée (la dénomination INCI complète n'y est pas publiée)",
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/taxonomy/34256",
+      "retrievedAt": "2026-08-28",
+      "commonNames": [
+        "menthe poivrée",
+        "hydrolat de menthe poivrée"
+      ],
+      "family": "huiles essentielles",
+      "origin": "végétal"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "sodium_hyaluronate",
+      "inciProposed": "Sodium Hyaluronate",
+      "reason": "aucun composé PubChem pour « hyaluronic acid » (HTTP Error 404: PUGREST.NotFound)"
+    },
+    {
+      "id": "cocamidopropyl_betaine",
+      "inciProposed": "Cocamidopropyl Betaine",
+      "reason": "aucun composé PubChem pour « cocamidopropyl dimethyl aminoacetate betaine » (HTTP Error 404: PUGREST.NotFound)"
+    }
+  ]
+}

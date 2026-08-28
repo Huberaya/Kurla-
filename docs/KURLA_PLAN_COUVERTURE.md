@@ -230,12 +230,18 @@ Deux constats vérifiés dans le code avant d'écrire, pas déduits d'un tableau
 | Livré | Preuve |
 |---|---|
 | **B1 — couche d'écriture du graphe** | `src/lib/db/ingredientLinkStore.ts` : rattachement par identifiant ou mention déclarée, rang = ordre de concentration, provenance portée par ligne (`declared` / `inci_label` / `brand_confirmed` / `lab_analysed`), alimentation en lot avec rapport des mentions non résolues, couverture mesurée. **Aucune correspondance devinée** : ce qui n'existe pas dans le référentiel est rendu à l'opérateur. Routes `POST /api/admin/catalog/:productId/ingredients`, `POST /api/admin/catalog/ingredients/link-declared`, `GET /api/admin/catalog/ingredient-coverage`. Banc `tests/kurla_ingredient_graph.test.ts` |
+| **B4 — lot d'ingrédients vérifiés, source par source** | `scripts/verify-ingredient-batch.py` interroge PubChem (NIH) et NCBI Taxonomy ; une ligne n'est émise que si l'identité est confirmée. **23 lignes retenues** : 9 en niveau 1 (INCI littéralement présent dans les synonymes PubChem **et** numéro CAS publié → `verified`), 14 en niveau 2 (espèce botanique vérifiée, dénomination INCI absente des sources → `pending`, jamais `verified`). **2 écartées et tracées** (hyaluronate de sodium, cocamidopropyl bétaïne). Trace `docs/data/ingredient_batch_1.json`, migration générée `20260868000000_ingredient_verified_batch_1.sql` (23 ingrédients + 23 provenances + 24 liaisons produit × ingrédient calculées, mentions sans correspondance listées et non rattachées). Le statut `verified` exige désormais une provenance de niveau 1 (`setIngredientVerificationStatus`), la fiche ingrédient publique expose source, URL et date. Banc `tests/kurla_ingredient_provenance.test.ts`. **CosIng écarté après sondage** : interface JavaScript sans point d'accès données public |
 | **B3 — vocabulaires contrôlés appliqués** | `src/lib/db/taxonomyStore.ts` + référence miroir `src/lib/taxonomyReference.ts` (générée depuis `20260847`, divergence détectée par le banc). `saveCatalogProduct` refuse une valeur hors référentiel et résout les synonymes (`sec` → `hydrater_cheveux`) en le signalant. `GET /api/taxonomies` public, `GET /api/admin/catalog/vocabulary-audit` pour le fonds existant. Banc `tests/kurla_taxonomy.test.ts` |
 | **B2 — la publication veut dire quelque chose** | `getCatalogPublicationReadiness` reprend les exigences de `isPublishableProduct` moins le statut lui-même, et `updateCatalogStatus` **refuse** `published` tant qu'elles ne sont pas satisfaites (422 avec la liste nominative des manques). Rapport `GET /api/admin/catalog/publication-readiness` : `publishedStatus` ≠ `readyToPublish`, et `publishedButNotListable` compte les statuts menteurs. Banc `tests/kurla_catalog_publication.test.ts` ; le banc `catalog_management` existant a été **renforcé** (il vérifiait le filtrage lecture, il vérifie désormais le refus écriture) |
 
 **Ce que B1/B2 ne règlent pas, et qui reste ouvert :**
 
-- **Les données.** En production `product_ingredients` est vide et aucun produit
+- **Les données.** Le lot 1 (B4) fournit 23 ingrédients vérifiés et 24 liaisons,
+  mais sa migration `20260868000000` **n'est pas appliquée** : aucun identifiant
+  de base n'était disponible ce tour. Tant qu'elle n'est pas jouée, la base de
+  production reste à `product_ingredients = 0`. Et aucun produit n'est publié : la
+  publication exige désormais des vérifications réelles (visuels, allégations,
+  stock, certifications) qui ne se déclarent pas d'un clic.
   n'est publié. La couche d'écriture existe ; l'alimenter exige soit des listes
   INCI réelles par produit, soit des vérifications réellement effectuées
   (visuels, allégations, stock, certifications). **Ni l'un ni l'autre ne

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T19:06:04.205Z",
+  "generatedAt": "2026-08-28T20:17:47.481Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -82,6 +82,7 @@
     "getFamilyProducts/2",
     "getIngredientCatalog/0",
     "getIngredientGraphCoverage/0",
+    "getIngredientProvenance/1",
     "getInventoryByProductId/1",
     "getInventoryByVariantId/2",
     "getLoyaltyAccount/1",
@@ -181,6 +182,7 @@
     "recordCatalogValidation/6",
     "recordCreatorAttribution/1",
     "recordEmailDelivery/4",
+    "recordIngredientProvenance/3",
     "recordMobileSyncAction/1",
     "recordReturnEvent/1",
     "recordRoutineFeedback/2",
@@ -207,6 +209,7 @@
     "saveShippingRate/2",
     "sendNotification/7",
     "sendTransactionalEmail/3",
+    "setIngredientVerificationStatus/3",
     "startMembershipTrial/1",
     "syncInventoryToSupabase/3",
     "syncVariantInventoryToSupabase/4",

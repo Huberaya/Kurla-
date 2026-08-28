@@ -356,3 +356,124 @@ async function persistLinks(
 function adminIdForSystem(_store: SupabaseServerStore): string {
   return 'system:ingredient-linker';
 }
+
+/**
+ * CHANTIER 10 (bloc B4) — PROVENANCE ET STATUT DE VÉRIFICATION.
+ *
+ * Le lot vérifié ne vaut que si le statut « verified » reste lié à une source
+ * consultable. Ces trois fonctions ferment la porte : on ne peut plus marquer
+ * un ingrédient comme vérifié sans avoir enregistré d'où vient la vérification.
+ */
+
+export interface IngredientProvenance {
+  ingredientId: string;
+  sourceLabel: string;
+  sourceUrl: string;
+  retrievedAt: string;
+  casNumber?: string | null;
+  evidenceTier: 1 | 2;
+  note?: string;
+}
+
+function mapProvenanceRow(row: any): IngredientProvenance {
+  return {
+    ingredientId: row.ingredient_id ?? row.ingredientId,
+    sourceLabel: row.source_label ?? row.sourceLabel ?? '',
+    sourceUrl: row.source_url ?? row.sourceUrl ?? '',
+    retrievedAt: String(row.retrieved_at ?? row.retrievedAt ?? ''),
+    casNumber: row.cas_number ?? row.casNumber ?? null,
+    evidenceTier: Number(row.evidence_tier ?? row.evidenceTier ?? 1) === 2 ? 2 : 1,
+    note: row.note ?? undefined
+  };
+}
+
+export async function getIngredientProvenance(store: SupabaseServerStore, ingredientId: string): Promise<IngredientProvenance[]> {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { data, error } = await supabase.from('ingredient_provenance').select('*').eq('ingredient_id', ingredientId).order('retrieved_at', { ascending: false });
+    ensureDatabaseSuccess('lecture de la provenance ingrédient', error);
+    return (data || []).map(mapProvenanceRow);
+  }
+  return store.inMemoryIngredientProvenance.filter(row => row.ingredientId === ingredientId).map(row => mapProvenanceRow(row));
+}
+
+export async function recordIngredientProvenance(
+  store: SupabaseServerStore,
+  adminId: string,
+  ingredientId: string,
+  input: { sourceLabel?: unknown; sourceUrl?: unknown; retrievedAt?: unknown; casNumber?: unknown; evidenceTier?: unknown; note?: unknown }
+): Promise<IngredientProvenance> {
+  const sourceLabel = typeof input?.sourceLabel === 'string' ? input.sourceLabel.trim() : '';
+  const sourceUrl = typeof input?.sourceUrl === 'string' ? input.sourceUrl.trim() : '';
+  const retrievedAt = typeof input?.retrievedAt === 'string' ? input.retrievedAt.trim() : '';
+  if (!sourceLabel || !sourceUrl || !retrievedAt) throw new Error('La provenance exige une source, une URL et une date de retrait.');
+  if (!/^https?:\/\//i.test(sourceUrl)) throw new Error('L’URL de la source doit être absolue et consultable.');
+  if (Number.isNaN(Date.parse(retrievedAt))) throw new Error('La date de retrait est invalide.');
+
+  const record: IngredientProvenance = {
+    ingredientId,
+    sourceLabel: sourceLabel.slice(0, 300),
+    sourceUrl: sourceUrl.slice(0, 2000),
+    retrievedAt,
+    casNumber: typeof input?.casNumber === 'string' ? input.casNumber.trim().slice(0, 40) : null,
+    evidenceTier: Number(input?.evidenceTier) === 2 ? 2 : 1,
+    note: typeof input?.note === 'string' ? input.note.trim().slice(0, 500) : undefined
+  };
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { error } = await supabase.from('ingredient_provenance').upsert({
+      ingredient_id: ingredientId,
+      source_label: record.sourceLabel,
+      source_url: record.sourceUrl,
+      retrieved_at: record.retrievedAt,
+      cas_number: record.casNumber ?? null,
+      evidence_tier: record.evidenceTier,
+      note: record.note ?? null
+    }, { onConflict: 'ingredient_id,source_url' });
+    ensureDatabaseSuccess('enregistrement de la provenance ingrédient', error);
+  }
+
+  const memoryIndex = store.inMemoryIngredientProvenance.findIndex(row => row.ingredientId === ingredientId && row.sourceUrl === record.sourceUrl);
+  const memoryRow = { id: `prov-${ingredientId}-${record.sourceUrl.length}`, ...record };
+  if (memoryIndex >= 0) store.inMemoryIngredientProvenance[memoryIndex] = memoryRow;
+  else store.inMemoryIngredientProvenance.push(memoryRow);
+
+  void adminId;
+  return record;
+}
+
+/**
+ * Change le statut de vérification d'un ingrédient.
+ *
+ * `verified` exige au moins une provenance de niveau 1 (identité confirmée par
+ * une source consultable). Sans cette règle, « verified » ne serait qu'un mot
+ * dans une colonne — et le score de confiance produit s'appuie dessus.
+ */
+export async function setIngredientVerificationStatus(
+  store: SupabaseServerStore,
+  adminId: string,
+  ingredientId: string,
+  status: 'verified' | 'pending' | 'not_provided'
+): Promise<{ ingredientId: string; verificationStatus: string; provenanceCount: number }> {
+  if (!['verified', 'pending', 'not_provided'].includes(status)) throw new Error('Statut de vérification invalide.');
+  const catalog = await getIngredientCatalog(store);
+  if (!catalog.some(ingredient => ingredient.id === ingredientId)) throw new Error('Ingrédient introuvable.');
+
+  const provenance = await getIngredientProvenance(store, ingredientId);
+  if (status === 'verified' && !provenance.some(row => row.evidenceTier === 1)) {
+    throw new Error('Statut « verified » refusé : aucune provenance de niveau 1 (identité confirmée par une source consultable) n’est enregistrée pour cet ingrédient.');
+  }
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { error } = await supabase.from('ingredients').update({ verification_status: status, updated_at: new Date().toISOString() }).eq('id', ingredientId);
+    ensureDatabaseSuccess('mise à jour du statut de vérification ingrédient', error);
+  } else {
+    const row = store.inMemoryIngredients.find((item: any) => item.id === ingredientId);
+    if (row) row.verification_status = status;
+  }
+
+  void adminId;
+  return { ingredientId, verificationStatus: status, provenanceCount: provenance.length };
+}

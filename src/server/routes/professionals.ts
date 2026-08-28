@@ -399,6 +399,27 @@ export function registerProfessionalRoutes(app: Express): void {
       .select('*')
       .eq('ingredient_id', ingredientId);
 
+    /**
+     * CHANTIER 10 (bloc B4) — la provenance accompagne la fiche.
+     *
+     * Dire « vérifié » sans dire d'où vient la vérification ne permet à
+     * personne de contrôler. La source, son URL et sa date de retrait sont
+     * donc rendues publiques avec l'ingrédient.
+     */
+    const { data: provenanceRows } = await supabase
+      .from('ingredient_provenance')
+      .select('*')
+      .eq('ingredient_id', ingredientId)
+      .order('retrieved_at', { ascending: false });
+    const provenance = (provenanceRows || []).map((row: any) => ({
+      sourceLabel: row.source_label,
+      sourceUrl: row.source_url,
+      retrievedAt: row.retrieved_at,
+      casNumber: row.cas_number || null,
+      evidenceTier: Number(row.evidence_tier) === 2 ? 2 : 1,
+      note: row.note || undefined
+    }));
+
     // Les lignes SQL sont en snake_case ; `bestEvidenceFor` attend le type TS.
     // Sans ce mapping, la fonction lirait des champs `undefined` et renverrait
     // une preuve « non transposable » pour de mauvaises raisons.
@@ -421,6 +442,8 @@ export function registerProfessionalRoutes(app: Express): void {
       ingredient,
       evidence,
       restrictions: restrictions || [],
+      provenance,
+      verificationStatus: ingredient.verification_status ?? 'not_provided',
       bestEvidence: bestEvidenceFor(evidence),
       note: 'Le niveau de preuve indique la solidité des données publiées, pas une garantie d’effet sur votre peau ou vos cheveux.'
     });
