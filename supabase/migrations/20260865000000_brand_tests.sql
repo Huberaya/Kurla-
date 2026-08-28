@@ -52,15 +52,15 @@ CREATE TABLE IF NOT EXISTS public.brand_test_requests (
   admin_comment text,
   -- Une cohorte se définit par des besoins, éventuellement des archétypes. Rien
   -- d'autre : une clé comme `emails`, `city` ou `age` fait échouer l'insertion.
+  -- Pas de sous-requête : un CHECK n'en accepte pas. On retire les deux clés
+  -- autorisées et on exige qu'il ne reste rien : toute autre clé (emails, city,
+  -- age…) fait échouer l'insertion.
   CONSTRAINT cohort_only_needs_and_archetypes CHECK (
     jsonb_typeof(cohort) = 'object'
     AND cohort ? 'needs'
     AND jsonb_typeof(cohort -> 'needs') = 'array'
     AND jsonb_array_length(cohort -> 'needs') > 0
-    AND (
-      SELECT count(*) FROM jsonb_object_keys(cohort) AS key
-      WHERE key NOT IN ('needs', 'archetypeIds')
-    ) = 0
+    AND (cohort - 'needs' - 'archetypeIds') = '{}'::jsonb
   ),
   -- Un test dont la cible est sous le seuil k ne peut rien publier : autant le
   -- refuser à la demande plutôt que de produire un rapport vide.
