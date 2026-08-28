@@ -37,7 +37,9 @@ async function runCatalogClaimsTests(): Promise<void> {
     { id: 'guaranteed_result', text: 'Résultat garanti dès la première application', rule: 'guaranteed_result' },
     { id: 'unsupported_proof', text: 'Efficacité démontrée cliniquement', rule: 'unsupported_proof' },
     { id: 'absolute_safety', text: 'Formule sans aucun risque, aucun effet secondaire', rule: 'absolute_safety' },
-    { id: 'prohibited_practice', text: 'Prépare la peau au décapage éclaircissant', rule: 'prohibited_practice' }
+    { id: 'prohibited_practice', text: 'Prépare la peau au décapage éclaircissant', rule: 'prohibited_practice' },
+    { id: 'therapeutic_claim (prévention)', text: 'Formule dermatologique prévenant la pseudofolliculite de la barbe', rule: 'therapeutic_claim' },
+    { id: 'unsubstantiated_superiority', text: 'Le premier soin solaire formulé pour les peaux mélaninées', rule: 'unsubstantiated_superiority' }
   ];
 
   for (const testCase of cases) {
@@ -74,6 +76,14 @@ async function runCatalogClaimsTests(): Promise<void> {
   assert.equal(contraindication.hits.filter(hit => hit.ruleId === 'therapeutic_claim').length, 0,
     'une contre-indication a été lue comme une allégation thérapeutique');
   assert.ok(contraindication.scannedFields.includes('not_ideal_if'), 'le champ de contre-indication n’a pas été lu');
+
+  // Contrôle négatif : « prévient les pellicules » est une allégation
+  // cosmétique ordinaire, pas une allégation thérapeutique. Sans ce cas, la
+  // règle de prévention pourrait être durcie jusqu'à interdire le vocabulaire
+  // courant du soin capillaire.
+  const dandruff = scanCatalogClaims({ description: 'Prévient les pellicules de sécheresse.' });
+  assert.equal(dandruff.hits.filter(hit => hit.ruleId === 'therapeutic_claim').length, 0,
+    '« prévient les pellicules » a été lu comme une allégation thérapeutique');
 
   // Les autres règles restent actives dans ces champs : l'exemption porte sur
   // le seul vocabulaire des pathologies, pas sur tout le contrôle.
@@ -145,7 +155,7 @@ async function runCatalogClaimsTests(): Promise<void> {
   assert.equal(active?.ready, true);
   assert.equal(report.readyToPublish, 1);
 
-  console.log('[PASS] Crible d’allégations banc : 5 règles exercées, casse/accents, contre-indications épargnées, note honnête, rapport fidèle.');
+  console.log('[PASS] Crible d’allégations banc : 6 règles exercées, casse/accents, contre-indications épargnées, note honnête, rapport fidèle.');
 }
 
 runCatalogClaimsTests().catch(error => {

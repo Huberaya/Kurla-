@@ -477,6 +477,43 @@ lignes. C'est ce chiffre faux qui a ouvert le chantier.
 - 13 compositions incomplètes. Les mentions manquantes se répartissent en : entités absentes du référentiel (Vitamine E, Cocamidopropyl Betaine, Huile de Caméline…), **mentions ambiguës qu'il est interdit de deviner** (« Protéine de Soie végétale » est contradictoire, « Vitamin C Ester » désigne au moins deux substances différentes), un **manque de conformité réel** (p6, SPF 50+ : « Filtres Solaires Organiques invisibles » n'est pas un ingrédient — un solaire doit déclarer ses filtres UV), et 4 accessoires textiles dont la « composition » est un matériau, pas un INCI.
 - Les fiches sont des squelettes : publier 16 pages sans mode d'emploi ni contre-indications mettrait en ligne 16 pages creuses.
 
+**Ce que la revue des visuels et des marques a révélé** (demande : « montre-moi les visuels »)
+
+| Constat | Preuve |
+|---|---|
+| Les 17 visuels sont des photos **Unsplash**, pas les produits | `product_images.url` : 17 lignes, toutes sur `images.unsplash.com` |
+| Deux visuels montrent des **produits d'autres marques** | alt `Eadem Milk Marvel Serum` (p14) et `Black Girl Sunscreen SPF 30` (p15) |
+| Deux produits portent une **marque tierce** | `products.brand` : p14 = `Eadem`, p15 = `Black Girl Sunscreen` ; les 14 autres sont des sous-marques KURLA |
+| Chaque visuel porte déjà ses propres statuts | `product_images.ownership_status = 'unverified'`, `validation_status = 'pending'`, `source_note` vide pour les 17 |
+
+Conséquence : l'attestation « visuels revus, droits détenus » ne peut pas être
+enregistrée en l'état — le visuel n'est pas le produit, et deux fiches
+revendiquent le nom et la photo d'un concurrent. Le statut reste
+`not_provided`/`unverified` : c'est la valeur vraie.
+
+**Un faux négatif du crible, trouvé en lisant les fiches** — la première version
+laissait passer p13 : « Formule dermatologique **prévenant la
+pseudofolliculite** de la barbe », soit une allégation de prévention d'une
+affection. Ajout du terme pathologique et du motif *verbe de prévention +
+pathologie*, plus une 6ᵉ règle (supériorité non étayée, 655/2013). Contrôle
+négatif ajouté au banc : « prévient les pellicules » reste une allégation
+cosmétique ordinaire et ne doit pas tomber. Résultat après correction :
+**13 fiches propres, 3 en échec** (p13 thérapeutique, p6 et p15 supériorité).
+
+**Décisions appliquées** : compte `hubertbay@gmail.com` passé `superadmin`
+(`00c987c2-b224-4b33-a43f-bd80ece98cb0`) — la surface d'administration était
+inaccessible, les deux profils étant `customer`. Deux entités non ambiguës
+créées dans le référentiel (`cocamidopropyl_betaine`, `camelina_sativa`) en
+`verification_status = 'not_provided'` : créées, pas vérifiées. Deux alias
+ajoutés (`huile de carapate (black castor)`, `huile de romarin à cinéole`).
+Rattachement relancé : **31 liaisons, 0 doublon** (vérifié par comptage des
+couples distincts), 18 mentions non résolues restantes — toutes ambiguës ou
+propres aux accessoires.
+
+**Écart d'outillage constaté** : il n'existe **aucune route ni fonction pour
+créer un ingrédient**. Le référentiel ne s'étend que par SQL, alors que 13
+produits attendent exactement cette opération.
+
 **Volontairement non fait** : aucune entité ingrédient créée sur une hypothèse ; aucun `verified` écrit sans contrôle réel ; aucune publication forcée en contournant la porte.
 
 ---

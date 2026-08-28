@@ -45,7 +45,9 @@ export type CatalogClaimRuleId =
   /** Innocuité présentée comme absolue. */
   | 'absolute_safety'
   /** Pratique ou substance exclue de la politique KURLA. */
-  | 'prohibited_practice';
+  | 'prohibited_practice'
+  /** Supériorité ou antériorité annoncée sans élément comparatif étayé. */
+  | 'unsubstantiated_superiority';
 
 export interface CatalogClaimRule {
   id: CatalogClaimRuleId;
@@ -73,6 +75,15 @@ export const CATALOG_CLAIM_RULES: readonly CatalogClaimRule[] = [
       /\banti-?inflammatoire\b/, /\bantibiotique\b/, /\bantifongique\b/, /\bantimycosique\b/,
       /\bcicatris(?:e|ation|ante)\b/,
       /\becz[ée]ma\b/, /\bpsoriasis\b/, /\bdermatite\b/, /\bmycose\b/, /\bpelade\b/,
+      /\bpseudofolliculite\b/, /\bfolliculite\b/, /\balop[ée]cie\b/,
+      /**
+       * Verbe de prévention devant une pathologie. Le verbe seul ne suffit pas :
+       * « prévient les pellicules » est une allégation cosmétique ordinaire,
+       * « prévenant la pseudofolliculite » est une allégation de prévention
+       * d'une affection. La fiche p13 du catalogue réel l'écrivait, et la
+       * première version de ce crible ne la voyait pas.
+       */
+      /\bpr[ée]v(?:ient|enant|ention|entive)\b[\s\S]{0,40}?\b(?:pseudofolliculite|folliculite|ecz[ée]ma|psoriasis|dermatite|mycose|alop[ée]cie|pelade)\b/,
       /\bfait repousser\b/, /\brepopulation capillaire\b/,
       /\bcellules souches\b/, /\br[ée]pare l'?adn\b/, /\bmodifie la structure (?:du|des) (?:cheveu|follicule)/,
     ],
@@ -108,6 +119,18 @@ export const CATALOG_CLAIM_RULES: readonly CatalogClaimRule[] = [
       /\b0\s*%\s*(?:de )?danger\b/, /\bnon toxique\b/, /\bsans danger\b/,
       /\bhypoallerg[ée]nique\b/,
     ],
+  },
+  {
+    id: 'unsubstantiated_superiority',
+    label: 'supériorité ou antériorité non étayée',
+    reason: 'Se dire le premier, la référence ou le meilleur engage une comparaison qui doit être étayée (655/2013, critères d’honnêteté et d’équité).',
+    patterns: [
+      /\ble premier (?:soin|produit|s[ée]rum|shampoing|geste)\b/,
+      /\bla r[ée]f[ée]rence (?:internationale|mondiale|absolue)\b/,
+      /\bn[°o]\s*1\b/, /\bnum[ée]ro un\b/,
+      /\ble meilleur (?:produit|soin|choix)\b/,
+      /\bincomparable\b/, /\bunique au monde\b/, /\bsans [ée]quivalent\b/
+    ]
   },
   {
     id: 'prohibited_practice',

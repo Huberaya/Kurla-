@@ -124,6 +124,14 @@ async function main(): Promise<void> {
   const apply = args.includes('--apply');
   const onlyArg = args.find(arg => arg.startsWith('--only='));
   const only = onlyArg ? onlyArg.slice('--only='.length).split(',').map(id => id.trim()).filter(Boolean) : null;
+  /**
+   * `--checks=` restreint les contrôles exécutés. Utile en reprise : après avoir
+   * complété le référentiel, seul le contrôle de composition a changé de
+   * verdict, et réécrire les 64 autres événements brouillerait un journal qui
+   * est censé dater chaque vérification.
+   */
+  const checksArg = args.find(arg => arg.startsWith('--checks='));
+  const onlyChecks = checksArg ? checksArg.slice('--checks='.length).split(',').map(name => name.trim()).filter(Boolean) : null;
 
   const supabase = getSupabaseServerClient();
   if (!supabase) throw new Error('Base réelle indisponible : ce script lit et écrit le catalogue, il ne tourne pas sur le repli mémoire.');
@@ -151,13 +159,13 @@ async function main(): Promise<void> {
         if (typeof common === 'string') linkedNames.push(common);
       }
     }
-    const outcomes: CheckOutcome[] = [
+    const outcomes: CheckOutcome[] = ([
       checkClaims(row),
       checkStock(row),
       checkCertifications(row),
       checkTranslations(row),
       checkIngredients(declared, linkedNames)
-    ];
+    ]).filter(outcome => !onlyChecks || onlyChecks.includes(outcome.checkType));
 
     console.log(`${productId} — ${String(row.name || '')}`);
     for (const outcome of outcomes) {
