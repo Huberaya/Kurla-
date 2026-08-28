@@ -236,7 +236,7 @@ async function createProductReviewInner(store: SupabaseServerStore, userId: stri
     const now = new Date().toISOString();
     const review: MarketplaceReview = {
       id: randomUUID(), productId, rating, title: title?.trim() || undefined,
-      comment: comment.trim(), author: 'Client vérifié', verifiedPurchase: true,
+      comment: comment.trim(), author: 'Client vérifié', userId, verifiedPurchase: true,
       createdAt: now, status: 'pending'
     };
     const supabase = getSupabaseServerClient();
@@ -276,7 +276,7 @@ async function createProductQuestionInner(store: SupabaseServerStore, userId: st
     const published = (await getProducts(store, { publishedOnly: true })).some(product => product.id === productId);
     if (!published) throw new Error('Produit non disponible.');
     const now = new Date().toISOString();
-    const draft: MarketplaceQuestion = { id: randomUUID(), productId, question: value, createdAt: now };
+    const draft: MarketplaceQuestion = { id: randomUUID(), productId, question: value, userId, createdAt: now };
     const supabase = getSupabaseServerClient();
     if (supabase) {
       const { data, error } = await supabase.from('product_questions').insert({
@@ -284,7 +284,7 @@ async function createProductQuestionInner(store: SupabaseServerStore, userId: st
         asker_email: email || null, question: value, status: 'pending'
       }).select('id, product_id, question, answer, created_at, answered_at').single();
       ensureDatabaseSuccess('enregistrement de la question produit', error);
-      return { id: data.id, productId: data.product_id, question: data.question, answer: data.answer || undefined, createdAt: data.created_at, answeredAt: data.answered_at || undefined };
+      return { id: data.id, productId: data.product_id, question: data.question, answer: data.answer || undefined, userId, createdAt: data.created_at, answeredAt: data.answered_at || undefined };
     }
     store.inMemoryProductQuestions.unshift(draft);
     return draft;

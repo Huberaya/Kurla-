@@ -86,6 +86,7 @@ import type { CreatorAttribution } from './creatorProgram';
 import { bindDomain, Curried } from './db/bind';
 import * as ingredientLinkStore from './db/ingredientLinkStore';
 import * as taxonomyStore from './db/taxonomyStore';
+import * as communityStore from './db/communityStore';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
@@ -160,6 +161,8 @@ export class SupabaseServerStore {
   public inMemoryMobileSyncActions: MobileSyncAction[] = [];
   public inMemoryProductReviews: MarketplaceReview[] = [];
   public inMemoryProductQuestions: MarketplaceQuestion[] = [];
+  /** CHANTIER 11 (bloc C) — réponses des membres aux questions produit. */
+  public inMemoryQuestionAnswers: import('./db/types').ProductQuestionAnswer[] = [];
   public inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
   public inMemoryProductSubscriptions: ProductSubscription[] = [];
   public inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
@@ -375,6 +378,7 @@ bindDomain(storeInstance, membershipStore);
 bindDomain(storeInstance, textureGapStore);
 bindDomain(storeInstance, ingredientLinkStore);
 bindDomain(storeInstance, taxonomyStore);
+bindDomain(storeInstance, communityStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -399,4 +403,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof membershipStore>
   & Curried<typeof textureGapStore>
   & Curried<typeof ingredientLinkStore>
-  & Curried<typeof taxonomyStore>;
+  & Curried<typeof taxonomyStore>
+  & Curried<typeof communityStore>;

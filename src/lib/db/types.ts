@@ -24,6 +24,8 @@ export interface MarketplaceReview {
   title?: string;
   comment: string;
   author: string;
+  /** CHANTIER 11 (bloc C) — auteur réel, jamais exposé publiquement. */
+  userId?: string;
   verifiedPurchase: boolean;
   createdAt: string;
   status: string;
@@ -34,8 +36,33 @@ export interface MarketplaceQuestion {
   productId: string;
   question: string;
   answer?: string;
+  /**
+   * CHANTIER 11 (bloc C) — auteur de la question.
+   *
+   * Jusqu'ici la question était anonyme côté store : impossible de savoir qui
+   * a demandé, donc impossible de réserver au demandeur le droit de marquer
+   * une réponse comme utile. Le champ n'est jamais exposé publiquement.
+   */
+  userId?: string;
   createdAt: string;
   answeredAt?: string;
+}
+
+/**
+ * CHANTIER 11 (bloc C) — réponse d'un membre à une question produit.
+ *
+ * Le rôle de l'auteur est déduit côté serveur de son statut réel, jamais
+ * déclaré par lui : c'est ce qui permet d'afficher « professionnel vérifié »
+ * sans que ce soit un titre auto-attribué.
+ */
+export interface ProductQuestionAnswer {
+  id: string;
+  questionId: string;
+  productId: string;
+  userId: string;
+  authorRole: 'member' | 'professional' | 'kurla';
+  body: string;
+  createdAt: string;
 }
 
 export interface ProductSubscription {

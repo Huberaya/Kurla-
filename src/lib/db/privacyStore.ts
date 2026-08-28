@@ -45,6 +45,9 @@ const PERSONAL_TABLES: Array<[string, string]> = [
   ['notifications', 'user_id'],
   ['shipping_addresses', 'user_id'],
   ['support_messages', 'user_id'],
+  ['product_question_answers', 'user_id'],
+  ['product_questions', 'user_id'],
+  ['reviews', 'user_id'],
   ['support_tickets', 'user_id'],
   ['loyalty_events', 'user_id'],
   ['loyalty_redemptions', 'user_id'],
@@ -112,6 +115,9 @@ export async function exportUserData(store: SupabaseServerStore, userId: string)
       beautyJourney: journey ?? null,
       familyMembers: familyMembers?.members ?? [],
       supportTickets: tickets ?? [],
+      productReviews: store.inMemoryProductReviews.filter(review => review.userId === userId),
+      productQuestions: store.inMemoryProductQuestions.filter(question => question.userId === userId),
+      questionAnswers: store.inMemoryQuestionAnswers.filter(answer => answer.userId === userId),
       shippingAddresses: addresses ?? [],
       notificationPreferences: notificationPrefs ?? null,
       notifications: notifications ?? [],
@@ -150,6 +156,11 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   store.inMemoryShippingAddresses.delete(userId);
   store.inMemoryNotifications = store.inMemoryNotifications.filter(notification => notification.userId !== userId);
   store.inMemoryTickets = store.inMemoryTickets.filter(ticket => ticket.userId !== userId);
+  // CHANTIER 11 (bloc C) — les contenus communautaires sont des données
+  // personnelles comme les autres : la suppression du compte les emporte.
+  store.inMemoryProductReviews = store.inMemoryProductReviews.filter(review => review.userId !== userId);
+  store.inMemoryProductQuestions = store.inMemoryProductQuestions.filter(question => question.userId !== userId);
+  store.inMemoryQuestionAnswers = store.inMemoryQuestionAnswers.filter(answer => answer.userId !== userId);
   store.inMemoryLoyaltyAccounts.delete(userId);
   store.inMemoryLoyaltyEvents = store.inMemoryLoyaltyEvents.filter(event => event.userId !== userId);
   store.inMemoryLoyaltyRedemptions = store.inMemoryLoyaltyRedemptions.filter(redemption => redemption.userId !== userId);

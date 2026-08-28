@@ -65,6 +65,7 @@ import { registerMobileRoutes } from './src/server/routes/mobile';
 import { registerPrivacyRoutes } from './src/server/routes/privacy';
 import { registerEditorialComplianceRoutes } from './src/server/routes/editorialCompliance';
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
+import { registerCommunityRoutes } from './src/server/routes/community';
 import {
   activateMembershipFromCheckoutSession,
   cancelMembershipFromSubscription,
@@ -1121,6 +1122,7 @@ registerMobileRoutes(app);
 registerPrivacyRoutes(app);
 registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
+registerCommunityRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS

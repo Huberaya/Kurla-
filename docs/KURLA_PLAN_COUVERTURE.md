@@ -213,7 +213,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 ---
 
-### CHANTIER 10 — BLOC B : CATALOGUE & GRAPHE (en cours)
+### CHANTIER 10 — BLOC B : CATALOGUE & GRAPHE ✅ (B1–B4 livrés)
 
 Deux constats vérifiés dans le code avant d'écrire, pas déduits d'un tableau :
 
@@ -253,6 +253,62 @@ Deux constats vérifiés dans le code avant d'écrire, pas déduits d'un tableau
 - **État non vérifié ce tour** : le compte exact de produits publiés et de
   liaisons en base réelle n'a pas pu être relu (aucun identifiant de base
   disponible). Les chiffres cités proviennent de la dernière lecture connue.
+
+### CHANTIER 11 — BLOC C : LA PETITE COMMUNAUTÉ ✅ (réalisé le 28/08/2026)
+
+**Contexte.** La page « Communauté » était une coquille : 53 lignes, zéro appel
+réseau, « Rejoins des milliers de personnes » (aucun compteur ne le prouvait) et
+une bannière **« Événement Communautaire Actif — Challenge 30 Jours »** annonçant
+un événement qui n'existe dans aucun fichier du dépôt. Annoncer un événement
+actif inexistant est une pratique commerciale trompeuse, pas une décoration.
+En dessous, le mur de témoignages — vidé de ses avis inventés lors d'un chantier
+précédent — affichait encore des compteurs **codés en dur**.
+
+**Le vrai trou, vérifié avant d'écrire.** On pouvait **poser** une question et
+**écrire** un avis, mais **aucune route ne permettait de les lire** : seulement
+`POST /api/products/:productId/questions` et `POST /api/products/:productId/reviews`.
+Une communauté écrivable et illisible n'existe pas.
+
+| Livrable | Preuve |
+| --- | --- |
+| **Lecture** | `getProductQuestionThreads`, `getOpenCommunityQuestions`, `getCommunityOverview` (`src/lib/db/communityStore.ts`) ; routes `GET /api/community`, `GET /api/community/questions`, `GET /api/products/:id/questions`, `GET /api/products/:id/reviews` (`src/server/routes/community.ts`) |
+| **Entraide** | `answerProductQuestion`, `markQuestionResolved` ; routes `POST /api/products/:id/questions/:questionId/answers`, `POST /api/community/questions/:questionId/resolved` |
+| **Page branchée** | `CommunityPage` lit les questions en attente ; `UgcWallSection` lit `GET /api/community` et affiche des compteurs **calculés**. Les deux affirmations invérifiables ont été supprimées, pas reformulées |
+| **RGPD des contenus communautaires** | avis, questions et réponses sortent désormais dans l'export et partent à la suppression du compte (`privacyStore.ts`) — ils n'y étaient pas, trou hérité du chantier RGPD |
+| **Migration** | `20260869000000_community_answers.sql` — table `product_question_answers` + `product_questions.resolved_answer_id` (**non appliquée**) |
+| **Banc** | `tests/kurla_community.test.ts` (`npm run test:community`, câblé dans `npm test`) |
+
+**Le badge « professionnel » exige un dossier approuvé — le banc l'a imposé.**
+La première version déduisait le rôle du seul `role` de session : un compte
+portant `role='professional'` obtenait le badge sans dossier vérifié. Le banc a
+échoué sur ce point et la règle a été durcie : `professional` suppose un dossier
+au statut `approved` dans `professional_applications`, sinon `member`. Afficher
+« professionnel vérifié » sur la foi d'un drapeau serait exactement l'affirmation
+invérifiable que KURLA refuse.
+
+**Ce qui n'a volontairement pas été fait**
+
+- Pas de likes ni de compteurs de popularité : le demandeur marque **une** réponse
+  utile, et ce marquage n'alimente aucun classement.
+- Pas de fil d'actualité, pas d'abonnements, pas de profils publics, pas de
+  notifications d'engagement. La seule « liste » exposée est celle des questions
+  sans réponse — la seule qui rende service.
+- Pas d'identité publiée : un fil expose un rôle et une date, jamais un nom ni un
+  identifiant (le banc vérifie que l'identifiant du demandeur n'apparaît pas dans
+  la réponse de l'API).
+- Le challenge 30 jours n'a pas été implémenté à la hâte : la bannière a été
+  retirée.
+
+**Limites déclarées**
+
+- La migration `20260869` **n'est pas appliquée** : en mode Supabase, les réponses
+  de membres ne peuvent pas encore être écrites ni lues (les fils s'affichent alors
+  sans réponse, sans erreur). La colonne `resolved_answer_id` attend la même
+  application.
+- `getCommunityOverview` compte par requêtes simples : suffisant à l'échelle
+  actuelle, à paginer si la volumétrie devient réelle.
+- Le marquage « réponse utile » n'a pas encore d'interface : la route existe et est
+  testée, le bouton sur la fiche produit reste à poser.
 
 ## 5. MATRICE DE TRAÇABILITÉ
 

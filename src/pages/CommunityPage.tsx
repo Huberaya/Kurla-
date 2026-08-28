@@ -1,48 +1,113 @@
-import React from 'react';
-import { Trophy, Share2, Heart, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Heart, MessageCircleQuestion, ArrowRight } from 'lucide-react';
 import { UgcWallSection } from '../components/UgcWallSection';
 
+/**
+ * CHANTIER 11 (bloc C) — PAGE COMMUNAUTÉ, DÉSORMAIS BRANCHÉE.
+ *
+ * Deux mensonges ont été retirés, pas seulement reformulés :
+ *   * « Rejoins des milliers de personnes » — aucun compteur ne le prouvait ;
+ *   * la bannière « Événement Communautaire Actif / Challenge 30 Jours » —
+ *     aucun code n'implémentait ce challenge. Annoncer un événement actif
+ *     inexistant est une pratique commerciale trompeuse, pas une décoration.
+ *
+ * Ce qui reste est réel : les questions qui attendent une réponse, lues via
+ * `GET /api/community/questions`. Pas de fil d'actualité, pas de likes, pas de
+ * suivi de profils.
+ */
+
+interface OpenQuestion {
+  id: string;
+  productId: string;
+  productName?: string;
+  productSlug?: string;
+  question: string;
+  askedAt: string;
+}
+
 export const CommunityPage: React.FC = () => {
+  const [questions, setQuestions] = useState<OpenQuestion[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/community/questions?limit=12')
+      .then(response => (response.ok ? response.json() : Promise.reject(new Error('indisponible'))))
+      .then((data: { questions: OpenQuestion[] }) => { if (!cancelled) setQuestions(data.questions); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Hero */}
+        {/* Hero — sans nombre inventé */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-semibold mb-3">
             <Heart className="w-4 h-4" /> La Communauté KURLA Beauty
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4">
-            Transmission, Entraide & Expériences Partagées
+            Entraide utile et traçable
           </h1>
           <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
-            Rejoins des milliers de personnes qui partagent leurs routines, leurs résultats de diagnostics et leurs retours d'expérience bienveillants.
+            Des questions posées par de vraies personnes, des réponses de membres et de
+            professionnels vérifiés. Ni fil infini, ni likes, ni classement : seulement ce
+            qui aide quelqu&apos;un à comprendre son produit.
           </p>
         </div>
 
-        {/* 30 Day Challenge Highlight */}
-        <div className="p-8 rounded-3xl bg-gradient-to-r from-[#111111] via-[#3A2218] to-[#C8753D] text-white mb-16 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-[#D49A63]">
-              Événement Communautaire Actif
-            </span>
-            <h2 className="text-2xl font-serif-title font-bold text-white">
-              Challenge 30 Jours "Comprendre Ma Routine 4C & Melanin"
-            </h2>
-            <p className="text-xs text-white/80 font-light max-w-xl">
-              Un mois pour documenter ton hydratation, ton cuir chevelu et recevoir les retours d'experts KURLA Pro.
-            </p>
+        {/* Questions qui attendent une réponse */}
+        <section className="mb-16">
+          <div className="flex items-center gap-2 mb-5">
+            <MessageCircleQuestion className="w-5 h-5 text-[#C8753D]" />
+            <h2 className="text-xl sm:text-2xl font-serif-title font-bold">Questions en attente d&apos;aide</h2>
           </div>
 
-          <a
-            href="/account/progress"
-            className="px-6 py-3.5 rounded-full bg-white text-[#111111] hover:bg-[#D49A63] hover:text-white text-xs font-semibold shrink-0 transition-colors shadow-md flex items-center gap-2"
-          >
-            Rejoindre le Challenge <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
+          {failed && (
+            <p className="text-sm text-[#111111]/60 px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+              Impossible de charger les questions. Réessaie dans un instant.
+            </p>
+          )}
 
-        {/* UGC Wall Component Embed */}
+          {!failed && questions === null && (
+            <p className="text-sm text-[#111111]/50 px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+              Chargement…
+            </p>
+          )}
+
+          {!failed && questions !== null && questions.length === 0 && (
+            <div className="px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+              <p className="text-sm text-[#111111]/70">
+                Aucune question n&apos;attend de réponse pour l&apos;instant. C&apos;est un bon signe — ou le
+                signe qu&apos;il n&apos;y a pas encore assez de monde ici. Dans les deux cas, nous ne
+                l&apos;inventerons pas.
+              </p>
+            </div>
+          )}
+
+          {!failed && questions !== null && questions.length > 0 && (
+            <ul className="space-y-3">
+              {questions.map(question => (
+                <li key={question.id}>
+                  <a
+                    href={`/produit/${question.productSlug || question.productId}`}
+                    className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-white border border-[#E8E1DA] hover:border-[#C8753D] transition-colors"
+                  >
+                    <span>
+                      <span className="block text-xs uppercase tracking-widest text-[#C8753D]/80 mb-1">
+                        {question.productName || 'Produit KURLA'}
+                      </span>
+                      <span className="text-sm text-[#111111]/85">{question.question}</span>
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[#C8753D] shrink-0" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <div className="mb-12">
           <UgcWallSection />
         </div>
