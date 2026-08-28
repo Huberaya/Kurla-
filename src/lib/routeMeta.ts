@@ -351,6 +351,15 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/api-docs',
+    title: 'API publique catalogue et scoring | KURLA',
+    description:
+      'Le catalogue vérifié et le score d’adéquation KURLA Fit en lecture seule, sans compte ni clé. Le scoring est sans état : aucune donnée de membre n’y entre ni n’en sort.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.6,
+  },
+  {
     path: '/admin/texture-gap',
     title: 'Texture Gap Report | KURLA',
     description:

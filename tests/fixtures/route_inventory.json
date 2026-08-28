@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T14:07:45.293Z",
+  "generatedAt": "2026-08-28T14:30:28.224Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -95,6 +95,10 @@
     "GET /api/supabase/status",
     "GET /api/support/tickets",
     "GET /api/support/tickets/:id/messages",
+    "GET /api/v1/manifest",
+    "GET /api/v1/products",
+    "GET /api/v1/products/:idOrSlug",
+    "GET /api/v1/scoring/schema",
     "GET /api/wash-day",
     "PATCH /api/admin/catalog/:productId/status",
     "PATCH /api/admin/catalog/products/:productId",
@@ -176,6 +180,7 @@
     "POST /api/support/tickets",
     "POST /api/support/tickets/:id/attachments",
     "POST /api/support/tickets/:id/messages",
+    "POST /api/v1/scoring/fit",
     "POST /api/wash-day/mark-done",
     "PUT /api/beauty-profile",
     "PUT /api/routine",

@@ -1229,6 +1229,50 @@ membres est le plus exposée.
 (`dist/server.cjs` 799,2 kb), inventaires **179 routes** (+1) et **187 méthodes**
 (+1), rien retiré.
 
+#### 8.6b — API publique catalogue + scoring (livré)
+
+**L'écart constaté par la stratégie était « aucune ouverture ».** Il y a
+désormais une surface versionnée, documentée et lisible par une machine — sur
+des données déjà publiques : le catalogue vérifié et le score d'adéquation.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/server/routes/publicApi.ts` | `GET /api/v1/manifest` (auto-description) · `GET /api/v1/products` (paginé) · `GET /api/v1/products/:idOrSlug` · `GET /api/v1/scoring/schema` · `POST /api/v1/scoring/fit` |
+| `/api-docs` | Page **publique et indexable**, prérendue : endpoints chargés depuis le manifeste, exemple de requête, engagements, ce qui n'est jamais exposé, attribution |
+| `tests/public_api.test.ts` | 7 plans de vérification, dont l'absence d'écriture pendant le scoring |
+
+**Trois propriétés, testées.**
+
+1. **Le scoring est sans état.** Le banc photographie six collections du store
+   (profils, journaux, sessions IA, faits de progression, adhésions, retours)
+   avant et après l'appel, et les compare : aucune ne bouge. Un tiers peut
+   interroger le scoring sans que KURLA constitue un fichier de profils qui ne
+   lui appartiennent pas.
+2. **Seul le publié est servi.** Trois produits semés (publié, retiré, non
+   vérifié) : un seul sort. Le produit retiré renvoie 404, **indiscernable d'un
+   identifiant inexistant** — son existence ne doit pas être devinable.
+3. **Aucun score inventé.** Un profil vide renvoie `score: null` et
+   `evaluable: false` avec la raison. C'est une correction de fond : la fonction
+   de score renvoie 0 quand aucun besoin ne correspond, et 0 avec une confiance
+   nulle se lit comme « mauvais produit » alors que cela veut dire « on ne sait
+   rien ». L'API traduit ce cas en `null`.
+
+**Ce qui manque, explicitement**
+- **Pas de clés d'API ni de quota par consommateur** : la limitation est globale
+  (60 requêtes/min sur le catalogue, 20/min sur le scoring). Un usage commercial
+  suivi exigerait des clés, des quotas et une facturation — ce n'est pas fait.
+- L'API ne sert **pas** les ingrédients en v1 : le graphe n'a que 13 ingrédients
+  et `product_ingredients` est vide, donc une route ingrédients renverrait
+  presque rien. Elle viendra avec les données, pas avant.
+- Le catalogue réel étant vide (0 produit publiable), les endpoints renvoient
+  aujourd'hui des listes vides : le banc sème ses propres produits pour prouver
+  le comportement.
+- Aucun rendu navigateur vérifié pour `/api-docs`.
+
+**Résultat 8.6b :** `tsc` exit 0, `npm test` exit 0 (**89 bancs**), build exit 0
+(`dist/server.cjs` 807,4 kb, `dist/api-docs/index.html` prérendu), inventaire
+**184 routes** (+5), méthodes inchangées (**187**), rien retiré.
+
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
 inchangées** (nom + arité), **49 appels réels** sur le store composé.
@@ -1257,7 +1301,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.5** Abonnement KURLA+~~ **FAIT** — `src/lib/membership.ts` (module pur : plans, 10 capacités, éligibilité, cycle de vie, prix HT + TVA du pays) + migration `20260863000000_kurla_plus_membership.sql` (3 tables, 5 RPC SECURITY DEFINER, aucune écriture directe, RPC réservées à `service_role`) + `src/lib/db/membershipStore.ts` (7 méthodes) + 5 routes + `/account/kurla-plus`. **KURLA+ n'enlève rien** : 6 capacités essentielles vérifiées gratuites par le banc. Paiement différé : 503 `PAYMENT_NOT_CONFIGURED` plutôt qu'un encaissement simulé ; **migration non appliquée** (jeton requis).
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement — **chantier long, subdivisé** :
   - [x] ~~**8.6a** Texture Gap Report (feature 30)~~ **FAIT (rapport) — la surface B2B reste à faire** : `src/lib/textureGap.ts` (cœur pur + `concernsFromProfile` + `aggregateTextureGap`), `src/lib/db/textureGapStore.ts` (lecture et agrégation), `GET /api/intelligence/texture-gap` **réservé à l'administration**, écran `/admin/texture-gap`, banc `tests/texture_gap.test.ts`. **La feature 30 passe en 🔶 partielle, pas en ✅** : le rapport existe et est k-anonyme, mais il n'y a ni compte B2B ni contrat encadrant la revente, et la couverture du catalogue est inconnue tant que `product_ingredients` est vide — le rapport rend donc `donnees_insuffisantes` plutôt que des angles morts.
-  - [ ] **8.6b** API catalogue + scoring (feature 31)
+  - [x] ~~**8.6b** API catalogue + scoring (feature 31)~~ **FAIT** — `src/server/routes/publicApi.ts` : 5 endpoints publics en lecture seule (`/api/v1/manifest`, `/api/v1/products`, `/api/v1/products/:idOrSlug`, `/api/v1/scoring/schema`, `POST /api/v1/scoring/fit`) + page publique indexable `/api-docs` (prérendue). **Scoring sans état** : le profil envoyé n'est enregistré nulle part, vérifié par l'état du store avant/après. Un score vaut `null` quand rien n'est déclaré — jamais 0, car 0 voudrait dire « mauvais produit ».
   - [ ] **8.6c** Espace marque et tests produits ciblés (41), programme experts/créateurs (39), rémunération au résultat (40)
 - [ ] **8.7** Application mobile
 
@@ -1289,7 +1333,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **88 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **89 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1304,6 +1348,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.4** — `tests/beauty_journey.test.ts` | PASS — 5 scénarios : 20 faits chronologiques, tendance hausse 3→7/10, comparaison à 30 jours, 7 jalons ; 3 mesures pour une tendance (3→9 sur deux mesures reste `indetermine`), écart ≤ 1 = `stable`, photos à 3 jours d'écart non comparées ; aucune promesse ni vocabulaire médical |
 | **Chantier 8.5** — `tests/membership_kurla_plus.test.ts` | PASS — 11 plans de vérification : 6 capacités essentielles gratuites (boucle), liste figée des fonctions gratuites d'avant 8.5, 4 droits payants dont 2 annoncés non branchés, dossier vide non sollicité (0/100) contre 100/100, essai unique de 14 jours, activation refusée sans référence de paiement, webhook conforme (paiement non confirmé, montant incohérent, devise), reconduction prolonge la période, 6 paires de photos dont 1 au plan libre, synthèse sans promesse ni vocabulaire médical |
 | **Chantier 8.6a** — `tests/texture_gap.test.ts` | PASS — 9 plans de vérification : cellule sous 30 absente de la sortie (l'archétype ne fuit pas), angles morts classés par cohorte, trou de donnée ≠ angle mort, `coverage: null` sans dénominateur, agrégation 40 membres → 1 cellule, produit rattaché trois fois compté une fois, « aucun »/« je ne sais pas » non comptés comme besoins, store : 32 profils → 2 cellules et **0 angle mort affirmé** sur catalogue vide, route 401 sans jeton |
+| **Chantier 8.6b** — `tests/public_api.test.ts` | PASS — 7 plans de vérification : manifeste conforme aux endpoints montés, catalogue servi au publié uniquement (1 sur 3 semés, retiré → 404), **scoring sans état** (6 collections du store inchangées), profil vide → `score: null` et `evaluable: false`, profil renseigné → score 100 et raisons, 7 catégories jamais exposées, aucune promesse ni vocabulaire médical, 5 routes v1 inexistantes → 404 |
+| **Chantier 8.6b** — inventaires | **184 routes** (+5 endpoints v1) · **187 méthodes** (inchangé) · **23 routes statiques prérendues** (+1 : `/api-docs`) |
 | **Chantier 8.6a** — inventaires | **179 routes** (+1 : `GET /api/intelligence/texture-gap`) · **187 méthodes** (+1 : `getTextureGapReport`), rien retiré |
 | **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |
