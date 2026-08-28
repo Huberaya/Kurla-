@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T13:09:27.419Z",
+  "generatedAt": "2026-08-28T14:07:45.293Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -45,6 +45,7 @@
     "GET /api/health",
     "GET /api/ingredients/:ingredientId/card",
     "GET /api/ingredients/:ingredientId/evidence",
+    "GET /api/intelligence/texture-gap",
     "GET /api/journal",
     "GET /api/loyalty",
     "GET /api/loyalty/events",

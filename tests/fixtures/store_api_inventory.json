@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T13:14:26.099Z",
+  "generatedAt": "2026-08-28T14:07:46.213Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -102,6 +102,7 @@
     "getSupportTicketById/1",
     "getSupportTicketEvents/1",
     "getSupportTicketsByUser/1",
+    "getTextureGapReport/0",
     "handleLoyaltyRedemption/4",
     "importCatalogCsv/3",
     "importCatalogRecords/5",

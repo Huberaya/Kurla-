@@ -1175,6 +1175,60 @@ prolongé.
 (`dist/server.cjs` 786,2 kb), inventaires **178 routes** (+5) et **186 méthodes**
 (+9), rien retiré.
 
+#### 8.6a — Texture Gap Report (livré)
+
+**La question posée** : pour quels couples (archétype × préoccupation) des membres
+déclarent un besoin que le catalogue publié ne couvre pas. C'est la matière
+première de la ligne de revenu B2B — et donc l'endroit où la confiance des
+membres est le plus exposée.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/lib/textureGap.ts` | Cœur **pur** : `buildTextureGapReport`, `concernsFromProfile` (extraction depuis les champs au vocabulaire connu), `aggregateTextureGap` (des lignes individuelles aux comptes) |
+| `src/lib/db/textureGapStore.ts` | Lecture des profils, archétypes et produits ; archétype dérivé par `deriveArchetype`, la même fonction pure que le reste du produit |
+| `GET /api/intelligence/texture-gap` | **Réservé à l'administration** (`requireAdmin`) |
+| `/admin/texture-gap` | Base du rapport, cellules, cellules supprimées, réserves |
+
+**Trois garde-fous, testés plutôt que promis.**
+
+1. **k-anonymité appliquée par absence.** Une cellule dont la cohorte est sous le
+   seuil (30, `DEFAULT_K_ANONYMITY_THRESHOLD`) n'est pas « marquée non
+   publiable » : elle est **absente de la réponse**, avec son contenu, et comptée
+   dans `totals.suppressedCells` / `suppressedMembers`. Le banc vérifie que
+   l'archétype supprimé ne fuit nulle part dans la sortie sérialisée.
+2. **Un trou de donnée n'est jamais un angle mort.** Si le graphe
+   ingrédient × archétype ne couvre pas le catalogue, le verdict est
+   `donnees_insuffisantes`. Le même besoin, graphe complet et rien d'associé,
+   devient `angle_mort` : c'est la différence entre « on ne sait pas » et « il
+   n'y a rien ».
+3. **Aucun ratio inventé.** Sans dénominateur connu, `coverage` vaut `null` et
+   l'écran affiche « inconnue ».
+
+**Deux choix qui coûtent et qui sont assumés.**
+
+- **Le rapport est réservé à l'administration.** Il n'existe ni compte B2B ni
+  contrat encadrant la revente d'agrégats. L'exposer à n'importe quel membre
+  connecté reviendrait à exploiter commercialement des données déclarées sans
+  cadre — précisément ce que le projet s'interdit (§23, §29). La feature 30
+  reste donc **partielle**.
+- **`concernsFromProfile` ne compte pas « aucun » ni « je ne sais pas ».** Une
+  valeur qui dit « rien » ne devient pas un besoin : la compter créerait de la
+  demande fictive, donc des angles morts fictifs.
+
+**Ce qui manque, explicitement**
+- **`product_ingredients` est vide (0 ligne)** : sans rattachement produit ×
+  archétype, `archetypeMappingComplete` vaut `false` et **toutes** les cellules
+  sortent en `donnees_insuffisantes`. Le banc l'asserte : catalogue vide →
+  **0 angle mort affirmé**. La demande agrégée, elle, est réelle.
+- Aucune surface B2B : ni compte, ni contrat, ni facturation, ni export.
+- La borne de lecture (5 000 profils) est déclarée dans la réponse
+  (`membersTruncated`) mais n'a pas été exercée : la base réelle est vide.
+- Aucun rendu navigateur vérifié.
+
+**Résultat 8.6a :** `tsc` exit 0, `npm test` exit 0 (**88 bancs**), build exit 0
+(`dist/server.cjs` 799,2 kb), inventaires **179 routes** (+1) et **187 méthodes**
+(+1), rien retiré.
+
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
 inchangées** (nom + arité), **49 appels réels** sur le store composé.
@@ -1202,7 +1256,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.4** Beauty Journey : narration de l'évolution~~ **FAIT** — `src/lib/beautyJourney.ts` (fonction **pure** : chronologie toutes sources confondues, 8 jalons, évolution par score, comparaison de photos, récit en phrases, manques énoncés) + `src/lib/db/journeyStore.ts` (assemblage, **aucune donnée nouvelle collectée**) + `GET /api/beauty-journey` + écran `/account/journey`. Règles de fond : valeurs **attribuées à des déclarations**, aucune tendance sous 3 mesures, écart ≤ 1/10 = bruit, comparaison seulement à ≥ 14 jours d'écart, réserves d'usage permanentes (pas de mesure clinique, pas d'avis médical).
 - [x] ~~**8.5** Abonnement KURLA+~~ **FAIT** — `src/lib/membership.ts` (module pur : plans, 10 capacités, éligibilité, cycle de vie, prix HT + TVA du pays) + migration `20260863000000_kurla_plus_membership.sql` (3 tables, 5 RPC SECURITY DEFINER, aucune écriture directe, RPC réservées à `service_role`) + `src/lib/db/membershipStore.ts` (7 méthodes) + 5 routes + `/account/kurla-plus`. **KURLA+ n'enlève rien** : 6 capacités essentielles vérifiées gratuites par le banc. Paiement différé : 503 `PAYMENT_NOT_CONFIGURED` plutôt qu'un encaissement simulé ; **migration non appliquée** (jeton requis).
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement — **chantier long, subdivisé** :
-  - [ ] **8.6a** Texture Gap Report (feature 30) — **en cours** : `src/lib/textureGap.ts` (fonction pure, k-anonymité appliquée par absence et non par étiquette, trou de donnée ≠ angle mort, aucun ratio inventé) et `tests/texture_gap.test.ts` sont livrés et verts. Reste : l'agrégation côté base (les comptes par archétype × préoccupation), la route, l'écran, et le fait que `product_ingredients` est vide — sans graphe, le rapport ne peut rendre que des verdicts `donnees_insuffisantes`.
+  - [x] ~~**8.6a** Texture Gap Report (feature 30)~~ **FAIT (rapport) — la surface B2B reste à faire** : `src/lib/textureGap.ts` (cœur pur + `concernsFromProfile` + `aggregateTextureGap`), `src/lib/db/textureGapStore.ts` (lecture et agrégation), `GET /api/intelligence/texture-gap` **réservé à l'administration**, écran `/admin/texture-gap`, banc `tests/texture_gap.test.ts`. **La feature 30 passe en 🔶 partielle, pas en ✅** : le rapport existe et est k-anonyme, mais il n'y a ni compte B2B ni contrat encadrant la revente, et la couverture du catalogue est inconnue tant que `product_ingredients` est vide — le rapport rend donc `donnees_insuffisantes` plutôt que des angles morts.
   - [ ] **8.6b** API catalogue + scoring (feature 31)
   - [ ] **8.6c** Espace marque et tests produits ciblés (41), programme experts/créateurs (39), rémunération au résultat (40)
 - [ ] **8.7** Application mobile
@@ -1235,7 +1289,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **87 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **88 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1249,6 +1303,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.3** — barème sondé en ligne | `GET /api/loyalty/rules` 200 : 5 niveaux, 5 axes plafonnés (achat 80/460, 380 sans achat), 14 faits, 4 récompenses par niveau ; 7 routes protégées 401 |
 | **Chantier 8.4** — `tests/beauty_journey.test.ts` | PASS — 5 scénarios : 20 faits chronologiques, tendance hausse 3→7/10, comparaison à 30 jours, 7 jalons ; 3 mesures pour une tendance (3→9 sur deux mesures reste `indetermine`), écart ≤ 1 = `stable`, photos à 3 jours d'écart non comparées ; aucune promesse ni vocabulaire médical |
 | **Chantier 8.5** — `tests/membership_kurla_plus.test.ts` | PASS — 11 plans de vérification : 6 capacités essentielles gratuites (boucle), liste figée des fonctions gratuites d'avant 8.5, 4 droits payants dont 2 annoncés non branchés, dossier vide non sollicité (0/100) contre 100/100, essai unique de 14 jours, activation refusée sans référence de paiement, webhook conforme (paiement non confirmé, montant incohérent, devise), reconduction prolonge la période, 6 paires de photos dont 1 au plan libre, synthèse sans promesse ni vocabulaire médical |
+| **Chantier 8.6a** — `tests/texture_gap.test.ts` | PASS — 9 plans de vérification : cellule sous 30 absente de la sortie (l'archétype ne fuit pas), angles morts classés par cohorte, trou de donnée ≠ angle mort, `coverage: null` sans dénominateur, agrégation 40 membres → 1 cellule, produit rattaché trois fois compté une fois, « aucun »/« je ne sais pas » non comptés comme besoins, store : 32 profils → 2 cellules et **0 angle mort affirmé** sur catalogue vide, route 401 sans jeton |
+| **Chantier 8.6a** — inventaires | **179 routes** (+1 : `GET /api/intelligence/texture-gap`) · **187 méthodes** (+1 : `getTextureGapReport`), rien retiré |
 | **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |
 

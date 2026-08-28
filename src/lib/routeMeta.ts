@@ -351,6 +351,13 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/admin/texture-gap',
+    title: 'Texture Gap Report | KURLA',
+    description:
+      'Besoins déclarés par archétype face à la couverture du catalogue publié. Agrégats k-anonymes uniquement, réservé à l’administration.',
+    indexable: false,
+  },
+  {
     path: '/account/kurla-plus',
     title: 'KURLA+ | KURLA',
     description:

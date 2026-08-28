@@ -1,4 +1,12 @@
 import { DEFAULT_K_ANONYMITY_THRESHOLD, evaluateCohort } from './archetype';
+import {
+  BREAKAGE_OPTIONS,
+  DRYNESS_OPTIONS,
+  SCALP_CONCERN_OPTIONS,
+  SKIN_ZONE_OPTIONS,
+  UNKNOWN,
+  type BeautyProfile
+} from './beautyProfile';
 
 /**
  * CHANTIER 8.6a — TEXTURE GAP REPORT (B2B).
@@ -206,4 +214,136 @@ export function buildTextureGapReport(input: TextureGapInput): TextureGapReport 
     },
     caveats: [...TEXTURE_GAP_CAVEATS]
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// Extraction des préoccupations déclarées
+// ---------------------------------------------------------------------------
+
+/** Valeurs qui n'expriment aucune préoccupation : elles ne comptent pas. */
+const NOT_A_CONCERN = new Set<string>([UNKNOWN, 'aucun', 'aucune', '']);
+
+function labelOf(options: Array<{ value: string; label: string }>, value: string): string {
+  return options.find(option => option.value === value)?.label ?? value;
+}
+
+/**
+ * Transforme un profil en liste de préoccupations déclarées.
+ *
+ * Seuls des champs au vocabulaire connu sont lus, et une valeur qui dit « rien »
+ * ou « je ne sais pas » ne devient pas une préoccupation : compter un « je ne
+ * sais pas » comme un besoin créerait de la demande fictive.
+ */
+export function concernsFromProfile(profile: BeautyProfile | undefined): string[] {
+  if (!profile) return [];
+  const concerns = new Set<string>();
+
+  for (const value of profile.hair?.scalpConcerns ?? []) {
+    if (NOT_A_CONCERN.has(String(value))) continue;
+    concerns.add(`Cuir chevelu : ${labelOf(SCALP_CONCERN_OPTIONS, String(value))}`);
+  }
+  for (const value of profile.skin?.concernZones ?? []) {
+    if (NOT_A_CONCERN.has(String(value))) continue;
+    concerns.add(`Peau : ${labelOf(SKIN_ZONE_OPTIONS, String(value))}`);
+  }
+
+  const breakage = profile.hair?.breakage;
+  if (breakage === 'occasionnelle' || breakage === 'frequente') {
+    concerns.add(`Fibre : ${labelOf(BREAKAGE_OPTIONS, breakage)}`);
+  }
+  const dryness = profile.hair?.dryness;
+  if (dryness === 'moyenne' || dryness === 'forte') {
+    concerns.add(`Fibre : ${labelOf(DRYNESS_OPTIONS, dryness)}`);
+  }
+
+  return [...concerns];
+}
+
+// ---------------------------------------------------------------------------
+// Agrégation : des lignes brutes au rapport
+// ---------------------------------------------------------------------------
+
+export interface TextureGapMemberRow {
+  userId: string;
+  archetypeId: string | null;
+  archetypeLabel?: string;
+  concerns: string[];
+}
+
+export interface TextureGapProductRow {
+  id: string;
+  concerns: string[];
+  published: boolean;
+  /** Archétypes auxquels le produit est rattaché (graphe ingrédient × archétype). */
+  archetypeIds: string[];
+}
+
+export interface TextureGapAggregateInput {
+  members: TextureGapMemberRow[];
+  products: TextureGapProductRow[];
+  /**
+   * Chaque produit publié est-il rattaché à ses archétypes ? Tant que le graphe
+   * ingrédient × archétype ne couvre pas le catalogue, la réponse est non — et
+   * le rapport rend `donnees_insuffisantes` plutôt que des angles morts.
+   */
+  archetypeMappingComplete?: boolean;
+  kThreshold?: number;
+  generatedAt?: string;
+}
+
+/**
+ * Agrège des lignes individuelles en rapport k-anonyme. Fonction pure : c'est
+ * ici que les personnes disparaissent au profit des comptes.
+ */
+export function aggregateTextureGap(input: TextureGapAggregateInput): TextureGapReport {
+  const labels: Record<string, string> = {};
+  const demand = new Map<string, number>();
+
+  for (const member of input.members) {
+    if (!member.archetypeId) continue;
+    if (member.archetypeLabel) labels[member.archetypeId] = member.archetypeLabel;
+    for (const concern of member.concerns) {
+      const key = `${member.archetypeId}::${concern}`;
+      demand.set(key, (demand.get(key) ?? 0) + 1);
+    }
+  }
+
+  // Un produit ne compte qu'une fois par cellule, même s'il est rattaché
+  // plusieurs fois au même archétype.
+  const supply = new Map<string, { productCount: number; publishedProductCount: number }>();
+  for (const product of input.products) {
+    const seen = new Set<string>();
+    for (const archetypeId of product.archetypeIds) {
+      for (const concern of product.concerns) {
+        const key = `${archetypeId}::${concern}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const cell = supply.get(key) ?? { productCount: 0, publishedProductCount: 0 };
+        cell.productCount += 1;
+        if (product.published) cell.publishedProductCount += 1;
+        supply.set(key, cell);
+      }
+    }
+  }
+
+  return buildTextureGapReport({
+    demand: [...demand.entries()].map(([key, memberCount]) => {
+      const separator = key.indexOf('::');
+      return { archetypeId: key.slice(0, separator), concern: key.slice(separator + 2), memberCount };
+    }),
+    supply: [...supply.entries()].map(([key, counts]) => {
+      const separator = key.indexOf('::');
+      return {
+        archetypeId: key.slice(0, separator),
+        concern: key.slice(separator + 2),
+        productCount: counts.productCount,
+        publishedProductCount: counts.publishedProductCount
+      };
+    }),
+    labels,
+    supplyGraphComplete: input.archetypeMappingComplete === true,
+    kThreshold: input.kThreshold,
+    generatedAt: input.generatedAt
+  });
 }

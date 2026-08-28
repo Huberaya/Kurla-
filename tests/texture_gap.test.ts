@@ -10,11 +10,15 @@
  *   3. Aucun ratio inventé : sans dénominateur, `coverage` vaut `null`.
  */
 import assert from 'node:assert/strict';
+import http from 'node:http';
 
 process.env.KURLA_TEST_NO_SERVER = 'true';
 
-const { buildTextureGapReport, TEXTURE_GAP_CAVEATS } = await import('../src/lib/textureGap');
-const { DEFAULT_K_ANONYMITY_THRESHOLD } = await import('../src/lib/archetype');
+const { aggregateTextureGap, buildTextureGapReport, concernsFromProfile, TEXTURE_GAP_CAVEATS } = await import('../src/lib/textureGap');
+const { DEFAULT_K_ANONYMITY_THRESHOLD, deriveArchetype } = await import('../src/lib/archetype');
+const { calculateProfileConfidence, normalizeBeautyProfile } = await import('../src/lib/beautyProfile');
+const { serverDb } = await import('../src/lib/serverDb');
+const serverModule = await import('../server');
 
 const labels = {
   afro_coily: 'Afro crépus',
@@ -157,9 +161,141 @@ assert.equal(stricter.kThreshold, 100, 'le seuil demandé est appliqué');
 assert.equal(stricter.cells.length, 0, 'une cohorte de 80 sous un seuil de 100 est supprimée');
 assert.equal(stricter.totals.suppressedCells, 1, 'et comptée comme supprimée');
 
+// ---------------------------------------------------------------------------
+// 6. Extraction des préoccupations : « rien » et « je ne sais pas » ne comptent pas
+// ---------------------------------------------------------------------------
+const declaredProfile = normalizeBeautyProfile({
+  hair: { curlPattern: '4c', scalpConcerns: ['pellicules', 'aucun'], breakage: 'frequente', dryness: 'faible' },
+  skin: { concernZones: ['inconnu'] }
+});
+const declaredConcerns = concernsFromProfile(declaredProfile);
+assert.equal(declaredConcerns.length, 2, '« aucun » et « je ne sais pas » ne deviennent pas des préoccupations');
+assert.ok(declaredConcerns.some(concern => concern.includes('Pellicules')), 'le signe déclaré est retenu, avec son libellé lisible');
+assert.ok(declaredConcerns.some(concern => concern.includes('Casse fréquente')), 'l’état de la fibre déclaré est retenu');
+assert.ok(
+  !declaredConcerns.some(concern => concern.includes('Peu sèche')),
+  'une sécheresse faible n’est pas transformée en besoin'
+);
+assert.deepEqual(concernsFromProfile(undefined), [], 'sans profil, aucune préoccupation inventée');
+
+// ---------------------------------------------------------------------------
+// 7. Agrégation : des lignes individuelles aux comptes k-anonymes
+// ---------------------------------------------------------------------------
+const aggregated = aggregateTextureGap({
+  members: [
+    ...Array.from({ length: 40 }, (_, index) => ({
+      userId: `membre-${index}`,
+      archetypeId: 'arch_a',
+      archetypeLabel: 'Cheveux crépus · poreux',
+      concerns: ['Fibre : Casse fréquente']
+    })),
+    ...Array.from({ length: 4 }, (_, index) => ({
+      userId: `isolé-${index}`,
+      archetypeId: 'arch_b',
+      archetypeLabel: 'Cheveux ondulés',
+      concerns: ['Fibre : Casse fréquente']
+    }))
+  ],
+  products: [
+    { id: 'p1', concerns: ['Fibre : Casse fréquente'], published: true, archetypeIds: ['arch_a'] },
+    { id: 'p2', concerns: ['Fibre : Casse fréquente'], published: false, archetypeIds: ['arch_a'] }
+  ],
+  archetypeMappingComplete: true,
+  generatedAt: '2026-08-28T00:00:00.000Z'
+});
+
+assert.equal(aggregated.totals.publishedCells, 1, 'seule la cohorte au-dessus du seuil est publiée');
+assert.equal(aggregated.totals.suppressedCells, 1, 'la cohorte de 4 est supprimée');
+assert.equal(aggregated.totals.suppressedMembers, 4, 'et ses membres sont comptés, pas publiés');
+assert.equal(aggregated.cells[0].memberCount, 40, 'les 40 membres sont agrégés en une seule cellule');
+assert.equal(aggregated.cells[0].archetypeLabel, 'Cheveux crépus · poreux', 'le libellé vient des lignes, pas d’un référentiel deviné');
+assert.equal(aggregated.cells[0].productCount, 2, 'deux produits associés au besoin');
+assert.equal(aggregated.cells[0].publishedProductCount, 1, 'dont un seul publié');
+assert.equal(aggregated.cells[0].verdict, 'partiel', 'un publié sur deux : partiel');
+assert.equal(aggregated.cells[0].coverage, 0.5, 'la couverture est mesurée');
+
+// Un produit rattaché deux fois au même archétype ne compte qu'une fois.
+const deduped = aggregateTextureGap({
+  members: [{ userId: 'm1', archetypeId: 'arch_a', concerns: ['X'] }],
+  products: [{ id: 'p1', concerns: ['X'], published: true, archetypeIds: ['arch_a', 'arch_a', 'arch_a'] }],
+  archetypeMappingComplete: true,
+  kThreshold: 1
+});
+assert.equal(deduped.cells[0].productCount, 1, 'un produit ne compte qu’une fois par cellule');
+
+// Sans rattachement produit × archétype, la couverture est inconnue — pas nulle.
+const unmapped = aggregateTextureGap({
+  members: Array.from({ length: 40 }, (_, index) => ({ userId: `m${index}`, archetypeId: 'arch_a', concerns: ['X'] })),
+  products: [{ id: 'p1', concerns: ['X'], published: true, archetypeIds: [] }],
+  archetypeMappingComplete: false
+});
+assert.equal(unmapped.cells[0].verdict, 'donnees_insuffisantes', 'produit non rattaché : on ne conclut pas');
+assert.equal(unmapped.totals.blindSpots, 0, 'et ce n’est pas compté comme un angle mort');
+
+// ---------------------------------------------------------------------------
+// 8. Bout en bout sur le store : catalogue vide, aucun angle mort affirmé
+// ---------------------------------------------------------------------------
+await serverDb.initialize([]);
+const profile = normalizeBeautyProfile({
+  hair: { curlPattern: '4c', porosity: 'haute', scalpConcerns: ['pellicules'], breakage: 'frequente' }
+});
+const confidence = calculateProfileConfidence(profile);
+const archetype = deriveArchetype(profile);
+for (let index = 0; index < 32; index += 1) {
+  serverDb.inMemoryBeautyProfiles.set(`sonde-${index}`, {
+    userId: `sonde-${index}`,
+    profile,
+    confidence,
+    createdAt: '2026-08-01T10:00:00.000Z',
+    updatedAt: '2026-08-01T10:00:00.000Z'
+  });
+}
+
+const result = await serverDb.getTextureGapReport();
+assert.equal(result.availability.membersRead, 32, 'les profils en mémoire sont lus');
+assert.equal(result.availability.membersWithArchetype, 32, 'tous ont un archétype dérivé');
+assert.equal(result.availability.publishedProducts, 0, 'aucun produit publié dans cette base');
+assert.equal(result.availability.archetypeMappingComplete, false, 'sans graphe, la couverture n’est pas connue');
+assert.equal(result.availability.persistence, 'server_fallback', 'l’origine des données est annoncée');
+assert.match(result.availability.coverageNote, /ne peut pas être mesurée/, 'la note dit pourquoi la couverture est inconnue');
+assert.ok(result.report.cells.length >= 1, 'la cohorte de 32 atteint le seuil et produit des cellules');
+assert.ok(
+  result.report.cells.every(cell => cell.memberCount >= DEFAULT_K_ANONYMITY_THRESHOLD),
+  'aucune cellule sous le seuil ne sort du store'
+);
+assert.ok(
+  result.report.cells.every(cell => cell.verdict === 'donnees_insuffisantes'),
+  'catalogue vide : le rapport déclare des données insuffisantes, pas des angles morts'
+);
+assert.equal(result.report.totals.blindSpots, 0, 'aucun angle mort affirmé sans catalogue');
+assert.equal(
+  new Set(result.report.cells.map(cell => cell.archetypeId)).size,
+  1,
+  'des profils identiques tombent dans le même archétype'
+);
+assert.equal(result.report.cells[0].archetypeLabel, archetype.labelFr, 'le libellé affiché est celui de l’archétype dérivé');
+
+// ---------------------------------------------------------------------------
+// 9. HTTP : le rapport est réservé à l'administration
+// ---------------------------------------------------------------------------
+async function requestApp(path: string) {
+  const listener = http.createServer(serverModule.app);
+  await new Promise<void>(resolve => listener.listen(0, '127.0.0.1', () => resolve()));
+  const address = listener.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  try {
+    return await fetch(`http://127.0.0.1:${port}${path}`);
+  } finally {
+    await new Promise<void>(resolve => listener.close(() => resolve()));
+  }
+}
+
+const forbidden = await requestApp('/api/intelligence/texture-gap');
+assert.equal(forbidden.status, 401, 'le rapport refuse une requête sans jeton');
+
 console.log(
-  `[PASS] Chantier 8.6a — Texture Gap Report : k-anonymité appliquée (cellule sous ${DEFAULT_K_ANONYMITY_THRESHOLD} absente du rapport, ` +
+  `[PASS] Chantier 8.6a — Texture Gap Report (cœur + agrégation + store) : k-anonymité appliquée (cellule sous ${DEFAULT_K_ANONYMITY_THRESHOLD} absente du rapport, ` +
     `${smallCohort.totals.suppressedMembers} membres comptés non publiés), ${report.totals.blindSpots} angles morts classés par cohorte ` +
     `(${report.blindSpots.map(cell => `${cell.archetypeLabel}/${cell.concern} ${cell.memberCount}`).join(', ')}), ` +
-    `couverture ${hydration.coverage} en partiel, trou de donnée jamais présenté comme un angle mort, aucun ratio inventé.`
+    `couverture ${hydration.coverage} en partiel, trou de donnée jamais présenté comme un angle mort, aucun ratio inventé, agrégation ${aggregated.cells[0].memberCount} membres → 1 cellule à ${aggregated.cells[0].coverage} de couverture, « aucun » et « je ne sais pas » non comptés comme besoins, store : ${result.report.cells.length} cellules sur ${result.availability.membersRead} profils, catalogue vide → ${result.report.totals.blindSpots} angle mort affirmé, route réservée à l’administration (401 sans jeton).`
 );

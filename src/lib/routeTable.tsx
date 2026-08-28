@@ -34,6 +34,7 @@ import { ProgressJournalPage } from '../pages/ProgressJournalPage';
 import { ProgressionPage } from '../pages/ProgressionPage';
 import { BeautyJourneyPage } from '../pages/BeautyJourneyPage';
 import { KurlaPlusPage } from '../pages/KurlaPlusPage';
+import { TextureGapPage } from '../pages/TextureGapPage';
 import { SavedPage } from '../pages/SavedPage';
 import { KidsModulePage } from '../pages/KidsModulePage';
 import { ProtectiveStylesPage } from '../pages/ProtectiveStylesPage';
@@ -160,6 +161,11 @@ export const ROUTES: RouteEntry[] = [
     path: '/admin',
     auth: { roles: ['admin', 'superadmin'], roleLabel: 'administrateur' },
     render: () => <AdminDashboardPage />,
+  },
+  {
+    path: '/admin/texture-gap',
+    auth: { roles: ['admin', 'superadmin'], roleLabel: 'administrateur' },
+    render: () => <TextureGapPage />
   },
 
   // Espace compte

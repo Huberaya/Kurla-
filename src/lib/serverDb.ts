@@ -95,6 +95,7 @@ import * as orderStore from './db/orderStore';
 import * as loyaltyStore from './db/loyaltyStore';
 import * as journeyStore from './db/journeyStore';
 import * as membershipStore from './db/membershipStore';
+import * as textureGapStore from './db/textureGapStore';
 import { mapRefundRow } from './db/refundSupport';
 import type { MembershipEventRecord } from './db/membershipStore';
 import type { MembershipRecord } from './membership';
@@ -343,6 +344,7 @@ bindDomain(storeInstance, orderStore);
 bindDomain(storeInstance, loyaltyStore);
 bindDomain(storeInstance, journeyStore);
 bindDomain(storeInstance, membershipStore);
+bindDomain(storeInstance, textureGapStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -361,4 +363,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof orderStore>
   & Curried<typeof loyaltyStore>
   & Curried<typeof journeyStore>
-  & Curried<typeof membershipStore>;
+  & Curried<typeof membershipStore>
+  & Curried<typeof textureGapStore>;

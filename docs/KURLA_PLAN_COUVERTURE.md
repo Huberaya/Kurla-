@@ -73,18 +73,19 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 ### 🟠 Logique seule (1)
 **16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle
 
-### 🔶 Partielles (3)
+### 🔶 Partielles (4)
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
 - **5** Purge des données fictives — `mockData` reste importé par plusieurs fichiers *(le tableau de bord pro, lui, a été purgé ce tour)*
+- **30** Texture Gap Report — 🔶 chantier 8.6a : `src/lib/textureGap.ts` + `textureGapStore.ts` + `GET /api/intelligence/texture-gap` + `/admin/texture-gap`. Rapport k-anonyme (cellule sous 30 absente de la réponse), trou de donnée jamais présenté comme un angle mort. **Manquent** : la surface B2B (compte, contrat, facturation, export) et le rattachement produit × archétype — `product_ingredients` est vide, donc toutes les cellules sortent en `donnees_insuffisantes`.
 - **45** Découpage du monolithe — 🔶 `server.ts` ramené de 4 795 à **2 019 lignes** (8.1) ; `serverDb.ts` (6 240 l.) reste entier
 
-### ⬜ À faire (16)
-**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
+### ⬜ À faire (15)
+**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
 
 ### 🚫 Exclues volontairement (3)
 **48** Virtual try-on coiffure · **49** Maquillage virtuel · **50** Place de marché créateurs
 
-> **Compte : 27 + 1 + 3 + 16 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
+> **Compte : 27 + 1 + 4 + 15 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
 
 
 ### Détail mesuré sur la feature 36 (climat / eau dure)
@@ -186,7 +187,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 | Tâche | Fonctionnalités |
 |---|---|
-| Texture Gap Report — agrégats k-anonymes uniquement | 30 |
+| Texture Gap Report — agrégats k-anonymes uniquement — 🔶 chantier 8.6a : rapport k-anonyme livré et réservé à l’administration ; ni compte B2B ni contrat, et couverture du catalogue inconnue tant que `product_ingredients` est vide | 30 |
 | API catalogue + scoring | 31 |
 | Espace marque : tests produits ciblés | 41 |
 | Programme experts / créateurs | 39 |

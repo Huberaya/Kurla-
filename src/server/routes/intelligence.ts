@@ -19,7 +19,7 @@ import {
 import { buildDailyTasks, buildWashDayPlan, WashDayEvent } from '../../lib/washDay';
 import { normalizeWeatherContext } from '../../lib/adaptiveRoutine';
 import { asyncRoute, rateLimit } from '../http';
-import { requireUser } from '../auth';
+import { requireAdmin, requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 import type { Response } from 'express';
 
@@ -265,6 +265,27 @@ export function registerIntelligenceRoutes(app: Express): void {
     if (!user) return;
     const cycle = await intelligenceStore.markWashDayDone(user.id, typeof req.body?.at === 'string' ? req.body.at : undefined);
     res.json({ cycle });
+  }));
+
+  /**
+   * CHANTIER 8.6a — Texture Gap Report.
+   *
+   * Réservé à l'administration : il n'existe pas encore de compte B2B ni de
+   * contrat encadrant la revente d'agrégats. Exposer ces comptes à n'importe
+   * quel membre connecté reviendrait à livrer une exploitation commerciale de
+   * données déclarées sans cadre — exactement ce que le projet s'interdit.
+   *
+   * La k-anonymité est appliquée en amont : une cellule sous le seuil n'est pas
+   * dans la réponse.
+   */
+  app.get('/api/intelligence/texture-gap', rateLimit('texture-gap', 12, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const requested = Number(req.query.limit);
+    const result = await serverDb.getTextureGapReport(
+      Number.isFinite(requested) && requested > 0 ? { limit: requested } : {}
+    );
+    res.json(result);
   }));
 
   // ============================================================
