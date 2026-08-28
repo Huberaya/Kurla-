@@ -17,6 +17,10 @@ from collections import defaultdict
 
 TRACE = "docs/data/ingredient_batch_1.json"
 SEED = "supabase/migrations/20260805000000_seed_demo_products.sql"
+# Instantané du catalogue déjà en base : la table `ingredients` a une contrainte
+# d'unicité sur `inci_name`, donc un INCI déjà catalogué doit réutiliser son
+# identifiant — en inventer un second fait échouer la migration.
+EXISTING = "docs/data/existing_ingredients_2026-08-28.json"
 OUT = "supabase/migrations/20260868000000_ingredient_verified_batch_1.sql"
 
 
@@ -66,12 +70,25 @@ def main() -> int:
         declared = [raw.strip().strip("'") for raw in arrays[0].split(",") if raw.strip()]
         products.append({"id": pid_match.group(1), "declared": declared})
 
+    # --- alignement des identifiants sur le catalogue existant ---
+    canonical = {row["id"]: row["id"] for row in rows}
+    try:
+        catalogue = json.load(open(EXISTING, encoding="utf-8"))["ingredients"]
+    except FileNotFoundError:
+        catalogue = []
+    existing_by_norm = {item["inci_name_normalized"]: item["id"] for item in catalogue}
+    for row in rows:
+        already = existing_by_norm.get(normalize(row["inciVerified"] or row["inciProposed"]))
+        if already and already != row["id"]:
+            canonical[row["id"]] = already
+            print(f"  identifiant aligné : {row['id']} -> {already} (INCI déjà catalogué)")
+
     # --- index des noms usuels du lot vérifié ---
     by_common = {}
     for row in rows:
-        by_common[normalize(row["inciVerified"] or row["inciProposed"])] = row["id"]
+        by_common[normalize(row["inciVerified"] or row["inciProposed"])] = canonical[row["id"]]
         for name in row.get("commonNames", []):
-            by_common.setdefault(normalize(name), row["id"])
+            by_common.setdefault(normalize(name), canonical[row["id"]])
 
     links = []
     unmatched = defaultdict(list)
@@ -146,7 +163,7 @@ def main() -> int:
         lines.append(
             "INSERT INTO public.ingredients (id, inci_name, inci_name_normalized, common_names,"
             " functions, family, origin, verification_status, updated_at) VALUES ("
-            f"{sql_string(row['id'])}, {sql_string(inci)}, {sql_string(normalize(inci))},"
+            f"{sql_string(canonical[row['id']])}, {sql_string(inci)}, {sql_string(normalize(inci))},"
             f" {sql_array(row.get('commonNames', []))}, '{{}}',"
             f" {sql_string(row.get('family'))}, {sql_string(row.get('origin'))},"
             f" {sql_string(status)}, NOW())"
@@ -173,7 +190,7 @@ def main() -> int:
         lines.append(
             "INSERT INTO public.ingredient_provenance"
             " (ingredient_id, source_label, source_url, retrieved_at, cas_number, evidence_tier, note)"
-            f" VALUES ({sql_string(row['id'])}, {sql_string(row['sourceLabel'])},"
+            f" VALUES ({sql_string(canonical[row['id']])}, {sql_string(row['sourceLabel'])},"
             f" {sql_string(row['sourceUrl'])}, {sql_string(row['retrievedAt'])},"
             f" {sql_string(row.get('casNumber'))}, {row['tier']}, {sql_string(note)})"
             " ON CONFLICT (ingredient_id, source_url) DO UPDATE SET"

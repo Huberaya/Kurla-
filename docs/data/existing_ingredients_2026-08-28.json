@@ -1,0 +1,72 @@
+{
+  "retrievedAt": "2026-08-28",
+  "project": "qzwgsarfdegqtfdnqiql",
+  "note": "Instants des ingrédients déjà présents en base, relevés via l'API Supabase. Sert au générateur de migration pour réutiliser l'identifiant existant quand un INCI est déjà catalogué — la table a une contrainte d'unicité sur inci_name, donc créer un doublon sous un autre id fait échouer la migration.",
+  "ingredients": [
+    {
+      "id": "ascorbic-acid",
+      "inci_name": "Ascorbic Acid",
+      "inci_name_normalized": "ascorbic acid"
+    },
+    {
+      "id": "shea-butter",
+      "inci_name": "Butyrospermum Parkii (Shea) Butter",
+      "inci_name_normalized": "butyrospermum parkii shea butter"
+    },
+    {
+      "id": "ceramide-np",
+      "inci_name": "Ceramide NP",
+      "inci_name_normalized": "ceramide np"
+    },
+    {
+      "id": "coconut-oil",
+      "inci_name": "Cocos Nucifera (Coconut) Oil",
+      "inci_name_normalized": "cocos nucifera coconut oil"
+    },
+    {
+      "id": "glycerin",
+      "inci_name": "Glycerin",
+      "inci_name_normalized": "glycerin"
+    },
+    {
+      "id": "hydroquinone",
+      "inci_name": "Hydroquinone",
+      "inci_name_normalized": "hydroquinone"
+    },
+    {
+      "id": "niacinamide",
+      "inci_name": "Niacinamide",
+      "inci_name_normalized": "niacinamide"
+    },
+    {
+      "id": "panthenol",
+      "inci_name": "Panthenol",
+      "inci_name_normalized": "panthenol"
+    },
+    {
+      "id": "parfum",
+      "inci_name": "Parfum (Fragrance)",
+      "inci_name_normalized": "parfum fragrance"
+    },
+    {
+      "id": "retinol",
+      "inci_name": "Retinol",
+      "inci_name_normalized": "retinol"
+    },
+    {
+      "id": "salicylic-acid",
+      "inci_name": "Salicylic Acid",
+      "inci_name_normalized": "salicylic acid"
+    },
+    {
+      "id": "squalane",
+      "inci_name": "Squalane",
+      "inci_name_normalized": "squalane"
+    },
+    {
+      "id": "zinc-oxide",
+      "inci_name": "Zinc Oxide",
+      "inci_name_normalized": "zinc oxide"
+    }
+  ]
+}

@@ -22,6 +22,9 @@ const MIGRATION_PATH = join(process.cwd(), 'supabase', 'migrations', '2026086800
 
 interface TraceRow {
   id: string;
+  /** Dénomination proposée par le lot ; `inciVerified` n'existe qu'au niveau 1. */
+  inciProposed: string;
+  inciVerified?: string;
   tier: number;
   sourceUrl: string;
   sourceLabel: string;
@@ -54,9 +57,34 @@ async function runProvenanceTests(): Promise<void> {
   assert.equal(ingredientInserts.length, rows.length, 'le nombre d’ingrédients de la migration doit égaler celui de la trace');
 
   const statusById = new Map(ingredientInserts.map(match => [match[1], match[2]]));
+
+  /**
+   * Alignement des identifiants : `public.ingredients` a une contrainte
+   * d'unicité sur `inci_name`. Un INCI déjà catalogué sous un autre
+   * identifiant doit réutiliser celui de la base — sinon la migration échoue en
+   * production (vérifié le 28/08/2026 : `salicylic_acid` contre `salicylic-acid`).
+   */
+  const catalogue = JSON.parse(
+    readFileSync(join(process.cwd(), 'docs', 'data', 'existing_ingredients_2026-08-28.json'), 'utf-8')
+  ).ingredients as Array<{ id: string; inci_name_normalized: string }>;
+  const existingByNorm = new Map(catalogue.map(item => [item.inci_name_normalized, item.id]));
+  const normalizeName = (value: string) => value.toLowerCase().trim();
+  const canonicalId = (row: TraceRow) =>
+    existingByNorm.get(normalizeName(row.inciVerified || row.inciProposed)) ?? row.id;
+
   for (const row of rows) {
+    const id = canonicalId(row);
     const expected = row.tier === 1 ? 'verified' : 'pending';
-    assert.equal(statusById.get(row.id), expected, `${row.id} : un niveau ${row.tier} ne peut pas porter le statut « ${statusById.get(row.id)} »`);
+    assert.equal(statusById.get(id), expected, `${id} : un niveau ${row.tier} ne peut pas porter le statut « ${statusById.get(id)} »`);
+  }
+
+  // Régression : aucun doublon d'identité pour un INCI déjà catalogué.
+  for (const row of rows) {
+    const already = existingByNorm.get(normalizeName(row.inciVerified || row.inciProposed));
+    if (already && already !== row.id) {
+      assert.equal(statusById.has(row.id), false, `${row.id} recrée un ingrédient déjà catalogué sous ${already}`);
+      assert.equal(statusById.has(already), true, `${already} doit être réutilisé pour l'INCI « ${row.inciVerified || row.inciProposed} »`);
+    }
   }
 
   // Aucune ligne écartée n'a été repêchée dans la migration.
@@ -75,12 +103,13 @@ async function runProvenanceTests(): Promise<void> {
 
   const provenanceById = new Map(provenanceInserts.map(match => [match[1], { label: match[2], url: match[3], date: match[4], tier: Number(match[6]) }]));
   for (const row of rows) {
-    const provenance = provenanceById.get(row.id);
-    assert.ok(provenance, `${row.id} : provenance absente de la migration`);
-    assert.equal(provenance!.url, row.sourceUrl, `${row.id} : l'URL de la migration diffère de la trace`);
-    assert.equal(provenance!.date, row.retrievedAt, `${row.id} : la date de retrait diffère de la trace`);
-    assert.equal(provenance!.tier, row.tier, `${row.id} : le niveau de preuve diffère de la trace`);
-    assert.match(provenance!.url, /^https:\/\/(pubchem\.ncbi\.nlm\.nih\.gov|www\.ncbi\.nlm\.nih\.gov)\//, `${row.id} : source hors des bases consultées`);
+    const id = canonicalId(row);
+    const provenance = provenanceById.get(id);
+    assert.ok(provenance, `${id} : provenance absente de la migration`);
+    assert.equal(provenance!.url, row.sourceUrl, `${id} : l'URL de la migration diffère de la trace`);
+    assert.equal(provenance!.date, row.retrievedAt, `${id} : la date de retrait diffère de la trace`);
+    assert.equal(provenance!.tier, row.tier, `${id} : le niveau de preuve diffère de la trace`);
+    assert.match(provenance!.url, /^https:\/\/(pubchem\.ncbi\.nlm\.nih\.gov|www\.ncbi\.nlm\.nih\.gov)\//, `${id} : source hors des bases consultées`);
   }
 
   // Les liaisons produit × ingrédient ne référencent que des ingrédients du lot.
