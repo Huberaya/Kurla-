@@ -877,6 +877,35 @@ panier, les commandes, l'administration, le garde-fou d'erreurs et le démarrage
 
 **Résultat : `server.ts` passe de 4 795 à 2 019 lignes (−58 %)**, 163 routes
 inchangées, `tsc --noEmit` exit 0, `npm test` exit 0 (**82 bancs**), build exit 0.
+
+#### 8.2a — le store commence à se découper (livré)
+
+Deux filets d'abord, la découpe ensuite :
+
+| Filet | Ce qu'il prouve |
+| --- | --- |
+| `tests/store_api_inventory.test.ts` | Les **166 méthodes** du store existent toujours après chaque extraction, **même nom et même arité** (introspection de l'instance et de sa chaîne de prototypes). |
+| `tests/store_composition.test.ts` | **21 méthodes sont réellement appelées** — écriture puis relecture — sur le store composé : profil beauté, espace famille, notifications, support. |
+
+Le mécanisme (`src/lib/db/bind.ts`) : chaque domaine est un module de fonctions
+pures prenant le store en premier argument ; `bindDomain` les recolle sur
+l'instance et `Curried<>` retire ce premier paramètre au niveau du type. Les
+centaines d'appels `serverDb.methode(...)` du backend ne changent pas, les corps
+de méthodes sont déplacés **tels quels** (seules les références `this.` sont
+traduites en `store.`), et l'arité est préservée pour que l'inventaire reste
+exigeant.
+
+Quatre domaines sortis : notifications/e-mail (562 l.), support (446 l.),
+famille (269 l.), profil beauté (184 l.) — plus les aides partagées dans
+`src/lib/db/internal.ts`, isolées pour éviter tout cycle d'import.
+
+**`tsc` a attrapé trois erreurs de la sonde elle-même** (`markNotificationRead`
+prend l'identifiant avant l'utilisateur, `deleteBeautyProfilePhotos` ne prend
+qu'un argument, `getStatusSummary` est synchrone) : la composition est typée pour
+de vrai, pas seulement callable.
+
+**Résultat 8.2a : `serverDb.ts` 6 240 → 4 906 lignes**, `tsc` exit 0, `npm test`
+exit 0 (**84 bancs**), build exit 0.
 Sonde HTTP sur serveur réel (base `qzwgsarfdegqtfdnqiql`) : `/api/health` 200,
 `/api/professionals/verified` 200, `/api/ai/disclosure` 200, `/api/search` 200,
 `/api/products` 200, fiche ingrédient 200, `compliance?country=US` 400, catch-all
@@ -892,8 +921,12 @@ serveur (`server.ts` + `src/server/**`) ; pour « la route est-elle servie ? »,
 c'est désormais l'inventaire des routes montées qui tranche.
 
 **Ce qui manque, explicitement**
-- `serverDb.ts` (**6 240 lignes**) n'est pas découpé : c'est l'autre moitié de
-  l'action 45, et la plus risquée (toutes les requêtes SQL y vivent).
+- `serverDb.ts` a perdu 1 334 lignes (8.2a) mais **reste à 4 906** : commandes,
+  retours/remboursements, livraison, catalogue, stock, routines, sessions IA,
+  candidatures pros et administration y vivent encore → 8.2b.
+- **Les 40 champs `inMemory*` sont passés de `private` à `public`** pour que les
+  modules de domaine les lisent. Recul d'encapsulation assumé, documenté dans
+  l'en-tête de la classe ; aucun code hors `src/lib/db/` n'y touche (grep).
 - `server.ts` garde ~2 000 lignes : Stripe (webhook + checkout, ~600), commandes,
   administration, support, RGPD, démarrage. Prochaine découpe naturelle :
   `src/server/payments/checkout.ts` et `src/server/routes/orders.ts`.
@@ -902,7 +935,8 @@ c'est désormais l'inventaire des routes montées qui tranche.
 
 ### Restant
 
-- [ ] **8.2** Découpage de `serverDb.ts` (6 240 lignes) par domaine
+- [x] ~~**8.2a** Filet + premiers domaines sortis de `serverDb.ts`~~ **FAIT** — inventaire runtime des **166 méthodes** (nom + arité) figé dans `tests/fixtures/store_api_inventory.json` ; composition `src/lib/db/bind.ts` (`bindDomain` + type `Curried`, arité préservée) ; **4 domaines extraits** dans `src/lib/db/` : notifications/e-mail (562 l.), support (446 l.), famille (269 l.), profil beauté (184 l.) ; aides partagées dans `internal.ts` ; sonde d'exécution `tests/store_composition.test.ts` (**21 méthodes réellement appelées**). `serverDb.ts` : **6 240 → 4 906 lignes**.
+- [ ] **8.2b** Domaines restants de `serverDb.ts` : commandes, retours/remboursements, livraison, catalogue, stock, routines adaptatives, sessions IA, candidatures pros, admin/analytics/audit
 - [ ] **8.3** Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
 - [ ] **8.4** Beauty Journey : narration de l'évolution
 - [ ] **8.5** Abonnement KURLA+
