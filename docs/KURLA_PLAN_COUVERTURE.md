@@ -403,6 +403,31 @@ puisque le repli SPA vivait dans `startServer` : d'où l'extraction en module.
 Ensuite il semait le catalogue **avant** d'importer le serveur, qui réinitialise
 les collections mémoire : le test tournait sur un catalogue vide.
 
+**Trois déploiements pour un défaut de routage — et ce qu'ils ont appris.**
+Le correctif local ne suffisait pas, et seule la production l'a montré :
+
+1. Après le premier déploiement, les canoniques étaient justes (1 seule, la
+   bonne) mais `/produit/inexistant` répondait toujours **200** : `vercel.json`
+   réécrit tout chemin sans fichier correspondant, et le repli SPA était monté
+   dans `startServer()` — que le mode serverless n'appelle jamais. Aucune route
+   HTML n'atteignait le serveur.
+2. Une fois le repli monté en mode serverless et la réécriture dirigée vers la
+   fonction, le 404 est arrivé **avec le corps JSON du garde d'API** : la
+   réécriture fait arriver la requête sous `/api/<chemin>`.
+3. Le garde `/api` distingue désormais par l'en-tête `Accept` : une navigation
+   (`text/html`) reçoit la page 404, un `fetch` reçoit `API_ROUTE_NOT_FOUND`.
+   Même statut 404 dans les deux cas.
+
+Vérifié en production après le troisième déploiement : `/page-qui-n-existe-pas`
+et `/produit/ce-produit-n-existe-pas` → **404**, `content-type: text/html`,
+titre « Page introuvable », `noindex` ; `/api/route-inconnue` en JSON → 404 JSON ;
+`/boutique` et `/ingredient/glycerin` → 200 avec **une seule** canonique, la leur.
+
+Une sonde (`tests/support/serverless_probe.ts`) verrouille le point 1 : elle
+vérifie en processus enfant, avec `KURLA_SERVERLESS=true`, que le serveur monte
+le repli **tout seul** — avec contrôle négatif (sans ce mode, le 404 est celui
+d'Express, sans `noindex`).
+
 **Ce qui n'a pas été fait, volontairement**
 
 - Pas d'usine à pages « ingrédient × problème × texture × ville ». Sans contenu
