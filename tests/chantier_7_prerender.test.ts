@@ -76,10 +76,11 @@ function runPrerenderTests(): void {
 
   // La liste prérendue doit être exactement les routes publiques statiques.
   // 22 routes à la fin du chantier 7, 23 au chantier 8.6b (`/api-docs`),
-  // 24 au chantier 8.6c1 (`/createurs`) : les règles de visibilité et de
-  // rémunération du programme experts/créateurs sont publiques et indexables.
+  // 24 au chantier 8.6c1 (`/createurs`), 25 au chantier 8.6c2 (`/marques`) :
+  // les règles de l'espace marque sont publiques, parce qu'une marque doit
+  // pouvoir lire ce qu'elle n'obtiendra jamais avant de signer.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 24, `Attendu 24 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 25, `Attendu 25 routes statiques, obtenu ${staticPublic.length}.`);
   assert.ok(
     staticPublic.some(route => route.path === '/api-docs'),
     'La documentation de l’API publique doit être prérendue.'
@@ -87,6 +88,14 @@ function runPrerenderTests(): void {
   assert.ok(
     staticPublic.some(route => route.path === '/createurs'),
     'Le programme experts/créateurs doit être prérendu : ses règles sont publiques.'
+  );
+  assert.ok(
+    staticPublic.some(route => route.path === '/marques'),
+    'L’espace marque doit être prérendu : ses règles et ses interdits sont publics.'
+  );
+  assert.ok(
+    !staticPublic.some(route => route.path === '/marque/tests'),
+    'Le tableau de bord marque est privé : il ne doit pas être prérendu ni indexé.'
   );
 
   console.log(

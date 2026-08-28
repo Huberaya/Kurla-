@@ -438,7 +438,7 @@ export async function saveAdminEntity(store: SupabaseServerStore, adminId: strin
   }
 
 export async function updateAdminUserRole(store: SupabaseServerStore, adminId: string, targetUserId: string, role: string, adminRole: string): Promise<any | undefined> {
-    if (!['customer', 'professional', 'support', 'editor', 'admin', 'superadmin'].includes(role)) throw new Error('Rôle invalide.');
+    if (!['customer', 'professional', 'support', 'editor', 'brand', 'admin', 'superadmin'].includes(role)) throw new Error('Rôle invalide.');
     if (targetUserId === adminId) throw new Error('Un administrateur ne peut pas modifier son propre rôle.');
     if (role === 'superadmin' && adminRole !== 'superadmin') throw new Error('Seul un superadmin peut attribuer ce rôle.');
     const supabase = getSupabaseServerClient();

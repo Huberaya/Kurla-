@@ -1337,6 +1337,75 @@ les deux refus, la suspension réversible, et la disparition de l'annuaire.
 **191 routes** (+7), **198 méthodes** (+11), rien retiré, **24 routes statiques
 prérendues** (+1 : `/createurs`).
 
+#### 8.6c2 — Espace marque : tests produits ciblés (livré)
+
+**Seconde moitié du chantier 8.6c.** Une marque veut savoir si son produit
+répond à un besoin précis. Elle ne doit jamais savoir *qui* a répondu.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/lib/brandTest.ts` | Règles pures : validation de cohorte, transitions, `buildBrandTestReport`, garde éditoriale |
+| `src/lib/db/brandTestStore.ts` | 12 méthodes : demande, revue, participation, retrait, déclaration, éligibilité, agrégation |
+| `src/server/routes/brandTests.ts` | 10 routes (programme public, demande, tests disponibles, participation, retrait, déclaration, rapport, admin) |
+| `supabase/migrations/20260865000000_brand_tests.sql` | 3 tables + rôle `brand`, contrainte JSONB sur la cohorte, RLS |
+| `/marques` + `/marque/tests` | Page publique indexable (règles et interdits) + tableau de bord marque privé |
+| `tests/brand_test.test.ts` | 10 plans de vérification (règles pures, store, routes) |
+
+**Ce qui est garanti par le schéma, pas seulement par le code.**
+
+1. **Une marque ne peut pas lire les participants.** Aucune politique SELECT sur
+   `brand_test_participations` ni `brand_test_observations` n'inclut le rôle
+   `brand`. Un compte marque qui interrogerait ces tables avec un jeton valide
+   ne reçoit aucune ligne : le rapport k-anonyme est la seule sortie.
+2. **La cohorte est du JSONB contraint.** La contrainte
+   `cohort_only_needs_and_archetypes` n'accepte que `needs` et `archetypeIds`.
+   Une clé `emails`, `city` ou `age` fait échouer l'insertion — le refus n'est
+   pas seulement applicatif.
+3. **Le consentement est une colonne horodatée**, écrite par le serveur. Un
+   retrait (`withdrawn_at`) exclut le membre des agrégats et reste compté.
+
+**Quatre propriétés testées.**
+
+1. **Le ciblage par personne est refusé nommément.** 19 clés (`emails`, `city`,
+   `age`, `userId`, `purchaseHistory`…) : la demande reçoit un 400 qui **liste
+   les clés refusées**. Une clé hors vocabulaire — même inoffensive comme
+   `budget` — est refusée aussi. Un refus silencieux laisserait croire que le
+   ciblage a fonctionné.
+2. **Le rapport ne reçoit que des effectifs.** `buildBrandTestReport` prend des
+   comptes, pas des lignes : il ne peut pas divulguer ce qu'il ne reçoit jamais.
+   Le banc sème 46 membres et vérifie qu'aucun de leurs identifiants n'apparaît
+   dans le rapport sérialisé.
+3. **k-anonymité à deux niveaux.** Cellule à 12 participants → absente du
+   rapport, comptée dans `suppressedCells`. Sous k au global → `signals: null`,
+   rien n'est publié. Le seuil est celui des cohortes d'archétypes (k = 30).
+4. **Le négatif compte autant que le positif.** 30 positifs et 4 négatifs sur la
+   même cellule : les 4 négatifs sont comptés et affichés. Un retrait fait passer
+   la cellule de 34 à 33 participants et retire sa déclaration positive.
+
+**Le vocabulaire des besoins est vivant.** `RECOGNIZED_NEED_CODES` (13 codes) vit
+à côté du matcher, et le banc exige qu'un profil maximal fasse correspondre
+**chacun** des 13 : un code ajouté à la liste sans branche dans
+`calculateKurlaFit` ferait échouer le banc.
+
+**Ce qui manque, explicitement**
+- **La migration `20260865` n'est pas appliquée** (comme `20260863` et
+  `20260864`) : en mode mémoire tout fonctionne, contre la base rien ne
+  fonctionnera tant que les trois migrations ne sont pas jouées.
+- **Aucun contrat ni facturation** : le critère de sortie du chantier F (« un
+  contrat marque signé ») n'est pas atteint. La demande est déposée et revue,
+  pas vendue.
+- **Aucun compte ne porte encore le rôle `brand`** : le rôle existe, est
+  attribuable par l'administration, et personne ne l'a.
+- **Aucune notification de recrutement** : un membre éligible n'est pas prévenu,
+  il doit aller sur l'écran des tests disponibles.
+- Aucun rendu navigateur vérifié pour `/marques` et `/marque/tests`.
+
+**Résultat 8.6c2 :** `tsc` exit 0, `npm test` exit 0 (**91 bancs**), build exit 0
+(`dist/server.cjs` 862,6 kb, `dist/marques/index.html` prérendu,
+`/marque/tests` correctement absent du prérendu), inventaire **201 routes**
+(+10), **210 méthodes** (+12), rien retiré, **25 routes statiques prérendues**
+(+1 : `/marques`).
+
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
 inchangées** (nom + arité), **49 appels réels** sur le store composé.
@@ -1367,7 +1436,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
   - [x] ~~**8.6a** Texture Gap Report (feature 30)~~ **FAIT (rapport) — la surface B2B reste à faire** : `src/lib/textureGap.ts` (cœur pur + `concernsFromProfile` + `aggregateTextureGap`), `src/lib/db/textureGapStore.ts` (lecture et agrégation), `GET /api/intelligence/texture-gap` **réservé à l'administration**, écran `/admin/texture-gap`, banc `tests/texture_gap.test.ts`. **La feature 30 passe en 🔶 partielle, pas en ✅** : le rapport existe et est k-anonyme, mais il n'y a ni compte B2B ni contrat encadrant la revente, et la couverture du catalogue est inconnue tant que `product_ingredients` est vide — le rapport rend donc `donnees_insuffisantes` plutôt que des angles morts.
   - [x] ~~**8.6b** API catalogue + scoring (feature 31)~~ **FAIT** — `src/server/routes/publicApi.ts` : 5 endpoints publics en lecture seule (`/api/v1/manifest`, `/api/v1/products`, `/api/v1/products/:idOrSlug`, `/api/v1/scoring/schema`, `POST /api/v1/scoring/fit`) + page publique indexable `/api-docs` (prérendue). **Scoring sans état** : le profil envoyé n'est enregistré nulle part, vérifié par l'état du store avant/après. Un score vaut `null` quand rien n'est déclaré — jamais 0, car 0 voudrait dire « mauvais produit ».
   - [x] ~~**8.6c1** Programme experts/créateurs (39) + rémunération au résultat (40)~~ **FAIT** — règles pures, store, 7 routes, migration `20260864`, page publique `/createurs`, 10 plans de vérification.
-  - [ ] **8.6c2** Espace marque et tests produits ciblés (41)
+  - [x] ~~**8.6c2** Espace marque et tests produits ciblés (41)~~ **FAIT** — rôle `brand`, règles pures, store 12 méthodes, 10 routes, migration `20260865`, pages `/marques` et `/marque/tests`, 10 plans de vérification.
 - [ ] **8.7** Application mobile
 
 - [x] ~~Tests Supabase réels A/B : 17 vérifications Phase 2 à 0 exécution~~ **LEVÉ** (action 46)
@@ -1398,7 +1467,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **90 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **91 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1417,6 +1486,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.6b** — inventaires | **184 routes** (+5 endpoints v1) · **187 méthodes** (inchangé) · **23 routes statiques prérendues** (+1 : `/api-docs`) |
 | **Chantier 8.6c1** — `tests/creator_program.test.ts` | PASS — 10 plans de vérification : clic/shelf/achat à 0, 1 000 clics → 0 centime, 10 résultats déclarés → 1 500 centimes, **même taux pour 10 positifs et 5 négatifs**, 70 % de négatifs → revue sans versement, budget en contrebande sans effet sur la visibilité, publication réservée aux profils vérifiés, visibilité comptée sur 3 contenus publiés et 4 résultats déclarés (11/100), règles du programme publiées sans compte |
 | **Chantier 8.6c1** — inventaires | **191 routes** (+7) · **198 méthodes** (+11) · **24 routes statiques prérendues** (+1 : `/createurs`), rien retiré |
+| **Chantier 8.6c2** — `tests/brand_test.test.ts` | PASS — 10 plans de vérification : 19 clés de ciblage personnel refusées nommément (plus toute clé hors vocabulaire), 13 codes de besoins vivants vérifiés contre le matcher, transitions (pas de recrutement sans acceptation, refus définitif), cellule à 12 participants absente (k=30), 20 participants → `signals: null`, 30 positifs et 4 négatifs comptés, retrait → 34→33 participants, membre hors cohorte refusé, aucun des 46 identifiants semés dans le rapport, 5 accès refusés sans compte |
+| **Chantier 8.6c2** — inventaires | **201 routes** (+10) · **210 méthodes** (+12) · **25 routes statiques prérendues** (+1 : `/marques`) · `/marque/tests` privé et non prérendu, rien retiré |
 | **Chantier 8.6a** — inventaires | **179 routes** (+1 : `GET /api/intelligence/texture-gap`) · **187 méthodes** (+1 : `getTextureGapReport`), rien retiré |
 | **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |

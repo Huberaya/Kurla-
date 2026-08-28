@@ -18,6 +18,8 @@ import type { AuthenticatedRequest, AuthenticatedUser } from './types';
 
 export const ADMIN_ROLES: UserRole[] = ['admin', 'superadmin'];
 export const SUPPORT_ROLES: UserRole[] = [...ADMIN_ROLES, 'support'];
+/** Une marque accède à ses tests, et à rien d'autre. */
+export const BRAND_ROLES: UserRole[] = [...ADMIN_ROLES, 'brand'];
 
 export function bearerToken(req: AuthenticatedRequest): string | null {
   const header = req.headers.authorization;
@@ -51,7 +53,7 @@ export async function authenticateRequest(req: AuthenticatedRequest): Promise<Au
 
       if (!profileError && profile?.role && ADMIN_ROLES.includes(profile.role as UserRole)) {
         role = profile.role as UserRole;
-      } else if (!profileError && profile?.role && ['professional', 'support', 'editor'].includes(profile.role)) {
+      } else if (!profileError && profile?.role && ['professional', 'support', 'editor', 'brand'].includes(profile.role)) {
         role = profile.role as UserRole;
       }
     }
@@ -82,6 +84,21 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response): Pr
   if (!user) return null;
   if (!ADMIN_ROLES.includes(user.role)) {
     res.status(403).json({ error: 'Accès administrateur requis.' });
+    return null;
+  }
+  return user;
+}
+
+/**
+ * CHANTIER 8.6c2 — accès marque. Un compte marque voit les tests qui lui
+ * appartiennent ; l'administration voit tout. Rien d'autre n'est ouvert : ce
+ * rôle ne donne accès ni aux profils, ni aux commandes, ni au catalogue.
+ */
+export async function requireBrand(req: AuthenticatedRequest, res: Response): Promise<AuthenticatedUser | null> {
+  const user = await requireUser(req, res);
+  if (!user) return null;
+  if (!BRAND_ROLES.includes(user.role)) {
+    res.status(403).json({ error: 'Accès marque requis.' });
     return null;
   }
   return user;

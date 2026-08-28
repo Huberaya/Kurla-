@@ -260,7 +260,7 @@ export interface CartItem {
   unitPrice?: number;
 }
 
-export type UserRole = 'customer' | 'professional' | 'support' | 'editor' | 'admin' | 'superadmin';
+export type UserRole = 'customer' | 'professional' | 'support' | 'editor' | 'brand' | 'admin' | 'superadmin';
 
 export interface UserProfile {
   id: string;

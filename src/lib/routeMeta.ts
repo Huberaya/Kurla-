@@ -351,6 +351,21 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/marques',
+    title: 'Espace marque : tests produits ciblés | KURLA',
+    description:
+      'Une marque teste un produit auprès des membres qui déclarent le besoin concerné. Le rapport est k-anonyme : aucun profil, aucune liste de participants, aucune donnée personnelle cédée.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.5,
+  },
+  {
+    path: '/marque/tests',
+    title: 'Mes tests produits | KURLA',
+    description: 'Suivi des tests produits de la marque et rapports k-anonymes.',
+    indexable: false,
+  },
+  {
     path: '/createurs',
     title: 'Programme experts et créateurs | KURLA',
     description:

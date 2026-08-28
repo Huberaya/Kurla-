@@ -28,6 +28,28 @@ function formatValue(value: string): string {
   return value.replaceAll('_', ' ');
 }
 
+/**
+ * Codes de besoins reconnus par `calculateKurlaFit`. La liste vit à côté du
+ * matcher : un code ajouté ici sans branche correspondante ne correspondrait à
+ * personne, et `tests/brand_test.test.ts` le détecte (un profil maximal doit
+ * faire correspondre chaque code de la liste).
+ */
+export const RECOGNIZED_NEED_CODES = [
+  'hydrater_cheveux',
+  'reduire_casse',
+  'definir_boucles',
+  'cuir_chevelu',
+  'entretenir_tresses',
+  'entretenir_locks',
+  'entretenir_perruque',
+  'proteger_nuit',
+  'protection_solaire',
+  'taches_hyperpigmentation',
+  'imperfections_acne',
+  'peau_sensible',
+  'hydrater_peau'
+] as const;
+
 export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> & { concerns?: string[] }, profile: BeautyProfile): KurlaFitResult {
   const needs = Array.from(new Set([...(product.needs || []), ...(product.concerns || [])]));
   const evidence: FitEvidence[] = [];

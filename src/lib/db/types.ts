@@ -285,6 +285,51 @@ export interface CreatorApplication {
   adminComment: string | null;
 }
 
+import type { BrandTestCohort, BrandTestStatus } from '../brandTest';
+
+/**
+ * CHANTIER 8.6c2 — demande de test produit par une marque.
+ *
+ * `brandUserId` rattache la demande à un compte portant le rôle `brand` : c'est
+ * ce rattachement, et lui seul, qui autorise la lecture du rapport.
+ */
+export interface BrandTestRequest {
+  id: string;
+  brandUserId: string;
+  brandName: string;
+  contactEmail: string;
+  productName: string;
+  productId: string | null;
+  hypothesis: string;
+  cohort: BrandTestCohort;
+  targetParticipants: number;
+  durationDays: number;
+  status: BrandTestStatus;
+  submittedAt: string;
+  adminComment: string | null;
+}
+
+/**
+ * Participation d'un membre. Le consentement est daté ; un retrait est daté
+ * aussi, et il retire les déclarations du membre des agrégats.
+ */
+export interface BrandTestParticipation {
+  id: string;
+  testId: string;
+  userId: string;
+  consentAt: string;
+  withdrawnAt: string | null;
+}
+
+/** Une déclaration de résultat. Aucune donnée de profil n'est copiée ici. */
+export interface BrandTestObservation {
+  id: string;
+  testId: string;
+  userId: string;
+  signal: string;
+  declaredAt: string;
+}
+
 export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
 
 export interface ProfessionalApplication {

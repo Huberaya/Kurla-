@@ -58,6 +58,9 @@ import type {
   OrderStatus,
   OrderStatusHistoryEntry,
   ProductSubscription,
+  BrandTestObservation,
+  BrandTestParticipation,
+  BrandTestRequest,
   CreatorApplication,
   ProfessionalApplication,
   ProfessionalApplicationStatus,
@@ -88,6 +91,7 @@ import * as adaptiveRoutineStore from './db/adaptiveRoutineStore';
 import * as aiSessionStore from './db/aiSessionStore';
 import * as professionalApplicationStore from './db/professionalApplicationStore';
 import * as creatorStore from './db/creatorStore';
+import * as brandTestStore from './db/brandTestStore';
 import * as shippingStore from './db/shippingStore';
 import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
@@ -138,6 +142,9 @@ export class SupabaseServerStore {
   public inMemoryProfessionalApplications: ProfessionalApplication[] = [];
   public inMemoryCreatorApplications: CreatorApplication[] = [];
   public inMemoryCreatorAttributions: Map<string, CreatorAttribution[]> = new Map();
+  public inMemoryBrandTestRequests: BrandTestRequest[] = [];
+  public inMemoryBrandTestParticipations: BrandTestParticipation[] = [];
+  public inMemoryBrandTestObservations: BrandTestObservation[] = [];
   public inMemoryProductReviews: MarketplaceReview[] = [];
   public inMemoryProductQuestions: MarketplaceQuestion[] = [];
   public inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
@@ -340,6 +347,7 @@ bindDomain(storeInstance, adaptiveRoutineStore);
 bindDomain(storeInstance, aiSessionStore);
 bindDomain(storeInstance, professionalApplicationStore);
 bindDomain(storeInstance, creatorStore);
+bindDomain(storeInstance, brandTestStore);
 bindDomain(storeInstance, shippingStore);
 bindDomain(storeInstance, returnsStore);
 bindDomain(storeInstance, adminStore);
@@ -361,6 +369,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof aiSessionStore>
   & Curried<typeof professionalApplicationStore>
   & Curried<typeof creatorStore>
+  & Curried<typeof brandTestStore>
   & Curried<typeof shippingStore>
   & Curried<typeof returnsStore>
   & Curried<typeof adminStore>
