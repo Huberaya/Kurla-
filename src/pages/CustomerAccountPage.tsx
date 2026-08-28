@@ -404,6 +404,12 @@ export const CustomerAccountPage: React.FC = () => {
             >
               <Sparkles className="w-4 h-4 text-[#C8753D]" /> Refaire Diagnostic
             </a>
+            <a
+              href="/account/donnees"
+              className="px-4 py-2.5 rounded-full bg-[#FFF7EF]/10 hover:bg-[#FFF7EF]/20 text-xs font-semibold text-[#FFF7EF] border border-[#FFF7EF]/20 transition-all flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-4 h-4" /> Vos données
+            </a>
             <button
               onClick={signOut}
               className="px-4 py-2.5 rounded-full bg-rose-950/40 hover:bg-rose-900/60 text-xs font-semibold text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5"

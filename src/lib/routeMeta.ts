@@ -308,6 +308,12 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/account/donnees',
+    title: 'Vos données | KURLA',
+    description: 'Exporter toutes vos données personnelles ou supprimer votre compte en un clic.',
+    indexable: false,
+  },
+  {
     path: '/account/kurla-id',
     title: 'KURLA ID | KURLA',
     description: 'Votre identité beauté consolidée.',

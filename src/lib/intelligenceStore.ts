@@ -1001,6 +1001,41 @@ class KurlaIntelligenceStore {
     );
   }
 
+  /**
+   * CHANTIER 9 (bloc A2) — suppression des données d'intelligence d'un membre.
+   *
+   * Le membre y est traité comme sujet, jamais comme ressource : étagère,
+   * résultats déclarés, épisodes de coiffure protectrice, cycle de lavage,
+   * archétype dérivé, avis et co-signatures où il figure comme cliente. Rien
+   * n'est conservé « au cas où ».
+   */
+  public async deleteIntelligenceUserData(userId: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const tables: Array<[string, string]> = [
+        ['outcome_observations', 'user_id'],
+        ['user_products', 'user_id'],
+        ['protective_style_episodes', 'user_id'],
+        ['wash_day_cycles', 'user_id'],
+        ['user_archetypes', 'user_id'],
+        ['reviews', 'user_id'],
+        ['professional_endorsements', 'client_user_id']
+      ];
+      for (const [table, column] of tables) {
+        // Meilleure volonté : une table absente ne doit pas interrompre la
+        // suppression du reste (le droit à l'effacement prime).
+        await supabase.from(table).delete().eq(column, userId).then(() => undefined, () => undefined);
+      }
+    }
+    this.shelf.delete(userId);
+    this.outcomes.delete(userId);
+    this.episodes.delete(userId);
+    this.userArchetype.delete(userId);
+    this.washDayCycles.delete(userId);
+    this.reviews.delete(userId);
+    this.endorsements = this.endorsements.filter(item => item.clientUserId !== userId);
+  }
+
   public getProfessionalImpact(professionalId: string, endorsements: ProfessionalEndorsement[]): EndorsementImpact {
     return summarizeEndorsements(professionalId, endorsements);
   }

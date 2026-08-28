@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../components/ProtectedRoute';
 import type { Product, ProductVariant, UserRole } from '../types';
 
 // Pages
+import PrivacyPage from '../pages/PrivacyPage';
 import { HomePage } from '../pages/HomePage';
 import { DiagnosticHairPage } from '../pages/DiagnosticHairPage';
 import { DiagnosticSkinPage } from '../pages/DiagnosticSkinPage';
@@ -182,6 +183,7 @@ export const ROUTES: RouteEntry[] = [
 
   // Espace compte
   { path: '/account', auth: {}, render: () => <CustomerAccountPage /> },
+  { path: '/account/donnees', auth: {}, render: () => <PrivacyPage /> },
   { path: '/account/kurla-id', auth: {}, render: () => <KurlaIdPage /> },
   { path: '/account/hair-id', auth: {}, render: () => <HairIdPage /> },
   { path: '/account/skin-id', auth: {}, render: () => <SkinIdPage /> },
