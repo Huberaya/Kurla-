@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, Sparkles, Droplet, Shield, Heart, Sun, Feather, Scissors, UserCheck, Baby } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HERO_IMAGE, PROTECTIVE_IMAGE, MELANIN_SKIN_IMAGE, KIDS_CARE_IMAGE, MEN_GROOMING_IMAGE } from '../data/mockData';
+import { HERO_IMAGE, PROTECTIVE_IMAGE, MELANIN_SKIN_IMAGE, KIDS_CARE_IMAGE, MEN_GROOMING_IMAGE } from '../data/images';
 import { Reveal } from './motion/Reveal';
 
 interface NeedCard {

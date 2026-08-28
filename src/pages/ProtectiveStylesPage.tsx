@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, AlertTriangle, HeartHandshake } from 'lucide-react';
-import { PROTECTIVE_IMAGE } from '../data/mockData';
+import { PROTECTIVE_IMAGE } from '../data/images';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath } from '../lib/i18n';
 

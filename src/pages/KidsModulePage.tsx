@@ -1,6 +1,6 @@
 import React from 'react';
 import { Heart, Sparkles, CheckCircle2, ShieldCheck, ArrowRight, BookOpen, Clock, AlertTriangle } from 'lucide-react';
-import { KIDS_CARE_IMAGE } from '../data/mockData';
+import { KIDS_CARE_IMAGE } from '../data/images';
 
 export const KidsModulePage: React.FC = () => {
   return (

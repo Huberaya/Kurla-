@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, HeartHandshake, Bot, Play, Pause, Scissors, Volume2, VolumeX, Maximize2, Film } from 'lucide-react';
 import { motion } from 'motion/react';
-import { HERO_VIDEO_FRAME } from '../data/mockData';
+import { HERO_VIDEO_FRAME } from '../data/images';
 import { Reveal } from './motion/Reveal';
 
 export const HeroSection: React.FC = () => {

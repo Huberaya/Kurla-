@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { serverDb } from '../src/lib/serverDb';
-import { MOCK_PRODUCTS } from '../src/data/mockData';
+import { SEED_PRODUCTS } from './fixtures/seedProducts';
 import { getSupabaseClient } from '../src/lib/supabaseClient';
 import { runPhase2AuthTests } from './supabase_auth.test';
 import { runPhase3CartOrderTests } from './phase3_cart_orders.test';
@@ -101,7 +101,7 @@ async function runTests() {
   console.log('[PASS] 1. Supabase schema migrations, explicit hardening, refund integrity, cart/order integrity, operations integrity and demo seed SQL files validated.');
 
   // 2. Initialize Persistent Product Catalog
-  await serverDb.initialize(MOCK_PRODUCTS);
+  await serverDb.initialize(SEED_PRODUCTS);
   const products = await serverDb.getProducts();
   if (products.length === 0) {
     throw new Error('Test Failed: Product catalog is empty!');

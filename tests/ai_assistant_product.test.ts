@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { serverDb } from '../src/lib/serverDb';
-import { MOCK_PRODUCTS } from '../src/data/mockData';
+import { SEED_PRODUCTS } from './fixtures/seedProducts';
 import { KURLA_KNOWLEDGE_BASE, selectKnowledgeCards } from '../src/lib/ai/knowledgeBase';
 import { readServerSources } from './support/serverSources';
 
 async function run() {
-  await serverDb.initialize(MOCK_PRODUCTS);
+  await serverDb.initialize(SEED_PRODUCTS);
   const owner = '11111111-1111-4111-8111-111111111111';
   const other = '22222222-2222-4222-8222-222222222222';
 

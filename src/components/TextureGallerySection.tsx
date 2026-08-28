@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TEXTURE_GALLERY } from '../data/mockData';
+import { TEXTURE_GALLERY } from '../data/images';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 export const TextureGallerySection: React.FC = () => {

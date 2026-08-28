@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ShieldCheck, Check, Heart, Sun, Feather, Scissors, Droplets } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../../data/mockData';
+import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../../data/images';
 import { Reveal } from '../motion/Reveal';
 
 export const HairSkinSection: React.FC = () => {

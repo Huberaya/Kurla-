@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, UserCheck, Baby, ShieldAlert, Sparkles, Check, Users } from 'lucide-react';
-import { MEN_GROOMING_IMAGE, KIDS_CARE_IMAGE } from '../../data/mockData';
+import { MEN_GROOMING_IMAGE, KIDS_CARE_IMAGE } from '../../data/images';
 import { Reveal } from '../motion/Reveal';
 
 export const KidsMenSection: React.FC = () => {

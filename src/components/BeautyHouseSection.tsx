@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowUpRight, BookOpen } from 'lucide-react';
-import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../data/mockData';
+import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../data/images';
 
 export const BeautyHouseSection: React.FC = () => {
   return (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, Scissors, ShieldCheck, ArrowRight } from 'lucide-react';
-import { MEN_GROOMING_IMAGE } from '../data/mockData';
+import { MEN_GROOMING_IMAGE } from '../data/images';
 
 export const MenGroomingPage: React.FC = () => {
   return (

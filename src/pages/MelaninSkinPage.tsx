@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sun, Sparkles, AlertCircle } from 'lucide-react';
-import { MELANIN_SKIN_IMAGE } from '../data/mockData';
+import { MELANIN_SKIN_IMAGE } from '../data/images';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath } from '../lib/i18n';
 
