@@ -8,6 +8,7 @@ import {
   isPromotionActive,
   isPublishableProduct,
   isUuid,
+  recordLoyaltySafely,
   toPublicProduct,
 } from './internal';
 
@@ -220,7 +221,7 @@ export async function getProductReviews(store: SupabaseServerStore, productId: s
     return store.inMemoryProductReviews.filter(review => review.productId === productId && review.status === 'approved' && review.verifiedPurchase);
   }
 
-export async function createProductReview(store: SupabaseServerStore, userId: string, productId: string, rating: number, comment: string, title?: string, variantId?: string): Promise<MarketplaceReview> {
+async function createProductReviewInner(store: SupabaseServerStore, userId: string, productId: string, rating: number, comment: string, title?: string, variantId?: string): Promise<MarketplaceReview> {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5 || !comment.trim() || comment.trim().length > 4000) {
       throw new Error('Un avis doit contenir une note de 1 à 5 et un commentaire valide.');
     }
@@ -268,7 +269,7 @@ export async function getProductQuestions(store: SupabaseServerStore, productId:
     return store.inMemoryProductQuestions.filter(question => question.productId === productId && question.answer);
   }
 
-export async function createProductQuestion(store: SupabaseServerStore, userId: string, productId: string, question: string, email?: string): Promise<MarketplaceQuestion> {
+async function createProductQuestionInner(store: SupabaseServerStore, userId: string, productId: string, question: string, email?: string): Promise<MarketplaceQuestion> {
     const value = question.trim();
     if (value.length < 5 || value.length > 1000) throw new Error('La question doit contenir entre 5 et 1 000 caractères.');
     const published = (await getProducts(store, { publishedOnly: true })).some(product => product.id === productId);
@@ -888,3 +889,16 @@ export async function updateCatalogStatus(store: SupabaseServerStore, productId:
     const product = store.inMemoryProducts.find(item => item.id === productId);
     if (product) product.catalog_status = status;
   }
+
+/** Un avis publié fait progresser — davantage s'il est adossé à un achat réglé. */
+export async function createProductReview(store: SupabaseServerStore, userId: string, productId: string, rating: number, comment: string, title?: string, variantId?: string): Promise<MarketplaceReview> {
+  const review = await createProductReviewInner(store, userId, productId, rating, comment, title, variantId);
+  await recordLoyaltySafely(store, userId, review.verifiedPurchase ? 'review_verified' : 'review_unverified', review.id);
+  return review;
+}
+
+export async function createProductQuestion(store: SupabaseServerStore, userId: string, productId: string, question: string, email?: string): Promise<MarketplaceQuestion> {
+  const questionRecord = await createProductQuestionInner(store, userId, productId, question, email);
+  await recordLoyaltySafely(store, userId, 'question_asked', questionRecord.id);
+  return questionRecord;
+}

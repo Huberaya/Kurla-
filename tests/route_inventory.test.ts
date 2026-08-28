@@ -99,6 +99,23 @@ async function main(): Promise<void> {
     .map(route => `${route.method} ${route.path}`)
     .sort((a, b) => a.localeCompare(b));
 
+  // Régénération volontaire : KURLA_UPDATE_FIXTURE=1, quand une fonctionnalité
+  // ajoute des routes (chantier 8.3). Le banc affiche exactement ce qui change :
+  // mettre à jour la référence reste un acte conscient, pas un réflexe.
+  if (process.env.KURLA_UPDATE_FIXTURE === '1') {
+    const previous = existsSync(FIXTURE)
+      ? (JSON.parse(readFileSync(FIXTURE, 'utf8')) as { routes: string[] }).routes
+      : [];
+    const removed = previous.filter(entry => !inventory.includes(entry));
+    const added = inventory.filter(entry => !previous.includes(entry));
+    writeFileSync(FIXTURE, `${JSON.stringify({ generatedAt: new Date().toISOString(), routes: inventory }, null, 2)}\n`);
+    console.log(
+      `[PASS] Inventaire des routes mis à jour : ${inventory.length} routes. ` +
+        `Ajoutées : ${added.join(', ') || 'aucune'}. Retirées : ${removed.join(', ') || 'aucune'}.`
+    );
+    return;
+  }
+
   if (!existsSync(FIXTURE)) {
     mkdirSync(path.dirname(FIXTURE), { recursive: true });
     writeFileSync(FIXTURE, `${JSON.stringify({ generatedAt: new Date().toISOString(), routes: inventory }, null, 2)}\n`);

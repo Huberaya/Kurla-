@@ -341,3 +341,50 @@ export interface StripeEventLog {
   orderId?: string;
   error?: string;
 }
+
+// ---------------------------------------------------------------------------
+// CHANTIER 8.3 — KURLA PROGRESSION (loyalty par progression)
+// ---------------------------------------------------------------------------
+
+export interface LoyaltyAccountRecord {
+  userId: string;
+  level: number;
+  progressionScore: number;
+  axisScores: Record<string, number>;
+  badges: string[];
+  firstActivityAt: string;
+  lastActivityAt: string | null;
+}
+
+export interface LoyaltyEventRecord {
+  id: string;
+  userId: string;
+  kind: string;
+  axis: string;
+  points: number;
+  sourceRef?: string;
+  dedupeKey: string;
+  occurredAt: string;
+}
+
+export interface LoyaltyRedemptionRecord {
+  id: string;
+  userId: string;
+  rewardCode: string;
+  status: 'requested' | 'granted' | 'cancelled';
+  note?: string;
+  createdAt: string;
+  handledAt?: string | null;
+  handledBy?: string | null;
+}
+
+export interface LoyaltyRetentionCohort {
+  cohortWeek: string;
+  cohortSize: number;
+  activeD30: number;
+  activeD60: number;
+  activeD90: number;
+  rateD30: number | null;
+  rateD60: number | null;
+  rateD90: number | null;
+}

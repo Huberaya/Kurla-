@@ -49,7 +49,9 @@ import type {
   CustomerRefund,
   CustomerReturn,
   CustomerReturnEvent,
-  MarketplaceQuestion,
+  LoyaltyAccountRecord,
+  LoyaltyEventRecord,
+  LoyaltyRedemptionRecord,  MarketplaceQuestion,
   MarketplaceReview,
   NotificationDeliveryLog,
   NotificationPreference,
@@ -90,6 +92,7 @@ import * as catalogStore from './db/catalogStore';
 import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
+import * as loyaltyStore from './db/loyaltyStore';
 import { mapRefundRow } from './db/refundSupport';
 
 
@@ -165,6 +168,8 @@ export class SupabaseServerStore {
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
+  public recordAdminAudit!: Curried<typeof adminStore>['recordAdminAudit'];
+  public applyLoyaltyEvent!: Curried<typeof loyaltyStore>['applyLoyaltyEvent'];
 
   public localStockOperation: Promise<void> = Promise.resolve();
 
@@ -218,6 +223,12 @@ export class SupabaseServerStore {
   public inMemoryAdminCoupons: any[] = [];
   public inMemoryAdminSearchEvents: Array<{ id: string; query: string; resultCount: number; country?: string; userId?: string; createdAt: string }> = [];
   public inMemoryAdminAiUsageEvents: Array<{ id: string; requestType: string; succeeded: boolean; userId?: string; createdAt: string }> = [];
+  // CHANTIER 8.3 — KURLA PROGRESSION (repli mémoire ; avec Supabase, la RPC
+  // apply_loyalty_event est la seule source de vérité)
+  public inMemoryLoyaltyAccounts: Map<string, LoyaltyAccountRecord> = new Map();
+  public inMemoryLoyaltyEvents: LoyaltyEventRecord[] = [];
+  public inMemoryLoyaltyRedemptions: LoyaltyRedemptionRecord[] = [];
+
   public processedEventsSet: Set<string> = new Set();
   private isInitialized: boolean = false;
 
@@ -315,6 +326,7 @@ bindDomain(storeInstance, catalogStore);
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);
 bindDomain(storeInstance, orderStore);
+bindDomain(storeInstance, loyaltyStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -330,4 +342,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof catalogStore>
   & Curried<typeof contentStore>
   & Curried<typeof inventoryStore>
-  & Curried<typeof orderStore>;
+  & Curried<typeof orderStore>
+  & Curried<typeof loyaltyStore>;

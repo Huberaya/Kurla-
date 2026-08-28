@@ -19,10 +19,23 @@ export interface Phase7TestResult {
  * classe ou déjà une fonction de module de domaine. Renvoie '' si absente : les
  * assertions en aval échouent alors explicitement au lieu de valider du vide.
  */
+/**
+ * Le cycle de commande peut être enveloppé : depuis le chantier 8.3,
+ * `updateOrderStatus` délègue à `updateOrderStatusInner` et ajoute un fait de
+ * progression. Le banc examine donc la fonction ET son enveloppe, concaténées :
+ * la délégation au RPC doit se trouver dans l'une, et aucune écriture
+ * indépendante de stock dans aucune des deux.
+ */
 function sliceFunction(source: string, name: string): string {
+  return [name, `${name}Inner`].map(candidate => sliceOne(source, candidate)).join('\n');
+}
+
+function sliceOne(source: string, name: string): string {
   const headers = [
     `export async function ${name}(`,
     `export function ${name}(`,
+    `async function ${name}(`,
+    `function ${name}(`,
     `  public async ${name}(`,
     `  public ${name}(`,
     `  private async ${name}(`

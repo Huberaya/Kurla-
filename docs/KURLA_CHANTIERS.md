@@ -985,6 +985,82 @@ vérifie son historique, et **asserte que la porte de confiance refuse un avis
 vérifié sans achat réglé** — ce refus est d'ailleurs ce qu'elle a renvoyé en
 premier, preuve que la règle métier survit au découpage.
 
+#### 8.3 — KURLA PROGRESSION (livré)
+
+**Le critère de sortie du chantier E est une phrase** : « un utilisateur qui ne
+commande pas progresse et est récompensé ». Plutôt que de l'afficher, le barème la
+rend vraie mécaniquement, et `tests/loyalty_progression.test.ts` la vérifie dans
+les deux sens :
+
+| Membre simulé | Points | Niveau |
+| --- | --- | --- |
+| Six semaines d'activité, **aucune commande** (profil, archétype, scans, avis vérifiés, questions, retours, journal, tâches, résultats observés) | **360** | **5 — Expertise** |
+| **Douze commandes réglées**, rien d'autre | **80** | **2 — Routine** |
+
+La différence tient à un seul nombre : l'axe achat est plafonné à **80 points sur
+460**, sous le seuil du niveau 3 (140). Acheter beaucoup ne peut donc pas, à soi
+seul, faire monter d'un niveau — et le test l'asserte sur les nombres, pas sur une
+promesse d'écran.
+
+**Ce qui compte comme un fait.** Treize faits non marchands (profil complété,
+archétype identifié, préférences, tâche de routine, entrée de journal, cycle wash
+day, résultat observé, avis vérifié ou non, question, retour de routine, retour
+sur l'assistant, scan) et un seul fait marchand (commande réglée). Chaque fait a
+un plafond journalier : on ne farme pas en répétant le même geste.
+
+**Infalsifiable par construction.** Aucune politique RLS n'autorise l'INSERT ou
+l'UPDATE sur `loyalty_events` et `loyalty_accounts` : les points passent
+exclusivement par la RPC `apply_loyalty_event` (SECURITY DEFINER), qui applique
+plafonds, idempotence (`dedupe_key UNIQUE`), niveau et badges dans la même
+transaction. Le banc vérifie l'absence de ces politiques.
+
+**Récompenses.** Quatre récompenses réelles (accès anticipé, diagnostic
+approfondi avec un professionnel, atelier en ligne, séance de conseil
+individuelle), débloquées par **niveau** — aucune ne s'achète avec des points, et
+leur demande crée un dossier que l'administration honore (`granted`/`cancelled`,
+journalisé dans l'audit admin).
+
+**Rétention mesurée, jamais inventée.** `get_loyalty_retention()` calcule des
+cohortes hebdomadaires D30/D60/D90 ; une cohorte dont la fenêtre n'est pas
+écoulée renvoie **NULL** plutôt qu'un pourcentage. Sans trafic réel, la route
+admin renvoie une liste vide et le dit.
+
+**Vérification sur la base réelle** (`qzwgsarfdegqtfdnqiql`, migration appliquée) :
+`profile_completed` → 40 points ; rejeu de la même clé → `duplicated: true`, 0
+point ; 6 commandes → axe achat **80** (les commandes 5 et 6 créditent 0) ; 10
+scans le même jour → axe exploration **15** (plafond journalier) ; fait inconnu →
+exception ; `get_loyalty_retention()` exécutable. Deux défauts SQL n'existaient
+que là et ont été corrigés : une variable non déclarée dans la RPC
+(`v_dedupe_key`) et un `GROUP BY` incomplet — invisibles à la création de la
+fonction, visibles au premier appel. Données de sonde supprimées ensuite
+(0 événement, 0 compte).
+
+**Deux bancs ont cassé, et c'étaient les bancs qui avaient tort.**
+`phase7_atomic_stock` découpait le texte de `serverDb.ts` pour vérifier la
+délégation au RPC de stock : l'enveloppe ajoutée par 8.3 (`updateOrderStatus` →
+`updateOrderStatusInner`) lui faisait lire l'enveloppe vide. Il examine désormais
+la fonction **et** son enveloppe. Les inventaires de routes et de méthodes ont
+gagné un mode de régénération explicite (`KURLA_UPDATE_FIXTURE=1`) qui affiche ce
+qui change : **172 routes** (+9), **175 méthodes** (+9), rien de retiré.
+
+**Résultat 8.3 :** `tsc` exit 0, `npm test` exit 0 (**85 bancs**), build exit 0
+(`dist/server.cjs` 733,0 kb), migration appliquée et RPC vérifiée en base réelle.
+
+**Ce qui manque, explicitement**
+- L'**écran de scan** (action 33) n'existe pas : l'ingestion
+  (`POST /api/loyalty/scan`) est prête et récompensée, la capture du code-barres
+  reste à construire.
+- Le fait `review_unverified` est prévu au barème mais ne se déclenche pas
+  aujourd'hui : le dépôt d'avis exige déjà un achat réglé, donc tous les avis
+  passent par `review_verified`. Le code choisit le fait selon
+  `verifiedPurchase`, pas selon une hypothèse.
+- La **rétention à 90 jours** est instrumentée, pas mesurée : il faut du trafic
+  réel et 95 jours d'horloge. Le chiffre n'existe pas encore, et aucun taux n'est
+  affiché à sa place.
+- `wash_day_completed` et `outcome_observed` sont émis par le barème mais pas
+  encore branchés sur les écrans wash day / observation : les faits existent,
+  leur déclenchement automatique reste à câbler.
+
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
 inchangées** (nom + arité), **49 appels réels** sur le store composé.
@@ -1008,7 +1084,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.2a** Filet + premiers domaines sortis de `serverDb.ts`~~ **FAIT** — inventaire runtime des **166 méthodes** (nom + arité) figé dans `tests/fixtures/store_api_inventory.json` ; composition `src/lib/db/bind.ts` (`bindDomain` + type `Curried`, arité préservée) ; **4 domaines extraits** dans `src/lib/db/` : notifications/e-mail (562 l.), support (446 l.), famille (269 l.), profil beauté (184 l.) ; aides partagées dans `internal.ts` ; sonde d'exécution `tests/store_composition.test.ts` (**21 méthodes réellement appelées**). `serverDb.ts` : **6 240 → 4 906 lignes**.
 - [x] ~~**8.2b** Domaines restants de `serverDb.ts`~~ **FAIT (hors catalogue et commandes)** — six modules de plus : administration/contenu/analytique + idempotence des webhooks (679 l.), retours/remboursements (797 l.), livraison (388 l.), routines adaptatives (311 l.), sessions de l'assistant IA (161 l.), candidatures professionnelles (128 l.). **`serverDb.ts` : 4 906 → 2 492 lignes** (6 240 au départ du chantier, **−60 %**).
 - [x] ~~**8.2c** Catalogue, commandes, inventaire, contenus et types~~ **FAIT** — `catalogStore.ts` (890 l.), `orderStore.ts` (769 l.), `inventoryStore.ts` (111 l.), `contentStore.ts` (54 l.) ; les 27 déclarations de types partent dans `types.ts` (343 l., réexportées par `serverDb.ts` : aucun import existant n'a bougé) ; les aides pures (`toPublicProduct`, `isPublishableProduct`, `effectiveCatalogPrice`, `isPromotionActive`, `emailTemplateForOrderStatus`) rejoignent `internal.ts`. **`serverDb.ts` : 2 492 → 333 lignes** — il ne reste que l'état, le verrou de stock, `initialize`, `getStatusSummary`, la surface composée et l'assemblage. **Bilan du chantier 8.2 : 6 240 → 333 lignes (−95 %), quatorze domaines.**
-- [ ] **8.3** Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
+- [x] ~~**8.3** Loyalty par progression + récompense des comportements non-marchands~~ **FAIT** — `KURLA PROGRESSION` : cinq axes **plafonnés** (connaissance 100, pratique 120, contribution 100, exploration 60, **achat 80** sur 460), 14 faits dont 13 non marchands, 5 niveaux, 6 badges dérivés des faits, 4 récompenses **débloquées par niveau et jamais achetées avec des points**. Migration `20260862000000_loyalty_progression.sql` (8 tables, RPC `apply_loyalty_event` atomique et idempotente, RPC `get_loyalty_retention` par cohorte D30/D60/D90, 15 politiques RLS, **aucune écriture directe possible dans le journal**) ; domaine `src/lib/db/loyaltyStore.ts` (9 méthodes) ; 9 routes ; écran `/account/progression`. **Migration appliquée sur la base réelle et RPC vérifiée par ses valeurs.**
 - [ ] **8.4** Beauty Journey : narration de l'évolution
 - [ ] **8.5** Abonnement KURLA+
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement

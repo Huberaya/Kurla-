@@ -344,6 +344,13 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/account/progression',
+    title: 'KURLA Progression | KURLA',
+    description:
+      'Cinq axes plafonnés, dont l’achat : scanner, tenir sa routine et donner un avis font progresser. Les récompenses se débloquent par niveau.',
+    indexable: false,
+  },
+  {
     path: '/account/shelf',
     title: 'Mon étagère | KURLA',
     description: 'Les produits que vous utilisez, leur verdict et leur réapprovisionnement.',

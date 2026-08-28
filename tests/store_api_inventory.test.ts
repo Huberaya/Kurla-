@@ -60,6 +60,24 @@ async function main(): Promise<void> {
     assert.ok(api.some(entry => entry.startsWith(`${required}/`)), `Méthode critique absente du store : ${required}`);
   }
 
+  // Régénération volontaire : KURLA_UPDATE_FIXTURE=1. À utiliser quand une
+  // fonctionnalité ajoute des méthodes au store (chantier 8.3 par exemple). Le
+  // banc affiche alors exactement ce qui change, pour que la mise à jour de la
+  // référence reste un acte conscient et non un réflexe.
+  if (process.env.KURLA_UPDATE_FIXTURE === '1') {
+    const previous = existsSync(FIXTURE)
+      ? (JSON.parse(readFileSync(FIXTURE, 'utf8')) as { methods: string[] }).methods
+      : [];
+    const removed = previous.filter(entry => !api.includes(entry));
+    const added = api.filter(entry => !previous.includes(entry));
+    writeFileSync(FIXTURE, `${JSON.stringify({ generatedAt: new Date().toISOString(), methods: api }, null, 2)}\n`);
+    console.log(
+      `[PASS] Inventaire de référence mis à jour : ${api.length} méthodes. ` +
+        `Ajoutées : ${added.join(', ') || 'aucune'}. Retirées ou arité modifiée : ${removed.join(', ') || 'aucune'}.`
+    );
+    return;
+  }
+
   if (!existsSync(FIXTURE)) {
     mkdirSync(path.dirname(FIXTURE), { recursive: true });
     writeFileSync(FIXTURE, `${JSON.stringify({ generatedAt: new Date().toISOString(), methods: api }, null, 2)}\n`);

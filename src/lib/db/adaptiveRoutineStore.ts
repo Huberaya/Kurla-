@@ -12,7 +12,7 @@ import {
   normalizeWeatherContext,
 } from '../adaptiveRoutine';
 import { getSupabaseServerClient } from '../supabaseClient';
-import { ensureDatabaseSuccess } from './internal';
+import { ensureDatabaseSuccess, recordLoyaltySafely } from './internal';
 // Appel inter-domaine : le plan de routine se nourrit du profil beauté.
 import { getBeautyProfile } from './beautyProfileStore';
 
@@ -196,7 +196,7 @@ export async function saveAdaptiveRoutine(store: SupabaseServerStore, userId: st
     return persistAdaptiveRoutine(store, plan, current.tasks);
   }
 
-export async function updateAdaptiveRoutineTask(store: SupabaseServerStore, userId: string, taskId: string, status: 'pending' | 'completed' | 'skipped'): Promise<RoutineTask | undefined> {
+async function updateAdaptiveRoutineTaskInner(store: SupabaseServerStore, userId: string, taskId: string, status: 'pending' | 'completed' | 'skipped'): Promise<RoutineTask | undefined> {
     const state = await getAdaptiveRoutineState(store, userId);
     const task = state.tasks.find(item => item.id === taskId);
     if (!task) return undefined;
@@ -226,7 +226,7 @@ export async function updateAdaptiveRoutineTask(store: SupabaseServerStore, user
     return updated;
   }
 
-export async function recordRoutineFeedback(store: SupabaseServerStore, userId: string, input: { signal: unknown; note?: unknown; productLabel?: unknown; observedAt?: unknown }): Promise<{ feedback: RoutineFeedback; plan: AdaptiveRoutinePlan }> {
+async function recordRoutineFeedbackInner(store: SupabaseServerStore, userId: string, input: { signal: unknown; note?: unknown; productLabel?: unknown; observedAt?: unknown }): Promise<{ feedback: RoutineFeedback; plan: AdaptiveRoutinePlan }> {
     const signal = normalizeRoutineFeedbackSignal(input.signal);
     if (!signal) throw new Error('Observation de routine inconnue.');
     const current = await getAdaptiveRoutineState(store, userId);
@@ -273,7 +273,7 @@ export function validateRoutineMetrics(store: SupabaseServerStore, metrics: unkn
     return output;
   }
 
-export async function createProgressJournalEntry(store: SupabaseServerStore, userId: string, input: { entryDate?: unknown; note?: unknown; signals?: unknown; metrics?: unknown; productsUsed?: unknown }): Promise<{ entry: RoutineJournalEntry; plan: AdaptiveRoutinePlan }> {
+async function createProgressJournalEntryInner(store: SupabaseServerStore, userId: string, input: { entryDate?: unknown; note?: unknown; signals?: unknown; metrics?: unknown; productsUsed?: unknown }): Promise<{ entry: RoutineJournalEntry; plan: AdaptiveRoutinePlan }> {
     const current = await getAdaptiveRoutineState(store, userId);
     const plan = current.plan || await saveAdaptiveRoutine(store, userId, {});
     const entryDate = typeof input.entryDate === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(input.entryDate) ? input.entryDate : new Date().toISOString().slice(0, 10);
@@ -332,3 +332,23 @@ export async function deleteAdaptiveRoutineData(store: SupabaseServerStore, user
     store.inMemoryRoutineFeedback.delete(userId);
     store.inMemoryRoutineJournal.delete(userId);
   }
+
+export async function updateAdaptiveRoutineTask(store: SupabaseServerStore, userId: string, taskId: string, status: 'pending' | 'completed' | 'skipped'): Promise<RoutineTask | undefined> {
+  const task = await updateAdaptiveRoutineTaskInner(store, userId, taskId, status);
+  if (status === 'completed' && task) {
+    await recordLoyaltySafely(store, userId, 'routine_task_done', task.id, `routine_task_done:${taskId}:${new Date().toISOString().slice(0, 10)}`);
+  }
+  return task;
+}
+
+export async function recordRoutineFeedback(store: SupabaseServerStore, userId: string, input: { signal: unknown; note?: unknown; productLabel?: unknown; observedAt?: unknown }): Promise<{ feedback: RoutineFeedback; plan: AdaptiveRoutinePlan }> {
+  const result = await recordRoutineFeedbackInner(store, userId, input);
+  await recordLoyaltySafely(store, userId, 'routine_feedback', (result.feedback as any)?.id);
+  return result;
+}
+
+export async function createProgressJournalEntry(store: SupabaseServerStore, userId: string, input: { entryDate?: unknown; note?: unknown; signals?: unknown; metrics?: unknown; productsUsed?: unknown }): Promise<{ entry: RoutineJournalEntry; plan: AdaptiveRoutinePlan }> {
+  const result = await createProgressJournalEntryInner(store, userId, input);
+  await recordLoyaltySafely(store, userId, 'journal_entry', (result.entry as any)?.id);
+  return result;
+}

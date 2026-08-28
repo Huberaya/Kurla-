@@ -31,6 +31,7 @@ import { SkinIdPage } from '../pages/SkinIdPage';
 import { RoutineIdPage } from '../pages/RoutineIdPage';
 import { RoutineTrackerPage } from '../pages/RoutineTrackerPage';
 import { ProgressJournalPage } from '../pages/ProgressJournalPage';
+import { ProgressionPage } from '../pages/ProgressionPage';
 import { SavedPage } from '../pages/SavedPage';
 import { KidsModulePage } from '../pages/KidsModulePage';
 import { ProtectiveStylesPage } from '../pages/ProtectiveStylesPage';
@@ -167,6 +168,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/account/routine-id', auth: {}, render: () => <RoutineIdPage /> },
   { path: '/account/routine-tracker', auth: {}, render: () => <RoutineTrackerPage /> },
   { path: '/account/progress', auth: {}, render: () => <ProgressJournalPage /> },
+  { path: '/account/progression', auth: {}, render: () => <ProgressionPage /> },
   { path: '/account/shelf', auth: {}, render: () => <ShelfPage /> },
   { path: '/account/wash-day', auth: {}, render: () => <WashDayPage /> },
   { path: '/account/protective-timeline', auth: {}, render: () => <ProtectiveTimelinePage /> },

@@ -55,6 +55,7 @@ import { registerRecommendationRoutes } from './src/server/routes/recommendation
 import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGovernance';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
+import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -1038,6 +1039,7 @@ registerCatalogGovernanceRoutes(app);
 registerAiAssistantRoutes(app);
 registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);
+registerLoyaltyRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS

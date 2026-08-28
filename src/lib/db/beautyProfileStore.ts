@@ -9,7 +9,7 @@ import {
   normalizeBeautyProfile,
 } from '../beautyProfile';
 import { getSupabaseServerClient } from '../supabaseClient';
-import { ensureDatabaseSuccess } from './internal';
+import { ensureDatabaseSuccess, recordLoyaltySafely } from './internal';
 
 import type { SupabaseServerStore } from '../serverDb';
 
@@ -38,7 +38,7 @@ export async function getBeautyProfile(store: SupabaseServerStore, userId: strin
     return store.inMemoryBeautyProfiles.get(userId);
   }
 
-export async function saveBeautyProfile(store: SupabaseServerStore, userId: string, input: unknown, source = 'user'): Promise<BeautyProfileRecord> {
+async function saveBeautyProfileInner(store: SupabaseServerStore, userId: string, input: unknown, source = 'user'): Promise<BeautyProfileRecord> {
     const profile = normalizeBeautyProfile(input);
     const confidence = calculateProfileConfidence(profile);
     const now = new Date().toISOString();
@@ -182,3 +182,12 @@ export async function deleteBeautyProfile(store: SupabaseServerStore, userId: st
   // ============================================================
   // FAMILY PROFILES, CHILD SAFETY & SHARED PLANS
   // ============================================================
+
+/** Profil suffisamment renseigné (60 % des champs connus) : la personnalisation devient fiable. */
+export async function saveBeautyProfile(store: SupabaseServerStore, userId: string, input: unknown, source = 'user'): Promise<BeautyProfileRecord> {
+  const record = await saveBeautyProfileInner(store, userId, input, source);
+  if (record.confidence?.overall >= 60) {
+    await recordLoyaltySafely(store, userId, 'profile_completed', record.userId);
+  }
+  return record;
+}

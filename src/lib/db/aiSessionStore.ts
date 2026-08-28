@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { getSupabaseServerClient } from '../supabaseClient';
-import { ensureDatabaseSuccess } from './internal';
+import { ensureDatabaseSuccess, recordLoyaltySafely } from './internal';
 
 import type {
   AiAssistantMessage,
@@ -138,7 +138,7 @@ export async function deleteAiSessions(store: SupabaseServerStore, userId: strin
     }
   }
 
-export async function recordAiFeedback(store: SupabaseServerStore, userId: string, rating: AiFeedbackRating, comment?: string, sessionId?: string, messageId?: string): Promise<void> {
+async function recordAiFeedbackInner(store: SupabaseServerStore, userId: string, rating: AiFeedbackRating, comment?: string, sessionId?: string, messageId?: string): Promise<void> {
     const createdAt = new Date().toISOString();
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -159,3 +159,8 @@ export async function requestAiHumanReview(store: SupabaseServerStore, userId: s
     store.inMemoryAiHumanReviews.unshift(review);
     return review;
   }
+
+export async function recordAiFeedback(store: SupabaseServerStore, userId: string, rating: AiFeedbackRating, comment?: string, sessionId?: string, messageId?: string): Promise<void> {
+  await recordAiFeedbackInner(store, userId, rating, comment, sessionId, messageId);
+  await recordLoyaltySafely(store, userId, 'ai_feedback', messageId || sessionId);
+}

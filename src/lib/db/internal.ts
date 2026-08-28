@@ -178,3 +178,23 @@ export function emailTemplateForOrderStatus(status: OrderStatus): EmailMessage['
   if (status === 'cancelled') return 'order_cancelled';
   return `order_${status}` as EmailMessage['template'];
 }
+
+
+/**
+ * CHANTIER 8.3 — applique un fait de progression sans jamais faire échouer
+ * l'action qui l'a produit. Un avis publié doit rester publié même si le calcul
+ * de progression échoue ; l'incident est journalisé, pas propagé.
+ */
+export async function recordLoyaltySafely(
+  store: { applyLoyaltyEvent: (userId: string, kind: string, sourceRef?: string, dedupeKey?: string) => Promise<unknown> },
+  userId: string,
+  kind: string,
+  sourceRef?: string,
+  dedupeKey?: string
+): Promise<void> {
+  try {
+    await store.applyLoyaltyEvent(userId, kind, sourceRef, dedupeKey);
+  } catch (error: any) {
+    console.warn(`[progression] fait « ${kind} » ignoré : ${error?.message || 'erreur inconnue'}`);
+  }
+}

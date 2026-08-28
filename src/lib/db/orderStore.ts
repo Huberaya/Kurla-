@@ -6,6 +6,7 @@ import {
   emailTemplateForOrderStatus,
   ensureDatabaseSuccess,
   mapOrderVatFields,
+  recordLoyaltySafely,
   toPublicProduct,
 } from './internal';
 
@@ -448,7 +449,7 @@ export async function findOrder(store: SupabaseServerStore, query: { stripeSessi
     );
   }
 
-export async function updateOrderStatus(store: SupabaseServerStore, orderId: string, newStatus: OrderStatus, extra?: {
+async function updateOrderStatusInner(store: SupabaseServerStore, orderId: string, newStatus: OrderStatus, extra?: {
     stripePaymentIntentId?: string;
     changedBy?: string;
     changedByRole?: string;
@@ -767,3 +768,23 @@ export async function getOrderStatusHistory(store: SupabaseServerStore, orderId:
   // ============================================================
   // PHASE 5: CUSTOMER SUPPORT TICKETS
   // ============================================================
+
+/**
+ * Une commande réglée fait progresser l'axe achat — plafonné à 80 points, soit
+ * quatre commandes. Au-delà, acheter ne rapporte plus rien : c'est ce plafond qui
+ * garantit qu'un membre qui ne commande pas peut atteindre le dernier niveau.
+ */
+export async function updateOrderStatus(store: SupabaseServerStore, orderId: string, newStatus: OrderStatus, extra?: {
+    stripePaymentIntentId?: string;
+    changedBy?: string;
+    changedByRole?: string;
+    reason?: string;
+    restockItems?: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
+    emailData?: Record<string, unknown>;
+  }): Promise<ServerOrder | undefined> {
+  const updated = await updateOrderStatusInner(store, orderId, newStatus, extra);
+  if (updated?.status === 'paid' && updated.userId) {
+    await recordLoyaltySafely(store, updated.userId, 'order_paid', updated.id, `order_paid:${updated.id}`);
+  }
+  return updated;
+}
