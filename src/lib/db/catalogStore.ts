@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
+import { checkProductVocabulary } from './taxonomyStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   effectiveCatalogPrice,
@@ -574,6 +575,33 @@ export async function getCatalogTaxonomy(store: SupabaseServerStore): Promise<{ 
   }
 
 export async function saveCatalogProduct(store: SupabaseServerStore, adminId: string, input: any): Promise<any> {
+    /**
+     * CHANTIER 10 (bloc B3) — les vocabulaires contrôlés sont appliqués à
+     * l'écriture. Un code hors référentiel est refusé nommément : sans cette
+     * porte, `concerns` redevient une chaîne libre et aucune agrégation par
+     * besoin n'est fiable. Les synonymes déclarés sont résolus vers leur code
+     * canonique, et la résolution est remontée plutôt que masquée.
+     */
+    const vocabulary = await checkProductVocabulary(store, {
+      concerns: input?.concerns ?? input?.needs,
+      hairTypes: input?.hairTypes ?? input?.hair_types,
+      routineSteps: input?.routineSteps,
+      countryAvailability: input?.countryAvailability ?? input?.country_availability,
+      toneDepths: input?.toneDepths
+    });
+    if (!vocabulary.valid) {
+      const details = vocabulary.unknown.map(item => `${item.field} : « ${item.value} » (taxonomie ${item.taxonomy})`).join(' ; ');
+      throw new Error(`Vocabulaire contrôlé — valeur(s) hors référentiel : ${details}.`);
+    }
+    if (vocabulary.vocabularyLoaded) {
+      if (vocabulary.values.concerns) input = { ...input, concerns: vocabulary.values.concerns };
+      if (vocabulary.values.hairTypes) input = { ...input, hairTypes: vocabulary.values.hairTypes };
+      if (vocabulary.values.countryAvailability) input = { ...input, countryAvailability: vocabulary.values.countryAvailability };
+      if (vocabulary.resolvedFromSynonym.length > 0) {
+        console.warn(`[Catalogue] synonymes résolus vers leur code canonique : ${vocabulary.resolvedFromSynonym.map(item => `${item.from} → ${item.to}`).join(', ')}`);
+      }
+    }
+
     const allProducts = await getProducts(store, { includeInactive: true });
     const requestedId = typeof input?.id === 'string' ? input.id.trim() : undefined;
     const requestedSlug = typeof input?.slug === 'string' ? input.slug.trim() : undefined;

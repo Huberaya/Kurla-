@@ -85,6 +85,7 @@ export { toPublicProduct };
 import type { CreatorAttribution } from './creatorProgram';
 import { bindDomain, Curried } from './db/bind';
 import * as ingredientLinkStore from './db/ingredientLinkStore';
+import * as taxonomyStore from './db/taxonomyStore';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
@@ -125,6 +126,9 @@ export class SupabaseServerStore {
   /** CHANTIER 10 (bloc B1) — référentiel d'ingrédients et liaisons produit × ingrédient. */
   public inMemoryIngredients: any[] = [];
   public inMemoryProductIngredients: import('./ingredientGraph').ProductIngredientLink[] = [];
+  /** CHANTIER 10 (bloc B3) — vocabulaires contrôlés (miroir de la migration 20260847). */
+  public inMemoryTaxonomies: Array<{ id: string; label: string; description: string }> = [];
+  public inMemoryTaxonomyTerms: any[] = [];
   public inMemoryOrders: ServerOrder[] = [];
   public inMemoryCarts: Map<string, any[]> = new Map();
   public inMemoryInventory: Map<string, { quantity: number; reserved_quantity: number; available_quantity?: number }> = new Map();
@@ -368,6 +372,7 @@ bindDomain(storeInstance, journeyStore);
 bindDomain(storeInstance, membershipStore);
 bindDomain(storeInstance, textureGapStore);
 bindDomain(storeInstance, ingredientLinkStore);
+bindDomain(storeInstance, taxonomyStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -391,4 +396,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof journeyStore>
   & Curried<typeof membershipStore>
   & Curried<typeof textureGapStore>
-  & Curried<typeof ingredientLinkStore>;
+  & Curried<typeof ingredientLinkStore>
+  & Curried<typeof taxonomyStore>;

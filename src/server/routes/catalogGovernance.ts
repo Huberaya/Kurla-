@@ -157,6 +157,29 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     res.json(report);
   }));
 
+  /**
+   * CHANTIER 10 (bloc B3) — vocabulaires contrôlés, publics.
+   *
+   * Une liste fermée que le client ne peut pas lire est une liste que personne
+   * ne respecte : l'admin comme le front doivent pouvoir proposer les codes
+   * valides plutôt que de les saisir à la main.
+   */
+  app.get('/api/taxonomies', rateLimit('taxonomies', 60, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const taxonomyId = typeof req.query?.taxonomy === 'string' ? req.query.taxonomy : undefined;
+    const [taxonomies, terms] = await Promise.all([
+      serverDb.getTaxonomies(),
+      serverDb.getTaxonomyTerms(taxonomyId)
+    ]);
+    res.json({ taxonomies, terms, count: terms.length });
+  }));
+
+  app.get('/api/admin/catalog/vocabulary-audit', rateLimit('admin-vocabulary-audit', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const audit = await serverDb.getVocabularyAudit();
+    res.json(audit);
+  }));
+
   app.get('/api/admin/catalog/:productId/readiness', rateLimit('admin-product-readiness', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;

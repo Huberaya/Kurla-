@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T18:57:31.151Z",
+  "generatedAt": "2026-08-28T19:06:04.205Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -11,6 +11,7 @@
     "buildBrandTestReportForRequest/1",
     "cancelMembership/1",
     "catalogAdminView/1",
+    "checkProductVocabulary/1",
     "claimEventForProcessing/2",
     "countCreatorStandingInputs/1",
     "createAiSession/6",
@@ -129,7 +130,10 @@
     "getSupportTicketById/1",
     "getSupportTicketEvents/1",
     "getSupportTicketsByUser/1",
+    "getTaxonomies/0",
+    "getTaxonomyTerms/1",
     "getTextureGapReport/0",
+    "getVocabularyAudit/0",
     "handleLoyaltyRedemption/4",
     "importCatalogCsv/3",
     "importCatalogRecords/5",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T18:57:30.467Z",
+  "generatedAt": "2026-08-28T19:06:03.492Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -20,6 +20,7 @@
     "GET /api/admin/catalog/products",
     "GET /api/admin/catalog/publication-readiness",
     "GET /api/admin/catalog/taxonomy",
+    "GET /api/admin/catalog/vocabulary-audit",
     "GET /api/admin/content/compliance",
     "GET /api/admin/creators",
     "GET /api/admin/dashboard",
@@ -112,6 +113,7 @@
     "GET /api/supabase/status",
     "GET /api/support/tickets",
     "GET /api/support/tickets/:id/messages",
+    "GET /api/taxonomies",
     "GET /api/v1/manifest",
     "GET /api/v1/products",
     "GET /api/v1/products/:idOrSlug",
