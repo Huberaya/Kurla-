@@ -836,15 +836,80 @@ _Chantier 7 terminé._
 
 ---
 
-## CHANTIER 8 — ARCHITECTURE, RÉTENTION & B2B ⬜
+## CHANTIER 8 — ARCHITECTURE, RÉTENTION & B2B 🔶
 
-- [ ] Découpage de `server.ts` (2 875 lignes) et `serverDb.ts` (6 124 lignes) par domaine (actions 18, 45)
+### 8.1 ✅ — Découpage de `server.ts` par domaine (actions 18, 45)
+
+**Le constat.** `server.ts` faisait **4 795 lignes** et portait **163 routes** :
+chaque chantier y ajoutait des routes, et le fichier grossissait plus vite qu'il
+n'était lu. C'était la dernière action prioritaire non livrée.
+
+**La méthode, avant le code.** Découper 163 routes sans filet, c'est perdre un
+endpoint sans s'en apercevoir : un `Router` non monté ne casse rien de visible,
+le client reçoit le `index.html` du SPA avec un statut 200 au lieu d'un 404 JSON.
+Donc d'abord `tests/route_inventory.test.ts`, qui énumère ce qui est **réellement
+monté** dans l'application Express (y compris à travers les routeurs imbriqués)
+et le compare à un inventaire de référence : **163 routes figées**, aucun doublon
+`method+chemin`, aucune route hors `/api`. Toute différence est une régression.
+
+**Le découpage.** Chaque module reçoit la même application Express — aucun
+préfixe ajouté, donc **aucun chemin réécrit**. `server.ts` ne garde que la
+création de l'application, le middleware, le webhook et le checkout Stripe, le
+panier, les commandes, l'administration, le garde-fou d'erreurs et le démarrage.
+
+| Module | Lignes | Contenu |
+|---|---|---|
+| `src/server/http.ts` | 141 | limitation de débit, enveloppe asynchrone, en-têtes de sécurité, `getAppUrl` |
+| `src/server/auth.ts` | 111 | identité par jeton Supabase uniquement, `requireUser`/`Admin`/`Support`, propriété de commande |
+| `src/server/types.ts` | 23 | types partagés (pas d'import circulaire entre http et auth) |
+| `src/server/compliance.ts` | 134 | graphe réglementaire (7.7) |
+| `src/server/payments/stripeClient.ts` | 18 | client Stripe |
+| `src/server/ai/{client,catalog,assistant}.ts` | 281 | client Gemini, catalogue exposé au modèle, chaîne de réponse |
+| `src/server/routes/family.ts` | 118 | espace famille |
+| `src/server/routes/intelligence.ts` | 271 | étagère, archétype, résultats, coiffures protectrices |
+| `src/server/routes/chantierA.ts` | 380 | routes du chantier A |
+| `src/server/routes/professionals.ts` | 685 | pros, co-signature, conformité, économie de routine |
+| `src/server/routes/recommendations.ts` | 339 | moteur v2, recherche sémantique, routine builder |
+| `src/server/routes/catalogGovernance.ts` | 147 | gouvernance du catalogue (admin) |
+| `src/server/routes/aiAssistant.ts` | 164 | assistant beauté (transport HTTP) |
+| `src/server/routes/adaptiveRoutines.ts` | 138 | routines adaptatives, journal |
+| `src/server/routes/beautyProfile.ts` | 190 | profil beauté KURLA ID |
+
+**Résultat : `server.ts` passe de 4 795 à 2 019 lignes (−58 %)**, 163 routes
+inchangées, `tsc --noEmit` exit 0, `npm test` exit 0 (**82 bancs**), build exit 0.
+Sonde HTTP sur serveur réel (base `qzwgsarfdegqtfdnqiql`) : `/api/health` 200,
+`/api/professionals/verified` 200, `/api/ai/disclosure` 200, `/api/search` 200,
+`/api/products` 200, fiche ingrédient 200, `compliance?country=US` 400, catch-all
+**404 JSON** — et `/api/family`, `/api/shelf`, `/api/beauty-profile`,
+`/api/routine`, `/api/me/endorsements` renvoient **401** : les neuf modules
+répondent, leurs gardes d'authentification aussi.
+
+**Une régression réelle attrapée au passage.** Six bancs vérifiaient « le serveur
+expose X » en **grepant le texte de `server.ts`** : le découpage les a cassés, et
+surtout ils ne prouvaient rien d'autre que la présence d'une chaîne dans un
+fichier. Corrigé par `tests/support/serverSources.ts`, qui lit toute la surface
+serveur (`server.ts` + `src/server/**`) ; pour « la route est-elle servie ? »,
+c'est désormais l'inventaire des routes montées qui tranche.
+
+**Ce qui manque, explicitement**
+- `serverDb.ts` (**6 240 lignes**) n'est pas découpé : c'est l'autre moitié de
+  l'action 45, et la plus risquée (toutes les requêtes SQL y vivent).
+- `server.ts` garde ~2 000 lignes : Stripe (webhook + checkout, ~600), commandes,
+  administration, support, RGPD, démarrage. Prochaine découpe naturelle :
+  `src/server/payments/checkout.ts` et `src/server/routes/orders.ts`.
+- Les modules de routes reçoivent `app` plutôt qu'un `Router` : choix délibéré
+  (zéro risque de préfixe), au prix d'un couplage au type `Express`.
+
+### Restant
+
+- [ ] **8.2** Découpage de `serverDb.ts` (6 240 lignes) par domaine
+- [ ] **8.3** Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
+- [ ] **8.4** Beauty Journey : narration de l'évolution
+- [ ] **8.5** Abonnement KURLA+
+- [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement
+- [ ] **8.7** Application mobile
+
 - [x] ~~Tests Supabase réels A/B : 17 vérifications Phase 2 à 0 exécution~~ **LEVÉ** (action 46)
-- [ ] Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
-- [ ] Beauty Journey : narration de l'évolution
-- [ ] Abonnement KURLA+
-- [ ] KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement
-- [ ] Application mobile
 
 ---
 
@@ -875,6 +940,8 @@ _Chantier 7 terminé._
 | `npm test` (suite complète) | exit 0 — **81 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
+| `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
+| Découpage 8.1 sondé en HTTP réel | 6 routes publiques 200 · 5 routes protégées 401 · conformité 400 · catch-all 404 JSON |
 | `tests/chantier_7_jurisdiction.integration.test.ts` (hors chaîne) | PASS en mode sans base : pays non desservi refusé (400), checkout en échec fermé (503), produit conforme non bloqué. **A révélé un fail-open réel, corrigé.** Branche « base réelle » non exécutée ici |
 | Vérifications Phase 2 (RLS réelle) | **PASS** contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
 

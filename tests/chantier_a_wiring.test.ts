@@ -9,6 +9,7 @@ import { checkJurisdiction } from '../src/lib/ingredientGraph';
 import { summarizeReturnInsights } from '../src/lib/returnInsight';
 import { handleContradiction } from '../src/lib/proEndorsement';
 import { createEmptyBeautyProfile } from '../src/lib/beautyProfile';
+import { readServerSources } from './support/serverSources';
 
 /**
  * CHANTIER A — Fermer les trous.
@@ -268,7 +269,7 @@ async function runChantierATests(): Promise<void> {
   // 6. WASH DAY — humidité et événements réellement transmis
   // ---------------------------------------------------------------------
 
-  const serverSource = await readFile('server.ts', 'utf-8');
+  const serverSource = await readServerSources();
   assert.match(
     serverSource,
     /humidityPercent,\s*\n\s*hardWater: cycle\.hardWater/,

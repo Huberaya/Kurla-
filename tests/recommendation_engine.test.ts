@@ -26,6 +26,7 @@ import {
 import { createEmptyBeautyProfile } from '../src/lib/beautyProfile';
 import { ShelfItem } from '../src/lib/shelf';
 import { OutcomeObservation, valenceOf } from '../src/lib/outcomeEvidence';
+import { readServerSources } from './support/serverSources';
 
 const NOW = '2026-08-27T09:00:00.000Z';
 
@@ -72,7 +73,7 @@ function baseContext(partial: Partial<EngineContext> = {}): EngineContext {
 }
 
 async function runRecommendationEngineTests() {
-  const serverSource = await readFile(new URL('../server.ts', import.meta.url), 'utf8');
+  const serverSource = await readServerSources();
 
   // Le chantier doit être branché sur l'API, pas seulement exister en lib.
   assert.ok(serverSource.includes("app.post('/api/recommendations'"), 'Le moteur doit être exposé.');

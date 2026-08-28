@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { serverDb } from '../src/lib/serverDb';
 import { MOCK_PRODUCTS } from '../src/data/mockData';
+import { readServerSources } from './support/serverSources';
 
 async function run() {
   await serverDb.initialize(MOCK_PRODUCTS);
@@ -21,7 +22,7 @@ async function run() {
 
   const source = await readFile(new URL('../src/services/productService.ts', import.meta.url), 'utf8');
   assert.equal(source.includes("products: MOCK_PRODUCTS"), false, 'Le client ne doit pas utiliser le catalogue mock comme fallback.');
-  const serverSource = await readFile(new URL('../server.ts', import.meta.url), 'utf8');
+  const serverSource = await readServerSources();
   assert.ok(serverSource.includes('serverDb.getPublicProducts()'), 'La route publique doit utiliser la projection publique.');
   assert.equal(serverSource.includes("res.json({ products, source"), false, 'La route publique ne doit pas exposer la source interne.');
   console.log('[PASS] Marketplace trust: gate de publication, absence de fallback mock client et tables de confiance vérifiés.');

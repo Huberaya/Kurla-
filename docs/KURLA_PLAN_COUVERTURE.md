@@ -55,7 +55,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 15 | Recherche sémantique | ✅ LIVRÉ | Logique + `GET /api/search`. **Aucun écran** |
 | 16 | Détection de conflit de routine | ✅ LIVRÉ | Dans le moteur, **jamais affiché à l'utilisateur** |
 | 17 | Unifier le triage médical | ✅ LIVRÉ | `AI_GUARDRAILS.triage()` par racines, testé |
-| 18 | Découper les monolithes | 🔶 **PARTIEL** | 2 stores extraits : `intelligenceStore.ts` (1 026 l.) et `professionalStore.ts` (645 l.). Mais `server.ts` a **grossi** : **3 977 lignes** (3 265 avant le chantier A), `serverDb.ts` = **6 163 lignes**. Le découpage par domaine de `server.ts` reste à faire |
+| 18 | Découper les monolithes | 🔶 **PARTIEL — serveur fait** | **Chantier 8.1 livré** : `server.ts` passe de **4 795 à 2 019 lignes** (−58 %), 163 routes inchangées (inventaire de référence `tests/route_inventory.test.ts`), 16 modules sous `src/server/` (http, auth, compliance, ai, 9 modules de routes). Reste `serverDb.ts` = **6 240 lignes**, non découpé |
 | 19 | Réassort prédictif | ✅ LIVRÉ | `evaluateReplenishment` testé, zéro appel, aucune notification branchée |
 | 20 | Trust Score pros + co-signature | ✅ **LIVRÉ** | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé, lecture via `/api/me/endorsements`, **création via le formulaire de l'espace pro**. `POST /api/endorsements` a été verrouillée au passage : elle acceptait `professionalId` et `professionalVerified` depuis le corps de la requête, ce qui permettait de forger la co-signature d'un professionnel vérifié |
 
@@ -76,7 +76,7 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 ### 🔶 Partielles (3)
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
 - **5** Purge des données fictives — `mockData` reste importé par plusieurs fichiers *(le tableau de bord pro, lui, a été purgé ce tour)*
-- **45** Découpage du monolithe — `server.ts` a **grossi** (4 373 lignes) pendant que deux stores étaient extraits
+- **45** Découpage du monolithe — 🔶 `server.ts` ramené de 4 795 à **2 019 lignes** (8.1) ; `serverDb.ts` (6 240 l.) reste entier
 
 ### ⬜ À faire (20)
 **3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **26** Loyalty par progression · **27** Récompense non-marchande · **28** Beauty Journey · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
@@ -200,7 +200,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 | Tâche | Fonctionnalités |
 |---|---|
-| Découpage de `server.ts` (3 265 l.) et `serverDb.ts` (6 163 l.) par domaine | 45, action 18 |
+| Découpage de `server.ts` (4 795 → **2 019 l.**, fait en 8.1) et `serverDb.ts` (6 240 l., à faire) par domaine | 45, action 18 |
 | Tests Supabase réels A/B | 46, action 4 |
 | Application mobile | 42 |
 | Diagnostic photo **encadré** : aide beauté, AIPD préalable | 11 |

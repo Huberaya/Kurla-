@@ -4,12 +4,13 @@ import { serverDb } from '../src/lib/serverDb';
 import { buildAdaptiveRoutine, normalizeRoutinePreferences } from '../src/lib/adaptiveRoutine';
 import { createEmptyBeautyProfile } from '../src/lib/beautyProfile';
 import { isSupabaseServerConfigured } from '../src/lib/supabaseClient';
+import { readServerSources } from './support/serverSources';
 
 async function runAdaptiveRoutineTests() {
   const trackerSource = await readFile(new URL('../src/pages/RoutineTrackerPage.tsx', import.meta.url), 'utf8');
   const journalSource = await readFile(new URL('../src/pages/ProgressJournalPage.tsx', import.meta.url), 'utf8');
   const migrationSource = await readFile(new URL('../supabase/migrations/20260836000000_adaptive_routines.sql', import.meta.url), 'utf8');
-  const serverSource = await readFile(new URL('../server.ts', import.meta.url), 'utf8');
+  const serverSource = await readServerSources();
   assert.ok(!trackerSource.includes('localStorage'), 'Le tracker ne doit pas stocker ses tâches localement.');
   assert.ok(!journalSource.includes('localStorage'), 'Le journal ne doit pas stocker ses notes localement.');
   assert.ok(serverSource.includes("app.post('/api/routine/feedback'"), 'La boucle de feedback doit être exposée par le serveur.');

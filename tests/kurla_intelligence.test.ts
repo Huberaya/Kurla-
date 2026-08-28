@@ -67,6 +67,7 @@ import { AI_GUARDRAILS, AI_TRANSPARENCY } from '../src/lib/ai/guardrails';
 import { intelligenceStore } from '../src/lib/intelligenceStore';
 import { resolveRoute } from '../src/lib/routeTable';
 import { createEmptyBeautyProfile } from '../src/lib/beautyProfile';
+import { readServerSources } from './support/serverSources';
 
 const NOW = new Date('2026-08-27T09:00:00.000Z');
 
@@ -127,7 +128,7 @@ async function runKurlaIntelligenceTests() {
   const migrationWashDaySource = await readFile(new URL('../supabase/migrations/20260846000000_wash_day_cycle.sql', import.meta.url), 'utf8');
   const professionalsPageSource = await readFile(new URL('../src/pages/ProfessionalsPage.tsx', import.meta.url), 'utf8');
   const assistantPageSource = await readFile(new URL('../src/pages/AiBeautyAssistantPage.tsx', import.meta.url), 'utf8');
-  const serverSource = await readFile(new URL('../server.ts', import.meta.url), 'utf8');
+  const serverSource = await readServerSources();
 
   // ---------- Action 5/6 : le graphe de connaissances existe ----------
   for (const table of [

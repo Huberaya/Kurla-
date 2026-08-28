@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { serverDb } from '../src/lib/serverDb';
 import { MOCK_PRODUCTS } from '../src/data/mockData';
 import { KURLA_KNOWLEDGE_BASE, selectKnowledgeCards } from '../src/lib/ai/knowledgeBase';
+import { readServerSources } from './support/serverSources';
 
 async function run() {
   await serverDb.initialize(MOCK_PRODUCTS);
@@ -37,7 +38,7 @@ async function run() {
   assert.ok(safetyCards.some(card => card.id === 'safety-medical-triage'));
   assert.ok(KURLA_KNOWLEDGE_BASE.every(card => ['internal_review_pending', 'validated'].includes(card.status)));
 
-  const serverSource = await readFile(new URL('../server.ts', import.meta.url), 'utf8');
+  const serverSource = await readServerSources();
   assert.equal(serverSource.includes("Sérum SPF 50+ Invisible Peau Mélaninée"), false);
   assert.equal(serverSource.includes("fitScore: 96"), false);
   console.log('[PASS] AI product: consentement, isolation des sessions, sources, feedback et revue humaine validés.');
