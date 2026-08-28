@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T16:26:11.956Z",
+  "generatedAt": "2026-08-28T17:52:21.376Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -72,6 +72,7 @@
     "getCreatorAttributions/1",
     "getCreatorPayout/1",
     "getCreatorStanding/1",
+    "getEditorialComplianceReport/0",
     "getEmailForUser/1",
     "getFamilyDashboard/1",
     "getFamilyProducts/2",
@@ -186,6 +187,7 @@
     "saveBeautyProfile/2",
     "saveCart/3",
     "saveCatalogProduct/2",
+    "saveContentArticle/2",
     "saveFamilyMember/2",
     "saveFamilyPlan/2",
     "saveOrder/1",

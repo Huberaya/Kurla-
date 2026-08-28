@@ -256,7 +256,7 @@ Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier 
 | **Co-signature professionnelle** | 🟠 logique seule | A |
 | **Filtrage réglementaire par juridiction** | ✅ moteur (exclusion tracée) + fiche produit (bandeau par pays) + checkout (porte fermée) — 7.7 | D — renseigner `product_ingredients` pour lever les avertissements |
 | **« KURLA ne devine pas » comme signature** | ✅ encodé (`null`, `unclassified`, seuil k) | E — à expliciter en marque |
-| **Conformité AI Act comme avantage concurrentiel** | ✅ disclosure art. 50(1) | B — badge visible ; art. 50(2) au 2 déc. 2026 |
+| **Conformité AI Act comme avantage concurrentiel** | ✅ disclosure art. 50(1) ; ✅ **art. 50(4) exécutoire dans le CMS** (bloc A4 : publication refusée sans signalement ni relecture humaine nommée — `src/lib/editorialCompliance.ts`, `POST /api/admin/content/articles`, audit `GET /api/admin/content/compliance`) | B — badge visible ; art. 50(2) au 2 déc. 2026 |
 
 ---
 
@@ -314,4 +314,4 @@ Aucun chantier n'est déclaré terminé sans :
 | Aucune vérification visuelle/navigateur des écrans Shelf et Wash Day | Vérifiés par compilation, tests de câblage et HTTP 200 — pas par rendu |
 | `GET /api/*` sur route inconnue renvoie du HTML 200 | Catch-all SPA. Pas une faille d'autorisation — les routes protégées renvoient bien 401. Corrigé : un 404 JSON `API_ROUTE_NOT_FOUND` est enregistré avant le catch-all |
 | Art. 50(2) marquage machine-readable | Échéance 2 déc. 2026 pour les systèmes déjà sur le marché. À traiter en B |
-| Art. 50(4) exemption éditoriale | Encodée dans `AI_TRANSPARENCY.editorialExemptionNote`, **non appliquée dans le CMS** |
+| Art. 50(4) exemption éditoriale | ✅ **Appliquée dans le CMS** (bloc A4) : `evaluateEditorialCompliance` + `assertPublishable` bloquent la publication d'un texte IA sans signalement ni relecture assumée par une personne nommée (« relu par la rédaction » ou un prénom seul ne suffisent pas) ; transparence publique portée par `mapPublicArticle` (`generatedBy`, `aiDisclosure`, `editorialResponsiblePerson`) ; audit article par article. Banc `tests/kurla_ai_act_cms.test.ts`. **Migration `20260867000000_content_editorial_compliance.sql` écrite, NON appliquée** (colonnes `generated_by`, `ai_disclosure`, `editorial_review`) — à jouer avant tout usage du CMS en base réelle |

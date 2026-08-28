@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T17:41:25.203Z",
+  "generatedAt": "2026-08-28T17:51:43.088Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -17,6 +17,7 @@
     "GET /api/admin/catalog/imports",
     "GET /api/admin/catalog/products",
     "GET /api/admin/catalog/taxonomy",
+    "GET /api/admin/content/compliance",
     "GET /api/admin/creators",
     "GET /api/admin/dashboard",
     "GET /api/admin/loyalty/redemptions",
@@ -128,6 +129,7 @@
     "POST /api/admin/catalog/import/supplier",
     "POST /api/admin/catalog/products",
     "POST /api/admin/catalog/validation",
+    "POST /api/admin/content/articles",
     "POST /api/admin/creators/:id/review",
     "POST /api/admin/entities/:entity",
     "POST /api/admin/loyalty/redemptions/:id",

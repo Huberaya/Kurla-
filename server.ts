@@ -63,6 +63,7 @@ import { registerCreatorRoutes } from './src/server/routes/creators';
 import { registerBrandTestRoutes } from './src/server/routes/brandTests';
 import { registerMobileRoutes } from './src/server/routes/mobile';
 import { registerPrivacyRoutes } from './src/server/routes/privacy';
+import { registerEditorialComplianceRoutes } from './src/server/routes/editorialCompliance';
 import {
   activateMembershipFromCheckoutSession,
   cancelMembershipFromSubscription,
@@ -1106,6 +1107,7 @@ registerCreatorRoutes(app);
 registerBrandTestRoutes(app);
 registerMobileRoutes(app);
 registerPrivacyRoutes(app);
+registerEditorialComplianceRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS

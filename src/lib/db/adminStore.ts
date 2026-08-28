@@ -9,6 +9,11 @@ import {
   normalizeContentTranslations,
 } from '../educationalContent';
 import { getSupabaseServerClient } from '../supabaseClient';
+import {
+  assertPublishable,
+  evaluateEditorialCompliance,
+  normalizeGenerationMode
+} from '../editorialCompliance';
 import { ensureDatabaseSuccess, isUuid, mapOrderVatFields } from './internal';
 import { mapRefundRow } from './refundSupport';
 
@@ -58,6 +63,9 @@ export async function getActiveAiKnowledgeSources(store: SupabaseServerStore): P
 
 export function mapPublicArticle(store: SupabaseServerStore, row: any): any {
     const contentType = row.content_type || row.contentType || 'article';
+    // AI Act art. 50(4) : la transparence accompagne le contenu publié, pas
+    // seulement l'administration qui l'a saisi.
+    const editorial = evaluateEditorialCompliance(row);
     const topic = row.topic;
     const language = row.language;
     const sources = row.sources;
@@ -85,7 +93,10 @@ export function mapPublicArticle(store: SupabaseServerStore, row: any): any {
       relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : (Array.isArray(row.relatedProductIds) ? row.relatedProductIds : []),
       publishedAt: row.published_at || row.publishedAt || row.created_at || row.createdAt,
       createdAt: row.created_at || row.createdAt,
-      updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt
+      updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt,
+      generatedBy: normalizeGenerationMode(row.generated_by ?? row.generatedBy),
+      aiDisclosure: editorial.disclosureLabel,
+      editorialResponsiblePerson: editorial.responsiblePerson
     };
   }
 
@@ -123,6 +134,7 @@ export async function getPublishedArticle(store: SupabaseServerStore, slug: stri
   }
 
 export function mapAdminArticle(store: SupabaseServerStore, row: any): any {
+    const editorial = evaluateEditorialCompliance(row);
     return {
       id: row.id,
       slug: row.slug,
@@ -145,6 +157,10 @@ export function mapAdminArticle(store: SupabaseServerStore, row: any): any {
       faq: Array.isArray(row.faq) ? row.faq : [],
       relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
       status: row.status,
+      generatedBy: normalizeGenerationMode(row.generated_by ?? row.generatedBy),
+      aiDisclosure: row.ai_disclosure === true || row.aiDisclosure === true,
+      editorialReview: row.editorial_review && typeof row.editorial_review === 'object' ? row.editorial_review : (row.editorialReview && typeof row.editorialReview === 'object' ? row.editorialReview : {}),
+      editorialCompliance: { mode: editorial.mode, compliant: editorial.compliant, reasons: editorial.reasons, missing: editorial.missing },
       publishedAt: row.published_at || undefined,
       createdBy: row.created_by || undefined,
       updatedBy: row.updated_by || undefined,
@@ -705,3 +721,154 @@ export async function markEventProcessed(store: SupabaseServerStore, eventId: st
     }
     store.processedEventsSet.add(eventId);
   }
+
+/**
+ * CHANTIER 9 (bloc A4) — écriture CMS sous contrôle de l'AI Act art. 50(4).
+ *
+ * La règle est appliquée à l'endroit où elle compte : au moment de publier.
+ * Un brouillon reste libre (la rédaction travaille), mais le passage à
+ * `published` exige soit un signalement du texte généré par IA, soit une
+ * relecture humaine assumée par une personne nommée.
+ */
+export async function saveContentArticle(store: SupabaseServerStore, input: any, adminId: string): Promise<any> {
+  const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 240) : '';
+  const slug = typeof input?.slug === 'string' ? input.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180) : '';
+  const content = typeof input?.content === 'string' ? input.content.trim() : '';
+  if (!title || !slug || !content) throw new Error('Le titre, le slug et le contenu sont obligatoires.');
+
+  const category = typeof input?.category === 'string' ? input.category.trim().slice(0, 120) : 'guide';
+  const contentType = typeof input?.contentType === 'string' ? input.contentType.trim() : 'article';
+  const generatedBy = normalizeGenerationMode(input?.generatedBy);
+  const aiDisclosure = input?.aiDisclosure === true || input?.ai_disclosure === true
+    || (typeof input?.aiDisclosure === 'string' && input.aiDisclosure.trim().length > 0);
+  const editorialReview = input?.editorialReview && typeof input.editorialReview === 'object' && !Array.isArray(input.editorialReview)
+    ? {
+        reviewedBy: typeof input.editorialReview.reviewedBy === 'string' ? input.editorialReview.reviewedBy.trim().slice(0, 160) : '',
+        reviewedAt: typeof input.editorialReview.reviewedAt === 'string' ? input.editorialReview.reviewedAt.trim() : '',
+        responsibilityAccepted: input.editorialReview.responsibilityAccepted === true,
+        note: typeof input.editorialReview.note === 'string' ? input.editorialReview.note.trim().slice(0, 1000) : ''
+      }
+    : {};
+  const status = input?.status === 'published' ? 'published' : 'draft';
+
+  const complianceRecord = { generatedBy, aiDisclosure, editorialReview };
+  // Le refus est explicite : on ne publie pas « en attendant », et on dit à la
+  // rédaction exactement quel champ manque.
+  if (status === 'published') assertPublishable(complianceRecord);
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseServerClient();
+  let row: any;
+
+  if (supabase) {
+    const payload = {
+      slug,
+      title,
+      category,
+      content_type: contentType,
+      content,
+      excerpt: typeof input?.excerpt === 'string' ? input.excerpt.trim().slice(0, 500) : '',
+      author: typeof input?.author === 'string' ? input.author.trim().slice(0, 160) : '',
+      language: typeof input?.language === 'string' ? input.language.trim().slice(0, 12) : 'fr',
+      topic: typeof input?.topic === 'string' ? input.topic.trim().slice(0, 80) : 'general',
+      read_time: typeof input?.readTime === 'string' ? input.readTime.trim().slice(0, 40) : '',
+      image_url: typeof input?.imageUrl === 'string' ? input.imageUrl.trim().slice(0, 2000) : '',
+      media_url: typeof input?.mediaUrl === 'string' ? input.mediaUrl.trim().slice(0, 2000) : null,
+      duration: typeof input?.duration === 'string' ? input.duration.trim().slice(0, 40) : null,
+      medical_warning: typeof input?.medicalWarning === 'string' ? input.medicalWarning.trim().slice(0, 500) : null,
+      translations: normalizeContentTranslations(input?.translations),
+      sources: normalizeContentSources(input?.sources),
+      evidence_level: typeof input?.evidenceLevel === 'string' ? input.evidenceLevel : 'not_provided',
+      status,
+      generated_by: generatedBy,
+      ai_disclosure: aiDisclosure,
+      editorial_review: editorialReview,
+      published_at: status === 'published' ? (input?.publishedAt || now) : null,
+      updated_by: adminId,
+      updated_at: now
+    };
+    const { data, error } = await supabase.from('content_articles').upsert(payload, { onConflict: 'slug' }).select('*').maybeSingle();
+    ensureDatabaseSuccess('enregistrement de l’article CMS', error);
+    row = data;
+  } else {
+    const existingIndex = store.inMemoryAdminArticles.findIndex((article: any) => article.slug === slug);
+    const previous = existingIndex >= 0 ? store.inMemoryAdminArticles[existingIndex] : undefined;
+    row = {
+      ...(previous || {}),
+      id: previous?.id || randomUUID(),
+      slug,
+      title,
+      category,
+      content_type: contentType,
+      content,
+      excerpt: typeof input?.excerpt === 'string' ? input.excerpt.trim().slice(0, 500) : '',
+      author: typeof input?.author === 'string' ? input.author.trim().slice(0, 160) : '',
+      language: typeof input?.language === 'string' ? input.language.trim().slice(0, 12) : (previous?.language ?? 'fr'),
+      topic: typeof input?.topic === 'string' ? input.topic.trim().slice(0, 80) : (previous?.topic ?? 'general'),
+      read_time: typeof input?.readTime === 'string' ? input.readTime.trim().slice(0, 40) : (previous?.read_time ?? ''),
+      image_url: typeof input?.imageUrl === 'string' ? input.imageUrl.trim().slice(0, 2000) : (previous?.image_url ?? ''),
+      media_url: typeof input?.mediaUrl === 'string' ? input.mediaUrl.trim().slice(0, 2000) : (previous?.media_url ?? null),
+      duration: typeof input?.duration === 'string' ? input.duration.trim().slice(0, 40) : (previous?.duration ?? null),
+      medical_warning: typeof input?.medicalWarning === 'string' ? input.medicalWarning.trim().slice(0, 500) : (previous?.medical_warning ?? null),
+      translations: normalizeContentTranslations(input?.translations),
+      sources: normalizeContentSources(input?.sources),
+      evidence_level: typeof input?.evidenceLevel === 'string' ? input.evidenceLevel : 'not_provided',
+      status,
+      generated_by: generatedBy,
+      ai_disclosure: aiDisclosure,
+      editorial_review: editorialReview,
+      published_at: status === 'published' ? (input?.publishedAt || now) : (previous?.published_at ?? null),
+      created_by: previous?.created_by || adminId,
+      updated_by: adminId,
+      created_at: previous?.created_at || now,
+      updated_at: now
+    };
+    if (existingIndex >= 0) store.inMemoryAdminArticles[existingIndex] = row;
+    else store.inMemoryAdminArticles.push(row);
+  }
+
+  return mapAdminArticle(store, row);
+}
+
+/**
+ * Audit AI Act art. 50(4) : ce qui est conforme, ce qui ne l'est pas, et ce
+ * qu'il manque. Un audit qui ne nomme pas les articles en défaut ne sert à
+ * rien — la liste est donc explicite.
+ */
+export async function getEditorialComplianceReport(store: SupabaseServerStore): Promise<{
+  generatedAt: string;
+  total: number;
+  compliant: number;
+  notCompliant: number;
+  articles: Array<{ slug: string; title: string; status: string; mode: string; compliant: boolean; missing: string[] }>;
+}> {
+  const supabase = getSupabaseServerClient();
+  let rows: any[] = [];
+  if (supabase) {
+    const { data, error } = await supabase.from('content_articles').select('slug, title, status, generated_by, ai_disclosure, editorial_review');
+    ensureDatabaseSuccess('audit de conformité éditoriale', error);
+    rows = data || [];
+  } else {
+    rows = store.inMemoryAdminArticles;
+  }
+
+  const articles = rows.map(row => {
+    const compliance = evaluateEditorialCompliance(row);
+    return {
+      slug: String(row.slug || ''),
+      title: String(row.title || ''),
+      status: String(row.status || 'draft'),
+      mode: compliance.mode,
+      compliant: compliance.compliant,
+      missing: compliance.missing
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    total: articles.length,
+    compliant: articles.filter(article => article.compliant).length,
+    notCompliant: articles.filter(article => !article.compliant).length,
+    articles
+  };
+}
