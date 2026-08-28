@@ -48,6 +48,7 @@ const PERSONAL_TABLES: Array<[string, string]> = [
   ['product_question_answers', 'user_id'],
   ['product_questions', 'user_id'],
   ['reviews', 'user_id'],
+  ['brand_contracts', 'brand_user_id'],
   ['support_tickets', 'user_id'],
   ['loyalty_events', 'user_id'],
   ['loyalty_redemptions', 'user_id'],
@@ -67,14 +68,47 @@ export const RETAINED_FOR_LEGAL_REASONS = [
   'shipments'
 ];
 
+/**
+ * CHANTIER 12 (bloc D) — lecture réelle des contenus personnels.
+ *
+ * Les sections « avis », « questions » et « réponses » lisaient uniquement les
+ * collections en mémoire : en mode Supabase, l'export RGPD les aurait rendues
+ * **vides** — un export incomplet sans le dire, ce qui est précisément ce qu'un
+ * droit d'accès ne doit pas être. Toute lecture qui échoue est désormais
+ * remontée dans `exportErrors` plutôt que passée sous silence.
+ */
+async function readPersonalRows(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  table: string,
+  column: string,
+  userId: string,
+  failures: string[]
+): Promise<unknown[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(table).select('*').eq(column, userId);
+  if (error) {
+    failures.push(`${table} : ${error.message}`);
+    return [];
+  }
+  return data ?? [];
+}
+
 export interface UserDataExport {
   generatedAt: string;
   userId: string;
   sections: Record<string, unknown>;
   retainedForLegalReasons: string[];
+  /**
+   * CHANTIER 12 (bloc D) — vide en temps normal. Non vide, l'export est
+   * incomplet et le membre doit le savoir : un droit d'accès rendu
+   * partiellement sans le dire n'est pas un droit d'accès.
+   */
+  exportErrors: string[];
 }
 
 export async function exportUserData(store: SupabaseServerStore, userId: string): Promise<UserDataExport> {
+  const supabase = getSupabaseServerClient();
+  const exportErrors: string[] = [];
   const [profile, history, photos, shelf, outcomes, protective, washDay, loyalty, familyMembers, tickets] =
     await Promise.all([
       getBeautyProfile(store, userId).catch(() => undefined),
@@ -115,15 +149,27 @@ export async function exportUserData(store: SupabaseServerStore, userId: string)
       beautyJourney: journey ?? null,
       familyMembers: familyMembers?.members ?? [],
       supportTickets: tickets ?? [],
-      productReviews: store.inMemoryProductReviews.filter(review => review.userId === userId),
-      productQuestions: store.inMemoryProductQuestions.filter(question => question.userId === userId),
-      questionAnswers: store.inMemoryQuestionAnswers.filter(answer => answer.userId === userId),
+      productReviews: supabase
+        ? await readPersonalRows(supabase, 'reviews', 'user_id', userId, exportErrors)
+        : store.inMemoryProductReviews.filter(review => review.userId === userId),
+      productQuestions: supabase
+        ? await readPersonalRows(supabase, 'product_questions', 'user_id', userId, exportErrors)
+        : store.inMemoryProductQuestions.filter(question => question.userId === userId),
+      questionAnswers: supabase
+        ? await readPersonalRows(supabase, 'product_question_answers', 'user_id', userId, exportErrors)
+        : store.inMemoryQuestionAnswers.filter(answer => answer.userId === userId),
+      brandContracts: supabase
+        ? await readPersonalRows(supabase, 'brand_contracts', 'brand_user_id', userId, exportErrors)
+        : store.inMemoryBrandContracts.filter(contract => contract.brandUserId === userId),
       shippingAddresses: addresses ?? [],
       notificationPreferences: notificationPrefs ?? null,
       notifications: notifications ?? [],
       professionalEndorsementsAsClient: endorsements
     },
-    retainedForLegalReasons: RETAINED_FOR_LEGAL_REASONS
+    retainedForLegalReasons: RETAINED_FOR_LEGAL_REASONS,
+    // Vide en temps normal. Non vide, cela veut dire que l'export est incomplet
+    // et le membre doit en être informé — jamais un silence.
+    exportErrors
   };
 }
 
@@ -161,6 +207,7 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   store.inMemoryProductReviews = store.inMemoryProductReviews.filter(review => review.userId !== userId);
   store.inMemoryProductQuestions = store.inMemoryProductQuestions.filter(question => question.userId !== userId);
   store.inMemoryQuestionAnswers = store.inMemoryQuestionAnswers.filter(answer => answer.userId !== userId);
+  store.inMemoryBrandContracts = store.inMemoryBrandContracts.filter(contract => contract.brandUserId !== userId);
   store.inMemoryLoyaltyAccounts.delete(userId);
   store.inMemoryLoyaltyEvents = store.inMemoryLoyaltyEvents.filter(event => event.userId !== userId);
   store.inMemoryLoyaltyRedemptions = store.inMemoryLoyaltyRedemptions.filter(redemption => redemption.userId !== userId);

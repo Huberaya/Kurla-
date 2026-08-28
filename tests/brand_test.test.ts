@@ -227,6 +227,38 @@ assert.ok(
 const { serverDb } = await import('../src/lib/serverDb');
 
 const hairCohort = { needs: ['hydrater_cheveux', 'cuir_chevelu'] };
+
+/**
+ * CHANTIER 12 (bloc D) — depuis le contrat marque, une demande de test exige un
+ * contrat actif. Le banc le vérifie au passage, puis pose le contrat dont la
+ * suite a besoin.
+ */
+const contractInput = {
+  brandUserId: 'brand-user-1',
+  brandName: 'Marque Test',
+  contactEmail: 'contact@marque-test.fr'
+};
+await assert.rejects(
+  () => serverDb.createBrandTestRequest({
+    ...contractInput,
+    productName: 'Soin hydratant',
+    hypothesis: 'Le soin répond-il au besoin d’hydratation des longueurs ?',
+    cohort: hairCohort,
+    targetParticipants: 40,
+    durationDays: 45
+  }),
+  /contrat/i,
+  'sans contrat signé, aucune demande de test ne doit passer'
+);
+
+const brandContract = await serverDb.issueBrandContract('admin-1', contractInput);
+await serverDb.signBrandContract('brand-user-1', brandContract.id, {
+  acceptsAggregateOnly: true,
+  acceptsNoPersonalDataTransfer: true,
+  confirmsTermsVersionRead: true
+});
+await serverDb.countersignBrandContract('admin-1', brandContract.id);
+
 const request = await serverDb.createBrandTestRequest({
   brandUserId: 'brand-user-1',
   brandName: 'Marque Test',

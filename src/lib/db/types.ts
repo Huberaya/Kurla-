@@ -378,6 +378,41 @@ export interface MobileSyncAction {
 
 export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
 
+/**
+ * CHANTIER 12 (bloc D) — CONTRAT MARQUE.
+ *
+ * Critère de sortie du chantier F : « un contrat marque signé sur agrégats,
+ * sans aucune donnée personnelle cédée ». Jusqu'ici l'espace marque existait
+ * (8 routes, 4 tables, rapport k-anonyme) sans qu'aucun contrat ne lie la
+ * marque à KURLA : une marque pouvait demander un test produit sans avoir rien
+ * signé.
+ *
+ * Deux signatures, dans un ordre imposé : la marque signe d'abord les
+ * conditions qu'elle accepte, KURLA contresigne ensuite. Un contrat n'est
+ * `active` qu'avec les deux. Ce qui est signé est une **version de texte** :
+ * `termsHash` fige le texte, et un contrat signé pour `v1` ne couvre pas `v2`.
+ */
+export type BrandContractStatus = 'issued' | 'active' | 'terminated' | 'expired';
+
+export interface BrandContract {
+  id: string;
+  brandUserId: string;
+  brandName: string;
+  contactEmail: string;
+  /** Version du texte signé — un contrat ne couvre que sa propre version. */
+  termsVersion: string;
+  /** Empreinte SHA-256 du texte signé. */
+  termsHash: string;
+  status: BrandContractStatus;
+  priceCents: number | null;
+  issuedAt: string;
+  issuedBy: string;
+  signedByBrandAt?: string;
+  signedByKurlaAt?: string;
+  terminatedAt?: string;
+  terminationReason?: string;
+}
+
 export interface ProfessionalApplication {
   id: string;
   userId?: string;

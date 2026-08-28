@@ -113,6 +113,21 @@ export function registerBrandTestRoutes(app: Express): void {
       return;
     }
 
+    /**
+     * CHANTIER 12 (bloc D) — refus nommé avant d'aller plus loin : la marque
+     * doit savoir ce qui lui manque (contrat non émis, non signé, ou signé pour
+     * une version de texte périmée), pas recevoir une erreur générique.
+     */
+    const contractGate = await serverDb.resolveBrandContractEligibility(user.id);
+    if (!contractGate.eligible) {
+      res.status(422).json({
+        error: 'Un contrat marque signé est requis avant toute demande de test.',
+        reason: contractGate.reason,
+        contractId: contractGate.contractId ?? null
+      });
+      return;
+    }
+
     const request = await serverDb.createBrandTestRequest({
       brandUserId: user.id,
       brandName,

@@ -130,7 +130,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 |---|---|---|
 | Trust Score pros : identité, diplôme, vérification, avis réels | 22, action 20 | ✅ `professionalTrust.ts` pur + testé, route, écran |
 | Réservation de prestation | 23 | ✅ routes, store, écran, consentement au partage |
-| **Paiement de prestation** | 23 | ⬜ table `service_payments` créée, **aucune route ne l'appelle** |
+| **Paiement de prestation** | 23 | ✅ **vérifié le 28/08/2026** : `POST /api/appointments/:id/checkout` (session Stripe, réservé aux réservations déjà confirmées par le pro), `POST /api/service-payments/:id/confirm` (statut relu chez Stripe, jamais déclaré par le client), `GET /api/appointments/:id/payments`, bouton « Payer la prestation » dans `MyAppointmentsPage.tsx` |
 | Espace pro : dossiers clients partagés avec consentement explicite | 25 | 🔶 modèle par périmètre + 4 routes, **aucun écran pro** |
 | Fiche ingrédient publique (fonction, preuve A–D, sources) | 18 | ✅ route publique + `IngredientCardPage.tsx`, indexable |
 | Comparateur de routines | 34 | ✅ `CostSimulatorPage.tsx` |
@@ -139,7 +139,13 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 
 **Critère de sortie :** au moins un pro vérifié réservable, **payable**, et capable de co-signer. Une fiche ingrédient publique et indexable.
 
-**Résultat : la fiche ingrédient publique est atteinte. Le critère pro ne l'est pas** — la réservation est livrée, le paiement de prestation et la co-signature dans l'UI ne le sont pas. Détail complet dans `docs/KURLA_CHANTIERS.md`.
+**Résultat, revérifié ligne à ligne le 28/08/2026 : le critère est atteint.** Les trois
+maillons existent dans le code : réservation (`professionalStore` + routes + écran),
+paiement (routes ci-dessus + bouton dans l'UI), co-signature (`POST /api/endorsements`,
+`GET /api/me/endorsements`, lu côté client dans `RoutineBuilderPage.tsx` — un
+professionnel ne peut pas être son propre client, et l'affichage exige le
+consentement daté du membre). La ligne « aucune route ne l'appelle » qui figurait
+ici était **périmée** : elle datait d'un état antérieur du dépôt.
 
 ---
 
@@ -189,7 +195,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 |---|---|
 | Texture Gap Report — agrégats k-anonymes uniquement — 🔶 chantier 8.6a : rapport k-anonyme livré et réservé à l’administration ; ni compte B2B ni contrat, et couverture du catalogue inconnue tant que `product_ingredients` est vide | 30 |
 | API catalogue + scoring — ✅ chantier 8.6b : 5 endpoints `/api/v1/*` publics, scoring sans état, `/api-docs` indexable ; pas de clés ni de quota par consommateur | 31 |
-| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme ; migration `20260865` appliquée en production le 2026-08-28. **Manquent** le contrat et la facturation | 41 |
+| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme ; migration `20260865` appliquée en production le 2026-08-28. Contrat ✅ chantier 12 (bloc D) : voir ci-dessous. **Manque** la facturation | 41 |
 | Programme experts / créateurs — ✅ chantier 8.6c1 : `creatorProgram.ts` + `creatorStore.ts` + 7 routes + migration `20260864` + page publique `/createurs`. La visibilité ne s’achète pas : aucun poids monétaire, aucune table où enregistrer un placement | 39 |
 | Rémunération au résultat, pas au clic — ✅ chantier 8.6c1 : clic/étagère/achat valent 0 (contraintes `only_outcomes_are_paid` + `outcomes_pay_exactly_one`), 1,50 € par résultat déclaré, taux identique quel que soit le signe, > 60 % de négatifs → revue | 40 |
 
@@ -309,6 +315,43 @@ invérifiable que KURLA refuse.
   actuelle, à paginer si la volumétrie devient réelle.
 - Le marquage « réponse utile » n'a pas encore d'interface : la route existe et est
   testée, le bouton sur la fiche produit reste à poser.
+
+### CHANTIER 12 — BLOC D : CONTRAT MARQUE SIGNÉ ✅ (réalisé le 28/08/2026)
+
+**Critère visé** (chantier F) : « un contrat marque signé sur agrégats, sans
+aucune donnée personnelle cédée ».
+
+**Constat vérifié avant d'écrire.** L'espace marque existait — 8 routes
+`/api/brand-tests/*`, 4 tables, rapport k-anonyme — mais **aucune table ne
+matérialisait de contrat** : une marque pouvait déposer une demande de test sans
+avoir rien signé. Le critère de sortie du chantier F était donc hors d'atteinte,
+et la phrase « sans aucune donnée personnelle cédée » n'engageait personne.
+
+| Livrable | Preuve |
+| --- | --- |
+| **Texte signé, versionné** | `src/lib/brandContractTerms.ts` — `KURLA-BRAND-v1`, empreinte SHA-256 du texte ; clause 2 (agrégats k-anonymes, seuil k réel interpolé) et clause 3 (aucune donnée personnelle cédée) |
+| **Deux signatures, ordre imposé** | `issueBrandContract` → `signBrandContract` (marque) → `countersignBrandContract` (KURLA). `active` n'est atteignable qu'avec les deux ; la base l'impose aussi par contrainte |
+| **Portier** | `resolveBrandContractEligibility` appelé **dans** `createBrandTestRequest` : aucun appelant ne peut le contourner. La route renvoie un **422 nommé** (contrat non émis / non signé / signé pour une version périmée) |
+| **Routes** | 7 routes (`src/server/routes/brandContracts.ts`) : texte public, émission admin, mes contrats, lecture, signature, contreseing, résiliation |
+| **Migration** | `20260870000000_brand_contracts.sql` — 3 contraintes CHECK (contrat actif ⇒ deux signatures ; KURLA signe en dernier ; résiliation ⇒ motif) + index unique partiel « un seul contrat actif par marque » |
+| **RGPD** | le contrat sort dans l'export et part à la suppression du compte |
+| **Banc** | `tests/kurla_brand_contract.test.ts` (`npm run test:brand-contract`) |
+
+**Un défaut de mon propre chantier C, trouvé en écrivant celui-ci.** Les sections
+`productReviews`, `productQuestions` et `questionAnswers` de l'export RGPD lisaient
+uniquement les collections **en mémoire** : en mode Supabase, l'export les aurait
+rendues vides — un droit d'accès rendu partiellement sans le dire. Corrigé : les
+sections lisent la base, et toute lecture qui échoue remonte dans un champ
+`exportErrors` au lieu de passer sous silence.
+
+**Ce qui n'a volontairement pas été fait**
+
+- La signature n'est pas une case à cocher unique : les trois clauses se valident
+  une par une, et une clause manquante refuse la signature (testé).
+- Pas de « contrat accepté implicitement par l'usage ». Pas de renouvellement
+  automatique : un texte qui change exige une nouvelle signature des deux parties.
+- La facturation **n'est pas faite** : c'est l'étape suivante du bloc D. Un contrat
+  peut porter un `priceCents`, mais rien ne le facture encore.
 
 ## 5. MATRICE DE TRAÇABILITÉ
 

@@ -12,6 +12,7 @@ import {
   profileMatchesNeed
 } from '../brandTest';
 import { SIGNAL_VALENCE, isOutcomeSignal } from '../outcomeEvidence';
+import { resolveBrandContractEligibility } from './brandContractStore';
 
 import type { BrandTestAggregateRow, BrandTestCohort, BrandTestReport, BrandTestStatus } from '../brandTest';
 import type { BeautyProfile } from '../beautyProfile';
@@ -66,6 +67,20 @@ export async function createBrandTestRequest(
   store: SupabaseServerStore,
   input: CreateBrandTestRequestInput
 ): Promise<BrandTestRequest> {
+  /**
+   * CHANTIER 12 (bloc D) — le contrat précède la demande.
+   *
+   * Jusqu'ici une marque pouvait déposer une demande de test sans avoir rien
+   * signé : l'espace marque existait, le contrat non. Le critère de sortie du
+   * chantier F exige « un contrat marque signé sur agrégats ». Le portier est
+   * ici, dans le store, pour qu'aucun appelant ne puisse le contourner — la
+   * route renvoie un 422 explicite, mais la règle ne dépend pas d'elle.
+   */
+  const gate = await resolveBrandContractEligibility(store, input.brandUserId);
+  if (!gate.eligible) {
+    throw new Error(gate.reason || 'Un contrat marque signé est requis avant toute demande de test.');
+  }
+
   const now = new Date().toISOString();
   const request: BrandTestRequest = {
     id: randomUUID(),
