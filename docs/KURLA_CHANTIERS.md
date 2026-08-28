@@ -1159,10 +1159,9 @@ résilie. Sans cela, un abonnement expirerait au bout d'un mois sans jamais êtr
 prolongé.
 
 **Ce qui manque, explicitement**
-- **La migration n'est pas appliquée** : elle est écrite et relue, mais il faut
-  un jeton Supabase pour la passer et vérifier les RPC par leurs valeurs — comme
-  au chantier 8.3. Tant qu'elle n'est pas appliquée, KURLA+ tourne sur le repli
-  mémoire du serveur.
+- ~~La migration n'est pas appliquée~~ **LEVÉ le 2026-08-28** : `20260863`
+  appliquée sur l'instance réelle ; les 5 RPC et les 3 tables vérifiées par
+  requête. Le paiement Stripe reste différé par décision.
 - **Le paiement est différé par décision** : sans `STRIPE_SECRET_KEY`,
   `POST /api/membership/checkout` répond **503 `PAYMENT_NOT_CONFIGURED`** et ne
   simule rien. Seul l'essai de 14 jours, sans moyen de paiement, est
@@ -1319,9 +1318,9 @@ même règle en SQL (`rejected` n'a aucune transition sortante). Le banc vérifi
 les deux refus, la suspension réversible, et la disparition de l'annuaire.
 
 **Ce qui manque, explicitement**
-- **La migration `20260864` n'est pas appliquée** sur l'instance réelle (comme
-  `20260863`) : les routes fonctionnent en mode mémoire, et échoueront contre la
-  base tant que la migration n'est pas jouée.
+- ~~La migration `20260864` n'est pas appliquée~~ **LEVÉ le 2026-08-28** :
+  appliquée sur l'instance réelle ; tables, contraintes, RLS et RPC
+  `review_creator_application` vérifiées par requête.
 - **Aucun versement réel** : Stripe est différé. `computeCreatorPayout` calcule
   un montant dû ; rien ne le paie.
 - **Les contributions ne comptent que les articles** : une réponse d'expert ou
@@ -1388,9 +1387,9 @@ répond à un besoin précis. Elle ne doit jamais savoir *qui* a répondu.
 `calculateKurlaFit` ferait échouer le banc.
 
 **Ce qui manque, explicitement**
-- **La migration `20260865` n'est pas appliquée** (comme `20260863` et
-  `20260864`) : en mode mémoire tout fonctionne, contre la base rien ne
-  fonctionnera tant que les trois migrations ne sont pas jouées.
+- ~~La migration `20260865` n'est pas appliquée~~ **LEVÉ le 2026-08-28** :
+  appliquée après correction d'un CHECK à sous-requête (interdit par
+  PostgreSQL) ; tables, contraintes et politiques vérifiées par requête.
 - **Aucun contrat ni facturation** : le critère de sortie du chantier F (« un
   contrat marque signé ») n'est pas atteint. La demande est déposée et revue,
   pas vendue.
@@ -1405,6 +1404,59 @@ répond à un besoin précis. Elle ne doit jamais savoir *qui* a répondu.
 `/marque/tests` correctement absent du prérendu), inventaire **201 routes**
 (+10), **210 méthodes** (+12), rien retiré, **25 routes statiques prérendues**
 (+1 : `/marques`).
+
+#### 8.7 — Application mobile (livré)
+
+**Le postulat.** La stratégie justifie cette feature par une phrase : « le scan et
+le suivi sont mobiles ». Une application native serait ici un spectacle
+invérifiable : pas de store, pas d'appareil, pas de toolchain. Ce chantier livre
+donc ce qu'un téléphone exige *réellement* du produit existant — sans rien
+promettre qu'on ne puisse vérifier.
+
+| Livrable | Contenu |
+| --- | --- |
+| `public/manifest.webmanifest` | PWA installable : `standalone`, `lang: fr`, thème `#050403`, 3 icônes dont une `maskable` |
+| `public/sw.js` | Service worker : coquille hors-ligne, assets hachés en cache, **`/api/` jamais mis en cache**, rien hors hôte |
+| `public/icon-*.png` | Icônes générées (motif boucle), 192/512/512-maskable |
+| `index.html` + `main.tsx` | Balises d'installabilité ; enregistrement du SW **en production seulement** |
+| `src/lib/mobileShell.ts` | Brief quotidien (union fermée) + file hors-ligne (FIFO, dédoublonnage, TTL 30 j, eviction 200, refus) |
+| `src/lib/db/mobileStore.ts` | 3 méthodes ; journal des actions synchronisées, unicité `(user_id, client_action_id)` |
+| `src/server/routes/mobile.ts` | `GET /api/mobile/capabilities` (public) · `GET /api/mobile/briefing` · `POST /api/mobile/sync` |
+| `supabase/migrations/20260866000000_mobile_sync.sql` | `mobile_sync_actions` + contrainte d'unicité + RLS lecture seule |
+| `tests/mobile_app.test.ts` | 11 plans de vérification |
+
+**Quatre propriétés testées.**
+
+1. **Rien n'est inventé.** Base vide → brief vide. Sans préférence de lavage, pas
+   d'item lavage ; un cycle non échu n'apparaît pas ; sans compte de fidélité,
+   pas d'item fidélité.
+2. **Le brief est court et sans promotion.** Union fermée de 4 types — il
+   n'existe pas de type « promotion ». Cinq items au maximum, deux invitations à
+   déclarer un résultat, et le nombre d'invitations retenues est renvoyé.
+3. **Une action hors ligne se rejoue exactement une fois.** Le store refuse un
+   identifiant client déjà connu ; la clé de progression porte l'identifiant
+   client. Le scan envoyé deux fois compte une fois.
+4. **Le SW ne met jamais l'API en cache.** Précache = coquille seulement ;
+   l'exécution exclut `/api/` et tout hôte étranger.
+
+**Statut production (2026-08-28).** Migration `20260866` appliquée sur
+l'instance réelle, contrainte `one_application_per_client_action` et RLS
+vérifiées par requête. PWA servie en ligne : `manifest.webmanifest` 200
+(`application/manifest+json`), `sw.js` 200, icônes 200.
+
+**Ce qui manque, explicitement**
+- **Pas d'appareil réel** : l'installation PWA et le basculement hors-ligne n'ont
+  pas été observés dans un navigateur, seulement vérifiés par le banc.
+- **Pas de notifications push**, pas de build App Store/Play : hors périmètre
+  d'un dépôt web.
+- **Le scan (33) et le diagnostic photo (11) restent en dette** : l'ingestion
+  existe, la sync peut rejouer un scan, mais aucun écran de lecture de
+  code-barres n'est livré.
+
+**Résultat 8.7 :** `tsc` exit 0, `npm test` exit 0 (**92 bancs**), build exit 0
+(`dist/server.cjs` 877,6 kb ; manifest/sw/icônes copiés ; bundle client
+enregistre le SW), **204 routes** (+3), **213 méthodes** (+3), 25 routes
+statiques inchangées.
 
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
@@ -1431,13 +1483,13 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.2c** Catalogue, commandes, inventaire, contenus et types~~ **FAIT** — `catalogStore.ts` (890 l.), `orderStore.ts` (769 l.), `inventoryStore.ts` (111 l.), `contentStore.ts` (54 l.) ; les 27 déclarations de types partent dans `types.ts` (343 l., réexportées par `serverDb.ts` : aucun import existant n'a bougé) ; les aides pures (`toPublicProduct`, `isPublishableProduct`, `effectiveCatalogPrice`, `isPromotionActive`, `emailTemplateForOrderStatus`) rejoignent `internal.ts`. **`serverDb.ts` : 2 492 → 333 lignes** — il ne reste que l'état, le verrou de stock, `initialize`, `getStatusSummary`, la surface composée et l'assemblage. **Bilan du chantier 8.2 : 6 240 → 333 lignes (−95 %), quatorze domaines.**
 - [x] ~~**8.3** Loyalty par progression + récompense des comportements non-marchands~~ **FAIT** — `KURLA PROGRESSION` : cinq axes **plafonnés** (connaissance 100, pratique 120, contribution 100, exploration 60, **achat 80** sur 460), 14 faits dont 13 non marchands, 5 niveaux, 6 badges dérivés des faits, 4 récompenses **débloquées par niveau et jamais achetées avec des points**. Migration `20260862000000_loyalty_progression.sql` (8 tables, RPC `apply_loyalty_event` atomique et idempotente, RPC `get_loyalty_retention` par cohorte D30/D60/D90, 15 politiques RLS, **aucune écriture directe possible dans le journal**) ; domaine `src/lib/db/loyaltyStore.ts` (9 méthodes) ; 9 routes ; écran `/account/progression`. **Migration appliquée sur la base réelle et RPC vérifiée par ses valeurs.**
 - [x] ~~**8.4** Beauty Journey : narration de l'évolution~~ **FAIT** — `src/lib/beautyJourney.ts` (fonction **pure** : chronologie toutes sources confondues, 8 jalons, évolution par score, comparaison de photos, récit en phrases, manques énoncés) + `src/lib/db/journeyStore.ts` (assemblage, **aucune donnée nouvelle collectée**) + `GET /api/beauty-journey` + écran `/account/journey`. Règles de fond : valeurs **attribuées à des déclarations**, aucune tendance sous 3 mesures, écart ≤ 1/10 = bruit, comparaison seulement à ≥ 14 jours d'écart, réserves d'usage permanentes (pas de mesure clinique, pas d'avis médical).
-- [x] ~~**8.5** Abonnement KURLA+~~ **FAIT** — `src/lib/membership.ts` (module pur : plans, 10 capacités, éligibilité, cycle de vie, prix HT + TVA du pays) + migration `20260863000000_kurla_plus_membership.sql` (3 tables, 5 RPC SECURITY DEFINER, aucune écriture directe, RPC réservées à `service_role`) + `src/lib/db/membershipStore.ts` (7 méthodes) + 5 routes + `/account/kurla-plus`. **KURLA+ n'enlève rien** : 6 capacités essentielles vérifiées gratuites par le banc. Paiement différé : 503 `PAYMENT_NOT_CONFIGURED` plutôt qu'un encaissement simulé ; **migration non appliquée** (jeton requis).
+- [x] ~~**8.5** Abonnement KURLA+~~ **FAIT** — `src/lib/membership.ts` (module pur : plans, 10 capacités, éligibilité, cycle de vie, prix HT + TVA du pays) + migration `20260863000000_kurla_plus_membership.sql` (3 tables, 5 RPC SECURITY DEFINER, aucune écriture directe, RPC réservées à `service_role`) + `src/lib/db/membershipStore.ts` (7 méthodes) + 5 routes + `/account/kurla-plus`. **KURLA+ n'enlève rien** : 6 capacités essentielles vérifiées gratuites par le banc. Paiement différé : 503 `PAYMENT_NOT_CONFIGURED` plutôt qu'un encaissement simulé ; **migration appliquée le 2026-08-28**.
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement — **chantier long, subdivisé** :
   - [x] ~~**8.6a** Texture Gap Report (feature 30)~~ **FAIT (rapport) — la surface B2B reste à faire** : `src/lib/textureGap.ts` (cœur pur + `concernsFromProfile` + `aggregateTextureGap`), `src/lib/db/textureGapStore.ts` (lecture et agrégation), `GET /api/intelligence/texture-gap` **réservé à l'administration**, écran `/admin/texture-gap`, banc `tests/texture_gap.test.ts`. **La feature 30 passe en 🔶 partielle, pas en ✅** : le rapport existe et est k-anonyme, mais il n'y a ni compte B2B ni contrat encadrant la revente, et la couverture du catalogue est inconnue tant que `product_ingredients` est vide — le rapport rend donc `donnees_insuffisantes` plutôt que des angles morts.
   - [x] ~~**8.6b** API catalogue + scoring (feature 31)~~ **FAIT** — `src/server/routes/publicApi.ts` : 5 endpoints publics en lecture seule (`/api/v1/manifest`, `/api/v1/products`, `/api/v1/products/:idOrSlug`, `/api/v1/scoring/schema`, `POST /api/v1/scoring/fit`) + page publique indexable `/api-docs` (prérendue). **Scoring sans état** : le profil envoyé n'est enregistré nulle part, vérifié par l'état du store avant/après. Un score vaut `null` quand rien n'est déclaré — jamais 0, car 0 voudrait dire « mauvais produit ».
   - [x] ~~**8.6c1** Programme experts/créateurs (39) + rémunération au résultat (40)~~ **FAIT** — règles pures, store, 7 routes, migration `20260864`, page publique `/createurs`, 10 plans de vérification.
   - [x] ~~**8.6c2** Espace marque et tests produits ciblés (41)~~ **FAIT** — rôle `brand`, règles pures, store 12 méthodes, 10 routes, migration `20260865`, pages `/marques` et `/marque/tests`, 10 plans de vérification.
-- [ ] **8.7** Application mobile
+- [x] ~~**8.7** Application mobile~~ **FAIT** — PWA installable, brief quotidien, sync hors-ligne idempotente, SW qui ne cache jamais l'API. Migration `20260866` appliquée en production le 2026-08-28.
 
 - [x] ~~Tests Supabase réels A/B : 17 vérifications Phase 2 à 0 exécution~~ **LEVÉ** (action 46)
 
@@ -1467,7 +1519,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **91 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **92 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1488,6 +1540,9 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.6c1** — inventaires | **191 routes** (+7) · **198 méthodes** (+11) · **24 routes statiques prérendues** (+1 : `/createurs`), rien retiré |
 | **Chantier 8.6c2** — `tests/brand_test.test.ts` | PASS — 10 plans de vérification : 19 clés de ciblage personnel refusées nommément (plus toute clé hors vocabulaire), 13 codes de besoins vivants vérifiés contre le matcher, transitions (pas de recrutement sans acceptation, refus définitif), cellule à 12 participants absente (k=30), 20 participants → `signals: null`, 30 positifs et 4 négatifs comptés, retrait → 34→33 participants, membre hors cohorte refusé, aucun des 46 identifiants semés dans le rapport, 5 accès refusés sans compte |
 | **Chantier 8.6c2** — inventaires | **201 routes** (+10) · **210 méthodes** (+12) · **25 routes statiques prérendues** (+1 : `/marques`) · `/marque/tests` privé et non prérendu, rien retiré |
+| **Chantier 8.7** — `tests/mobile_app.test.ts` | PASS — 11 plans : brief vide sans données, lavage échu seulement, routine du jour, 2 invitations (1 retenue), fidélité muette, file FIFO avec dédoublonnage/expiration/eviction/refus, scan compté une fois sur deux envois, contrat public, 2 accès refusés, manifeste avec icônes réelles, SW sans cache API |
+| **Chantier 8.7** — inventaires | **204 routes** (+3) · **213 méthodes** (+3) · 25 routes statiques inchangées, rien retiré |
+| **Production 2026-08-28** — migrations `20260863` → `20260866` | **APPLIQUÉES** sur `qzwgsarfdegqtfdnqiql` via l'API de gestion Supabase : 11 tables créées, contraintes vérifiées (`only_outcomes_are_paid`, `outcomes_pay_exactly_one`, `cohort_only_needs_and_archetypes`, `published_requires_verification`, `one_application_per_client_action`, `one_participation_per_member`), RLS actif sur les 8 tables, 6 RPC présentes, valeurs en base (`click`/`shelf`/`purchase` = 0, `outcome_declared` = 1, taux 150 c, seuil 3, part 0,6), rôle `brand` dans le CHECK de `profiles`. `20260865` corrigée avant application (un CHECK ne peut pas contenir de sous-requête). Push `2f9bf0c..822bd3f`, déploiement Vercel READY, sondes 200/401 conformes, sitemap 41 URL |
 | **Chantier 8.6a** — inventaires | **179 routes** (+1 : `GET /api/intelligence/texture-gap`) · **187 méthodes** (+1 : `getTextureGapReport`), rien retiré |
 | **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |

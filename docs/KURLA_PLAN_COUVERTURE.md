@@ -189,7 +189,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 |---|---|
 | Texture Gap Report — agrégats k-anonymes uniquement — 🔶 chantier 8.6a : rapport k-anonyme livré et réservé à l’administration ; ni compte B2B ni contrat, et couverture du catalogue inconnue tant que `product_ingredients` est vide | 30 |
 | API catalogue + scoring — ✅ chantier 8.6b : 5 endpoints `/api/v1/*` publics, scoring sans état, `/api-docs` indexable ; pas de clés ni de quota par consommateur | 31 |
-| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme. **Manquent** le contrat, la facturation et l’application de la migration `20260865` | 41 |
+| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme ; migration `20260865` appliquée en production le 2026-08-28. **Manquent** le contrat et la facturation | 41 |
 | Programme experts / créateurs — ✅ chantier 8.6c1 : `creatorProgram.ts` + `creatorStore.ts` + 7 routes + migration `20260864` + page publique `/createurs`. La visibilité ne s’achète pas : aucun poids monétaire, aucune table où enregistrer un placement | 39 |
 | Rémunération au résultat, pas au clic — ✅ chantier 8.6c1 : clic/étagère/achat valent 0 (contraintes `only_outcomes_are_paid` + `outcomes_pay_exactly_one`), 1,50 € par résultat déclaré, taux identique quel que soit le signe, > 60 % de négatifs → revue | 40 |
 
