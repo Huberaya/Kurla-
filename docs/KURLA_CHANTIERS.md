@@ -718,11 +718,82 @@ HT : toutes détectées — la dernière a révélé un défaut réel avant livr
   chantiers) : les RPC de paiement et de remboursement refusent déjà toute devise
   autre qu'EUR en base.
 
+### 7.7 ✅ — Filtrage réglementaire par juridiction
+
+**Le constat de départ.** La chaîne existait déjà et ne servait à rien :
+`checkJurisdiction` (`ingredientGraph.ts:271`, pure et testée), la table
+`ingredient_jurisdiction_restrictions` (3 lignes seedées : acide salicylique
+restreint à 2 %, rétinol à 0,3 %, hydroquinone interdite), la route publique
+`POST /api/jurisdiction/assess` et l'affichage des restrictions sur la fiche
+ingrédient. **Aucune recommandation, aucune fiche produit et aucun checkout ne
+les consultait** : le graphe savait, le commerce ignorait.
+
+**Trois règles, écrites avant le code** (`src/lib/jurisdiction.ts`, 229 lignes) :
+1. **L'absence de donnée n'est pas une conformité.** Aucune restriction pour une
+   juridiction → verdict `no_data` avec limitation explicite, jamais « conforme ».
+2. **Une concentration non déclarée n'est pas une infraction.** Ingrédient
+   réglementé, concentration inconnue → avertissement (`withinLimit: null`), pas
+   blocage. En revanche, une concentration déclarée **au-dessus** de la limite
+   rend le produit non commercialisable : c'est le seul cas, avec l'interdiction,
+   où `sellable` passe à `false`.
+3. **Chaque verdict cite sa base.** Le champ `reference` vient de la base
+   (Règlement (CE) n° 1223/2009, annexes II/III) ; rien n'est reconstitué ici.
+
+**Les 8 pays desservis relèvent d'une seule juridiction** (`EU`) : le droit
+cosmétique européen est unifié, huit tables fantaisistes auraient été du décorum.
+Un pays non desservi n'a **aucun** verdict — il est refusé, pas évalué.
+
+**Les trois branchements**
+- **Recommandations** (`recommendationEngine.ts`) : `'jurisdiction'` rejoint
+  `AdjustmentKind`, le contexte porte la juridiction et ses restrictions. Un
+  ingrédient interdit exclut le produit (`delta −100`, `rank: null`, raison
+  d'exclusion nommant l'ingrédient et citant la base) ; un ingrédient réglementé
+  pénalise sans exclure (`delta −12`). Sans donnée : **aucun** ajustement, parce
+  qu'une pénalité inventée serait aussi fausse qu'un silence coupable.
+- **Fiche produit** : `GET /api/products/:id/compliance?country=XX` (publique,
+  sans compte, 60 req/min — on doit pouvoir savoir **avant** d'acheter). Rendu par
+  `ProductComplianceBanner.tsx`, avec sélecteur de pays : le visiteur vérifie le
+  sien, pas celui du vendeur. Un verdict `sellable: false` désactive « Ajouter au
+  panier » **et** le réassort récurrent.
+- **Checkout** : la porte est **fermée par défaut**. Ingrédient interdit ou limite
+  dépassée dans le pays de livraison → `400 COMPLIANCE_NOT_SELLABLE` avant tout
+  appel Stripe. Graphe illisible **ou base inaccessible** → `503`, paiement non
+  lancé. Les recommandations, elles, restent ouvertes en cas de graphe illisible
+  (ce n'est pas une vente) et le déclarent via `jurisdictionChecked: false`.
+
+**Vérification.** `tests/chantier_7_jurisdiction.test.ts` (dans la chaîne
+`npm test` : **81 bancs PASS, exit 0**) appelle les fonctions livrées et le vrai
+moteur : les 5 verdicts et leur précédence, la limite inclusive (2 % pour 2 %),
+la concentration inconnue, le statut `unknown`, la restriction étrangère
+inappllicable en UE, l'exclusion moteur et sa trace. **5 mutations sur 5 tuées**
+(`sellable: true` forcé, `withinLimit` jamais faux, `no_data` → `compliant`,
+filtre de juridiction supprimé, exclusion moteur retirée).
+
+`tests/chantier_7_jurisdiction.integration.test.ts` (hors chaîne, `npm run
+test:chantier-7-jurisdiction-integration`) démarre le vrai serveur, injecte deux
+produits publiables et exerce les routes en HTTP. **Il a trouvé un défaut réel
+avant livraison** : quand le client Supabase est absent, la porte du checkout
+laissait passer la vente (fail-open) alors que le graphe illisible la refusait.
+Corrigé — les deux cas renvoient désormais 503.
+
+**Ce qui manque, explicitement**
+- La branche « base réelle » de ce banc d'intégration n'a **pas pu être exécutée
+  ici** : aucun credential Supabase dans cet environnement. Ce qui est prouvé,
+  c'est l'échec fermé ; le verdict `prohibited` sur données réelles reste à
+  constater une première fois en production.
+- `product_ingredients` (liaison produit ↔ ingrédient avec
+  `declared_concentration_percent`) est lue quand elle existe mais reste vide :
+  les concentrations ne sont donc pas déclarées, et l'évaluation le dit au lieu de
+  les présumer dans la limite. Renseigner cette table transforme des
+  avertissements en verdicts.
+- La résolution nom → ingrédient passe par `resolveIngredient` : un nom de la
+  fiche non reconnu reste hors graphe (`X ingrédient(s) non couvert(s)` affiché),
+  il n'est jamais deviné.
+- Aucun écran n'a été rendu dans un navigateur.
+
 ### Restant
 
-- [ ] **7.7** Filtrage réglementaire par juridiction via
-      `ingredient_jurisdiction_restrictions` (3 lignes seedées : rétinol, acide
-      salicylique, hydroquinone)
+_Chantier 7 terminé._
 
 
 ---
@@ -763,7 +834,9 @@ HT : toutes détectées — la dernière a révélé un défaut réel avant livr
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 |
+| `npm test` (suite complète) | exit 0 — **81 bancs PASS** |
+| `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée. **5 mutations sur 5 tuées** |
+| `tests/chantier_7_jurisdiction.integration.test.ts` (hors chaîne) | PASS en mode sans base : pays non desservi refusé (400), checkout en échec fermé (503), produit conforme non bloqué. **A révélé un fail-open réel, corrigé.** Branche « base réelle » non exécutée ici |
 | Vérifications Phase 2 (RLS réelle) | **PASS** contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
 
 Le dernier point est le seul passif ouvert. Il ne peut pas être levé ici : il exige une instance Supabase réelle.

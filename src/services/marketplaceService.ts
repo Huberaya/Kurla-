@@ -21,6 +21,44 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+/**
+ * CHANTIER 7.7 — conformité réglementaire d'un produit pour un pays donné.
+ * Le type est celui renvoyé par `/api/products/:id/compliance` (module
+ * `src/lib/jurisdiction.ts` côté serveur) : on ne redéclare pas la logique.
+ */
+export interface ProductComplianceResponse {
+  productId: string;
+  country: string;
+  countryWasDefaulted: boolean;
+  jurisdiction: string;
+  verdict: 'compliant' | 'restricted' | 'prohibited' | 'unverified' | 'no_data';
+  sellable: boolean;
+  findings: Array<{
+    ingredientId: string;
+    jurisdiction: string;
+    status: 'allowed' | 'restricted' | 'prohibited' | 'unknown';
+    limitPercent: number | null;
+    declaredConcentrationPercent: number | null;
+    withinLimit: boolean | null;
+    message: string;
+    reference: string | null;
+  }>;
+  limitations: string[];
+  declaredIngredientCount: number;
+  resolvedIngredientCount: number;
+  note?: string;
+}
+
+export async function fetchProductCompliance(
+  productIdOrSlug: string,
+  country: string
+): Promise<ProductComplianceResponse> {
+  const response = await fetch(
+    `/api/products/${encodeURIComponent(productIdOrSlug)}/compliance?country=${encodeURIComponent(country)}`
+  );
+  return parseResponse<ProductComplianceResponse>(response);
+}
+
 export async function fetchProductTrust(productIdOrSlug: string): Promise<ProductTrustResponse> {
   const response = await fetch(`/api/products/${encodeURIComponent(productIdOrSlug)}/trust`);
   return parseResponse<ProductTrustResponse>(response);

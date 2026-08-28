@@ -17,6 +17,7 @@ import {
 } from '../services/marketplaceService';
 import { ArchetypeRatingsPanel } from '../components/product/ArchetypeRatingsPanel';
 import { ProductVerificationPanel } from '../components/product/ProductVerificationPanel';
+import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -100,6 +101,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [country, setCountry] = useState('FR');
   const [frequency, setFrequency] = useState<'30_days' | '45_days' | '60_days' | '90_days'>('60_days');
+  /**
+   * CHANTIER 7.7 — verdict réglementaire du pays affiché. Un produit non
+   * commercialisable ne doit pas pouvoir entrer dans le panier depuis la fiche :
+   * le checkout le refuserait de toute façon.
+   */
+  const [sellableInCountry, setSellableInCountry] = useState(true);
 
   const variants = useMemo(() => product?.variants?.map(value => normalizedVariant(value, product.id, product.price)) || [], [product]);
   const selectedVariant = variants.find(variant => variant.id === selectedVariantId);
@@ -127,7 +134,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const clearAction = () => { setActionMessage(null); setActionError(null); };
 
   const handleAdd = () => {
-    if (!product || !effectiveInStock) return;
+    if (!product || !effectiveInStock || !sellableInCountry) return;
     clearAction();
     onAddToCart(product, selectedVariant);
     setActionMessage('Article ajouté au panier.');
@@ -190,7 +197,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
             {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {variant.inStock ? 'En stock' : 'Indisponible'}</span></button>)}</div></section>}
 
-            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span></div><button onClick={handleAdd} disabled={!effectiveInStock} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{effectiveInStock ? 'Ajouter au panier' : 'Indisponible'}</button></div>
+            <ProductComplianceBanner
+              productId={product.id}
+              country={country}
+              onVerdictChange={sellable => setSellableInCountry(sellable)}
+            />
+
+            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span></div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? 'Ajouter au panier' : 'Indisponible'}</button></div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoCard title="Bénéfice & cible" icon={<CheckCircle2 className="w-4 h-4 text-emerald-300" />}><p>{valueOrMissing(product.benefitPrimary)}</p><p className="mt-2">{targetTypes.length ? targetTypes.join(' · ') : valueOrMissing(product.forWho)}</p></InfoCard>
@@ -232,7 +245,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {!effectiveInStock && <div className="rounded-3xl bg-[#1A0F0A] border border-amber-400/20 p-6"><SectionTitle icon={<Clock className="w-5 h-5" />} title="Être prévenu du retour" /><p className="text-xs text-[#FFF7EF]/65 mb-4">Indiquez votre pays pour recevoir une alerte uniquement lorsque cette option est réellement disponible.</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><input value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} type="email" placeholder="votre@email.com" className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none" /><select value={country} onChange={event => setCountry(event.target.value)} className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none">{(availableCountries.length ? availableCountries : ['FR']).map(item => <option key={item} value={item}>{item}</option>)}</select></div><button disabled={busy || !waitlistEmail} onClick={() => withAction(() => joinProductWaitlist(product.id, { email: waitlistEmail, country, variantId: selectedVariant?.id }, session?.access_token))} className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Mail className="w-3.5 h-3.5" /> M’inscrire à la liste d’attente</button></div>}
-          <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<RefreshCw className="w-5 h-5" />} title="Réassort automatique" /><p className="text-xs text-[#FFF7EF]/65 mb-4">Optionnel. Une demande est enregistrée, puis confirmée avant tout prélèvement récurrent.</p>{user ? <div className="flex flex-wrap gap-2"><select value={frequency} onChange={event => setFrequency(event.target.value as typeof frequency)} className="flex-1 min-w-[170px] rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] focus:border-[#C8753D] focus:outline-none"><option value="30_days">Tous les 30 jours</option><option value="45_days">Tous les 45 jours</option><option value="60_days">Tous les 60 jours</option><option value="90_days">Tous les 90 jours</option></select><button disabled={busy || !effectiveInStock} onClick={() => withAction(() => createProductSubscription(product.id, { frequency, quantity: 1, country, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Demander ce réassort</button></div> : <p className="text-xs text-[#FFF7EF]/60">Connectez-vous pour activer cette option.</p>}</div>
+          <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<RefreshCw className="w-5 h-5" />} title="Réassort automatique" /><p className="text-xs text-[#FFF7EF]/65 mb-4">Optionnel. Une demande est enregistrée, puis confirmée avant tout prélèvement récurrent.</p>{user ? <div className="flex flex-wrap gap-2"><select value={frequency} onChange={event => setFrequency(event.target.value as typeof frequency)} className="flex-1 min-w-[170px] rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] focus:border-[#C8753D] focus:outline-none"><option value="30_days">Tous les 30 jours</option><option value="45_days">Tous les 45 jours</option><option value="60_days">Tous les 60 jours</option><option value="90_days">Tous les 90 jours</option></select><button disabled={busy || !effectiveInStock || !sellableInCountry} onClick={() => withAction(() => createProductSubscription(product.id, { frequency, quantity: 1, country, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Demander ce réassort</button></div> : <p className="text-xs text-[#FFF7EF]/60">Connectez-vous pour activer cette option.</p>}</div>
         </section>
 
         <div className="mt-8 rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/70 p-4 text-xs text-[#FFF7EF]/65 flex items-start gap-2"><ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" /><span>Les avis sont marqués « achat vérifié » uniquement après contrôle d’une commande réglée. Les recommandations beauté ne constituent pas un avis médical.</span></div>

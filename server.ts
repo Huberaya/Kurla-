@@ -13,7 +13,10 @@ import { readAggregate } from './src/lib/outcomeEvidence';
 import { returnInsightPrompt } from './src/lib/returnInsight';
 import { professionalStore, MINIMUM_REVIEWS_FOR_RATING, MINIMUM_ENDORSEMENTS_FOR_RATE } from './src/lib/professionalStore';
 import { compareRoutines, simulateAnnualCost } from './src/lib/routineEconomics';
-import { bestEvidenceFor } from './src/lib/ingredientGraph';
+import { bestEvidenceFor, resolveIngredient } from './src/lib/ingredientGraph';
+import type { JurisdictionRestriction } from './src/lib/ingredientGraph';
+import { assessProductCompliance, jurisdictionForCountry, type ProductCompliance } from './src/lib/jurisdiction';
+import { SELLER_COUNTRY } from './src/lib/vat';
 import { evaluateCohort } from './src/lib/archetype';
 import { buildRecommendations, explainLearning } from './src/lib/recommendationEngine';
 import { describeIntent, parseSearchIntent, searchByIntent } from './src/lib/semanticSearch';
@@ -656,6 +659,28 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Verify product publication, variant pricing and stock against the
     // customer catalogue. Client-provided prices and availability are ignored.
     const customerCatalog = await serverDb.getProducts({ publishedOnly: true });
+    // CHANTIER 7.7 — un ingrédient interdit dans le pays de livraison rend la vente
+    // illégale : ni le score de recommandation, ni le stock, ni le panier ne
+    // peuvent l'autoriser. Sans graphe lisible, on refuse la vente plutôt que de
+    // laisser passer un produit dont on ignore le statut.
+    const destinationJurisdiction = jurisdictionForCountry(normalizedShippingAddress.country);
+    let jurisdictionGraph: JurisdictionGraph | null = null;
+    if (destinationJurisdiction) {
+      let graphFailure: string | null = null;
+      try {
+        jurisdictionGraph = await loadJurisdictionGraph(destinationJurisdiction);
+      } catch (error: any) {
+        graphFailure = error?.message || 'erreur';
+      }
+      // Graphe illisible OU base inaccessible : dans les deux cas on refuse.
+      // Laisser passer reviendrait à vendre un produit dont on ignore le statut.
+      if (!jurisdictionGraph) {
+        return res.status(503).json({
+          error: `Contrôle réglementaire indisponible${graphFailure ? ` : ${graphFailure}` : ' : graphe d’ingrédients inaccessible'}. Le paiement n’a pas été lancé.`
+        });
+      }
+    }
+
     const pricedItems: any[] = [];
     const requestedByVariant = new Map<string, number>();
 
@@ -685,6 +710,23 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       const deliveredCountries = Array.isArray(dbProduct.countryAvailability) ? dbProduct.countryAvailability : [];
       if (!deliveredCountries.includes(normalizedShippingAddress.country) && !deliveredCountries.includes('INT')) {
         return res.status(400).json({ error: 'Ce produit n’est pas livré dans le pays indiqué.' });
+      }
+
+      if (jurisdictionGraph) {
+        const { compliance } = await assessProductComplianceForCountry(
+          dbProduct,
+          normalizedShippingAddress.country,
+          jurisdictionGraph
+        );
+        if (!compliance.sellable) {
+          const blocking = compliance.findings.filter(f => f.status === 'prohibited' || f.withinLimit === false);
+          return res.status(400).json({
+            error: `« ${dbProduct.name} » ne peut pas être vendu en ${normalizedShippingAddress.country} : ${blocking.map(f => f.ingredientId).join(', ') || 'formulation non conforme'}.`,
+            code: 'COMPLIANCE_NOT_SELLABLE',
+            jurisdiction: compliance.jurisdiction,
+            findings: compliance.findings
+          });
+        }
       }
 
       const variant = variantId
@@ -2676,6 +2718,161 @@ app.post('/api/admin/professionals/:professionalId/verify', asyncRoute(async (re
  * personnelle : c'est la condition pour qu'elle soit indexable et utile à
  * quelqu'un qui ne connaît pas encore KURLA.
  */
+interface JurisdictionGraph {
+  catalog: Array<{ id: string; inciName: string; inciNameNormalized: string; commonNames: string[] }>;
+  restrictions: JurisdictionRestriction[];
+  jurisdiction: string;
+}
+
+/**
+ * Charge le minimum du graphe nécessaire au filtrage réglementaire.
+ *
+ * `null` quand la base n'est pas configurée : dans ce cas KURLA ne prétend pas
+ * connaître le statut d'un ingrédient, il dit qu'il ne peut pas répondre.
+ */
+async function loadJurisdictionGraph(jurisdiction: string): Promise<JurisdictionGraph | null> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return null;
+
+  const [ingredientResult, restrictionResult] = await Promise.all([
+    supabase.from('ingredients').select('id, inci_name, inci_name_normalized, common_names'),
+    supabase
+      .from('ingredient_jurisdiction_restrictions')
+      .select('ingredient_id, jurisdiction, status, limit_percent, reference')
+      .eq('jurisdiction', jurisdiction)
+  ]);
+  if (ingredientResult.error || restrictionResult.error) {
+    const message = ingredientResult.error?.message || restrictionResult.error?.message || 'lecture impossible';
+    throw new Error(`Graphe réglementaire illisible : ${message}`);
+  }
+
+  return {
+    jurisdiction,
+    catalog: (ingredientResult.data || []).map((row: any) => ({
+      id: row.id,
+      inciName: row.inci_name,
+      inciNameNormalized: row.inci_name_normalized,
+      commonNames: row.common_names || []
+    })),
+    restrictions: (restrictionResult.data || []).map((row: any) => ({
+      ingredientId: row.ingredient_id,
+      jurisdiction: row.jurisdiction,
+      status: row.status,
+      limitPercent: row.limit_percent == null ? null : Number(row.limit_percent),
+      reference: row.reference ?? undefined
+    }))
+  };
+}
+
+/**
+ * Résout les ingrédients déclarés d'un produit en entités du graphe.
+ *
+ * Les concentrations déclarées viennent de `product_ingredients` quand la liaison
+ * existe. Sans liaison, la concentration est `null` — et l'évaluation le dit au
+ * lieu de la supposer dans la limite.
+ */
+async function assessProductComplianceForCountry(
+  product: { id: string; ingredients?: unknown; keyIngredients?: unknown },
+  country: string,
+  graph: JurisdictionGraph
+): Promise<{ compliance: ProductCompliance; declaredCount: number; resolvedCount: number }> {
+  const supabase = getSupabaseServerClient();
+  const names = [
+    ...(Array.isArray(product.ingredients) ? (product.ingredients as unknown[]) : []),
+    ...(Array.isArray(product.keyIngredients) ? (product.keyIngredients as unknown[]) : [])
+  ].filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+
+  const declaredCount = names.length;
+  const resolved = new Map<string, number | null>();
+  for (const name of names) {
+    const found = resolveIngredient(name, graph.catalog as any);
+    if (found && !resolved.has(found.id)) resolved.set(found.id, null);
+  }
+
+  if (supabase && resolved.size > 0) {
+    const { data: links } = await supabase
+      .from('product_ingredients')
+      .select('ingredient_id, declared_concentration_percent')
+      .eq('product_id', product.id);
+    for (const link of links || []) {
+      if (!resolved.has(link.ingredient_id)) continue;
+      resolved.set(
+        link.ingredient_id,
+        link.declared_concentration_percent == null ? null : Number(link.declared_concentration_percent)
+      );
+    }
+  }
+
+  const compliance = assessProductCompliance({
+    ingredients: [...resolved.entries()].map(([ingredientId, declaredConcentrationPercent]) => ({
+      ingredientId,
+      declaredConcentrationPercent
+    })),
+    restrictions: graph.restrictions,
+    jurisdiction: graph.jurisdiction
+  });
+
+  return { compliance, declaredCount, resolvedCount: resolved.size };
+}
+
+/**
+ * Conformité réglementaire d'un produit pour un pays de livraison.
+ *
+ * Publique et sans compte : un visiteur doit pouvoir savoir avant d'acheter, pas
+ * après. Le pays par défaut est celui du vendeur — c'est une hypothèse affichée
+ * dans la réponse, jamais une devinette silencieuse.
+ */
+app.get('/api/products/:productId/compliance', rateLimit('compliance', 60, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const productId = String(req.params.productId || '').trim();
+  if (!productId) {
+    res.status(400).json({ error: 'Identifiant produit manquant.' });
+    return;
+  }
+  const requestedCountry = String(req.query.country || '').trim().toUpperCase();
+  const country = requestedCountry || SELLER_COUNTRY;
+  const jurisdiction = jurisdictionForCountry(country);
+  if (!jurisdiction) {
+    res.status(400).json({
+      error: `Pays non desservi : « ${country} ».`,
+      note: 'KURLA ne livre que dans l’Union européenne ; le statut réglementaire d’un autre pays n’est pas évalué.'
+    });
+    return;
+  }
+
+  const product = await serverDb.getProductById(productId);
+  if (!product) {
+    res.status(404).json({ error: 'Produit introuvable.' });
+    return;
+  }
+
+  let graph: JurisdictionGraph | null = null;
+  try {
+    graph = await loadJurisdictionGraph(jurisdiction);
+  } catch (error: any) {
+    res.status(502).json({ error: error?.message || 'Graphe réglementaire indisponible.' });
+    return;
+  }
+  if (!graph) {
+    res.status(503).json({
+      error: 'Graphe d’ingrédients indisponible.',
+      note: 'Sans base configurée, KURLA ne fabrique pas de verdict de conformité approximatif.'
+    });
+    return;
+  }
+
+  const { compliance, declaredCount, resolvedCount } = await assessProductComplianceForCountry(product as any, country, graph);
+  res.json({
+    productId,
+    country,
+    countryWasDefaulted: !requestedCountry,
+    jurisdiction,
+    ...compliance,
+    declaredIngredientCount: declaredCount,
+    resolvedIngredientCount: resolvedCount,
+    note: 'Le verdict porte sur les ingrédients résolus dans le graphe KURLA. Un ingrédient non résolu n’est ni conforme ni non conforme : il est inconnu.'
+  });
+}));
+
 app.get('/api/ingredients/:ingredientId/card', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const ingredientId = String(req.params.ingredientId || '').trim();
   if (!ingredientId) {
@@ -3007,17 +3204,62 @@ app.get('/api/me/endorsements', asyncRoute(async (req: AuthenticatedRequest, res
  * profil, étagère, observations, abandons. C'est ici que la boucle se referme —
  * le feedback cesse d'être collecté pour rien.
  */
-async function buildEngineContext(user: AuthenticatedUser, options: { budgetLimit?: number } = {}) {
+async function buildEngineContext(
+  user: AuthenticatedUser,
+  options: { budgetLimit?: number; country?: string } = {}
+) {
   const profileRecord = await serverDb.getBeautyProfile(user.id);
   const shelf = await intelligenceStore.getShelf(user.id);
   const observations = await intelligenceStore.getOutcomes(user.id);
+
+  // CHANTIER 7.7 — la juridiction fait partie du contexte de recommandation.
+  // Une base illisible ne bloque pas la recommandation (ce n'est pas une vente :
+  // la porte fail-closed est au checkout), mais le fait est déclaré dans la
+  // réponse via `jurisdictionChecked` plutôt que passé sous silence.
+  const country = options.country || 'FR';
+  const jurisdiction = jurisdictionForCountry(country);
+  let graph: JurisdictionGraph | null = null;
+  if (jurisdiction) {
+    try {
+      graph = await loadJurisdictionGraph(jurisdiction);
+    } catch (error: any) {
+      console.error('[Jurisdiction] graphe illisible, filtrage réglementaire désactivé pour cette requête :', error?.message);
+    }
+  }
+
   return {
     profile: profileRecord?.profile,
     shelf,
     observations,
     avoidedIngredientIds: deriveAvoidedIngredients(shelf).map(entry => entry.ingredientId),
-    budgetLimit: options.budgetLimit
+    budgetLimit: options.budgetLimit,
+    jurisdiction: graph?.jurisdiction,
+    jurisdictionRestrictions: graph?.restrictions,
+    jurisdictionChecked: Boolean(graph),
+    /** Graphe complet (catalogue inclus) : sert à résoudre les noms déclarés. */
+    jurisdictionGraph: graph
   };
+}
+
+/**
+ * Résout les noms déclarés d'un produit en identifiants du graphe, pour que le
+ * moteur puisse appliquer les restrictions réglementaires. Un nom non résolu
+ * n'est pas inventé : il reste hors graphe, et l'évaluation dira `no_data`.
+ */
+function toEngineProducts(catalog: AvailableCatalogEntry[], graph: JurisdictionGraph | null) {
+  if (!graph) return catalog.map(entry => entry.product as any);
+  return catalog.map(entry => {
+    const names: string[] = [
+      ...(Array.isArray(entry.product?.ingredients) ? (entry.product.ingredients as string[]) : []),
+      ...((entry as any).keyIngredients || [])
+    ].filter((name: unknown): name is string => typeof name === 'string' && name.trim().length > 0);
+    const ids: string[] = [];
+    for (const name of names) {
+      const found = resolveIngredient(name, graph.catalog as any);
+      if (found && !ids.includes(found.id)) ids.push(found.id);
+    }
+    return { ...(entry.product as any), ingredientIds: ids };
+  });
 }
 
 /**
@@ -3031,10 +3273,13 @@ app.post('/api/recommendations', asyncRoute(async (req: AuthenticatedRequest, re
   const budgetLimit = typeof req.body?.budgetLimit === 'number' && Number.isFinite(req.body.budgetLimit) && req.body.budgetLimit > 0
     ? req.body.budgetLimit
     : undefined;
-  const context = await buildEngineContext(user, { budgetLimit });
+  const context = await buildEngineContext(user, { budgetLimit, country });
   const catalog = await getAvailableCatalog(country);
+  const jurisdictionGraph = context.jurisdiction && context.jurisdictionRestrictions
+    ? { catalog: [], restrictions: context.jurisdictionRestrictions, jurisdiction: context.jurisdiction }
+    : null;
   const result = buildRecommendations(
-    catalog.map(entry => entry.product as any),
+    toEngineProducts(catalog, context.jurisdictionGraph ?? null),
     context
   );
   res.json({
@@ -3044,7 +3289,9 @@ app.post('/api/recommendations', asyncRoute(async (req: AuthenticatedRequest, re
       shelfSize: context.shelf.length,
       observationCount: context.observations.length,
       avoidedIngredients: context.avoidedIngredientIds,
-      profileAvailable: Boolean(context.profile)
+      profileAvailable: Boolean(context.profile),
+      jurisdiction: context.jurisdiction,
+      jurisdictionChecked: context.jurisdictionChecked
     }
   });
 }));
@@ -3083,9 +3330,9 @@ app.post('/api/routine-builder', asyncRoute(async (req: AuthenticatedRequest, re
     ? req.body.budgetLimit
     : undefined;
 
-  const context = await buildEngineContext(user, { budgetLimit });
+  const context = await buildEngineContext(user, { budgetLimit, country });
   const catalog = await getAvailableCatalog(country);
-  const engine = buildRecommendations(catalog.map(entry => entry.product as any), context);
+  const engine = buildRecommendations(toEngineProducts(catalog, context.jurisdictionGraph ?? null), context);
 
   const requestedSteps = Array.isArray(req.body?.requestedSteps)
     ? req.body.requestedSteps.filter((step: unknown): step is RoutineStep => isRequestedRoutineStep(step))

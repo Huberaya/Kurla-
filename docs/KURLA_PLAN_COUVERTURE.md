@@ -67,11 +67,11 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 
 ## 3. ÉTAT RÉEL DES 50 FONCTIONNALITÉS
 
-### ✅ Livrées (22)
-**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **9** Note par archétype *(affichée sur la fiche produit)* · **10** Wash Day OS · **12** Timeline protectrice *(écran dédié `/account/protective-timeline`)* · **13** Recherche sémantique *(`searchByQuery` appelé par `SmartSearchPage.tsx`)* · **14** Détection de conflit *(`ConflictCard` dans `RoutineBuilderPage.tsx:157`)* · **15** Routine Builder → panier *(`buildRoutinePlan` appelé par `RoutineBuilderPage.tsx:65`)* · **17** Intelligence des retours *(bouton par fiche dans `CatalogAdminPanel`)* · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(`fetchProductTrust` appelé par `ProductDetailPage.tsx`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **24** Co-signature professionnelle *(création dans l'espace pro, lecture via `/api/me/endorsements`)* · **25** Espace pro dossiers clients *(écran professionnel livré, lecture au périmètre consenti)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **44** Transparence IA comme badge *(`AiDisclosureBadge` sur le widget d'assistance)* · **47** Modularisation du moteur
+### ✅ Livrées (23)
+**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **9** Note par archétype *(affichée sur la fiche produit)* · **10** Wash Day OS · **12** Timeline protectrice *(écran dédié `/account/protective-timeline`)* · **13** Recherche sémantique *(`searchByQuery` appelé par `SmartSearchPage.tsx`)* · **14** Détection de conflit *(`ConflictCard` dans `RoutineBuilderPage.tsx:157`)* · **15** Routine Builder → panier *(`buildRoutinePlan` appelé par `RoutineBuilderPage.tsx:65`)* · **17** Intelligence des retours *(bouton par fiche dans `CatalogAdminPanel`)* · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(`fetchProductTrust` appelé par `ProductDetailPage.tsx`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **24** Co-signature professionnelle *(création dans l'espace pro, lecture via `/api/me/endorsements`)* · **25** Espace pro dossiers clients *(écran professionnel livré, lecture au périmètre consenti)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **44** Transparence IA comme badge *(`AiDisclosureBadge` sur le widget d'assistance)* · **47** Modularisation du moteur · **21** Filtrage réglementaire par juridiction *(moteur, fiche produit et checkout — chantier 7.7)*
 
-### 🟠 Logique seule (2)
-**16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle · **21** Filtrage par juridiction — `POST /api/jurisdiction/assess`, pas d'écran
+### 🟠 Logique seule (1)
+**16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle
 
 ### 🔶 Partielles (3)
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
@@ -165,7 +165,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 | Exposition du filtrage réglementaire par marché *(la logique vient du chantier A)* | 21 |
 | Catalogue régional piloté depuis `country_availability` (déjà présent, 6 pays en seed) | 20 |
 
-**Critère de sortie :** un second marché linguistique fonctionne de bout en bout : prix, TVA, conformité ingrédient locale.
+**Critère de sortie :** un second marché linguistique fonctionne de bout en bout : prix, TVA, conformité ingrédient locale. *(7.5 a livré l'i18n et les routes traduites ; 7.6 la TVA au taux de destination ; 7.7 la conformité ingrédient par pays — le critère est atteint, sauf l'encaissement multidevise, reporté avec Stripe.)*
 
 ---
 
@@ -253,7 +253,7 @@ Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier 
 | **Timeline coiffure protectrice** | ✅ logique + signaux stockés et lus | — |
 | **Intelligence des retours** | 🟠 logique seule | A |
 | **Co-signature professionnelle** | 🟠 logique seule | A |
-| **Filtrage réglementaire par juridiction** | 🟠 logique seule | A puis D |
+| **Filtrage réglementaire par juridiction** | ✅ moteur (exclusion tracée) + fiche produit (bandeau par pays) + checkout (porte fermée) — 7.7 | D — renseigner `product_ingredients` pour lever les avertissements |
 | **« KURLA ne devine pas » comme signature** | ✅ encodé (`null`, `unclassified`, seuil k) | E — à expliciter en marque |
 | **Conformité AI Act comme avantage concurrentiel** | ✅ disclosure art. 50(1) | B — badge visible ; art. 50(2) au 2 déc. 2026 |
 

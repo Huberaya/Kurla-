@@ -16,7 +16,8 @@
 
 import { calculateKurlaFit, KurlaFitResult } from './kurlaFit';
 import { BeautyProfile } from './beautyProfile';
-import { findConflicts, ConflictFinding, IncompatibilityRule } from './ingredientGraph';
+import { findConflicts, ConflictFinding, IncompatibilityRule, JurisdictionRestriction } from './ingredientGraph';
+import { assessProductCompliance } from './jurisdiction';
 import { OutcomeObservation } from './outcomeEvidence';
 import { ROUTINE_STEPS, RoutineStep, ShelfItem, activeItems, analyseCoverage } from './shelf';
 
@@ -48,6 +49,13 @@ export interface EngineContext {
   avoidedIngredientIds?: string[];
   incompatibilityRules?: IncompatibilityRule[];
   budgetLimit?: number;
+  /**
+   * CHANTIER 7.7 — juridiction de l'utilisateur et restrictions applicables.
+   * Un produit contenant un ingrédient interdit là où vit l'utilisateur n'est
+   * pas recommandable : ce n'est pas une préférence, c'est la loi.
+   */
+  jurisdiction?: string;
+  jurisdictionRestrictions?: JurisdictionRestriction[];
 }
 
 export type AdjustmentKind =
@@ -58,7 +66,8 @@ export type AdjustmentKind =
   | 'positive_outcome'
   | 'budget'
   | 'out_of_stock'
-  | 'conflict';
+  | 'conflict'
+  | 'jurisdiction';
 
 export interface Adjustment {
   kind: AdjustmentKind;
@@ -302,6 +311,37 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
         delta: -AVOIDED_PENALTY,
         reason: `Contient ${avoidedHit.join(', ')}, écarté(s) d’après vos abandons précédents.`
       });
+    }
+
+    // --- Filtrage réglementaire par juridiction (chantier 7.7) -----------
+    // Une pondération apprise ne peut pas rendre recommandable un produit dont
+    // un ingrédient est interdit là où vit l'utilisateur.
+    if (context.jurisdiction && (context.jurisdictionRestrictions || []).length > 0) {
+      const compliance = assessProductCompliance({
+        ingredients: ingredients.map(ingredientId => ({ ingredientId })),
+        restrictions: context.jurisdictionRestrictions as JurisdictionRestriction[],
+        jurisdiction: context.jurisdiction
+      });
+      if (!compliance.sellable) {
+        const blocking = compliance.findings
+          .filter(finding => finding.status === 'prohibited' || finding.withinLimit === false);
+        excluded = true;
+        exclusionReason = `Non commercialisable en ${compliance.jurisdiction} : ` +
+          `${blocking.map(finding => finding.ingredientId).join(', ')}.`;
+        adjustments.push({
+          kind: 'jurisdiction',
+          delta: -100,
+          reason: `${blocking[0]?.message || 'Ingrédient interdit dans cette juridiction.'}` +
+            `${blocking[0]?.reference ? ` Base : ${blocking[0].reference}.` : ''}`
+        });
+      } else if (compliance.findings.length > 0) {
+        adjustments.push({
+          kind: 'jurisdiction',
+          delta: -12,
+          reason: compliance.findings[0].message +
+            `${compliance.findings[0].reference ? ` Base : ${compliance.findings[0].reference}.` : ''}`
+        });
+      }
     }
 
     // --- Pondérations apprises -------------------------------------------
