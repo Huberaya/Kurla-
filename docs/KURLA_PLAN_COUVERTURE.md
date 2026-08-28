@@ -73,18 +73,19 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 ### 🟠 Logique seule (1)
 **16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle
 
-### 🔶 Partielles (3)
+### 🔶 Partielles (4)
 - **2** Vocabulaires contrôlés — tables créées, **0 donnée de référence**, `TEXT[]` non migrés
+- **11** Diagnostic photo — 🔶 **encadrement livré (bloc A3)** : AIPD `docs/KURLA_AIPD_PHOTO.md` + constante exécutable `src/lib/photoAipd.ts` (`AIPD-KURLA-PHOTO-v1`), route publique `GET /api/privacy/photo-aipd`, rétention 180 jours **réellement purgée** par `purgeExpiredBeautyProfilePhotos` (`POST /api/admin/maintenance/photo-purge`, admin), réponse d'upload qui rappelle durée + limites, banc `tests/kurla_photo_aipd.test.ts`. **Manque** : l'analyse d'image elle-même — aucun diagnostic n'est produit aujourd'hui, et il ne le sera pas sans revue de cette AIPD
 - **30** Texture Gap Report — 🔶 chantier 8.6a : `src/lib/textureGap.ts` + `textureGapStore.ts` + `GET /api/intelligence/texture-gap` + `/admin/texture-gap`. Rapport k-anonyme (cellule sous 30 absente de la réponse), trou de donnée jamais présenté comme un angle mort. **Manquent** : la surface B2B (compte, contrat, facturation, export) et le rattachement produit × archétype — `product_ingredients` est vide, donc toutes les cellules sortent en `donnees_insuffisantes`.
 - **45** Découpage du monolithe — 🔶 `server.ts` ramené de 4 795 à **2 019 lignes** (8.1) ; `serverDb.ts` (6 240 l.) reste entier
 
-### ⬜ À faire (8)
-**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
+### ⬜ À faire (7)
+**3** Rendu serveur · **20** i18n/devises/TVA · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
 
 ### 🚫 Exclues volontairement (3)
 **48** Virtual try-on coiffure · **49** Maquillage virtuel · **50** Place de marché créateurs
 
-> **Compte : 34 + 1 + 3 + 9 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
+> **Compte : 34 + 1 + 4 + 8 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
 
 
 ### Détail mesuré sur la feature 36 (climat / eau dure)
@@ -203,12 +204,12 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 | Découpage de `server.ts` (4 795 → **2 019 l.**, fait en 8.1) et `serverDb.ts` (6 240 l., à faire) par domaine | 45, action 18 |
 | Tests Supabase réels A/B | 46, action 4 |
 | Application mobile — ✅ chantier 8.7 : PWA + brief + sync idempotente. **Manquent** : notifications push, build App Store/Play, écran de scan (33) et diagnostic photo (11) en dette | 42 |
-| Diagnostic photo **encadré** : aide beauté, AIPD préalable | 11 |
+| ✅ **Diagnostic photo encadré** : `AIPD-KURLA-PHOTO-v1` (`docs/KURLA_AIPD_PHOTO.md` + `src/lib/photoAipd.ts`), rétention 180 j purgée, `GET /api/privacy/photo-aipd` | 11 |
 | Recherche visuelle produit | 32 |
 | Scan code-barres INCI | 33 |
 | Catch-all API : 404 JSON au lieu du HTML 200 sur route inconnue | dette |
 
-**Critère de sortie :** les 17 vérifications RLS passent contre une instance réelle. Le diagnostic photo est couvert par une AIPD signée.
+**Critère de sortie :** les 17 vérifications RLS passent contre une instance réelle *(fait)*. Le diagnostic photo est couvert par une AIPD signée *(fait : `AIPD-KURLA-PHOTO-v1`, 28 août 2026, revue prévue 28 août 2027)*.
 
 ---
 

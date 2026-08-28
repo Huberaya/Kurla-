@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T17:29:46.349Z",
+  "generatedAt": "2026-08-28T17:41:25.203Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -72,6 +72,7 @@
     "GET /api/notifications",
     "GET /api/orders",
     "GET /api/outcomes",
+    "GET /api/privacy/photo-aipd",
     "GET /api/products",
     "GET /api/products/:productId/archetype-ratings",
     "GET /api/products/:productId/compliance",
@@ -130,6 +131,7 @@
     "POST /api/admin/creators/:id/review",
     "POST /api/admin/entities/:entity",
     "POST /api/admin/loyalty/redemptions/:id",
+    "POST /api/admin/maintenance/photo-purge",
     "POST /api/admin/notifications",
     "POST /api/admin/orders/:id/status",
     "POST /api/admin/payments/:id/status",

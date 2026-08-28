@@ -12,6 +12,7 @@ import {
 } from '../../lib/beautyProfile';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, isUuid, rateLimit, safeApiError } from '../http';
+import { PHOTO_AIPD, PHOTO_RETENTION_DAYS } from '../../lib/photoAipd';
 import { requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 import type { Response } from 'express';
@@ -106,7 +107,15 @@ export function registerBeautyProfileRoutes(app: Express): void {
 
     try {
       const photo = await serverDb.uploadBeautyProfilePhoto(user.id, bytes, contentType as BeautyProfilePhoto['mimeType'], new Date().toISOString());
-      res.status(201).json({ photo });
+      // La réponse rappelle l'encadrement : durée réelle de conservation et
+      // référence de l'analyse d'impact, pour que l'engagement soit visible au
+      // moment où l'image est envoyée, pas seulement dans un texte juridique.
+      res.status(201).json({
+        photo,
+        aipdReference: PHOTO_AIPD.reference,
+        retentionDays: PHOTO_RETENTION_DAYS,
+        limits: PHOTO_AIPD.limits
+      });
     } catch (err) {
       console.error('[BeautyProfile] photo upload error:', err);
       res.status(500).json({ error: safeApiError(err, 'Impossible de stocker cette photo.') });

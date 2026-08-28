@@ -2,8 +2,9 @@ import type { Express, Response } from 'express';
 
 import { serverDb } from '../../lib/serverDb';
 import { deleteUserData, exportUserData } from '../../lib/db/privacyStore';
+import { PHOTO_AIPD, PHOTO_MAX_PER_MEMBER, PHOTO_RETENTION_DAYS, purgeExpiredBeautyProfilePhotos } from '../../lib/photoAipd';
 import { asyncRoute, rateLimit } from '../http';
-import { requireUser } from '../auth';
+import { requireAdmin, requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 
 /**
@@ -32,6 +33,31 @@ export function registerPrivacyRoutes(app: Express): void {
     const user = await requireUser(req, res);
     if (!user) return;
     const result = await deleteUserData(serverDb, user.id);
+    res.json(result);
+  }));
+
+  /**
+   * CHANTIER 9 (bloc A3) — l'analyse d'impact photo, lisible avant l'envoi.
+   * Publique : on ne demande pas de compte pour savoir ce qu'on fait d'une
+   * image. La même référence est portée par le code (`PHOTO_AIPD`).
+   */
+  app.get('/api/privacy/photo-aipd', rateLimit('photo-aipd', 30, 60_000), asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({
+      aipd: PHOTO_AIPD,
+      retentionDays: PHOTO_RETENTION_DAYS,
+      maxPhotosPerMember: PHOTO_MAX_PER_MEMBER
+    });
+  }));
+
+  /**
+   * Purge réelle de la rétention annoncée. Réservée à l'administration : un
+   * membre n'a pas à déclencher une opération qui parcourt tous les comptes —
+   * il supprime les siennes avec `DELETE /api/beauty-profile/photos`.
+   */
+  app.post('/api/admin/maintenance/photo-purge', rateLimit('photo-purge', 5, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const result = await purgeExpiredBeautyProfilePhotos(serverDb);
     res.json(result);
   }));
 }
