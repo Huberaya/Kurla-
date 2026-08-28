@@ -312,3 +312,11 @@ export function detectFunctionalDuplicates(
   const overlapRatio = union === 0 ? 0 : shared.length / union;
   return { duplicate: overlapRatio >= minimumOverlapRatio, overlapRatio, shared };
 }
+
+/**
+ * CHANTIER 10 (bloc B1) — provenance d'une liaison produit × ingrédient.
+ * Vit ici plutôt que dans la couche store : `bindDomain` n'accepte que des
+ * fonctions, et cette liste est une donnée de référence, pas une opération.
+ */
+export const INGREDIENT_LINK_SOURCES = ['declared', 'inci_label', 'brand_confirmed', 'lab_analysed'] as const;
+export type IngredientLinkSource = typeof INGREDIENT_LINK_SOURCES[number];

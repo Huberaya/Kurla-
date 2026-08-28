@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T17:51:43.088Z",
+  "generatedAt": "2026-08-28T18:51:47.471Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -15,6 +15,7 @@
     "GET /api/admin/brand-tests",
     "GET /api/admin/catalog/:productId/validation",
     "GET /api/admin/catalog/imports",
+    "GET /api/admin/catalog/ingredient-coverage",
     "GET /api/admin/catalog/products",
     "GET /api/admin/catalog/taxonomy",
     "GET /api/admin/content/compliance",
@@ -125,8 +126,10 @@
     "PATCH /api/shelf/:itemId",
     "POST /api/account/delete",
     "POST /api/admin/brand-tests/:id/review",
+    "POST /api/admin/catalog/:productId/ingredients",
     "POST /api/admin/catalog/import/csv",
     "POST /api/admin/catalog/import/supplier",
+    "POST /api/admin/catalog/ingredients/link-declared",
     "POST /api/admin/catalog/products",
     "POST /api/admin/catalog/validation",
     "POST /api/admin/content/articles",
