@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T15:47:24.876Z",
+  "generatedAt": "2026-08-28T16:26:11.956Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -39,6 +39,7 @@
     "findRefundByIdempotencyKey/1",
     "findRefundByStripeId/1",
     "finishCatalogImportAudit/2",
+    "getAckedClientActionIds/1",
     "getActiveAiKnowledgeSources/0",
     "getAdaptiveRoutineState/1",
     "getAdminAnalyticsMetrics/0",
@@ -84,6 +85,7 @@
     "getMembership/1",
     "getMembershipOverview/2",
     "getMembershipState/1",
+    "getMobileSyncActions/1",
     "getNotificationDeliveryLogs/1",
     "getNotificationPreferences/1",
     "getNotifications/1",
@@ -166,6 +168,7 @@
     "recordCatalogValidation/6",
     "recordCreatorAttribution/1",
     "recordEmailDelivery/4",
+    "recordMobileSyncAction/1",
     "recordReturnEvent/1",
     "recordRoutineFeedback/2",
     "recordStripeRefundFromWebhook/2",

@@ -1,0 +1,19 @@
+{
+  "name": "KURLA Beauty — La beauté texturée, enfin comprise.",
+  "short_name": "KURLA",
+  "description": "Le dossier beauté des cheveux texturés et des peaux riches en mélanine : diagnostic, routine, suivi des résultats. Installable, utilisable hors ligne.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050403",
+  "theme_color": "#050403",
+  "lang": "fr",
+  "categories": ["lifestyle", "health"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

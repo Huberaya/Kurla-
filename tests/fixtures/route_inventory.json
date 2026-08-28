@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T15:47:23.746Z",
+  "generatedAt": "2026-08-28T16:26:11.034Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -65,6 +65,8 @@
     "GET /api/me/endorsements",
     "GET /api/membership/me",
     "GET /api/membership/plans",
+    "GET /api/mobile/briefing",
+    "GET /api/mobile/capabilities",
     "GET /api/notification-preferences",
     "GET /api/notifications",
     "GET /api/orders",
@@ -167,6 +169,7 @@
     "POST /api/membership/cancel",
     "POST /api/membership/checkout",
     "POST /api/membership/trial",
+    "POST /api/mobile/sync",
     "POST /api/notification-preferences",
     "POST /api/notifications/:id/read",
     "POST /api/outcomes",

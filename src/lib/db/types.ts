@@ -330,6 +330,25 @@ export interface BrandTestObservation {
   declaredAt: string;
 }
 
+import type { OfflineActionKind } from '../mobileShell';
+
+/**
+ * CHANTIER 8.7 — action appliquée après synchronisation depuis un mobile.
+ *
+ * `(userId, clientActionId)` est unique : c'est cette unicité, et non une
+ * vérification applicative, qui garantit qu'une action hors ligne ne s'applique
+ * qu'une fois.
+ */
+export interface MobileSyncAction {
+  id: string;
+  userId: string;
+  clientActionId: string;
+  kind: OfflineActionKind;
+  payload: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  appliedAt: string;
+}
+
 export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
 
 export interface ProfessionalApplication {

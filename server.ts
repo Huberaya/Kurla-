@@ -61,6 +61,7 @@ import { registerMembershipRoutes } from './src/server/routes/membership';
 import { registerPublicApiRoutes } from './src/server/routes/publicApi';
 import { registerCreatorRoutes } from './src/server/routes/creators';
 import { registerBrandTestRoutes } from './src/server/routes/brandTests';
+import { registerMobileRoutes } from './src/server/routes/mobile';
 import {
   activateMembershipFromCheckoutSession,
   cancelMembershipFromSubscription,
@@ -1102,6 +1103,7 @@ registerMembershipRoutes(app);
 registerPublicApiRoutes(app);
 registerCreatorRoutes(app);
 registerBrandTestRoutes(app);
+registerMobileRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS
