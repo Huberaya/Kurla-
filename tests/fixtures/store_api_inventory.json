@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T11:31:26.150Z",
+  "generatedAt": "2026-08-28T12:05:54.880Z",
   "methods": [
     "addAiMessage/3",
     "addSupportAttachment/6",
@@ -42,6 +42,8 @@
     "getAllReturns/0",
     "getAllSupportTickets/0",
     "getAvailableStock/1",
+    "getBeautyJourney/1",
+    "getBeautyJourneyPersistence/0",
     "getBeautyProfile/1",
     "getBeautyProfileHistory/1",
     "getBeautyProfilePhotos/1",

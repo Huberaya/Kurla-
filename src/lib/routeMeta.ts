@@ -344,6 +344,13 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/account/journey',
+    title: 'Beauty Journey | KURLA',
+    description:
+      'L’évolution de vos cheveux et de votre cuir chevelu dans le temps : chronologie, jalons, comparaison de photos et tendances déclarées.',
+    indexable: false,
+  },
+  {
     path: '/account/progression',
     title: 'KURLA Progression | KURLA',
     description:

@@ -1043,7 +1043,48 @@ la fonction **et** son enveloppe. Les inventaires de routes et de méthodes ont
 gagné un mode de régénération explicite (`KURLA_UPDATE_FIXTURE=1`) qui affiche ce
 qui change : **172 routes** (+9), **175 méthodes** (+9), rien de retiré.
 
-**Résultat 8.3 :** `tsc` exit 0, `npm test` exit 0 (**85 bancs**), build exit 0
+#### 8.4 — Beauty Journey (livré)
+
+**Le constat de la stratégie était exact** : `progress_journal`, les photos et
+l'historique de profil contiennent la matière ; ce qui manquait, c'était le récit.
+Ce chantier n'ajoute **aucune collecte** : il relit ce que la personne a déjà
+déclaré et le lui rend lisible.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/lib/beautyJourney.ts` | Fonction **pure** : chronologie (journal, photos, profil, retours, faits de progression), 8 jalons, évolution par score, comparaison de photos, récit en phrases, manques énoncés |
+| `src/lib/db/journeyStore.ts` | Assemblage des sources via la surface composée — 2 méthodes |
+| `GET /api/beauty-journey` | Privé ; renvoie le parcours **et** l'origine des données (`supabase` ou `server_fallback`) |
+| `/account/journey` | Chronologie, jalons, évolution déclarée, comparaison, manques, réserves |
+
+**Trois règles d'honnêteté, testées plutôt que promises.**
+
+1. **Attribution.** Chaque valeur est une déclaration : le récit écrit « a été
+   déclaré en hausse », jamais « s'est amélioré ». Une baisse du score de casse
+   est une baisse déclarée — le mot « amélioration » n'apparaît nulle part.
+2. **Pas de tendance inventée.** Sous trois mesures, la tendance est
+   `indetermine` — y compris quand l'écart est spectaculaire (3 → 9 sur deux
+   mesures reste « non déterminé », et un test le vérifie). Un écart ≤ 1/10 est du
+   bruit : tendance `stable`.
+3. **Pas de comparaison sans écart.** Deux photos à trois jours d'écart ne
+   produisent rien ; il faut au moins 14 jours.
+
+S'y ajoute une **garde éditoriale** dans le banc : aucun des scénarios ne peut
+contenir « garanti », « guérison », « traitement », « résultat assuré »,
+« cliniquement prouvé » — et la réserve « pas un avis médical » doit être
+présente.
+
+**Ce qui manque, explicitement**
+- Les photos ne sont **pas affichées côte à côte** : le parcours annonce l'écart
+  en jours et les dates. Le rendu des images (stockage privé, URL signée) reste à
+  brancher — les photos existent en base, leur exposition ne passe pas encore par
+  une URL signée à durée limitée.
+- L'évolution porte sur les quatre scores déclarés du journal
+  (hydratation, casse, confort, démêlage). Aucun autre indicateur n'est inventé.
+- La page n'a jamais été vue dans un navigateur : vérifiée par compilation, banc
+  et sonde HTTP, pas visuellement.
+
+**Résultat 8.4 :** `tsc` exit 0, `npm test` exit 0 (**85 bancs**), build exit 0
 (`dist/server.cjs` 733,0 kb), migration appliquée et RPC vérifiée en base réelle.
 
 **Ce qui manque, explicitement**
@@ -1085,7 +1126,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.2b** Domaines restants de `serverDb.ts`~~ **FAIT (hors catalogue et commandes)** — six modules de plus : administration/contenu/analytique + idempotence des webhooks (679 l.), retours/remboursements (797 l.), livraison (388 l.), routines adaptatives (311 l.), sessions de l'assistant IA (161 l.), candidatures professionnelles (128 l.). **`serverDb.ts` : 4 906 → 2 492 lignes** (6 240 au départ du chantier, **−60 %**).
 - [x] ~~**8.2c** Catalogue, commandes, inventaire, contenus et types~~ **FAIT** — `catalogStore.ts` (890 l.), `orderStore.ts` (769 l.), `inventoryStore.ts` (111 l.), `contentStore.ts` (54 l.) ; les 27 déclarations de types partent dans `types.ts` (343 l., réexportées par `serverDb.ts` : aucun import existant n'a bougé) ; les aides pures (`toPublicProduct`, `isPublishableProduct`, `effectiveCatalogPrice`, `isPromotionActive`, `emailTemplateForOrderStatus`) rejoignent `internal.ts`. **`serverDb.ts` : 2 492 → 333 lignes** — il ne reste que l'état, le verrou de stock, `initialize`, `getStatusSummary`, la surface composée et l'assemblage. **Bilan du chantier 8.2 : 6 240 → 333 lignes (−95 %), quatorze domaines.**
 - [x] ~~**8.3** Loyalty par progression + récompense des comportements non-marchands~~ **FAIT** — `KURLA PROGRESSION` : cinq axes **plafonnés** (connaissance 100, pratique 120, contribution 100, exploration 60, **achat 80** sur 460), 14 faits dont 13 non marchands, 5 niveaux, 6 badges dérivés des faits, 4 récompenses **débloquées par niveau et jamais achetées avec des points**. Migration `20260862000000_loyalty_progression.sql` (8 tables, RPC `apply_loyalty_event` atomique et idempotente, RPC `get_loyalty_retention` par cohorte D30/D60/D90, 15 politiques RLS, **aucune écriture directe possible dans le journal**) ; domaine `src/lib/db/loyaltyStore.ts` (9 méthodes) ; 9 routes ; écran `/account/progression`. **Migration appliquée sur la base réelle et RPC vérifiée par ses valeurs.**
-- [ ] **8.4** Beauty Journey : narration de l'évolution
+- [x] ~~**8.4** Beauty Journey : narration de l'évolution~~ **FAIT** — `src/lib/beautyJourney.ts` (fonction **pure** : chronologie toutes sources confondues, 8 jalons, évolution par score, comparaison de photos, récit en phrases, manques énoncés) + `src/lib/db/journeyStore.ts` (assemblage, **aucune donnée nouvelle collectée**) + `GET /api/beauty-journey` + écran `/account/journey`. Règles de fond : valeurs **attribuées à des déclarations**, aucune tendance sous 3 mesures, écart ≤ 1/10 = bruit, comparaison seulement à ≥ 14 jours d'écart, réserves d'usage permanentes (pas de mesure clinique, pas d'avis médical).
 - [ ] **8.5** Abonnement KURLA+
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement
 - [ ] **8.7** Application mobile
@@ -1118,7 +1159,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **81 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **86 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1128,5 +1169,9 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.2c** — inventaire de l'API du store | PASS — **166 méthodes**, nom + arité identiques après les quatorze extractions |
 | **Chantier 8.2c** — sonde d'exécution du store composé | PASS — **49 appels** sur les treize domaines ; commande créée, relue, historique tracé |
 | **Chantier 8.2c** — `serverDb.ts` | **333 lignes** (6 240 avant le chantier 8.2, −95 %) ; 14 modules dans `src/lib/db/` |
+| **Chantier 8.3** — `tests/loyalty_progression.test.ts` | PASS — 6 semaines sans commande → **360 pts / niveau 5** ; 12 commandes réglées seules → **80 pts / niveau 2** ; infalsifiabilité vérifiée par la source (aucune politique d'INSERT/UPDATE sur `loyalty_events` et `loyalty_accounts`, délégation à la RPC) |
+| **Chantier 8.3** — barème sondé en ligne | `GET /api/loyalty/rules` 200 : 5 niveaux, 5 axes plafonnés (achat 80/460, 380 sans achat), 14 faits, 4 récompenses par niveau ; 7 routes protégées 401 |
+| **Chantier 8.4** — `tests/beauty_journey.test.ts` | PASS — 5 scénarios : 20 faits chronologiques, tendance hausse 3→7/10, comparaison à 30 jours, 7 jalons ; 3 mesures pour une tendance (3→9 sur deux mesures reste `indetermine`), écart ≤ 1 = `stable`, photos à 3 jours d'écart non comparées ; aucune promesse ni vocabulaire médical |
+| **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |
 
 Le dernier point est le seul passif ouvert. Il ne peut pas être levé ici : il exige une instance Supabase réelle.

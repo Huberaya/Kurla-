@@ -93,6 +93,7 @@ import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
 import * as loyaltyStore from './db/loyaltyStore';
+import * as journeyStore from './db/journeyStore';
 import { mapRefundRow } from './db/refundSupport';
 
 
@@ -170,6 +171,11 @@ export class SupabaseServerStore {
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
   public recordAdminAudit!: Curried<typeof adminStore>['recordAdminAudit'];
   public applyLoyaltyEvent!: Curried<typeof loyaltyStore>['applyLoyaltyEvent'];
+  public getAdaptiveRoutineState!: Curried<typeof adaptiveRoutineStore>['getAdaptiveRoutineState'];
+  public getBeautyProfilePhotos!: Curried<typeof beautyProfileStore>['getBeautyProfilePhotos'];
+  public getBeautyProfileHistory!: Curried<typeof beautyProfileStore>['getBeautyProfileHistory'];
+  public getLoyaltyEvents!: Curried<typeof loyaltyStore>['getLoyaltyEvents'];
+  public getLoyaltyAccount!: Curried<typeof loyaltyStore>['getLoyaltyAccount'];
 
   public localStockOperation: Promise<void> = Promise.resolve();
 
@@ -327,6 +333,7 @@ bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);
 bindDomain(storeInstance, orderStore);
 bindDomain(storeInstance, loyaltyStore);
+bindDomain(storeInstance, journeyStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -343,4 +350,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof contentStore>
   & Curried<typeof inventoryStore>
   & Curried<typeof orderStore>
-  & Curried<typeof loyaltyStore>;
+  & Curried<typeof loyaltyStore>
+  & Curried<typeof journeyStore>;

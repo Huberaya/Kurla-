@@ -175,7 +175,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 |---|---|
 | Loyalty par progression, pas par points seuls — ✅ chantier 8.3 : cinq axes plafonnés, l'achat borné à 80/460 | 26 |
 | Récompense des comportements non-marchands : scan, avis, feedback — ✅ chantier 8.3 : 13 faits non marchands sur 14 | 27 |
-| Beauty Journey : narration de l'évolution | 28 |
+| Beauty Journey : narration de l'évolution — ✅ chantier 8.4 : chronologie, jalons, comparaison, tendances déclarées | 28 |
 | Abonnement KURLA+ | 29 |
 
 **Critère de sortie :** un utilisateur qui ne commande pas progresse et est récompensé. Rétention à 90 jours mesurée.
