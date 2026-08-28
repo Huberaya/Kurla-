@@ -183,7 +183,15 @@ async function runSeoTests(): Promise<void> {
     const html = await productRoute.text();
     assert.match(html, /Leave-in Hydratant/);
 
-    const apiStillJson = await fetch(`${baseUrl}/api/route-inconnue`);
+    // Un chemin d'API inconnu ouvert dans un navigateur reçoit une page 404,
+    // pas du JSON : c'est ce que produit la réécriture Vercel.
+    const apiAsPage = await fetch(`${baseUrl}/api/route-inconnue`, { headers: { accept: 'text/html,application/xhtml+xml' } });
+    assert.equal(apiAsPage.status, 404);
+    const apiAsPageBody = await apiAsPage.text();
+    assert.match(apiAsPageBody, /noindex/, 'une navigation vers un chemin inconnu reçoit la page 404');
+    assert.match(apiAsPage.headers.get('content-type') || '', /text\/html/);
+
+    const apiStillJson = await fetch(`${baseUrl}/api/route-inconnue`, { headers: { accept: 'application/json' } });
     assert.equal(apiStillJson.status, 404);
     assert.match(apiStillJson.headers.get('content-type') || '', /application\/json/, 'le 404 API reste du JSON');
   } finally {

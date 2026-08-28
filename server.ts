@@ -6,6 +6,7 @@ import { Type } from '@google/genai';
 import Stripe from 'stripe';
 import { professionalStore } from './src/lib/professionalStore';
 import { mountSpaFallback } from './src/server/spaFallback';
+import { renderSpaDocument } from './src/server/seoResolver';
 import { jurisdictionForCountry } from './src/lib/jurisdiction';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { isSupabaseServerConfigured } from './src/lib/supabaseClient';
@@ -1929,7 +1930,29 @@ app.post('/api/ai/support-draft', async (req: Request, res: Response) => {
 // SPA (`app.get('*')` monté par startServer) renvoie index.html avec un statut
 // 200 : un client appelant une route supprimée croirait à un succès, et une API
 // absente du domaine serait indiscernable d'une erreur métier.
-app.use('/api', (req: Request, res: Response) => {
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * CHANTIER 13 — une navigation ne reçoit pas du JSON.
+   *
+   * Sur Vercel, `vercel.json` réécrit tout chemin qui n'est pas un fichier vers
+   * la fonction : la requête arrive donc sous `/api/<chemin>`. Sans cette
+   * distinction, `/produit/inexistant` recevait le 404 JSON de l'API au lieu
+   * d'une page 404 — vérifié en production après le premier déploiement.
+   *
+   * La règle est celle de l'en-tête `Accept` : un navigateur qui navigue annonce
+   * `text/html`, un `fetch` de l'application non. Un chemin d'API inconnu appelé
+   * en JSON garde sa réponse JSON ; le même chemin ouvert dans un navigateur
+   * affiche la page 404, avec le même statut.
+   */
+  const acceptsHtml = String(req.headers.accept || '').includes('text/html');
+  if (acceptsHtml) {
+    renderSpaDocument(req.path === '/' ? '/' : req.path, path.join(process.cwd(), 'dist'))
+      .then(rendered => {
+        res.status(rendered.status).type('html').send(rendered.html);
+      })
+      .catch(next);
+    return;
+  }
   res.status(404).json({
     error: `Route API inconnue : ${req.method} /api${req.path === '/' ? '' : req.path}.`,
     code: 'API_ROUTE_NOT_FOUND'
