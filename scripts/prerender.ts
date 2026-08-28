@@ -32,7 +32,8 @@ import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
 import type { RouteMeta } from '../src/lib/routeMeta';
 import { EN_ROUTE_CONTENT, englishBasePaths, localizeRouteMeta } from '../src/lib/routeTranslations';
 import { localizedPath, splitLocale, type Locale } from '../src/lib/i18n';
-import { fetchIngredientPages } from './seoEntities';
+import { fetchIngredientPages, fetchProductPages } from './seoEntities';
+import { applyContentSeed, applySeoHead } from '../src/lib/seoHead';
 
 const SITE_URL = (
   process.env.SITEMAP_BASE_URL ||
@@ -116,38 +117,37 @@ export function buildRouteHtml(
     `<meta name="description" content="${description}" />`
   );
 
-  const headExtra = [
-    `<link rel="canonical" href="${canonical}" />`,
-    ...alternateTags(alternates),
-    nameTag('robots', 'index, follow'),
-    metaTag('og:site_name', 'KURLA Beauty'),
-    metaTag('og:locale', OG_LOCALE[locale]),
-    metaTag('og:type', route.path === '/' ? 'website' : 'article'),
-    metaTag('og:title', route.title),
-    metaTag('og:description', route.description),
-    metaTag('og:url', canonical),
-    metaTag('og:image', `${siteUrl}/og-default.png`),
-    nameTag('twitter:card', 'summary_large_image'),
-    `<script type="application/ld+json">${safeJsonLd({
+  /**
+   * CHANTIER 13 — la tête est appliquée, pas empilée.
+   *
+   * `applySeoHead` retire d'abord les balises SEO présentes, puis écrit les
+   * siennes. Sans cela, relancer le prérendu sur un `dist` non nettoyé produisait
+   * des pages à plusieurs canoniques, la première pointant sur l'accueil —
+   * vérifié sur `dist/boutique/index.html` (3 canoniques) avant correction.
+   */
+  html = applySeoHead(html, {
+    title: route.title,
+    description: route.description,
+    canonical,
+    indexable: true,
+    ogType: route.path === '/' ? 'website' : 'article',
+    ogLocale: OG_LOCALE[locale],
+    imageUrl: `${siteUrl}/og-default.png`,
+    alternates,
+    jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
       name: route.title,
       description: route.description,
       url: canonical,
       inLanguage: locale,
-      isPartOf: { '@type': 'WebSite', name: 'KURLA Beauty', url: siteUrl },
-    })}</script>`,
-  ].join('\n    ');
-
-  html = html.replace('</head>', `    ${headExtra}\n  </head>`);
+      isPartOf: { '@type': 'WebSite', name: 'KURLA Beauty', url: siteUrl }
+    }
+  });
 
   // Amorce de contenu : un <h1> et la description, pour qu'il y ait du texte
   // réel dans le HTML avant exécution du JavaScript.
-  const seed =
-    `<main class="prerender-seed" style="min-height:60vh;display:flex;flex-direction:column;` +
-    `align-items:center;justify-content:center;text-align:center;padding:2rem">` +
-    `<h1>${title}</h1><p style="max-width:38rem">${description}</p></main>`;
-  html = html.replace('<div id="root"></div>', `<div id="root">${seed}</div>`);
+  html = applyContentSeed(html, route.title, route.description);
 
   return html;
 }
@@ -169,7 +169,7 @@ async function main(): Promise<void> {
 
   // Pages d'entités : les fiches ingrédient vérifiées, lues dans la base. Sans
   // base disponible, la liste est vide et rien n'est écrit (dégradation douce).
-  const entities = await fetchIngredientPages();
+  const entities = [...(await fetchIngredientPages()), ...(await fetchProductPages())];
   for (const page of entities) {
     const meta: RouteMeta = {
       path: page.path,

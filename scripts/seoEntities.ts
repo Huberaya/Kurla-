@@ -45,3 +45,41 @@ export async function fetchIngredientPages(): Promise<EntityPage[]> {
     return [];
   }
 }
+
+/**
+ * CHANTIER 13 — fiches produit.
+ *
+ * Les 16 produits du catalogue n'étaient ni prérendus ni présents dans le
+ * sitemap : `/produit/:slug` n'existe dans `ROUTE_META` que comme motif, donc
+ * aucune URL réelle n'était publiée. Ce sont pourtant les pages commerciales
+ * principales.
+ *
+ * Seuls les produits **publiés** sont exposés — publier dans le sitemap une fiche
+ * que le catalogue ne sert pas serait annoncer une page morte.
+ */
+export async function fetchProductPages(): Promise<EntityPage[]> {
+  const url = (env('SUPABASE_URL') || env('VITE_SUPABASE_URL') || '').replace(/\/+$/, '');
+  const key = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
+  if (!url || !key) {
+    console.log('[SEO] Pas de credentials Supabase : URLs produit omises du sitemap/prérendu.');
+    return [];
+  }
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/products?select=id,slug,name,description,status&status=eq.published&order=slug`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = (await res.json()) as Array<{ id: string; slug: string | null; name: string; description?: string | null }>;
+    return rows
+      .filter(row => Boolean(row.slug))
+      .map(row => ({
+        path: `/produit/${encodeURIComponent(row.slug as string)}`,
+        title: `${row.name} | KURLA Beauty`,
+        description: (row.description || `${row.name} : composition, texture et besoins couverts, évalués sans parti pris de marque.`).slice(0, 300)
+      }));
+  } catch (error) {
+    console.log('[SEO] Lecture des produits impossible, omises :', error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}

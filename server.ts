@@ -5,6 +5,7 @@ import path from 'path';
 import { Type } from '@google/genai';
 import Stripe from 'stripe';
 import { professionalStore } from './src/lib/professionalStore';
+import { mountSpaFallback } from './src/server/spaFallback';
 import { jurisdictionForCountry } from './src/lib/jurisdiction';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
 import { isSupabaseServerConfigured } from './src/lib/supabaseClient';
@@ -2039,9 +2040,9 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    // CHANTIER 13 — la coquille n'est plus servie aveuglément : 404 franc sur un
+    // chemin inconnu, canonique propre sur une fiche produit ou ingrédient.
+    mountSpaFallback(app, distPath);
   }
 
   const httpServer = app.listen(PORT, '0.0.0.0', () => {

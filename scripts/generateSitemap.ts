@@ -19,7 +19,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
 import { englishBasePaths, hasEnglishVersion } from '../src/lib/routeTranslations';
 import { hreflangAlternates, localizedPath } from '../src/lib/i18n';
-import { fetchIngredientPages } from './seoEntities';
+import { fetchIngredientPages, fetchProductPages } from './seoEntities';
 import type { EntityPage } from './seoEntities';
 
 const SITE_URL = (
@@ -170,7 +170,11 @@ export function buildRobots(): string {
 
 async function main(): Promise<void> {
   await mkdir('dist', { recursive: true });
-  const entities = await fetchIngredientPages();
+  // CHANTIER 13 — les fiches produit rejoignent les fiches ingrédient : sans
+  // elles, le sitemap n'annonçait aucune des pages commerciales du catalogue.
+  const ingredientPages = await fetchIngredientPages();
+  const productPages = await fetchProductPages();
+  const entities = [...ingredientPages, ...productPages];
   const sitemap = buildSitemap(entities);
   const robots = buildRobots();
   await writeFile('dist/sitemap.xml', sitemap, 'utf8');
@@ -181,7 +185,7 @@ async function main(): Promise<void> {
   const disallowCount = (robots.match(/Disallow:/g) || []).length;
   const alternateCount = (sitemap.match(/<xhtml:link/g) || []).length;
   console.log(
-    `[SEO] sitemap.xml : ${urlCount} URLs (${urlCount - entities.length - enCount} statiques + ${enCount} anglaises + ${entities.length} ingrédients) ` +
+    `[SEO] sitemap.xml : ${urlCount} URLs (${urlCount - entities.length - enCount} statiques + ${enCount} anglaises + ${ingredientPages.length} ingrédients + ${productPages.length} produits) ` +
     `· ${alternateCount} alternates hreflang · robots.txt : ${disallowCount} Disallow. Base : ${SITE_URL}.`
   );
 }

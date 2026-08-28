@@ -154,11 +154,11 @@ ici était **périmée** : elle datait d'un état antérieur du dépôt.
 
 | Tâche | Fonctionnalités |
 |---|---|
-| Rendu serveur ou prérendu | 3, action 8 |
-| Vrai routeur — `App.tsx` contient **39** comparaisons `pathname` | 3 |
-| Métadonnées par page, sitemap, robots, hreflang, Open Graph | 3, 37 |
-| Pages générées : ingrédient × problème × texture × ville | 37 |
-| Contenu personnalisé par profil | 38 |
+| Rendu serveur ou prérendu | 3, action 8 | ✅ chantier 7.3 (prérendu au build) **+ chantier 13** : les routes dynamiques reçoivent leur propre tête au moment de la requête, et un chemin inconnu répond 404 |
+| Vrai routeur | 3 | ✅ **ligne périmée corrigée le 28/08/2026** : la table de routes est `src/lib/routeTable.tsx` (57 entrées) et `App.tsx` ne contient plus que 6 occurrences de `pathname`, aucune comparaison de routage |
+| Métadonnées par page, sitemap, robots, hreflang, Open Graph | 3, 37 | ✅ chantiers 7.1/7.2 (57 fiches de métadonnées, `sitemap.xml`, `robots.txt`, hreflang fr/en, JSON-LD) **+ chantier 13** : le sitemap annonce désormais les fiches produit, et la tête d'une page dynamique n'est plus celle de l'accueil |
+| Pages générées : ingrédient × produit | 37 | 🔶 fiches ingrédient (7.4) et fiches produit (chantier 13) prérendues depuis la base. **Les croisements problème × texture × ville ne sont pas faits, et c'est un choix** : sans contenu distinct par page, ce serait une usine à pages quasi dupliquées — exactement ce que KURLA reproche aux autres |
+| Contenu personnalisé par profil | 38 | ⬜ non fait. Un contenu qui dépend du profil n'est pas indexable : il relève du rendu client, pas du SEO |
 
 **Critère de sortie :** ≥ 10 000 URLs indexables générées depuis le graphe, métadonnées distinctes.
 
@@ -370,6 +370,47 @@ propres données.
   automatique : un texte qui change exige une nouvelle signature des deux parties.
 - Aucun écran ne présente encore la facture à la marque : les routes existent et
   sont testées, l'interface reste à poser.
+
+### CHANTIER 13 — SEO DES PAGES DYNAMIQUES ✅ (réalisé le 28/08/2026)
+
+**Deux défauts vérifiés avant d'écrire, pas déduits du plan :**
+
+1. **Le prérendu empilait ses balises.** `buildRouteHtml` remplaçait le titre et la
+   description, puis *ajoutait* canonique, robots, Open Graph et JSON-LD. Relancé
+   sur un `dist` non nettoyé, il produisait des pages à **plusieurs canoniques**,
+   la première pointant sur l'accueil. Mesuré sur `dist/boutique/index.html` :
+   **3 canoniques**. C'est le signal exact qui fait traiter une page comme un
+   doublon de l'accueil.
+2. **Toute URL inconnue répondait 200.** Vérifié en production :
+   `/produit/ce-produit-n-existe-pas` → 200, `/page-qui-n-existe-pas` → 200. Un
+   soft 404 fait indexer du vide. Et les **16 fiches produit** n'étaient ni
+   prérendues ni présentes dans le sitemap : les pages commerciales principales
+   étaient invisibles pour un moteur sans JavaScript.
+
+| Livrable | Preuve |
+| --- | --- |
+| **Tête SEO idempotente** | `src/lib/seoHead.ts` : `stripSeoTags` retire avant d'écrire. Vérifié par **deux builds successifs sans nettoyage** : 1 canonique, 1 `og:title`, 1 `<title>` par page |
+| **404 franc** | `src/server/seoResolver.ts` reconnaît le chemin dans la table de routes : inconnu → **404** avec `noindex`, connu mais non prérendu (espace compte) → 200 |
+| **Tête propre par entité** | fiche produit → titre, description, canonique, `og:type=product`, JSON-LD `Product`, amorce `<h1>` ; fiche ingrédient → JSON-LD `DefinedTerm` ; article → `Article` |
+| **Un produit non publiable n'est pas référençable** | le résolveur n'accepte que ce que `isPublishableProduct` valide : `/produit/produit-non-verifie` → 404 (testé) |
+| **Produits dans le sitemap** | `fetchProductPages()` ne retient que les produits **publiés** ; `sitemap.xml` et prérendu les incluent |
+| **Repli SPA testable** | `src/server/spaFallback.ts` : extrait de `startServer`, sinon aucun banc ne pouvait le traverser |
+| **Banc** | `tests/kurla_seo_dynamic.test.ts` (`npm run test:seo-dynamic`) |
+
+**Deux erreurs du premier banc, corrigées sans affaiblir le code.** D'abord il
+« passait » le 404 sur le 404 par défaut d'Express — pour la mauvaise raison,
+puisque le repli SPA vivait dans `startServer` : d'où l'extraction en module.
+Ensuite il semait le catalogue **avant** d'importer le serveur, qui réinitialise
+les collections mémoire : le test tournait sur un catalogue vide.
+
+**Ce qui n'a pas été fait, volontairement**
+
+- Pas d'usine à pages « ingrédient × problème × texture × ville ». Sans contenu
+  réellement distinct par combinaison, ce serait du quasi-dupliqué à grande
+  échelle — le contraire de ce que KURLA défend.
+- Les routes dynamiques non résolues (profil de professionnel, routine, résultat
+  de diagnostic) continuent de servir la coquille en 200 : rien n'est inventé,
+  mais elles n'ont pas encore de tête propre. C'est la limite déclarée.
 
 ## 5. MATRICE DE TRAÇABILITÉ
 
