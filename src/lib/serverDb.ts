@@ -51,7 +51,7 @@ import type {
   CustomerReturnEvent,
   LoyaltyAccountRecord,
   LoyaltyEventRecord,
-  BrandContract, LoyaltyRedemptionRecord,  MarketplaceQuestion,
+  BrandContract, BrandInvoice, LoyaltyRedemptionRecord,  MarketplaceQuestion,
   MarketplaceReview,
   NotificationDeliveryLog,
   NotificationPreference,
@@ -88,6 +88,7 @@ import * as ingredientLinkStore from './db/ingredientLinkStore';
 import * as taxonomyStore from './db/taxonomyStore';
 import * as communityStore from './db/communityStore';
 import * as brandContractStore from './db/brandContractStore';
+import * as brandInvoiceStore from './db/brandInvoiceStore';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
@@ -164,6 +165,7 @@ export class SupabaseServerStore {
   public inMemoryProductQuestions: MarketplaceQuestion[] = [];
   /** CHANTIER 11 (bloc C) — réponses des membres aux questions produit. */
   public inMemoryBrandContracts: BrandContract[] = [];
+  public inMemoryBrandInvoices: BrandInvoice[] = [];
   public inMemoryQuestionAnswers: import('./db/types').ProductQuestionAnswer[] = [];
   public inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
   public inMemoryProductSubscriptions: ProductSubscription[] = [];
@@ -382,6 +384,7 @@ bindDomain(storeInstance, ingredientLinkStore);
 bindDomain(storeInstance, taxonomyStore);
 bindDomain(storeInstance, communityStore);
 bindDomain(storeInstance, brandContractStore);
+bindDomain(storeInstance, brandInvoiceStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -408,4 +411,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof ingredientLinkStore>
   & Curried<typeof taxonomyStore>
   & Curried<typeof communityStore>
-  & Curried<typeof brandContractStore>;
+  & Curried<typeof brandContractStore>
+  & Curried<typeof brandInvoiceStore>;

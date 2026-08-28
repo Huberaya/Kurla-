@@ -258,6 +258,31 @@ export function registerBrandTestRoutes(app: Express): void {
       return;
     }
 
+    /**
+     * CHANTIER 12 (bloc D2) — le rapport se livre contre règlement.
+     *
+     * Ce n'est pas une fonction essentielle mise derrière un péage : c'est le
+     * service B2B que la marque a signé et qui lui est facturé. Le membre, lui,
+     * ne paie rien pour participer ni pour lire ses propres données. Le refus
+     * nomme la facture et son montant — pas de « accès refusé » opaque.
+     */
+    const contractGate = await serverDb.resolveBrandContractEligibility(request.brandUserId);
+    if (!contractGate.contractId) {
+      res.status(404).json({ error: 'Test introuvable.', code: 'BRAND_TEST_NOT_FOUND' });
+      return;
+    }
+    const invoiceGate = await serverDb.resolveBrandReportAccess(contractGate.contractId);
+    if (!invoiceGate.allowed) {
+      res.status(402).json({
+        error: 'Le rapport n’est pas encore livré.',
+        code: 'INVOICE_NOT_PAID',
+        reason: invoiceGate.reason,
+        invoiceId: invoiceGate.invoiceId ?? null,
+        amountCents: invoiceGate.amountCents ?? null
+      });
+      return;
+    }
+
     const report = await serverDb.buildBrandTestReportForRequest(req.params.id);
     res.json({
       report,

@@ -183,6 +183,26 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
           break;
         }
 
+        // CHANTIER 12 (bloc D2) — facture de contrat marque. Même exigence que
+        // pour l'abonnement : paiement confirmé et montant identique à celui
+        // émis. Un écart ne marque rien et laisse une trace dans les journaux.
+        if (session.metadata?.kind === 'brand_invoice') {
+          try {
+            const invoice = await serverDb.markBrandInvoicePaidFromSession({
+              invoiceId: String(session.metadata.invoiceId || ''),
+              amountTotalCents: typeof session.amount_total === 'number' ? session.amount_total : null,
+              currency: session.currency,
+              paymentStatus: session.payment_status,
+              sessionId: session.id,
+              paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null
+            });
+            console.log(`[Stripe Webhook] Facture ${invoice.invoiceNumber} réglée (${invoice.amountCents} centimes).`);
+          } catch (error) {
+            console.error('[Stripe Webhook] Facture marque non réglée :', error instanceof Error ? error.message : error);
+          }
+          break;
+        }
+
         const orderId = session.metadata?.orderId;
         const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
         if (order) {

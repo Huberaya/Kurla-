@@ -2,7 +2,8 @@ import type { Express, Response } from 'express';
 
 import { serverDb } from '../../lib/serverDb';
 import { BRAND_CONTRACT_TERMS_TEXT, BRAND_CONTRACT_TERMS_VERSION, brandContractTermsHash } from '../../lib/brandContractTerms';
-import { asyncRoute, rateLimit } from '../http';
+import { asyncRoute, getAppUrl, rateLimit, safeApiError } from '../http';
+import { getStripeClient } from '../payments/stripeClient';
 import { requireAdmin, requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 
@@ -106,6 +107,110 @@ export function registerBrandContractRoutes(app: Express): void {
       res.json({ contract, note: 'Contrat actif : la marque peut déposer une demande de test.' });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : 'Contreseing impossible.' });
+    }
+  }));
+
+  // ---------------------------------------------------------------------------
+  // FACTURATION (bloc D2)
+  // ---------------------------------------------------------------------------
+
+  /** Émission d'une facture, au prix du contrat signé — jamais un autre. */
+  app.post('/api/admin/brand-contracts/:contractId/invoices', rateLimit('brand-invoice-issue', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const invoice = await serverDb.issueBrandInvoice(admin.id, req.params.contractId);
+      res.status(201).json({ invoice });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Émission de la facture impossible.' });
+    }
+  }));
+
+  /** Mes factures. */
+  app.get('/api/brand-invoices/mine', rateLimit('brand-invoice-mine', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const invoices = await serverDb.getBrandInvoicesForUser(user.id);
+    res.json({ invoices, pending: invoices.filter(invoice => invoice.status === 'pending').length });
+  }));
+
+  /**
+   * Session de paiement de la facture.
+   *
+   * Sans clé Stripe, la route répond 503 explicitement : KURLA ne simule pas un
+   * encaissement. Un faux « payé » sur une facture B2B est pire qu'un bouton
+   * indisponible.
+   */
+  app.post('/api/brand-invoices/:invoiceId/checkout', rateLimit('brand-invoice-checkout', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const invoice = await serverDb.getBrandInvoice(req.params.invoiceId);
+    if (!invoice) {
+      res.status(404).json({ error: 'Facture introuvable.' });
+      return;
+    }
+    if (invoice.brandUserId !== user.id) {
+      res.status(403).json({ error: 'Cette facture ne vous concerne pas.' });
+      return;
+    }
+    if (invoice.status === 'paid') {
+      res.status(409).json({ error: 'Cette facture est déjà réglée.' });
+      return;
+    }
+    if (invoice.status === 'void') {
+      res.status(409).json({ error: 'Cette facture a été annulée.' });
+      return;
+    }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      res.status(503).json({
+        error: 'Paiement indisponible.',
+        code: 'PAYMENT_NOT_CONFIGURED',
+        note: 'Aucune clé Stripe n’est configurée sur cet environnement. KURLA ne simule pas un encaissement : la facture reste en attente.'
+      });
+      return;
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        customer_email: user.email || undefined,
+        line_items: [{
+          price_data: {
+            currency: invoice.currency,
+            product_data: { name: `Contrat de test produit KURLA — facture ${invoice.invoiceNumber}` },
+            unit_amount: invoice.amountCents
+          },
+          quantity: 1
+        }],
+        metadata: {
+          kind: 'brand_invoice',
+          invoiceId: invoice.id,
+          contractId: invoice.contractId,
+          brandUserId: invoice.brandUserId,
+          expectedAmountCents: String(invoice.amountCents)
+        },
+        success_url: `${getAppUrl(req)}/professionnels?invoice=paid`,
+        cancel_url: `${getAppUrl(req)}/professionnels?invoice=canceled`
+      });
+      await serverDb.attachBrandInvoiceCheckoutSession(invoice.id, session.id);
+      res.status(201).json({ checkoutUrl: session.url, sessionId: session.id, amountCents: invoice.amountCents });
+    } catch (error) {
+      res.status(502).json({ error: safeApiError(error, 'La session de paiement n’a pas pu être créée.') });
+    }
+  }));
+
+  /** Annulation d'une facture en attente. Une facture réglée ne s'annule pas. */
+  app.post('/api/admin/brand-invoices/:invoiceId/void', rateLimit('brand-invoice-void', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const invoice = await serverDb.voidBrandInvoice(req.params.invoiceId, String(req.body?.reason || ''));
+      res.json({ invoice });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Annulation impossible.' });
     }
   }));
 

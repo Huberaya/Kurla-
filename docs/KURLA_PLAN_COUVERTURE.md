@@ -195,7 +195,7 @@ ici était **périmée** : elle datait d'un état antérieur du dépôt.
 |---|---|
 | Texture Gap Report — agrégats k-anonymes uniquement — 🔶 chantier 8.6a : rapport k-anonyme livré et réservé à l’administration ; ni compte B2B ni contrat, et couverture du catalogue inconnue tant que `product_ingredients` est vide | 30 |
 | API catalogue + scoring — ✅ chantier 8.6b : 5 endpoints `/api/v1/*` publics, scoring sans état, `/api-docs` indexable ; pas de clés ni de quota par consommateur | 31 |
-| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme ; migration `20260865` appliquée en production le 2026-08-28. Contrat ✅ chantier 12 (bloc D) : voir ci-dessous. **Manque** la facturation | 41 |
+| Espace marque : tests produits ciblés — ✅ chantier 8.6c2 : rôle `brand`, 10 routes, 4 tables, rapport k-anonyme ; migration `20260865` appliquée en production le 2026-08-28. Contrat ✅ **et** facturation ✅ chantier 12 (blocs D1 et D2) : voir ci-dessous | 41 |
 | Programme experts / créateurs — ✅ chantier 8.6c1 : `creatorProgram.ts` + `creatorStore.ts` + 7 routes + migration `20260864` + page publique `/createurs`. La visibilité ne s’achète pas : aucun poids monétaire, aucune table où enregistrer un placement | 39 |
 | Rémunération au résultat, pas au clic — ✅ chantier 8.6c1 : clic/étagère/achat valent 0 (contraintes `only_outcomes_are_paid` + `outcomes_pay_exactly_one`), 1,50 € par résultat déclaré, taux identique quel que soit le signe, > 60 % de négatifs → revue | 40 |
 
@@ -344,14 +344,32 @@ rendues vides — un droit d'accès rendu partiellement sans le dire. Corrigé :
 sections lisent la base, et toute lecture qui échoue remonte dans un champ
 `exportErrors` au lieu de passer sous silence.
 
+#### D2 — La facturation (même jour)
+
+| Livrable | Preuve |
+| --- | --- |
+| **Facture** | `src/lib/db/brandInvoiceStore.ts` + migration `20260871000000_brand_invoices.sql` (appliquée et vérifiée en production) |
+| **Le montant n'est pas un paramètre** | `issueBrandInvoice(adminId, contractId)` ne prend **aucun** montant : il copie `priceCents` du contrat signé. Un CHECK SQL ne pourrait pas le garantir (PostgreSQL interdit les sous-requêtes dans un CHECK) — c'est l'absence de paramètre qui rend l'écart impossible |
+| **« Réglée » se prouve** | `markBrandInvoicePaidFromSession` exige `payment_status = 'paid'`, la devise attendue **et** un montant identique. La base impose en plus `status = 'paid'` ⇒ `paid_at` + `stripe_session_id` non nuls |
+| **Webhook** | branche `metadata.kind === 'brand_invoice'` dans `POST /api/stripe/webhook` : un écart de montant ne marque rien et laisse une trace |
+| **Livraison du rapport** | `GET /api/brand-tests/:id/report` répond **402** en nommant la facture et son montant tant qu'aucune facture n'est réglée |
+| **Sans clé Stripe** | la route de paiement répond **503** `PAYMENT_NOT_CONFIGURED` : KURLA ne simule pas un encaissement |
+| **RGPD** | les factures sortent dans l'export et partent à la suppression du compte |
+| **Banc** | `tests/kurla_brand_invoice.test.ts` (`npm run test:brand-invoice`) |
+
+Le rapport k-anonyme payant n'est pas une fonction essentielle mise derrière un
+péage artificiel : c'est le service B2B que la marque a signé et qui lui est
+facturé. Le membre, lui, ne paie rien pour participer à un test ni pour lire ses
+propres données.
+
 **Ce qui n'a volontairement pas été fait**
 
 - La signature n'est pas une case à cocher unique : les trois clauses se valident
   une par une, et une clause manquante refuse la signature (testé).
 - Pas de « contrat accepté implicitement par l'usage ». Pas de renouvellement
   automatique : un texte qui change exige une nouvelle signature des deux parties.
-- La facturation **n'est pas faite** : c'est l'étape suivante du bloc D. Un contrat
-  peut porter un `priceCents`, mais rien ne le facture encore.
+- Aucun écran ne présente encore la facture à la marque : les routes existent et
+  sont testées, l'interface reste à poser.
 
 ## 5. MATRICE DE TRAÇABILITÉ
 

@@ -49,6 +49,7 @@ const PERSONAL_TABLES: Array<[string, string]> = [
   ['product_questions', 'user_id'],
   ['reviews', 'user_id'],
   ['brand_contracts', 'brand_user_id'],
+  ['brand_invoices', 'brand_user_id'],
   ['support_tickets', 'user_id'],
   ['loyalty_events', 'user_id'],
   ['loyalty_redemptions', 'user_id'],
@@ -161,6 +162,9 @@ export async function exportUserData(store: SupabaseServerStore, userId: string)
       brandContracts: supabase
         ? await readPersonalRows(supabase, 'brand_contracts', 'brand_user_id', userId, exportErrors)
         : store.inMemoryBrandContracts.filter(contract => contract.brandUserId === userId),
+      brandInvoices: supabase
+        ? await readPersonalRows(supabase, 'brand_invoices', 'brand_user_id', userId, exportErrors)
+        : store.inMemoryBrandInvoices.filter(invoice => invoice.brandUserId === userId),
       shippingAddresses: addresses ?? [],
       notificationPreferences: notificationPrefs ?? null,
       notifications: notifications ?? [],
@@ -208,6 +212,7 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   store.inMemoryProductQuestions = store.inMemoryProductQuestions.filter(question => question.userId !== userId);
   store.inMemoryQuestionAnswers = store.inMemoryQuestionAnswers.filter(answer => answer.userId !== userId);
   store.inMemoryBrandContracts = store.inMemoryBrandContracts.filter(contract => contract.brandUserId !== userId);
+  store.inMemoryBrandInvoices = store.inMemoryBrandInvoices.filter(invoice => invoice.brandUserId !== userId);
   store.inMemoryLoyaltyAccounts.delete(userId);
   store.inMemoryLoyaltyEvents = store.inMemoryLoyaltyEvents.filter(event => event.userId !== userId);
   store.inMemoryLoyaltyRedemptions = store.inMemoryLoyaltyRedemptions.filter(redemption => redemption.userId !== userId);

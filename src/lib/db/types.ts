@@ -394,6 +394,33 @@ export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'appr
  */
 export type BrandContractStatus = 'issued' | 'active' | 'terminated' | 'expired';
 
+/**
+ * CHANTIER 12 (bloc D2) — FACTURE DE CONTRAT MARQUE.
+ *
+ * Une facture n'est `paid` que sur la foi de ce que Stripe renvoie : montant
+ * identique à celui émis, devise attendue, statut de paiement confirmé. Aucun
+ * chemin ne permet à un client — ni à un administrateur pressé — de décréter
+ * qu'une facture est réglée.
+ */
+export type BrandInvoiceStatus = 'pending' | 'paid' | 'void';
+
+export interface BrandInvoice {
+  id: string;
+  invoiceNumber: string;
+  contractId: string;
+  brandUserId: string;
+  amountCents: number;
+  currency: 'eur';
+  status: BrandInvoiceStatus;
+  issuedAt: string;
+  issuedBy: string;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  paidAt?: string;
+  voidedAt?: string;
+  voidReason?: string;
+}
+
 export interface BrandContract {
   id: string;
   brandUserId: string;
