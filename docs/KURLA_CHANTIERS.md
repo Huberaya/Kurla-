@@ -949,10 +949,51 @@ exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 707,2 kb), **166 méthode
 inchangées** (nom + arité), sonde d'exécution étendue à **32 appels réels**
 couvrant les neuf domaines extraits.
 
+#### 8.2c — le store est découpé jusqu'au noyau (livré)
+
+| Module | Lignes | Contenu |
+| --- | --- | --- |
+| `src/lib/db/catalogStore.ts` | 890 | produits publics, avis, questions, liste d'attente, abonnements, normalisation, gouvernance admin, imports CSV/fournisseur, validation |
+| `src/lib/db/orderStore.ts` | 769 | création de commande, session Stripe, lecture, transitions de statut, historique, TVA |
+| `src/lib/db/inventoryStore.ts` | 111 | stock par produit et par variante, synchronisation Supabase |
+| `src/lib/db/contentStore.ts` | 54 | routines éditoriales publiées |
+| `src/lib/db/types.ts` | 343 | les 27 déclarations de types du store |
+
+**Le choix qui a évité les cycles.** Catalogue, commandes, inventaire et
+notifications s'appellent les uns les autres. Plutôt que d'importer les fonctions
+d'un domaine dans un autre (cycles `catalogStore` ↔ `orderStore` garantis), les
+appels inter-domaines passent par **la surface composée déclarée sur la classe**
+(`store.getProductById(...)`, `store.notifyLowStock(...)`) : chaque module
+n'importe que le type de la classe, et la liste des dépendances croisées tient en
+une douzaine de lignes, au même endroit que l'assemblage.
+
+**Les types ont bougé sans casser un seul import.** `serverDb.ts` fait
+`export * from './db/types'` : les centaines de `import type { ServerOrder } from
+'../serverDb'` disséminés dans le backend continuent de compiler tels quels.
+
+**Un banc a cassé, et c'était le banc qui avait tort.** `phase7_atomic_stock`
+découpait le texte de `serverDb.ts` entre `public async saveOrder` et
+`updateOrderStripeSession` pour vérifier que le cycle de commande délègue au RPC
+PostgreSQL transactionnel. `saveOrder` ayant déménagé, `indexOf` renvoyait −1 et
+le banc testait du vide — il a échoué, ce qui vaut mieux que de passer à tort. Il
+lit désormais toute la surface du store et découpe par fonction quelle que soit sa
+forme (méthode de classe ou fonction de module).
+
+**La sonde d'exécution passe de 32 à 49 appels** et couvre les treize domaines :
+elle crée un panier, passe une commande (verrou de stock compris), la relit,
+vérifie son historique, et **asserte que la porte de confiance refuse un avis
+vérifié sans achat réglé** — ce refus est d'ailleurs ce qu'elle a renvoyé en
+premier, preuve que la règle métier survit au découpage.
+
+**Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
+exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
+inchangées** (nom + arité), **49 appels réels** sur le store composé.
+
 
 **Ce qui manque, explicitement**
-- `serverDb.ts` est passé de 6 240 à **2 492 lignes** (8.2a + 8.2b) : il ne reste
-  que le catalogue, les commandes/panier et les déclarations de types → 8.2c.
+- `serverDb.ts` ne fait plus que **333 lignes** (6 240 au départ) : état de repli,
+  verrou de stock, `initialize`, `getStatusSummary`, surface composée, assemblage.
+  Le découpage du store est terminé.
 - **Les 40 champs `inMemory*` sont passés de `private` à `public`** pour que les
   modules de domaine les lisent. Recul d'encapsulation assumé, documenté dans
   l'en-tête de la classe ; aucun code hors `src/lib/db/` n'y touche (grep).
@@ -966,7 +1007,7 @@ couvrant les neuf domaines extraits.
 
 - [x] ~~**8.2a** Filet + premiers domaines sortis de `serverDb.ts`~~ **FAIT** — inventaire runtime des **166 méthodes** (nom + arité) figé dans `tests/fixtures/store_api_inventory.json` ; composition `src/lib/db/bind.ts` (`bindDomain` + type `Curried`, arité préservée) ; **4 domaines extraits** dans `src/lib/db/` : notifications/e-mail (562 l.), support (446 l.), famille (269 l.), profil beauté (184 l.) ; aides partagées dans `internal.ts` ; sonde d'exécution `tests/store_composition.test.ts` (**21 méthodes réellement appelées**). `serverDb.ts` : **6 240 → 4 906 lignes**.
 - [x] ~~**8.2b** Domaines restants de `serverDb.ts`~~ **FAIT (hors catalogue et commandes)** — six modules de plus : administration/contenu/analytique + idempotence des webhooks (679 l.), retours/remboursements (797 l.), livraison (388 l.), routines adaptatives (311 l.), sessions de l'assistant IA (161 l.), candidatures professionnelles (128 l.). **`serverDb.ts` : 4 906 → 2 492 lignes** (6 240 au départ du chantier, **−60 %**).
-- [ ] **8.2c** Deux domaines encore dans `serverDb.ts` : le **catalogue** (~1 000 l. : produits, avis, questions, liste d'attente, abonnements, import CSV, gouvernance) et les **commandes/panier** (~750 l., les plus couplés : verrou de stock, TVA, notifications, livraison, remboursements). S'y ajoutent ~540 lignes de déclarations de types, qui gagneraient à partir dans `src/lib/db/types.ts`.
+- [x] ~~**8.2c** Catalogue, commandes, inventaire, contenus et types~~ **FAIT** — `catalogStore.ts` (890 l.), `orderStore.ts` (769 l.), `inventoryStore.ts` (111 l.), `contentStore.ts` (54 l.) ; les 27 déclarations de types partent dans `types.ts` (343 l., réexportées par `serverDb.ts` : aucun import existant n'a bougé) ; les aides pures (`toPublicProduct`, `isPublishableProduct`, `effectiveCatalogPrice`, `isPromotionActive`, `emailTemplateForOrderStatus`) rejoignent `internal.ts`. **`serverDb.ts` : 2 492 → 333 lignes** — il ne reste que l'état, le verrou de stock, `initialize`, `getStatusSummary`, la surface composée et l'assemblage. **Bilan du chantier 8.2 : 6 240 → 333 lignes (−95 %), quatorze domaines.**
 - [ ] **8.3** Loyalty par progression + récompense des comportements non-marchands (scan, avis, feedback)
 - [ ] **8.4** Beauty Journey : narration de l'évolution
 - [ ] **8.5** Abonnement KURLA+
@@ -1008,5 +1049,8 @@ couvrant les neuf domaines extraits.
 | Découpage 8.1 sondé en HTTP réel | 6 routes publiques 200 · 5 routes protégées 401 · conformité 400 · catch-all 404 JSON |
 | `tests/chantier_7_jurisdiction.integration.test.ts` (hors chaîne) | PASS en mode sans base : pays non desservi refusé (400), checkout en échec fermé (503), produit conforme non bloqué. **A révélé un fail-open réel, corrigé.** Branche « base réelle » non exécutée ici |
 | Vérifications Phase 2 (RLS réelle) | **PASS** contre l'instance réelle `qzwgsarfdegqtfdnqiql` (eu-west-1) : comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
+| **Chantier 8.2c** — inventaire de l'API du store | PASS — **166 méthodes**, nom + arité identiques après les quatorze extractions |
+| **Chantier 8.2c** — sonde d'exécution du store composé | PASS — **49 appels** sur les treize domaines ; commande créée, relue, historique tracé |
+| **Chantier 8.2c** — `serverDb.ts` | **333 lignes** (6 240 avant le chantier 8.2, −95 %) ; 14 modules dans `src/lib/db/` |
 
 Le dernier point est le seul passif ouvert. Il ne peut pas être levé ici : il exige une instance Supabase réelle.

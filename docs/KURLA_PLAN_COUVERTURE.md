@@ -45,7 +45,7 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 5 | Table `ingredients` + `product_ingredients` | ✅ LIVRÉ | Migration `20260845`, module `ingredientGraph.ts`, testé |
 | 6 | Normaliser les vocabulaires | ✅ LIVRÉ | Tables `kurla_taxonomies` (l.126) et `kurla_taxonomy_terms` (l.133) créées, **mais 0 `INSERT`** dans toute la migration, et **aucune migration des colonnes `TEXT[]` existantes** |
 | 7 | Brancher `routine_feedback` sur le moteur | ✅ LIVRÉ | `outcome_observations` → `getOutcomes()` → `buildRecommendations`. Testé avec preuve citable (`obs-1`/`obs-2`) |
-| 8 | Rendu serveur / prérendu | ⬜ À FAIRE | Toujours 1 URL indexable |
+| 8 | Rendu serveur / prérendu | 🔶 **PARTIEL** | **38 URLs distinctes prérendues** (chantier 7.4 : `scripts/prerender.ts` dans le build, `sitemap.xml` à 38 `<loc>`), chacune avec son `<head>` propre — mais le corps reste une amorce (`<div id="root">` + `prerender-seed`, mesuré sur `dist/index.html`) : le contenu est toujours rendu côté client. Un vrai rendu serveur du corps reste à faire |
 | 9 | Export / suppression en 1 clic | ✅ LIVRÉ | **Aucune route.** `deleteBeautyProfile` existe (`server.ts:2327`), `deleteIntelligenceData` existe dans le store, mais rien ne les expose ensemble en 1 clic |
 | 10 | Archétypes + cohortes k-anonymes | ✅ LIVRÉ | Logique + `GET /api/me/archetype`, testé |
 | 11 | KURLA Shelf | ✅ LIVRÉ | Logique + 5 endpoints + `ShelfPage` |
@@ -55,11 +55,11 @@ Ils sont testés. C'est précisément pour ça qu'ils donnent un faux sentiment 
 | 15 | Recherche sémantique | ✅ LIVRÉ | Logique + `GET /api/search`. **Aucun écran** |
 | 16 | Détection de conflit de routine | ✅ LIVRÉ | Dans le moteur, **jamais affiché à l'utilisateur** |
 | 17 | Unifier le triage médical | ✅ LIVRÉ | `AI_GUARDRAILS.triage()` par racines, testé |
-| 18 | Découper les monolithes | 🔶 **PARTIEL — serveur fait** | **Chantier 8.1 livré** : `server.ts` passe de **4 795 à 2 019 lignes** (−58 %), 163 routes inchangées (inventaire de référence `tests/route_inventory.test.ts`), 16 modules sous `src/server/` (http, auth, compliance, ai, 9 modules de routes). **8.2a + 8.2b** : `serverDb.ts` passe de **6 240 à 2 492 lignes** (−60 %), neuf domaines dans `src/lib/db/` — 4 domaines extraits dans `src/lib/db/` (notifications/e-mail, support, famille, profil beauté) et recomposés sur le singleton ; les **166 méthodes** restent appelables (inventaire runtime + sonde qui en appelle 21). Reste 8.2c : catalogue et commandes/panier |
+| 18 | Découper les monolithes | ✅ **FAIT** | **Chantier 8.1 livré** : `server.ts` passe de **4 795 à 2 019 lignes** (−58 %), 163 routes inchangées (inventaire de référence `tests/route_inventory.test.ts`), 16 modules sous `src/server/` (http, auth, compliance, ai, 9 modules de routes). **8.2 terminé** : `serverDb.ts` passe de **6 240 à 333 lignes** (−95 %), quatorze domaines dans `src/lib/db/` — 4 domaines extraits dans `src/lib/db/` (notifications/e-mail, support, famille, profil beauté) et recomposés sur le singleton ; les **166 méthodes** restent appelables (inventaire runtime + sonde qui en appelle 21). Le store ne garde que l'état, le verrou de stock, `initialize` et l'assemblage |
 | 19 | Réassort prédictif | ✅ LIVRÉ | `evaluateReplenishment` testé, zéro appel, aucune notification branchée |
 | 20 | Trust Score pros + co-signature | ✅ **LIVRÉ** | `professionalTrust.ts` pur, testé (14 blocs), servi par `GET /api/professionals/:id/trust`, affiché dans `ProfessionalDirectoryPage.tsx`. `proEndorsement.ts` testé, lecture via `/api/me/endorsements`, **création via le formulaire de l'espace pro**. `POST /api/endorsements` a été verrouillée au passage : elle acceptait `professionalId` et `professionalVerified` depuis le corps de la requête, ce qui permettait de forger la co-signature d'un professionnel vérifié |
 
-**Bilan après fermeture des restes du chantier B : 18 livrées (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20) · 1 partielle (18) · 1 à faire (8). Total 20.**
+**Bilan après le chantier 8.2 : 19 livrées (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20) · 1 partielle (8 — prérendu : 38 URLs, corps non rendu) · 0 à faire. Total 20.**
 
 Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20 passe de « Trust Score : rien » à « Trust Score livré et affiché », et l'action 18 recule en valeur relative puisque `server.ts` a grossi de 712 lignes pendant que deux stores étaient extraits.
 

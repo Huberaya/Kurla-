@@ -110,12 +110,66 @@ async function run(): Promise<void> {
   assert.ok(adminMetrics && typeof adminMetrics.searchesWithoutResultsCount === 'number', 'les KPI admin doivent être agrégés');
   await check('recordAdminAudit', () => serverDb.recordAdminAudit(uid, 'sonde_composition', { source: 'banc' }));
 
+  // --- catalogue (src/lib/db/catalogStore.ts) --------------------------------
+  const products = await check('getProducts', () => serverDb.getProducts());
+  assert.ok(Array.isArray(products) && products.length >= 1, 'le catalogue initialisé doit contenir le produit de sonde');
+  const productId = (products[0] as any).id;
+  const product = await check('getProductById', () => serverDb.getProductById(productId));
+  assert.ok(product, 'le produit de sonde doit être relisible par identifiant');
+  await check('getPublicProducts', () => serverDb.getPublicProducts());
+  await check('getProductReviews', () => serverDb.getProductReviews(productId));
+  await check('getCatalogTaxonomy', () => serverDb.getCatalogTaxonomy());
+  // Le dépôt d'avis vérifié exige un achat réglé : la porte de confiance doit
+  // refuser, et ce refus doit passer par le store composé sans se casser.
+  calls += 1;
+  await assert.rejects(
+    () => serverDb.createProductReview(uid, productId, 5, 'Sonde de composition', 'Titre sonde'),
+    /achat réglé/,
+    'un avis vérifié sans achat réglé doit être refusé'
+  );
+
+  // --- inventaire (src/lib/db/inventoryStore.ts) -----------------------------
+  const inventory = await check('getInventoryByProductId', () => serverDb.getInventoryByProductId(productId));
+  assert.ok(inventory && typeof inventory.quantity === 'number', 'l’inventaire doit renvoyer une quantité');
+  await check('getAvailableStock', () => serverDb.getAvailableStock(productId));
+  await check('getInventoryByVariantId', () => serverDb.getInventoryByVariantId(productId, 'variante-inexistante'));
+
+  // --- contenus éditoriaux (src/lib/db/contentStore.ts) ----------------------
+  await check('getRoutines', () => serverDb.getRoutines());
+  await check('getRoutineBySlug', () => serverDb.getRoutineBySlug('routine-inexistante'));
+
+  // --- panier et commandes (src/lib/db/orderStore.ts) ------------------------
+  await check('saveCart', () => serverDb.saveCart(uid, null, [{ productId, quantity: 2 }]));
+  const cart = await check('getCart', () => serverDb.getCart(uid, null));
+  assert.ok(Array.isArray(cart) && cart.length >= 1, 'le panier enregistré doit être relu');
+
+  const orderId = 'ORD-COMPOSITION-8-2C';
+  const order = await check('saveOrder', () =>
+    serverDb.saveOrder({
+      id: orderId,
+      userId: uid,
+      customerEmail: 'sonde@composition.test',
+      items: [{ productId, quantity: 2, price: 19.9, name: 'Sonde composition' }],
+      total: 39.8,
+      status: 'payment_pending_webhook',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as any)
+  );
+  assert.ok(order?.id === orderId, 'la commande doit être créée (verrou de stock inclus)');
+  const reloaded = await check('getOrderById', () => serverDb.getOrderById(orderId));
+  assert.ok(reloaded?.id === orderId, 'la commande doit être relisible');
+  await check('getOrdersByCustomer', () => serverDb.getOrdersByCustomer(uid));
+  const history = await check('getOrderStatusHistory', () => serverDb.getOrderStatusHistory(orderId));
+  assert.ok(Array.isArray(history) && history.length >= 1, 'la création doit tracer une entrée d’historique');
+  assert.equal(serverDb.isTransitionAllowed('payment_pending_webhook', 'paid'), true, 'transition attendue autorisée');
+
   // --- noyau resté dans serverDb.ts ------------------------------------------
   await check('getProducts', () => serverDb.getProducts());
   await check('getStatusSummary', async () => serverDb.getStatusSummary());
 
   assert.deepEqual(failures, [], `appels en échec sur le store composé :\n${failures.join('\n')}`);
-  assert.ok(calls >= 30, `trop peu de méthodes exercées : ${calls}`);
+  assert.ok(calls >= 45, `trop peu de méthodes exercées : ${calls}`);
   console.log(
     `[PASS] Chantier 8.2 : ${calls} méthodes des domaines extraits appelées avec succès sur le store composé.`
   );

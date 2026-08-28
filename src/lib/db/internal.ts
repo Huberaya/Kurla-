@@ -13,7 +13,9 @@ export function ensureDatabaseSuccess(operation: string, error: { message?: stri
   }
 }
 
-import type { ServerOrder } from '../serverDb';
+import type { EmailMessage } from '../emailService';
+
+import type { OrderStatus, ServerOrder } from './types';
 
 /** Colonnes TVA d'une commande, absentes des lignes antérieures à la migration 7.6. */
 export function mapOrderVatFields(row: any): Partial<ServerOrder> {
@@ -30,4 +32,149 @@ export function mapOrderVatFields(row: any): Partial<ServerOrder> {
 
 export function isUuid(value: string | undefined): value is string {
   return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+
+// ---------------------------------------------------------------------------
+// Aides pures du catalogue et des commandes (chantier 8.2c)
+// ---------------------------------------------------------------------------
+
+export function isPromotionActive(product: any, now = new Date()): boolean {
+  if (product?.isPromo !== true && product?.is_promo !== true) return false;
+  const promotionPrice = Number(product?.promotionPrice ?? product?.promotion_price);
+  if (!Number.isFinite(promotionPrice) || promotionPrice < 0) return false;
+  const startsAt = product?.promotionStartsAt ?? product?.promotion_starts_at;
+  const endsAt = product?.promotionEndsAt ?? product?.promotion_ends_at;
+  if (startsAt && Number.isNaN(new Date(startsAt).getTime())) return false;
+  if (endsAt && Number.isNaN(new Date(endsAt).getTime())) return false;
+  if (startsAt && new Date(startsAt) > now) return false;
+  if (endsAt && new Date(endsAt) < now) return false;
+  return true;
+}
+
+export function effectiveCatalogPrice(product: any): number {
+  return isPromotionActive(product) ? Number(product.promotionPrice ?? product.promotion_price) : Number(product.price);
+}
+
+export function isPublishableProduct(product: any): boolean {
+  const ingredients = product?.ingredients || product?.keyIngredients || [];
+  const inci = typeof product?.inci === 'string' ? product.inci.trim() : '';
+  const images = product?.galleryImages || [];
+  const imageUrl = product?.image || product?.image_url;
+  const countries = product?.countryAvailability || product?.country_availability || [];
+  const hasPromotionFacts = !product?.isPromo && !product?.is_promo
+    ? true
+    : isPromotionActive(product);
+  return product?.is_active === true
+    && product?.catalog_status === 'published'
+    && product?.ingredient_verification_status === 'verified'
+    && product?.claims_validation_status === 'verified'
+    && product?.images_validation_status === 'verified'
+    && product?.stock_validation_status === 'verified'
+    && product?.certifications_validation_status === 'verified'
+    && product?.translations_validation_status === 'verified'
+    && product?.brand_verification_status === 'verified'
+    && ['brand_provided', 'licensed'].includes(product?.image_ownership_status)
+    && typeof product?.brand === 'string' && product.brand.trim() !== ''
+    && ((Array.isArray(ingredients) && ingredients.length > 0) || inci !== '')
+    && ((Array.isArray(images) && images.length > 0) || typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl))
+    && Array.isArray(countries) && countries.length > 0
+    && hasPromotionFacts;
+}
+
+/** Strip catalog governance and operational fields before data reaches a
+ * browser. Admin evidence remains available through admin-only endpoints. */
+export function toPublicProduct(product: any): any {
+  const verifiedGalleryImages = Array.isArray(product.galleryImages)
+    ? product.galleryImages.filter((image: any) =>
+      (!image.validationStatus || image.validationStatus === 'verified')
+      && (!image.imageTrust || ['brand_provided', 'licensed'].includes(image.imageTrust))
+    )
+    : [];
+  const variants = (product.variants || []).map((variant: any) => {
+    const stockQuantity = Number(variant.stock_quantity ?? variant.stockQuantity ?? 0);
+    const reservedQuantity = Number(variant.reserved_quantity ?? variant.reservedQuantity ?? 0);
+    return {
+      id: variant.id,
+      productId: product.id,
+      label: variant.name || variant.label || variant.option_value || 'Option',
+      optionType: variant.option_type || variant.optionType,
+      optionValue: variant.option_value || variant.optionValue,
+      price: isPromotionActive({ ...variant, isPromo: true }) ? Number(variant.promotion_price) : Number(variant.price),
+      stockQuantity: Math.max(0, stockQuantity - reservedQuantity),
+      inStock: variant.is_active !== false && stockQuantity > reservedQuantity
+    };
+  });
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    subCategory: product.subCategory,
+    price: effectiveCatalogPrice(product),
+    originalPrice: isPromotionActive(product) ? (product.originalPrice ?? Number(product.price)) : product.originalPrice,
+    rating: 0,
+    reviewsCount: 0,
+    image: product.image || '',
+    galleryImages: verifiedGalleryImages.length > 0
+      ? verifiedGalleryImages.map(({ validationStatus: _validationStatus, ...image }: any) => image)
+      : product.image ? [{ url: product.image, label: 'Image du catalogue', type: 'hero', imageTrust: product.imageOwnershipStatus }] : [],
+    badges: Array.isArray(product.badges) ? product.badges : [],
+    forWho: product.forWho || '',
+    notIdealIf: product.notIdealIf || '',
+    howToUse: product.howToUse || '',
+    routineStep: product.routineStep || '',
+    keyIngredients: product.keyIngredients || product.ingredients || [],
+    ingredients: product.ingredients || [],
+    inci: product.inci || '',
+    description: product.description || '',
+    benefitPrimary: product.benefitPrimary,
+    targetHairTypes: product.targetHairTypes || product.hairTypes || [],
+    targetSkinTypes: product.targetSkinTypes || product.skinTypes || [],
+    texture: product.texture,
+    fragrance: product.fragrance,
+    usageFrequency: product.usageFrequency,
+    sizeLabel: product.sizeLabel,
+    estimatedYield: product.estimatedYield,
+    ingredientRoles: product.ingredientRoles || [],
+    allergens: product.allergens || [],
+    containsFragrance: product.containsFragrance,
+    originCountry: product.originCountry,
+    certifications: product.certifications || [],
+    returnsPolicy: product.returnsPolicy,
+    shippingInfo: { ...(product.shippingInfo || product.shippingPolicy || {}), countries: product.countryAvailability || [] },
+    audienceTags: Array.isArray(product.targetAudiences) ? product.targetAudiences : (Array.isArray(product.audienceTags) ? product.audienceTags : []),
+    recommendedAgeBand: product.recommendedAgeBand || product.recommended_age_band,
+    recommendedAgeMin: product.recommendedAgeMin == null ? (product.recommended_age_min == null ? undefined : Number(product.recommended_age_min)) : Number(product.recommendedAgeMin),
+    recommendedAgeMax: product.recommendedAgeMax == null ? (product.recommended_age_max == null ? undefined : Number(product.recommended_age_max)) : Number(product.recommendedAgeMax),
+    minorSafetyStatus: product.minorSafetyStatus || product.minor_safety_status || 'not_provided',
+    adultOnlyActives: Array.isArray(product.adultOnlyActives) ? product.adultOnlyActives : (Array.isArray(product.adult_only_actives) ? product.adult_only_actives : []),
+    parentalSupervisionRequired: product.parentalSupervisionRequired === true || product.parental_supervision_required === true,
+    imageSupervisionStatus: product.imageSupervisionStatus || product.image_supervision_status || 'not_provided',
+    variants,
+    verifiedReviewCount: 0,
+    questionsCount: 0,
+    inStock: product.inStock === true || variants.some((variant: any) => variant.inStock),
+    needs: product.needs || product.concerns || [],
+    countryAvailability: product.countryAvailability || [],
+    catalogCategoryTags: product.catalogCategoryTags || [],
+    targetAudiences: product.targetAudiences || [],
+    warnings: product.warnings || [],
+    promotionPrice: isPromotionActive(product) ? Number(product.promotionPrice ?? product.promotion_price) : undefined,
+    communityBrand: product.communityBrand === true,
+    isNew: product.isNew === true,
+    isPromo: isPromotionActive(product)
+  };
+}
+
+export function emailTemplateForOrderStatus(status: OrderStatus): EmailMessage['template'] {
+  if (status === 'paid') return 'payment_confirmed';
+  if (status === 'payment_failed') return 'payment_failed';
+  if (status === 'return_requested') return 'return_requested';
+  if (status === 'returned') return 'order_returned';
+  if (status === 'refunded') return 'order_refunded';
+  if (status === 'partially_refunded') return 'order_partially_refunded';
+  if (status === 'cancelled') return 'order_cancelled';
+  return `order_${status}` as EmailMessage['template'];
 }

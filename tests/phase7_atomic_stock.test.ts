@@ -13,11 +13,51 @@ export interface Phase7TestResult {
  * the same migration is exercised against PostgreSQL by
  * test:atomic-stock-integration when credentials are available.
  */
+
+/**
+ * Extrait le corps d'une fonction du store, qu'elle soit encore une méthode de
+ * classe ou déjà une fonction de module de domaine. Renvoie '' si absente : les
+ * assertions en aval échouent alors explicitement au lieu de valider du vide.
+ */
+function sliceFunction(source: string, name: string): string {
+  const headers = [
+    `export async function ${name}(`,
+    `export function ${name}(`,
+    `  public async ${name}(`,
+    `  public ${name}(`,
+    `  private async ${name}(`
+  ];
+  let start = -1;
+  for (const header of headers) {
+    const index = source.indexOf(header);
+    if (index >= 0) {
+      start = index;
+      break;
+    }
+  }
+  if (start < 0) return '';
+  const rest = source.slice(start + 1);
+  const next = rest.search(/\n(?:export (?:async )?function |  (?:public |private )(?:async )?[a-zA-Z_])/);
+  return next < 0 ? source.slice(start) : source.slice(start, start + 1 + next);
+}
+
 export function runPhase7AtomicStockTests(): Phase7TestResult[] {
   const migrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20260839000000_atomic_stock_lifecycle.sql');
-  const serverDbPath = path.join(process.cwd(), 'src', 'lib', 'serverDb.ts');
+  const libPath = path.join(process.cwd(), 'src', 'lib');
   const migration = fs.readFileSync(migrationPath, 'utf8');
-  const serverDb = fs.readFileSync(serverDbPath, 'utf8');
+  // CHANTIER 8.2c — le store est découpé par domaine : `saveOrder` et
+  // `updateOrderStatus` vivent dans `src/lib/db/orderStore.ts`. Le banc lit donc
+  // toute la surface du store, et découpe par fonction quelle que soit sa forme
+  // (méthode de classe avant 8.2c, fonction de module depuis).
+  const serverDb = [path.join(libPath, 'serverDb.ts')]
+    .concat(
+      fs
+        .readdirSync(path.join(libPath, 'db'))
+        .filter(file => file.endsWith('.ts'))
+        .map(file => path.join(libPath, 'db', file))
+    )
+    .map(file => fs.readFileSync(file, 'utf8'))
+    .join('\n');
   const results: Phase7TestResult[] = [];
 
   const requiredSql = [
@@ -43,12 +83,8 @@ export function runPhase7AtomicStockTests(): Phase7TestResult[] {
       : `Éléments SQL manquants : ${missingSql.join(', ')}`
   });
 
-  const saveOrderStart = serverDb.indexOf('public async saveOrder');
-  const saveOrderEnd = serverDb.indexOf('public async updateOrderStripeSession', saveOrderStart);
-  const saveOrderSource = serverDb.slice(saveOrderStart, saveOrderEnd);
-  const updateStart = serverDb.indexOf('public async updateOrderStatus');
-  const updateEnd = serverDb.indexOf('// ============================================================', updateStart);
-  const updateSource = serverDb.slice(updateStart, updateEnd);
+  const saveOrderSource = sliceFunction(serverDb, 'saveOrder');
+  const updateSource = sliceFunction(serverDb, 'updateOrderStatus');
   const usesAtomicCreate = saveOrderSource.includes("rpc('create_order_with_stock_reservation'");
   const usesAtomicTransition = updateSource.includes("rpc('transition_order_stock'");
   const hasLegacyStockWrite = updateSource.includes("from('inventory').update") || updateSource.includes("from('products').update");

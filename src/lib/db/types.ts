@@ -1,0 +1,343 @@
+import type { ShippingCarrier } from '../shippingService';
+import type { ShippingAddressInput } from '../shippingRules';
+
+/**
+ * CHANTIER 8.2c — les types du store, sortis de `serverDb.ts`.
+ *
+ * `serverDb.ts` les réexporte tels quels : les centaines d'imports
+ * `from '../serverDb'` disséminés dans le backend continuent de fonctionner.
+ */
+
+export interface ServerOrderItem {
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  price: number;
+  name: string;
+  image?: string;
+}
+
+export interface MarketplaceReview {
+  id: string;
+  productId: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  author: string;
+  verifiedPurchase: boolean;
+  createdAt: string;
+  status: string;
+}
+
+export interface MarketplaceQuestion {
+  id: string;
+  productId: string;
+  question: string;
+  answer?: string;
+  createdAt: string;
+  answeredAt?: string;
+}
+
+export interface ProductSubscription {
+  id: string;
+  userId: string;
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  frequency: '30_days' | '45_days' | '60_days' | '90_days';
+  country: string;
+  paymentMethod?: string;
+  status: 'pending' | 'active' | 'paused' | 'cancelled';
+  nextOrderAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OrderStatus =
+  | 'pending_payment'
+  | 'payment_pending_webhook'
+  | 'paid'
+  | 'processing'
+  | 'packed'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'payment_failed'
+  | 'refunded'
+  | 'partially_refunded'
+  | 'return_requested'
+  | 'returned';
+
+
+export interface ServerOrder {
+  id: string;
+  userId?: string;
+  items: ServerOrderItem[];
+  total: number;
+  status: OrderStatus;
+  customerEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  checkoutIdempotencyKey?: string;
+  shippingAddress?: any;
+  /** CHANTIER 7.6 — devise d'encaissement. EUR uniquement, jamais converti. */
+  currency?: string;
+  /** Pays de taxation : le taux dû est celui de ce pays (principe de destination). */
+  vatCountry?: string;
+  /** Total hors taxe. */
+  netAmount?: number;
+  /** TVA totale due. */
+  vatAmount?: number;
+  /** Ventilation par taux : `[{ ratePercent, netCents, vatCents }]`. */
+  vatBreakdown?: unknown;
+  /** Numéro de TVA intracommunautaire du client (exonération seulement s'il est vérifié). */
+  customerVatNumber?: string;
+}
+
+/**
+ * Champs devise/TVA d'une ligne `orders`.
+ *
+ * Lecture tolérante : ces colonnes n'existent qu'à partir de la migration
+ * `20260860000000_vat_and_currency.sql`. Avant son application, les champs sont
+ * simplement absents — la TVA reste alors lisible dans l'instantané
+ * `shipping_address.vat`, que le checkout écrit dans tous les cas.
+ */
+
+export interface OrderStatusHistoryEntry {
+  id: string;
+  orderId: string;
+  oldStatus?: string;
+  newStatus: string;
+  changedBy?: string;
+  changedByRole?: string;
+  reason?: string;
+  source?: string;
+  createdAt: string;
+}
+
+export interface UserNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  orderId?: string;
+  dedupeKey?: string;
+  read: boolean;
+  createdAt: string;
+  deliveredAt?: string;
+  errorMessage?: string;
+}
+
+export interface NotificationPreference {
+  userId: string;
+  emailNotifications: boolean;
+  transactionalEmails: boolean;
+  marketingEmails: boolean;
+  inAppNotifications: boolean;
+  updatedAt: string;
+}
+
+export interface NotificationDeliveryLog {
+  id: string;
+  userId?: string;
+  notificationId?: string;
+  channel: 'in_app' | 'email';
+  status: 'sent' | 'logged' | 'failed' | 'skipped';
+  provider?: string;
+  messageId?: string;
+  error?: string;
+  createdAt: string;
+}
+
+export interface CustomerReturn {
+  id: string;
+  orderId: string;
+  userId: string;
+  reason: string;
+  items: any[];
+  quantity: number;
+  status: 'requested' | 'approved' | 'rejected' | 'received' | 'refunded' | 'cancelled';
+  comment?: string;
+  adminComment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerReturnEvent {
+  id: string;
+  returnId: string;
+  actorId?: string;
+  actorRole: 'customer' | 'admin' | 'support' | 'system';
+  oldStatus?: string;
+  newStatus: CustomerReturn['status'];
+  comment?: string;
+  createdAt: string;
+}
+
+export interface CustomerRefund {
+  id: string;
+  orderId: string;
+  paymentId?: string;
+  returnId?: string;
+  userId?: string;
+  amount: number;
+  currency: string;
+  reason?: string;
+  stripeRefundId?: string;
+  idempotencyKey?: string;
+  stockRestored?: boolean;
+  items?: Array<Pick<ServerOrderItem, 'productId' | 'variantId' | 'quantity'>>;
+  status: 'pending' | 'succeeded' | 'failed' | 'completed';
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  orderId?: string;
+  subjectCategory: 'paiement' | 'commande' | 'livraison' | 'retour' | 'remboursement' | 'produit' | 'compte' | 'conseil_ia' | 'autre';
+  subject: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  assignedAgentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  ticketId: string;
+  senderId?: string;
+  senderRole: 'customer' | 'admin' | 'agent';
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportTicketEvent {
+  id: string;
+  ticketId: string;
+  actorId?: string;
+  eventType: 'created' | 'message_added' | 'status_changed' | 'priority_changed' | 'assignment_changed' | 'attachment_added';
+  oldValue?: string;
+  newValue?: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface SupportAttachment {
+  id: string;
+  ticketId: string;
+  messageId?: string;
+  uploadedBy: string;
+  fileName: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf';
+  sizeBytes: number;
+  storagePath: string;
+  createdAt: string;
+}
+
+export interface ShippingAddressRecord extends ShippingAddressInput {
+  id: string;
+  userId: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface ShippingRateRecord {
+  id: string;
+  country?: string;
+  carrier: ShippingCarrier;
+  method: string;
+  name: string;
+  price: number;
+  freeFromCents?: number;
+  estimatedDays?: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProfessionalApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
+
+export interface ProfessionalApplication {
+  id: string;
+  userId?: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  profession: string;
+  experience: string;
+  portfolioUrl?: string;
+  acceptsCharter: boolean;
+  status: ProfessionalApplicationStatus;
+  adminComment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Ce qui est publiable d'un professionnel. Ni email, ni téléphone, ni note
+ * inventée : un annuaire n'affiche que ce qui a été vérifié.
+ */
+export interface PublicProfessionalEntry {
+  id: string;
+  name: string;
+  city: string;
+  profession: string;
+  experience: string;
+  portfolioUrl?: string;
+  verified: boolean;
+  approvedAt: string;
+}
+
+export interface AiAssistantSession {
+  id: string;
+  userId: string;
+  topic: string;
+  locale: string;
+  country: string;
+  objective?: string;
+  memoryConsent: boolean;
+  lastUncertainty?: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface AiAssistantMessage {
+  id: string;
+  sessionId: string;
+  sender: 'user' | 'assistant' | 'system';
+  message: string;
+  metadata?: Record<string, unknown>;
+  sourceIds: string[];
+  createdAt: string;
+}
+
+export type AiFeedbackRating = 'helpful' | 'incorrect' | 'unsafe';
+
+export interface AiHumanReview {
+  id: string;
+  userId: string;
+  sessionId?: string;
+  messageId?: string;
+  reason: string;
+  payload: Record<string, unknown>;
+  status: 'pending' | 'in_review' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StripeEventLog {
+  eventId: string;
+  type: string;
+  timestamp: string;
+  status: 'processed' | 'skipped' | 'error';
+  orderId?: string;
+  error?: string;
+}
