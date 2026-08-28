@@ -351,6 +351,13 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/account/kurla-plus',
+    title: 'KURLA+ | KURLA',
+    description:
+      'L’analyse approfondie de ce que vous avez déjà déclaré. Aucune fonction essentielle ne passe derrière l’abonnement : tout ce qui est essentiel reste gratuit.',
+    indexable: false,
+  },
+  {
     path: '/account/progression',
     title: 'KURLA Progression | KURLA',
     description:

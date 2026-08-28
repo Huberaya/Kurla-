@@ -57,6 +57,12 @@ import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
 import { registerBeautyJourneyRoutes } from './src/server/routes/beautyJourney';
+import { registerMembershipRoutes } from './src/server/routes/membership';
+import {
+  activateMembershipFromCheckoutSession,
+  cancelMembershipFromSubscription,
+  renewMembershipFromInvoice
+} from './src/server/payments/membershipActivation';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -154,6 +160,20 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // CHANTIER 8.5 — une session d'abonnement ne porte aucune commande :
+        // elle active KURLA+ puis sort du chemin commandes. L'activation exige
+        // un paiement confirmé et un montant identique à celui annoncé.
+        if (session.metadata?.kind === 'membership') {
+          const activation = await activateMembershipFromCheckoutSession(session);
+          if (activation.activated) {
+            console.log(`[Stripe Webhook] Abonnement ${activation.planCode} activé pour ${activation.userId} jusqu'au ${activation.periodEnd}.`);
+          } else {
+            console.warn(`[Stripe Webhook] Abonnement non activé : ${activation.reason}`);
+          }
+          break;
+        }
+
         const orderId = session.metadata?.orderId;
         const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
         if (order) {
@@ -272,6 +292,39 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
           });
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Remboursement Stripe enregistré pour la commande ${order.id}.`);
+        }
+        break;
+      }
+      case 'invoice.paid': {
+        // CHANTIER 8.5 — nouvelle période encaissée : l'abonnement est reconduit.
+        // La première facture est ignorée, c'est le Checkout qui active.
+        const invoice = event.data.object as Stripe.Invoice;
+        const renewal = await renewMembershipFromInvoice({
+          id: invoice.id,
+          status: invoice.status,
+          billing_reason: invoice.billing_reason,
+          currency: invoice.currency,
+          subscription: (invoice as any).subscription ?? null,
+          lines: invoice.lines ? { data: invoice.lines.data?.map((line: any) => ({ period: line.period ?? null })) ?? [] } : null
+        });
+        if (renewal.renewed) {
+          console.log(`[Stripe Webhook] Abonnement reconduit (${renewal.subscriptionId}) jusqu'au ${renewal.periodEnd}.`);
+        } else {
+          console.warn(`[Stripe Webhook] Renouvellement ignoré : ${renewal.reason}`);
+        }
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        // CHANTIER 8.5 — résiliation notifiée par Stripe : l'accès s'arrête.
+        const subscription = event.data.object as Stripe.Subscription;
+        const result = await cancelMembershipFromSubscription({
+          id: subscription.id,
+          metadata: subscription.metadata as Record<string, string | undefined> | null
+        });
+        if (result.canceled) {
+          console.log(`[Stripe Webhook] Abonnement résilié pour ${result.userId}.`);
+        } else {
+          console.warn(`[Stripe Webhook] Résiliation ignorée : ${result.reason}`);
         }
         break;
       }
@@ -1042,6 +1095,7 @@ registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);
 registerLoyaltyRoutes(app);
 registerBeautyJourneyRoutes(app);
+registerMembershipRoutes(app);
 
 // ============================================================
 // PHASE 5 REST API ENDPOINTS

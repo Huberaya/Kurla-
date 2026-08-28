@@ -86,6 +86,13 @@ export interface BeautyJourney {
   milestones: JourneyMilestone[];
   evolution: JourneyMetricEvolution[];
   comparison: JourneyComparison | null;
+  /**
+   * Toutes les paires de photos séparées d'au moins 14 jours, écart décroissant.
+   * `comparisons[0]` est donc exactement `comparison` : restreindre cette liste à
+   * son premier élément redonne le parcours tel qu'il était avant KURLA+, sans
+   * rien enlever.
+   */
+  comparisons: JourneyComparison[];
   narrative: string[];
   gaps: string[];
   disclaimers: string[];
@@ -98,7 +105,14 @@ const METRIC_LABELS: Record<JourneyMetricKey, string> = {
   detanglingScore: 'Facilité de démêlage'
 };
 
-/** En dessous de cet écart (échelle 0-10), on parle de stabilité, pas de tendance. */
+/**
+ * Échelle réelle des indicateurs du journal : 1 à 5 — c'est ce que valide
+ * `validateRoutineMetrics` côté store. Le récit ne doit pas annoncer une autre
+ * échelle que celle des données qu'il décrit.
+ */
+export const JOURNEY_METRIC_SCALE = 5;
+
+/** En dessous de cet écart (échelle 1-5), on parle de stabilité, pas de tendance. */
 const TREND_NOISE_THRESHOLD = 1;
 /** En dessous de ce nombre de mesures, aucune tendance n'est calculée. */
 const MIN_POINTS_FOR_TREND = 3;
@@ -156,7 +170,7 @@ function buildTimeline(sources: JourneySources): JourneyEvent[] {
   for (const entry of sources.journal) {
     const scores = (Object.keys(METRIC_LABELS) as JourneyMetricKey[])
       .filter(metric => typeof entry[metric] === 'number')
-      .map(metric => `${METRIC_LABELS[metric].toLowerCase()} ${entry[metric]}/10`);
+      .map(metric => `${METRIC_LABELS[metric].toLowerCase()} ${entry[metric]}/${JOURNEY_METRIC_SCALE}`);
     events.push({
       date: entry.entryDate,
       kind: 'journal',
@@ -232,6 +246,26 @@ function buildComparison(photos: BeautyProfilePhoto[]): JourneyComparison | null
     after: { id: after.id, date: after.createdAt },
     daysApart
   };
+}
+
+function buildComparisons(photos: BeautyProfilePhoto[]): JourneyComparison[] {
+  if (photos.length < 2) return [];
+  const sorted = [...photos].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+  const pairs: JourneyComparison[] = [];
+  for (let i = 0; i < sorted.length; i += 1) {
+    for (let j = i + 1; j < sorted.length; j += 1) {
+      const daysApart = daysBetween(sorted[i].createdAt, sorted[j].createdAt);
+      if (daysApart < MIN_COMPARISON_GAP_DAYS) continue;
+      pairs.push({
+        before: { id: sorted[i].id, date: sorted[i].createdAt },
+        after: { id: sorted[j].id, date: sorted[j].createdAt },
+        daysApart
+      });
+    }
+  }
+  // Écart décroissant : la paire la plus écartée — celle que `buildComparison`
+  // retient — arrive en premier.
+  return pairs.sort((a, b) => b.daysApart - a.daysApart);
 }
 
 function buildMilestones(sources: JourneySources, timeline: JourneyEvent[], comparison: JourneyComparison | null): JourneyMilestone[] {
@@ -346,7 +380,7 @@ function buildNarrative(
           ? 'a été déclaré en hausse'
           : 'a été déclaré en baisse';
     sentences.push(
-      `${metric.label} : ${direction}, de ${metric.first.value}/10 à ${metric.last.value}/10 ` +
+      `${metric.label} : ${direction}, de ${metric.first.value}/${JOURNEY_METRIC_SCALE} à ${metric.last.value}/${JOURNEY_METRIC_SCALE} ` +
         `sur ${plural(metric.points.length, 'mesure')} (${metric.delta > 0 ? '+' : ''}${metric.delta}).`
     );
   }
@@ -407,8 +441,126 @@ export function buildBeautyJourney(sources: JourneySources): BeautyJourney {
     milestones,
     evolution,
     comparison,
+    comparisons: buildComparisons(sources.photos),
     narrative,
     gaps: buildGaps(sources, comparison, evolution),
     disclaimers: JOURNEY_DISCLAIMERS
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// CHANTIER 8.5 — synthèse écrite du parcours (droit KURLA+)
+// ---------------------------------------------------------------------------
+
+export interface JourneySynthesisMetric {
+  label: string;
+  from: number | null;
+  to: number | null;
+  trend: JourneyMetricEvolution['trend'];
+  /** `false` quand le nombre de mesures est insuffisant : la tendance n'est pas affirmée. */
+  readable: boolean;
+}
+
+export interface JourneySynthesis {
+  generatedAt: string;
+  periodLabel: string;
+  paragraphs: string[];
+  metrics: JourneySynthesisMetric[];
+  caveats: string[];
+}
+
+const TREND_PHRASE: Record<JourneyMetricEvolution['trend'], string> = {
+  hausse: 'a été déclaré en hausse',
+  baisse: 'a été déclaré en baisse',
+  stable: 'est déclaré stable',
+  indetermine: 'ne permet pas de dégager de tendance'
+};
+
+/**
+ * Un texte qui résume ce que le membre a déclaré, et ce qui a bougé — avec ses
+ * limites. Chaque valeur y est une déclaration : le verbe le dit (« a été déclaré
+ * en hausse »), et une tendance n'est jamais affirmée sous trois mesures.
+ *
+ * Aucune promesse de résultat, aucun vocabulaire médical : la garde éditoriale de
+ * `tests/beauty_journey.test.ts` s'applique aussi à ce texte.
+ */
+export function buildJourneySynthesis(journey: BeautyJourney, now: Date = new Date()): JourneySynthesis {
+  const paragraphs: string[] = [];
+  const months = Math.max(1, Math.round(journey.spanDays / 30));
+
+  const counts = journey.timeline.reduce<Record<string, number>>((accumulator, event) => {
+    const key = event.kind.startsWith('fait:') ? 'fait' : event.kind;
+    accumulator[key] = (accumulator[key] ?? 0) + 1;
+    return accumulator;
+  }, {});
+  const readableCounts = Object.entries(counts)
+    .map(([kind, count]) => `${count} ${plural(count, kindLabel(kind))}`)
+    .join(', ');
+
+  paragraphs.push(
+    journey.eventCount === 0
+      ? 'Aucune déclaration enregistrée pour l’instant : il n’y a rien à résumer.'
+      : `Sur ${plural(months, 'mois')} d’historique, vous avez déclaré ${journey.eventCount} ${plural(journey.eventCount, 'élément')} : ${readableCounts}.`
+  );
+
+  const metrics: JourneySynthesisMetric[] = journey.evolution.map(entry => ({
+    label: entry.label,
+    from: entry.first?.value ?? null,
+    to: entry.last?.value ?? null,
+    trend: entry.trend,
+    readable: entry.readable
+  }));
+
+  const readable = journey.evolution.filter(entry => entry.readable && entry.delta !== null);
+  if (readable.length === 0) {
+    paragraphs.push(
+      'Aucune tendance n’est affirmée : il faut au moins trois mesures sur une même métrique, et un écart supérieur à 1 point sur 5.'
+    );
+  } else {
+    const sentences = readable.map(entry => {
+      const from = entry.first?.value;
+      const to = entry.last?.value;
+      const values = from !== undefined && to !== undefined ? `, de ${from} à ${to} sur ${JOURNEY_METRIC_SCALE}` : '';
+      return `${entry.label} ${TREND_PHRASE[entry.trend]}${values}`;
+    });
+    paragraphs.push(`${sentences.join(' ; ')}. Ce sont vos déclarations, comparées entre elles.`);
+  }
+
+  const reached = journey.milestones.filter(milestone => milestone.reached);
+  paragraphs.push(
+    reached.length === 0
+      ? 'Aucun jalon atteint pour l’instant.'
+      : `Jalons atteints : ${reached.map(milestone => milestone.label).join(', ')}.`
+  );
+
+  if (journey.comparison) {
+    paragraphs.push(
+      `La comparaison visuelle la plus écartée porte sur ${plural(journey.comparison.daysApart, 'jour')}, entre le ${formatDate(journey.comparison.before.date)} et le ${formatDate(journey.comparison.after.date)}.`
+    );
+  }
+
+  if (journey.gaps.length > 0) {
+    paragraphs.push(`Ce qui manque encore : ${journey.gaps.join(' ')}`);
+  }
+
+  return {
+    generatedAt: now.toISOString(),
+    periodLabel: `${plural(months, 'mois')} d’historique`,
+    paragraphs,
+    metrics,
+    caveats: [
+      ...JOURNEY_DISCLAIMERS,
+      'Cette synthèse décrit ce que vous avez déclaré. Elle ne constate aucun résultat et ne remplace pas un avis professionnel.'
+    ]
+  };
+}
+
+function kindLabel(kind: string): string {
+  if (kind === 'journal') return 'entrée de journal';
+  if (kind === 'photo') return 'photo';
+  if (kind === 'profil') return 'mise à jour de profil';
+  if (kind === 'retour') return 'retour d’expérience';
+  if (kind === 'fait') return 'fait de progression';
+  return kind;
 }

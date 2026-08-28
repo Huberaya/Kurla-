@@ -1,4 +1,5 @@
-import { BeautyJourney, buildBeautyJourney, JourneySources } from '../beautyJourney';
+import { BeautyJourney, JourneySynthesis, buildBeautyJourney, buildJourneySynthesis, JourneySources } from '../beautyJourney';
+import { MembershipPlanCode, hasCapability } from '../membership';
 import { getSupabaseServerClient } from '../supabaseClient';
 
 import type { SupabaseServerStore } from '../serverDb';
@@ -52,4 +53,47 @@ export async function getBeautyJourney(store: SupabaseServerStore, userId: strin
  */
 export async function getBeautyJourneyPersistence(): Promise<'supabase' | 'server_fallback'> {
   return getSupabaseServerClient() ? 'supabase' : 'server_fallback';
+}
+
+
+// ---------------------------------------------------------------------------
+// CHANTIER 8.5 — ce que KURLA+ ajoute au parcours
+// ---------------------------------------------------------------------------
+
+export interface BeautyJourneyView {
+  journey: BeautyJourney;
+  /** `null` pour un membre sans KURLA+ : la raison est donnée, pas devinée. */
+  synthesis: JourneySynthesis | null;
+  synthesisUnavailableReason: string | null;
+  /**
+   * KURLA+ ne coupe aucune fenêtre : l'historique reste entier pour tout le
+   * monde. Ce qui est réservé, c'est le nombre de paires de photos comparées —
+   * `allowed: 1` redonne exactement le parcours d'avant l'abonnement.
+   */
+  comparisonLimit: { allowed: number; total: number; limitedByPlan: boolean };
+}
+
+export async function getBeautyJourneyView(
+  store: SupabaseServerStore,
+  userId: string,
+  plan: MembershipPlanCode
+): Promise<BeautyJourneyView> {
+  const full = await getBeautyJourney(store, userId);
+  const deepComparison = hasCapability(plan, 'journey_deep_comparison');
+  const synthesisUnlocked = hasCapability(plan, 'journey_synthesis');
+
+  const total = full.comparisons.length;
+  const allowed = deepComparison ? total : Math.min(1, total);
+  const journey: BeautyJourney = deepComparison
+    ? full
+    : { ...full, comparisons: full.comparisons.slice(0, 1) };
+
+  return {
+    journey,
+    synthesis: synthesisUnlocked ? buildJourneySynthesis(full) : null,
+    synthesisUnavailableReason: synthesisUnlocked
+      ? null
+      : 'La synthèse écrite du parcours fait partie de KURLA+. Le parcours lui-même reste entier et gratuit.',
+    comparisonLimit: { allowed, total, limitedByPlan: !deepComparison && total > 1 }
+  };
 }

@@ -33,6 +33,7 @@ import { RoutineTrackerPage } from '../pages/RoutineTrackerPage';
 import { ProgressJournalPage } from '../pages/ProgressJournalPage';
 import { ProgressionPage } from '../pages/ProgressionPage';
 import { BeautyJourneyPage } from '../pages/BeautyJourneyPage';
+import { KurlaPlusPage } from '../pages/KurlaPlusPage';
 import { SavedPage } from '../pages/SavedPage';
 import { KidsModulePage } from '../pages/KidsModulePage';
 import { ProtectiveStylesPage } from '../pages/ProtectiveStylesPage';
@@ -171,6 +172,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/account/progress', auth: {}, render: () => <ProgressJournalPage /> },
   { path: '/account/progression', auth: {}, render: () => <ProgressionPage /> },
   { path: '/account/journey', auth: {}, render: () => <BeautyJourneyPage /> },
+  { path: '/account/kurla-plus', auth: {}, render: () => <KurlaPlusPage /> },
   { path: '/account/shelf', auth: {}, render: () => <ShelfPage /> },
   { path: '/account/wash-day', auth: {}, render: () => <WashDayPage /> },
   { path: '/account/protective-timeline', auth: {}, render: () => <ProtectiveTimelinePage /> },

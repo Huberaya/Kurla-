@@ -74,10 +74,10 @@ assert.equal(thin.comparison, null, 'une seule photo ne permet aucune comparaiso
 // ---------------------------------------------------------------------------
 const rich = buildBeautyJourney({
   journal: [
-    journalEntry(0, { hydrationScore: 3, breakageScore: 8 }),
-    journalEntry(14, { hydrationScore: 5, breakageScore: 7 }),
-    journalEntry(28, { hydrationScore: 6, breakageScore: 6 }),
-    journalEntry(42, { hydrationScore: 7, breakageScore: 5 })
+    journalEntry(0, { hydrationScore: 1, breakageScore: 5 }),
+    journalEntry(14, { hydrationScore: 2, breakageScore: 4 }),
+    journalEntry(28, { hydrationScore: 3, breakageScore: 3 }),
+    journalEntry(42, { hydrationScore: 4, breakageScore: 2 })
   ],
   photos: [photo(0), photo(30)],
   profileHistory: [],
@@ -91,13 +91,13 @@ const rich = buildBeautyJourney({
 
 const hydration = rich.evolution.find(metric => metric.metric === 'hydrationScore')!;
 assert.equal(hydration.readable, true, 'quatre mesures : la tendance est lisible');
-assert.equal(hydration.trend, 'hausse', '3 → 7 est une hausse déclarée');
-assert.equal(hydration.delta, 4, 'l’écart est celui des valeurs déclarées');
-assert.equal(hydration.first?.value, 3, 'la première mesure');
-assert.equal(hydration.last?.value, 7, 'la dernière mesure');
+assert.equal(hydration.trend, 'hausse', '1 → 4 est une hausse déclarée');
+assert.equal(hydration.delta, 3, 'l’écart est celui des valeurs déclarées');
+assert.equal(hydration.first?.value, 1, 'la première mesure');
+assert.equal(hydration.last?.value, 4, 'la dernière mesure');
 
 const breakage = rich.evolution.find(metric => metric.metric === 'breakageScore')!;
-assert.equal(breakage.trend, 'baisse', '8 → 5 est une baisse déclarée — le mot « amélioration » n’est pas employé');
+assert.equal(breakage.trend, 'baisse', '5 → 2 est une baisse déclarée — le mot « amélioration » n’est pas employé');
 
 assert.ok(rich.comparison, 'deux photos à 30 jours : comparaison possible');
 assert.equal(rich.comparison!.daysApart, 30, 'l’écart est calculé en jours');
@@ -116,7 +116,7 @@ assert.ok(dates.every((value, index) => index === 0 || value <= dates[index - 1]
 // 4. Le bruit n'est pas une tendance
 // ---------------------------------------------------------------------------
 const noisy = buildBeautyJourney({
-  journal: [journalEntry(0, { hydrationScore: 5 }), journalEntry(10, { hydrationScore: 6 }), journalEntry(20, { hydrationScore: 5 })],
+  journal: [journalEntry(0, { hydrationScore: 3 }), journalEntry(10, { hydrationScore: 4 }), journalEntry(20, { hydrationScore: 3 })],
   photos: [],
   profileHistory: [],
   feedback: [],
@@ -124,7 +124,7 @@ const noisy = buildBeautyJourney({
   level: 1
 });
 const noisyHydration = noisy.evolution.find(metric => metric.metric === 'hydrationScore')!;
-assert.equal(noisyHydration.trend, 'stable', 'un point d’écart sur dix est du bruit, pas une évolution');
+assert.equal(noisyHydration.trend, 'stable', 'un point d’écart sur cinq est du bruit, pas une évolution');
 
 // Deux photos trop proches : pas de comparaison
 const closePhotos = buildBeautyJourney({
@@ -157,7 +157,7 @@ assert.ok(
 // ---------------------------------------------------------------------------
 // Si la tendance était calculée sur deux mesures, ce test échouerait.
 const twoPoints = buildBeautyJourney({
-  journal: [journalEntry(0, { hydrationScore: 3 }), journalEntry(20, { hydrationScore: 9 })],
+  journal: [journalEntry(0, { hydrationScore: 1 }), journalEntry(20, { hydrationScore: 5 })],
   photos: [], profileHistory: [], feedback: [], loyaltyEvents: [], level: 1
 });
 assert.equal(
@@ -201,6 +201,6 @@ assert.equal(await serverDb.getBeautyJourneyPersistence(), 'server_fallback', 's
 
 console.log(
   `[PASS] Chantier 8.4 — narration testée sur 5 scénarios (vide, une mesure, bruit, données riches, bout en bout) : ` +
-    `${rich.eventCount} faits chronologiques, tendance ${hydration.trend} ${hydration.first?.value}→${hydration.last?.value}/10, ` +
+    `${rich.eventCount} faits chronologiques, tendance ${hydration.trend} ${hydration.first?.value}→${hydration.last?.value}/5, ` +
     `comparaison à ${rich.comparison?.daysApart} jours, ${reachedCodes.length} jalons, aucune promesse ni vocabulaire médical.`
 );

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T12:05:53.980Z",
+  "generatedAt": "2026-08-28T13:09:27.419Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -53,6 +53,8 @@
     "GET /api/me/archetype",
     "GET /api/me/data",
     "GET /api/me/endorsements",
+    "GET /api/membership/me",
+    "GET /api/membership/plans",
     "GET /api/notification-preferences",
     "GET /api/notifications",
     "GET /api/orders",
@@ -140,6 +142,9 @@
     "POST /api/jurisdiction/assess",
     "POST /api/loyalty/rewards/:code/request",
     "POST /api/loyalty/scan",
+    "POST /api/membership/cancel",
+    "POST /api/membership/checkout",
+    "POST /api/membership/trial",
     "POST /api/notification-preferences",
     "POST /api/notifications/:id/read",
     "POST /api/outcomes",

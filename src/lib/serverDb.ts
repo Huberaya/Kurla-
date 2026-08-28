@@ -94,7 +94,10 @@ import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
 import * as loyaltyStore from './db/loyaltyStore';
 import * as journeyStore from './db/journeyStore';
+import * as membershipStore from './db/membershipStore';
 import { mapRefundRow } from './db/refundSupport';
+import type { MembershipEventRecord } from './db/membershipStore';
+import type { MembershipRecord } from './membership';
 
 
 /**
@@ -146,6 +149,11 @@ export class SupabaseServerStore {
   public inMemoryAiSessions: Map<string, AiAssistantSession> = new Map();
   public inMemoryAiMessages: Map<string, AiAssistantMessage[]> = new Map();
   public inMemoryAiFeedback: Array<{ userId: string; sessionId?: string; messageId?: string; rating: AiFeedbackRating; comment?: string; createdAt: string }> = [];
+  // CHANTIER 8.5 — adhésions KURLA+. Le repli mémoire applique les mêmes refus
+  // que les RPC : un seul essai par compte, aucun abonnement payant sans
+  // référence de paiement.
+  public inMemoryMemberships: Map<string, MembershipRecord> = new Map();
+  public inMemoryMembershipEvents: MembershipEventRecord[] = [];
   // ---------------------------------------------------------------------
   // Surface composée : ces méthodes vivent dans `src/lib/db/notificationsStore`
   // et sont recollées sur l'instance en bas de fichier. Déclarées ici (sans
@@ -334,6 +342,7 @@ bindDomain(storeInstance, inventoryStore);
 bindDomain(storeInstance, orderStore);
 bindDomain(storeInstance, loyaltyStore);
 bindDomain(storeInstance, journeyStore);
+bindDomain(storeInstance, membershipStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -351,4 +360,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof inventoryStore>
   & Curried<typeof orderStore>
   & Curried<typeof loyaltyStore>
-  & Curried<typeof journeyStore>;
+  & Curried<typeof journeyStore>
+  & Curried<typeof membershipStore>;

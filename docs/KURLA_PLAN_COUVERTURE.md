@@ -67,8 +67,8 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 
 ## 3. ÉTAT RÉEL DES 50 FONCTIONNALITÉS
 
-### ✅ Livrées (26)
-**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **9** Note par archétype *(affichée sur la fiche produit)* · **10** Wash Day OS · **12** Timeline protectrice *(écran dédié `/account/protective-timeline`)* · **13** Recherche sémantique *(`searchByQuery` appelé par `SmartSearchPage.tsx`)* · **14** Détection de conflit *(`ConflictCard` dans `RoutineBuilderPage.tsx:157`)* · **15** Routine Builder → panier *(`buildRoutinePlan` appelé par `RoutineBuilderPage.tsx:65`)* · **17** Intelligence des retours *(bouton par fiche dans `CatalogAdminPanel`)* · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(`fetchProductTrust` appelé par `ProductDetailPage.tsx`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **24** Co-signature professionnelle *(création dans l'espace pro, lecture via `/api/me/endorsements`)* · **25** Espace pro dossiers clients *(écran professionnel livré, lecture au périmètre consenti)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **44** Transparence IA comme badge *(`AiDisclosureBadge` sur le widget d'assistance)* · **47** Modularisation du moteur · **21** Filtrage réglementaire par juridiction *(moteur, fiche produit et checkout — chantier 7.7)* · **26** Loyalty par progression *(chantier 8.3 : cinq axes plafonnés, l'achat borné à 80/460)* · **27** Récompense non-marchande *(13 faits sur 14)* · **28** Beauty Journey *(chantier 8.4 : chronologie, jalons, comparaison, tendances déclarées)*
+### ✅ Livrées (27)
+**1** Graphe d'ingrédients · **4** Disclosure IA · **6** KURLA Shelf · **7** Boucle d'apprentissage · **8** Archétypes k-anonymes · **9** Note par archétype *(affichée sur la fiche produit)* · **10** Wash Day OS · **12** Timeline protectrice *(écran dédié `/account/protective-timeline`)* · **13** Recherche sémantique *(`searchByQuery` appelé par `SmartSearchPage.tsx`)* · **14** Détection de conflit *(`ConflictCard` dans `RoutineBuilderPage.tsx:157`)* · **15** Routine Builder → panier *(`buildRoutinePlan` appelé par `RoutineBuilderPage.tsx:65`)* · **17** Intelligence des retours *(bouton par fiche dans `CatalogAdminPanel`)* · **18** Fiche ingrédient publique *(route publique + `IngredientCardPage.tsx`, sans authentification donc indexable)* · **19** Score de confiance produit public *(`fetchProductTrust` appelé par `ProductDetailPage.tsx`)* · **22** Trust Score pros *(`professionalTrust.ts` pur + testé, route, affichage écran)* · **23** Réservation + paiement de prestation *(Session de Checkout Stripe, statut relu chez Stripe, écran `/mes-reservations`)* · **24** Co-signature professionnelle *(création dans l'espace pro, lecture via `/api/me/endorsements`)* · **25** Espace pro dossiers clients *(écran professionnel livré, lecture au périmètre consenti)* · **34** Comparateur de routines · **35** Coût annuel *(les deux dans `CostSimulatorPage.tsx`)* · **44** Transparence IA comme badge *(`AiDisclosureBadge` sur le widget d'assistance)* · **47** Modularisation du moteur · **21** Filtrage réglementaire par juridiction *(moteur, fiche produit et checkout — chantier 7.7)* · **26** Loyalty par progression *(chantier 8.3 : cinq axes plafonnés, l'achat borné à 80/460)* · **27** Récompense non-marchande *(13 faits sur 14)* · **28** Beauty Journey *(chantier 8.4 : chronologie, jalons, comparaison, tendances déclarées)* · **29** Abonnement KURLA+ *(chantier 8.5 : 7 €/mois, essai 14 jours, 4 droits payants dont 2 branchés, aucune fonction essentielle rendue payante)*
 
 ### 🟠 Logique seule (1)
 **16** Réassort prédictif — route et fonction cliente existent, aucune surface ne les appelle
@@ -78,13 +78,13 @@ Les comptes des 20 actions ne bougent pas, mais leur substance oui : l'action 20
 - **5** Purge des données fictives — `mockData` reste importé par plusieurs fichiers *(le tableau de bord pro, lui, a été purgé ce tour)*
 - **45** Découpage du monolithe — 🔶 `server.ts` ramené de 4 795 à **2 019 lignes** (8.1) ; `serverDb.ts` (6 240 l.) reste entier
 
-### ⬜ À faire (17)
-**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **29** KURLA+ · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
+### ⬜ À faire (16)
+**3** Rendu serveur · **11** Diagnostic photo · **20** i18n/devises/TVA · **30** Texture Gap Report · **31** API catalogue · **32** Recherche visuelle · **33** Scan code-barres · **36** Climat/eau dure *(voir détail ci-dessous)* · **37** Pages SEO générées · **38** Contenu personnalisé · **39** Experts/créateurs · **40** Rémunération au résultat · **41** Espace marque · **42** Application mobile · **43** Export/suppression 1 clic · **46** Tests Supabase réels *(l'action 4 est livrée ; le banc d'intégration A/B reste à rejouer à chaque migration)*
 
 ### 🚫 Exclues volontairement (3)
 **48** Virtual try-on coiffure · **49** Maquillage virtuel · **50** Place de marché créateurs
 
-> **Compte : 26 + 1 + 3 + 17 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
+> **Compte : 27 + 1 + 3 + 16 + 3 = 50.** Vérifié par relecture programmatique de la matrice : 50 identifiants uniques, aucun doublon, aucun manquant.
 
 
 ### Détail mesuré sur la feature 36 (climat / eau dure)
@@ -176,7 +176,7 @@ Trois lignes de câblage manquent, pas trois fonctionnalités.
 | Loyalty par progression, pas par points seuls — ✅ chantier 8.3 : cinq axes plafonnés, l'achat borné à 80/460 | 26 |
 | Récompense des comportements non-marchands : scan, avis, feedback — ✅ chantier 8.3 : 13 faits non marchands sur 14 | 27 |
 | Beauty Journey : narration de l'évolution — ✅ chantier 8.4 : chronologie, jalons, comparaison, tendances déclarées | 28 |
-| Abonnement KURLA+ | 29 |
+| Abonnement KURLA+ — ✅ chantier 8.5 : KURLA+ 7 €/mois, essai 14 j, 4 droits payants dont 2 branchés, rien d’essentiel rendu payant | 29 |
 
 **Critère de sortie :** un utilisateur qui ne commande pas progresse et est récompensé. Rétention à 90 jours mesurée.
 

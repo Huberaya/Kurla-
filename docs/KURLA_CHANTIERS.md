@@ -1084,10 +1084,12 @@ présente.
 - La page n'a jamais été vue dans un navigateur : vérifiée par compilation, banc
   et sonde HTTP, pas visuellement.
 
-**Résultat 8.4 :** `tsc` exit 0, `npm test` exit 0 (**85 bancs**), build exit 0
-(`dist/server.cjs` 733,0 kb), migration appliquée et RPC vérifiée en base réelle.
+**Résultat 8.4 :** `tsc` exit 0, `npm test` exit 0 (**86 bancs**), build exit 0
+(`dist/server.cjs` 746,0 kb), inventaires régénérés (**173 routes**, **177
+méthodes**). **Aucune migration** : le chantier 8.4 ne crée aucune table, il
+relit ce qui existe déjà.
 
-**Ce qui manque, explicitement**
+**Ce qui manque dans le chantier 8.3, explicitement**
 - L'**écran de scan** (action 33) n'existe pas : l'ingestion
   (`POST /api/loyalty/scan`) est prête et récompensée, la capture du code-barres
   reste à construire.
@@ -1101,6 +1103,77 @@ présente.
 - `wash_day_completed` et `outcome_observed` sont émis par le barème mais pas
   encore branchés sur les écrans wash day / observation : les faits existent,
   leur déclenchement automatique reste à câbler.
+
+#### 8.5 — Abonnement KURLA+ (livré)
+
+**La stratégie pose une condition à cette ligne de revenu** : « le dossier doit
+valoir quelque chose ». Elle est devenue du code plutôt qu'une intention :
+`evaluateMembershipOffer` calcule un score de dossier sur les données réelles du
+membre (profil, entrées de journal, photos, révisions, niveau, jours actifs) et
+**ne propose pas KURLA+ sous 35/100**. L'écran affiche le score, les raisons du
+refus, et — toujours — la liste de ce que l'abonnement **ne changerait pas**.
+
+| Livrable | Contenu |
+| --- | --- |
+| `src/lib/membership.ts` | Module **pur** : plans, registre de 10 capacités, éligibilité, cycle de vie dérivé de l'heure, prix HT + TVA du pays |
+| `supabase/migrations/20260863000000_kurla_plus_membership.sql` | 3 tables, 5 RPC SECURITY DEFINER, RLS en lecture seule pour le membre, **aucune écriture directe** |
+| `src/lib/db/membershipStore.ts` | 7 méthodes, repli mémoire appliquant les mêmes refus que les RPC |
+| `src/server/routes/membership.ts` | 5 routes : plans publics, état privé, essai, résiliation, checkout |
+| `src/server/payments/membershipActivation.ts` | Activation, renouvellement et résiliation depuis les webhooks Stripe — **testables sans clé** |
+| `/account/kurla-plus` | État, score de dossier, ce que l'abonnement changerait ou pas, formules, droits |
+
+**Trois propriétés garanties par le schéma, pas par une promesse d'écran.**
+
+1. **KURLA+ n'enlève rien.** Le registre marque 6 capacités `essential`
+   (export et suppression des données, alertes de sécurité, assistant, parcours
+   complet, suivi de routine, progression et récompenses) et le banc vérifie en
+   bouclant qu'elles restent gratuites. Une liste figée des fonctions gratuites
+   d'avant 8.5 est assertée : en retirer une fait échouer le banc.
+2. **Aucun abonnement payant sans référence de paiement.** `activate_membership`
+   refuse une référence vide (`22023`) ; le repli mémoire refuse aussi ; le chemin
+   du webhook refuse un paiement non confirmé, un montant différent de celui
+   annoncé et une devise autre que l'euro.
+3. **Un seul essai par compte, à vie.** La preuve est le journal
+   `membership_events` (insertion seule), pas la ligne courante : réinitialiser la
+   ligne ne rend pas l'essai disponible. Les RPC sont en
+   `REVOKE ... FROM PUBLIC` + `GRANT ... TO service_role` : un client ne peut pas
+   activer son propre abonnement depuis le navigateur.
+
+**Ce qui est payant, exactement** — quatre droits, tous de la profondeur
+d'analyse, et **deux seulement sont branchés** :
+
+| Droit | État |
+| --- | --- |
+| `journey_synthesis` — synthèse écrite du parcours | **appliqué** (`buildJourneySynthesis`, servi par `/api/beauty-journey`) |
+| `journey_deep_comparison` — toutes les paires de photos ≥ 14 jours | **appliqué** (le plan libre garde la première paire, soit exactement le parcours d'avant) |
+| `assistant_dossier` — assistant nourri du dossier longitudinal | **annoncé, non branché** : la route IA n'a pas été modifiée |
+| `custom_alerts` — alertes personnalisées | **annoncé, non branché** : les préférences de notification ne distinguent pas encore confort et sécurité |
+
+L'API renvoie `applied: false` et la raison pour les deux derniers ; l'écran
+affiche un badge « annoncé, pas encore branché ». Un droit non tenu n'est jamais
+présenté comme acquis.
+
+**Le renouvellement existe.** `invoice.paid` reconduit la période (sauf la
+première facture, qui relève du Checkout), `customer.subscription.deleted`
+résilie. Sans cela, un abonnement expirerait au bout d'un mois sans jamais être
+prolongé.
+
+**Ce qui manque, explicitement**
+- **La migration n'est pas appliquée** : elle est écrite et relue, mais il faut
+  un jeton Supabase pour la passer et vérifier les RPC par leurs valeurs — comme
+  au chantier 8.3. Tant qu'elle n'est pas appliquée, KURLA+ tourne sur le repli
+  mémoire du serveur.
+- **Le paiement est différé par décision** : sans `STRIPE_SECRET_KEY`,
+  `POST /api/membership/checkout` répond **503 `PAYMENT_NOT_CONFIGURED`** et ne
+  simule rien. Seul l'essai de 14 jours, sans moyen de paiement, est
+  réellement praticable aujourd'hui.
+- Aucun rendu navigateur vérifié : compilation, banc et sondes HTTP seulement.
+- Le critère de sortie du niveau 3 (« KURLA+ > 3 % de conversion des actifs »)
+  n'est pas mesurable : il n'y a pas d'actifs.
+
+**Résultat 8.5 :** `tsc` exit 0, `npm test` exit 0 (**87 bancs**), build exit 0
+(`dist/server.cjs` 786,2 kb), inventaires **178 routes** (+5) et **186 méthodes**
+(+9), rien retiré.
 
 **Résultat 8.2c : `serverDb.ts` 2 492 → 333 lignes**, `tsc` exit 0, `npm test`
 exit 0 (**84 bancs**), build exit 0 (`dist/server.cjs` 706,7 kb), **166 méthodes
@@ -1127,7 +1200,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 - [x] ~~**8.2c** Catalogue, commandes, inventaire, contenus et types~~ **FAIT** — `catalogStore.ts` (890 l.), `orderStore.ts` (769 l.), `inventoryStore.ts` (111 l.), `contentStore.ts` (54 l.) ; les 27 déclarations de types partent dans `types.ts` (343 l., réexportées par `serverDb.ts` : aucun import existant n'a bougé) ; les aides pures (`toPublicProduct`, `isPublishableProduct`, `effectiveCatalogPrice`, `isPromotionActive`, `emailTemplateForOrderStatus`) rejoignent `internal.ts`. **`serverDb.ts` : 2 492 → 333 lignes** — il ne reste que l'état, le verrou de stock, `initialize`, `getStatusSummary`, la surface composée et l'assemblage. **Bilan du chantier 8.2 : 6 240 → 333 lignes (−95 %), quatorze domaines.**
 - [x] ~~**8.3** Loyalty par progression + récompense des comportements non-marchands~~ **FAIT** — `KURLA PROGRESSION` : cinq axes **plafonnés** (connaissance 100, pratique 120, contribution 100, exploration 60, **achat 80** sur 460), 14 faits dont 13 non marchands, 5 niveaux, 6 badges dérivés des faits, 4 récompenses **débloquées par niveau et jamais achetées avec des points**. Migration `20260862000000_loyalty_progression.sql` (8 tables, RPC `apply_loyalty_event` atomique et idempotente, RPC `get_loyalty_retention` par cohorte D30/D60/D90, 15 politiques RLS, **aucune écriture directe possible dans le journal**) ; domaine `src/lib/db/loyaltyStore.ts` (9 méthodes) ; 9 routes ; écran `/account/progression`. **Migration appliquée sur la base réelle et RPC vérifiée par ses valeurs.**
 - [x] ~~**8.4** Beauty Journey : narration de l'évolution~~ **FAIT** — `src/lib/beautyJourney.ts` (fonction **pure** : chronologie toutes sources confondues, 8 jalons, évolution par score, comparaison de photos, récit en phrases, manques énoncés) + `src/lib/db/journeyStore.ts` (assemblage, **aucune donnée nouvelle collectée**) + `GET /api/beauty-journey` + écran `/account/journey`. Règles de fond : valeurs **attribuées à des déclarations**, aucune tendance sous 3 mesures, écart ≤ 1/10 = bruit, comparaison seulement à ≥ 14 jours d'écart, réserves d'usage permanentes (pas de mesure clinique, pas d'avis médical).
-- [ ] **8.5** Abonnement KURLA+
+- [x] ~~**8.5** Abonnement KURLA+~~ **FAIT** — `src/lib/membership.ts` (module pur : plans, 10 capacités, éligibilité, cycle de vie, prix HT + TVA du pays) + migration `20260863000000_kurla_plus_membership.sql` (3 tables, 5 RPC SECURITY DEFINER, aucune écriture directe, RPC réservées à `service_role`) + `src/lib/db/membershipStore.ts` (7 méthodes) + 5 routes + `/account/kurla-plus`. **KURLA+ n'enlève rien** : 6 capacités essentielles vérifiées gratuites par le banc. Paiement différé : 503 `PAYMENT_NOT_CONFIGURED` plutôt qu'un encaissement simulé ; **migration non appliquée** (jeton requis).
 - [ ] **8.6** KURLA Intelligence B2B : Texture Gap Report, agrégats uniquement
 - [ ] **8.7** Application mobile
 
@@ -1159,7 +1232,7 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | Comparateur vérifié de bout en bout via HTTP | « Premium revient moins cher à l'année, écart de 108.48 € » — 156.48 € contre 48 € |
 | 4 routes paiement/co-signature sondées | 401 sans token |
 | 5 pages après câblage | `/mes-reservations`, `/pros-verifies`, `/cout-routine`, `/ingredient/glycerin`, `/routine-builder` → 200 |
-| `npm test` (suite complète) | exit 0 — **86 bancs PASS** |
+| `npm test` (suite complète) | exit 0 — **87 bancs PASS** |
 | `tests/chantier_7_jurisdiction.test.ts` | PASS — 5 verdicts et précédence, limite inclusive, concentration inconnue, statut `unknown`, restriction étrangère inapplicable, exclusion moteur tracée, concentration lue dans le libellé + provenance. **8 mutations sur 8 tuées** |
 | Chantier 7.7 sur la base réelle | produit `p13` → `restricted`, 1,5 % sous la limite de 2 %, référence citée, 1/8 résolu · `p6` → `no_data` (2/8) · checkout : graphe réel chargé, jamais 503 |
 | `tests/route_inventory.test.ts` (chantier 8.1) | PASS — **163 routes montées**, identiques à l'inventaire de référence, aucun doublon `method+chemin`, aucune route hors `/api` |
@@ -1172,6 +1245,8 @@ inchangées** (nom + arité), **49 appels réels** sur le store composé.
 | **Chantier 8.3** — `tests/loyalty_progression.test.ts` | PASS — 6 semaines sans commande → **360 pts / niveau 5** ; 12 commandes réglées seules → **80 pts / niveau 2** ; infalsifiabilité vérifiée par la source (aucune politique d'INSERT/UPDATE sur `loyalty_events` et `loyalty_accounts`, délégation à la RPC) |
 | **Chantier 8.3** — barème sondé en ligne | `GET /api/loyalty/rules` 200 : 5 niveaux, 5 axes plafonnés (achat 80/460, 380 sans achat), 14 faits, 4 récompenses par niveau ; 7 routes protégées 401 |
 | **Chantier 8.4** — `tests/beauty_journey.test.ts` | PASS — 5 scénarios : 20 faits chronologiques, tendance hausse 3→7/10, comparaison à 30 jours, 7 jalons ; 3 mesures pour une tendance (3→9 sur deux mesures reste `indetermine`), écart ≤ 1 = `stable`, photos à 3 jours d'écart non comparées ; aucune promesse ni vocabulaire médical |
+| **Chantier 8.5** — `tests/membership_kurla_plus.test.ts` | PASS — 11 plans de vérification : 6 capacités essentielles gratuites (boucle), liste figée des fonctions gratuites d'avant 8.5, 4 droits payants dont 2 annoncés non branchés, dossier vide non sollicité (0/100) contre 100/100, essai unique de 14 jours, activation refusée sans référence de paiement, webhook conforme (paiement non confirmé, montant incohérent, devise), reconduction prolonge la période, 6 paires de photos dont 1 au plan libre, synthèse sans promesse ni vocabulaire médical |
+| **Chantier 8.5** — inventaires | **178 routes** (+5) · **186 méthodes** (+9), rien retiré |
 | **Chantier 8.4** — inventaires | **173 routes** (+1 : `GET /api/beauty-journey`) · **177 méthodes** (+2 : `getBeautyJourney/1`, `getBeautyJourneyPersistence/0`), rien retiré |
 
 Le dernier point est le seul passif ouvert. Il ne peut pas être levé ici : il exige une instance Supabase réelle.
