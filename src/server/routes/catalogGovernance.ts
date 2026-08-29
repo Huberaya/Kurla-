@@ -7,6 +7,7 @@ import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from '../../lib/ai/systemPrompt';
 import { formatKnowledgeContext } from '../../lib/ai/knowledgeBase';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
+import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
 import { getAvailableCatalog } from '../ai/catalog';
@@ -99,6 +100,16 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
       const result = await serverDb.importCatalogRecords(admin.id, req.body.records, 'supplier', supplier);
       res.status(result.rejected > 0 && result.imported === 0 ? 400 : 201).json({ import: result });
     } catch (error) {
+      // CHANTIER 16A — une ambiguïté de fournisseur n'est pas une erreur
+      // technique : c'est une décision à prendre. Elle repart en 409 avec les
+      // entités en concurrence, et rien n'a été écrit.
+      if (error instanceof SupplierAmbiguityError) {
+        return res.status(409).json({
+          error: error.message,
+          ambiguousSupplier: error.requestedName,
+          candidates: error.candidates.map(candidate => ({ id: candidate.id, legalName: candidate.legalName }))
+        });
+      }
       console.error('[Catalog] supplier import error:', error);
       res.status(400).json({ error: safeApiError(error, 'Impossible d’importer le flux fournisseur.') });
     }

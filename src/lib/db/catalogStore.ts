@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
 import { checkProductVocabulary } from './taxonomyStore';
+import { registerSupplierByName } from './supplierStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   effectiveCatalogPrice,
@@ -148,6 +149,7 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         promotionEndsAt: p.promotion_ends_at,
         warnings: p.warnings || [],
         sourceSupplier: p.source_supplier || undefined,
+        supplierId: p.supplier_id || undefined,
         supplierSku: p.supplier_sku || undefined,
         lastImportedAt: p.last_imported_at,
         catalogUpdatedBy: p.catalog_updated_by,
@@ -561,6 +563,7 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       skinTypes: array(source.skinTypes || source.skin_types || source.targetSkinTypes),
       concerns: array(source.concerns || source.needs),
       sourceSupplier: text(source.sourceSupplier || source.source_supplier || source.supplier, 240),
+      supplierId: text(source.supplierId || source.supplier_id, 80),
       supplierSku: text(source.supplierSku || source.supplier_sku, 240),
       benefitPrimary: text(source.benefitPrimary, 500),
       forWho: text(source.forWho, 1000),
@@ -713,6 +716,7 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         skin_types: normalized.skinTypes,
         concerns: normalized.concerns,
         source_supplier: normalized.sourceSupplier || null,
+        supplier_id: normalized.supplierId || null,
         supplier_sku: normalized.supplierSku || null,
         benefit_primary: normalized.benefitPrimary || null,
         for_who: normalized.forWho || null,
@@ -869,11 +873,27 @@ export async function finishCatalogImportAudit(store: SupabaseServerStore, impor
 export async function importCatalogRecords(store: SupabaseServerStore, adminId: string, records: any[], sourceType: 'manual' | 'supplier' | 'csv', supplier?: string, fileName?: string): Promise<any> {
     if (!Array.isArray(records) || records.length === 0) throw new Error('Aucune ligne catalogue à importer.');
     if (records.length > 1000) throw new Error('Un import est limité à 1 000 lignes par opération.');
-    const importId = await createCatalogImportAudit(store, adminId, sourceType, records.length, supplier, fileName);
+    // CHANTIER 16A — la provenance est résolue **avant** toute écriture.
+    //
+    // Le nom de fournisseur d'un fichier est une chaîne libre : « Laboratoire
+    // X » et « LABORATOIRE X SAS » désignent le même acteur. On le replie sur
+    // une seule entité ; si deux entités pourraient convenir, l'import échoue
+    // en les nommant plutôt que d'en choisir une, et **aucune ligne n'a été
+    // écrite** à ce stade. Un produit rattaché au mauvais fournisseur casse la
+    // traçabilité en aval, donc on préfère s'arrêter.
+    const resolvedSupplier = sourceType === 'supplier' && supplier
+      ? await registerSupplierByName(store, adminId, supplier)
+      : null;
+    const canonicalSupplierName = resolvedSupplier ? resolvedSupplier.supplier.legalName : supplier;
+    const importId = await createCatalogImportAudit(store, adminId, sourceType, records.length, canonicalSupplierName, fileName);
     const result = { importId, imported: 0, rejected: 0, errors: [] as any[], products: [] as any[] };
     for (let index = 0; index < records.length; index += 1) {
       const raw = { ...(records[index] || {}) };
-      if (sourceType === 'supplier' && supplier && !raw.sourceSupplier && !raw.source_supplier) raw.sourceSupplier = supplier;
+      if (resolvedSupplier && !raw.supplierId && !raw.supplier_id) raw.supplierId = resolvedSupplier.supplier.id;
+      if (sourceType === 'supplier' && supplier && !raw.sourceSupplier && !raw.source_supplier) {
+        // On enregistre la raison sociale retenue, pas la chaîne du fichier.
+        raw.sourceSupplier = canonicalSupplierName;
+      }
       try {
         const product = await saveCatalogProduct(store, adminId, raw);
         result.imported += 1;

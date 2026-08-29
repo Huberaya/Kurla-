@@ -103,6 +103,7 @@ import * as shippingStore from './db/shippingStore';
 import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
+import * as supplierStore from './db/supplierStore';
 import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
@@ -169,6 +170,9 @@ export class SupabaseServerStore {
   public inMemoryQuestionAnswers: import('./db/types').ProductQuestionAnswer[] = [];
   public inMemoryProductWaitlist: Array<{ id: string; productId: string; variantId?: string; userId?: string; email: string; country: string; status: 'waiting' | 'notified' | 'cancelled'; createdAt: string }> = [];
   public inMemoryProductSubscriptions: ProductSubscription[] = [];
+  /** CHANTIER 16A — référentiel fournisseurs et preuves de conformité. */
+  public inMemorySuppliers: any[] = [];
+  public inMemorySupplierDocuments: any[] = [];
   public inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
@@ -207,6 +211,18 @@ export class SupabaseServerStore {
   public syncInventoryToSupabase!: Curried<typeof inventoryStore>['syncInventoryToSupabase'];
   public syncVariantInventoryToSupabase!: Curried<typeof inventoryStore>['syncVariantInventoryToSupabase'];
   public getAdminCatalogProducts!: Curried<typeof catalogStore>['getAdminCatalogProducts'];
+  // CHANTIER 16A — fournisseurs. Les helpers purs (normalizeSupplierName,
+  // supplierIdFromName) ne sont volontairement **pas** liés : bindDomain
+  // curryfie le premier argument, une fonction pure liée deviendrait une
+  // méthode qui reçoit le store à la place de sa valeur.
+  public listSuppliers!: Curried<typeof supplierStore>['listSuppliers'];
+  public getSupplierById!: Curried<typeof supplierStore>['getSupplierById'];
+  public resolveSupplier!: Curried<typeof supplierStore>['resolveSupplier'];
+  public registerSupplierByName!: Curried<typeof supplierStore>['registerSupplierByName'];
+  public createSupplier!: Curried<typeof supplierStore>['createSupplier'];
+  public addSupplierDocument!: Curried<typeof supplierStore>['addSupplierDocument'];
+  public listSupplierDocuments!: Curried<typeof supplierStore>['listSupplierDocuments'];
+  public getSupplierCompliance!: Curried<typeof supplierStore>['getSupplierCompliance'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -373,6 +389,17 @@ bindDomain(storeInstance, shippingStore);
 bindDomain(storeInstance, returnsStore);
 bindDomain(storeInstance, adminStore);
 bindDomain(storeInstance, catalogStore);
+// Sous-ensemble explicite : voir le commentaire des déclarations ci-dessus.
+bindDomain(storeInstance, {
+  listSuppliers: supplierStore.listSuppliers,
+  getSupplierById: supplierStore.getSupplierById,
+  resolveSupplier: supplierStore.resolveSupplier,
+  registerSupplierByName: supplierStore.registerSupplierByName,
+  createSupplier: supplierStore.createSupplier,
+  addSupplierDocument: supplierStore.addSupplierDocument,
+  listSupplierDocuments: supplierStore.listSupplierDocuments,
+  getSupplierCompliance: supplierStore.getSupplierCompliance
+});
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);
 bindDomain(storeInstance, orderStore);

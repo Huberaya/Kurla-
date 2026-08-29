@@ -626,6 +626,78 @@ compte admin de test, soit une session fournie.
 
 ---
 
+### CHANTIER 16A — RÉFÉRENTIEL FOURNISSEURS ✅ (réalisé le 29/08/2026)
+
+Premier maillon du chantier 16. Constat de départ, vérifié : **il n'existait
+aucune table `suppliers`**, et la provenance d'un produit vivait dans
+`products.source_supplier` — une chaîne libre que l'import fournisseur
+enregistrait telle quelle, vide sur les 16 produits.
+
+**Ce qui a été construit**
+
+| Élément | Contenu |
+|---|---|
+| `public.suppliers` | 16 colonnes. Identité légale + `legal_name_normalized` **unique**, type (7 valeurs), pays, contacts, MOQ, délai, certifications, `verification_status` (`verified`/`pending`/`not_provided`) |
+| `public.supplier_documents` | 11 colonnes, 12 types de preuve (PR, PIF, CPSR, CPNP, SPF ISO 24444, UVA ISO 24443, OEKO-TEX, EUDR, sans microplastique, ISO 22716, CoA, autre) |
+| `public.products.supplier_id` | Colonne ajoutée, nullable |
+| Sécurité | RLS actif sur les deux tables, **6 politiques**, toutes bornées à `public.is_admin()` |
+
+**Les deux règles, et pourquoi**
+
+1. **On ne devine jamais une correspondance.** Deux écritures du *même* nom
+   retombent sur la même entité par normalisation (casse, diacritiques,
+   ponctuation, forme juridique retirée : SAS, SARL, Ltd, GmbH…). Deux entités
+   *différentes* qui pourraient toutes deux convenir produisent une
+   `SupplierAmbiguityError` **nominative** : la route répond **409** en listant
+   les entités en concurrence, et **rien n'a été écrit**. Un produit rattaché au
+   mauvais fournisseur corromp toute la traçabilité en aval.
+2. **Un document de conformité n'existe pas sans preuve.** Fichier **et** date
+   d'émission exigés par le code, et renforcés en base par la contrainte
+   `supplier_document_needs_proof` ; une expiration antérieure à l'émission est
+   refusée. Une case cochée n'est pas un CPSR.
+
+Un fournisseur découvert par un import naît **`not_provided`** et de type
+**`unknown`** : un nom écrit dans un CSV n'est ni une vérification, ni une
+qualification du métier du fournisseur.
+
+**Critère d'acceptation, mesuré** — deux imports nommant le même fournisseur de
+deux façons (« Laboratoire Alvend SAS » puis « LABORATOIRE ALVEND ») produisent
+**une seule entité**, les deux produits pointent le même identifiant, et le nom
+enregistré est la raison sociale retenue, pas la chaîne du fichier.
+
+| Preuve | Résultat |
+|---|---|
+| Migration appliquée | `suppliers` 16 colonnes, `supplier_documents` 11 colonnes, `products.supplier_id` présent, contrainte de preuve présente, RLS `true` |
+| RLS réellement filtrante | Une ligne insérée **dans une transaction annulée** : `anon` voit **0** ligne, `authenticated` voit **0** ligne ; table restée vide après rollback |
+| Banc `tests/kurla_supplier.test.ts` | **PASS** — 6 blocs : pliage du nom, unicité d'entité, ambiguïté remontée sans écriture, `not_provided` à la découverte, refus des 5 formes de document invalide, route protégée (401 sans jeton, aucun effet) |
+| Le banc mord | **3 contrôles négatifs exécutés** : déduplication désactivée aux deux endroits → `deux écritures doivent donner une seule entité, obtenu 2` ; candidats vidés → l'assertion d'ambiguïté tombe ; contrôle du fichier retiré → l'assertion de preuve tombe |
+| Garde d'inventaire du store | A détecté les 8 nouvelles méthodes, **aucune disparue, aucune arité modifiée** ; référence régénérée : **252 → 260 méthodes** |
+| Suite complète | `npm test` → **106 PASS / 0 FAIL** (105 + le banc fournisseurs) ; `npm run build` exit 0 ; `tsc --noEmit` **0 erreur** |
+
+**Corrigé au passage** : `npm test` se terminait par `tsc --noEmit`, qui
+s'arrête en OOM (exit **134**) sur le tas Node par défaut — donc la chaîne ne
+pouvait pas passer sans enveloppe externe. Le tas est maintenant déclaré dans
+`lint` et en fin de chaîne ; `npm test` est autonome. Le build Vercel n'appelle
+pas `tsc`, il n'est pas concerné.
+
+**Non fait, et dit explicitement**
+
+- **Aucun écran.** Le référentiel n'est atteignable que par l'API et la base.
+  L'écran fournisseurs est le chantier **16B**.
+- **Les 16 produits existants n'ont pas été rattachés** : leur fournisseur réel
+  n'est pas connu, et le rattacher serait une invention. `supplier_id` reste
+  `null` sur tout le catalogue.
+- **La résolution n'écrase jamais une provenance existante** : `supplier_id`
+  s'écrit à la création du produit, pas en mise à jour d'une ligne déjà
+  rattachée.
+- **Aucune route admin nouvelle** n'a été ajoutée : l'inventaire 15A reste à
+  30 couples, seul le comportement de l'import fournisseur a changé (409 sur
+  ambiguïté au lieu d'un 400 générique).
+- **Comportement sous session admin authentifiée toujours non testé**, même
+  trou qu'en 15A.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
