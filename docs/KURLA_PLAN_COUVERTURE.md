@@ -1429,6 +1429,52 @@ Premier essai : `bash scripts/build-vercel.sh` sans `node_modules/.bin` dans le 
 
 `npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
 
+## COMPLÉMENT — INSCRIPTION ET CONNEXION : DIAGNOSTIC COMPLET
+
+### 1. Une seule cause pour les deux symptômes
+
+```
+GET /auth/v1/admin/users → 2 comptes seulement
+  2026-08-27T21:50:06  baya-ibraim.mayoanou.edu@groupe-gema.com  confirmé=false  email_envoyé=2026-08-27T21:50:06
+```
+
+Le compte **a été créé** et `confirmation_sent_at` **est rempli** : l'email est parti. Mais la destination de tous les liens d'authentification est fabriquée à partir de la « Site URL » de Supabase Auth. Mesurée en suivant la vérification d'un jeton de récupération généré pour l'occasion :
+
+```
+HTTP/2 303
+location: http://localhost:3000#access_token=…&type=recovery
+```
+
+**Site URL = `http://localhost:3000`.** D'où, avec une seule cause : « je ne vois aucun email » utile (le lien est cassé) **et** « localhost a refusé de se connecter » sur la réinitialisation.
+
+Le code n'y est pour rien : `resetPassword` passe déjà `redirectTo: ${window.location.origin}/account?reset_password=true`, et `signUp` passe `emailRedirectTo`. **Supabase rejette un `redirectTo` absent de la liste autorisée et retombe sur la Site URL.**
+
+**Ce réglage ne se change pas d'ici** : la Management API répond `401 {"message":"JWT could not be decoded"}` avec la clé secrète. Il faut le tableau de bord (Authentication → URL Configuration : Site URL `https://kurlabeauty.vercel.app`, Redirect URLs `https://kurlabeauty.vercel.app/**`) ou un jeton `sbp_…`.
+
+### 2. Trou comblé : la réinitialisation était une impasse
+
+En vérifiant ce qui se passerait **une fois l'URL corrigée** : `updateUser` n'était appelé **nulle part** dans le dépôt, et l'événement `PASSWORD_RECOVERY` n'était pas traité — `onAuthStateChange` posait la session sans regarder le type d'événement.
+
+Cliquer sur le lien de réinitialisation aurait donc ouvert une session **sans aucun moyen de définir un nouveau mot de passe**. Corrigé :
+
+- `AuthContext` traite `PASSWORD_RECOVERY` et expose `isPasswordRecovery` + `updatePassword` ;
+- `components/PasswordRecoveryPanel.tsx` : saisie du nouveau mot de passe, confirmation, bouton œil, erreurs nommées ;
+- monté en tête de `CustomerAccountPage`, seul endroit atteint par ce lien. Aucun `return` de rendu ne le précède — vérifié.
+
+Garde `tests/kurla_password_recovery.test.ts` (sur les sources). Contrôle négatif lu : panneau démonté → `[FAIL] la réinitialisation redeviendrait une impasse`.
+
+### 3. Déploiement manquant, et pourquoi
+
+`GET /v6/deployments` : les 8 pushes précédents ont tous déployé (`READY`), **`4b79771` n'apparaissait pas du tout** — ni échoué, ni en file. `ignoredBuildStep: null`, dépôt bien lié (`Kurla-`, `main`, github) : le webhook n'a simplement pas abouti.
+
+Déclenché à la main par `POST /v13/deployments` avec `gitSource` → `dpl_Cs1W2cDs3CHwT4cLYvNv2uTaaQvF` → `READY`. **Fuite des variables Vercel vérifiée colmatée en production** : bundle `index-BWxcfhJS.js`, **0** `VITE_VERCEL_`, `VITE_SUPABASE_*` préservés.
+
+`VITE_APP_URL` vérifié correct dans le bundle : `https://kurlabeauty.vercel.app`, pas localhost.
+
+### 4. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 113 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · libellé du panneau présent dans le bundle · fichier restauré après contrôle négatif (`diff -q` identique).
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

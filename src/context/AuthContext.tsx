@@ -31,6 +31,14 @@ interface AuthContextType {
   signIn: (params: SignInParams) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  /**
+   * Supabase émet `PASSWORD_RECOVERY` quand l'URL porte un jeton de
+   * réinitialisation. Sans ce drapeau, l'utilisateur arrivait avec une session
+   * de récupération et **aucun moyen de définir un nouveau mot de passe** :
+   * `updateUser` n'était appelé nulle part dans le dépôt.
+   */
+  isPasswordRecovery: boolean;
+  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (updated: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
   refetchProfile: () => Promise<void>;
   clearError: () => void;
@@ -47,6 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  /** Vrai entre l'arrivée du lien de réinitialisation et la saisie du nouveau mot de passe. */
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(false);
 
   const supabase = getSupabaseClient();
 
@@ -147,6 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         setSession(currentSession);
         setUser(currentSession?.user || null);
+
+        /**
+         * `PASSWORD_RECOVERY` : l'URL porte un jeton de réinitialisation. La
+         * session est ouverte mais le mot de passe n'est pas encore changé —
+         * sans ce drapeau, rien dans l'interface ne proposait de le faire.
+         */
+        if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true);
 
         if (currentSession?.user) {
           const p = await fetchProfile(currentSession.user.id, currentSession.user.email || '');
@@ -383,6 +400,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  /**
+   * Écrit le nouveau mot de passe sur la session courante.
+   *
+   * C'est la seule voie après un lien de réinitialisation : la session de
+   * récupération ne permet que cela. `updateUser` n'était appelé nulle part
+   * dans le dépôt — la réinitialisation aboutissait donc à une session ouverte
+   * sans aucun moyen de changer le mot de passe.
+   */
+  const updatePassword = async (newPassword: string) => {
+    setError(null);
+    if (!supabase) {
+      return { success: false, error: 'Authentification Supabase indisponible.' };
+    }
+    if (newPassword.length < 6) {
+      return { success: false, error: 'Le mot de passe doit contenir au moins 6 caractères.' };
+    }
+
+    try {
+      const { data, error: uErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (uErr) {
+        const msg = uErr.message.includes('New password should be different')
+          ? 'Le nouveau mot de passe doit être différent de l’actuel.'
+          : uErr.message.includes('Password should be at least')
+            ? 'Le mot de passe doit contenir au moins 6 caractères.'
+            : uErr.message;
+        setError(msg);
+        return { success: false, error: msg };
+      }
+      /**
+       * `updateUser` ne renvoie que `{ user }` dans cette version de
+       * supabase-js : la session de récupération reste valable après le
+       * changement de mot de passe, il n'y a donc rien à remplacer ici.
+       */
+      if (data?.user) setUser(data.user);
+      setIsPasswordRecovery(false);
+      return { success: true };
+    } catch (err: any) {
+      const msg = err.message || 'Impossible de mettre à jour le mot de passe.';
+      setError(msg);
+      return { success: false, error: msg };
+    }
+  };
+
   const updateProfile = async (updated: Partial<UserProfile>) => {
     if (!user && !profile) {
       return { success: false, error: 'Vous devez être connecté pour modifier votre profil.' };
@@ -444,6 +504,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         error,
+        isPasswordRecovery,
+        updatePassword,
         isConfigured: isSupabaseConfigured(),
         signUp,
         signIn,
