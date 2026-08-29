@@ -1527,6 +1527,38 @@ Conséquence corrigée : `PasswordRecoveryPanel` est monté dans `App.tsx` (tout
 
 `site_url` mesurée après PATCH · `npm run build` **exit 0** · `npm test` **exit 0, 113 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · fichier restauré après contrôle négatif (`diff -q` identique).
 
+## COMPLÉMENT — L'EXPÉDITEUR D'EMAIL PAR DÉFAUT N'EXISTE PAS
+
+`src/lib/emailService.ts:59` : `this.from = (process.env.EMAIL_FROM || 'no-reply@kurla-beauty.com')`.
+`EMAIL_FROM` **n'est pas** défini dans les variables Vercel (vérifié). L'expéditeur effectif est donc `no-reply@kurla-beauty.com`.
+
+Or ce domaine **n'existe pas** :
+
+```
+DNS-over-HTTPS  kurla-beauty.com NS → Status 3 (NXDOMAIN)
+RDAP Verisign   /com/v1/domain/kurla-beauty.com → HTTP 404 (non enregistré)
+```
+
+Contrôle de méthode : `dig` ne résout **rien** dans ce bac, pas même `google.com` — toute conclusion tirée de `dig` ici est nulle. Les deux sources ci-dessus, elles, sont externes.
+
+### Conséquence mesurée sur Resend
+
+```
+GET  /domains                       → 401 (clé restreinte à l'envoi, par conception)
+POST /emails from=no-reply@kurla-beauty.com   → 403 "The kurla-beauty.com domain is not verified"
+POST /emails from=onboarding@resend.dev → hubertbay@gmail.com
+                                        → 403 "You can only send testing emails to your own email
+                                               address (baya-ibraim.mayoanou.edu@groupe-gema.com)"
+POST /emails from=onboarding@resend.dev → baya-ibraim.mayoanou.edu@groupe-gema.com
+                                        → 200, id=71a0399d-e9d6-4809-b74a-165c13fdc992
+```
+
+**Aucun domaine n'est vérifié chez Resend.** Le compte appartient à `baya-ibraim.mayoanou.edu@groupe-gema.com` et ne peut écrire qu'à cette adresse.
+
+### Arbitrage : ne pas brancher Resend sur Supabase maintenant
+
+Le SMTP intégré de Supabase, malgré son plafond horaire, **écrit à n'importe quelle adresse**. Resend sans domaine vérifié n'écrit **qu'à une seule**. Brancher Resend maintenant serait une **régression** pour les clients. À faire seulement après vérification d'un domaine réel.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
