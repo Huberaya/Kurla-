@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { getSupabaseServerClient } from '../supabaseClient';
+import { getAdminCatalogProducts } from './catalogStore';
 import { ensureDatabaseSuccess } from './internal';
 
 import type { SupabaseServerStore } from '../serverDb';
@@ -428,5 +429,111 @@ export async function getSupplierCompliance(store: SupabaseServerStore, supplier
     documents,
     heldTypes: [...new Set(documents.map(document => document.documentType))],
     expiredTypes: [...new Set(expired.map(document => document.documentType))]
+  };
+}
+
+/**
+ * Mise à jour d'un fournisseur connu.
+ *
+ * Deux bornes délibérées :
+ *
+ *  - **la raison sociale ne se modifie pas ici.** L'identifiant en dérive et
+ *    `legal_name_normalized` porte une contrainte d'unicité : renommer une
+ *    entité casserait les produits déjà rattachés. Si le nom change, c'est une
+ *    autre entité, à créer.
+ *  - **`verified` ne se déclare pas, il se prouve.** Passer un fournisseur en
+ *    vérifié exige qu'au moins un document de conformité soit enregistré.
+ *    Sinon « vérifié » ne serait qu'une opinion affichée.
+ */
+export async function updateSupplier(store: SupabaseServerStore, adminId: string | null, supplierId: string, patch: any): Promise<Supplier> {
+  const current = await getSupplierById(store, supplierId);
+  if (!current) throw new Error('Fournisseur introuvable.');
+  if (patch?.legalName !== undefined || patch?.legal_name !== undefined) {
+    throw new Error('La raison sociale ne se modifie pas : l’identifiant en dérive et les produits déjà rattachés seraient cassés. Créez une nouvelle entité.');
+  }
+
+  const next: Supplier = {
+    ...current,
+    tradeName: patch?.tradeName !== undefined ? text(patch.tradeName, 240) : current.tradeName,
+    supplierType: (SUPPLIER_TYPES as readonly string[]).includes(patch?.supplierType ?? patch?.supplier_type)
+      ? (patch?.supplierType ?? patch?.supplier_type)
+      : current.supplierType,
+    country: patch?.country !== undefined ? text(patch.country, 80) : current.country,
+    website: patch?.website !== undefined ? text(patch.website, 300) : current.website,
+    contactName: patch?.contactName !== undefined ? text(patch.contactName, 160) : current.contactName,
+    contactEmail: patch?.contactEmail !== undefined ? text(patch.contactEmail, 200) : current.contactEmail,
+    moqUnits: patch?.moqUnits !== undefined ? positiveInt(patch.moqUnits) : current.moqUnits,
+    leadTimeDays: patch?.leadTimeDays !== undefined ? positiveInt(patch.leadTimeDays) : current.leadTimeDays,
+    certifications: Array.isArray(patch?.certifications)
+      ? patch.certifications.filter((item: unknown) => typeof item === 'string')
+      : current.certifications,
+    verificationStatus: ['verified', 'pending', 'not_provided'].includes(patch?.verificationStatus ?? patch?.verification_status)
+      ? (patch?.verificationStatus ?? patch?.verification_status)
+      : current.verificationStatus,
+    notes: patch?.notes !== undefined ? text(patch.notes, 4000) : current.notes,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (next.verificationStatus === 'verified' && current.verificationStatus !== 'verified') {
+    const documents = await listSupplierDocuments(store, supplierId);
+    if (documents.length === 0) {
+      throw new Error('Un fournisseur ne passe pas en « vérifié » sans aucun document de conformité enregistré. Joignez d’abord une preuve (CPSR, ISO 22716, OEKO-TEX…).');
+    }
+  }
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { error } = await supabase.from('suppliers').update({
+      trade_name: next.tradeName ?? null,
+      supplier_type: next.supplierType,
+      country: next.country ?? null,
+      website: next.website ?? null,
+      contact_name: next.contactName ?? null,
+      contact_email: next.contactEmail ?? null,
+      moq_units: next.moqUnits,
+      lead_time_days: next.leadTimeDays,
+      certifications: next.certifications,
+      verification_status: next.verificationStatus,
+      notes: next.notes ?? null,
+      updated_at: next.updatedAt
+    }).eq('id', supplierId);
+    ensureDatabaseSuccess('mise à jour du fournisseur', error);
+    return next;
+  }
+
+  const index = store.inMemorySuppliers.findIndex(item => item.id === supplierId);
+  if (index >= 0) store.inMemorySuppliers[index] = next as never;
+  return next;
+}
+
+export interface SupplierDetail {
+  supplier: Supplier;
+  documents: SupplierDocument[];
+  heldTypes: string[];
+  expiredTypes: string[];
+  /** Produits rattachés : ce que ce fournisseur fournit réellement au catalogue. */
+  products: Array<{ id: string; slug: string; name: string; catalogStatus?: string }>;
+}
+
+/**
+ * Fiche fournisseur : l'entité, ses preuves, et ce qu'elle fournit.
+ *
+ * Les produits sont listés à partir du catalogue, jamais inventés : si aucun
+ * produit n'est rattaché, la liste est vide et c'est une information — un
+ * fournisseur sans produit rattaché n'est pas un fournisseur « à jour ».
+ */
+export async function getSupplierDetail(store: SupabaseServerStore, supplierId: string): Promise<SupplierDetail> {
+  const supplier = await getSupplierById(store, supplierId);
+  if (!supplier) throw new Error('Fournisseur introuvable.');
+  const compliance = await getSupplierCompliance(store, supplierId);
+  const catalog = await getAdminCatalogProducts(store);
+  return {
+    supplier,
+    documents: compliance.documents,
+    heldTypes: compliance.heldTypes,
+    expiredTypes: compliance.expiredTypes,
+    products: catalog
+      .filter(product => product.supplierId === supplierId)
+      .map(product => ({ id: product.id, slug: product.slug, name: product.name, catalogStatus: product.catalogStatus }))
   };
 }

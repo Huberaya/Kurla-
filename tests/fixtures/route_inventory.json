@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T21:44:40.401Z",
+  "generatedAt": "2026-08-29T13:17:30.063Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -33,6 +33,8 @@
     "GET /api/admin/return-insights/:productId",
     "GET /api/admin/shipments/:orderId/history",
     "GET /api/admin/shipping/rates",
+    "GET /api/admin/suppliers",
+    "GET /api/admin/suppliers/:supplierId",
     "GET /api/ai/disclosure",
     "GET /api/ai/history",
     "GET /api/ai/history/:sessionId",
@@ -132,6 +134,7 @@
     "PATCH /api/admin/entities/:entity/:id",
     "PATCH /api/admin/shipments/:orderId",
     "PATCH /api/admin/shipping/rates/:id",
+    "PATCH /api/admin/suppliers/:supplierId",
     "PATCH /api/family/members/:id",
     "PATCH /api/family/plans/:id",
     "PATCH /api/routine/tasks/:taskId",
@@ -163,6 +166,8 @@
     "POST /api/admin/returns/:id/status",
     "POST /api/admin/reviews/:id/status",
     "POST /api/admin/shipping/rates",
+    "POST /api/admin/suppliers",
+    "POST /api/admin/suppliers/:supplierId/documents",
     "POST /api/admin/support/tickets/:id/assignment",
     "POST /api/admin/support/tickets/:id/priority",
     "POST /api/admin/support/tickets/:id/status",

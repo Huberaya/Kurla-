@@ -579,8 +579,47 @@ mesurés, aucun estimé.
 | Routes d'administration | **30 couples méthode + chemin**, 29 chemins distincts (`/api/admin/catalog/products` porte GET et POST) |
 | Routes montées et protégées en production | **30 sur 30** — chacune sondée répond `401` avec « Authentification Supabase requise. » Aucune route morte, aucun contournement |
 | Garde de rôle avant le premier effet | **30 sur 30**, vérifié statiquement gestionnaire par gestionnaire |
-| Routes appelées par un écran | **6 sur 30**, toutes depuis `src/components/CatalogAdminPanel.tsx` |
-| Routes sans aucun appelant | **24 sur 30** |
+| Routes appelées par un écran | **8 sur 30**, toutes depuis `src/components/CatalogAdminPanel.tsx` — *chiffre corrigé au chantier 16B, voir l'encadré ci-dessous* |
+| Routes sans aucun appelant | **22 sur 30** |
+
+**CORRECTION apportée au chantier 16B — le chiffre publié ici était faux.**
+
+Le banc 15A repérait les appelants en cherchant le chemin de la route dans le
+code client, en remplaçant `:param` par `${…}`. Or l'étape d'échappement qui
+précède ne protège pas le caractère `:` : la règle de remplacement cherchait
+donc un `\:` qui n'existait jamais, et **toute route paramétrée passait pour
+orpheline même lorsqu'un écran l'appelait**. Démontré par exécution, pas par
+lecture : la regex produite était `/api/admin/suppliers/:supplierId` et ne
+matchait pas `` `/api/admin/suppliers/${…}` ``.
+
+Conséquence mesurée après correctif — deux routes avaient un appelant que je
+n'avais pas vu :
+
+| Route | Appelant réel |
+|---|---|
+| `PATCH /api/admin/catalog/products/:productId` | `src/components/CatalogAdminPanel.tsx:210` |
+| `GET /api/admin/return-insights/:productId` | `src/components/CatalogAdminPanel.tsx:253` |
+
+Le décompte exact est donc **8 sur 30 appelées, 22 orphelines** — et non 6/24.
+En 15A le bug était invisible : aucune route paramétrée n'avait alors
+d'appelant détectable, et rien ne contredisait le résultat.
+
+**La conséquence n° 1 ci-dessous était donc fausse, et je la retire** : la
+modification d'un produit **a** un écran (`CatalogAdminPanel.tsx:210` appelle
+bien le `PATCH`). Ce qui reste vrai, c'est que le chantier 14 a écrit le
+contenu des 14 fiches par script — mais pas « faute d'interface » : l'interface
+existait, elle n'a simplement pas été utilisée pour cette opération de masse.
+
+Un second défaut du même banc a été corrigé dans la foulée : sans frontière
+finale, `/api/admin/suppliers` matchait aussi les lignes appelant
+`/api/admin/suppliers/:id/documents`, donc une route orpheline aurait pu passer
+pour appelée par simple préfixe commun. Aucun faux positif de ce type n'existait
+en pratique (13/35 avant comme après), mais le risque était réel.
+
+**Limite assumée, et dite** : la détection est **par chemin, pas par méthode**.
+« Appelée » signifie « ce chemin apparaît dans le code client », pas « cette
+méthode HTTP précise est appelée ». Rendre le banc sensible à la méthode
+demanderait d'analyser les options de chaque `fetch`.
 
 **Méthode, et pourquoi elle a été choisie**
 
@@ -603,12 +642,12 @@ d'ingrédients, couverture (6), vérification d'un professionnel (1), purge phot
 
 Deux conséquences à retenir :
 
-1. **La modification d'un produit n'a aucun écran.** `PATCH
-   /api/admin/catalog/products/:productId` est la route par laquelle le chantier
-   14 a écrit le contenu des 14 fiches — par script, parce qu'aucune interface ne
-   l'appelle.
+1. ~~**La modification d'un produit n'a aucun écran.**~~ **Retiré au chantier
+   16B : c'était faux.** `PATCH /api/admin/catalog/products/:productId` est
+   appelée par `CatalogAdminPanel.tsx:210`. Le chantier 14 a bien écrit les 14
+   fiches par script, mais l'interface existait.
 2. **Le rapport de préparation et l'historique des vérifications n'ont aucun
-   écran** non plus. C'est exactement ce que le chantier 15B doit rendre visible.
+   écran.** Celle-ci reste vraie, et c'est le périmètre du chantier 15B.
 
 **Livré** : `tests/admin_route_inventory.test.ts` + fixture
 `tests/fixtures/admin_route_inventory.json` (30 routes, garde et appelants
@@ -695,6 +734,69 @@ pas `tsc`, il n'est pas concerné.
   ambiguïté au lieu d'un 400 générique).
 - **Comportement sous session admin authentifiée toujours non testé**, même
   trou qu'en 15A.
+
+---
+
+### CHANTIER 16B — ÉCRAN D'APPROVISIONNEMENT ✅ (réalisé le 29/08/2026)
+
+Le chantier 16A avait laissé le référentiel fournisseurs sans écran : il
+n'était atteignable que par l'API et la base. Le constat 15A — 22 routes
+d'administration orphelines — était précisément l'argument pour ne pas en
+ajouter cinq de plus sans interface.
+
+**Ce qui a été construit**
+
+| Élément | Contenu |
+|---|---|
+| `src/server/routes/suppliers.ts` | **5 routes** : `GET`/`POST /api/admin/suppliers`, `GET`/`PATCH /api/admin/suppliers/:supplierId`, `POST /api/admin/suppliers/:supplierId/documents` |
+| `src/components/SupplierAdminPanel.tsx` | Écran complet : référentiel, déclaration d'un fournisseur, fiche avec preuves et produits rattachés |
+| `src/pages/AdminDashboardPage.tsx` | Nouvel onglet **« Approvisionnement »**, monté à côté de « Catalogue produits » |
+| Couche données | `updateSupplier` et `getSupplierDetail` — le store passe de **260 à 262 méthodes** |
+
+**Deux règles ajoutées, qui viennent du même refus de deviner**
+
+1. **La raison sociale ne se modifie pas.** L'identifiant en dérive et
+   `legal_name_normalized` porte une contrainte d'unicité : renommer une entité
+   casserait les produits déjà rattachés. Si le nom change, c'est une autre
+   entité, à créer.
+2. **« Vérifié » ne se déclare pas, il se prouve.** Passer un fournisseur en
+   vérifié exige qu'au moins un document de conformité soit enregistré. Sinon
+   « vérifié » ne serait qu'une opinion affichée dans un tableau de bord — et un
+   tableau de bord est exactement l'endroit où une opinion se lit comme un fait.
+
+L'écran reprend la discipline de 16A : les types de fournisseur et de document
+sont **fournis par l'API** (`supplierTypes`, `documentTypes`), pas saisis en
+texte libre ; le champ de preuve demande une **URL de fichier déjà hébergé et
+une date d'émission**, et le dit explicitement — cet écran enregistre une
+référence, il ne téléverse pas. Le MOQ et le délai sont présentés avec la
+mention qu'ils restent à confirmer par demande de prix.
+
+| Preuve | Résultat |
+|---|---|
+| Banc `tests/kurla_supplier_admin.test.ts` | **PASS** — raison sociale non modifiable, « vérifié » refusé sans preuve puis accepté avec, fiche sans produit inventé, **5 routes sondées en 401** avec le corps standard et **aucun effet** |
+| Le banc mord | **3 contrôles négatifs exécutés** : preuve non exigée → l'assertion tombe ; renommage autorisé → l'assertion tombe ; fiche listant tous les produits → *« un fournisseur sans produit doit renvoyer une liste vide, pas une estimation »* |
+| Inventaire des routes | Garde mordue puis régénérée : **234 → 239 routes**, aucune retirée |
+| Inventaire admin (15A) | Garde mordue puis régénérée : **30 → 35 couples**, **13 appelées / 22 orphelines** |
+| Inventaire du store | Garde mordue puis régénérée : **260 → 262 méthodes**, aucune retirée, aucune arité modifiée |
+| Suite complète | `npm test` → **107 PASS / 0 FAIL** (105 en fin de 15A, +1 banc 16A, +1 banc 16B) ; `npm run build` exit 0 ; `tsc --noEmit` **0 erreur** |
+
+**Un bug du banc 15A a été trouvé et corrigé ici**, avec la correction du
+chiffre publié — voir l'encadré de la section 15A. En résumé : le banc ne
+détectait aucun appelant pour les routes paramétrées, ce qui m'avait fait
+écrire à tort que la modification d'un produit n'avait pas d'écran.
+
+**Non fait, et dit explicitement**
+
+- **Aucun téléversement de fichier.** L'écran enregistre l'URL d'un document
+  déjà hébergé. Un vrai dépôt de fichier est un chantier à part.
+- **Comportement sous session admin authentifiée toujours non testé.** Les 5
+  routes sont prouvées montées et protégées (401 sans jeton, aucun effet), pas
+  prouvées correctes une fois authentifié. Même trou qu'en 15A : le mot de
+  passe du compte `superadmin` n'est pas détenu ici et je ne forge pas de jeton.
+- **Les 16 produits existants restent sans provenance** : leur fournisseur réel
+  n'est pas connu, `supplier_id` est `null` sur tout le catalogue.
+- **La détection d'appelants reste par chemin, pas par méthode** (limite du banc
+  15A, assumée et documentée).
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T11:46:30.907Z",
+  "generatedAt": "2026-08-29T13:16:30.487Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -143,6 +143,7 @@
     "getStatusSummary/0",
     "getSupplierById/1",
     "getSupplierCompliance/1",
+    "getSupplierDetail/1",
     "getSupportAttachments/1",
     "getSupportMessages/1",
     "getSupportTicketById/1",
@@ -252,6 +253,7 @@
     "updateOrderStripeSession/2",
     "updateProfessionalApplication/3",
     "updateReturnStatus/4",
+    "updateSupplier/3",
     "updateSupportTicketPriority/3",
     "updateSupportTicketStatus/3",
     "uploadBeautyProfilePhoto/4",

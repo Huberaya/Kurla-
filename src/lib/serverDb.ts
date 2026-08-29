@@ -223,6 +223,8 @@ export class SupabaseServerStore {
   public addSupplierDocument!: Curried<typeof supplierStore>['addSupplierDocument'];
   public listSupplierDocuments!: Curried<typeof supplierStore>['listSupplierDocuments'];
   public getSupplierCompliance!: Curried<typeof supplierStore>['getSupplierCompliance'];
+  public updateSupplier!: Curried<typeof supplierStore>['updateSupplier'];
+  public getSupplierDetail!: Curried<typeof supplierStore>['getSupplierDetail'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -398,7 +400,9 @@ bindDomain(storeInstance, {
   createSupplier: supplierStore.createSupplier,
   addSupplierDocument: supplierStore.addSupplierDocument,
   listSupplierDocuments: supplierStore.listSupplierDocuments,
-  getSupplierCompliance: supplierStore.getSupplierCompliance
+  getSupplierCompliance: supplierStore.getSupplierCompliance,
+  updateSupplier: supplierStore.updateSupplier,
+  getSupplierDetail: supplierStore.getSupplierDetail
 });
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);

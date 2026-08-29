@@ -55,6 +55,7 @@ import { registerAdaptiveRoutineRoutes } from './src/server/routes/adaptiveRouti
 import { registerProfessionalRoutes } from './src/server/routes/professionals';
 import { registerRecommendationRoutes } from './src/server/routes/recommendations';
 import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGovernance';
+import { registerSupplierRoutes } from './src/server/routes/suppliers';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
@@ -1132,6 +1133,7 @@ registerChantierARoutes(app);
 registerProfessionalRoutes(app);
 registerRecommendationRoutes(app);
 registerCatalogGovernanceRoutes(app);
+registerSupplierRoutes(app);
 registerAiAssistantRoutes(app);
 registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);

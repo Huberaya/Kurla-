@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
+import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 
 export const AdminDashboardPage: React.FC = () => {
@@ -10,7 +11,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'operations'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'operations'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
@@ -313,6 +314,7 @@ export const AdminDashboardPage: React.FC = () => {
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
             { id: 'pros', label: 'Certifications Pros', icon: Users },
             { id: 'catalog', label: 'Catalogue produits', icon: Package },
+            { id: 'suppliers', label: 'Approvisionnement', icon: Truck },
             { id: 'operations', label: 'Gestion quotidienne', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;
@@ -742,6 +744,17 @@ export const AdminDashboardPage: React.FC = () => {
               setActionSuccess(message);
               loadData();
               setTimeout(() => setActionSuccess(''), 4000);
+            }}
+          />
+        )}
+
+        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B */}
+        {activeTab === 'suppliers' && (
+          <SupplierAdminPanel
+            headers={adminHeaders}
+            onSuccess={(message) => {
+              setActionSuccess(message);
+              setTimeout(() => setActionSuccess(''), 5000);
             }}
           />
         )}

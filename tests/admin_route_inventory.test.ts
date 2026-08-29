@@ -83,7 +83,15 @@ function collectRoutes(): AdminRoute[] {
     const pattern = new RegExp(
       route.path
         .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        .replace(/\\:[A-Za-z]+/g, '\\$\\{[^}]*\\}'),
+        // Le deux-points n'est pas dans la classe échappée ci-dessus : chercher
+        // « \\: » ne pouvait donc jamais matcher, et toute route paramétrée
+        // passait pour orpheline même appelée. Corrigé au chantier 16B, où un
+        // écran appelle enfin des routes à paramètre.
+        .replace(/:[A-Za-z]+/g, '\\$\\{[^}]*\\}')
+        // Frontière finale : sans elle, /api/admin/suppliers matchait aussi les
+        // lignes appelant /api/admin/suppliers/:id/documents, et une route
+        // orpheline pouvait passer pour appelée par simple préfixe commun.
+        + '(?=[`\'"?\\s]|$)',
       'g'
     );
     for (const { file, text } of corpus) {
