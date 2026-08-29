@@ -1072,6 +1072,70 @@ un coût saisi au hasard fausserait toute la marge affichée ensuite.
 
 ---
 
+## COMPLÉMENT — SITEMAP SANS FICHE PRODUIT (corrigé) ET 11 PRODUITS NON PUBLIÉS (mesuré, non corrigé)
+
+### 1. Les deux constats, mesurés en production le 29/08/2026
+
+| Mesure | Commande | Résultat |
+| --- | --- | --- |
+| Fiches produit dans le sitemap | `curl https://kurlabeauty.vercel.app/sitemap.xml` | **45 URLs, dont 17 `/ingredient/…` et 0 `/produit/…`** |
+| Produits réellement servis | `GET https://kurlabeauty.vercel.app/api/products` | **3 produits** (p9, p10, p13) |
+
+16 produits au catalogue − 3 publiés − 2 exclus (p14/p15, marques de concurrents) = **11 produits `unavailable`**. Ce chiffre n'est pas estimé, il est arithmétique.
+
+### 2. Sitemap — cause racine
+
+`fetchProductPages` (`scripts/seoEntities.ts`) interrogeait `products?status=eq.published`.
+
+**La table `products` n'a aucune colonne `status`.** Les 19 colonnes d'origine sont dans `20260804000000_init_kurla_schema.sql`, et aucune migration n'en ajoute. La publication du chantier 14 écrit **`catalog_status`** (`catalogStore.ts:1010`, colonne ajoutée par `20260833000000`, défaut `'draft'`). PostgREST renvoyait donc une erreur 400, **avalée par un `catch` qui retournait `[]`** : le sitemap était valide, le build passait, seul un comptage d'URLs en production révélait l'absence.
+
+> **J'avais écrit dans ce registre que « la publication porte sur `products.status` ». C'était faux, et c'est cette phrase qui a produit le bug.**
+
+### 3. Sitemap — correctif : supprimer la duplication, pas corriger la copie
+
+Remplacer `status` par `catalog_status` aurait compilé et produit 3 URLs — **en annonçant des fiches que le catalogue ne sert pas**. La publiabilité ne se réduit pas au statut : `isPublishableProduct` (`src/lib/db/internal.ts:59`) exige `is_active`, `catalog_status='published'`, **six** statuts de validation à `verified`, des droits sur les visuels établis, une marque, une composition, des visuels et des pays.
+
+Le correctif supprime donc la règle dupliquée : `fetchProductPages` appelle désormais **`serverDb.getPublicProducts()`**, c'est-à-dire exactement la fonction qui alimente `GET /api/products` (`server.ts:897`). **Le sitemap ne recalcule plus rien** : il annonce par construction ce qui est servi.
+
+- `productPagesFrom(products)` est extraite en fonction pure exportée, testable sans credentials.
+- `scripts/prerender.ts:172` appelle la même fonction ⇒ **le prérendu est corrigé du même coup** : les fiches publiées sont prérendues au lieu d'être rendues à la volée.
+
+### 4. Défaut découvert en voulant tester : le filtre public était mort en mode mémoire
+
+Pour écrire le banc, il fallait un produit réellement publié en mémoire. Or `getPublicProducts()` y renvoyait **toujours `[]`** : la branche mémoire filtrait `inMemoryProducts` — des objets en **camelCase** — avec `isPublishableProduct`, qui lit du **snake_case**. `product.is_active` valait donc `undefined` pour chaque ligne.
+
+**La production n'était pas touchée** (la branche base convertit explicitement les noms). Mais la conséquence est plus grave que le bug lui-même : **la règle la plus importante du catalogue n'était exercée par aucun banc.** Corrigé dans `catalogStore.ts` par la même conversion que la branche base.
+
+### 5. Banc `tests/kurla_sitemap_products.test.ts`
+
+Quatre blocs, **dans cet ordre** : l'invariant d'abord, parce que c'est la garde qui compte.
+
+1. **Invariant** — un produit est publié par le vrai chemin (7 contrôles enregistrés, visuels redéclarés, `updateCatalogStatus`), un second reste brouillon. Puis : chaque URL annoncée correspond à un produit servi, **et** chaque produit servi est annoncé, **et** le brouillon n'apparaît jamais.
+2. **XML** — les URLs sont présentes dans le sitemap généré, le brouillon absent, le XML valide.
+3. **Sans credentials** — aucune URL n'est inventée.
+4. **Mapping pur** — slug encodé, pas d'URL pour un produit sans slug, description tronquée à 300.
+
+**Première version du banc : elle passait sur 0 produit.** Un invariant vérifié sur un ensemble vide ne prouve rien ; il a fallu rendre un produit publiable pour que l'assertion ait un contenu.
+
+**Contrôles négatifs, avec lecture du message** : sitemap qui n'annonce plus rien → `[FAIL] une seule fiche doit être annoncée` ; annonce d'une fiche non servie → même échec. Les deux premières tentatives de patch **n'ont pas été appliquées** (ancre `SitemapPage[]` au lieu d'`EntityPage[]`, puis structure `return (…)…` mal lue) et le banc passait inchangé — vérifié par `assert` Python et `grep`, pas déduit.
+
+### 6. Ce qui n'est PAS corrigé : les 11 produits
+
+**Le sitemap est corrigé ; les 11 produits ne sont pas publiés pour autant.** Ils resteront `unavailable` tant que leurs contrôles ne sont pas levés, et le sitemap continuera — correctement — de ne pas les annoncer.
+
+Publier les 11 exige de savoir **ce qui bloque chacun**, produit par produit. Cette mesure exige la base, et **le jeton d'accès direct n'est plus valable** (`{"message":"Unauthorized"}`) : ni SQL direct, ni `service_role`, ni `.env` dans le dépôt. **Aucun chiffre de blocage n'est avancé ici, parce qu'aucun n'a pu être mesuré.**
+
+Ce qui est établi sans la base :
+- le chemin existe et a déjà servi — `scripts/publishCatalog.ts` + l'écran de validation du chantier 14 ;
+- les motifs possibles sont ceux de `isPublishableProduct`, donc bornés : six validations, droits sur les visuels, marque, composition, visuels, pays ;
+- **p14 et p15 sont volontairement exclus** (reprise de noms de concurrents) : ils ne doivent pas être publiés, et le sitemap a raison de les taire.
+
+**Il faut un credential Supabase valable** pour mesurer les blocages réels. Sans lui, publier serait deviner — et `catalogClaims.ts` interdit d'écrire un statut de validation non contrôlé.
+
+### 7. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 111 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · inventaires inchangés (**253** routes / **49** couples admin / **280** méthodes — aucune route ni méthode ajoutée) · fichier restauré après contrôles négatifs : `diff -q` identique, `grep -c "CONTRÔLE NÉGATIF"` = **0**.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

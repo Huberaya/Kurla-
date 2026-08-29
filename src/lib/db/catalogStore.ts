@@ -184,8 +184,31 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
     // The local development catalogue remains available to internal tests and
     // non-public server routines. Customer-facing API calls always pass
     // publishedOnly, so unvalidated development records cannot be published.
+    //
+    // Les objets en mémoire sont en camelCase (sortie du normaliseur) alors que
+    // `isPublishableProduct` lit du snake_case. Sans la conversion ci-dessous —
+    // la même que celle de la branche base — le filtre refusait **tout** le
+    // catalogue en mode mémoire : aucun banc ne pouvait exercer la règle de
+    // publiabilité. La production n'était pas touchée, mais la règle la plus
+    // importante du catalogue n'était testée nulle part.
+    const memoryMapped = store.inMemoryProducts.map(product => ({
+      ...product,
+      is_active: product.is_active ?? product.isActive,
+      catalog_status: product.catalog_status ?? product.catalogStatus,
+      ingredient_verification_status: product.ingredient_verification_status ?? product.ingredientVerificationStatus,
+      claims_validation_status: product.claims_validation_status ?? product.claimsValidationStatus,
+      images_validation_status: product.images_validation_status ?? product.imagesValidationStatus,
+      stock_validation_status: product.stock_validation_status ?? product.stockValidationStatus,
+      certifications_validation_status: product.certifications_validation_status ?? product.certificationsValidationStatus,
+      translations_validation_status: product.translations_validation_status ?? product.translationsValidationStatus,
+      brand_verification_status: product.brand_verification_status ?? product.brandVerificationStatus,
+      image_ownership_status: product.image_ownership_status ?? product.imageOwnershipStatus,
+      country_availability: product.country_availability ?? product.countryAvailability,
+      image_url: product.image_url ?? product.image ?? product.imageUrl,
+      galleryImages: product.galleryImages ?? product.images
+    }));
     return options.publishedOnly
-      ? store.inMemoryProducts.filter(product => isPublishableProduct(product))
+      ? memoryMapped.filter(product => isPublishableProduct(product))
       : [...store.inMemoryProducts];
   }
 

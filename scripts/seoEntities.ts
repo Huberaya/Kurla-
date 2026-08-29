@@ -47,16 +47,52 @@ export async function fetchIngredientPages(): Promise<EntityPage[]> {
 }
 
 /**
- * CHANTIER 13 — fiches produit.
+ * CHANTIER 13 — fiches produit. Corrigé le 29/08/2026.
  *
  * Les 16 produits du catalogue n'étaient ni prérendus ni présents dans le
  * sitemap : `/produit/:slug` n'existe dans `ROUTE_META` que comme motif, donc
  * aucune URL réelle n'était publiée. Ce sont pourtant les pages commerciales
  * principales.
  *
- * Seuls les produits **publiés** sont exposés — publier dans le sitemap une fiche
- * que le catalogue ne sert pas serait annoncer une page morte.
+ * **Pourquoi la première version ne produisait rien.** Elle interrogeait
+ * `products?status=eq.published`. Or la table `products` n'a **aucune colonne
+ * `status`** — 19 colonnes dans `20260804000000_init_kurla_schema.sql`, et
+ * aucune migration n'en ajoute ; la publication écrite au chantier 14 porte sur
+ * `catalog_status`. PostgREST renvoyait donc une erreur, avalée par le `catch`,
+ * et la fonction retournait une liste vide. Le sitemap de production avait
+ * 45 URLs et **0 fiche produit** — mesuré.
+ *
+ * **Pourquoi le correctif ne consiste pas à écrire `catalog_status`.** La règle
+ * de publiabilité (`isPublishableProduct`, `src/lib/db/internal.ts`) exige neuf
+ * conditions au-delà du statut : vérifications ingrédients, allégations,
+ * visuels, stock, certifications, traductions, marque, propriété des visuels,
+ * composition, pays. Filtrer sur le seul statut annoncerait des fiches que le
+ * catalogue ne sert pas — une page morte dans le sitemap.
+ *
+ * La fonction appelle donc **le même chemin de code que le site**
+ * (`getPublicProducts`, celui de `GET /api/products`). Le sitemap ne peut plus
+ * diverger de ce qui est réellement servi, parce qu'il ne recalcule plus rien.
  */
+
+/**
+ * Transformation pure d'un produit public en page de sitemap.
+ *
+ * Exposée séparément pour être testable sans credentials : c'est elle qui décide
+ * du chemin et du texte, et c'est elle que le banc vérifie.
+ */
+export function productPagesFrom(products: any[]): EntityPage[] {
+  return (products || [])
+    .filter(product => typeof product?.slug === 'string' && product.slug.trim() !== '')
+    .map(product => ({
+      path: `/produit/${encodeURIComponent(product.slug)}`,
+      title: `${product.name || product.slug} | KURLA Beauty`,
+      description: String(
+        product.description
+        || `${product.name || product.slug} : composition, texture et besoins couverts, évalués sans parti pris de marque.`
+      ).slice(0, 300)
+    }));
+}
+
 export async function fetchProductPages(): Promise<EntityPage[]> {
   const url = (env('SUPABASE_URL') || env('VITE_SUPABASE_URL') || '').replace(/\/+$/, '');
   const key = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
@@ -65,19 +101,12 @@ export async function fetchProductPages(): Promise<EntityPage[]> {
     return [];
   }
   try {
-    const res = await fetch(
-      `${url}/rest/v1/products?select=id,slug,name,description,status&status=eq.published&order=slug`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = (await res.json()) as Array<{ id: string; slug: string | null; name: string; description?: string | null }>;
-    return rows
-      .filter(row => Boolean(row.slug))
-      .map(row => ({
-        path: `/produit/${encodeURIComponent(row.slug as string)}`,
-        title: `${row.name} | KURLA Beauty`,
-        description: (row.description || `${row.name} : composition, texture et besoins couverts, évalués sans parti pris de marque.`).slice(0, 300)
-      }));
+    // Import dynamique : sans base, l'initialisation ne doit pas casser le build.
+    const { serverDb } = await import('../src/lib/serverDb');
+    const products = await serverDb.getPublicProducts();
+    const pages = productPagesFrom(products);
+    console.log(`[SEO] ${pages.length} fiche(s) produit publiables retenue(s) pour le sitemap.`);
+    return pages;
   } catch (error) {
     console.log('[SEO] Lecture des produits impossible, omises :', error instanceof Error ? error.message : String(error));
     return [];
