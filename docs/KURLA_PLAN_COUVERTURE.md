@@ -569,6 +569,63 @@ Aucune URL n'était référencée ailleurs, les fiches n'étant pas publiées.
 
 ---
 
+### CHANTIER 15A — INVENTAIRE VÉRIFIÉ DE LA SURFACE D'ADMINISTRATION ✅ (réalisé le 29/08/2026)
+
+Préalable au chantier 16 : savoir ce qui existe avant de construire. Trois faits
+mesurés, aucun estimé.
+
+| Fait | Mesure |
+|---|---|
+| Routes d'administration | **30 couples méthode + chemin**, 29 chemins distincts (`/api/admin/catalog/products` porte GET et POST) |
+| Routes montées et protégées en production | **30 sur 30** — chacune sondée répond `401` avec « Authentification Supabase requise. » Aucune route morte, aucun contournement |
+| Garde de rôle avant le premier effet | **30 sur 30**, vérifié statiquement gestionnaire par gestionnaire |
+| Routes appelées par un écran | **6 sur 30**, toutes depuis `src/components/CatalogAdminPanel.tsx` |
+| Routes sans aucun appelant | **24 sur 30** |
+
+**Méthode, et pourquoi elle a été choisie**
+
+Sonder les routes d'écriture sans authentification aurait pu déclencher un effet
+réel (`POST /api/admin/maintenance/photo-purge` existe). La garde a donc été
+vérifiée **statiquement avant** le sondage : pour chaque gestionnaire, la garde
+de rôle doit précéder le premier appel au store. Les 30 étant conformes, le
+sondage sans jeton était sans risque — et c'est ce sondage qui établit qu'aucune
+route n'est morte.
+
+**Les 6 routes qui ont un écran** : `GET/POST /api/admin/catalog/products`,
+`GET /api/admin/catalog/imports`, `GET /api/admin/catalog/taxonomy`,
+`POST /api/admin/catalog/import/csv`, `POST /api/admin/catalog/import/supplier`.
+
+**Les 24 qui n'en ont pas**, par domaine : contrats et factures marque (5),
+tests marque (2), conformité éditoriale (2), créateurs (2), fidélité (3),
+gouvernance du catalogue — préparation, publication, vocabulaire, liaison
+d'ingrédients, couverture (6), vérification d'un professionnel (1), purge photo
+(1), retours produit (1), et `PATCH /api/admin/catalog/products/:productId`.
+
+Deux conséquences à retenir :
+
+1. **La modification d'un produit n'a aucun écran.** `PATCH
+   /api/admin/catalog/products/:productId` est la route par laquelle le chantier
+   14 a écrit le contenu des 14 fiches — par script, parce qu'aucune interface ne
+   l'appelle.
+2. **Le rapport de préparation et l'historique des vérifications n'ont aucun
+   écran** non plus. C'est exactement ce que le chantier 15B doit rendre visible.
+
+**Livré** : `tests/admin_route_inventory.test.ts` + fixture
+`tests/fixtures/admin_route_inventory.json` (30 routes, garde et appelants
+figés). Deux contrôles négatifs exécutés pour prouver que le banc mord : retirer
+une route de la référence fait échouer l'inventaire ; effacer les appelants
+d'une route fait échouer la dérive des appelants. `npm test` : **105 PASS / 0 FAIL**.
+
+**Non mesuré, et dit explicitement** : le comportement des 30 routes **sous une
+vraie session admin** n'a pas été testé. Le compte `superadmin` créé au chantier
+14 (`hubertbay@gmail.com`) existe, mais son mot de passe n'est pas détenu ici et
+je ne forge pas de jeton de session. Le sondage établit que les routes sont
+montées et protégées ; il n'établit pas qu'elles répondent correctement une fois
+authentifié. C'est le premier trou à refermer, et il faut pour cela soit un
+compte admin de test, soit une session fournie.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

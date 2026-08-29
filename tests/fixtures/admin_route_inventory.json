@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-08-29T11:11:29.760Z",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-contracts",
+      "file": "src/server/routes/brandContracts.ts:33",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-contracts/:contractId/countersign",
+      "file": "src/server/routes/brandContracts.ts:102",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-contracts/:contractId/invoices",
+      "file": "src/server/routes/brandContracts.ts:118",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-contracts/:contractId/terminate",
+      "file": "src/server/routes/brandContracts.ts:218",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-invoices/:invoiceId/void",
+      "file": "src/server/routes/brandContracts.ts:206",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/brand-tests",
+      "file": "src/server/routes/brandTests.ts:296",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/brand-tests/:id/review",
+      "file": "src/server/routes/brandTests.ts:304",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/:productId/ingredients",
+      "file": "src/server/routes/ingredientGraphAdmin.ts:22",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/:productId/readiness",
+      "file": "src/server/routes/catalogGovernance.ts:183",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/import/csv",
+      "file": "src/server/routes/catalogGovernance.ts:77",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:225"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/import/supplier",
+      "file": "src/server/routes/catalogGovernance.ts:93",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:240"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/imports",
+      "file": "src/server/routes/catalogGovernance.ts:46",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:145"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/ingredient-coverage",
+      "file": "src/server/routes/ingredientGraphAdmin.ts:47",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/ingredients/link-declared",
+      "file": "src/server/routes/ingredientGraphAdmin.ts:40",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/products",
+      "file": "src/server/routes/catalogGovernance.ts:28",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:143",
+        "src/components/CatalogAdminPanel.tsx:210",
+        "src/components/CatalogAdminPanel.tsx:210"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/products",
+      "file": "src/server/routes/catalogGovernance.ts:52",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:143",
+        "src/components/CatalogAdminPanel.tsx:210",
+        "src/components/CatalogAdminPanel.tsx:210"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/catalog/products/:productId",
+      "file": "src/server/routes/catalogGovernance.ts:65",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/publication-readiness",
+      "file": "src/server/routes/catalogGovernance.ts:153",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/taxonomy",
+      "file": "src/server/routes/catalogGovernance.ts:40",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/CatalogAdminPanel.tsx:144"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/vocabulary-audit",
+      "file": "src/server/routes/catalogGovernance.ts:176",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/content/articles",
+      "file": "src/server/routes/editorialCompliance.ts:21",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/content/compliance",
+      "file": "src/server/routes/editorialCompliance.ts:45",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/creators",
+      "file": "src/server/routes/creators.ts:245",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/creators/:id/review",
+      "file": "src/server/routes/creators.ts:273",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/loyalty/redemptions",
+      "file": "src/server/routes/loyalty.ts:91",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/loyalty/redemptions/:id",
+      "file": "src/server/routes/loyalty.ts:98",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/loyalty/retention",
+      "file": "src/server/routes/loyalty.ts:120",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/maintenance/photo-purge",
+      "file": "src/server/routes/privacy.ts:57",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/professionals/:professionalId/verify",
+      "file": "src/server/routes/professionals.ts:284",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/return-insights/:productId",
+      "file": "src/server/routes/chantierA.ts:225",
+      "guard": "requireAdmin(",
+      "callers": []
+    }
+  ]
+}
