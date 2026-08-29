@@ -1,6 +1,7 @@
 import { getAdminCatalogProducts, getCatalogPublicationReadinessReport } from './catalogStore';
 import { listSourcingItems, listRfqs, compareRfqResponses } from './sourcingStore';
 import { listSupplierDocuments } from './supplierStore';
+import { listBatches } from './batchStore';
 
 import type { SupabaseServerStore } from '../serverDb';
 
@@ -40,9 +41,13 @@ export interface ProductCockpitRow {
   /** Ce que le fournisseur du produit a réellement au référentiel. */
   documentsHeld: string[];
   expiredDocuments: string[];
-  /** Toujours `null` avant le chantier 16D. */
-  servedCostCents: null;
+  /**
+   * Coût servi par unité en centimes, ou `null` si aucun lot n'a été reçu.
+   * Moyenne pondérée par les quantités reçues — jamais une estimation.
+   */
+  servedCostCents: number | null;
   servedCostReason: string;
+  batchCount: number;
 }
 
 export interface SourcingWaveSummary {
@@ -73,12 +78,13 @@ export interface OperationsCockpit {
     responseCount: number;
     awardedCount: number;
   };
-  servedCostAvailable: false;
-  servedCostReason: string;
+  /** Vrai dès qu'au moins un produit a un coût servi réel. */
+  servedCostAvailable: boolean;
+  productsWithServedCost: number;
 }
 
-const SERVED_COST_REASON =
-  'Le coût servi n’est pas disponible : il suppose des lots et des prix d’achat enregistrés, ce que le chantier 16D met en place. Aucune valeur n’est estimée ici.';
+const NO_BATCH_REASON =
+  'Aucun lot reçu pour ce produit : le coût servi ne peut pas être calculé, et rien n’est estimé à la place.';
 
 export async function getOperationsCockpit(store: SupabaseServerStore): Promise<OperationsCockpit> {
   const [report, catalog, items] = await Promise.all([
@@ -103,10 +109,26 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
   const byId = new Map(catalog.map(product => [product.id, product]));
   const blockerMap = new Map<string, string[]>();
 
+  // Coût servi par produit : moyenne pondérée des lots reçus. Un produit sans
+  // lot n'a pas de coût servi, et aucun chiffre n'est avancé à la place.
+  const batches = await listBatches(store);
+  const servedCostByProduct = new Map<string, { cents: number; batchCount: number }>();
+  for (const product of catalog) {
+    const productBatches = batches.filter(batch => batch.productId === product.id);
+    if (productBatches.length === 0) continue;
+    const totalUnits = productBatches.reduce((sum, batch) => sum + batch.quantityReceived, 0);
+    const totalCost = productBatches.reduce((sum, batch) => sum + batch.quantityReceived * batch.servedCostCents, 0);
+    servedCostByProduct.set(product.id, {
+      cents: totalUnits > 0 ? Math.trunc(totalCost / totalUnits) : 0,
+      batchCount: productBatches.length
+    });
+  }
+
   const rows: ProductCockpitRow[] = report.perProduct.map(entry => {
     const product = byId.get(entry.productId);
     const supplierId = product?.supplierId;
     const documents = supplierId ? documentsBySupplier.get(supplierId) : undefined;
+    const servedCost = servedCostByProduct.get(entry.productId);
     for (const label of entry.missing) {
       const current = blockerMap.get(label) || [];
       current.push(entry.productId);
@@ -123,8 +145,11 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
       supplierName: product?.sourceSupplier,
       documentsHeld: documents?.held ?? [],
       expiredDocuments: documents?.expired ?? [],
-      servedCostCents: null,
-      servedCostReason: SERVED_COST_REASON
+      servedCostCents: servedCost?.cents ?? null,
+      servedCostReason: servedCost
+        ? `Moyenne pondérée sur ${servedCost.batchCount} lot(s) reçu(s), à partir des coûts d’achat, fret, droits et autres coûts saisis.`
+        : NO_BATCH_REASON,
+      batchCount: servedCost?.batchCount ?? 0
     };
   });
 
@@ -176,7 +201,7 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
       responseCount: responseTotal,
       awardedCount: awardedTotal
     },
-    servedCostAvailable: false,
-    servedCostReason: SERVED_COST_REASON
+    servedCostAvailable: rows.some(row => row.servedCostCents !== null),
+    productsWithServedCost: rows.filter(row => row.servedCostCents !== null).length
   };
 }

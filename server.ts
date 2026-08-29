@@ -58,6 +58,7 @@ import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGove
 import { registerSupplierRoutes } from './src/server/routes/suppliers';
 import { registerSourcingRoutes } from './src/server/routes/sourcing';
 import { registerOperationsCockpitRoutes } from './src/server/routes/operationsCockpit';
+import { registerBatchRoutes } from './src/server/routes/batches';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
@@ -1138,6 +1139,7 @@ registerCatalogGovernanceRoutes(app);
 registerSupplierRoutes(app);
 registerSourcingRoutes(app);
 registerOperationsCockpitRoutes(app);
+registerBatchRoutes(app);
 registerAiAssistantRoutes(app);
 registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);

@@ -28,6 +28,8 @@ function reset(): void {
   serverDb.inMemorySupplierDocuments = [];
   serverDb.inMemoryProducts = [];
   serverDb.inMemorySourcingItems = [];
+  serverDb.inMemoryProductBatches = [];
+  serverDb.inMemoryBatchAllocations = [];
   serverDb.inMemoryRfqs = [];
   serverDb.inMemoryRfqResponses = [];
 }
@@ -72,15 +74,36 @@ async function runCockpitTests(): Promise<void> {
   }
 
   // ---------------------------------------------------------------
-  // 2. Le coût servi n'est jamais estimé.
+  // 2. Le coût servi n'est jamais estimé : sans lot, il est null et le dit.
+  //    (Chantier 16D : la valeur devient réelle dès qu'un lot est reçu, mais
+  //    elle reste calculée à partir de coûts saisis — jamais avancée.)
   // ---------------------------------------------------------------
-  assert.equal(cockpit.servedCostAvailable, false);
-  assert.match(cockpit.servedCostReason, /16D/);
+  assert.equal(cockpit.servedCostAvailable, false, 'sans aucun lot, aucun coût servi ne doit être disponible');
+  assert.equal(cockpit.productsWithServedCost, 0);
   for (const row of cockpit.rows) {
-    assert.equal(row.servedCostCents, null, `le coût servi de ${row.productId} doit rester null`);
-    assert.equal(typeof row.servedCostReason, 'string');
-    assert.ok(row.servedCostReason.length > 20, 'la raison doit être explicite, pas un mot');
+    assert.equal(row.servedCostCents, null, `le coût servi de ${row.productId} doit rester null tant qu'aucun lot n'existe`);
+    assert.equal(row.batchCount, 0);
+    assert.match(row.servedCostReason, /Aucun lot reçu/, 'la raison doit nommer l’absence de lot');
   }
+
+  // Un lot reçu rend le coût servi réel — et la valeur est celle du calcul,
+  // pas une estimation : 1 000 unités à 350 c avec 25 000 c de fret = 375 c.
+  const shampooRow = cockpit.rows.find(row => row.slug === 'shampoing-doux');
+  assert.ok(shampooRow, 'le produit shampoing-doux doit être présent');
+  const firstBatch = await serverDb.createBatch(ADMIN, {
+    lotReference: 'LOT-COCKPIT-1', productId: shampooRow.productId,
+    quantityReceived: 1000, unitCostCents: 350, freightCents: 25000, receivedOn: '2026-08-01'
+  });
+  assert.equal(firstBatch.servedCostCents, 375);
+  cockpit = await serverDb.getOperationsCockpit();
+  assert.equal(cockpit.servedCostAvailable, true);
+  assert.equal(cockpit.productsWithServedCost, 1);
+  const withCost = cockpit.rows.find(row => row.productId === shampooRow.productId);
+  assert.equal(withCost.servedCostCents, 375, 'le cockpit doit afficher le coût servi calculé, pas une estimation');
+  assert.equal(withCost.batchCount, 1);
+  assert.match(withCost.servedCostReason, /Moyenne pondérée sur 1 lot/);
+  const stillNull = cockpit.rows.find(row => row.slug === 'masque-porosite');
+  assert.equal(stillNull.servedCostCents, null, 'un produit sans lot ne doit toujours pas avoir de coût servi');
 
   // ---------------------------------------------------------------
   // 3. Provenance et documents : seulement ce qui existe.
@@ -160,7 +183,7 @@ async function runCockpitTests(): Promise<void> {
     await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())));
   }
 
-  console.log('[PASS] Cockpit banc : blocages nommés par produit, coût servi jamais estimé, documents limités à ce qui est enregistré, provenance absente comptée à part, sourcing compté au réel, route protégée.');
+  console.log('[PASS] Cockpit banc : blocages nommés par produit, coût servi calculé à partir des lots et null sans lot, documents limités à ce qui est enregistré, provenance absente comptée à part, sourcing compté au réel, route protégée.');
 }
 
 runCockpitTests().catch(error => {

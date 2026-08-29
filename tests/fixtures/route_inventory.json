@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T16:14:22.040Z",
+  "generatedAt": "2026-08-29T16:35:11.148Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -12,6 +12,8 @@
     "DELETE /api/shelf/:itemId",
     "DELETE /api/shipping/addresses/:id",
     "GET /api/account/export",
+    "GET /api/admin/batches",
+    "GET /api/admin/batches/:batchId/trace",
     "GET /api/admin/brand-tests",
     "GET /api/admin/catalog/:productId/readiness",
     "GET /api/admin/catalog/:productId/validation",
@@ -24,6 +26,7 @@
     "GET /api/admin/content/compliance",
     "GET /api/admin/creators",
     "GET /api/admin/dashboard",
+    "GET /api/admin/double-sourcing",
     "GET /api/admin/loyalty/redemptions",
     "GET /api/admin/loyalty/retention",
     "GET /api/admin/metrics",
@@ -143,6 +146,8 @@
     "PATCH /api/routine/tasks/:taskId",
     "PATCH /api/shelf/:itemId",
     "POST /api/account/delete",
+    "POST /api/admin/batches",
+    "POST /api/admin/batches/:batchId/allocations",
     "POST /api/admin/brand-contracts",
     "POST /api/admin/brand-contracts/:contractId/countersign",
     "POST /api/admin/brand-contracts/:contractId/invoices",

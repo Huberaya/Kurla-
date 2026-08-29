@@ -106,6 +106,7 @@ import * as catalogStore from './db/catalogStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as operationsCockpit from './db/operationsCockpit';
+import * as batchStore from './db/batchStore';
 import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
@@ -176,6 +177,9 @@ export class SupabaseServerStore {
   public inMemorySuppliers: any[] = [];
   public inMemorySupplierDocuments: any[] = [];
   /** CHANTIER 16C — besoins de sourcing, demandes de prix et réponses. */
+  /** CHANTIER 16D — lots reçus et allocations lot → ligne de commande. */
+  public inMemoryProductBatches: any[] = [];
+  public inMemoryBatchAllocations: any[] = [];
   public inMemorySourcingItems: any[] = [];
   public inMemoryRfqs: any[] = [];
   public inMemoryRfqResponses: any[] = [];
@@ -246,6 +250,13 @@ export class SupabaseServerStore {
   public awardSourcingItem!: Curried<typeof sourcingStore>['awardSourcingItem'];
   // CHANTIER 15B — cockpit catalogue et approvisionnement.
   public getOperationsCockpit!: Curried<typeof operationsCockpit>['getOperationsCockpit'];
+  // CHANTIER 16D — lots, coût servi, double sourcing.
+  public createBatch!: Curried<typeof batchStore>['createBatch'];
+  public listBatches!: Curried<typeof batchStore>['listBatches'];
+  public getBatch!: Curried<typeof batchStore>['getBatch'];
+  public allocateBatchToOrderItem!: Curried<typeof batchStore>['allocateBatchToOrderItem'];
+  public getOrdersContainingBatch!: Curried<typeof batchStore>['getOrdersContainingBatch'];
+  public getDoubleSourcingReport!: Curried<typeof batchStore>['getDoubleSourcingReport'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -439,6 +450,14 @@ bindDomain(storeInstance, {
 });
 bindDomain(storeInstance, {
   getOperationsCockpit: operationsCockpit.getOperationsCockpit
+});
+bindDomain(storeInstance, {
+  createBatch: batchStore.createBatch,
+  listBatches: batchStore.listBatches,
+  getBatch: batchStore.getBatch,
+  allocateBatchToOrderItem: batchStore.allocateBatchToOrderItem,
+  getOrdersContainingBatch: batchStore.getOrdersContainingBatch,
+  getDoubleSourcingReport: batchStore.getDoubleSourcingReport
 });
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);

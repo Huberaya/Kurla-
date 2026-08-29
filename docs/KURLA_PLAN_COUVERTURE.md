@@ -958,6 +958,78 @@ une route d'API, à appeler en connaissance de cause.
 
 ---
 
+### CHANTIER 16D — LOT, COÛT SERVI, DOUBLE SOURCING ✅ (réalisé le 29/08/2026)
+
+Critère du chantier : *« quelles commandes contiennent le lot X » a une réponse
+en une requête.* C'est rempli, et la requête est littérale :
+
+```sql
+select * from public.batch_order_trace where batch_id = '<lot>';
+```
+
+**Ce qui a été construit**
+
+| Élément | Contenu |
+|---|---|
+| `supabase/migrations/20260874000000_batches.sql` | `product_batches` (19 colonnes), `order_item_batches` (6), RLS + **6 politiques**, **1 déclencheur**, **1 vue** |
+| Colonne générée `served_cost_cents` | `(quantité × coût unitaire + fret + droits + autres) / quantité` |
+| Déclencheur `enforce_batch_allocation` | Refuse les trois allocations qui rendraient la traçabilité menteuse |
+| Vue `batch_order_trace` | Jointure lot → allocation → ligne → commande, en `security_invoker` |
+| `src/lib/db/batchStore.ts` | 6 méthodes : lots, allocation, trace, rapport de double sourcing |
+| `src/server/routes/batches.ts` | **5 routes** d'administration |
+| Écran 15B | Le coût servi n'affiche plus « non disponible » : il affiche la valeur réelle |
+
+**Trois choix de conception, chacun pour une raison**
+
+1. **Le coût servi est une colonne générée**, pas un champ calculé par
+   l'application. Un coût stocké et recalculé ailleurs finit par diverger ; ici
+   il ne peut pas. Le code reproduit exactement la même division entière pour
+   que le mode mémoire dise la même chose que la base.
+2. **L'allocation est gardée par un déclencheur**, pas seulement par le code. Un
+   lot d'un autre produit, une ligne sur-allouée, un lot vidé au-delà de sa
+   quantité : refusé en base. Une traçabilité mentieuse est pire qu'aucune.
+3. **La vue est `security_invoker`.** Une vue classique s'exécute avec les droits
+   de son propriétaire et **contourne la RLS** : la traçabilité d'un lot serait
+   devenue une exposition des adresses courriel des clients à n'importe quel
+   rôle.
+
+**Le double sourcing ne se décrète pas.** « Second fournisseur qualifié »
+suppose une définition de « qualifié » : détenir tous les documents exigés par
+le besoin de sourcing rattaché. Sans besoin rattaché, la réponse est
+**indéterminée** (`null`), pas « oui » — répondre `true` dans ce cas serait
+afficher une sécurité d'approvisionnement qui n'existe pas.
+
+| Preuve | Résultat |
+|---|---|
+| Migration appliquée | 19 + 6 colonnes, **1 colonne générée**, 6 politiques, 1 déclencheur, vue avec `{security_invoker=true}` |
+| Colonne générée | 1 000 unités à 350 c avec 25 000 c de fret → **375 centimes**, lu en base |
+| Déclencheur, sur-allocation | Refus réel : *« la ligne … porte 1 unité(s), 0 déjà allouée(s), 2 demandée(s) »* |
+| Déclencheur, mauvais produit | Refus réel : *« le lot sonde-lot-3 porte le produit p6, la ligne de commande porte p1 »* |
+| **Le critère, en une requête** | La vue a renvoyé la commande réelle **`ORD-YLPQM04`**, son statut, la quantité allouée et un coût servi de **370 centimes** |
+| RLS à travers la vue | Une ligne présente dans la transaction : `anon` voit **0** ligne. Les courriels clients ne fuient pas |
+| Aucune donnée de sonde persistée | Après rollback : **0 lot, 0 allocation, 0 ligne de trace** |
+| Banc `tests/kurla_batches.test.ts` | **PASS** — coût servi calculé, trois allocations refusées, trace remontant la commande, double sourcing indéterminé plutôt que décrété, 5 routes protégées |
+| Le banc mord | **4 contrôles négatifs**. Le troisième n'a pas mordu au premier essai — mon patch ne ciblait pas la bonne occurrence et le banc est passé sur un fichier intact ; refait en ciblant la ligne précise, il tombe sur *« on ne peut pas vider un lot au-delà de sa quantité »* |
+| Le banc a corrigé mon scénario | Il a refusé une allocation que mon propre test rendait contradictoire (1 unité déjà allouée sur une ligne de 2, puis 2 demandées). Le code avait raison |
+| Inventaires | Gardes mordues puis régénérées : routes **247 → 252**, admin **43 → 48** (21 appelées / 27 orphelines), store **273 → 279** — aucune retirée |
+| Suite complète | `npm test` → **110 PASS / 0 FAIL** · `npm run build` exit 0 · `tsc --noEmit` **0 erreur** |
+
+**Non fait, et dit explicitement**
+
+- **Aucun lot n'existe en production.** Aucun achat réel n'a eu lieu, donc aucun
+  prix, aucun fret, aucun droit de douane n'est saisi. Le coût servi affiché par
+  l'écran 15B reste vide sur les 16 produits, et c'est la vérité.
+- **Aucun écran pour saisir un lot ou allouer.** Les 5 routes sont accessibles
+  par l'API seulement ; l'inventaire admin le mesure (27 orphelines). Le cockpit
+  15B **lit** le coût servi, il ne saisit pas les lots.
+- **Le rapport de double sourcing est vide** tant qu'aucun lot n'est rattaché à
+  un besoin de sourcing : il n'y a rien à qualifier.
+- **Comportement sous session admin authentifiée toujours non testé** : les 5
+  routes sont prouvées montées et protégées (401 sans jeton, aucun effet), pas
+  prouvées correctes une fois authentifié. Trou ouvert depuis le chantier 15A.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

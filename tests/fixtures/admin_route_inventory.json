@@ -1,6 +1,34 @@
 {
-  "generatedAt": "2026-08-29T16:14:22.504Z",
+  "generatedAt": "2026-08-29T16:35:11.600Z",
   "routes": [
+    {
+      "method": "GET",
+      "path": "/api/admin/batches",
+      "file": "src/server/routes/batches.ts:19",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/batches",
+      "file": "src/server/routes/batches.ts:32",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/batches/:batchId/allocations",
+      "file": "src/server/routes/batches.ts:65",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/batches/:batchId/trace",
+      "file": "src/server/routes/batches.ts:44",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
     {
       "method": "POST",
       "path": "/api/admin/brand-contracts",
@@ -187,6 +215,13 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/double-sourcing",
+      "file": "src/server/routes/batches.ts:77",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/loyalty/redemptions",
       "file": "src/server/routes/loyalty.ts:91",
       "guard": "requireAdmin(",
@@ -219,7 +254,7 @@
       "file": "src/server/routes/operationsCockpit.ts:19",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:109"
+        "src/components/OperationsCockpitPanel.tsx:110"
       ]
     },
     {
@@ -244,7 +279,7 @@
       "file": "src/server/routes/sourcing.ts:19",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:110"
+        "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
     {
@@ -253,7 +288,7 @@
       "file": "src/server/routes/sourcing.ts:45",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:110"
+        "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
     {
@@ -262,7 +297,7 @@
       "file": "src/server/routes/sourcing.ts:57",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:130"
+        "src/components/OperationsCockpitPanel.tsx:131"
       ]
     },
     {
@@ -271,7 +306,7 @@
       "file": "src/server/routes/sourcing.ts:108",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:196"
+        "src/components/OperationsCockpitPanel.tsx:197"
       ]
     },
     {
@@ -280,7 +315,7 @@
       "file": "src/server/routes/sourcing.ts:72",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:157"
+        "src/components/OperationsCockpitPanel.tsx:158"
       ]
     },
     {
@@ -289,7 +324,7 @@
       "file": "src/server/routes/sourcing.ts:96",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:181"
+        "src/components/OperationsCockpitPanel.tsx:182"
       ]
     },
     {
@@ -298,7 +333,7 @@
       "file": "src/server/routes/sourcing.ts:84",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:167"
+        "src/components/OperationsCockpitPanel.tsx:168"
       ]
     },
     {

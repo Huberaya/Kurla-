@@ -17,8 +17,9 @@ type ProductRow = {
   supplierName?: string;
   documentsHeld: string[];
   expiredDocuments: string[];
-  servedCostCents: null;
+  servedCostCents: number | null;
   servedCostReason: string;
+  batchCount: number;
 };
 
 type Cockpit = {
@@ -37,8 +38,8 @@ type Cockpit = {
     responseCount: number;
     awardedCount: number;
   };
-  servedCostAvailable: false;
-  servedCostReason: string;
+  servedCostAvailable: boolean;
+  productsWithServedCost: number;
 };
 
 type SourcingItemRow = {
@@ -203,7 +204,8 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
     { label: 'Publiables maintenant', value: cockpit.readyToPublish, tone: cockpit.readyToPublish > 0 ? 'text-emerald-300' : 'text-amber-300' },
     { label: 'Statut « publié »', value: cockpit.publishedStatus, tone: 'text-[#FFF7EF]' },
     { label: 'Publiés mais non listables', value: cockpit.publishedButNotListable, tone: cockpit.publishedButNotListable > 0 ? 'text-red-300' : 'text-[#FFF7EF]' },
-    { label: 'Sans fournisseur rattaché', value: cockpit.productsWithoutSupplier, tone: cockpit.productsWithoutSupplier > 0 ? 'text-amber-300' : 'text-emerald-300' }
+    { label: 'Sans fournisseur rattaché', value: cockpit.productsWithoutSupplier, tone: cockpit.productsWithoutSupplier > 0 ? 'text-amber-300' : 'text-emerald-300' },
+    { label: 'Avec coût servi réel', value: cockpit.productsWithServedCost, tone: cockpit.productsWithServedCost > 0 ? 'text-emerald-300' : 'text-[#FFF7EF]/50' }
   ] : [];
 
   return (
@@ -229,7 +231,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
 
       {cockpit && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {kpis.map(kpi => (
               <div key={kpi.label} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] px-4 py-3">
                 <div className={`text-2xl font-bold ${kpi.tone}`}>{kpi.value}</div>
@@ -301,13 +303,24 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                           </>
                         ) : <span className="text-[#FFF7EF]/40">aucun</span>}
                       </td>
-                      <td className="py-2 text-[#FFF7EF]/40" title={row.servedCostReason}>— non disponible</td>
+                      <td className="py-2 text-[#FFF7EF]/70" title={row.servedCostReason}>
+                        {row.servedCostCents === null
+                          ? <span className="text-[#FFF7EF]/40">aucun lot reçu</span>
+                          : <>{(row.servedCostCents / 100).toFixed(2).replace('.', ',')} €<span className="text-[#FFF7EF]/40"> · {row.batchCount} lot(s)</span></>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-[10px] text-[#FFF7EF]/40 mt-3">{cockpit.servedCostReason}</p>
+            <p className="text-[10px] text-[#FFF7EF]/40 mt-3">
+              Le coût servi est une moyenne pondérée des lots reçus, calculée à partir des coûts d'achat,
+              du fret, des droits de douane et des autres coûts saisis. Un produit sans lot n'affiche
+              aucune valeur : rien n'est estimé à la place.
+              {cockpit.servedCostAvailable
+                ? ` ${cockpit.productsWithServedCost} produit(s) sur ${cockpit.products} ont un coût servi réel.`
+                : ' Aucun lot n’est encore enregistré.'}
+            </p>
           </section>
         </>
       )}
