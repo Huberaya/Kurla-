@@ -1384,6 +1384,51 @@ Les trois champs (`AuthModal.tsx`) étaient en `type="password"` sans aucun moye
 
 `npm run build` **exit 0** · `npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · libellé du toggle présent dans le bundle produit · fichier restauré après négatifs (`diff -q` identique).
 
+## COMPLÉMENT — LES MESSAGES DE COMMIT ÉTAIENT PUBLIÉS DANS LE BUNDLE CLIENT
+
+Découvert en vérifiant le déploiement du correctif d'inscription : l'ancien message « public.profiles est actif » apparaissait encore dans le bundle déployé alors qu'il n'existait plus dans `src/`.
+
+### 1. La fuite
+
+Vercel crée automatiquement un **miroir préfixé `VITE_`** de chacune de ses variables `VERCEL_`. Or Vite inline **toute** variable `VITE_` dans le bundle client — `envPrefix` vaut `VITE_` par défaut et `import.meta.env` est émis comme un objet complet. `vite.config.ts` ne configurait ni `envPrefix` ni `define`.
+
+**19 variables mesurées dans le bundle déployé**, dont :
+
+| Variable | Valeur exposée |
+| --- | --- |
+| `VITE_VERCEL_GIT_COMMIT_MESSAGE` | le message de commit **intégral** |
+| `VITE_VERCEL_GIT_COMMIT_SHA` / `_REF` / `_PREVIOUS_SHA` | `c77bea00…`, `main` |
+| `VITE_VERCEL_GIT_REPO_OWNER` / `_SLUG` / `_ID` | `Huberaya`, `Kurla-`, `1322277927` |
+| `VITE_VERCEL_PROJECT_ID` | `prj_NOZH3rg95ppmyvKy5KAeCbBxCFtl` |
+| `VITE_VERCEL_URL` / `_BRANCH_URL` | URLs internes de déploiement |
+
+**Aucun secret n'était en jeu** — vérifié en parcourant tout l'historique (`git log --format='%H %s%n%b'` filtré sur les motifs de jeton) : aucun `ghp_`, `sb_secret_`, `sbp_`, `vcp_` ni mot de passe de base dans un message. Mais les messages de commit devenaient un **canal public** : un jeton écrit un jour dans un message aurait été publié dans la foulée, et les diagnostics internes détaillés étaient déjà lisibles par quiconque ouvre le bundle.
+
+### 2. Le correctif
+
+Purge dans `scripts/build-vercel.sh`, **avant** `vite build` :
+
+```bash
+for __vercel_var in $(env | grep -o '^VITE_VERCEL_[A-Za-z0-9_]*' || true); do
+  unset "$__vercel_var"
+done
+```
+
+Purger l'environnement plutôt que filtrer dans la config : la purge porte sur tout ce que Vercel ajoutera demain, sans liste à tenir à jour.
+
+### 3. Vérification — et un faux positif évité
+
+Premier essai : `bash scripts/build-vercel.sh` sans `node_modules/.bin` dans le PATH → `vite: command not found`, **exit 127**, et les compteurs affichaient 0 parce que **le build n'avait pas tourné**. Refait avec le PATH correct :
+
+| Contrôle | Résultat |
+| --- | --- |
+| `VITE_VERCEL_GIT_COMMIT_MESSAGE=SONDE-DE-FUITE-…` posée avant le build | build **exit 0**, `dist` régénéré |
+| `SONDE-DE-FUITE` dans `dist/assets/*.js` | **0 fichier** |
+| `VITE_VERCEL_*` dans le bundle | **0 variable** |
+| `VITE_SUPABASE_URL`, `_ANON_KEY`, `_PUBLISHABLE_KEY` | **préservés** |
+
+`npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
