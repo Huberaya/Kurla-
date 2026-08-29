@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
+import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 
 export const AdminDashboardPage: React.FC = () => {
@@ -11,7 +12,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'operations'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'operations'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
@@ -309,6 +310,7 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="flex overflow-x-auto gap-2 border-b border-[#FFF7EF]/10 pb-4">
           {[
             { id: 'analytics', label: 'Tableau de Bord Commercial', icon: TrendingUp },
+            { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
             { id: 'orders', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
             { id: 'returns', label: `Retours & Remboursements (${returnsList.length})`, icon: RotateCcw },
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
@@ -744,6 +746,17 @@ export const AdminDashboardPage: React.FC = () => {
               setActionSuccess(message);
               loadData();
               setTimeout(() => setActionSuccess(''), 4000);
+            }}
+          />
+        )}
+
+        {/* TAB 1B: PILOTAGE CATALOGUE ET APPROVISIONNEMENT — chantier 15B */}
+        {activeTab === 'cockpit' && (
+          <OperationsCockpitPanel
+            headers={adminHeaders}
+            onSuccess={(message) => {
+              setActionSuccess(message);
+              setTimeout(() => setActionSuccess(''), 5000);
             }}
           />
         )}

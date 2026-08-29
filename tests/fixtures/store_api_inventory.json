@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T15:58:16.777Z",
+  "generatedAt": "2026-08-29T16:14:23.244Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -115,6 +115,7 @@
     "getNotifications/1",
     "getOpenBrandTests/0",
     "getOpenCommunityQuestions/0",
+    "getOperationsCockpit/0",
     "getOrderById/1",
     "getOrdersByCustomer/2",
     "getOrderStatusHistory/1",

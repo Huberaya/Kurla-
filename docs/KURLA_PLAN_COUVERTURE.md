@@ -884,6 +884,80 @@ l'inventaire admin mesure : 13 appelées sur 42, 29 sans appelant.
 
 ---
 
+### CHANTIER 15B — PILOTAGE CATALOGUE ET APPROVISIONNEMENT ✅ (réalisé le 29/08/2026)
+
+Critère du chantier (§G du livrable achats) : *une personne qui ouvre l'écran
+peut répondre à « ce produit peut-il être vendu, et sinon qu'est-ce qui manque »
+sans ouvrir une base de données.*
+
+Jusqu'ici, la réponse était dispersée dans quatre endroits qui ne se parlaient
+pas : l'état de publication (chantier 14), la provenance (16A), les documents de
+conformité (16B), les besoins de sourcing (16C). L'inventaire 15A le mesurait :
+**29 routes d'administration n'avaient aucun écran**, dont le rapport de
+préparation et l'historique des vérifications.
+
+**Ce qui a été construit**
+
+| Élément | Contenu |
+|---|---|
+| `src/lib/db/operationsCockpit.ts` | `getOperationsCockpit` — une seule lecture qui réunit les quatre sources |
+| `GET /api/admin/operations/cockpit` | Route unique, limitée en débit comme le rapport de préparation dont elle hérite |
+| `src/components/OperationsCockpitPanel.tsx` | Écran : indicateurs, blocages nommés, produit par produit, approvisionnement |
+| `src/pages/AdminDashboardPage.tsx` | Nouvel onglet **« Pilotage catalogue »**, en tête de navigation |
+
+Une route d'agrégation plutôt qu'un fan-out client vers cinq routes : la réponse
+ne doit pas dépendre de l'ordre d'arrivée des appels.
+
+**Ce que l'écran répond, ligne par ligne** : le statut, un verdict binaire
+« vendable ? », **ce qui manque nommé**, la provenance, les documents détenus
+(avec ceux qui sont périmés), et le coût servi.
+
+**Deux décisions d'honnêteté, qui comptent plus que l'ergonomie**
+
+1. **Le coût servi est `null`, avec sa raison affichée.** Il suppose des lots et
+   des prix d'achat enregistrés — c'est le chantier 16D. Afficher un coût calculé
+   à partir de rien serait un chiffre inventé dans l'écran le plus regardé de
+   l'administration. Le banc vérifie que la valeur reste `null`.
+2. **Aucune liste de « documents manquants » par produit.** Un produit n'a pas
+   d'exigences documentaires propres : les exigences vivent sur le besoin de
+   sourcing. L'écran dit ce que nous **avons** pour le fournisseur du produit et
+   signale l'absence de fournisseur — il ne fabrique pas une liste d'attentes.
+
+**L'effet mesuré sur l'inventaire 15A** : les routes appelées par un écran
+passent de **13 à 21 sur 43**, les orphelines de **29 à 22**. L'écran donne un
+appelant aux 7 routes de sourcing du chantier 16C, qui n'en avaient
+volontairement aucun, plus à la sienne.
+
+| Preuve | Résultat |
+|---|---|
+| Banc `tests/kurla_operations_cockpit.test.ts` | **PASS** — blocages nommés et rattachés, coût servi jamais estimé, documents limités à ce qui est enregistré, provenance absente comptée à part, sourcing compté au réel, route protégée |
+| Le banc mord | **4 contrôles négatifs exécutés** : coût servi estimé → *« doit rester null »* ; document annoncé compté comme détenu → tombe ; blocages vidés → *« n'est pas prêt mais aucun blocage ne le nomme »* ; provenance absente non comptée → tombe |
+| Inventaires | Gardes mordues puis régénérées : routes **246 → 247**, admin **42 → 43** (21 appelées / 22 orphelines), store **272 → 273** — aucune retirée, aucune arité modifiée |
+| Suite complète | `npm test` → **109 PASS / 0 FAIL** · `npm run build` exit 0 · `tsc --noEmit` **0 erreur** |
+
+**Un choix de sécurité, explicite.** `POST /api/admin/maintenance/photo-purge`
+figure parmi les orphelines. Elle **n'a volontairement pas de bouton** : un
+écran qui déclenche une purge d'un clic est un accident qui attend. Elle reste
+une route d'API, à appeler en connaissance de cause.
+
+**Non fait, et dit explicitement**
+
+- **Le coût servi n'existe pas** : chantier 16D. L'écran le dit au lieu de
+  l'estimer.
+- **22 routes d'administration restent sans écran** — contrats et factures
+  marque, tests marque, créateurs, fidélité, conformité éditoriale, vérification
+  d'un professionnel, purge photo, liaison d'ingrédients, audit de vocabulaire,
+  couverture ingrédients. Elles ne portent pas sur la question « ce produit
+  peut-il être vendu », donc elles sortent du critère de 15B.
+- **Les 16 produits n'ont toujours aucune provenance** : `supplier_id` est vide
+  sur tout le catalogue, et l'écran l'affiche comme tel.
+- **Comportement sous session admin authentifiée toujours non testé** : la route
+  est prouvée montée et protégée (401 sans jeton), pas prouvée correcte une fois
+  authentifié. Le mot de passe du compte `superadmin` n'est pas détenu ici et je
+  ne forge pas de jeton — même trou ouvert depuis le chantier 15A.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

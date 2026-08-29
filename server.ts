@@ -57,6 +57,7 @@ import { registerRecommendationRoutes } from './src/server/routes/recommendation
 import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGovernance';
 import { registerSupplierRoutes } from './src/server/routes/suppliers';
 import { registerSourcingRoutes } from './src/server/routes/sourcing';
+import { registerOperationsCockpitRoutes } from './src/server/routes/operationsCockpit';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
@@ -1136,6 +1137,7 @@ registerRecommendationRoutes(app);
 registerCatalogGovernanceRoutes(app);
 registerSupplierRoutes(app);
 registerSourcingRoutes(app);
+registerOperationsCockpitRoutes(app);
 registerAiAssistantRoutes(app);
 registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);

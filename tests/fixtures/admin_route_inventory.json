@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T15:58:16.034Z",
+  "generatedAt": "2026-08-29T16:14:22.504Z",
   "routes": [
     {
       "method": "POST",
@@ -214,6 +214,15 @@
       "callers": []
     },
     {
+      "method": "GET",
+      "path": "/api/admin/operations/cockpit",
+      "file": "src/server/routes/operationsCockpit.ts:19",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:109"
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/admin/professionals/:professionalId/verify",
       "file": "src/server/routes/professionals.ts:284",
@@ -234,49 +243,63 @@
       "path": "/api/admin/sourcing/items",
       "file": "src/server/routes/sourcing.ts:19",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:110"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items",
       "file": "src/server/routes/sourcing.ts:45",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:110"
+      ]
     },
     {
       "method": "GET",
       "path": "/api/admin/sourcing/items/:itemId",
       "file": "src/server/routes/sourcing.ts:57",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:130"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/award",
       "file": "src/server/routes/sourcing.ts:108",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:196"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/rfqs",
       "file": "src/server/routes/sourcing.ts:72",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:157"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/responses",
       "file": "src/server/routes/sourcing.ts:96",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:181"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/send",
       "file": "src/server/routes/sourcing.ts:84",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/OperationsCockpitPanel.tsx:167"
+      ]
     },
     {
       "method": "GET",

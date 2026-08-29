@@ -105,6 +105,7 @@ import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
+import * as operationsCockpit from './db/operationsCockpit';
 import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
@@ -243,6 +244,8 @@ export class SupabaseServerStore {
   public recordRfqResponse!: Curried<typeof sourcingStore>['recordRfqResponse'];
   public compareRfqResponses!: Curried<typeof sourcingStore>['compareRfqResponses'];
   public awardSourcingItem!: Curried<typeof sourcingStore>['awardSourcingItem'];
+  // CHANTIER 15B — cockpit catalogue et approvisionnement.
+  public getOperationsCockpit!: Curried<typeof operationsCockpit>['getOperationsCockpit'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -433,6 +436,9 @@ bindDomain(storeInstance, {
   recordRfqResponse: sourcingStore.recordRfqResponse,
   compareRfqResponses: sourcingStore.compareRfqResponses,
   awardSourcingItem: sourcingStore.awardSourcingItem
+});
+bindDomain(storeInstance, {
+  getOperationsCockpit: operationsCockpit.getOperationsCockpit
 });
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);
