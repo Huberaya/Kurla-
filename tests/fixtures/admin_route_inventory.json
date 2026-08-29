@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T13:16:18.238Z",
+  "generatedAt": "2026-08-29T15:58:16.034Z",
   "routes": [
     {
       "method": "POST",
@@ -231,12 +231,61 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/sourcing/items",
+      "file": "src/server/routes/sourcing.ts:19",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/items",
+      "file": "src/server/routes/sourcing.ts:45",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sourcing/items/:itemId",
+      "file": "src/server/routes/sourcing.ts:57",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/items/:itemId/award",
+      "file": "src/server/routes/sourcing.ts:108",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/items/:itemId/rfqs",
+      "file": "src/server/routes/sourcing.ts:72",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/rfqs/:rfqId/responses",
+      "file": "src/server/routes/sourcing.ts:96",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/rfqs/:rfqId/send",
+      "file": "src/server/routes/sourcing.ts:84",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/suppliers",
       "file": "src/server/routes/suppliers.ts:27",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:95",
-        "src/components/SupplierAdminPanel.tsx:126"
+        "src/components/SupplierAdminPanel.tsx:85",
+        "src/components/SupplierAdminPanel.tsx:116"
       ]
     },
     {
@@ -245,8 +294,8 @@
       "file": "src/server/routes/suppliers.ts:67",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:95",
-        "src/components/SupplierAdminPanel.tsx:126"
+        "src/components/SupplierAdminPanel.tsx:85",
+        "src/components/SupplierAdminPanel.tsx:116"
       ]
     },
     {
@@ -255,8 +304,8 @@
       "file": "src/server/routes/suppliers.ts:55",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:113",
-        "src/components/SupplierAdminPanel.tsx:158"
+        "src/components/SupplierAdminPanel.tsx:103",
+        "src/components/SupplierAdminPanel.tsx:148"
       ]
     },
     {
@@ -265,8 +314,8 @@
       "file": "src/server/routes/suppliers.ts:87",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:113",
-        "src/components/SupplierAdminPanel.tsx:158"
+        "src/components/SupplierAdminPanel.tsx:103",
+        "src/components/SupplierAdminPanel.tsx:148"
       ]
     },
     {
@@ -275,7 +324,7 @@
       "file": "src/server/routes/suppliers.ts:99",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:180"
+        "src/components/SupplierAdminPanel.tsx:170"
       ]
     }
   ]

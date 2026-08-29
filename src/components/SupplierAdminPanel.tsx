@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Building2, FileCheck2, Package, Plus, RefreshCw, Save } from 'lucide-react';
+import { SUPPLIER_DOCUMENT_LABELS } from '../lib/sourcingDocuments';
 
 type SupplierAdminPanelProps = {
   headers: HeadersInit;
@@ -43,20 +44,9 @@ const SUPPLIER_TYPE_LABELS: Record<string, string> = {
   unknown: 'Non qualifié'
 };
 
-const DOCUMENT_TYPE_LABELS: Record<string, string> = {
-  responsible_person: 'Personne Responsable (UE)',
-  pif: 'Dossier d’information produit (PIF)',
-  cpsr: 'Rapport de sécurité (CPSR)',
-  cpnp_notification: 'Notification CPNP',
-  spf_iso_24444: 'SPF — ISO 24444',
-  uva_iso_24443: 'UVA-PF — ISO 24443',
-  oeko_tex: 'OEKO-TEX Standard 100',
-  eudr_statement: 'Déclaration EUDR',
-  microplastic_free: 'Attestation sans microplastique',
-  gmp_iso_22716: 'BPF — ISO 22716',
-  certificate_of_analysis: 'Certificat d’analyse',
-  other: 'Autre'
-};
+// Les libellés viennent de src/lib/sourcingDocuments : un même document doit
+// porter le même nom dans l'écran, dans une demande de prix et dans une fiche.
+const DOCUMENT_TYPE_LABELS = SUPPLIER_DOCUMENT_LABELS;
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   verified: { label: 'Vérifié', color: 'text-emerald-300 border-emerald-300/30 bg-emerald-300/10' },

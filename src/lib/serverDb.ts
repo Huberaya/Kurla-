@@ -104,6 +104,7 @@ import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
 import * as supplierStore from './db/supplierStore';
+import * as sourcingStore from './db/sourcingStore';
 import * as contentStore from './db/contentStore';
 import * as inventoryStore from './db/inventoryStore';
 import * as orderStore from './db/orderStore';
@@ -173,6 +174,10 @@ export class SupabaseServerStore {
   /** CHANTIER 16A — référentiel fournisseurs et preuves de conformité. */
   public inMemorySuppliers: any[] = [];
   public inMemorySupplierDocuments: any[] = [];
+  /** CHANTIER 16C — besoins de sourcing, demandes de prix et réponses. */
+  public inMemorySourcingItems: any[] = [];
+  public inMemoryRfqs: any[] = [];
+  public inMemoryRfqResponses: any[] = [];
   public inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
@@ -225,6 +230,19 @@ export class SupabaseServerStore {
   public getSupplierCompliance!: Curried<typeof supplierStore>['getSupplierCompliance'];
   public updateSupplier!: Curried<typeof supplierStore>['updateSupplier'];
   public getSupplierDetail!: Curried<typeof supplierStore>['getSupplierDetail'];
+  // CHANTIER 16C — sourcing. bindDomain est appelé sur un sous-ensemble
+  // explicite pour la même raison qu'en 16A : les fonctions pures du module
+  // (buildRfqContent) ne doivent pas être curryfiées.
+  public listSourcingItems!: Curried<typeof sourcingStore>['listSourcingItems'];
+  public getSourcingItem!: Curried<typeof sourcingStore>['getSourcingItem'];
+  public createSourcingItem!: Curried<typeof sourcingStore>['createSourcingItem'];
+  public createRfq!: Curried<typeof sourcingStore>['createRfq'];
+  public listRfqs!: Curried<typeof sourcingStore>['listRfqs'];
+  public getRfq!: Curried<typeof sourcingStore>['getRfq'];
+  public markRfqSent!: Curried<typeof sourcingStore>['markRfqSent'];
+  public recordRfqResponse!: Curried<typeof sourcingStore>['recordRfqResponse'];
+  public compareRfqResponses!: Curried<typeof sourcingStore>['compareRfqResponses'];
+  public awardSourcingItem!: Curried<typeof sourcingStore>['awardSourcingItem'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -403,6 +421,18 @@ bindDomain(storeInstance, {
   getSupplierCompliance: supplierStore.getSupplierCompliance,
   updateSupplier: supplierStore.updateSupplier,
   getSupplierDetail: supplierStore.getSupplierDetail
+});
+bindDomain(storeInstance, {
+  listSourcingItems: sourcingStore.listSourcingItems,
+  getSourcingItem: sourcingStore.getSourcingItem,
+  createSourcingItem: sourcingStore.createSourcingItem,
+  createRfq: sourcingStore.createRfq,
+  listRfqs: sourcingStore.listRfqs,
+  getRfq: sourcingStore.getRfq,
+  markRfqSent: sourcingStore.markRfqSent,
+  recordRfqResponse: sourcingStore.recordRfqResponse,
+  compareRfqResponses: sourcingStore.compareRfqResponses,
+  awardSourcingItem: sourcingStore.awardSourcingItem
 });
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);

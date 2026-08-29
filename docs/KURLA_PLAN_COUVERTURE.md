@@ -800,6 +800,90 @@ détectait aucun appelant pour les routes paramétrées, ce qui m'avait fait
 
 ---
 
+### CHANTIER 16C — LE SOURCING RÉEL, PAR VAGUE ⚠️ (réalisé le 29/08/2026, **partiellement**)
+
+Le critère du chantier, tel qu'écrit dans `docs/CHANTIER_16_APPROVISIONNEMENT.md`
+§G, est : *« chaque vague produit un RFQ structuré **envoyé**, des réponses
+**comparées**, et un fournisseur **retenu** avec ses documents. »*
+
+**Ce critère n'est pas rempli, et il ne peut pas l'être par moi.** Je n'ai ni
+boîte mail, ni mandat pour engager KURLA auprès d'un tiers, et aucune réponse de
+fournisseur n'existe. Inventer un devis, un MOQ ou un fournisseur retenu serait
+la pire chose à produire ici : ce sont des chiffres qui engagent de l'argent
+réel. Ce qui est livré, c'est ce qui rend ces trois étapes exécutables et
+traçables — plus le document que vous enverrez.
+
+**Ce qui a été construit**
+
+| Élément | Contenu |
+|---|---|
+| `supabase/migrations/20260873000000_sourcing.sql` | `sourcing_items` (12 colonnes), `rfqs` (11), `rfq_responses` (12), RLS + **9 politiques**, **4 contraintes** |
+| `src/lib/db/sourcingStore.ts` | 10 méthodes : besoins, demandes, envoi, réponses, comparaison, attribution |
+| `src/lib/sourcingRfq.ts` | Générateur du contenu réellement envoyable |
+| `src/lib/sourcingDocuments.ts` | Libellés et **motifs réglementaires** des documents — source unique partagée avec l'écran 16B |
+| `src/server/routes/sourcing.ts` | **7 routes** d'administration |
+| `scripts/seedSourcingWaves.ts` | Applicateur de la vague 1, dry-run puis `--apply` |
+| `scripts/generateRfqDocuments.ts` | Produit les fichiers `docs/sourcing/*.md` |
+| `docs/sourcing/` | **3 demandes de prix réelles**, prêtes à compléter |
+
+**Les trois règles, toutes du même côté que le reste du chantier 16**
+
+1. **Aucun chiffre n'est déduit.** Prix, MOQ et délai sont NULLables : une
+   réponse peut ne pas chiffrer. Un devis complété par la plateforme serait une
+   invention — et un devis inventé est pire qu'un devis manquant.
+2. **« Envoyé » exige un destinataire existant et une date.** Contrôlé par le
+   code et par deux contraintes en base (`rfq_sent_needs_supplier`,
+   `rfq_sent_needs_date`).
+3. **Retenir un fournisseur exige les documents enregistrés.** Un CPSR annoncé
+   dans un devis ne suffit pas : tant que le fichier et sa date ne sont pas au
+   référentiel, la sélection est **refusée**. La comparaison, elle, **ne classe
+   pas et ne désigne pas de gagnant** — décider reste un acte humain.
+
+**La vague 1, enregistrée en production** — les trois besoins viennent de §B.2
+et §G du livrable, rien n'a été ajouté :
+
+| Besoin | Documents exigés | Motif |
+|---|---|---|
+| `vague-1-apres-shampoing-rince` | 7 | Trou n°1 : le catalogue lave et scelle, mais ne démêle pas sous la douche |
+| `vague-1-shampoing-clarifiant` | 7 | Trou n°2 : le « à éviter si » de p2 promet un besoin non couvert |
+| `vague-1-faconnier-soins-cheveux` | 5 | Aucun des 16 produits n'a de fournisseur rattaché |
+
+Les deux produits rincés exigent l'attestation sans microplastique :
+l'interdiction AGEC est **en vigueur depuis le 1er janvier 2026**, ce n'est pas
+une marge de négociation.
+
+| Preuve | Résultat |
+|---|---|
+| Migration appliquée | 12 / 11 / 12 colonnes, 9 politiques, 4 contraintes, RLS actif sur les 3 tables |
+| Vague 1 écrite | `--apply` puis **relecture SQL indépendante** : 3 lignes, statuts `to_source`, 7 / 7 / 5 documents |
+| Documents générés | 3 fichiers, 4 222 à 4 420 caractères, **6 champs `⟨à compléter⟩` chacun** — le script échoue si ce nombre tombe à zéro, ce qui signalerait une donnée inventée |
+| Banc `tests/kurla_sourcing.test.ts` | **PASS** — 7 blocs |
+| Le banc mord | **4 contrôles négatifs exécutés** : sélection sans documents → l'assertion tombe ; valeur absente valant 0 → tombe sur *« sans prix et sans note »* ; placeholder remplacé par une identité inventée → *« ce qui est inconnu doit être marqué, pas inventé »* ; réponse sur un brouillon → l'assertion tombe |
+| Un bug trouvé par le banc | L'identifiant généré donnait `apr-s-shampoing-rinc-` : les diacritiques n'étaient pas retirés avant le filtrage, et la troncature laissait un tiret final. Corrigé |
+| Inventaires | Gardes mordues puis régénérées : routes **239 → 246**, admin **35 → 42**, store **262 → 272** — aucune retirée, aucune arité modifiée |
+| Suite complète | `npm test` → **108 PASS / 0 FAIL** · `npm run build` exit 0 · `tsc --noEmit` **0 erreur** |
+
+**Frontière de périmètre respectée** : l'écran d'envoi de RFQ et l'historique
+des échanges sont, d'après §G, le périmètre du **chantier 15B** — pas de 16C.
+Les 7 nouvelles routes n'ont donc **volontairement aucun écran**, ce que
+l'inventaire admin mesure : 13 appelées sur 42, 29 sans appelant.
+
+**Non fait, et dit explicitement**
+
+- **Rien n'a été envoyé.** Aucune demande de prix n'existe en base : les
+  fichiers sont générés, les demandes se créeront au moment de l'envoi pour que
+  le contenu stocké soit exactement celui qui est parti.
+- **Aucun fournisseur n'a été contacté, aucun n'a répondu, aucun n'est retenu.**
+  Aucun prix, aucun MOQ, aucun délai n'existe dans la plateforme.
+- **Les champs `⟨à compléter⟩` sont à remplir par un humain** : interlocuteur,
+  courriel de réponse, date limite, et surtout la **spécification technique** —
+  sans cahier des charges, un façonnier ne peut pas chiffrer.
+- **Comportement sous session admin authentifiée toujours non testé** : les 7
+  routes sont prouvées montées et protégées (401 sans jeton, aucun effet), pas
+  prouvées correctes une fois authentifié.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
