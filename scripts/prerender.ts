@@ -28,7 +28,7 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { ROUTE_META, indexableRoutes } from '../src/lib/routeMeta';
+import { ROUTE_META } from '../src/lib/routeMeta';
 import type { RouteMeta } from '../src/lib/routeMeta';
 import { EN_ROUTE_CONTENT, englishBasePaths, localizeRouteMeta } from '../src/lib/routeTranslations';
 import { localizedPath, splitLocale, type Locale } from '../src/lib/i18n';
@@ -129,7 +129,12 @@ export function buildRouteHtml(
     title: route.title,
     description: route.description,
     canonical,
-    indexable: true,
+    /**
+     * `indexable: false` veut dire « ne pas référencer », PAS « ne pas produire
+     * de fichier ». Codé à `true`, ce drapeau faisait écrire un `index, follow`
+     * sur des pages qui n'étaient de toute façon jamais générées — voir main().
+     */
+    indexable: route.indexable !== false,
     ogType: route.path === '/' ? 'website' : 'article',
     ogLocale: OG_LOCALE[locale],
     imageUrl: `${siteUrl}/og-default.png`,
@@ -154,7 +159,21 @@ export function buildRouteHtml(
 
 async function main(): Promise<void> {
   const template = await readFile('dist/index.html', 'utf8');
-  const routes = indexableRoutes().filter(route => !route.path.includes(':'));
+  /**
+   * TOUTES les routes, pas seulement les indexables.
+   *
+   * `vercel.json` réécrit `/(.*)` vers `/api` : une URL ne répond que si un
+   * fichier prérendu existe. Filtrer sur `indexable` laissait donc 24 routes
+   * sans fichier — dont `/admin` et `/account`. Mesuré en production :
+   * `/admin`, `/account` et `/admin/texture-gap` renvoyaient
+   * `404 {"code":"API_ROUTE_NOT_FOUND"}`, et le lien « Administration KURLA »
+   * de la barre de navigation est un `<a href>` (navigation complète), donc le
+   * tableau de bord était inaccessible même depuis l'interface.
+   *
+   * Le sitemap, lui, reste filtré sur les routes indexables : c'est le rôle de
+   * `generateSitemap.ts`, pas du prérendu.
+   */
+  const routes = ROUTE_META.filter(route => !route.path.includes(':'));
 
   let written = 0;
   for (const route of routes) {
@@ -191,7 +210,9 @@ async function main(): Promise<void> {
   // langue — cf. la règle de routeTranslations.ts.
   let english = 0;
   for (const basePath of englishBasePaths()) {
-    const base = indexableRoutes().find(route => route.path === basePath);
+    // Même règle que ci-dessus : une route traduite non indexable a elle aussi
+    // besoin de son fichier, sinon `/en/…` retombe sur l'API.
+    const base = ROUTE_META.find(route => route.path === basePath);
     if (!base || base.path.includes(':')) continue;
     const copy = EN_ROUTE_CONTENT[basePath];
     const meta: RouteMeta = {

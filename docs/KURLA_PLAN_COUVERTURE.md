@@ -1263,6 +1263,47 @@ Publiés par `scripts/publishReadyProducts.ts` — qui ne publie **que** ce que 
 
 `npm run build` **exit 0** · `npm test` **exit 0, 111 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · `resolveDeclaredIngredients.ts` idempotent (rejoué : 0 échec) · sonde de crible supprimée après usage.
 
+## COMPLÉMENT — LE TABLEAU DE BORD ADMIN ÉTAIT INACCESSIBLE EN PRODUCTION
+
+Signalé par une question toute simple : « comment avoir accès au dashboard admin ? » La réponse mesurée était « vous ne pouvez pas ».
+
+### 1. Le constat
+
+```
+GET /admin              → 404 {"code":"API_ROUTE_NOT_FOUND"}
+GET /account            → 404
+GET /admin/texture-gap  → 404
+GET /                   → 200
+```
+
+`vercel.json` réécrit `/(.*)` vers `/api` : **une URL ne répond que si un fichier prérendu existe.** Or `scripts/prerender.ts` ne générait que `indexableRoutes()` — les routes avec `indexable: true`. Les **24 routes non indexables** n'avaient donc aucun fichier : `/admin`, `/account` et ses 14 sous-pages, `/recherche`, `/routine-builder`, `/pro/dashboard`, `/famille`…
+
+Et le repli client ne sauvait rien : le lien « Administration KURLA » de la barre de navigation est un `<a href="/admin">` (`Navbar.tsx:297`), une **navigation complète**, pas un lien client. Le tableau de bord était inaccessible **même depuis l'interface**, pour le seul superadmin existant.
+
+### 2. La confusion corrigée
+
+`indexable: false` veut dire **« ne pas référencer »**, pas **« ne pas produire de fichier »**. Le prérendu mélangeait les deux, et `buildRouteHtml` écrivait `indexable: true` **en dur** — alors que `applySeoHead` sait depuis toujours émettre `noindex, nofollow` (`seoHead.ts:84`). La machinerie existait ; elle n'était jamais appelée.
+
+Trois lignes changées dans `scripts/prerender.ts` : le drapeau suit la route, la boucle principale parcourt `ROUTE_META` au lieu d'`indexableRoutes()`, idem pour les versions anglaises.
+
+**Le sitemap n'est pas touché** : `generateSitemap.ts` filtre toujours sur `indexableRoutes()`. Vérifié après build — `dist/sitemap.xml` contient **0** `/admin` et **0** `/account`.
+
+### 3. Vérification
+
+| Contrôle | Résultat |
+| --- | --- |
+| `dist/admin/index.html` | présent, `robots: noindex, nofollow` |
+| `dist/account/index.html` | présent, `robots: noindex, nofollow` |
+| `dist/index.html` | inchangé, `robots: index, follow` |
+| Pages prérendues | 26 → **53** (50 statiques + 3 anglaises) |
+| `dist/sitemap.xml` | 28 URLs, 0 route non indexable |
+| `npm test` | **exit 0, 111 PASS / 0 FAIL** |
+| `tsc --noEmit` | **exit 0** |
+
+### 4. Portée
+
+Ce n'est pas un bug d'admin : **toute la zone authentifiée du site était inaccessible en accès direct** — compte client, recherche, constructeur de routine, espace pro. Une page protégée par un rôle ne doit pas pour autant être absente du disque : la garde est à l'exécution, pas dans la liste des fichiers générés.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
