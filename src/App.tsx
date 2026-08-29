@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { SearchModal } from './components/SearchModal';
 import { AiAssistantWidget } from './components/AiAssistantWidget';
+import { PasswordRecoveryPanel } from './components/PasswordRecoveryPanel';
 import { CartItem, Product, ProductVariant } from './types';
 
 function AppContent() {
@@ -256,6 +257,14 @@ function AppContent() {
         />
 
         <AiAssistantWidget />
+
+        {/*
+          Monté au niveau de l'application, pas d'une page : le lien de
+          réinitialisation dépose l'utilisateur sur le site à la racine
+          (`site_url` + fragment), sans `redirect_to` garanti. Limité à la page
+          compte, le panneau n'aurait été atteint par personne.
+        */}
+        <PasswordRecoveryPanel />
       </div>
   );
 }

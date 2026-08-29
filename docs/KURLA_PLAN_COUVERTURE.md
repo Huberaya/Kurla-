@@ -1475,6 +1475,58 @@ Déclenché à la main par `POST /v13/deployments` avec `gitSource` → `dpl_Cs1
 
 `npm run build` **exit 0** · `npm test` **exit 0, 113 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · libellé du panneau présent dans le bundle · fichier restauré après contrôle négatif (`diff -q` identique).
 
+## COMPLÉMENT — INSCRIPTION ET CONNEXION : CORRECTION EFFECTUÉE
+
+### 1. Site URL corrigée et vérifiée par la mesure
+
+La Management API, inaccessible avec la clé secrète (`401 JWT could not be decoded`), l'est avec un jeton `sbp_…` :
+
+```
+GET /v1/projects/qzwgsarfdegqtfdnqiql/config/auth → 200
+  site_url               = http://localhost:3000
+  uri_allow_list         = (vide)
+  external_email_enabled = True
+  smtp_host / smtp_port / smtp_user / smtp_admin_email = None
+  smtp_pass              = (vide)
+  smtp_max_frequency     = 60
+```
+
+```
+PATCH …/config/auth {"site_url":"https://kurlabeauty.vercel.app",
+                     "uri_allow_list":"https://kurlabeauty.vercel.app/**,http://localhost:3000/**"} → 200
+```
+
+Vérification par la mesure qui avait révélé le défaut — en-tête lu, redirection **non suivie**, jetons non extraits :
+
+```
+location: https://kurlabeauty.vercel.app#<masqué>     (avant : http://localhost:3000#…)
+```
+
+### 2. Cause de non-livraison mesurée
+
+`external_email_enabled: True` **sans aucun champ SMTP renseigné** ⇒ GoTrue retombe sur le SMTP intégré de Supabase, à plafond horaire. Démontré en direct :
+
+```
+POST /auth/v1/recover → 429 {"error_code":"over_email_send_rate_limit"}   ×2
+```
+
+La seconde réponse dit explicitement « email rate limit exceeded ». **Le SMTP personnalisé n'est pas optionnel.** Il reste à renseigner (`smtp_host`, `smtp_port`, `smtp_user`, `smtp_pass`, `smtp_admin_email`) — bloqué sur la clé du fournisseur, illisible d'ici : `GET /v9/projects/{id}/env?decrypt=true` renvoie pour ce projet l'enveloppe chiffrée Vercel (`{"v":"v2","c":…}`), pas la valeur. Aucun secret réel n'a été exposé.
+
+### 3. `redirect_to` n'est pas propagé par `generate_link`
+
+```
+redirect_to = https://kurlabeauty.vercel.app/account → ABSENT du fragment
+redirect_to = http://localhost:3000/account          → ABSENT du fragment
+```
+
+Absent pour **les deux** URL, y compris l'ancienne Site URL : ce n'est donc pas la liste de redirection mais une limite de l'endpoint admin `generate_link`. Le lien dépose l'utilisateur **à la racine du site**, pas sur `/account`.
+
+Conséquence corrigée : `PasswordRecoveryPanel` est monté dans `App.tsx` (toutes les routes), plus dans `CustomerAccountPage`. Le banc `kurla_password_recovery` asserte désormais le montage global **et** l'absence de double montage. Contrôle négatif lu : panneau retiré de `App.tsx` → `[FAIL] la réinitialisation redeviendrait une impasse`.
+
+### 4. Vérification
+
+`site_url` mesurée après PATCH · `npm run build` **exit 0** · `npm test` **exit 0, 113 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · fichier restauré après contrôle négatif (`diff -q` identique).
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
