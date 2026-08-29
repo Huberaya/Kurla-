@@ -1136,6 +1136,65 @@ Ce qui est établi sans la base :
 
 `npm run build` **exit 0** · `npm test` **exit 0, 111 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · inventaires inchangés (**253** routes / **49** couples admin / **280** méthodes — aucune route ni méthode ajoutée) · fichier restauré après contrôles négatifs : `diff -q` identique, `grep -c "CONTRÔLE NÉGATIF"` = **0**.
 
+## COMPLÉMENT — LES 11 PRODUITS `unavailable` : BLOCAGE MESURÉ, PAS DEVINÉ
+
+Diagnostic exécuté le 29/08/2026 sur la base réelle, avec `scripts/diagnoseCatalogBlockers.ts` (nouveau) et `scripts/verifyCatalogPublication.ts` (existant). **Lecture seule, aucune écriture.**
+
+### 1. Le verdict agrégé
+
+```
+Catalogue : 16 produits — 3 au statut published, 3 prêts à publier.
+Périmètre (hors p14, p15, exclus volontairement) : 14 produits — 3 prêts, 11 bloqués.
+```
+
+**Les 11 produits butent tous sur un seul et même contrôle : `ingredients`.** Les six autres contrôles (allégations, visuels, stock, certifications, traductions, marque) sont `passed` sur les 11. Et `publishedButNotListable = 0` : aucun produit au statut `published` n'est non servable, le sitemap est cohérent.
+
+### 2. Le motif exact, produit par produit
+
+Le contrôle (`verifyCatalogPublication.ts:93`) exige que **chaque mention déclarée** se résolve à une entité rattachée, par comparaison pliée (casse, diacritiques, apostrophes) contre l'INCI **et** les noms usuels. Voici les mentions qui ne se résolvent pas — **la liste exhaustive, 14 mentions** :
+
+| Produit | Mention non résolue | Nature réelle du blocage |
+| --- | --- | --- |
+| p1 | Protéine de Soie végétale | **Terme contradictoire** : la soie est animale. `Hydrolyzed Silk` ou `Hydrolyzed Vegetable Protein`, pas les deux. |
+| p2 | Aloe Vera Pur | **Qualificatif marketing.** L'entité `Aloe Barbadensis Leaf Juice` (usuels « aloe vera ») existe déjà. |
+| p3 | Acide Hyaluronique capillaire ; Kératine végétale | `Sodium Hyaluronate` **ou** `Hyaluronic Acid` ; « kératine végétale » est un terme marketing, la kératine est animale. |
+| p4 | Aloe Vera Pur ; Extrait d'Arbre à Thé | Idem p2 ; `Melaleuca Alternifolia Leaf Oil` existe (usuels « huile d'arbre à thé, tea tree »). |
+| p5 | Vitamine E | **Deux INCI possibles** : `Tocopherol` ou `Tocopheryl Acetate`. |
+| p6 | Filtres Solaires Organiques invisibles ; Vitamine E | **Une catégorie, pas un ingrédient.** Un SPF 50+ doit nommer ses filtres UV. |
+| p7 | Satin de Soie Synthétique Haute Densité Non Absorbant | **Matériau textile**, pas un INCI. |
+| p8 | Matériau Ergonomique Souple | **Matériau**, pas un INCI. |
+| p11 | Aloe Vera Bio | Idem p2, **plus une allégation bio** sans certification rattachée. |
+| p12 | Satin Grade A | **Matériau textile**, pas un INCI. |
+| p16 | 100% Soie de Mûrier Grade 6A | **Matériau textile**, pas un INCI. |
+
+Référentiel au moment du diagnostic : **33 entités**, dont ni `Tocopherol` ni `Sodium Hyaluronate` (vérifié par requête). **31 liaisons** produit↔ingrédient.
+
+### 3. Pourquoi je ne les publie pas
+
+**Aucune de ces 14 mentions ne peut être résolue sans une information qui n'existe pas dans le dépôt** : une formule réelle, une étiquette, ou une fiche matière. La note du contrôle le dit elle-même : *« À créer dans le référentiel ou à corriger dans la fiche — jamais deviné. »*
+
+Trois cas se distinguent :
+
+- **Qualificatifs marketing** (p2, p4, p11) : l'entité existe, c'est la mention qui est fautive. Corriger la fiche est possible, mais c'est un acte éditorial — et « Bio » (p11) est une allégation qui exige une certification.
+- **Termes ambigus ou contradictoires** (p1, p3, p5) : choisir un INCI serait inventer la formule.
+- **Pas des ingrédients** (p6, p7, p8, p12, p16) : pour p6 c'est un trou réel de formulation ; pour les quatre accessoires, le contrôle cosmétique ne s'applique pas à un matériau — c'est une question de conception, pas de donnée.
+
+**Conclusion : les 11 produits restent `unavailable`, et le sitemap a raison de ne pas les annoncer.** Les publier exigerait d'écrire `verified` sur des compositions qui n'existent pas.
+
+### 4. Ce qui est exécutable d'ici, et ce qui ne l'est pas
+
+| Capacité | État | Preuve |
+| --- | --- | --- |
+| Lire la base | ✅ | `GET /rest/v1/products` → HTTP 200, 16 lignes |
+| Écrire des données (DML) | ✅ | INSERT sur `ingredients` refusé par `23502` (contrainte NOT NULL), **pas** par `42501` (droits) |
+| Appliquer une migration (DDL) | ❌ | RPC `exec_sql` → **HTTP 404 `PGRST202`** ; `psql` absent ; port 5432 **injoignable** depuis le bac à sable |
+
+Donc : créer une entité d'ingrédient est possible en données, **mais pas de façon traçable** — l'historique des migrations ne la porterait pas. Une sonde d'écriture a été tentée puis vérifiée absente (`id=eq.sonde-supprimer` → `[]`).
+
+### 5. Outil livré
+
+`scripts/diagnoseCatalogBlockers.ts` — lecture seule, réutilisable. Il n'implémente **aucune** règle : il appelle `getCatalogPublicationReadinessReport`, la fonction même de l'écran de validation. Il regroupe les blocages par motif, distingue p14/p15 (exclus volontairement) du reste, et signale tout produit `published` mais non servable.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
