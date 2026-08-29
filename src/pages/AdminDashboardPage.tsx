@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
+import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 
 export const AdminDashboardPage: React.FC = () => {
@@ -12,7 +13,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'operations'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
@@ -317,6 +318,7 @@ export const AdminDashboardPage: React.FC = () => {
             { id: 'pros', label: 'Certifications Pros', icon: Users },
             { id: 'catalog', label: 'Catalogue produits', icon: Package },
             { id: 'suppliers', label: 'Approvisionnement', icon: Truck },
+            { id: 'batches', label: 'Lots et traçabilité', icon: Boxes },
             { id: 'operations', label: 'Gestion quotidienne', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;
@@ -767,6 +769,18 @@ export const AdminDashboardPage: React.FC = () => {
             headers={adminHeaders}
             onSuccess={(message) => {
               setActionSuccess(message);
+              setTimeout(() => setActionSuccess(''), 5000);
+            }}
+          />
+        )}
+
+        {/* TAB 5C: LOTS ET TRAÇABILITÉ — écran du chantier 16D */}
+        {activeTab === 'batches' && (
+          <BatchAdminPanel
+            headers={adminHeaders}
+            onSuccess={(message) => {
+              setActionSuccess(message);
+              loadData();
               setTimeout(() => setActionSuccess(''), 5000);
             }}
           />

@@ -18,7 +18,7 @@ import { computeServedCostCents, memoryOrderItemKey } from '../src/lib/db/batchS
  *  3. la trace remonte bien la commande qui contient le lot ;
  *  4. le double sourcing ne se décrète pas : sans besoin de sourcing rattaché,
  *     la réponse est **indéterminée**, pas « oui » ;
- *  5. les 5 routes sont montées et protégées, sans effet.
+ *  5. les 6 routes sont montées et protégées, sans effet.
  *
  * Le coût servi attendu ici (375 centimes pour 1 000 unités à 3,50 € avec
  * 250 € de fret) est la valeur que la colonne générée en base a réellement
@@ -158,6 +158,25 @@ async function runBatchTests(): Promise<void> {
   assert.deepEqual(emptyTrace, [], 'un lot inconnu ne remonte aucune commande');
 
   // ---------------------------------------------------------------
+  // 3bis. Les lignes allouables exposent la capacité restante réelle.
+  // ---------------------------------------------------------------
+  let allocatable = await serverDb.listAllocatableOrderItems(shampoo.id);
+  assert.equal(allocatable.length, 1, 'une ligne de commande porte ce produit');
+  assert.equal(allocatable[0].orderId, 'ORD-TEST-1');
+  assert.equal(allocatable[0].orderedQuantity, 3);
+  // 1 unité du petit lot + 2 du grand ont été allouées plus haut.
+  assert.equal(allocatable[0].allocatedQuantity, 3);
+  assert.equal(allocatable[0].remainingQuantity, 0, 'rien ne doit rester à allouer');
+
+  const maskLines = await serverDb.listAllocatableOrderItems(mask.id);
+  assert.equal(maskLines.length, 1);
+  assert.equal(maskLines[0].remainingQuantity, 1, 'la ligne de masque n’a rien d’alloué');
+
+  const noProduct = await serverDb.listAllocatableOrderItems('')
+    .then(() => null).catch(error => error);
+  assert.match(String(noProduct?.message), /produit est obligatoire/);
+
+  // ---------------------------------------------------------------
   // 4. Le double sourcing ne se décrète pas.
   // ---------------------------------------------------------------
   let report = await serverDb.getDoubleSourcingReport();
@@ -209,7 +228,7 @@ async function runBatchTests(): Promise<void> {
   assert.ok(batch2.id);
 
   // ---------------------------------------------------------------
-  // 5. Les 5 routes : montées, protégées, sans effet.
+  // 5. Les 6 routes : montées, protégées, sans effet.
   // ---------------------------------------------------------------
   reset();
   const listener = (await import('../server')).app.listen(0, '127.0.0.1');
@@ -225,7 +244,8 @@ async function runBatchTests(): Promise<void> {
       ['POST', '/api/admin/batches', { lotReference: 'SONDE', productId: 'sonde', quantityReceived: 10, unitCostCents: 100, receivedOn: '2026-08-01' }],
       ['GET', '/api/admin/batches/sonde/trace', undefined],
       ['POST', '/api/admin/batches/sonde/allocations', { orderItemId: 'sonde', quantity: 1 }],
-      ['GET', '/api/admin/double-sourcing', undefined]
+      ['GET', '/api/admin/double-sourcing', undefined],
+      ['GET', '/api/admin/order-items?productId=sonde', undefined]
     ];
     for (const [method, path, body] of probes) {
       const response = await fetch(`${baseUrl}${path}`, {
@@ -243,7 +263,7 @@ async function runBatchTests(): Promise<void> {
     await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())));
   }
 
-  console.log('[PASS] Lots banc : coût servi calculé et identique à la base, allocation refusant les trois traçabilités menteuses, trace remontant la commande, double sourcing indéterminé plutôt que décrété, 5 routes protégées.');
+  console.log('[PASS] Lots banc : coût servi calculé et identique à la base, allocation refusant les trois traçabilités menteuses, trace remontant la commande, lignes allouables à capacité restante exacte, double sourcing indéterminé plutôt que décrété, 6 routes protégées.');
 }
 
 runBatchTests().catch(error => {

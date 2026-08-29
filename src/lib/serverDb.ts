@@ -257,6 +257,7 @@ export class SupabaseServerStore {
   public allocateBatchToOrderItem!: Curried<typeof batchStore>['allocateBatchToOrderItem'];
   public getOrdersContainingBatch!: Curried<typeof batchStore>['getOrdersContainingBatch'];
   public getDoubleSourcingReport!: Curried<typeof batchStore>['getDoubleSourcingReport'];
+  public listAllocatableOrderItems!: Curried<typeof batchStore>['listAllocatableOrderItems'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
@@ -457,7 +458,8 @@ bindDomain(storeInstance, {
   getBatch: batchStore.getBatch,
   allocateBatchToOrderItem: batchStore.allocateBatchToOrderItem,
   getOrdersContainingBatch: batchStore.getOrdersContainingBatch,
-  getDoubleSourcingReport: batchStore.getDoubleSourcingReport
+  getDoubleSourcingReport: batchStore.getDoubleSourcingReport,
+  listAllocatableOrderItems: batchStore.listAllocatableOrderItems
 });
 bindDomain(storeInstance, contentStore);
 bindDomain(storeInstance, inventoryStore);

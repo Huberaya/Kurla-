@@ -1,33 +1,43 @@
 {
-  "generatedAt": "2026-08-29T16:35:11.600Z",
+  "generatedAt": "2026-08-29T16:50:34.607Z",
   "routes": [
     {
       "method": "GET",
       "path": "/api/admin/batches",
       "file": "src/server/routes/batches.ts:19",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:107",
+        "src/components/BatchAdminPanel.tsx:158"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/batches",
       "file": "src/server/routes/batches.ts:32",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:107",
+        "src/components/BatchAdminPanel.tsx:158"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/batches/:batchId/allocations",
       "file": "src/server/routes/batches.ts:65",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:193"
+      ]
     },
     {
       "method": "GET",
       "path": "/api/admin/batches/:batchId/trace",
       "file": "src/server/routes/batches.ts:44",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:142"
+      ]
     },
     {
       "method": "POST",
@@ -139,6 +149,7 @@
       "file": "src/server/routes/catalogGovernance.ts:29",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:108",
         "src/components/CatalogAdminPanel.tsx:143",
         "src/components/CatalogAdminPanel.tsx:210"
       ]
@@ -149,6 +160,7 @@
       "file": "src/server/routes/catalogGovernance.ts:53",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:108",
         "src/components/CatalogAdminPanel.tsx:143",
         "src/components/CatalogAdminPanel.tsx:210"
       ]
@@ -216,9 +228,11 @@
     {
       "method": "GET",
       "path": "/api/admin/double-sourcing",
-      "file": "src/server/routes/batches.ts:77",
+      "file": "src/server/routes/batches.ts:96",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:111"
+      ]
     },
     {
       "method": "GET",
@@ -258,6 +272,15 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/api/admin/order-items",
+      "file": "src/server/routes/batches.ts:82",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/BatchAdminPanel.tsx:146"
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/admin/professionals/:professionalId/verify",
       "file": "src/server/routes/professionals.ts:284",
@@ -279,6 +302,7 @@
       "file": "src/server/routes/sourcing.ts:19",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:110",
         "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
@@ -288,6 +312,7 @@
       "file": "src/server/routes/sourcing.ts:45",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:110",
         "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
@@ -342,6 +367,7 @@
       "file": "src/server/routes/suppliers.ts:27",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:109",
         "src/components/SupplierAdminPanel.tsx:85",
         "src/components/SupplierAdminPanel.tsx:116"
       ]
@@ -352,6 +378,7 @@
       "file": "src/server/routes/suppliers.ts:67",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/BatchAdminPanel.tsx:109",
         "src/components/SupplierAdminPanel.tsx:85",
         "src/components/SupplierAdminPanel.tsx:116"
       ]

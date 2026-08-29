@@ -1030,6 +1030,48 @@ afficher une sécurité d'approvisionnement qui n'existe pas.
 
 ---
 
+### COMPLÉMENT 16D — ÉCRAN DE SAISIE DES LOTS ✅ (réalisé le 29/08/2026)
+
+Le chantier 16D avait laissé ses 5 routes sans écran : saisir un lot ou allouer
+une quantité exigeait d'appeler l'API à la main, et allouer exigeait de connaître
+un uuid de ligne de commande. Ce complément referme ces deux trous.
+
+| Élément | Contenu |
+|---|---|
+| `listAllocatableOrderItems` | Les lignes de commande d'un produit, avec ce qui reste à allouer |
+| `GET /api/admin/order-items` | La route qui les expose — **aucune route n'exposait `order_items.id`** |
+| `src/components/BatchAdminPanel.tsx` | Écran : saisie d'un lot, liste, traçabilité, allocation, double sourcing |
+| `src/pages/AdminDashboardPage.tsx` | Nouvel onglet **« Lots et traçabilité »** |
+
+**La règle que l'écran ne contourne pas** : le coût servi se saisit en euros et
+se calcule en base. Rien n'est proposé par défaut, aucun prix n'est suggéré —
+un coût saisi au hasard fausserait toute la marge affichée ensuite.
+
+**Effet mesuré sur l'inventaire 15A** : routes appelées par un écran
+**21 → 27 sur 49**, orphelines **27 → 22**. L'écran donne un appelant aux
+5 routes de 16D plus à la nouvelle.
+
+| Preuve | Résultat |
+|---|---|
+| Banc étendu | `tests/kurla_batches.test.ts` **PASS** — les lignes allouables renvoient la capacité restante exacte (3 commandées, 3 allouées, **0 restante**) et la ligne de masque **1 restante** |
+| Le contrôle mord | Falsifier la capacité restante fait tomber l'assertion : `actual: 3, expected: 0`. **Première tentative invalide** : mon patch mettait la virgule dans le commentaire, le fichier ne compilait plus et mon filtre n'a rien affiché — ce que j'ai failli lire comme une validation. Refait, il mord |
+| Inventaires | Gardes mordues puis régénérées : routes **252 → 253**, admin **48 → 49** (27 appelées / 22 orphelines), store **279 → 280** — aucune retirée |
+| Suite complète | `npm test` → **110 PASS / 0 FAIL** · `npm run build` exit 0 · `tsc --noEmit` **0 erreur** |
+
+**Non fait, et dit explicitement**
+
+- **Toujours aucun lot en production** : aucun achat réel n'a eu lieu. L'écran
+  est vide, et il le dit plutôt que d'afficher des exemples.
+- **Comportement sous session admin authentifiée toujours non testé** : la
+  nouvelle route est prouvée montée et protégée (401 sans jeton), pas prouvée
+  correcte une fois authentifié. Trou ouvert depuis le chantier 15A.
+- **Les 22 routes restantes sans écran** ne portent ni sur les lots ni sur la
+  question « ce produit peut-il être vendu » : contrats et factures marque,
+  tests marque, créateurs, fidélité, conformité éditoriale, vérification d'un
+  professionnel, purge photo, liaison d'ingrédients, audit de vocabulaire.
+
+---
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

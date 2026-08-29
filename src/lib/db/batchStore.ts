@@ -531,3 +531,108 @@ export async function getDoubleSourcingReport(store: SupabaseServerStore): Promi
     rows: rows.sort((a, b) => a.productName.localeCompare(b.productName))
   };
 }
+
+// ------------------------------------------------------------------
+// Les lignes allouables
+// ------------------------------------------------------------------
+
+export interface AllocatableOrderItem {
+  orderItemId: string;
+  orderId: string;
+  productId: string;
+  productName?: string;
+  orderStatus: string;
+  orderedQuantity: number;
+  allocatedQuantity: number;
+  /** Ce qu'il reste à allouer. Jamais négatif. */
+  remainingQuantity: number;
+  customerEmail?: string;
+  orderedAt: string;
+}
+
+/**
+ * Liste les lignes de commande allouables pour un produit, avec ce qui reste à
+ * allouer.
+ *
+ * Cette fonction existe parce que l'écran de saisie des lots en a besoin : pour
+ * allouer un lot à une ligne, il faut l'identifiant réel de cette ligne, et
+ * aucune route ne l'exposait. Sans elle, l'administrateur devrait aller chercher
+ * un uuid en base — exactement ce que le chantier 15B voulait supprimer.
+ *
+ * En mémoire, les lignes sont embarquées dans la commande et n'ont pas
+ * d'identifiant : la clé dérivée `« commande:produit »` est utilisée, comme
+ * partout ailleurs dans ce module.
+ */
+export async function listAllocatableOrderItems(store: SupabaseServerStore, productId: string): Promise<AllocatableOrderItem[]> {
+  if (!productId) throw new Error('Le produit est obligatoire.');
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('order_items')
+      .select('id, quantity, product_id, order_id, orders(id, status, customer_email, created_at)')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+    ensureDatabaseSuccess('lecture des lignes de commande', error);
+
+    const rows = data || [];
+    const itemIds = rows.map((row: any) => row.id);
+    const { data: allocations, error: allocationError } = itemIds.length
+      ? await supabase.from('order_item_batches').select('order_item_id, quantity').in('order_item_id', itemIds)
+      : { data: [] as any[], error: null };
+    ensureDatabaseSuccess('lecture des allocations', allocationError);
+
+    const allocatedByItem = new Map<string, number>();
+    for (const allocation of allocations || []) {
+      const current = allocatedByItem.get(String(allocation.order_item_id)) || 0;
+      allocatedByItem.set(String(allocation.order_item_id), current + Number(allocation.quantity));
+    }
+
+    return rows.map((row: any) => {
+      const order = Array.isArray(row.orders) ? row.orders[0] : row.orders;
+      const orderedQuantity = Number(row.quantity);
+      const allocatedQuantity = allocatedByItem.get(String(row.id)) || 0;
+      return {
+        orderItemId: String(row.id),
+        orderId: String(row.order_id),
+        productId: String(row.product_id),
+        orderStatus: order?.status ?? 'inconnu',
+        orderedQuantity,
+        allocatedQuantity,
+        remainingQuantity: Math.max(0, orderedQuantity - allocatedQuantity),
+        customerEmail: order?.customer_email ?? undefined,
+        orderedAt: String(order?.created_at ?? '')
+      };
+    });
+  }
+
+  // Mode mémoire : les lignes sont embarquées, la clé est dérivée.
+  const allocatedByKey = new Map<string, number>();
+  for (const allocation of store.inMemoryBatchAllocations as any[]) {
+    const current = allocatedByKey.get(allocation.orderItemId) || 0;
+    allocatedByKey.set(allocation.orderItemId, current + Number(allocation.quantity));
+  }
+
+  const result: AllocatableOrderItem[] = [];
+  for (const order of store.inMemoryOrders as any[]) {
+    for (const item of order.items || []) {
+      if (item.productId !== productId) continue;
+      const key = memoryOrderItemKey(order.id, item.productId);
+      const orderedQuantity = Number(item.quantity);
+      const allocatedQuantity = allocatedByKey.get(key) || 0;
+      result.push({
+        orderItemId: key,
+        orderId: String(order.id),
+        productId: String(item.productId),
+        productName: item.name,
+        orderStatus: String(order.status ?? 'inconnu'),
+        orderedQuantity,
+        allocatedQuantity,
+        remainingQuantity: Math.max(0, orderedQuantity - allocatedQuantity),
+        customerEmail: order.customerEmail,
+        orderedAt: String(order.createdAt ?? '')
+      });
+    }
+  }
+  return result;
+}

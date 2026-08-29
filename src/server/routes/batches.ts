@@ -74,6 +74,25 @@ export function registerBatchRoutes(app: Express): void {
     }
   }));
 
+  /**
+   * Les lignes de commande allouables pour un produit, avec ce qui reste à
+   * allouer. Sans cette route, allouer un lot exigerait d'aller chercher un
+   * uuid de ligne en base — exactement ce que le chantier 15B voulait éviter.
+   */
+  app.get('/api/admin/order-items', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const productId = typeof req.query.productId === 'string' ? req.query.productId.trim() : '';
+    if (!productId) return res.status(400).json({ error: 'Le paramètre productId est obligatoire.' });
+    try {
+      const items = await serverDb.listAllocatableOrderItems(productId);
+      res.json({ items, count: items.length });
+    } catch (error) {
+      console.error('[Batches] allocatable items error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Lignes de commande indisponibles.') });
+    }
+  }));
+
   app.get('/api/admin/double-sourcing', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
