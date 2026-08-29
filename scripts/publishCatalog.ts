@@ -48,7 +48,7 @@ const CONTENT: Record<string, FicheContent> = {
   p2: {
     benefitPrimary: 'Nettoie le cuir chevelu sans décaper les huiles naturelles.',
     forWho: 'Cheveux texturés 3A à 4C, cuirs chevelus qui tiraillent après le lavage.',
-    notIdealIf: 'Recherche d’un lavage clarifiant ponctuel : ce shampoing est conçu pour un nettoyage doux, pas pour un décapage.',
+    notIdealIf: 'Recherche d’un lavage clarifiant ponctuel : ce shampoing est conçu pour un nettoyage doux, pas pour un lavage agressif.',
     howToUse: 'Sur cuir chevelu mouillé, masser du bout des doigts, rincer abondamment. Un second passage est possible si les longueurs sont très chargées en coiffage.',
     texture: 'Gel lavant, mousse fine.',
     usageFrequency: 'À chaque lavage, selon le rythme habituel.',

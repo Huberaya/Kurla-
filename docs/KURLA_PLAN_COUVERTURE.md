@@ -1195,6 +1195,74 @@ Donc : créer une entité d'ingrédient est possible en données, **mais pas de 
 
 `scripts/diagnoseCatalogBlockers.ts` — lecture seule, réutilisable. Il n'implémente **aucune** règle : il appelle `getCatalogPublicationReadinessReport`, la fonction même de l'écran de validation. Il regroupe les blocages par motif, distingue p14/p15 (exclus volontairement) du reste, et signale tout produit `published` mais non servable.
 
+## COMPLÉMENT — RÉSOLUTION DES BLOCAGES : 3 PRODUITS PUBLIÉS DE PLUS
+
+Exécuté le 29/08/2026 sur la base réelle, après les quatre arbitrages utilisateur.
+
+### 1. Une prémisse que j'avais fausse, corrigée par la mesure
+
+J'avais écrit que le sitemap était **généré au build** et que la correction ne serait visible qu'au prochain déploiement. **C'est faux.** Mesuré après coup :
+
+```
+GET /sitemap.xml → last-modified: Sat, 29 Aug 2026 19:03:33 GMT   (l'heure de la requête)
+                   48 <loc>, dont 3 /produit/ et 17 /ingredient/
+```
+
+Le sitemap est **généré à la volée** par la fonction serveur. Le push sur `main` a déclenché un déploiement Vercel automatique : **la correction du sitemap est en ligne et fonctionne** — les 3 fiches publiées y figurent, ce qu'elles ne faisaient pas avant (45 URLs, 0 fiche produit).
+
+### 2. Ce qui a été écrit en base
+
+**Une entité d'ingrédient, sourcée** — `Tocopherol`, `verification_status = 'verified'`, PubChem CID 14986, CAS 1406-66-2, niveau 1. Migration `20260875000000_ingredient_tocopherol.sql` écrite **et** lignes appliquées en données (le DDL est impossible d'ici, voir le complément précédent). Référentiel : 33 → **34 entités**.
+
+**Deux entités écartées, volontairement** — `Sodium Hyaluronate` et `Hydrolyzed Vegetable Protein` : PubChem renvoie 404 (y compris sur « Hyaluronic acid » et « Sodium hyaluronan »), CosIng n'a aucun endpoint exploitable. La règle du lot 1 est explicite : aucune source ne confirme l'identité → pas d'insertion. **p1 et p3 restent bloqués, et c'est le résultat correct.**
+
+**Huit mentions d'ingrédients réécrites** (`scripts/resolveDeclaredIngredients.ts`, chaque remplacement asserté) :
+
+| Produit | Avant | Après | Raison |
+| --- | --- | --- | --- |
+| p1 | Protéine de Soie végétale | Protéine végétale hydrolysée | la soie est animale : « soie végétale » est contradictoire |
+| p2, p4 | Aloe Vera Pur | Aloe Vera | qualificatif marketing |
+| p11 | Aloe Vera Bio | Aloe Vera | « Bio » est une allégation sans certification |
+| p4 | Extrait d'Arbre à Thé | Huile d'Arbre à Thé | forme réellement rattachée |
+| p5 | Vitamine E | Tocophérol | « vitamine E » désigne aussi Tocopheryl Acetate |
+| p3 | Acide Hyaluronique capillaire | Hyaluronate de sodium | terme aligné sur un INCI unique |
+| p3 | Kératine végétale | Protéine végétale hydrolysée | la kératine est animale |
+
+**Un champ texte réécrit** — `p2.not_ideal_if` : « pas pour un décapage » → « pas pour un lavage agressif ». Le crible signalait le mot alors que la phrase est une **négation** — un avertissement conforme. **Je n'ai pas affaibli la règle** : `CONTRAINDICATION_EXEMPTION` ne couvre que `therapeutic_claim`, et l'étendre à `prohibited_practice` laisserait passer « idéal pour un décapage » écrit dans ce champ. Le texte porte le même sens sans le mot interdit. Sondé avant écriture : `scanCatalogClaims` → « aucune formulation interdite détectée ». La phrase a aussi été corrigée dans `scripts/publishCatalog.ts:51`, sinon la prochaine publication l'aurait réintroduite.
+
+### 3. Lacune de processus découverte
+
+**La publication écrit du contenu sans rejouer le crible d'allégations.** Trace de p2 dans `catalog_validation_events` :
+
+```
+2026-08-28 23:52  claims  passed   « 65 motifs, 2 champs lus, 148 caractères »
+2026-08-29 09:43  publication      écrit benefit_primary, not_ideal_if, how_to_use…
+2026-08-29 18:20  claims  failed   « déconseillé si : decapage »   ← premier passage depuis
+```
+
+Le contenu fautif est resté **neuf heures** sans être contrôlé. Ce n'est pas mon écriture qui l'a introduit : la phrase vient de `scripts/publishCatalog.ts:51`. À traiter : rejouer le crible dans le flux de publication, pas seulement à la demande.
+
+### 4. Résultat mesuré
+
+| Contrôle | Avant | Après |
+| --- | --- | --- |
+| `ingredients` | réussi 3 / échec 13 | **réussi 7 / échec 9** |
+| `claims` | réussi 14 / échec 2 | **réussi 15 / échec 1** |
+| Produits servis par `GET /api/products` | 3 | **7** |
+| Produits prêts à publier | 3 | **7** |
+
+Publiés par `scripts/publishReadyProducts.ts` — qui ne publie **que** ce que `getCatalogPublicationReadinessReport` déclare prêt : **p2, p4, p5, p11**. Vérifié en production : `GET /api/products` renvoie 7 produits.
+
+### 5. Ce qui reste ouvert
+
+- **Les 4 nouvelles fiches renvoient 404** tant qu'un déploiement ne les a pas prérendues : `vercel.json` réécrit `/(.*)` vers `/api`, donc `/produit/X` ne répond que si `dist/produit/X/index.html` existe. Les 3 anciennes fiches, prérendues au build précédent, répondent 200. Un push suffit.
+- **7 produits toujours bloqués** : p6 (filtres UV non nommés — décision : reste bloqué), p1 et p3 (entité non sourçable), p7, p8, p12, p16 (matériaux, pas des INCI — la « fiche matière » arbitrée reste à concevoir).
+- **p12 est en catégorie `cheveux`, pas `accessoires`** : c'est un kit mixte (Menthe Poivrée + Carapate + Satin Grade A). La fiche matière ne pourra donc pas être une simple règle catégorielle.
+
+### 6. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 111 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · `resolveDeclaredIngredients.ts` idempotent (rejoué : 0 échec) · sonde de crible supprimée après usage.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
