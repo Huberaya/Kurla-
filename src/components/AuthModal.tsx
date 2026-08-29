@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle, Loader2, KeyRound } from 'lucide-react';
+import { X, Sparkles, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -25,6 +25,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  /**
+   * Afficher le mot de passe saisi. Les trois champs étaient en
+   * `type="password"` sans aucun moyen de vérifier sa frappe : sur mobile,
+   * une faute de frappe invisible devient un compte inaccessible.
+   */
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Status messages
   const [localError, setLocalError] = useState<string | null>(null);
@@ -93,8 +100,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       lastName
     });
 
+    if (res.success && res.needsConfirmation) {
+      /**
+       * Le compte est créé mais la session n'existe pas encore : il faut
+       * confirmer l'email. On ne ferme PAS le modal — le fermer faisait croire
+       * à une connexion réussie, alors qu'au rechargement tout avait disparu.
+       */
+      setSuccessMsg(
+        'Compte créé. Un email de confirmation vient d’être envoyé : cliquez sur le lien qu’il contient, puis revenez vous connecter. Pensez à vérifier vos indésirables.'
+      );
+      setPassword('');
+      setConfirmPassword('');
+      return;
+    }
+
     if (res.success) {
-      setSuccessMsg('Compte créé avec succès ! Votre profil public.profiles est actif.');
+      setSuccessMsg('Compte créé et session ouverte. Bienvenue.');
       setTimeout(() => {
         onClose();
         if (onSuccess) onSuccess();
@@ -202,13 +223,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -288,13 +319,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -303,13 +344,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="relative">
                 <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  aria-label={showConfirmPassword ? 'Masquer la confirmation' : 'Afficher la confirmation'}
+                  aria-pressed={showConfirmPassword}
+                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

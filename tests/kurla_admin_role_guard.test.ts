@@ -24,26 +24,33 @@ async function runAdminRoleGuardTests(): Promise<void> {
   const authMigration = await readFile('supabase/migrations/20260805100000_phase2_auth_profiles.sql', 'utf8');
   const initSchema = await readFile('supabase/migrations/20260804000000_init_kurla_schema.sql', 'utf8');
 
-  // 1. Le payload de repli ne doit pas porter `role`.
-  const payloadStart = authContext.indexOf('const newProfilePayload = {');
-  assert.ok(payloadStart > -1, 'le payload de repli de fetchProfile est introuvable');
-  const payloadEnd = authContext.indexOf('};', payloadStart);
+  // 1. Aucun payload d'upsert de profil ne doit porter `role`.
   /**
    * Les commentaires sont retirés avant l'inspection : la garde doit lire le
    * code, pas la prose. Sans cela, le commentaire qui *explique* pourquoi
-   * `role` est absent — et qui cite `role: 'customer'` — faisait échouer le
+   * `role` est absent — et qui cite le littéral fautif — faisait échouer le
    * banc sur un fichier déjà corrigé.
    */
-  const payload = authContext
-    .slice(payloadStart, payloadEnd)
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '');
+  const stripComments = (source: string) =>
+    source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+  const payloadNames = ['newProfilePayload', 'profilePayload'];
+  for (const name of payloadNames) {
+    const start = authContext.indexOf(`const ${name}`);
+    assert.ok(start > -1, `le payload « ${name} » est introuvable`);
+    const payload = stripComments(authContext.slice(start, authContext.indexOf('};', start)));
+    assert.ok(
+      !/\brole\s*:/.test(payload),
+      `le payload « ${name} » écrit \`role\` : une écriture de profil rétrograderait un compte existant`
+    );
+    assert.ok(/\bid\s*:/.test(payload), `le payload « ${name} » doit porter l’identifiant`);
+  }
+
+  // 1bis. Une inscription sans session ne doit pas installer de fausse session.
   assert.ok(
-    !/\brole\s*:/.test(payload),
-    'le payload de repli écrit `role` : une lecture de profil en échec rétrograderait un compte existant'
+    /if \(data\.user && !data\.session\)/.test(authContext),
+    'signUp ne distingue plus le cas « email de confirmation en attente » : il réinstallerait une demi-connexion'
   );
-  // Le payload doit quand même exister et porter l'identifiant.
-  assert.ok(/\bid\s*:\s*userId/.test(payload), 'le payload de repli doit porter l’identifiant');
 
   // 2. La politique RLS doit continuer d'interdire l'auto-escalade.
   const updatePolicy = authMigration.slice(
@@ -63,7 +70,7 @@ async function runAdminRoleGuardTests(): Promise<void> {
   );
 
   console.log(
-    '[PASS] Garde rôle admin : le payload de repli n’écrit pas `role`, la politique RLS interdit toujours l’auto-escalade, et la colonne `role` a son défaut NOT NULL.'
+    '[PASS] Garde rôle admin : aucun payload d’upsert de profil n’écrit `role`, signUp distingue l’attente de confirmation, la politique RLS interdit toujours l’auto-escalade, et la colonne `role` a son défaut NOT NULL.'
   );
 }
 

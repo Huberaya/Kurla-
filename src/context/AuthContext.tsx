@@ -22,7 +22,12 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   isConfigured: boolean;
-  signUp: (params: SignUpParams) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * `needsConfirmation` distingue « compte créé, session ouverte » de
+   * « compte créé, email de confirmation envoyé ». Sans cette distinction le
+   * modal annonçait un compte actif alors qu'aucune session n'existait.
+   */
+  signUp: (params: SignUpParams) => Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }>;
   signIn: (params: SignInParams) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
@@ -214,6 +219,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: msg };
       }
 
+      /**
+       * `mailer_autoconfirm` est à `false` sur ce projet : `signUp` renvoie un
+       * `user` mais **`session = null`** tant que l'email n'est pas confirmé.
+       *
+       * L'ancien code appelait setUser puis setSession dans tous les cas. Il
+       * installait donc un utilisateur **sans session** — une demi-connexion
+       * qui ne survit pas au rechargement — puis annonçait « Compte créé avec
+       * succès ». C'est très exactement le symptôme « la plateforme ne retient
+       * pas mes identifiants » : rien n'était faux côté Supabase, tout était
+       * faux côté interface.
+       */
+      if (data.user && !data.session) {
+        setLoading(false);
+        return { success: true, needsConfirmation: true };
+      }
+
       if (data.user) {
         setUser(data.user);
         setSession(data.session);
@@ -224,7 +245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.user.email || email,
           first_name: firstName || '',
           last_name: lastName || '',
-          role: 'customer',
+          /**
+           * `role` absent, comme dans fetchProfile : l'upsert porte sur
+           * `onConflict: 'id'`, donc écrire `role` ici écraserait le rôle d'un
+           * compte existant. La colonne porte NOT NULL DEFAULT 'customer'.
+           */
           country: 'FR',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -239,7 +264,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!pErr && pData) {
           setProfile(pData as UserProfile);
         } else {
-          setProfile(profilePayload as UserProfile);
+          /**
+           * L'écriture a échoué (RLS, réseau) : on n'installe pas un profil
+           * local en laissant croire qu'il est en base. `null` laisse les
+           * écrans afficher leur état « non authentifié », qui est la vérité.
+           */
+          console.warn('[AuthContext] profil non écrit à l’inscription :', pErr);
+          setProfile(null);
         }
       }
 

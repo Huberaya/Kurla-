@@ -1344,6 +1344,46 @@ Première version du banc : elle échouait **sur le fichier déjà corrigé**, p
 
 `npm run build` **exit 0** · `npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · fichier restauré après contrôle négatif (`diff -q` identique).
 
+## COMPLÉMENT — INSCRIPTION : « LA PLATEFORME NE RETIENT PAS MES IDENTIFIANTS »
+
+### 1. La cause, mesurée
+
+`mailer_autoconfirm` est à **`false`** sur ce projet (lu via `/auth/v1/settings`). `supabase.auth.signUp` renvoie donc un `user` mais **`session = null`** tant que l'email n'est pas confirmé.
+
+L'ancien code exécutait `setUser(data.user); setSession(data.session)` **dans tous les cas**, puis le modal affichait :
+
+> « Compte créé avec succès ! Votre profil public.profiles est actif. »
+
+…et se fermait après une seconde. Trois faussetés dans cette séquence :
+
+- **une demi-connexion** : un `user` sans `session` ne survit pas au rechargement ;
+- **un message faux** : aucune session n'existait, et l'upsert du profil — lancé sans jeton — était refusé par la RLS, puis masqué par un repli `setProfile(profilePayload)` qui faisait croire à une écriture réussie ;
+- **un nom de table interne** (`public.profiles`) exposé à l'utilisateur.
+
+Preuve en base : `baya-ibraim.mayoanou.edu@groupe-gema.com`, créé le 27/08, `email_confirmed_at = null`, `last_sign_in_at = null`. Le compte a été créé, jamais confirmé, jamais connecté — et l'interface avait annoncé le contraire.
+
+### 2. Corrections
+
+- **`signUp`** distingue désormais les deux issues : sans session, il retourne `needsConfirmation: true` et n'installe ni `user` ni `session`.
+- **Le modal** affiche alors « Un email de confirmation vient d'être envoyé… », **ne se ferme pas**, et vide les mots de passe.
+- **L'écriture de profil en échec** met `profile` à `null` au lieu d'un objet local : les écrans affichent « non authentifié », qui est la vérité.
+- **`role` retiré du second payload** : `signUp` portait le même `role: 'customer'` en dur que `fetchProfile`, donc la même rétrogradation à sens unique. Le piège existait à **deux** endroits ; un seul avait été trouvé.
+
+### 3. Mot de passe invisible
+
+Les trois champs (`AuthModal.tsx`) étaient en `type="password"` sans aucun moyen de vérifier sa frappe — sur mobile, une faute invisible devient un compte inaccessible. Ajout d'un bouton œil sur les trois champs, avec `aria-label`, `aria-pressed`, et `autoComplete` correct (`current-password` à la connexion, `new-password` à l'inscription).
+
+### 4. Garde étendue
+
+`tests/kurla_admin_role_guard.test.ts` vérifie maintenant **les deux** payloads (`newProfilePayload`, `profilePayload`) et la présence de la branche « confirmation en attente ». Deux contrôles négatifs, messages lus :
+
+- `role` remis dans `profilePayload` → `[FAIL] le payload « profilePayload » écrit role`
+- branche de confirmation neutralisée → `[FAIL] signUp ne distingue plus le cas « email de confirmation en attente »`
+
+### 5. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · libellé du toggle présent dans le bundle produit · fichier restauré après négatifs (`diff -q` identique).
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
