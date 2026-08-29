@@ -514,6 +514,57 @@ propres aux accessoires.
 créer un ingrédient**. Le référentiel ne s'étend que par SQL, alors que 13
 produits attendent exactement cette opération.
 
+**Publication effective (29/08/2026, après accord du propriétaire sur les visuels)**
+
+Trois produits publiés : **p9** `creme-definition-boucles-twists`, **p10**
+`serum-marques-post-imperfections-niacinamide`, **p13**
+`baume-apaisant-anti-poils-incarnes-barbe`. Les onze autres restent
+`unavailable`, bloqués par la seule composition (mentions ambiguës). p14 et p15
+exclus : marques tierces.
+
+Vérifié en production, pas seulement en base :
+
+| URL | Réponse |
+|---|---|
+| `/produit/creme-definition-boucles-twists` | **200**, titre produit, 1 canonique, 1 JSON-LD, pas de noindex |
+| `/produit/serum-marques-post-imperfections-niacinamide` | **200**, idem |
+| `/produit/baume-apaisant-anti-poils-incarnes-barbe` | **200**, idem |
+| `/produit/shampoing-doux-sans-sulfates` (non publié) | **404** « Page introuvable » + noindex |
+
+Le contenu des 14 fiches a été écrit par `scripts/publishCatalog.ts` depuis
+`docs/PROPOSITION_FICHES_PRODUITS.md`. Le crible lit désormais 9 champs et ~800
+caractères par fiche au lieu de 2 champs et ~150 : les descriptions réécrites de
+p13 et p6 passent, p16 aussi. Les visuels sont enregistrés `licensed` avec la
+note qui dit ce qu'ils sont (« photos de stock sous licence Unsplash, aucun
+visuel ne montre le produit vendu ») — pas `brand_provided`, qui serait faux.
+
+**Trois défauts trouvés en écrivant, tous mesurés avant d'être corrigés**
+
+1. **Le chemin d'écriture était inutilisable sur tout le catalogue.** 14
+   écritures sur 14 refusées : la validation du département et des marchés
+   portait sur `source`, qui fusionne la fiche existante — donc sur des valeurs
+   que l'appel ne touchait pas. Les 16 fiches portent `DOM` et `AFR` (trois
+   lettres) que la règle des pays refuse. Corrigé : on valide l'entrée, comme le
+   faisait déjà `checkProductVocabulary`.
+2. **Le readiness produit-unique déclarait tout manquant, toujours.**
+   `evaluateCatalogPublicationReadiness` lisait des clés `snake_case` alors que
+   `getProducts` renvoie du `camelCase`. Le rapport global disait vrai (il lit
+   les lignes brutes), l'endpoint produit disait faux — et c'est celui qu'on
+   consulte avant de publier. L'évaluation lit maintenant les deux formes.
+3. **`slugify` supprimait tous les « u ».** Le retrait des diacritiques était
+   écrit `/[\\u0300-\\u036f]/` avec un backslash en trop : en regex JS,
+   `\\` est un backslash littéral, donc la classe contenait la lettre `u`.
+   « Sérum » → `serm`, « Baume » → `bame`, « Boucles » → `bocles`. **9 slugs du
+   catalogue réel étaient corrompus**, sans qu'aucun contrôle ne le signale — un
+   slug faux est une URL valide. Le même échappement fautif à la ligne suivante
+   faisait que `categoryKey` ne reconnaissait jamais « peau » ni « cheveu » : le
+   normalisateur de département n'a jamais fonctionné. Les deux sont corrigés,
+   les 14 slugs réparés (p14 et p15 laissés intacts), non-régression au banc.
+
+Compte rendu honnête : la réparation des slugs a aussi **allongé** des slugs qui
+étaient valides mais courts (`bonnet-satin` → `bonnet-satin-microfibre-premium-xl`).
+Aucune URL n'était référencée ailleurs, les fiches n'étant pas publiées.
+
 **Volontairement non fait** : aucune entité ingrédient créée sur une hypothèse ; aucun `verified` écrit sans contrôle réel ; aucune publication forcée en contournant la porte.
 
 ---

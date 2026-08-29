@@ -375,7 +375,7 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       const parsed = Number(String(value).replace(',', '.'));
       return Number.isFinite(parsed) ? parsed : fallback;
     };
-    const slugify = (value: string): string => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180);
+    const slugify = (value: string): string => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 180);
     const name = text(source.name || source.nom, 240);
     if (!name) throw new Error('Le nom du produit est obligatoire.');
     const slug = slugify(text(source.slug || source.handle, 180) || name);
@@ -384,9 +384,26 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
     if (price === undefined || price < 0) throw new Error(`Prix invalide pour « ${name} » : renseignez un montant positif ou nul.`);
 
     const categoryRaw = text(source.category || source.department || source.departement, 80);
-    const categoryKey = categoryRaw?.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const categoryKey = categoryRaw?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const category = categoryKey?.includes('peau') ? 'peau' : categoryKey?.includes('cheveu') ? 'cheveux' : categoryRaw ? categoryRaw : undefined;
-    if (category && !['cheveux', 'peau'].includes(category)) throw new Error(`Département inconnu pour « ${name} ». Utilisez cheveux ou peau.`);
+    /**
+     * CHANTIER 14 — on valide ce qui est **écrit**, pas ce qui est hérité.
+     *
+     * `source` fusionne la fiche existante et l'entrée : le département et les
+     * marchés déjà en base retombaient dans la validation, et toute
+     * modification — même un simple mode d'emploi — était refusée. Mesuré sur
+     * le catalogue réel : 14 écritures sur 14 refusées, 9 par
+     * « Département inconnu » ou « Pays de disponibilité invalide » alors que
+     * l'appel ne touchait ni l'un ni l'autre. Une porte de validation qui
+     * bloque les champs qu'on ne modifie pas rend le chemin d'écriture
+     * inutilisable, ce qui est pire que l'absence de porte.
+     *
+     * `checkProductVocabulary`, juste au-dessus, ne lit déjà que l'entrée : ce
+     * correctif aligne les deux contrôles sur la même règle.
+     */
+    const providedCategory = input?.category ?? input?.department ?? input?.departement;
+    const categoryIsProvided = providedCategory !== undefined && providedCategory !== null && String(providedCategory).trim() !== '';
+    if (categoryIsProvided && category && !['cheveux', 'peau'].includes(category)) throw new Error(`Département inconnu pour « ${name} ». Utilisez cheveux ou peau.`);
 
     const validCategories = new Set<string>(CATALOG_CATEGORIES.map(item => item.slug));
     const catalogCategoryTags = array(source.catalogCategoryTags ?? source.catalog_category_tags ?? source.categoryTags);
@@ -410,7 +427,13 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       ? existing?.parentalSupervisionRequired === true || existing?.parental_supervision_required === true
       : parseBoolean(source.parentalSupervisionRequired ?? source.parental_supervision_required, false);
     const countries = array(source.countryAvailability ?? source.country_availability).map(country => country.toUpperCase());
-    if (countries.some(country => country !== 'INT' && !/^[A-Z]{2}$/.test(country))) throw new Error(`Pays de disponibilité invalide pour « ${name} ».`);
+    // Même règle que pour le département : les marchés hérités ne sont pas
+    // revalidés. Le catalogue réel porte `DOM` et `AFR` (codes de zone à trois
+    // lettres) que cette règle refuse — la question de ces codes reste ouverte,
+    // mais elle ne doit pas bloquer l'écriture d'un mode d'emploi.
+    const providedCountries = input?.countryAvailability ?? input?.country_availability;
+    const countriesAreProvided = providedCountries !== undefined && providedCountries !== null;
+    if (countriesAreProvided && countries.some(country => country !== 'INT' && !/^[A-Z]{2}$/.test(country))) throw new Error(`Pays de disponibilité invalide pour « ${name} ».`);
 
     const rawImages = typeof source.images === 'string' ? parseJsonCell(source.images, []) : source.images;
     const imagesProvided = rawImages !== undefined;
@@ -1016,11 +1039,30 @@ export function evaluateCatalogPublicationReadiness(product: any, productId?: st
   missing: Array<{ field: string; label: string }>;
 } {
   const missing: Array<{ field: string; label: string }> = [];
+  /**
+   * CHANTIER 14 — les deux formes de l'objet circulent, et la règle doit lire
+   * les deux.
+   *
+   * `getProducts` renvoie des objets **mappés en camelCase**
+   * (`claimsValidationStatus`), alors que le rapport global lit des lignes
+   * **brutes en snake_case**. Cette évaluation ne lisait que le snake_case :
+   * appelée depuis le getter unitaire, elle déclarait les sept vérifications
+   * manquantes même sur un produit intégralement vérifié. Le rapport global
+   * disait vrai, l'endpoint produit disait faux — deux réponses contraires à la
+   * même question, et c'est la seconde qu'un opérateur consulte avant de
+   * publier.
+   */
+  const read = (snakeKey: string): unknown => {
+    if (product[snakeKey] !== undefined) return product[snakeKey];
+    const camelKey = snakeKey.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    return product[camelKey];
+  };
   const requireVerified = (field: string, label: string) => {
-    if (product[field] !== 'verified') missing.push({ field, label: `${label} non vérifié(e)` });
+    if (read(field) !== 'verified') missing.push({ field, label: `${label} non vérifié(e)` });
   };
 
-  if (product.is_active !== true && product.is_active !== undefined) missing.push({ field: 'is_active', label: 'produit désactivé' });
+  const isActive = read('is_active');
+  if (isActive !== true && isActive !== undefined) missing.push({ field: 'is_active', label: 'produit désactivé' });
   requireVerified('ingredient_verification_status', 'composition');
   requireVerified('claims_validation_status', 'allégations');
   requireVerified('images_validation_status', 'visuels');
@@ -1029,23 +1071,25 @@ export function evaluateCatalogPublicationReadiness(product: any, productId?: st
   requireVerified('translations_validation_status', 'traductions');
   requireVerified('brand_verification_status', 'marque');
 
-  if (!['brand_provided', 'licensed'].includes(product.image_ownership_status)) {
+  if (!['brand_provided', 'licensed'].includes(read('image_ownership_status') as string)) {
     missing.push({ field: 'image_ownership_status', label: 'droits sur les visuels non établis (brand_provided ou licensed)' });
   }
-  if (typeof product.brand !== 'string' || product.brand.trim() === '') {
+  const brand = read('brand');
+  if (typeof brand !== 'string' || brand.trim() === '') {
     missing.push({ field: 'brand', label: 'marque absente' });
   }
 
   const ingredients = Array.isArray(product.ingredients) ? product.ingredients : [];
-  const inci = typeof product.inci === 'string' ? product.inci.trim() : '';
+  const inciRaw = read('inci');
+  const inci = typeof inciRaw === 'string' ? inciRaw.trim() : '';
   if (ingredients.length === 0 && inci === '') missing.push({ field: 'ingredients', label: 'composition déclarée vide' });
 
   const gallery = Array.isArray(product.galleryImages) ? product.galleryImages : [];
-  const imageUrl = product.image || product.image_url;
+  const imageUrl = product.image || read('image_url');
   const hasImage = gallery.length > 0 || (typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl));
   if (!hasImage) missing.push({ field: 'images', label: 'aucun visuel exploitable' });
 
-  const countries = product.countryAvailability || product.country_availability || [];
+  const countries = product.countryAvailability || read('country_availability') || [];
   if (!Array.isArray(countries) || countries.length === 0) missing.push({ field: 'country_availability', label: 'aucun marché renseigné' });
 
   const isPromo = Boolean(product.isPromo ?? product.is_promo);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 
 import { serverDb } from '../src/lib/serverDb';
+import { normalizeCatalogProductInput } from '../src/lib/db/catalogStore';
 
 /**
  * CHANTIER 10 (bloc B2) — banc « la publication veut dire quelque chose ».
@@ -137,7 +138,31 @@ async function runCatalogPublicationTests(): Promise<void> {
     await new Promise<void>((resolve, reject) => listener.close(error => (error ? reject(error) : resolve())));
   }
 
-  console.log('[PASS] Publication catalogue banc : refus nominatif, produit complet réellement visible, rapport fidèle, routes fermées.');
+  // ---------------------------------------------------------------------
+  // 5. Le slug ne mange plus les lettres — non-régression.
+  //
+  // Le retrait des diacritiques était écrit `/[\\u0300-\\u036f]/` avec un
+  // backslash en trop : en regex JS, `\\` est un backslash littéral, donc la
+  // classe de caractères contenait la lettre `u` elle-même. Chaque slug généré
+  // perdait tous ses « u » — « Sérum » donnait `serm`, « Baume » donnait `bame`.
+  // Le défaut a corrompu 9 slugs du catalogue réel avant d'être trouvé, et rien
+  // ne le signalait : un slug faux est une URL valide.
+  // ---------------------------------------------------------------------
+  const slugProduct = normalizeCatalogProductInput(serverDb, {
+    id: 'p-slug', name: 'Sérum Marques Post-Imperfections Niacinamide', price: 12
+  });
+  assert.equal(slugProduct.slug, 'serum-marques-post-imperfections-niacinamide');
+  assert.equal(slugProduct.slug.includes('u'), true, 'le slug a perdu ses « u »');
+
+  // Même échappement fautif sur la reconnaissance du département : « Peau »
+  // devenait « pea » et « Cheveux » devenait « cheve », donc le normalisateur ne
+  // reconnaissait jamais aucun des deux départements qu'il est censé accepter.
+  const peau = normalizeCatalogProductInput(serverDb, { id: 'p-peau', name: 'Crème Visage', price: 9, category: 'Peau' });
+  assert.equal(peau.category, 'peau');
+  const cheveux = normalizeCatalogProductInput(serverDb, { id: 'p-cheveux', name: 'Shampoing', price: 9, category: 'Cheveux' });
+  assert.equal(cheveux.category, 'cheveux');
+
+  console.log('[PASS] Publication catalogue banc : refus nominatif, produit complet réellement visible, rapport fidèle, routes fermées, slug et département préservés.');
 }
 
 runCatalogPublicationTests().catch(error => {
