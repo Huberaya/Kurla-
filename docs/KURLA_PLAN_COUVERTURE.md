@@ -1304,6 +1304,46 @@ Trois lignes changées dans `scripts/prerender.ts` : le drapeau suit la route, l
 
 Ce n'est pas un bug d'admin : **toute la zone authentifiée du site était inaccessible en accès direct** — compte client, recherche, constructeur de routine, espace pro. Une page protégée par un rôle ne doit pas pour autant être absente du disque : la garde est à l'exécution, pas dans la liste des fichiers générés.
 
+## COMPLÉMENT — « JE NE VOIS RIEN » SUR LE DASHBOARD ADMIN : CE QUI A ÉTÉ MESURÉ
+
+### 1. Le fait décisif
+
+```
+GET /auth/v1/admin/users → hubertbay@gmail.com
+   email_confirmed_at : confirmé
+   last_sign_in_at    : 2026-08-05T15:09:46     ← il y a 24 jours
+```
+
+**Aucune connexion n'a abouti aujourd'hui.** Ce n'est donc pas le tableau de bord qui est vide : la session n'a pas été créée. Tout ce qui a été vérifié par ailleurs est en ordre :
+
+| Vérification | Résultat |
+| --- | --- |
+| `/api/health` → `supabaseConfigured` | **true** (le serveur a ses credentials, le vérificateur de jeton fonctionne) |
+| Clé anon embarquée dans le bundle | `ref: qzwgsarfdegqtfdnqiql`, `role: anon` — le bon projet |
+| GoTrue sur mot de passe erroné (sonde volontaire) | `400 invalid_credentials` — le flux répond |
+| `/api/admin/{metrics,dashboard,operations/cockpit,batches,double-sourcing}` sans jeton | **401** sur les 5 |
+| `profiles.role` pour ce compte | `superadmin` |
+
+### 2. Piège trouvé en cherchant : la rétrogradation à sens unique
+
+`AuthContext.fetchProfile` upsertait un profil de repli avec **`role: 'customer'` en dur**, sur `onConflict: 'id'`. PostgREST ne met à jour que les colonnes fournies : une simple lecture de profil en échec **rétrogradait un compte existant** — y compris le seul superadmin.
+
+Et c'est **irréversible** : la politique « Profiles update policy » autorise l'écriture via `OR public.is_admin()`, donc l'administrateur peut écraser son propre rôle ; ensuite `is_admin()` renvoie faux et l'accès est perdu sans intervention en base.
+
+**Corrigé** : `role` retiré du payload. La colonne est `role TEXT NOT NULL DEFAULT 'customer'`, donc un profil neuf reçoit le défaut et un profil existant conserve le sien. **Le rôle ne s'écrit plus jamais depuis le client.**
+
+Le piège n'avait pas encore déclenché (`profiles.role` vaut toujours `superadmin`) — il était armé.
+
+### 3. Garde de non-régression
+
+`tests/kurla_admin_role_guard.test.ts` — **garde sur les sources, pas un test comportemental** : reproduire la rétrogradation exigerait une session admin réelle. Trois conditions vérifiées : le payload n'écrit pas `role`, la politique RLS conserve `role IS NOT DISTINCT FROM` (anti-escalade), la colonne garde son défaut `NOT NULL`.
+
+Première version du banc : elle échouait **sur le fichier déjà corrigé**, parce que le commentaire expliquant l'absence de `role` cite `role: 'customer'`. La garde lisait la prose. Corrigé en retirant les commentaires avant inspection. Contrôle négatif lu : remettre `role` → `[FAIL] le payload de repli écrit role`.
+
+### 4. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 112 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · fichier restauré après contrôle négatif (`diff -q` identique).
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

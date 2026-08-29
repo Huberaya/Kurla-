@@ -62,7 +62,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           first_name: user?.user_metadata?.first_name || '',
           last_name: user?.user_metadata?.last_name || '',
-          role: 'customer' as UserRole,
+          /**
+           * `role` est volontairement ABSENT de ce payload.
+           *
+           * L'upsert est fait sur `onConflict: 'id'` : PostgREST ne met à jour
+           * que les colonnes fournies. Écrire `role: 'customer'` ici signifiait
+           * qu'une simple lecture de profil en échec **rétrogradait un compte
+           * existant** — y compris le seul superadmin. Et la rétrogradation est
+           * à sens unique : la politique RLS autorise l'écriture via
+           * `OR public.is_admin()`, donc l'admin peut écraser son propre rôle,
+           * après quoi `is_admin()` devient faux et l'accès est perdu.
+           *
+           * Sans la colonne, un profil neuf reçoit le défaut de la base
+           * (`role TEXT NOT NULL DEFAULT 'customer'`) et un profil existant
+           * conserve le sien. Le rôle ne s'écrit jamais depuis le client.
+           */
           country: 'FR',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
