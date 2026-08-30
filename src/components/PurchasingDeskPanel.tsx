@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ClipboardList, Target, Mail, PackageCheck, FlaskConical, Sparkles,
   CheckCircle2, Circle, ArrowRight, Factory, Truck as TruckIcon, Sun, Baby, Scissors,
+  Copy, Check, ExternalLink,
 } from 'lucide-react';
 
 import { PURCHASING_PHASES, RFQ_CHECKLIST_RETAIL, RFQ_CHECKLIST_PRIVATE_LABEL } from '../lib/purchasingDesk';
+import { emailForPhase, KNOWN_PROSPECT_EMAILS } from '../lib/outreachEmails';
 
 type Props = { prospects: any[] };
 
@@ -17,6 +19,23 @@ const ROUTE_LABEL: Record<string, string> = {
 const PHASE_ICONS = [TruckIcon, TruckIcon, Sparkles, Sun, Baby, FlaskConical];
 
 export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
+  const [copiedPhase, setCopiedPhase] = useState<string | null>(null);
+  const [openEmail, setOpenEmail] = useState<string | null>(null);
+
+  const copyEmail = async (phaseId: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // repli navigateur sans presse-papiers
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    setCopiedPhase(phaseId);
+    setTimeout(() => setCopiedPhase(null), 2000);
+  };
+
   const byId = useMemo(() => {
     const m = new Map<string, any>();
     for (const p of prospects) m.set(p.id, p);
@@ -173,6 +192,57 @@ export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
                     ))}
                   </ul>
                 </div>
+
+                {/* Email d'approche prêt à envoyer */}
+                {(() => {
+                  const tpl = emailForPhase(phase.id);
+                  if (!tpl) return null;
+                  const emailTargets = ps
+                    .map((p) => ({ name: p.name, email: KNOWN_PROSPECT_EMAILS[p.id] || p.contactEmail || null, source: p.sourceUrl }));
+                  const fullText = `Sujet : ${tpl.subject}\n\n${tpl.body}`.replace(/\[FOURNISSEUR\]/g, '[marque]');
+                  const isOpen = openEmail === phase.id;
+                  return (
+                    <div className="lg:col-span-3 rounded-xl bg-[#050403] border border-[#C8753D]/25 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5" /> Email d'approche prêt à envoyer
+                        </p>
+                        <div className="flex gap-2">
+                          <button onClick={() => setOpenEmail(isOpen ? null : phase.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[10px] font-bold text-[#FFF7EF]/80 flex items-center gap-1.5 hover:border-[#C8753D]/50">
+                            {isOpen ? 'Masquer' : 'Voir l\'email'}
+                          </button>
+                          <button onClick={() => copyEmail(phase.id, fullText)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#C8753D] text-white text-[10px] font-bold flex items-center gap-1.5 hover:bg-[#b06330]">
+                            {copiedPhase === phase.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiedPhase === phase.id ? 'Copié !' : 'Copier l\'email'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {emailTargets.map((t, i) => (
+                          <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF]/70 flex items-center gap-1">
+                            {t.email
+                              ? <a href={`mailto:${t.email}`} className="text-[#C8753D] hover:underline flex items-center gap-1"><Mail className="w-3 h-3" />{t.name}</a>
+                              : <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 text-[#FFF7EF]/40" />{t.name} <em className="text-[#FFF7EF]/40">(formulaire site)</em></span>}
+                          </span>
+                        ))}
+                      </div>
+
+                      {isOpen && (
+                        <div className="rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/8 p-3">
+                          <p className="text-[11px] font-bold text-[#FFF7EF]">Sujet : {tpl.subject}</p>
+                          <pre className="text-[10.5px] text-[#FFF7EF]/75 whitespace-pre-wrap font-sans mt-2 leading-relaxed">{tpl.body}</pre>
+                          <p className="text-[9.5px] text-[#FFF7EF]/40 mt-2 italic">
+                            Remplacez [VOTRE NOM], [EMAIL], [TÉL] et [marque] avant l'envoi.
+                            {tpl.channel === 'form' && " Cette marque se contacte via le formulaire de son site (pas d'email public)."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );
