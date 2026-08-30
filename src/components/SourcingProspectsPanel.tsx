@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
+import { AssortmentPlanPanel } from './AssortmentPlanPanel';
 
 type PanelProps = { headers: HeadersInit; onSuccess?: (message: string) => void };
 
@@ -92,7 +93,7 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<'prospects' | 'candidates'>('prospects');
+  const [tab, setTab] = useState<'plan' | 'prospects' | 'candidates'>('plan');
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -163,10 +164,10 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#C8753D]" /> Prospection & références
+            <Truck className="w-5 h-5 text-[#C8753D]" /> Approvisionnement
           </h3>
           <p className="text-[11px] text-[#FFF7EF]/60 mt-1">
-            Route hybride : A = revente de marques existantes · B = façonnage KURLA. Les tarifs et MOQ restent vides tant qu'aucune réponse réelle ne les donne.
+            Du besoin produit au fournisseur à contacter. Route hybride : A = revente de marques existantes · B = façonnage KURLA. Les tarifs, MOQ et contacts restent vides tant qu'aucune réponse réelle ne les donne.
           </p>
         </div>
         <button onClick={load} className="px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#C8753D]/30 text-[#FFF7EF] text-[11px] flex items-center gap-2 hover:bg-[#C8753D]/10">
@@ -197,7 +198,11 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       )}
 
       {/* Onglets */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setTab('plan')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'plan' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          <ClipboardList className="w-4 h-4" /> Plan d'assortiment
+        </button>
         <button onClick={() => setTab('prospects')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'prospects' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
           <Mail className="w-4 h-4" /> Contacts ({prospects.length})
@@ -209,6 +214,11 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       </div>
 
       {loading && <p className="text-xs text-[#FFF7EF]/60">Chargement…</p>}
+
+      {/* ---------------- PLAN D'ASSORTIMENT ---------------- */}
+      {!loading && tab === 'plan' && (
+        <AssortmentPlanPanel prospects={prospects} candidates={candidates} />
+      )}
 
       {/* ---------------- PROSPECTS ---------------- */}
       {!loading && tab === 'prospects' && (
