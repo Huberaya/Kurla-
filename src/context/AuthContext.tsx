@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { translateAuthError } from '../lib/authErrors';
 import { User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient';
 import { UserProfile, UserRole } from '../types';
@@ -190,23 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setLoading(true);
 
+    /**
+     * Pas de repli simulé ici non plus — c'était le second exemplaire du même
+     * piège. Il fabriquait un identifiant aléatoire `usr_xxxxxx`, un profil
+     * `role: 'customer'`, l'écrivait dans `localStorage` et renvoyait
+     * `success: true`. Le visiteur se croyait inscrit ; aucun compte n'existait,
+     * et le faux profil survivait au rechargement de la page.
+     */
     if (!supabase) {
-      // Offline / Simulated sign up
-      const mockId = 'usr_' + Math.random().toString(36).substring(2, 9);
-      const mockProf: UserProfile = {
-        id: mockId,
-        email,
-        first_name: firstName || '',
-        last_name: lastName || '',
-        role: 'customer',
-        country: 'FR',
-        created_at: new Date().toISOString()
-      };
-      setProfile(mockProf);
-      setUser({ id: mockId, email } as any);
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify({ profile: mockProf }));
+      const msg = 'Inscription indisponible : la configuration du service est incomplète.';
+      setError(msg);
       setLoading(false);
-      return { success: true };
+      return { success: false, error: msg };
     }
 
     try {
@@ -225,12 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (sError) {
-        let msg = sError.message;
-        if (sError.message.includes('User already registered')) {
-          msg = 'Un compte existe déjà avec cette adresse email.';
-        } else if (sError.message.includes('Password should be at least')) {
-          msg = 'Le mot de passe doit contenir au moins 6 caractères.';
-        }
+        const msg = translateAuthError(sError.message);
         setError(msg);
         setLoading(false);
         return { success: false, error: msg };
@@ -294,7 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return { success: true };
     } catch (err: any) {
-      const msg = err.message || 'Erreur lors de l’inscription.';
+      const msg = translateAuthError(err.message);
       setError(msg);
       setLoading(false);
       return { success: false, error: msg };
@@ -305,21 +296,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setLoading(true);
 
+    /**
+     * Il n'y a plus de repli simulé. L'ancien code fabriquait, quand le client
+     * Supabase était absent, un faux profil `role: 'customer'` et renvoyait
+     * `success: true` : l'écran affichait une connexion réussie qui n'existait
+     * nulle part, et un administrateur se retrouvait sans accès sans aucune
+     * erreur. Une authentification qui ne peut pas être vérifiée doit échouer.
+     */
     if (!supabase) {
-      const mockId = 'usr_' + Math.random().toString(36).substring(2, 9);
-      const mockProf: UserProfile = {
-        id: mockId,
-        email,
-        first_name: email.split('@')[0],
-        role: 'customer',
-        country: 'FR',
-        created_at: new Date().toISOString()
-      };
-      setProfile(mockProf);
-      setUser({ id: mockId, email } as any);
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify({ profile: mockProf }));
+      const msg = 'Authentification indisponible : la configuration du service est incomplète.';
+      setError(msg);
       setLoading(false);
-      return { success: true };
+      return { success: false, error: msg };
     }
 
     try {
@@ -329,12 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (sError) {
-        let msg = sError.message;
-        if (sError.message.includes('Invalid login credentials')) {
-          msg = 'Adresse email ou mot de passe incorrect.';
-        } else if (sError.message.includes('Email not confirmed')) {
-          msg = 'Veuillez confirmer votre adresse email avant de vous connecter.';
-        }
+        const msg = translateAuthError(sError.message);
         setError(msg);
         setLoading(false);
         return { success: false, error: msg };
@@ -350,7 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return { success: true };
     } catch (err: any) {
-      const msg = err.message || 'Erreur de connexion.';
+      const msg = translateAuthError(err.message);
       setError(msg);
       setLoading(false);
       return { success: false, error: msg };
@@ -396,7 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: 'Un lien de réinitialisation du mot de passe a été envoyé à votre adresse email.'
       };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Erreur lors de la réinitialisation.' };
+      return { success: false, error: translateAuthError(err.message) };
     }
   };
 
@@ -437,7 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsPasswordRecovery(false);
       return { success: true };
     } catch (err: any) {
-      const msg = err.message || 'Impossible de mettre à jour le mot de passe.';
+      const msg = translateAuthError(err.message);
       setError(msg);
       return { success: false, error: msg };
     }
@@ -466,14 +449,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (uErr) {
           console.error('[AuthContext] Update profile error:', uErr);
-          return { success: false, error: uErr.message };
+          return { success: false, error: translateAuthError(uErr.message) };
         }
 
         if (data) {
           setProfile(data as UserProfile);
         }
       } catch (err: any) {
-        return { success: false, error: err.message };
+        return { success: false, error: translateAuthError(err.message) };
       }
     } else {
       // Local fallback state

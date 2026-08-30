@@ -1587,6 +1587,67 @@ Garde étendue dans `kurla_password_recovery.test.ts`. Contrôle négatif lu : f
 
 `external_email_enabled: false` **ne bascule pas** sur un SMTP géré : la réponse suivante est `400 email_provider_disabled`. Ce projet n'a **aucun** chemin d'envoi de secours. Remis à `true` et revérifié par `POST /recover → 200`.
 
+## COMPLÉMENT — INSCRIPTION ET CONNEXION : CHANTIER COMPLET
+
+### 1. Le message vu par le visiteur, reproduit
+
+```
+POST /auth/v1/signup   (email déjà inscrit, non confirmé)
+  → HTTP 429 {"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}
+POST /auth/v1/token?grant_type=password  (mauvais mot de passe)
+  → HTTP 400 {"error_code":"invalid_credentials","msg":"Invalid login credentials"}
+```
+
+Le `rate limit` ne venait donc **pas** de la connexion mais de l'**inscription**, qui exigeait un email de confirmation — email impossible à livrer (plafond horaire du SMTP intégré, aucun domaine vérifié chez le fournisseur).
+
+### 2. Décision de fond : l'inscription ne dépend plus d'aucun email
+
+`PATCH /config/auth {"mailer_autoconfirm": true}` → 200.
+
+Vérification avec **la bibliothèque du navigateur**, pas l'API brute :
+
+```
+supabase.auth.signUp(...) → erreur: aucune · data.session: OBJET — session ouverte
+                          → branche needsConfirmation : NON déclenchée
+supabase.auth.signInWithPassword(...) → OK
+```
+
+(Exécution sous Node : `globalThis.WebSocket = require('ws')` requis, sinon `realtime-js` lève `native WebSocket not found` sous Node 20.)
+
+Réponse GoTrue **plate** (`access_token`, `refresh_token` au premier niveau, `session: null`) : c'est supabase-js qui reconstruit la session. Tester l'API brute seule aurait fait conclure à tort que la session était absente.
+
+Contrepartie assumée : les adresses ne sont plus vérifiées à l'inscription. Réversible. La réinitialisation de mot de passe, elle, **reste dépendante de l'email** et donc toujours limitée.
+
+### 3. Nettoyage des comptes
+
+```
+supprimés (HTTP 200 ×3) :
+  293fe406-…  hubertbay+kurlatest@gmail.com              (test)
+  a3caa023-…  hubertbay+kurlajs@gmail.com                (test)
+  366d171f-…  baya-ibraim.mayoanou.edu@groupe-gema.com   (inscription échouée du 27/08, non confirmée, jamais connectée)
+restant : 1 compte — hubertbay@gmail.com, superadmin
+```
+
+### 4. Deux replis simulés supprimés
+
+`signIn` **et** `signUp` fabriquaient, quand le client Supabase était absent, un identifiant aléatoire `usr_xxxxxx` et un profil `role: 'customer'`, l'écrivaient dans `localStorage`, et renvoyaient `success: true`. Le visiteur se croyait inscrit ou connecté ; rien n'existait, et le faux profil survivait au rechargement. Les deux renvoient désormais un échec explicite.
+
+### 5. Aucune erreur brute de GoTrue ne sort à l'écran
+
+`src/lib/authErrors.ts` : 10 règles ordonnées + repli opaque. Câblé aux **8** sites d'erreur de `AuthContext` (grep : `err.message ||` → 0 occurrence).
+
+Deux défauts trouvés **par le banc**, pas par la relecture :
+- `Email logins are disabled` — GoTrue expose le message, pas le code `email_provider_disabled` ;
+- `AuthApiError` s'écrit **sans espace**.
+
+Banc `tests/kurla_auth_errors.test.ts`. Contrôle négatif vérifié par le code de sortie et le message lu : `exit=1`, `actual: 'Trop de tentatives…'` / `expected: 'Trop d'emails ont été demandés…'`. Fichier restauré (`diff -q` identique).
+
+**Rappel de méthode** : un premier contrôle négatif n'avait **rien imprimé** ; conclure de cette absence qu'il avait mordu aurait été faux. Un négatif se valide par `exit != 0` et par le message lu.
+
+### 6. Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 114 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · inscription et connexion réelles testées contre la production.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
