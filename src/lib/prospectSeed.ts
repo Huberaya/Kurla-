@@ -85,6 +85,15 @@ export const DEFAULT_PROSPECTS: ProspectSeed[] = [
   { id: 'c19', name: 'CAPIBEAUTY', route: 'B', contactType: 'contract_manufacturer', specialty: 'Produits cheveux bouclés/frisés/crépus, marque blanche', sourceUrl: 'europages.fr (CAPIBEAUTY)' },
   { id: 'c20', name: 'Lessonia', route: 'B', contactType: 'contract_manufacturer', specialty: 'Full-service ISO 22716, Made in France (Finistère)', sourceUrl: 'doc CHANTIER_16 §C.1' },
   { id: 'c21', name: 'ABC Texture', route: 'B', contactType: 'contract_manufacturer', specialty: 'R&D et sous-traitance, ISO 22716', sourceUrl: 'doc CHANTIER_16 §C.1' },
+
+  // --- Accessoires : satin / protection nocturne & outils (recherche achats du 30/08/2026) ---
+  // Grossistes multimarques accessoires (bonnets satin, taies, peignes, brosses),
+  // puis marques françaises premium en revente/co-branding. Contacts publics vérifiés
+  // sur les sites officiels ; aucun tarif/MOQ inventé.
+  { id: 'c22', name: 'AfricanFabs B.V.', route: 'A', contactType: 'distributor', specialty: 'Grossiste PB : bonnets satin & doublure satin, taies, scrunchies, accessoires wax. Wholesale explicite. Edam (NL), livraison UE. Contact public : info@africanfabs.com', sourceUrl: 'africanfabs.com/pages/contact-us' },
+  { id: 'c23', name: 'Afro Wholesale (B&F Company)', route: 'A', contactType: 'distributor', specialty: 'Grossiste B2B afro/cheveux texturés (produits ET accessoires : bonnets, peignes, mèches). Heinenoord (NL), livraison UE. Contact public : support@afrowholesale.eu', sourceUrl: 'afrowholesale.eu' },
+  { id: 'c24', name: 'Curly Nights', route: 'A', contactType: 'brand_fr', specialty: 'Bonnets satin et taies faits main à Lyon (FR), réglables/enfants, wax. Contact via site + Instagram @curly.nights', sourceUrl: 'curlynights.com/fr/contact' },
+  { id: 'c25', name: 'Studio Boucle Paris', route: 'A', contactType: 'brand_fr', specialty: 'Bonnet satin adulte 100% satin intérieur/extérieur, marque française (Paris). Accessoires de protection nocturne', sourceUrl: 'studioboucleparis.com' },
 ];
 
 export const DEFAULT_CANDIDATES: CandidateSeed[] = [
@@ -103,4 +112,12 @@ export const DEFAULT_CANDIDATES: CandidateSeed[] = [
   { id: 'r13', prospectId: 'c09', brand: 'Flora & Curl', product: 'Mousse coiffante boucles/crépus', routineStep: 'Fixation', category: 'hair' },
   { id: 'r14', prospectId: 'c10', brand: 'Curlsmith', product: 'Shine Gel sans protéine', routineStep: 'Fixation', category: 'hair' },
   { id: 'r15', prospectId: 'c15', brand: 'Multimarques (via Dina Afro Shop)', product: 'As I Am / Aunt Jackie’s / Cantu / Shea Moisture / Camille Rose', routineStep: 'Divers', category: 'hair' },
+
+  // --- Accessoires (satin & outils) — recherche achats du 30/08/2026 ---
+  { id: 'r16', prospectId: 'c22', brand: 'AfricanFabs', product: 'Bonnet satin extra-large (tresses/locks) en gros', routineStep: 'Accessoire', category: 'tools' },
+  { id: 'r17', prospectId: 'c22', brand: 'AfricanFabs', product: 'Set satin : bonnet + taie d’oreiller + scrunchie (gros)', routineStep: 'Accessoire', category: 'tools' },
+  { id: 'r18', prospectId: 'c23', brand: 'Afro Wholesale', product: 'Peigne afro dents larges & brosses démêlantes (gros B2B)', routineStep: 'Accessoire', category: 'tools' },
+  { id: 'r19', prospectId: 'c23', brand: 'Afro Wholesale', product: 'Bonnet de nuit wax/satin (multimarque, gros)', routineStep: 'Accessoire', category: 'tools' },
+  { id: 'r20', prospectId: 'c24', brand: 'Curly Nights', product: 'Bonnet satin réglable fait main (Lyon) — revente/co-branding', routineStep: 'Accessoire', category: 'tools' },
+  { id: 'r21', prospectId: 'c25', brand: 'Studio Boucle Paris', product: 'Bonnet satin 100% adulte (marque française)', routineStep: 'Accessoire', category: 'tools' },
 ];
