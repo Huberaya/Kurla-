@@ -124,6 +124,24 @@ export async function sendNotification(
     return notif;
   }
 
+/**
+ * Indique si une notification avec cette clé de dédoublonnage existe déjà.
+ * Utilisé par les orchestrateurs batch pour ne compter que les créations
+ * réelles (sendNotification est idempotent et renvoie l'existant sinon).
+ */
+export async function notificationExists(
+  store: SupabaseServerStore,
+  dedupeKey: string
+): Promise<boolean> {
+  if (store.inMemoryNotifications.some((n) => n.dedupeKey === dedupeKey)) return true;
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { data } = await supabase.from('notifications').select('id').eq('dedupe_key', dedupeKey).maybeSingle();
+    return Boolean(data);
+  }
+  return false;
+}
+
 export async function logNotificationDelivery(store: SupabaseServerStore, log: NotificationDeliveryLog): Promise<void> {
     store.inMemoryNotificationLogs.unshift(log);
     const supabase = getSupabaseServerClient();

@@ -33,6 +33,13 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   /**
+   * Renvoie l'email de confirmation pour un compte créé mais pas encore
+   * confirmé. `emailRedirectTo` pointe vers `/account`, où l'app ouvre la
+   * session dès que le lien est visité. Utile quand l'email automatique est
+   * tombé en spam ou a expiré.
+   */
+  resendConfirmation: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  /**
    * Supabase émet `PASSWORD_RECOVERY` quand l'URL porte un jeton de
    * réinitialisation. Sans ce drapeau, l'utilisateur arrivait avec une session
    * de récupération et **aucun moyen de définir un nouveau mot de passe** :
@@ -383,6 +390,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resendConfirmation = async (emailToConfirm: string) => {
+    setError(null);
+    const target = (emailToConfirm || '').trim();
+    if (!target) {
+      return { success: false, error: 'Veuillez saisir votre adresse email.' };
+    }
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Authentification indisponible : la configuration du service est incomplète.',
+      };
+    }
+    try {
+      const { error: rcErr } = await supabase.auth.resend({
+        type: 'signup',
+        email: target,
+        options: {
+          emailRedirectTo: `${window.location.origin}/account`,
+        },
+      });
+      if (rcErr) {
+        return { success: false, error: translateAuthError(rcErr.message) };
+      }
+      return {
+        success: true,
+        message: 'Email de confirmation renvoyé. Vérifie ta boîte de réception (et les indésirables).',
+      };
+    } catch (err: any) {
+      return { success: false, error: translateAuthError(err.message) };
+    }
+  };
+
   /**
    * Écrit le nouveau mot de passe sur la session courante.
    *
@@ -494,6 +533,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         resetPassword,
+        resendConfirmation,
         updateProfile,
         refetchProfile,
         clearError

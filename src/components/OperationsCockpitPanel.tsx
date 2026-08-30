@@ -212,7 +212,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-[#FFF7EF] flex items-center gap-2"><Gauge size={18} /> Pilotage catalogue et approvisionnement</h2>
+          <h2 className="text-lg font-bold text-[#FFF7EF] flex items-center gap-2"><Gauge size={18} /> Pilotage catalogue</h2>
           <p className="text-[11px] text-[#FFF7EF]/60 mt-1 max-w-3xl">
             Une seule question à pouvoir trancher ici : <strong>ce produit peut-il être vendu, et sinon qu'est-ce qui manque</strong>.
             {cockpit ? ` Généré le ${new Date(cockpit.generatedAt).toLocaleString('fr-FR')}.` : ''}
@@ -259,7 +259,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
             {cockpit.productsWithoutSupplier > 0 && (
               <p className="text-[11px] text-amber-200/80 mt-3">
                 {cockpit.productsWithoutSupplier} produit(s) n'ont aucune provenance enregistrée. Ce n'est pas un blocage
-                éditorial : c'est une absence d'approvisionnement, à traiter dans la section sourcing ci-dessous.
+                éditorial : c'est une absence d'approvisionnement, à traiter dans la famille « Approvisionnement » (Fournisseurs &amp; sourcing).
               </p>
             )}
           </section>

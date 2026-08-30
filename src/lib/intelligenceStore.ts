@@ -337,6 +337,38 @@ class KurlaIntelligenceStore {
     return updated;
   }
 
+  /**
+   * Recense les utilisateurs qui ont au moins une donnée de la boucle
+   * (étagère, cycle de lavage renseigné, coiffure protectrice). Utilisé par
+   * l'orchestrateur de relances pour ne scanner que les comptes concernés.
+   * Fonctionne en Supabase comme en repli mémoire.
+   */
+  public async listActiveLoopUserIds(limit = 5000): Promise<string[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const [shelfUsers, washUsers, episodeUsers] = await Promise.all([
+        supabase.from('user_products').select('user_id').limit(limit),
+        supabase.from('wash_day_cycles').select('user_id').limit(limit),
+        supabase.from('protective_style_episodes').select('user_id').eq('removed_at', null).limit(limit),
+      ]);
+      const ids = new Set<string>();
+      for (const row of (shelfUsers.data || []) as any[]) if (row?.user_id) ids.add(String(row.user_id));
+      for (const row of (washUsers.data || []) as any[]) if (row?.user_id) ids.add(String(row.user_id));
+      for (const row of (episodeUsers.data || []) as any[]) if (row?.user_id) ids.add(String(row.user_id));
+      return Array.from(ids).slice(0, limit);
+    }
+    const ids = new Set<string>(this.shelf.keys());
+    for (const userId of this.washDayCycles.keys()) {
+      // Un cycle par défaut sans dernier lavage n'est pas une donnée exploitable.
+      const cycle = this.washDayCycles.get(userId);
+      if (cycle?.lastWashDayAt) ids.add(userId);
+    }
+    for (const [userId, episodes] of this.episodes.entries()) {
+      if (episodes.some(ep => !ep.removedAt)) ids.add(userId);
+    }
+    return Array.from(ids).slice(0, limit);
+  }
+
   public async getShelf(userId: string): Promise<ShelfItem[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {

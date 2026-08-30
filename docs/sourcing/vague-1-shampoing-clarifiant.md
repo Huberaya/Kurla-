@@ -21,7 +21,42 @@ Trou n°2 du catalogue. Le champ « à éviter si » de p2 dit lui-même qu’il
 
 ## 2. Spécification
 
-⟨à compléter⟩ — la spécification technique doit être jointe avant envoi : formulation ou cahier des charges matière, format, contenance, packaging.
+### Produit
+Shampoing clarifiant (« clarifying shampoo ») pour cheveux texturés et cuirs
+chevelus sensibles.
+
+### Cible
+Éliminer les résidus de coiffage (gels, cires, sprays à tresses/locks),
+l'accumulation due à l'eau dure et aux minéraux, avant un soin profond ou entre
+deux coiffures protectrices. Il ne doit **pas dessécher** le cheveu texturé :
+usage environ 1 fois toutes les 2-4 semaines, et non quotidien.
+
+### Texture / sensorialité
+Gel-crème à mousse modérée (pas de mousse agressive), rinçage net, cuir chevelu
+frais sans tiraillement, cheveu non rêche après utilisation.
+
+### Orientation formulation (indicative, à proposer par le façonnier)
+- Système lavant doux mais réellement nettoyant (ex. cocamidopropyl betaine
+  associé à un tensioactif doux type sodium cocoyl isethionate / sodium methyl
+  cocoyl taurate) ; éviter un SLS agressif pur.
+- Agents **chélatants** pour l'eau dure (citrate, EDTA ou alternative) ; pas de
+  silicones lourds.
+- Actifs apaisants cuir chevelu : panthénol, aloe vera ; option menthe poivrée
+  douce (allergènes à déclarer) ; pH équilibré.
+- **Conforme AGEC produit rincé : sans microplastique ≥ 0,01 % en masse**
+  (attestation demandée, voir §3).
+- Liste INCI complète à fournir.
+
+### Format / contenant
+Flacon **250 ml**. Étiquetage français, Triman / Info-Tri. Indication de la
+fréquence d'usage sur l'étiquetage.
+
+### Positionnement prix
+Prix public cible **11-16 €** ; prix de revient attendu cohérent.
+
+### Tests et conformité
+Voir §3, plus : tolérance cuir chevelu sous contrôle dermatologique, tests
+stabilité/challenge, et évaluation du pouvoir nettoyant sur résidus.
 
 ---
 

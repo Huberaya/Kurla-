@@ -105,6 +105,7 @@ import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
+import * as prospectStore from './db/prospectStore';
 import * as operationsCockpit from './db/operationsCockpit';
 import * as batchStore from './db/batchStore';
 import * as contentStore from './db/contentStore';
@@ -183,6 +184,9 @@ export class SupabaseServerStore {
   public inMemorySourcingItems: any[] = [];
   public inMemoryRfqs: any[] = [];
   public inMemoryRfqResponses: any[] = [];
+  /** CHANTIER CATALOGUE RÉEL — prospects de sourcing et références à intégrer. */
+  public inMemoryProspects: import('./db/prospectStore').SourcingProspect[] = [];
+  public inMemoryCandidates: import('./db/prospectStore').ProductCandidate[] = [];
   public inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
@@ -332,6 +336,7 @@ export class SupabaseServerStore {
 
   public async initialize(defaultProducts: any[] = []): Promise<void> {
     this.inMemoryProducts = defaultProducts;
+    prospectStore.seedInMemoryProspects(this);
 
     const supabase = getSupabaseServerClient();
     if (!supabase) {
@@ -453,6 +458,13 @@ bindDomain(storeInstance, {
   getOperationsCockpit: operationsCockpit.getOperationsCockpit
 });
 bindDomain(storeInstance, {
+  listProspects: prospectStore.listProspects,
+  getProspect: prospectStore.getProspect,
+  listCandidates: prospectStore.listCandidates,
+  upsertProspect: prospectStore.upsertProspect,
+  upsertCandidate: prospectStore.upsertCandidate
+});
+bindDomain(storeInstance, {
   createBatch: batchStore.createBatch,
   listBatches: batchStore.listBatches,
   getBatch: batchStore.getBatch,
@@ -500,4 +512,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof taxonomyStore>
   & Curried<typeof communityStore>
   & Curried<typeof brandContractStore>
-  & Curried<typeof brandInvoiceStore>;
+  & Curried<typeof brandInvoiceStore>
+  & Curried<typeof prospectStore>;

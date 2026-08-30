@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
+import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
@@ -307,38 +308,104 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 border-b border-[#FFF7EF]/10 pb-4">
-          {[
-            { id: 'analytics', label: 'Tableau de Bord Commercial', icon: TrendingUp },
-            { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
-            { id: 'orders', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
-            { id: 'returns', label: `Retours & Remboursements (${returnsList.length})`, icon: RotateCcw },
-            { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
-            { id: 'pros', label: 'Certifications Pros', icon: Users },
-            { id: 'catalog', label: 'Catalogue produits', icon: Package },
-            { id: 'suppliers', label: 'Approvisionnement', icon: Truck },
-            { id: 'batches', label: 'Lots et traçabilité', icon: Boxes },
-            { id: 'operations', label: 'Gestion quotidienne', icon: Shield }
-          ].map(tab => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  active
-                    ? 'bg-[#C8753D] text-white shadow-lg'
-                    : 'bg-[#1A0F0A] text-[#FFF7EF]/70 hover:text-white border border-[#FFF7EF]/5'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Navigation — familles fonctionnelles + sous-onglets */}
+        {(() => {
+          const navGroups = [
+            {
+              id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard,
+              tabs: [
+                { id: 'analytics', label: 'Tableau de bord commercial', icon: TrendingUp },
+              ],
+            },
+            {
+              id: 'sales', label: 'Ventes & Clients', icon: BarChart3,
+              tabs: [
+                { id: 'orders', label: 'Commandes', icon: ShoppingBag, badge: serverOrders.length },
+                { id: 'returns', label: 'Retours & Remboursements', icon: RotateCcw, badge: returnsList.length },
+                { id: 'support', label: 'Support Client', icon: MessageSquare, badge: supportTickets.length },
+                { id: 'pros', label: 'Certifications Pro', icon: Users },
+              ],
+            },
+            {
+              id: 'catalog', label: 'Catalogue & Stock', icon: Store,
+              tabs: [
+                { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
+                { id: 'catalog', label: 'Catalogue produits', icon: Package },
+                { id: 'batches', label: 'Lots & traçabilité', icon: Boxes },
+              ],
+            },
+            {
+              id: 'supply', label: 'Approvisionnement', icon: Truck,
+              tabs: [
+                { id: 'suppliers', label: 'Fournisseurs & sourcing', icon: Truck },
+              ],
+            },
+            {
+              id: 'settings', label: 'Gestion & Contenu', icon: Settings,
+              tabs: [
+                { id: 'operations', label: 'Gestion quotidienne', icon: Shield },
+              ],
+            },
+          ];
+          const activeGroup = navGroups.find(g => g.tabs.some(t => t.id === activeTab)) ?? navGroups[0];
+          const GroupIcon = activeGroup.icon;
+
+          return (
+            <div className="space-y-3">
+              {/* Familles */}
+              <div className="flex overflow-x-auto gap-2">
+                {navGroups.map(group => {
+                  const GIcon = group.icon;
+                  const isActiveGroup = group.id === activeGroup.id;
+                  return (
+                    <button
+                      key={group.id}
+                      onClick={() => setActiveTab(group.tabs[0].id as any)}
+                      className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                        isActiveGroup
+                          ? 'bg-[#C8753D] text-white shadow-lg'
+                          : 'bg-transparent text-[#FFF7EF]/55 hover:text-[#FFF7EF] border border-[#FFF7EF]/10 hover:border-[#FFF7EF]/25'
+                      }`}
+                    >
+                      <GIcon className="w-4 h-4" />
+                      {group.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Sous-onglets de la famille active */}
+              <div className="flex overflow-x-auto gap-2 border-b border-[#FFF7EF]/10 pb-3">
+                <span className="flex items-center gap-1.5 px-3 text-[10px] uppercase tracking-wider text-[#D49A63]/80 font-bold whitespace-nowrap">
+                  <GroupIcon className="w-3.5 h-3.5" />
+                  {activeGroup.label}
+                </span>
+                {activeGroup.tabs.map(tab => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+                        active
+                          ? 'bg-[#1A0F0A] text-[#FFF7EF] border border-[#C8753D]/60 shadow'
+                          : 'bg-transparent text-[#FFF7EF]/60 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {tab.label}
+                      {typeof tab.badge === 'number' && tab.badge > 0 && (
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-[#C8753D] text-white' : 'bg-[#FFF7EF]/10 text-[#FFF7EF]/70'}`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* TAB 1: COMMERCIAL DASHBOARD ANALYTICS */}
         {activeTab === 'analytics' && (
@@ -765,13 +832,24 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 5B: APPROVISIONNEMENT — chantier 16B */}
         {activeTab === 'suppliers' && (
-          <SupplierAdminPanel
-            headers={adminHeaders}
-            onSuccess={(message) => {
-              setActionSuccess(message);
-              setTimeout(() => setActionSuccess(''), 5000);
-            }}
-          />
+          <div className="space-y-10">
+            <SourcingProspectsPanel
+              headers={adminHeaders}
+              onSuccess={(message) => {
+                setActionSuccess(message);
+                setTimeout(() => setActionSuccess(''), 5000);
+              }}
+            />
+            <div className="border-t border-[#FFF7EF]/10 pt-8">
+              <SupplierAdminPanel
+                headers={adminHeaders}
+                onSuccess={(message) => {
+                  setActionSuccess(message);
+                  setTimeout(() => setActionSuccess(''), 5000);
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {/* TAB 5C: LOTS ET TRAÇABILITÉ — écran du chantier 16D */}

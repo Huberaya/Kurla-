@@ -57,6 +57,8 @@ import { registerRecommendationRoutes } from './src/server/routes/recommendation
 import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGovernance';
 import { registerSupplierRoutes } from './src/server/routes/suppliers';
 import { registerSourcingRoutes } from './src/server/routes/sourcing';
+import { registerProspectRoutes } from './src/server/routes/prospects';
+import { registerRetentionNudgeRoutes } from './src/server/routes/retentionNudges';
 import { registerOperationsCockpitRoutes } from './src/server/routes/operationsCockpit';
 import { registerBatchRoutes } from './src/server/routes/batches';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
@@ -1138,6 +1140,8 @@ registerRecommendationRoutes(app);
 registerCatalogGovernanceRoutes(app);
 registerSupplierRoutes(app);
 registerSourcingRoutes(app);
+registerProspectRoutes(app);
+registerRetentionNudgeRoutes(app);
 registerOperationsCockpitRoutes(app);
 registerBatchRoutes(app);
 registerAiAssistantRoutes(app);

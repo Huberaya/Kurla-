@@ -118,6 +118,7 @@ export interface ShelfItemInput {
   status?: ShelfItem['status'];
   category?: string;
   routineStep?: string;
+  barcode?: string;
   estimatedRemainingPercent?: number;
   abandonmentReason?: string;
   abandonmentNote?: string;

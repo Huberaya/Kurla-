@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T16:50:34.607Z",
+  "generatedAt": "2026-08-30T19:14:47.635Z",
   "routes": [
     {
       "method": "GET",
@@ -288,12 +288,48 @@
       "callers": []
     },
     {
+      "method": "POST",
+      "path": "/api/admin/retention/run",
+      "file": "src/server/routes/retentionNudges.ts:17",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AdminOperationsPanel.tsx:74"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/admin/return-insights/:productId",
       "file": "src/server/routes/chantierA.ts:225",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:253"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sourcing/candidates",
+      "file": "src/server/routes/prospects.ts:54",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:104"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/candidates",
+      "file": "src/server/routes/prospects.ts:79",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:104"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/sourcing/candidates/:id",
+      "file": "src/server/routes/prospects.ts:67",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:139"
       ]
     },
     {
@@ -341,6 +377,33 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:158"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sourcing/prospects",
+      "file": "src/server/routes/prospects.ts:17",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:103"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/prospects",
+      "file": "src/server/routes/prospects.ts:41",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:103"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/sourcing/prospects/:id",
+      "file": "src/server/routes/prospects.ts:29",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingProspectsPanel.tsx:122"
       ]
     },
     {

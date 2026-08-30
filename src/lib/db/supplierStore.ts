@@ -36,6 +36,8 @@ export const SUPPLIER_TYPES = [
   'raw_material',
   'packaging',
   'laboratory',
+  'brand',
+  'distributor',
   'unknown'
 ] as const;
 

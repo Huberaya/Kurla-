@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Check, Loader2, Package, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { AlertCircle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { lookupProductByBarcode, normalizeBarcode, type BarcodeProduct } from '../lib/barcodeLookup';
 import { useAuth } from '../context/AuthContext';
 import {
   ABANDONMENT_LABELS,
@@ -71,6 +72,12 @@ export const ShelfPage: React.FC = () => {
   const [outcomeDays, setOutcomeDays] = useState<string>('');
   const [shareOutcome, setShareOutcome] = useState(false);
 
+  // Scan / saisie de code-barres (Open Beauty Facts)
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState('');
+  const [scannedProduct, setScannedProduct] = useState<BarcodeProduct | null>(null);
+
   const load = useCallback(async () => {
     if (!token) {
       setLoading(false);
@@ -107,6 +114,37 @@ export const ShelfPage: React.FC = () => {
     return map;
   }, [items]);
 
+  const handleScan = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const code = normalizeBarcode(barcodeInput);
+    if (!code) {
+      setScanNote('Code-barres invalide (8 à 14 chiffres). Vérifie le numéro sous le code.');
+      return;
+    }
+    setScanning(true);
+    setScanNote('');
+    setScannedProduct(null);
+    try {
+      const found = await lookupProductByBarcode(code);
+      if (!found) {
+        // Produit inconnu d'Open Beauty Facts : on garde le code, l'utilisateur
+        // saisit le nom à la main. Rien n'est inventé.
+        setScanNote('Produit non reconnu dans la base publique. Saisis son nom ci-dessous, on l’ajoute quand même.');
+        setFreeLabel((current) => current || '');
+        return;
+      }
+      setScannedProduct(found);
+      setFreeLabel(found.label);
+      setScanNote(
+        found.ingredients.length > 0
+          ? `Reconnu : ${found.label}. Sa liste INCI (${found.ingredients.length} ingrédients) servira à analyser ta routine.`
+          : `Reconnu : ${found.label}.`
+      );
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!token) return;
@@ -118,6 +156,7 @@ export const ShelfPage: React.FC = () => {
         freeLabel: freeLabel.trim(),
         routineStep,
         status,
+        barcode: normalizeBarcode(barcodeInput) || undefined,
         estimatedRemainingPercent: remaining === '' ? undefined : Number(remaining),
         // Le motif est obligatoire pour un abandon : c'est la seule partie
         // exploitable. Le formulaire le bloque avant l'envoi.
@@ -128,6 +167,9 @@ export const ShelfPage: React.FC = () => {
       setRemaining('');
       setAbandonmentReason('');
       setAbandonmentNote('');
+      setBarcodeInput('');
+      setScannedProduct(null);
+      setScanNote('');
       setNotice('Produit ajouté à ton étagère.');
       await load();
     } catch (err) {
@@ -261,10 +303,41 @@ export const ShelfPage: React.FC = () => {
         {/* Ajout */}
         <section className="mb-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#C8753D]" /> Ajouter un produit</h2>
+
+          {/* Scan code-barres : remplissage automatique via Open Beauty Facts.
+              Ne bloque jamais la saisie manuelle (produit non reconnu = ajout quand même). */}
+          <div className="mb-4 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA]">
+            <span className={labelClass + ' flex items-center gap-1.5'}>
+              <Barcode className="w-3.5 h-3.5 text-[#C8753D]" /> Le plus rapide : scanne ou saisis le code-barres
+            </span>
+            <form onSubmit={handleScan} className="flex gap-2">
+              <input
+                inputMode="numeric"
+                value={barcodeInput}
+                onChange={event => setBarcodeInput(event.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="Chiffres sous le code-barres (ex. 3012345678907)"
+                className={inputClass}
+                maxLength={14}
+                aria-label="Code-barres du produit"
+              />
+              <button type="submit" disabled={scanning || barcodeInput.length < 8}
+                className="px-4 py-2.5 rounded-xl bg-[#1A0F0A] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50">
+                {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                Reconnaître
+              </button>
+            </form>
+            {scanNote && (
+              <p className={`mt-2 text-[11px] flex items-start gap-1.5 ${scannedProduct ? 'text-emerald-700' : 'text-[#8b4b24]'}`}>
+                {scannedProduct ? <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
+                {scanNote}
+              </p>
+            )}
+          </div>
+
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
               <span className={labelClass}>Nom du produit</span>
-              <input value={freeLabel} onChange={event => setFreeLabel(event.target.value)} placeholder="Ex. Leave-in hydratant karité" className={inputClass} required maxLength={200} />
+              <input value={freeLabel} onChange={event => setFreeLabel(event.target.value)} placeholder="Ex. Leave-in hydratant karité — ou scanne un produit ci-dessus" className={inputClass} required maxLength={200} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,8 +15,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onSuccess
 }) => {
-  const { signIn, signUp, resetPassword, loading, error, clearError } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>(initialMode);
+  const { signIn, signUp, resetPassword, resendConfirmation, loading, error, clearError } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'confirm'>(initialMode);
+
+  /**
+   * Email du compte en attente de confirmation. Alimente le panneau « vérifie
+   * ta boîte mail » : après une inscription (renvoi au clic) ou après une
+   * connexion échouant sur « email non confirmé ».
+   */
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -39,11 +47,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSwitchMode = (newMode: 'login' | 'signup' | 'forgot') => {
+  const handleSwitchMode = (newMode: 'login' | 'signup' | 'forgot' | 'confirm') => {
     setMode(newMode);
     setLocalError(null);
     setSuccessMsg(null);
     clearError();
+  };
+
+  // Cooldown anti-spam sur le renvoi d'email de confirmation.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleResendConfirmation = async () => {
+    const target = pendingEmail || email;
+    if (!target) {
+      setLocalError('Saisis d’abord ton adresse email.');
+      return;
+    }
+    setLocalError(null);
+    setSuccessMsg(null);
+    const res = await resendConfirmation(target);
+    if (res.success) {
+      setSuccessMsg(res.message || 'Email de confirmation renvoyé.');
+      setPendingEmail(target);
+      setResendCooldown(30);
+    } else {
+      setLocalError(res.error || 'Impossible de renvoyer l’email.');
+    }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -64,7 +97,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (onSuccess) onSuccess();
       }, 800);
     } else {
-      setLocalError(res.error || 'Erreur lors de la connexion.');
+      const msg = res.error || 'Erreur lors de la connexion.';
+      // Compte créé mais email non confirmé : au lieu d'une impasse, on guide
+      // vers le panneau de confirmation avec renvoi possible.
+      if (msg.toLowerCase().includes('confirm')) {
+        setPendingEmail(email);
+        setLocalError(null);
+        setSuccessMsg(null);
+        setMode('confirm');
+        return;
+      }
+      setLocalError(msg);
     }
   };
 
@@ -103,14 +146,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (res.success && res.needsConfirmation) {
       /**
        * Le compte est créé mais la session n'existe pas encore : il faut
-       * confirmer l'email. On ne ferme PAS le modal — le fermer faisait croire
-       * à une connexion réussie, alors qu'au rechargement tout avait disparu.
+       * confirmer l'email. On bascule sur le panneau dédié « vérifie ta boîte
+       * mail », qui propose le renvoi et ne laisse pas l'utilisateur bloqué
+       * si l'email automatique est tombé en spam.
        */
-      setSuccessMsg(
-        'Compte créé. Un email de confirmation vient d’être envoyé : cliquez sur le lien qu’il contient, puis revenez vous connecter. Pensez à vérifier vos indésirables.'
-      );
+      setPendingEmail(email);
       setPassword('');
       setConfirmPassword('');
+      setLocalError(null);
+      setSuccessMsg(null);
+      setResendCooldown(0);
+      setMode('confirm');
       return;
     }
 
@@ -167,11 +213,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {mode === 'login' && 'Connexion à votre espace'}
             {mode === 'signup' && 'Créer votre compte KURLA'}
             {mode === 'forgot' && 'Mot de passe oublié'}
+            {mode === 'confirm' && 'Vérifie ta boîte mail'}
           </h2>
           <p className="text-xs text-[#FFF7EF]/60 mt-1">
             {mode === 'login' && 'Accédez à vos diagnostics, routines et commandes.'}
             {mode === 'signup' && 'Rejoignez le premier univers Afro & Melanin Beauty-Tech.'}
             {mode === 'forgot' && 'Entrez votre email pour recevoir les instructions.'}
+            {mode === 'confirm' && 'Un lien de confirmation vient de t’être envoyé par email.'}
           </p>
         </div>
 
@@ -404,6 +452,58 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </div>
           </form>
+        )}
+
+        {mode === 'confirm' && (
+          <div className="space-y-5">
+            <div className="flex flex-col items-center text-center gap-3 py-2">
+              <div className="w-14 h-14 rounded-full bg-[#C8753D]/10 border border-[#C8753D]/30 flex items-center justify-center text-[#C8753D]">
+                <Mail className="w-7 h-7" />
+              </div>
+              <p className="text-xs text-[#FFF7EF]/75 leading-relaxed">
+                Ton compte est presque prêt. Ouvre l’email envoyé à{' '}
+                <strong className="text-[#FFF7EF]">{pendingEmail || 'ton adresse'}</strong> et
+                clique sur le lien de confirmation, puis reconnecte-toi. Pense à vérifier tes
+                <em> indésirables</em>.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={loading || resendCooldown > 0}
+              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-[#C8753D]/25 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Envoi en cours...</>
+              ) : resendCooldown > 0 ? (
+                `Renvoyer l’email (${resendCooldown}s)`
+              ) : (
+                <>Renvoyer l’email de confirmation <Mail className="w-4 h-4" /></>
+              )}
+            </button>
+
+            <div className="flex items-center justify-center gap-4 text-[11px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail(pendingEmail || email);
+                  setPassword('');
+                  handleSwitchMode('login');
+                }}
+                className="font-bold text-[#C8753D] hover:underline"
+              >
+                J’ai confirmé → me connecter
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchMode('signup')}
+                className="text-[#FFF7EF]/60 hover:text-[#FFF7EF] hover:underline"
+              >
+                Modifier mon email
+              </button>
+            </div>
+          </div>
         )}
 
         {mode === 'forgot' && (

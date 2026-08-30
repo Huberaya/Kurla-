@@ -21,7 +21,44 @@ Trou n°1 du catalogue. Le catalogue lave (p2) et scelle (p1), mais ne démêle 
 
 ## 2. Spécification
 
-⟨à compléter⟩ — la spécification technique doit être jointe avant envoi : formulation ou cahier des charges matière, format, contenance, packaging.
+### Produit
+Après-shampoing rincé haute nutrition (« rinse-out conditioner ») pour cheveux très texturés.
+
+### Cible
+Cheveux types 4A, 4B, 4C (crépus) et bouclés 3B-3C, en majorité faible à
+moyenne porosité, secs, sujets à la casse. Bénéfices attendus : démêlage
+immédiat sous la douche, glisse, souplesse après rinçage, sans alourdir ni
+laisser de résidu.
+
+### Texture / sensorialité
+Crème épaisse onctueuse, blanche à ivoire, fondante à l'application ; rinçage
+net sans film gras ; parfum léger (une version **sans parfum** est demandée) ;
+cheveu démêlé et souple après rinçage.
+
+### Orientation formulation (indicative, à proposer par le façonnier)
+- Base riche **sans sulfates agressifs** ; agents de glisse et démêlants
+  (ex. behentrimonium chloride / behentrimonium methosulfate).
+- Beurres et huiles nutritifs : beurre de karité (*Butyrospermum parkii*),
+  huile de ricin (*Ricinus communis*), coco fractionnée ; humectants
+  (glycérine végétale, panthénol).
+- Version **hydratante (sans protéine forte)** privilégiée pour ce héros, afin
+  d'équilibrer notre futur versant protéiné.
+- pH compatible cuir chevelu ; sans silicone non soluble en excès (formule
+  **Curly-Girl friendly** appréciée).
+- **Conforme AGEC produit rincé : sans microplastique ≥ 0,01 % en masse**
+  (attestation demandée, voir §3).
+
+### Format / contenant
+Tube ou flacon-pompe **250 ml** (version voyage 100 ml en option). Packaging
+rechargeable/réemploi à étudier (AGEC / PPWR). Étiquetage français, Triman /
+Info-Tri.
+
+### Positionnement prix
+Prix public cible **13-18 €** ; prix de revient attendu cohérent.
+
+### Tests et conformité
+Voir §3, plus : stabilité, challenge test, tolérance sous contrôle
+dermatologique, compatibilité sur 4A-4C, évaluation du démêlage.
 
 ---
 

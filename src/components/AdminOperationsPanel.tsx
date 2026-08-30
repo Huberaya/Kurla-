@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Bell, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
+import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
 
 type Props = {
   dashboard: any;
@@ -7,7 +7,7 @@ type Props = {
   onReload: () => void;
 };
 
-type OperationSection = 'brands' | 'categories' | 'payments' | 'shipments' | 'users' | 'articles' | 'ai' | 'reviews' | 'coupons' | 'notifications' | 'logs';
+type OperationSection = 'brands' | 'categories' | 'payments' | 'shipments' | 'users' | 'articles' | 'ai' | 'reviews' | 'coupons' | 'notifications' | 'retention' | 'logs';
 
 const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF] text-xs placeholder:text-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]';
 const buttonClass = 'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-semibold disabled:opacity-40';
@@ -64,6 +64,24 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
   const [shipmentHistories, setShipmentHistories] = useState<Record<string, any[]>>({});
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
+  const [retentionResult, setRetentionResult] = useState<any>(null);
+
+  const runRetentionNudges = async () => {
+    setBusy('retention');
+    setMessage('');
+    setRetentionResult(null);
+    try {
+      const response = await fetch('/api/admin/retention/run', { method: 'POST', headers, body: '{}' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Calcul des relances indisponible.');
+      setRetentionResult(data);
+      setMessage('Relances de rétention calculées.');
+    } catch (error: any) {
+      setMessage(error.message || 'Calcul des relances indisponible.');
+    } finally {
+      setBusy('');
+    }
+  };
 
   const rows = dashboard || {};
   const users = Array.isArray(rows.users) ? rows.users : [];
@@ -118,7 +136,7 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     ['brands', 'Marques', Tag], ['categories', 'Catégories', FolderTree], ['payments', 'Paiements', CircleDollarSign],
     ['shipments', 'Livraisons', Truck], ['users', 'Utilisateurs & rôles', UserCog], ['articles', 'Articles', FileText],
     ['ai', 'Sources IA', BookOpen], ['reviews', 'Avis', MessageSquare], ['coupons', 'Coupons', ReceiptText],
-    ['notifications', 'Notifications', Bell], ['logs', 'Logs', ListChecks]
+    ['notifications', 'Notifications', Bell], ['retention', 'Boucle de données', BellRing], ['logs', 'Logs', ListChecks]
   ] as const;
 
   const sectionTitle = nav.find(([id]) => id === section)?.[1] || 'Gestion';
@@ -226,6 +244,52 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     <div className="grid lg:grid-cols-[1fr_400px] gap-6"><div className="space-y-3">{notifications.length ? notifications.filter((notification: any) => matches(notification.title, notification.message, notification.userId, notification.type)).slice(0, 100).map((notification: any) => <div key={notification.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5"><p className="text-sm font-semibold">{notification.title}</p><p className="text-xs text-[#FFF7EF]/60 mt-1">{notification.message}</p><p className="text-[10px] text-[#FFF7EF]/35 mt-2">Destinataire : {notification.userId} · {notification.read ? 'lue' : 'non lue'}</p></div>) : renderEmpty('Aucune notification persistante.')}</div><form className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-2.5" onSubmit={e => { e.preventDefault(); run('notification', { url: '/api/admin/notifications', method: 'POST', body: JSON.stringify(notificationForm) }, 'Notification envoyée.'); }}><h3 className="text-sm font-semibold">Envoyer une notification ciblée</h3><select className={inputClass} value={notificationForm.userId} onChange={e => setNotificationForm({ ...notificationForm, userId: e.target.value })}><option value="">Choisir un utilisateur</option>{users.map((user: any) => <option key={user.id} value={user.id}>{user.email}</option>)}</select><select className={inputClass} value={notificationForm.type} onChange={e => setNotificationForm({ ...notificationForm, type: e.target.value })}><option value="account_created">account_created</option><option value="payment_confirmed">payment_confirmed</option><option value="order_processing">order_processing</option><option value="order_shipped">order_shipped</option><option value="refund_created">refund_created</option><option value="support_reply">support_reply</option><option value="low_stock">low_stock</option><option value="routine_reminder">routine_reminder</option></select><input className={inputClass} placeholder="Titre" value={notificationForm.title} onChange={e => setNotificationForm({ ...notificationForm, title: e.target.value })} /><textarea className={inputClass} rows={5} placeholder="Message" value={notificationForm.message} onChange={e => setNotificationForm({ ...notificationForm, message: e.target.value })} /><input className={inputClass} placeholder="Lien interne facultatif" value={notificationForm.link} onChange={e => setNotificationForm({ ...notificationForm, link: e.target.value })} /><button className={buttonClass} disabled={busy === 'notification'}><Send className="w-3.5 h-3.5" /> Envoyer</button></form></div>
   );
 
+  const renderRetention = () => (
+    <div className="space-y-4">
+      <div className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2"><BellRing className="w-4 h-4 text-[#D49A63]" /> Relances de la boucle de données</h3>
+        <p className="text-xs text-[#FFF7EF]/55 max-w-2xl">
+          Génère les notifications in-app qui entretiennent la boucle d'apprentissage :
+          demande de retour 14 jours après l'ajout d'un produit utilisé, rappel de wash day
+          quand l'intervalle est dépassé, et retrait d'une coiffure protectrice quand la durée
+          max est atteinte, la tension est forte ou une douleur est signalée. Aucune relance
+          n'est jamais créée sur une donnée absente.
+        </p>
+        <p className="text-[11px] text-[#FFF7EF]/45">
+          Idempotent : à lancer chaque jour (cron). Un même nud n'est jamais notifié deux fois
+          grâce à une clé de dédoublonnage stable.
+        </p>
+        <button className={buttonClass} disabled={busy === 'retention'} onClick={runRetentionNudges}>
+          <BellRing className={`w-3.5 h-3.5 ${busy === 'retention' ? 'animate-spin' : ''}`} />
+          Calculer les relances maintenant
+        </button>
+      </div>
+      {retentionResult && (
+        <div className="p-5 rounded-2xl bg-[#050403] border border-[#D49A63]/30 space-y-3">
+          <p className="text-sm font-semibold">Dernier calcul</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl bg-[#1A0F0A]">
+              <p className="text-2xl font-serif-title font-bold text-[#D49A63]">{retentionResult.usersScanned ?? 0}</p>
+              <p className="text-[11px] text-[#FFF7EF]/55">utilisateurs analysés</p>
+            </div>
+            <div className="p-3 rounded-xl bg-[#1A0F0A]">
+              <p className="text-2xl font-serif-title font-bold text-emerald-300">{retentionResult.nudgesCreated ?? 0}</p>
+              <p className="text-[11px] text-[#FFF7EF]/55">relances créées</p>
+            </div>
+            <div className="p-3 rounded-xl bg-[#1A0F0A] col-span-2 sm:col-span-1">
+              <p className="text-[11px] text-[#FFF7EF]/55 mb-1">Par type</p>
+              <p className="text-[11px] text-[#FFF7EF]/75">
+                {Object.entries(retentionResult.nudgesByKind || {}).length
+                  ? Object.entries(retentionResult.nudgesByKind || {}).map(([kind, n]) => `${n} × ${kind}`).join(' · ')
+                  : 'aucune relance en attente'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderLogs = () => (
     <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-[#FFF7EF]/10 text-[#D49A63]"><th className="py-3 pr-4">Date</th><th className="py-3 pr-4">Action</th><th className="py-3 pr-4">Administrateur</th><th className="py-3">Détails</th></tr></thead><tbody className="divide-y divide-[#FFF7EF]/5">{rows.logs?.length ? rows.logs.filter((log: any) => matches(log.action, log.user_id, log.userId, JSON.stringify(log.details))).map((log: any) => <tr key={log.id}><td className="py-3 pr-4 whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString('fr-FR') : log.createdAt}</td><td className="py-3 pr-4 font-mono text-[#D49A63]">{log.action}</td><td className="py-3 pr-4 font-mono text-[#FFF7EF]/55">{log.user_id || log.userId || 'système'}</td><td className="py-3 max-w-md truncate text-[#FFF7EF]/50">{JSON.stringify(log.details || {})}</td></tr>) : <tr><td colSpan={4} className="py-8 text-center text-[#FFF7EF]/45">Aucun log d’administration persistant.</td></tr>}</tbody></table></div>
   );
@@ -241,8 +305,9 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     if (section === 'reviews') return renderReviews();
     if (section === 'coupons') return renderCoupons();
     if (section === 'notifications') return renderNotifications();
+    if (section === 'retention') return renderRetention();
     return renderLogs();
-  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, shipmentHistories, busy, message]);
+  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, shipmentHistories, busy, message, retentionResult]);
 
   return (
     <div className="space-y-6">
