@@ -76,6 +76,7 @@
     "test:barcode": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_barcode.test.ts",
     "ingredients:build": "tsx scripts/buildIngredientGraph.ts",
     "test:assortiment": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_assortment_plan.test.ts",
+    "test:purchasing": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_purchasing_desk.test.ts",
     "test:ingredient-sources": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_ingredient_sources.test.ts",
     "test:retention-nudges": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_retention_nudges.test.ts",
     "test:retention-run": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_retention_nudges_run.test.ts",

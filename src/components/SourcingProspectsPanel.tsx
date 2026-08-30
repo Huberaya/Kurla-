@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ClipboardList, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
 import { AssortmentPlanPanel } from './AssortmentPlanPanel';
+import { PurchasingDeskPanel } from './PurchasingDeskPanel';
 
 type PanelProps = { headers: HeadersInit; onSuccess?: (message: string) => void };
 
@@ -93,7 +94,7 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<'plan' | 'prospects' | 'candidates'>('plan');
+  const [tab, setTab] = useState<'desk' | 'plan' | 'prospects' | 'candidates'>('desk');
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -199,9 +200,13 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
 
       {/* Onglets */}
       <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setTab('desk')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'desk' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          <ClipboardList className="w-4 h-4" /> Bureau des achats
+        </button>
         <button onClick={() => setTab('plan')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'plan' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
-          <ClipboardList className="w-4 h-4" /> Plan d'assortiment
+          <Package className="w-4 h-4" /> Plan d'assortiment
         </button>
         <button onClick={() => setTab('prospects')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'prospects' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
@@ -214,6 +219,11 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       </div>
 
       {loading && <p className="text-xs text-[#FFF7EF]/60">Chargement…</p>}
+
+      {/* ---------------- BUREAU DES ACHATS ---------------- */}
+      {!loading && tab === 'desk' && (
+        <PurchasingDeskPanel prospects={prospects} />
+      )}
 
       {/* ---------------- PLAN D'ASSORTIMENT ---------------- */}
       {!loading && tab === 'plan' && (
