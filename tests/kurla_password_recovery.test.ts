@@ -53,8 +53,17 @@ async function runPasswordRecoveryTests(): Promise<void> {
     'PasswordRecoveryPanel est monté à la fois dans App et dans la page compte : double rendu'
   );
 
+  // 4. Un utilisateur connecté doit pouvoir remplacer son mot de passe.
+  const changeForm = await readFile('src/components/ChangePasswordForm.tsx', 'utf8');
+  assert.ok(/updatePassword\(password\)/.test(changeForm), 'ChangePasswordForm n’appelle plus updatePassword');
+  assert.ok(/if \(!user\) return null/.test(changeForm), 'ChangePasswordForm n’est plus réservé aux utilisateurs connectés');
+  assert.ok(
+    /<ChangePasswordForm \/>/.test(accountPage),
+    'ChangePasswordForm n’est plus monté : un mot de passe posé par l’administrateur ne pourrait plus être remplacé'
+  );
+
   console.log(
-    '[PASS] Réinitialisation de mot de passe : PASSWORD_RECOVERY traité, updateUser appelé, panneau conditionné et monté sur toutes les routes.'
+    '[PASS] Réinitialisation de mot de passe : PASSWORD_RECOVERY traité, updateUser appelé, panneau monté sur toutes les routes, changement possible une fois connecté.'
   );
 }
 

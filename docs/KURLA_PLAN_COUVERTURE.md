@@ -1559,6 +1559,34 @@ POST /emails from=onboarding@resend.dev → baya-ibraim.mayoanou.edu@groupe-gema
 
 Le SMTP intégré de Supabase, malgré son plafond horaire, **écrit à n'importe quelle adresse**. Resend sans domaine vérifié n'écrit **qu'à une seule**. Brancher Resend maintenant serait une **régression** pour les clients. À faire seulement après vérification d'un domaine réel.
 
+## COMPLÉMENT — ACCÈS ADMINISTRATEUR RÉTABLI ET VÉRIFIÉ
+
+### Identifiant vérifié par le chemin du navigateur
+
+```
+PUT  /auth/v1/admin/users/00c987c2-…  {"password":…,"email_confirm":true} → 200
+POST /auth/v1/token?grant_type=password   (apikey = clé anon extraite du bundle déployé)
+     → 200, access_token émis, expires_in 3600
+```
+
+Testé avec la **clé publique**, pas la clé secrète : c'est le chemin exact du navigateur. La clé anon a été extraite du bundle (`role=anon`, `iss=supabase`, 208 caractères) — publique par conception.
+
+Rôle intact : `profiles.role = 'superadmin'`, 1 ligne, `email = hubertbay@gmail.com`.
+
+### `last_sign_in_at` prouve qu'une authentification a réussi
+
+`last_sign_in_at = 2026-08-29T23:43:43`, postérieur à l'envoi de `23:38:49`. Une session a donc bien été créée : le blocage n'était pas à la couche d'authentification.
+
+### Écran de changement de mot de passe
+
+`updatePassword` existait dans le contexte mais n'était atteignable **que** par le panneau de récupération. Un mot de passe posé par l'administrateur ne pouvait donc plus être remplacé par l'utilisateur. `components/ChangePasswordForm.tsx` comble ce trou, monté sur `CustomerAccountPage`, réservé aux sessions ouvertes (`if (!user) return null`).
+
+Garde étendue dans `kurla_password_recovery.test.ts`. Contrôle négatif lu : formulaire démonté → `[FAIL] un mot de passe posé par l'administrateur ne pourrait plus être remplacé`. Fichier restauré (`diff -q` identique).
+
+### Piège rencontré
+
+`external_email_enabled: false` **ne bascule pas** sur un SMTP géré : la réponse suivante est `400 email_provider_disabled`. Ce projet n'a **aucun** chemin d'envoi de secours. Remis à `true` et revérifié par `POST /recover → 200`.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

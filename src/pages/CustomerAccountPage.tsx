@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, ShoppingBag, Sparkles, MapPin, Calendar, CheckCircle2, Heart, Clock, AlertCircle, Save, LogOut, ShieldCheck, Bell, MessageSquare, RotateCcw, Truck, Send, Check, Trash2, Settings, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { formatMoney, toCents } from '../lib/currency';
 import { formatVatRate } from '../lib/vat';
 import { UserProfile } from '../types';
@@ -339,6 +340,10 @@ export const CustomerAccountPage: React.FC = () => {
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+
+        {/* Sécurité du compte : seul moyen pour l'utilisateur de remplacer un
+            mot de passe posé par l'administrateur. */}
+        <ChangePasswordForm />
 
         {/* Missing Session Error Banner */}
         {missingSessionError && (
