@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react';
 import {
   ClipboardList, Target, Mail, PackageCheck, FlaskConical, Sparkles,
   CheckCircle2, Circle, ArrowRight, Factory, Truck as TruckIcon, Sun, Baby, Scissors,
-  Copy, Check, ExternalLink,
+  Copy, Check, ExternalLink, Send,
 } from 'lucide-react';
 
 import { PURCHASING_PHASES, RFQ_CHECKLIST_RETAIL, RFQ_CHECKLIST_PRIVATE_LABEL } from '../lib/purchasingDesk';
-import { emailForPhase, KNOWN_PROSPECT_EMAILS } from '../lib/outreachEmails';
+import { emailForPhase, KNOWN_PROSPECT_EMAILS, contactActionForProspect } from '../lib/outreachEmails';
 
 type Props = { prospects: any[] };
 
@@ -172,11 +172,35 @@ export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
                           <p className="text-[11px] font-bold text-[#FFF7EF] truncate">{p.name}</p>
                           {p.status === 'agreed' || p.decision === 'accepted'
                             ? <span className="text-[9px] text-emerald-300 font-bold shrink-0">Accord</span>
-                            : <span className="text-[9px] text-amber-300 font-bold shrink-0">À contacter</span>}
+                            : (() => {
+                                const action = contactActionForProspect(p.id, p.name);
+                                if (!action) return <span className="text-[9px] text-amber-300 font-bold shrink-0">À contacter</span>;
+                                return (
+                                  <a
+                                    href={action.href}
+                                    {...(action.kind === 'form' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                    title={action.kind === 'email'
+                                      ? `Ouvrir l'email pré-rempli à ${action.email}`
+                                      : 'Ouvrir le formulaire de contact du site'}
+                                    className="text-[9px] font-bold shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#C8753D] text-white hover:bg-[#b06330] transition-colors"
+                                  >
+                                    {action.kind === 'email'
+                                      ? <><Send className="w-3 h-3" /> Envoyer l'email</>
+                                      : <><ExternalLink className="w-3 h-3" /> Formulaire site</>}
+                                  </a>
+                                );
+                              })()}
                         </div>
-                        {p.contactEmail
-                          ? <a href={`mailto:${p.contactEmail}`} className="text-[10px] text-[#C8753D] hover:underline break-all flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> {p.contactEmail}</a>
-                          : <p className="text-[10px] text-[#FFF7EF]/45 flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> Contact via site</p>}
+                        {(() => {
+                          const action = contactActionForProspect(p.id, p.name);
+                          if (action?.kind === 'email') {
+                            return <a href={action.href} className="text-[10px] text-[#C8753D] hover:underline break-all flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> {action.email}</a>;
+                          }
+                          if (action?.kind === 'form') {
+                            return <a href={action.href} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#FFF7EF]/55 hover:text-[#D49A63] flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> Contact via le formulaire du site</a>;
+                          }
+                          return <p className="text-[10px] text-[#FFF7EF]/45 flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> Contact à récupérer</p>;
+                        })()}
                       </div>
                     ))}
                   </div>

@@ -239,3 +239,61 @@ export const KNOWN_PROSPECT_EMAILS: Record<string, string> = {
 export function emailForPhase(phaseId: string): OutreachEmail | undefined {
   return OUTREACH_EMAILS.find((e) => e.phaseId === phaseId);
 }
+
+/**
+ * Modèle d'email qui concerne un prospect donné (chaque prospect appartient à
+ * une phase du bureau des achats).
+ */
+export function emailForProspect(prospectId: string): OutreachEmail | undefined {
+  return OUTREACH_EMAILS.find((e) => e.prospectIds.includes(prospectId));
+}
+
+/**
+ * Pages de contact VÉRIFIÉES des marques sans email public. On n'invente
+ * jamais d'adresse : un clic ouvre le formulaire officiel du site.
+ * (sourceUrl de référence ou page contact constatée lors du sourcing)
+ */
+export const PROSPECT_CONTACT_URLS: Record<string, string> = {
+  c24: 'https://curlynights.com/fr/contact',
+  c25: 'https://studioboucleparis.com/',
+  c18: 'https://www.noesiscosmetics.com/',
+  c22: 'https://africanfabs.com/pages/contact-us',
+  c23: 'https://afrowholesale.eu/',
+  c15: 'https://dinafroshop.com/',
+};
+
+function contactSiteUrl(prospectId: string): string | undefined {
+  return PROSPECT_CONTACT_URLS[prospectId];
+}
+
+function bodyForProspect(tpl: OutreachEmail, prospectName: string): string {
+  return tpl.body
+    .replace(/\[FOURNISSEUR\]/g, prospectName)
+    .replace(/\n/g, '\n');
+}
+
+/**
+ * Action de contact directe pour un prospect :
+ *  - email public connu  → lien `mailto:` pré-rempli (sujet + corps du modèle
+ *    de la phase), qui ouvre le logiciel de messagerie ;
+ *  - pas d'email public  → lien vers le formulaire de contact du site
+ *    (ouvre le site officiel, aucun email inventé).
+ *
+ * Retourne `null` uniquement si aucun canal n'est disponible.
+ */
+export function contactActionForProspect(
+  prospectId: string,
+  prospectName: string
+): { kind: 'email'; href: string; email: string } | { kind: 'form'; href: string } | null {
+  const known = KNOWN_PROSPECT_EMAILS[prospectId];
+  if (known) {
+    const tpl = emailForProspect(prospectId);
+    const subject = tpl?.subject ?? 'Demande de partenariat / tarifs de gros — KURLA';
+    const body = tpl ? bodyForProspect(tpl, prospectName) : '';
+    const href = `mailto:${known}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return { kind: 'email', href, email: known };
+  }
+  const site = contactSiteUrl(prospectId);
+  if (site) return { kind: 'form', href: site };
+  return null;
+}

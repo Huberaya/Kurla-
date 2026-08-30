@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Droplets, Scissors, Sparkles, Search, Filter, AlertTriangle, CheckCircle2,
   Mail, Factory, Truck as TruckIcon, ChevronDown, Package, UserPlus, FlaskConical, Baby, Wrench,
+  Send, ExternalLink,
 } from 'lucide-react';
 
 import {
@@ -11,6 +12,7 @@ import {
   type AssortmentDomain,
   type AssortmentNeed,
 } from '../lib/assortmentPlan';
+import { contactActionForProspect } from '../lib/outreachEmails';
 
 type Props = {
   prospects: any[];
@@ -210,15 +212,30 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                     ) : (
                       <div className="grid sm:grid-cols-2 gap-2">
                         {needProspects.map((p) => {
-                          const hasContact = Boolean(p.contactEmail || p.channel || p.sourceUrl);
                           const done = ['agreed'].includes(p.status);
+                          const action = contactActionForProspect(p.id, p.name);
                           return (
                             <div key={p.id} className="rounded-xl bg-[#050403] border border-[#FFF7EF]/8 p-3 space-y-1.5">
                               <div className="flex items-start justify-between gap-2">
                                 <p className="text-[12px] font-bold text-[#FFF7EF]">{p.name}</p>
-                                {done
-                                  ? <span className="text-[9px] font-bold text-emerald-300 flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" /> Accord</span>
-                                  : <span className="text-[9px] font-bold text-amber-300 shrink-0">{STATUS_LABELS[p.status] || p.status}</span>}
+                                {done ? (
+                                  <span className="text-[9px] font-bold text-emerald-300 flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" /> Accord</span>
+                                ) : action ? (
+                                  <a
+                                    href={action.href}
+                                    {...(action.kind === 'form' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                    title={action.kind === 'email'
+                                      ? `Ouvrir l'email pré-rempli à ${action.email}`
+                                      : 'Ouvrir le formulaire de contact du site'}
+                                    className="text-[9px] font-bold shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#C8753D] text-white hover:bg-[#b06330] transition-colors"
+                                  >
+                                    {action.kind === 'email'
+                                      ? <><Send className="w-3 h-3" /> Envoyer l'email</>
+                                      : <><ExternalLink className="w-3 h-3" /> Formulaire site</>}
+                                  </a>
+                                ) : (
+                                  <span className="text-[9px] font-bold text-amber-300 shrink-0">{STATUS_LABELS[p.status] || p.status}</span>
+                                )}
                               </div>
                               <p className="text-[10px] text-[#FFF7EF]/55">{p.specialty}</p>
                               <p className="text-[10px] text-[#D49A63] flex items-center gap-1">
@@ -226,10 +243,12 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                                 {CONTACT_TYPE_LABELS[p.contactType] || p.contactType}
                               </p>
                               <div className="text-[10px] space-y-0.5 pt-1">
-                                {p.contactEmail ? (
-                                  <a href={`mailto:${p.contactEmail}`} className="flex items-center gap-1 text-[#C8753D] hover:underline break-all"><Mail className="w-3 h-3 shrink-0" /> {p.contactEmail}</a>
+                                {action?.kind === 'email' ? (
+                                  <a href={action.href} className="flex items-center gap-1 text-[#C8753D] hover:underline break-all"><Mail className="w-3 h-3 shrink-0" /> {action.email}</a>
+                                ) : action?.kind === 'form' ? (
+                                  <a href={action.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#FFF7EF]/55 hover:text-[#D49A63]"><Mail className="w-3 h-3 shrink-0" /> Contacter via le formulaire du site</a>
                                 ) : (
-                                  <p className="flex items-center gap-1 text-[#FFF7EF]/45"><Mail className="w-3 h-3 shrink-0" /> Contact à récupérer{hasContact ? '' : ' (site connu)'}</p>
+                                  <p className="flex items-center gap-1 text-[#FFF7EF]/45"><Mail className="w-3 h-3 shrink-0" /> Contact à récupérer</p>
                                 )}
                                 {p.sourceUrl && <p className="text-[9px] text-[#FFF7EF]/40 break-all">Source : {p.sourceUrl}</p>}
                               </div>

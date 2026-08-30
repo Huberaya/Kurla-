@@ -5,7 +5,7 @@
  * conformité). Aucun fournisseur inventé.
  */
 import assert from 'node:assert';
-import { OUTREACH_EMAILS, KNOWN_PROSPECT_EMAILS } from '../src/lib/outreachEmails';
+import { OUTREACH_EMAILS, KNOWN_PROSPECT_EMAILS, contactActionForProspect } from '../src/lib/outreachEmails';
 import { PURCHASING_PHASES } from '../src/lib/purchasingDesk';
 import { DEFAULT_PROSPECTS } from '../src/lib/prospectSeed';
 
@@ -43,8 +43,25 @@ function main() {
     assert.ok(/@/.test(KNOWN_PROSPECT_EMAILS[pid]), `email invalide pour ${pid}`);
   }
 
+  // 4) Action de contact directe par fournisseur (le bouton « Envoyer l'email »).
+  // Email public connu → mailto pré-rempli avec sujet + corps.
+  const mailto = contactActionForProspect('c23', 'Afro Wholesale');
+  assert.ok(mailto && mailto.kind === 'email', 'c23 devrait ouvrir un email');
+  if (mailto?.kind === 'email') {
+    assert.ok(mailto.href.startsWith('mailto:support@afrowholesale.eu?subject='), 'mailto: destinataire incorrect');
+    assert.ok(mailto.href.includes('subject=') && decodeURIComponent(mailto.href.split('body=')[1]).length > 100,
+      'mailto: sujet/corps manquants');
+    // Le nom du fournisseur est injecté dans le corps.
+    assert.ok(!decodeURIComponent(mailto.href).includes('[FOURNISSEUR]'), 'token [FOURNISSEUR] non remplacé');
+  }
+  // Pas d'email public → formulaire du site (jamais d'adresse inventée).
+  const form = contactActionForProspect('c24', 'Curly Nights');
+  assert.ok(form && form.kind === 'form' && form.href.startsWith('https://'), 'c24 devrait pointer vers le formulaire site');
+  // Un prospect inconnu ne plante pas.
+  assert.strictEqual(contactActionForProspect('cXX', 'Inconnu'), null);
+
   console.log(
-    `[PASS] Emails d'approche : ${OUTREACH_EMAILS.length} phases couvertes, destinataires réels, demandes MOQ/conformité présentes. Aucun fournisseur inventé.`
+    `[PASS] Emails d'approche : ${OUTREACH_EMAILS.length} phases couvertes, destinataires réels, demandes MOQ/conformité présentes. Bouton contact : email pré-rempli ou formulaire site. Aucun fournisseur inventé.`
   );
 }
 
