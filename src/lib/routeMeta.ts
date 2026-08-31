@@ -217,6 +217,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: '/ingredients',
+    title: 'Recherche d’ingrédients cosmétiques | KURLA',
+    description:
+      'Cherchez un ingrédient par son nom INCI ou courant : fonctions cosmétiques (CosIng), restrictions UE et allergènes, et les produits publiés qui le contiennent.',
+    indexable: true,
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
     path: '/ingredient/:ingredientId',
     title: 'Fiche ingrédient | KURLA',
     description:
