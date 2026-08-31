@@ -29,6 +29,13 @@ export async function getAvailableCatalog(country = 'FR'): Promise<AvailableCata
   const products = await serverDb.getProducts({ publishedOnly: true });
   return products
     .filter(product => product.inStock)
+    // Les produits de démonstration / de test ne sont jamais exposés à l'IA :
+    // elle ne doit pas recommander un article factice (ex. « Kit Démo »).
+    .filter(product => {
+      if (product.isDemo === true || product.demo === true) return false;
+      const name = String(product.name || '');
+      return !/(^|\s|[([])(démo|demo)(\s|$|[)\]])/i.test(name);
+    })
     .filter(product => !product.countryAvailability?.length || product.countryAvailability.includes(normalizedCountry) || product.countryAvailability.includes('INT'))
     .map(product => ({
       id: product.id,
