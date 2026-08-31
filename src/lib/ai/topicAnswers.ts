@@ -116,7 +116,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   },
   {
     id: 'cuir-chevelu',
-    keywords: ['cuir chevelu', 'demange', 'démang', 'gratt', 'pellicul', 'tiraill', 'irrit', 'sensible', 'demangeaison', 'démangeaison'],
+    keywords: ['cuir chevelu', 'demange', 'démang', 'gratt', 'pellicul', 'demangeaison', 'démangeaison', 'démangeaisons sous', 'sous tresses', 'sous tresse', 'traction'],
     shortAnswer: 'Des démangeaisons sous tresses ou un cuir chevelu sec viennent souvent d’un manque d’hydratation et de traction : on hydrate le cuir chevelu et on desserre les coiffures trop serrées.',
     explanation: 'Sous coiffures protectrices, le cuir chevelu peut s’assécher et tirailler. Des sprays hydratants légers, un nettoyage régulier (ou une lotion nettoyante) et des coiffures non tirantes soulagent. Une rougeur, des croûtes, du pus ou une douleur persistante relèvent d’un avis professionnel.',
     steps: [
@@ -251,7 +251,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   // ── PEAU ──
   {
     id: 'peau-seche-hydratation',
-    keywords: ['peau sèche', 'peau seche', 'déshydrat', 'deshydrat', 'tiraille', 'sécheresse peau', 'secheresse peau', 'hydrater peau', 'peau qui pele', 'pèle'],
+    keywords: ['peau', 'sèche', 'seche', 'peau sèche', 'peau seche', 'déshydrat', 'deshydrat', 'tiraille', 'sécheresse peau', 'secheresse peau', 'hydrater peau', 'peau qui pele', 'pèle'],
     shortAnswer: 'Pour une peau sèche ou déshydratée : nettoyage doux non desséchant, puis hydratant (acide hyaluronique/glycérine) et émollient pour sceller, matin et soir.',
     explanation: 'La sécheresse vient d’un manque de lipides, la déshydratation d’un manque d’eau — souvent les deux. Un nettoyage trop agressif aggrave le problème. On mise sur un nettoyant doux, un sérum hydratant et une crème riche qui scelle l’eau, sans jamais négliger le SPF le jour.',
     steps: [
@@ -266,7 +266,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   },
   {
     id: 'peau-acne',
-    keywords: ['acné', 'acne', 'bouton', 'imperfection', 'point noir', 'point noir', 'gras peau', 'peau grasse', 'brillance', 'pimple'],
+    keywords: ['peau', 'acné', 'acne', 'bouton', 'imperfection', 'point noir', 'gras peau', 'peau grasse', 'brillance', 'pimple'],
     shortAnswer: 'Pour les imperfections : nettoyage doux matin et soir, un actif progressif (type niacinamide ou peroxyde de benzoyle, ou acide salicylique), hydratation légère et SPF. Ne pas décaper.',
     explanation: 'Trop nettoyer ou trop agresser stimule la production de sébum et empire les boutons. On introduit UN actif à la fois, à faible fréquence, et on hydrate toujours. Les cas douloureux, kystiques ou persistants relèvent d’un dermatologue.',
     steps: [
@@ -281,7 +281,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   },
   {
     id: 'peau-taches-pigmentation',
-    keywords: ['tache', 'hyperpigment', 'marque', 'cicatrice bouton', 'teint', 'uniformiser', 'éclat', 'eclat', 'mélanine', 'melanine', 'dark spot'],
+    keywords: ['peau', 'tache', 'hyperpigment', 'marque', 'cicatrice bouton', 'teint', 'uniformiser', 'éclat', 'eclat', 'mélanine', 'melanine', 'dark spot'],
     shortAnswer: 'Les taches post-inflammatoires (marques de boutons, zones plus foncées) s’estompent surtout avec une protection solaire quotidienne et un actif éclaircissant progressif.',
     explanation: 'Sur les peaux mélanisées, l’inflammation laisse souvent des marques. Le facteur n°1 est le soleil : sans SPF quotidien, les taches se renforcent. Des actifs comme la vitamine C, le niacinamide ou certaines molécules dépigmentantes aident, mais le résultat est progressif et toute irritation aggrave les marques.',
     steps: [
@@ -296,7 +296,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   },
   {
     id: 'peau-spf',
-    keywords: ['spf', 'solaire', 'soleil', 'protection', 'uv', 'coup de soleil', 'crème solaire', 'sun'],
+    keywords: ['peau', 'spf', 'solaire', 'soleil', 'protection', 'uv', 'coup de soleil', 'crème solaire', 'sun'],
     shortAnswer: 'Le SPF se porte chaque jour, en quantité suffisante, et se renouvelle : c’est le soin anti-âge et anti-taches le plus efficace, y compris pour les peaux noires.',
     explanation: 'Une peau foncée ne « brûle » pas toujours visiblement, mais les UV accélèrent le vieillissement et surtout l’hyperpigmentation. Un SPF 30-50 large spectre, appliqué généreusement et renouvelé (notamment après transpiration), est indispensable, en particulier si tu utilises des actifs (vitamine C, rétinoïdes, AHA).',
     steps: [
@@ -311,7 +311,7 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
   },
   {
     id: 'peau-sensible',
-    keywords: ['peau sensible', 'sensibilité', 'réaction', 'rougeur', 'irritation peau', 'allergie cosmétique', 'picote', 'brûle peau', 'eczéma'],
+    keywords: ['peau', 'peau sensible', 'sensibilité', 'réaction', 'rougeur', 'irritation peau', 'allergie cosmétique', 'picote', 'brûle peau', 'eczéma'],
     shortAnswer: 'Pour une peau sensible, on simplifie : peu de produits, formules minimalistes, introduction d’un nouveau produit à la fois, et on arrête tout ce qui irrite durablement.',
     explanation: 'Multiplier les actifs et les senteurs augmente les réactions. Une routine courte et minimaliste (nettoyant doux, hydratant, SPF) répare la barrière cutanée. Une rougeur, un gonflement, des vésicules ou une gêne qui persiste nécessitent un avis médical, pas un nouveau cosmétique.',
     steps: [
