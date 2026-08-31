@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, ShoppingBag, Sparkles, MapPin, Calendar, CheckCircle2, Heart, Clock, AlertCircle, Save, LogOut, ShieldCheck, Bell, MessageSquare, RotateCcw, Truck, Send, Check, Trash2, Settings, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
+import { BeautyHub } from '../components/account/BeautyHub';
 import { formatMoney, toCents } from '../lib/currency';
 import { formatVatRate } from '../lib/vat';
 import { UserProfile } from '../types';
@@ -34,7 +35,7 @@ interface ServerOrder {
 
 export const CustomerAccountPage: React.FC = () => {
   const { user, profile, session, signOut, updateProfile, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'commandes' | 'notifications' | 'support' | 'preferences' | 'profil'>('commandes');
+  const [activeTab, setActiveTab] = useState<'beaute' | 'commandes' | 'notifications' | 'support' | 'preferences' | 'profil'>('beaute');
   
   const [serverOrders, setServerOrders] = useState<ServerOrder[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -427,6 +428,7 @@ export const CustomerAccountPage: React.FC = () => {
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-[#FFF7EF]/10 pb-3 overflow-x-auto">
           {[
+            { id: 'beaute', label: 'Mon espace beauté', icon: Sparkles },
             { id: 'commandes', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
             { id: 'notifications', label: `Notifications (${unreadNotifsCount})`, icon: Bell },
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
@@ -451,6 +453,11 @@ export const CustomerAccountPage: React.FC = () => {
             );
           })}
         </div>
+
+        {/* TAB 0: HUB BEAUTÉ */}
+        {activeTab === 'beaute' && (
+          <BeautyHub headers={authHeaders} ordersCount={serverOrders.length} onNavigateTab={(t) => setActiveTab(t)} />
+        )}
 
         {/* TAB 1: COMMANDES WITH TRACKING & RETURN REQUESTS */}
         {activeTab === 'commandes' && (

@@ -282,6 +282,42 @@ export function registerRecommendationRoutes(app: Express): void {
     void serverDb.recordAiUsage('routine_result', true, authenticatedUser?.id).catch(error => console.error('[AI] usage event error:', error));
     const profileRecord = authenticatedUser ? await serverDb.getBeautyProfile(authenticatedUser.id) : undefined;
     const profile = profileRecord?.profile;
+
+    // CHANTIER ESPACE PERSONNEL — pour un utilisateur connecté, on rattache les
+    // réponses du diagnostic à son profil beauté KURLA ID (sinon tout reste en
+    // sessionStorage et est perdu). Mapping des réponses publiques vers le profil.
+    // Best-effort : un échec de sauvegarde ne doit jamais casser la recommandation.
+    if (authenticatedUser && diagnosticType === 'hair') {
+      try {
+        const textureMap: Record<string, string> = {
+          crepue: 'crépue', frisee: 'bouclée', locksee: 'locks', protective: 'protectrice', defrisee: 'défrisée', inconnue: 'inconnue'
+        };
+        const porosityMap: Record<string, string> = {
+          forte: 'forte', faible: 'faible', moyenne: 'moyenne', inconnue: 'inconnue'
+        };
+        const scalpMap: Record<string, string> = {
+          normal: 'normal', sec: 'sec', demangeaisons: 'démangeaisons', pellicules: 'pellicules', irritation: 'sensible'
+        };
+        const budgetMap: Record<string, string> = {
+          moins_40: 'moins de 40 €', '40_70': '40 à 70 €', '70_100': '70 à 100 €', premium: 'premium'
+        };
+        const a = answersForAi as Record<string, string>;
+        const existingHair = (profile?.hair ?? {}) as Record<string, unknown>;
+        await serverDb.saveBeautyProfile(authenticatedUser.id, {
+          ...(profile ?? {}),
+          hair: {
+            ...existingHair,
+            texturePatterns: [textureMap[String(a.texture)] || 'inconnue'],
+            porosity: porosityMap[String(a.porosity)] || profile?.hair?.porosity || 'inconnue',
+            scalpCondition: scalpMap[String(a.scalp)] || profile?.hair?.scalpCondition || 'inconnue',
+            washFrequency: String(a.frequency || '') || profile?.hair?.washFrequency || 'inconnue',
+            budget: budgetMap[String(a.budget)] || profile?.hair?.budget || 'inconnue',
+          },
+        }, 'diagnostic');
+      } catch (error) {
+        console.error('[BeautyProfile] sauvegarde diagnostic impossible :', (error as Error)?.message);
+      }
+    }
     const diagnosticBudget = typeof answers.budget === 'string' ? ({ moins_40: 40, '40_70': 70, '70_100': 100, premium: Number.POSITIVE_INFINITY } as Record<string, number>)[answers.budget] : undefined;
     const catalog = diagnosticBudget === undefined ? fullCatalog : fullCatalog.filter(entry => entry.price <= diagnosticBudget);
     const fits = new Map<string, any>();

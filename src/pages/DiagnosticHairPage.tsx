@@ -3,8 +3,10 @@ import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2, Info } from
 import { HairDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
 import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
+import { useAuth } from '../context/AuthContext';
 
 export const DiagnosticHairPage: React.FC = () => {
+  const { session } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +38,10 @@ export const DiagnosticHairPage: React.FC = () => {
     try {
       const res = await fetch('/api/ai/routine-result', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           diagnosticType: 'hair',
           answers
