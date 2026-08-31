@@ -74,6 +74,7 @@ export function registerRecommendationRoutes(app: Express): void {
       jurisdiction: graph?.jurisdiction,
       jurisdictionRestrictions: graph?.restrictions,
       jurisdictionChecked: Boolean(graph),
+      incompatibilityRules: await intelligenceStore.getIncompatibilityRules(),
       /** Graphe complet (catalogue inclus) : sert à résoudre les noms déclarés. */
       jurisdictionGraph: graph
     };

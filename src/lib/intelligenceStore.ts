@@ -37,6 +37,9 @@ import {
 } from './shelf';
 import {
   checkJurisdiction,
+  findConflicts,
+  ConflictFinding,
+  IncompatibilityRule,
   JurisdictionFinding,
   JurisdictionRestriction
 } from './ingredientGraph';
@@ -174,6 +177,7 @@ class KurlaIntelligenceStore {
   // Replis mémoire explicites (chantier A). Jamais un mode à moitié autorisé.
   private reviews = new Map<string, { userId: string; rating: number; status: string }[]>();
   private jurisdictionRestrictions: JurisdictionRestriction[] = [];
+  private incompatibilityRules: IncompatibilityRule[] = [];
   private returnInsights: ReturnInsightRecord[] = [];
   private endorsements: ProfessionalEndorsement[] = [];
 
@@ -775,6 +779,38 @@ class KurlaIntelligenceStore {
       }));
     }
     return this.jurisdictionRestrictions.filter(restriction => restriction.jurisdiction.toUpperCase() === code);
+  }
+
+  /**
+   * Règles d'incompatibilité entre ingrédients (table publique en lecture).
+   * Alimente findConflicts() du moteur de recommandation.
+   */
+  public async getIncompatibilityRules(): Promise<IncompatibilityRule[]> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('ingredient_incompatibilities')
+        .select('ingredient_a, ingredient_b, severity, explanation, evidence_level');
+      ensureSuccess('lecture des incompatibilités ingrédients', error);
+      return (data || []).map((row: any) => ({
+        ingredientA: row.ingredient_a,
+        ingredientB: row.ingredient_b,
+        severity: row.severity,
+        explanation: row.explanation,
+        evidenceLevel: row.evidence_level
+      })) as IncompatibilityRule[];
+    }
+    return this.incompatibilityRules;
+  }
+
+  /** Conflits détectés dans un ensemble d'ingrédients (routine/formule). */
+  public async assessIncompatibilities(ingredientIds: string[]): Promise<ConflictFinding[]> {
+    const rules = await this.getIncompatibilityRules();
+    return findConflicts(ingredientIds, rules);
+  }
+
+  public seedIncompatibilityRuleForTest(rule: IncompatibilityRule): void {
+    this.incompatibilityRules.push(rule);
   }
 
   /**
