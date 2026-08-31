@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, ArrowRight, Droplets, Wind, CloudRain, Scissors, RefreshCw, Heart, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Droplets, Wind, CloudRain, Scissors, RefreshCw, Heart, Calendar, ShoppingBag, ChevronRight, MessageCircle } from 'lucide-react';
 
 /**
  * Hub beauté de l'espace personnel : tableau de bord d'accueil centré sur la
@@ -155,7 +155,8 @@ export const BeautyHub: React.FC<Props> = ({ headers, ordersCount, onNavigateTab
       <div>
         <h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Accès rapide</h3>
         <div className="grid sm:grid-cols-2 gap-3">
-          {quickLink('/diagnostic/cheveux', <Sparkles className="w-5 h-5" />, hasProfile ? 'Refaire mon diagnostic' : 'Faire mon diagnostic', '5 questions guidées avec visuels', true)}
+          {quickLink('/assistant-beaute', <MessageCircle className="w-5 h-5" />, 'Demander à KURLA AI', 'Conseils cheveux & peau, routines, ingrédients', true)}
+          {quickLink('/diagnostic/cheveux', <Sparkles className="w-5 h-5" />, hasProfile ? 'Refaire mon diagnostic' : 'Faire mon diagnostic', '5 questions guidées avec visuels')}
           {quickLink('/account/kurla-id', <Heart className="w-5 h-5" />, 'Mon KURLA ID', 'Profil beauté détaillé & confidentialité')}
           <button onClick={() => onNavigateTab('commandes')} className="text-left">
             <span className="flex items-center gap-3 p-4 rounded-2xl border bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50 transition-all w-full">

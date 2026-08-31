@@ -10,12 +10,18 @@ interface ConversationItem {
 }
 
 const quickCategories = [
-  { label: 'Cheveux secs', query: 'Mes cheveux crépus restent secs malgré l’huile, pourquoi ?' },
-  { label: 'Braids & tresses', query: 'Mes tresses font mal et me tirent la tête, que faire ?' },
+  { label: 'Cheveux crépus secs', query: 'Comment hydrater mes cheveux crépus 4C très secs ?' },
+  { label: 'Définir mes boucles', query: 'Comment définir mes boucles 3B sans que ça cartonne ?' },
+  { label: 'Connaître ma porosité', query: 'C’est quoi la porosité et comment je la connais ?' },
+  { label: 'Réduire la casse', query: 'Comment éviter la casse au démêlage ?' },
+  { label: 'Braids & tresses', query: 'Comment entretenir mes tresses et soulager les démangeaisons ?' },
+  { label: 'Co-wash ou shampoing', query: 'Je peux laver mes cheveux seulement avec un après-shampoing ?' },
   { label: 'Démêlage enfant', query: 'Comment démêler les cheveux de mon enfant sans douleur ?' },
-  { label: 'SPF peau mélaninée', query: 'Quel SPF choisir pour peau noire sans traces blanches ?' },
-  { label: 'Porosité 4C', query: 'Quelle routine pour cheveux 4C à forte porosité ?' },
-  { label: 'Climat humide', query: 'Comment adapter ma routine à un climat chaud et humide ?' }
+  { label: 'En transition', query: 'Comment gérer ma transition défrisée vers le naturel ?' },
+  { label: 'Peau sèche', query: 'Ma peau tiraille, comment bien l’hydrater ?' },
+  { label: 'Boutons', query: 'Comment réduire mes boutons sans agresser ma peau ?' },
+  { label: 'Taches & SPF', query: 'Pourquoi le SPF est important sur peau noire contre les taches ?' },
+  { label: 'Je débute', query: 'Je débute, par quoi commencer pour ma routine ?' }
 ];
 
 export const AiBeautyAssistantPage: React.FC = () => {

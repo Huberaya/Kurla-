@@ -23,6 +23,21 @@ export type TopicAnswer = {
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+/**
+ * Mots discriminants forts : quand ils apparaissent, ils lèvent l'ambiguïté
+ * entre deux thèmes (ex. « ma fille » → enfant, même si « crépus » est présent).
+ * Poids élevé pour gagner face à un thème cosmétique générique.
+ */
+const STRONG_DISCRIMINATORS: Record<string, number> = {
+  enfant: 6, enfants: 6, fille: 6, fils: 6, bebe: 6, 'bébé': 6, 'ma fille': 8, 'mon enfant': 8,
+  grossesse: 6, enceinte: 6, allaite: 6, allaitement: 6,
+  transition: 5, defrisee: 5, 'défrisée': 5, repousse: 4,
+  bouton: 4, acne: 4, acné: 4, imperfection: 4,
+  tache: 4, hyperpigment: 4, pigmentation: 4,
+  spf: 5, solaire: 4, soleil: 3,
+  porosit: 5, verre: 4,
+};
+
 export const TOPIC_ANSWERS: TopicAnswer[] = [
   {
     id: 'hydratation-crepus-sec',
@@ -158,7 +173,179 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
     productNeeds: ['hydrater_cheveux', 'demeler_cheveux'],
     tool: { name: 'Diagnostic cheveux', description: 'Obtiens ta routine personnalisée en 5 questions guidées.' }
   },
+  {
+    id: 'cowash-lavage',
+    keywords: ['co-wash', 'cowash', 'apres shampoing', 'après-shampoing', 'laver', 'lavage', 'shampoing', 'shampooing', 'build up', 'build-up', 'accumulation', 'clarifiant', 'cuir gras', 'gras'],
+    shortAnswer: 'Le co-wash (laver avec un après-shampoing) convient aux cheveux très secs, mais il faut clarifier de temps en temps pour éviter l’accumulation (build-up) sur le cuir chevelu.',
+    explanation: 'Le co-wash nettoie en douceur sans sulfate et préserve l’hydratation, mais il ne retire pas complètement les résidus. Un shampoing clarifiant ou à base de tensioactifs doux, utilisé toutes les 2-4 semaines, évite que le cuir chevelu ne s’encrasse (démangeaisons, ternité).',
+    steps: [
+      'Alterne co-wash (hydratation) et shampoing doux/clarifiant (nettoyage profond).',
+      'Masse bien le cuir chevelu pendant le lavage, pas seulement les longueurs.',
+      'Clarifie environ toutes les 2-4 semaines, ou dès que les produits « accrochent » moins.',
+      'Après un clarifiant, réhydrate davantage (masque + leave-in).',
+      'Adapte la fréquence à ton cuir chevelu (gras = lavages plus fréquents).'
+    ],
+    productNeeds: ['hydrater_cheveux', 'cuir_chevelu'],
+    tool: { name: 'Diagnostic cheveux', description: 'Indique si ton cuir chevelu est plutôt sec ou gras.' }
+  },
+  {
+    id: 'transition-defrisage',
+    keywords: ['transition', 'defris', 'défris', 'defrise', 'défrise', 'repousse', 'naturel', 'deux textures', 'chimique', 'lissage', 'basané'],
+    shortAnswer: 'En transition défrisée, tu gères deux textures : hydrate et démêle avec douceur, protège les longueurs sensibilisées et évite la casse à la jonction.',
+    explanation: 'La repousse naturelle et les pointes défrisées n’ont ni la même porosité ni la même résistance. La casse se concentre souvent à la ligne de démarcation. On hydrate intensément, on manipule doucement et on privilégie les coiffures protectrices pendant la transition.',
+    steps: [
+      'Traite les deux zones séparément : plus de nutrition sur les pointes défrisées.',
+      'Démêle toujours sur cheveux humides avec un produit glissant.',
+      'Hydrate et scelle régulièrement ; fais des soins protéinés modérés.',
+      'Privilégie les coiffures protectrices et le satin la nuit.',
+      'Coupe progressivement les pointes au fur et à mesure, sans précipitation.'
+    ],
+    productNeeds: ['reduire_casse', 'hydrater_cheveux', 'demeler_cheveux'],
+    tool: { name: 'Diagnostic cheveux', description: 'Sélectionne « En transition / défrisée » pour une routine adaptée.' }
+  },
+  {
+    id: 'coloration',
+    keywords: ['couleur', 'coloration', 'color', 'teinture', 'decolor', 'décolor', 'meche', 'mèche', 'henne', 'coloré', 'colore'],
+    shortAnswer: 'La coloration (surtout la décoloration) rend le cheveu plus poreux et fragile : on renforce l’hydratation et les soins protéinés, et on évite de superposer les agressions.',
+    explanation: 'Les colorations ouvrent les écailles et peuvent dessécher, augmenter la porosité et la casse. Une routine plus nourrissante, un espacement des couleurs et une protection thermique limitent les dégâts. Un test d’allergie 48 h avant teinture reste indispensable (consigne du fabricant).',
+    steps: [
+      'Espace les colorations et ne décolore pas sur cheveux déjà très abîmés.',
+      'Renforce avec des masques nutritifs et un soin protéiné occasionnel.',
+      'Hydrate et scelle davantage (porosité augmentée).',
+      'Limite la chaleur et utilise une protection thermique.',
+      'En cas de brûlure, démangeaison forte du cuir chevelu ou gonflement, consulte.'
+    ],
+    productNeeds: ['reduire_casse', 'hydrater_cheveux'],
+    tool: { name: 'Diagnostic cheveux', description: 'Un profil à jour affine les conseils après une coloration.' }
+  },
+  {
+    id: 'enfants',
+    keywords: ['enfant', 'enfants', 'fille', 'fils', 'petit', 'petite', 'bébé', 'bebe', 'bebes', 'bébés', 'ma fille', 'mon fils', 'mon enfant', 'démelage enfant', 'demelage enfant', 'crépus enfant', 'cheveux enfant', 'cheveux de ma', 'pleure', 'douleur enfant'],
+    shortAnswer: 'Pour les enfants, la priorité est la douceur : démêlage sans tiraillement, produits légers et sans agressivité, et routine courte pour ne pas les dégouter.',
+    explanation: 'Les cheveux texturés des enfants se cassent surtout au brossage à sec. Un après-shampoing ou leave-in très glissant, un peigne à dents larges, des gestes doux (des pointes vers la racine) et des coiffures protectrices pas trop serrées évitent douleur et casse.',
+    steps: [
+      'Démêle sur cheveux humides avec un leave-in ou après-shampoing glissant.',
+      'Commence par les pointes et remonte doucement avec un peigne large.',
+      'Utilise des textures légères (crèmes, leave-in) ; évite les gels durs.',
+      'Ne serre pas excessivement les coiffures (traction = casse au contour).',
+      'Protège la nuit avec un bonnet satin ou une taie satinée.'
+    ],
+    productNeeds: ['demeler_cheveux', 'hydrater_cheveux'],
+    tool: { name: 'Diagnostic enfant', description: 'Un diagnostic dédié existe pour les cheveux des enfants.' }
+  },
+  {
+    id: 'cheveux-fins-volume',
+    keywords: ['fin', 'fins', 'clairsem', 'volume', 'plat', 'aplati', 'lourd', 'alourdi', 'densit'],
+    shortAnswer: 'Les cheveux fins ont besoin de légèreté : des produits fluides en petite quantité, du volume à la racine, et éviter les beurres trop lourds qui aplatissent.',
+    explanation: 'Un cheveu fin est facilement alourdi par les textures épaisses. On privilégie les leave-in légers et les mousses, on applique les beurres/huiles surtout sur les pointes, et on apporte du volume au séchage. La casse se gère par la douceur, pas par l’épaisseur des produits.',
+    steps: [
+      'Choisis des textures légères (lait, mousse, leave-in fluide).',
+      'Applique beurres et huiles seulement sur les pointes, en petite quantité.',
+      'Diffuse la tête en bas pour du volume sans tirer.',
+      'Démêle doucement : les cheveux fins cassent plus vite.',
+      'Un soin protéiné léger peut renforcer sans alourdir.'
+    ],
+    productNeeds: ['definir_boucles', 'reduire_casse'],
+    tool: { name: 'Diagnostic cheveux', description: 'Renseigne ta densité pour des recommandations adaptées.' }
+  },
+  // ── PEAU ──
+  {
+    id: 'peau-seche-hydratation',
+    keywords: ['peau sèche', 'peau seche', 'déshydrat', 'deshydrat', 'tiraille', 'sécheresse peau', 'secheresse peau', 'hydrater peau', 'peau qui pele', 'pèle'],
+    shortAnswer: 'Pour une peau sèche ou déshydratée : nettoyage doux non desséchant, puis hydratant (acide hyaluronique/glycérine) et émollient pour sceller, matin et soir.',
+    explanation: 'La sécheresse vient d’un manque de lipides, la déshydratation d’un manque d’eau — souvent les deux. Un nettoyage trop agressif aggrave le problème. On mise sur un nettoyant doux, un sérum hydratant et une crème riche qui scelle l’eau, sans jamais négliger le SPF le jour.',
+    steps: [
+      'Nettoie avec un produit doux, sans savon agressif ni eau trop chaude.',
+      'Applique un sérum hydratant (glycérine, acide hyaluronique) sur peau humide.',
+      'Scelle avec une crème riche (céramides, beurres, huiles).',
+      'Mets un SPF hydratant le jour, même en ville.',
+      'Si tiraillements, rougeurs ou plaques persistent, consulte un dermatologue.'
+    ],
+    productNeeds: ['hydrater_peau'],
+    tool: { name: 'Diagnostic peau', description: 'Identifie ton type de peau et tes priorités.' }
+  },
+  {
+    id: 'peau-acne',
+    keywords: ['acné', 'acne', 'bouton', 'imperfection', 'point noir', 'point noir', 'gras peau', 'peau grasse', 'brillance', 'pimple'],
+    shortAnswer: 'Pour les imperfections : nettoyage doux matin et soir, un actif progressif (type niacinamide ou peroxyde de benzoyle, ou acide salicylique), hydratation légère et SPF. Ne pas décaper.',
+    explanation: 'Trop nettoyer ou trop agresser stimule la production de sébum et empire les boutons. On introduit UN actif à la fois, à faible fréquence, et on hydrate toujours. Les cas douloureux, kystiques ou persistants relèvent d’un dermatologue.',
+    steps: [
+      'Nettoie deux fois par jour avec un nettoyant doux, sans frotter.',
+      'Introduis un actif (niacinamide, acide salicylique ou peroxyde de benzoyle) 2-3 fois/semaine.',
+      'Hydrate avec une crème légère non comédogène.',
+      'Applique un SPF chaque matin (les actifs photosensibilisent).',
+      'Ne perce pas les boutons ; consulte un dermato si c’est douloureux ou étendu.'
+    ],
+    productNeeds: ['imperfections_acne'],
+    tool: { name: 'Diagnostic peau', description: 'Cible tes imperfections et ta sensibilité.' }
+  },
+  {
+    id: 'peau-taches-pigmentation',
+    keywords: ['tache', 'hyperpigment', 'marque', 'cicatrice bouton', 'teint', 'uniformiser', 'éclat', 'eclat', 'mélanine', 'melanine', 'dark spot'],
+    shortAnswer: 'Les taches post-inflammatoires (marques de boutons, zones plus foncées) s’estompent surtout avec une protection solaire quotidienne et un actif éclaircissant progressif.',
+    explanation: 'Sur les peaux mélanisées, l’inflammation laisse souvent des marques. Le facteur n°1 est le soleil : sans SPF quotidien, les taches se renforcent. Des actifs comme la vitamine C, le niacinamide ou certaines molécules dépigmentantes aident, mais le résultat est progressif et toute irritation aggrave les marques.',
+    steps: [
+      'Applique un SPF large spectre CHAQUE jour, même nuageux, et renouvelle.',
+      'Ajoute un actif éclaircissant (vitamine C le matin, niacinamide) progressivement.',
+      'Ne multiplie pas les actifs agressifs : l’irritation crée de nouvelles taches.',
+      'Soigne d’abord l’acné/inflammation à l’origine des marques.',
+      'Un dermatologue peut proposer un traitement adapté aux peaux mates à foncées.'
+    ],
+    productNeeds: ['taches_hyperpigmentation', 'protection_solaire'],
+    tool: { name: 'Diagnostic peau', description: 'Évalue ta tendance aux marques post-inflammatoires.' }
+  },
+  {
+    id: 'peau-spf',
+    keywords: ['spf', 'solaire', 'soleil', 'protection', 'uv', 'coup de soleil', 'crème solaire', 'sun'],
+    shortAnswer: 'Le SPF se porte chaque jour, en quantité suffisante, et se renouvelle : c’est le soin anti-âge et anti-taches le plus efficace, y compris pour les peaux noires.',
+    explanation: 'Une peau foncée ne « brûle » pas toujours visiblement, mais les UV accélèrent le vieillissement et surtout l’hyperpigmentation. Un SPF 30-50 large spectre, appliqué généreusement et renouvelé (notamment après transpiration), est indispensable, en particulier si tu utilises des actifs (vitamine C, rétinoïdes, AHA).',
+    steps: [
+      'Choisis un SPF 30 à 50, large spectre (UVA/UVB).',
+      'Applique-le généreusement chaque matin, sur l’ensemble du visage et du cou.',
+      'Renouvelle toutes les 2 h en extérieur, après transpiration ou essuyage.',
+      'Ne compte pas seulement sur le SPF intégré à ton soin de jour.',
+      'Renforce la protection si tu utilises des actifs photosensibilisants.'
+    ],
+    productNeeds: ['protection_solaire'],
+    tool: { name: 'Diagnostic peau', description: 'Vérifie ton usage réel du SPF.' }
+  },
+  {
+    id: 'peau-sensible',
+    keywords: ['peau sensible', 'sensibilité', 'réaction', 'rougeur', 'irritation peau', 'allergie cosmétique', 'picote', 'brûle peau', 'eczéma'],
+    shortAnswer: 'Pour une peau sensible, on simplifie : peu de produits, formules minimalistes, introduction d’un nouveau produit à la fois, et on arrête tout ce qui irrite durablement.',
+    explanation: 'Multiplier les actifs et les senteurs augmente les réactions. Une routine courte et minimaliste (nettoyant doux, hydratant, SPF) répare la barrière cutanée. Une rougeur, un gonflement, des vésicules ou une gêne qui persiste nécessitent un avis médical, pas un nouveau cosmétique.',
+    steps: [
+      'Réduis la routine à l’essentiel : nettoyant doux + hydratant + SPF.',
+      'Évite alcool, parfums et superposition d’actifs pendant la phase d’irritation.',
+      'Introduis un nouveau produit seul, sur une zone, pendant quelques jours.',
+      'Arrête immédiatement un produit qui provoque une réaction franche.',
+      'Consulte un dermatologue en cas de gonflement, suintement, eczéma ou persistance.'
+    ],
+    productNeeds: ['peau_sensible', 'hydrater_peau'],
+    tool: { name: 'Diagnostic peau', description: 'Repère ta sensibilité et ta tolérance aux actifs.' }
+  },
 ];
+
+/** Décrit si une question relève bien du périmètre beauté KURLA. */
+export function isBeautyScoped(query: string): boolean {
+  const q = norm(query);
+  const beautyHints = [
+    'cheveu', 'crépu', 'crepu', 'boucle', 'boucl', 'frisé', 'frise', 'ondul', 'coiff', 'shampoing', 'shampooing',
+    'apres', 'après', 'masque', 'leave-in', 'leave in', 'gel', 'huile', 'beurre', 'karite', 'ricin', 'tresse',
+    'braid', 'twist', 'vanille', 'lock', 'tissage', 'wig', 'perruque', 'co-wash', 'cowash', 'démêl', 'demel',
+    'porosit', 'cuir chevelu', 'scalp', 'démang', 'demang', 'pellicul', 'pousse', 'casse', 'fourche', 'hydrat',
+    'routine', 'co-wash', 'lissage', 'defris', 'défris', 'transition', 'naturel', 'satin', 'peigne', 'brosse',
+    'peau', 'bouton', 'acné', 'acne', 'imperfection', 'tache', 'pigment', 'spf', 'solaire', 'soleil', 'crème',
+    'serum', 'sérum', 'hydratant', 'déshydrat', 'deshydrat', 'tiraille', 'rougeur', 'sensible', 'éclat', 'eclat',
+    'cosmétique', 'cosmetique', 'ingrédient', 'ingredient', 'soin', 'visage', 'beauté', 'beaute', 'maquillage'
+  ];
+  return beautyHints.some(hint => {
+    const h = norm(hint);
+    if (h.includes(' ')) return q.includes(h);
+    const tokens = q.split(/[^a-z0-9]+/).filter(Boolean);
+    return h.length <= 4 ? tokens.includes(h) : tokens.some(t => t === h || t.startsWith(h));
+  });
+}
 
 /**
  * Trouve la meilleure réponse thématique pour une question. Renvoie `null` si
@@ -167,18 +354,44 @@ export const TOPIC_ANSWERS: TopicAnswer[] = [
 export function matchTopicAnswer(query: string): TopicAnswer | null {
   const q = norm(query);
   if (!q) return null;
+  const tokens = q.split(/[^a-z0-9]+/).filter(Boolean);
   let best: { answer: TopicAnswer; score: number } | null = null;
   for (const topic of TOPIC_ANSWERS) {
-    let score = 0;
+    const shortKw: string[] = [];
+    const longKw: string[] = [];
+    const phraseKw: string[] = [];
     for (const kw of topic.keywords) {
       const k = norm(kw);
       if (!k) continue;
-      // expression de plusieurs mots
-      if (k.includes(' ')) { if (q.includes(k)) score += 3; continue; }
-      // mot-clé court : borne de mot ; long : préfixe
-      const tokens = q.split(/[^a-z0-9]+/).filter(Boolean);
-      if (k.length <= 4) { if (tokens.includes(k)) score += 3; }
-      else if (tokens.some(t => t === k || t.startsWith(k))) score += 2;
+      if (k.includes(' ')) phraseKw.push(k);
+      else if (k.length <= 4) shortKw.push(k);
+      else longKw.push(k);
+    }
+    // Expressions de plusieurs mots (fort poids) : ex. « ma fille », « cuir chevelu ».
+    let score = 0;
+    const matchedPhraseTokens = new Set<string>();
+    for (const phrase of phraseKw) {
+      if (q.includes(phrase)) {
+        score += 6;
+        phrase.split(' ').forEach(t => { if (tokens.includes(t)) matchedPhraseTokens.add(t); });
+      }
+    }
+    // Chaque jeton de la question ne compte qu’UNE fois par thème : on prend la
+    // meilleure correspondance (mot court exact > préfixe long), pour éviter que
+    // deux variantes d’un même mot (« crepu » + « crepus ») doublent le score.
+    for (const tok of tokens) {
+      if (matchedPhraseTokens.has(tok)) continue;
+      if (shortKw.includes(tok)) { score += 5; continue; }
+      if (longKw.some(k => tok === k || tok.startsWith(k))) { score += 3; }
+    }
+    // Bonus discriminants forts propres à ce thème (le terme doit être dans les
+    // mots-clés du thème pour compter : pas de bonus saupoudré sur tous les thèmes).
+    for (const [term, weight] of Object.entries(STRONG_DISCRIMINATORS)) {
+      const t = norm(term);
+      const relevant = [...shortKw, ...longKw].includes(t) || phraseKw.includes(t);
+      if (!relevant) continue;
+      if (t.includes(' ')) { if (q.includes(t)) score += weight; }
+      else if (tokens.some(tok => tok === t || tok.startsWith(t))) score += weight;
     }
     if (score > 0 && (!best || score > best.score)) best = { answer: topic, score };
   }

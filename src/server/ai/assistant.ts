@@ -1,5 +1,5 @@
 import { AI_GUARDRAILS } from '../../lib/ai/guardrails';
-import { matchTopicAnswer } from '../../lib/ai/topicAnswers';
+import { isBeautyScoped, matchTopicAnswer } from '../../lib/ai/topicAnswers';
 import { serverDb } from '../../lib/serverDb';
 
 import { AvailableCatalogEntry, SUPPORTED_AI_LOCALES } from './catalog';
@@ -142,6 +142,14 @@ export function fallbackAnswer(query: string, locale: string, cards: any[], cata
     // Repli « intelligent » : même sans IA générative, on répond VRAIMENT à la
     // question avec un contenu cosmétique fiable, et on oriente vers les produits
     // correspondant aux besoins du thème (filtrés du catalogue réel).
+    const hair = profile?.hair ?? {};
+    const isKnown = (v: unknown) => typeof v === 'string' && v.trim() !== '' && v !== 'inconnue' && v !== 'inconnu';
+    const texture: string | undefined = Array.isArray(hair.texturePatterns) ? hair.texturePatterns.find(isKnown) : undefined;
+    const porosity: string | undefined = isKnown(hair.porosity) ? hair.porosity : undefined;
+    const profileBits = [texture ? `texture ${texture}` : '', porosity ? `porosité ${porosity}` : ''].filter(Boolean);
+    const personalized = profileBits.length
+      ? ` ${topic.shortAnswer} D’après ton profil KURLA ID (${profileBits.join(', ')}), insiste particulièrement sur l’hydratation puis le scellement adaptés.`
+      : ` ${topic.shortAnswer}`;
     const topicSlugs = catalog
       .filter(entry => (topic.productNeeds || []).some(need => entry.needs?.includes(need)))
       .filter(entry => maxPrice === undefined || entry.price <= maxPrice)
@@ -149,7 +157,7 @@ export function fallbackAnswer(query: string, locale: string, cards: any[], cata
       .map(entry => entry.slug);
     const topicRecommendations = recommendationsForSlugs(topicSlugs, catalog, fits, locale);
     return {
-      shortAnswer: topic.shortAnswer,
+      shortAnswer: personalized.trim(),
       simpleExplanation: topic.explanation,
       routineSteps: topic.steps,
       immediateActions: ['Fais le diagnostic pour une routine adaptée à TON cheveu.', 'Introduis un changement à la fois et observe la tolérance.'],
@@ -159,13 +167,33 @@ export function fallbackAnswer(query: string, locale: string, cards: any[], cata
       errorsToAvoid: ['Ne pas choisir un produit uniquement parce qu’il est présenté pour une texture.', 'Ne pas appliquer de cosmétique sur une peau lésée.'],
       whenToConsultPro: 'En cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante, demande un avis médical.',
       uncertainty: profile
-        ? 'La personnalisation reste limitée aux champs renseignés dans ton profil KURLA ID ; fais le diagnostic pour affiner.'
+        ? 'Réponse basée sur ton profil KURLA ID ; complète le diagnostic pour l’affiner encore.'
         : 'Conseil cosmétique général. Connecte-toi et fais le diagnostic pour une réponse personnalisée.',
       sources: sourceRefs,
       ctas: [
         { label: 'Faire le diagnostic cheveux', href: '/diagnostic/cheveux', type: 'diagnostic' },
         { label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }
-      ]
+      ],
+      answerSource: 'knowledge_base'
+    };
+  }
+
+  // Hors périmètre beauté : réponse honnête qui recentre, jamais un faux conseil.
+  if (!isBeautyScoped(query)) {
+    return {
+      shortAnswer: 'Je suis l’assistante beauté KURLA : je t’aide sur tes cheveux texturés, ta peau, ta routine et les ingrédients. Sur ce sujet précis, je ne suis pas la bonne source.',
+      simpleExplanation: 'Pose-moi plutôt une question sur l’hydratation, la définition des boucles, la casse, la porosité, le cuir chevelu, les coiffures protectrices ou les soins de la peau — ou lance le diagnostic pour une routine personnalisée.',
+      routineSteps: [],
+      immediateActions: ['Décris ton besoin avec un mot-clé clair (ex. « 4C secs », « porosité », « boutons »).', 'Ou lance le diagnostic : 5 questions guidées avec des visuels.'],
+      usefulProducts: [],
+      avoidCombinations: [],
+      usefulTools: [{ name: 'Diagnostic cheveux', description: '5 questions guidées avec visuels pour obtenir ta routine.' }],
+      errorsToAvoid: [],
+      whenToConsultPro: 'En cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante, demande un avis médical.',
+      uncertainty: 'Question hors du domaine d’expertise beauté KURLA.',
+      sources: [],
+      ctas: [{ label: 'Faire le diagnostic cheveux', href: '/diagnostic/cheveux', type: 'diagnostic' }],
+      answerSource: 'out_of_scope'
     };
   }
 
@@ -181,7 +209,8 @@ export function fallbackAnswer(query: string, locale: string, cards: any[], cata
     whenToConsultPro: 'Demander un avis médical en cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante.',
     uncertainty: profile ? 'La personnalisation reste limitée aux champs actuellement renseignés dans votre profil KURLA ID.' : 'Aucun profil KURLA ID n’a été partagé : il s’agit donc de conseils cosmétiques généraux.',
     sources: sourceRefs,
-    ctas: [{ label: 'Faire le diagnostic', href: '/diagnostic/cheveux', type: 'diagnostic' }, { label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }]
+    ctas: [{ label: 'Faire le diagnostic', href: '/diagnostic/cheveux', type: 'diagnostic' }, { label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }],
+    answerSource: 'generic_fallback'
   };
 }
 
