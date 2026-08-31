@@ -316,7 +316,7 @@ export const AdminDashboardPage: React.FC = () => {
               id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard,
               tabs: [
                 { id: 'analytics', label: 'Tableau de bord commercial', icon: TrendingUp },
-                { id: 'strategy', label: 'Stratégie & modèle éco', icon: Target },
+                { id: 'strategy', label: 'Business Control Center', icon: Target },
               ],
             },
             {
