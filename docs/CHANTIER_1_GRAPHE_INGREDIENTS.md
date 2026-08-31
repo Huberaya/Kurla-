@@ -49,6 +49,35 @@ Exemples vérifiés (CAS juste) : Aqua 7732-18-5, Glycerin 56-81-5, Citric Acid
 77-92-9, Benzyl Alcohol 100-51-6, Allantoin 97-59-6, Arginine 74-79-3,
 Linalool 78-70-6, Behentrimonium Chloride 17301-53-0…
 
+## Lot réglementaire — fonctions CosIng + restrictions UE (2026-08-31)
+Lot d'enrichissement **fonctionnel et juridictionnel**, 100 % gratuit et tracé
+(livré en fichier de migration réutilisable, appliquable dans l'éditeur SQL
+Supabase car l'écriture directe nécessite la clé `service_role`, non
+disponible hors tableau de bord/Vercel) :
+- `src/lib/ingredientRegulatory.ts` — faits par ingrédient : **fonctions
+  cosmétiques déclarées CosIng** (vocabulaire FR contrôlé, jamais déduites de
+  la chimie), **restrictions UE** (Annexes II interdits / III restreints /
+  IV colorants / V conservateurs / VI filtres UV du Règlement (CE) n°1223/2009)
+  et **allergènes** de l'annexe III modifiée par le Règlement (UE) 2023/1545.
+- `scripts/buildRegulatoryMigration.ts` → `npm run ingredients:regulatory`
+  génère `supabase/migrations/20260880000000_ingredient_regulatory.sql`
+  (idempotent : `UPDATE ingredients`, `ON CONFLICT` restrictions/provenance).
+- Couverture : **125 ingrédients** avec fonctions CosIng (116 des 118 qui en
+  manquaient — les 2 résidus `Leaf`/`no1` sont des artefacts OBF sans INCI,
+  laissés non étiquetés), **45 restrictions UE**, allergènes tracés. **0 id
+  orphelin** (vérifié contre les 231 ingrédients en base).
+- Limites numériques certifiées : parabènes 0,4 % (V), benzoate/acide
+  benzoïque 0,5 % en acide (V), sorbate de potassium 0,6 % (V),
+  phénoxyéthanol 1 % (V), chlorphénésine 0,3 % (V), pyrithione zinc 1 % (V),
+  DMDM hydantoïne 0,6 % (V), dioxyde de titane 25 % (IV/VI). Quand la limite
+  n'est pas certifiable, elle est laissée `NULL` (aucune valeur inventée).
+- Test `npm run test:regulatory` (vocabulaire contrôlé, annexes valides,
+  cohérence conservateurs→V / filtres UV→VI) — **PASS**.
+
+> **Pour l'appliquer en production** : ouvrir la base `qzwgsarfdegqtfdnqiql`
+> dans Supabase → SQL Editor → coller/exécuter le fichier
+> `20260880000000_ingredient_regulatory.sql`. Il est idempotent.
+
 ## Ce qui reste (prochaines itérations, toujours gratuit)
 1. **Élargir le réservoir** : lancer `ingredients:build --top 300..600`
    (mono-substances supplémentaires, ex. acides aminés, conservateurs, filtres
