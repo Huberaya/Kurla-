@@ -8,6 +8,7 @@ import {
   OFFERS, PERSONAS, POSITIONING, CHANNELS, FUNNEL, PLAN_90,
   FINANCE_PROJECTION, FINANCE_ASSUMPTIONS, BREAKEVEN, STRATEGY_GUARDRAILS,
 } from '../lib/businessStrategy';
+import { LaunchPlanSection } from './LaunchPlanSection';
 
 type Props = { headers: HeadersInit };
 
@@ -37,6 +38,7 @@ const num = (v: number | null | undefined) => v === null || v === undefined ? '�
 const SECTIONS = [
   { id: 'actions', label: 'À faire maintenant', icon: ListChecks },
   { id: 'positioning', label: 'Positionnement', icon: Target },
+  { id: 'launch', label: 'Plan de lancement', icon: Rocket },
   { id: 'offers', label: 'Offres & prix', icon: ShoppingBag },
   { id: 'personas', label: 'Cibles', icon: Users },
   { id: 'channels', label: 'Acquisition', icon: Megaphone },
@@ -162,6 +164,11 @@ export function StrategyCockpitPanel({ headers }: Props) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* PLAN DE LANCEMENT (catalogue, kits, routines, outils, scénarios, actions) */}
+      <div id="launch" className="scroll-mt-4">
+        <LaunchPlanSection />
       </div>
 
       {/* POSITIONNEMENT */}

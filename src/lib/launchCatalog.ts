@@ -1,0 +1,314 @@
+/**
+ * KURLA — CATALOGUE DE LANCEMENT DÉCIDÉ (plan de marchandisage JOUR 1).
+ *
+ * DÉCISION : on lance avec 18 SKU, pas 50 ni 100. Raison : (1) chaque type de
+ * cheveu (3A→4C) doit pouvoir faire une routine complète sans choix paralysant ;
+ * (2) 18 SKU = stock et trésorerie maîtrisés pour un premier lot (~4-6 k€ d'achat) ;
+ * (3) on élargit dès que les ventes révèlent les best-sellers (data-driven).
+ *
+ * Règles d'honnêteté :
+ *  - `brand` = MARQUE CIBLE de sourcing (à contacter), pas un fournisseur confirmé.
+ *  - `costEur` = OBJECTIF de coût d'achat HT déduit du prix public visé (cible de
+ *    marge ~45 %) ; ce n'est PAS un devis. Le coût réel sera saisi à réception de
+ *    la grille tarifaire fournisseur (aucun chiffre inventé côté transaction).
+ *  - Conformité : aucun produit n'est publié sans fiche ingrédient + vérification
+ *    européenne (Règl. 1223/2009) ; le statut est `à sourcer/vérifier`.
+ */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 18 PRODUITS DE LANCEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LaunchProduct = {
+  id: string;
+  name: string;
+  category: 'Shampoing' | 'Après-shampoing' | 'Masque' | 'Leave-in' | 'Huile/Beurre' | 'Gel/Coiffant' | 'Co-wash' | 'Accessoire';
+  brandTarget: string;
+  hairType: string;          // types de cheveux cibles
+  problem: string;           // problème résolu
+  retailPriceEur: number;    // prix de vente public TTC
+  targetCostEur: number;     // objectif coût d'achat HT (cible de négoce)
+  marginPct: number;         // marge brute estimée
+  repurchase: 'fort' | 'moyen';
+  strategic: string;         // intérêt stratégique
+  pairsWith: string[];       // ids produits complémentaires
+};
+
+export const LAUNCH_PRODUCTS: LaunchProduct[] = [
+  // ── Hygiène & lavage ──
+  { id: 'p01', name: 'Shampoing crème hydratant sans sulfate (250 ml)', category: 'Shampoing', brandTarget: 'Aunt Jackie’s / Cantu (gros)', hairType: '3A-4C', problem: 'Cheveux secs, frisottis après lavage, cuir chevelu sensible', retailPriceEur: 12.9, targetCostEur: 7.1, marginPct: 45, repurchase: 'fort', strategic: 'Entrée de gamme ENTRY, base de toutes les routines, fort réachat.', pairsWith: ['p04', 'p07', 'p13'] },
+  { id: 'p02', name: 'Shampoing purifiant clarifiant (250 ml)', category: 'Shampoing', brandTarget: 'Kinky-Curly / As I Am', hairType: '3A-4C', problem: 'Accumulation de produits (build-up), cuir chevelu gras', retailPriceEur: 13.9, targetCostEur: 7.6, marginPct: 45, repurchase: 'moyen', strategic: 'Usage 1x/2 sem, complète la routine, éducatif (scalp care).', pairsWith: ['p01', 'p05'] },
+  { id: 'p03', name: 'Co-wash nettoyant crème (450 ml)', category: 'Co-wash', brandTarget: 'As I Am Coconut Cowash', hairType: '3C-4C', problem: 'Cheveux très secs qui ne supportent pas le shampoing', retailPriceEur: 14.9, targetCostEur: 8.2, marginPct: 45, repurchase: 'fort', strategic: 'Best-seller communautaire afro, fidélise les 4C.', pairsWith: ['p06', 'p09'] },
+
+  // ── Soin / nutrition ──
+  { id: 'p04', name: 'Après-shampoing démêlant hydratant (400 ml)', category: 'Après-shampoing', brandTarget: 'Cantu Shea Butter / Aunt Jackie’s', hairType: '3A-4C', problem: 'Nœuds, casse au démêlage, manque de glisse', retailPriceEur: 11.9, targetCostEur: 6.5, marginPct: 45, repurchase: 'fort', strategic: 'Déclencheur du « ça marche enfin », bas coût, fort volume.', pairsWith: ['p01', 'p07'] },
+  { id: 'p05', name: 'Masque profond nutrition beurre de karité (340 g)', category: 'Masque', brandTarget: 'Shea Moisture Raw Shea', hairType: '3C-4C', problem: 'Cheveux abîmés, déshydratés, cassants', retailPriceEur: 16.9, targetCostEur: 9.3, marginPct: 45, repurchase: 'moyen', strategic: 'Piège CORE/PREMIUM, soin « rendez-vous » du dimanche, monte le panier.', pairsWith: ['p02', 'p09', 'p11'] },
+  { id: 'p06', name: 'Masque protéiné reconstructeur (340 g)', category: 'Masque', brandTarget: 'Aphogee / Shea Moisture JBCO', hairType: '3A-4C', problem: 'Cheveux fins, cassants, fourches, coloration abîmée', retailPriceEur: 17.9, targetCostEur: 9.8, marginPct: 45, repurchase: 'moyen', strategic: 'Répond au besoin « réparation », différencie des enseignes.', pairsWith: ['p05', 'p10'] },
+
+  // ── Hydratation sans rinçage ──
+  { id: 'p07', name: 'Leave-in crème hydratante légère (250 ml)', category: 'Leave-in', brandTarget: 'Kinky-Curly Knot Today / Aunt Jackie’s', hairType: '3A-3C', problem: 'Manque d’hydratation quotidienne, frisottis', retailPriceEur: 13.9, targetCostEur: 7.6, marginPct: 45, repurchase: 'fort', strategic: 'Produit du quotidien, réachat fréquent, cœur des routines bouclées.', pairsWith: ['p01', 'p04', 'p13'] },
+  { id: 'p08', name: 'Leave-in riche « cream » pour crépus (250 ml)', category: 'Leave-in', brandTarget: 'Camille Rose / Mielle', hairType: '4A-4C', problem: 'Hydratation qui ne tient pas sur cheveu crépu', retailPriceEur: 15.9, targetCostEur: 8.7, marginPct: 45, repurchase: 'fort', strategic: 'Spécifique 4B/4C, répond à la cible prioritaire Aminata.', pairsWith: ['p03', 'p09', 'p12'] },
+
+  // ── Nutrition / scellement ──
+  { id: 'p09', name: 'Beurre de karité brut 100 % (200 g)', category: 'Huile/Beurre', brandTarget: 'Marque propre KURLA / sourcing Afrique de l’Ouest', hairType: '3C-4C', problem: 'Scellement de l’hydratation, nutrition profonde', retailPriceEur: 9.9, targetCostEur: 4.5, marginPct: 55, repurchase: 'moyen', strategic: 'Futur HÉROS marque propre (marge 55 %), ancrage sourcing éthique.', pairsWith: ['p05', 'p08', 'p11'] },
+  { id: 'p10', name: 'Huile de ricin noire jamaïcaine (118 ml)', category: 'Huile/Beurre', brandTarget: 'Sunny Isle / Tropic Isle', hairType: '3A-4C', problem: 'Pousse, racines faibles, pointes sèches', retailPriceEur: 12.9, targetCostEur: 7.1, marginPct: 45, repurchase: 'moyen', strategic: 'Forte demande « pousse », bon contenu éducatif.', pairsWith: ['p06', 'p11'] },
+  { id: 'p11', name: 'Sérum huiles nourricières multi-usages (100 ml)', category: 'Huile/Beurre', brandTarget: 'Mielle Rosemary Mint / Camille Rose', hairType: '3A-4C', problem: 'Brillance, frisottis, cuir chevelu, soin des pointes', retailPriceEur: 14.9, targetCostEur: 8.2, marginPct: 45, repurchase: 'fort', strategic: 'Complément à forte marge perçue, se glisse dans tous les paniers.', pairsWith: ['p07', 'p08'] },
+
+  // ── Coiffage / définition ──
+  { id: 'p12', name: 'Crème de définition twist-out / braid-out (227 g)', category: 'Gel/Coiffant', brandTarget: 'Camille Rose Almond Jai / Mielle', hairType: '3C-4C', problem: 'Pas de tenue des coiffures protectrices, manque de définition', retailPriceEur: 15.9, targetCostEur: 8.7, marginPct: 45, repurchase: 'fort', strategic: 'Indissociable des routines 4, pilier des kits.', pairsWith: ['p08', 'p14'] },
+  { id: 'p13', name: 'Gel de lin définition sans croûtage (240 ml)', category: 'Gel/Coiffant', brandTarget: 'Kinky-Curly Curling Custard / Aunt Jackie’s', hairType: '3A-4A', problem: 'Boucles mal définies, gels qui dessèchent et durcissent', retailPriceEur: 16.9, targetCostEur: 9.3, marginPct: 45, repurchase: 'fort', strategic: 'Produit « définition » star pour bouclés, contenu TikTok parfait.', pairsWith: ['p07', 'p01'] },
+  { id: 'p14', name: 'Gel de tenue forte edge & twist (227 g)', category: 'Gel/Coiffant', brandTarget: 'Eco Styler / Mielle', hairType: '3C-4C', problem: 'Coiffures qui ne tiennent pas, bords rebelles', retailPriceEur: 8.9, targetCostEur: 4.9, marginPct: 45, repurchase: 'fort', strategic: 'ENTRÉE de panier très bas prix, déclenche l’ajout (« add-on »).', pairsWith: ['p12', 'p08'] },
+  { id: 'p15', name: 'Mousse coiffante légère définition (200 ml)', category: 'Gel/Coiffant', brandTarget: 'As I Am / Design Essentials', hairType: '3A-4A', problem: 'Volume sans frisottis, boucles souples', retailPriceEur: 11.9, targetCostEur: 6.5, marginPct: 45, repurchase: 'moyen', strategic: 'Alternative au gel pour les cheveux fins, complète la gamme.', pairsWith: ['p07', 'p13'] },
+
+  // ── Accessoires à marge émotionnelle ──
+  { id: 'p16', name: 'Peigne démêloir à dents larges (anti-casse)', category: 'Accessoire', brandTarget: 'Accessoire KURLA', hairType: '3A-4C', problem: 'Casse au démêlage', retailPriceEur: 6.9, targetCostEur: 2.5, marginPct: 64, repurchase: 'moyen', strategic: 'Accessoire à haute marge, ajout panier, renforce l’expertise routine.', pairsWith: ['p04', 'p07'] },
+  { id: 'p17', name: 'Bonnet satin nuit + taie d’oreiller (set)', category: 'Accessoire', brandTarget: 'Accessoire KURLA', hairType: '3A-4C', problem: 'Frottements nocturnes, perte d’hydratation, frisottis', retailPriceEur: 12.9, targetCostEur: 4.8, marginPct: 63, repurchase: 'moyen', strategic: 'Marge ~63 %, très visuel en UGC, parfait en cadeau/kit.', pairsWith: ['p08', 'p12'] },
+  { id: 'p18', name: 'Flacon vaporisateur brume continue (300 ml)', category: 'Accessoire', brandTarget: 'Accessoire KURLA', hairType: '3C-4C', problem: 'Réhydratation quotidienne (refresh) impossible', retailPriceEur: 7.9, targetCostEur: 2.9, marginPct: 63, repurchase: 'moyen', strategic: 'Outil de la routine refresh, éducatif, add-on rentable.', pairsWith: ['p08', 'p18'] },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6 KITS DE LANCEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LaunchKit = {
+  id: string; name: string; tier: 'ENTRY' | 'CORE' | 'PREMIUM';
+  hairType: string; goal: string; clientTarget: string;
+  productIds: string[]; retailPriceEur: number; kitPriceEur: number;
+  marginEur: number; strategic: string; complement: string;
+};
+
+function kitFrom(ids: string[], price: number): { sumRetail: number; sumCost: number } {
+  const rows = LAUNCH_PRODUCTS.filter(p => ids.includes(p.id));
+  return {
+    sumRetail: Math.round(rows.reduce((s, p) => s + p.retailPriceEur, 0) * 100) / 100,
+    sumCost: Math.round(rows.reduce((s, p) => s + p.targetCostEur, 0) * 100) / 100,
+  };
+}
+
+function makeKit(k: Omit<LaunchKit, 'retailPriceEur' | 'marginEur'>): LaunchKit {
+  const { sumRetail, sumCost } = kitFrom(k.productIds, k.kitPriceEur);
+  return { ...k, retailPriceEur: sumRetail, marginEur: Math.round((k.kitPriceEur - sumCost) * 100) / 100 };
+}
+
+export const LAUNCH_KITS: LaunchKit[] = [
+  makeKit({
+    id: 'k01', name: 'KIT 01 — Premiers pas bouclés (3A/3B)', tier: 'ENTRY',
+    hairType: '3A-3B', goal: 'Lancer une routine simple sans assécher', clientTarget: 'Inès (curieuse, budget serré), novices',
+    productIds: ['p01', 'p04', 'p07', 'p13'], kitPriceEur: 49.9,
+    strategic: 'Porte d’entrée tarifaire, conversion des novices.', complement: 'p17 (bonnet satin), p11 (sérum)',
+  }),
+  makeKit({
+    id: 'k02', name: 'KIT 02 — Hydratation & définition (3C/4A)', tier: 'CORE',
+    hairType: '3C-4A', goal: 'Hydratation durable et boucles définies', clientTarget: 'Aminata débutante, bouclé-crépu',
+    productIds: ['p01', 'p04', 'p08', 'p13', 'p11'], kitPriceEur: 64.9,
+    strategic: 'Kit central, meilleur compromis marge/volume, star des reco.', complement: 'p16 (peigne), p17 (bonnet)',
+  }),
+  makeKit({
+    id: 'k03', name: 'KIT 03 — Nutrition profonde crépue (4B/4C)', tier: 'CORE',
+    hairType: '4B-4C', goal: 'Nourrir et sceller l’hydratation des cheveux très crépus', clientTarget: 'Aminata (cible n°1), 4C',
+    productIds: ['p03', 'p05', 'p08', 'p09', 'p12'], kitPriceEur: 69.9,
+    strategic: 'Répond au besoin le plus douloureux des 4C ; forte valeur perçue.', complement: 'p17, p10 (huile ricin)',
+  }),
+  makeKit({
+    id: 'k04', name: 'KIT 04 — Réparation & pousse (cheveux abîmés)', tier: 'PREMIUM',
+    hairType: '3A-4C', goal: 'Reconstruire cheveux cassants/fourches, soutenir la pousse', clientTarget: 'Camille & Aminata, cheveux abîmés',
+    productIds: ['p06', 'p05', 'p10', 'p11', 'p07'], kitPriceEur: 74.9,
+    strategic: 'Montée en gamme, panier premium, marge absolue élevée.', complement: 'p17 (bonnet), p18 (vaporisateur)',
+  }),
+  makeKit({
+    id: 'k05', name: 'KIT 05 — Coiffures protectrices (twist/tresses)', tier: 'CORE',
+    hairType: '3C-4C', goal: 'Réussir twist-out, braid-out et coiffures qui tiennent', clientTarget: 'Pros & clientes coiffures protectrices',
+    productIds: ['p08', 'p12', 'p14', 'p17'], kitPriceEur: 49.9,
+    strategic: 'Forte adéquation contenu TikTok (tutos coiffure).', complement: 'p18 (vaporisateur refresh)',
+  }),
+  makeKit({
+    id: 'k06', name: 'KIT 06 — Routine complète 4C (toute la ligne)', tier: 'PREMIUM',
+    hairType: '4A-4C', goal: 'La routine complète clé en main, zéro décision à prendre', clientTarget: 'Aminata « je veux que ça marche », cadeau',
+    productIds: ['p03', 'p05', 'p08', 'p09', 'p12', 'p14', 'p17'], kitPriceEur: 89.9,
+    strategic: 'Panier maximal, offre « cadeau », référence premium de la marque.', complement: 'KURLA+ (suivi de routine offert 1 mois)',
+  }),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5 ROUTINES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LaunchRoutine = {
+  id: string; name: string; profile: string; goal: string;
+  steps: { step: string; productId: string }[];
+  totalPriceEur: number; budgetAlt: string; premiumAlt: string;
+};
+
+export const LAUNCH_ROUTINES: LaunchRoutine[] = [
+  {
+    id: 'r01', name: 'Routine cheveux secs / déshydratés', profile: '3C-4C, cheveux rêches, manque d’hydratation', goal: 'Hydrater en profondeur et sceller',
+    steps: [
+      { step: 'Laver', productId: 'p01' }, { step: 'Démêler', productId: 'p04' },
+      { step: 'Soin hebdo', productId: 'p05' }, { step: 'Hydrater sans rinçage', productId: 'p08' },
+      { step: 'Sceller', productId: 'p09' },
+    ],
+    totalPriceEur: 0, budgetAlt: 'Remplacer p05 par p04 en usage quotidien (économie ~8 €)', premiumAlt: 'Ajouter p11 sérum (+14,90 €)',
+  },
+  {
+    id: 'r02', name: 'Routine définition boucles (3A/3B/3C)', profile: 'Cheveux bouclés, manque de définition, frisottis', goal: 'Des boucles dessinées sans croûtage',
+    steps: [
+      { step: 'Laver', productId: 'p01' }, { step: 'Hydrater (leave-in)', productId: 'p07' },
+      { step: 'Définir (gel de lin)', productId: 'p13' }, { step: 'Brillance', productId: 'p11' },
+    ],
+    totalPriceEur: 0, budgetAlt: 'p15 mousse au lieu du gel (−5 €)', premiumAlt: 'Kit K02 complet (64,90 €)',
+  },
+  {
+    id: 'r03', name: 'Routine cheveux crépus 4C (nutrition)', profile: '4B/4C, très secs, besoin de nutrition', goal: 'Nutrir, hydrater et protéger',
+    steps: [
+      { step: 'Co-wash', productId: 'p03' }, { step: 'Masque nutritif', productId: 'p05' },
+      { step: 'Leave-in riche', productId: 'p08' }, { step: 'Beurre de karité', productId: 'p09' },
+      { step: 'Coiffage', productId: 'p12' },
+    ],
+    totalPriceEur: 0, budgetAlt: 'Kit K03 (69,90 €, tout inclus)', premiumAlt: 'Kit K06 routine complète (89,90 €)',
+  },
+  {
+    id: 'r04', name: 'Routine réparation / pousse', profile: 'Cheveux cassants, fourches, chute', goal: 'Reconstruire et stimuler',
+    steps: [
+      { step: 'Clarifier (1x/2 sem)', productId: 'p02' }, { step: 'Masque protéiné', productId: 'p06' },
+      { step: 'Huile de ricin (racines)', productId: 'p10' }, { step: 'Leave-in', productId: 'p07' },
+    ],
+    totalPriceEur: 0, budgetAlt: 'p05 au lieu de p06 (−1 €) en entretien', premiumAlt: 'Kit K04 (74,90 €)',
+  },
+  {
+    id: 'r05', name: 'Routine refresh / entretien coiffure', profile: 'Tous types, entre deux lavages', goal: 'Raviver hydratation et définition au quotidien',
+    steps: [
+      { step: 'Vaporiser (eau + leave-in dilué)', productId: 'p18' }, { step: 'Ré-hydrater', productId: 'p08' },
+      { step: 'Redéfinir / tenir', productId: 'p14' }, { step: 'Protéger la nuit', productId: 'p17' },
+    ],
+    totalPriceEur: 0, budgetAlt: 'p07 leave-in léger pour les 3A-3C', premiumAlt: 'Ajouter p11 sérum brillance (+14,90 €)',
+  },
+];
+
+// Calcul des totaux de routine
+LAUNCH_ROUTINES.forEach(r => {
+  r.totalPriceEur = Math.round(
+    r.steps.reduce((s, st) => s + (LAUNCH_PRODUCTS.find(p => p.id === st.productId)?.retailPriceEur ?? 0), 0) * 100
+  ) / 100;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OUTILS KURLA — disponibilité au lancement
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type LaunchTool = {
+  id: string; name: string; atLaunch: boolean; phase: number;
+  user: string; problem: string; howItWorks: string;
+  userValue: string; businessValue: string; price: 'gratuit' | 'Plus' | 'Pro';
+  kpi: string; moment: string;
+};
+
+export const LAUNCH_TOOLS: LaunchTool[] = [
+  { id: 't01', name: 'Diagnostic cheveux IA', atLaunch: true, phase: 1, user: 'Tous', problem: 'Ne sait pas son type de cheveu ni par où commencer', howItWorks: '5 questions → type de cheveu + besoins + routine recommandée', userValue: 'Un point de départ clair et personnalisé', businessValue: 'Aimant à leads + moteur de recommandation produit', price: 'gratuit', kpi: 'Diagnostics complétés, taux diagnostic→reco', moment: 'Première visite (haut de funnel)' },
+  { id: 't02', name: 'Analyse & transparence ingrédients', atLaunch: true, phase: 1, user: 'Tous (Camille)', problem: 'Peur des substances, greenwashing', howItWorks: 'Fiche ingrédient : fonction, restrictions réglementaires, sources', userValue: 'Confiance par la preuve', businessValue: 'Différenciation n°1 + SEO (pages ingrédient)', price: 'gratuit', kpi: 'Pages ingrédient vues, temps passé', moment: 'Avant achat (réassurance)' },
+  { id: 't03', name: 'Générateur de routine', atLaunch: true, phase: 1, user: 'Tous', problem: 'Sélection paralysante', howItWorks: 'Recommande une routine + kit concret selon le diagnostic', userValue: 'Zéro décision à prendre', businessValue: 'Dirige vers les kits (AOV élevé)', price: 'gratuit', kpi: 'Taux reco→panier', moment: 'Après le diagnostic' },
+  { id: 't04', name: 'Recherche intelligente (ingrédients/produits)', atLaunch: true, phase: 1, user: 'Tous', problem: 'Trouver le bon produit/ingrédient', howItWorks: 'Recherche sémantique cheveu + ingrédient', userValue: 'Réponse immédiate', businessValue: 'Rétention + SEO', price: 'gratuit', kpi: 'Recherches, taux de clic résultat', moment: 'Tout le parcours' },
+  { id: 't05', name: 'Beauty Advisor (conseiller IA conversationnel)', atLaunch: true, phase: 1, user: 'Tous', problem: 'Questions précises sans humain disponible 24/7', howItWorks: 'Chat qui conseille sur la base du graphe ingrédients (cité ses sources)', userValue: 'Réponse honnête instantanée', businessValue: 'Confiance + conversion assistée', price: 'gratuit', kpi: 'Conversations, satisfaction, conversion assistée', moment: 'Hésitation / comparaison' },
+  { id: 't06', name: 'Suivi des résultats & historique', atLaunch: false, phase: 2, user: 'Clients actifs', problem: 'Ne sait pas si la routine marche', howItWorks: 'Journal de routine, photos, rappels produits', userValue: 'Progression visible', businessValue: 'Réachat + abonnement KURLA+', price: 'Plus', kpi: 'Rétention, réachat 90 j', moment: 'Post-achat' },
+  { id: 't07', name: 'Alertes fin de produit & réappro −10 %', atLaunch: false, phase: 2, user: 'Clients', problem: 'Oubli de racheter, rupture de routine', howItWorks: 'Notification/email quand le produit doit être terminé', userValue: 'Ne jamais tomber à court', businessValue: 'Réachat automatisé', price: 'Plus', kpi: 'Taux de réappro', moment: '6-8 semaines après achat' },
+  { id: 't08', name: 'Comparateur de produits', atLaunch: false, phase: 2, user: 'Tous', problem: 'Hésite entre 2 produits', howItWorks: 'Comparaison ingrédients, prix, avis, adaptation cheveu', userValue: 'Choix éclairé', businessValue: 'Réduit l’abandon', price: 'gratuit', kpi: 'Comparaisons → achat', moment: 'Comparaison' },
+  { id: 't09', name: 'Diagnostic en fauteuil (pro)', atLaunch: false, phase: 4, user: 'Coiffeurs (Fatou)', problem: 'Conseil à refaire par cliente', howItWorks: 'Outil pro de diagnostic + fiches clientes', userValue: 'Gain de temps, crédibilité', businessValue: 'Abonnement KURLA Pro 49 €/mois', price: 'Pro', kpi: 'Salons abonnés', moment: 'Phase 4' },
+  { id: 't10', name: 'Recherche de professionnels', atLaunch: false, phase: 4, user: 'Clientes', problem: 'Trouver un coiffeur compétent cheveu texturé', howItWorks: 'Annuaire de pros vérifiés géolocalisé', userValue: 'Confiance d’adresse', businessValue: 'Marketplace services (commission 15-25 %)', price: 'gratuit', kpi: 'Rendez-vous pris', moment: 'Besoin de prestation' },
+  { id: 't11', name: 'Analyse photo du cheveu', atLaunch: false, phase: 3, user: 'Tous', problem: 'Doute sur son type de cheveu', howItWorks: 'Analyse d’image pour affiner le diagnostic', userValue: 'Diagnostic plus précis', businessValue: 'Engagement + data', price: 'gratuit', kpi: 'Utilisation, complétion profil', moment: 'Diagnostic' },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ÉCHELLE DES PREMIERS CLIENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const FIRST_CLIENTS = [
+  {
+    milestone: '10 premiers clients', how: 'Réseau direct (fondateur + beta-testeuses communautés cheveux texturés : groupes Facebook « Cheveux crépus », Discord, connaissances).',
+    offer: 'Kit K02/K03 à prix de lancement −20 % + diagnostic offert + remboursé si non satisfait à 30 j.', message: '« Je lance KURLA : dis-moi ton type de cheveu, je te prépare ta routine et je te rembourse si ça ne marche pas. »',
+    channel: 'DM personnalisés + 10 entretiens utilisateurs', budget: 0, objective: '10 commandes + 10 retours honnêtes + 10 UGC/avis',
+  },
+  {
+    milestone: '100 premiers clients', how: 'TikTok organique (5-7 vidéos/sem) + 4-8 micro-créateurs (2k-50k ab.) en barter/affilié + parrainage 10/10 €.',
+    offer: 'Offre de lancement kit −15 % + livraison offerte dès 49 € + 1 mois KURLA+ offert.', message: '« Arrête d’acheter au hasard : 5 questions, ta routine, des produits qui marchent. »',
+    channel: 'TikTok/IG + créateurs', budget: '~900 € (créateurs + petit boost)', objective: '100 commandes en 60 j, 20 avis, CAC < 15 €',
+  },
+  {
+    milestone: '1 000 clients', how: 'Système qui tourne : SEO routines/ingrédients (trafic cumulatif) + paid scaling sur les créas UGC validées (ROAS > 2,5) + parrainage.',
+    offer: 'Parcours diagnostic→kit optimisé, réachat email, KURLA+ post-achat.', message: 'Le diagnostic comme hook, le kit comme solution.',
+    channel: 'SEO + TikTok Ads + créateurs + referral', budget: '~4 000 €/mois à plein régime', objective: '1 000 clients d’ici M6, conversion > 1,5 %',
+  },
+  {
+    milestone: '10 000 clients', how: 'Marque + marché : contenu organique dominant, marque propre (karité KURLA), marketplace tiers, B2B naissant.',
+    offer: 'Gamme élargie data-driven, abonnements, programmes de fidélité.', message: 'La référence honnête du cheveu texturé.',
+    channel: 'Omnicanal + marque + SEO massif (>100k pages)', budget: '~25 k€/mois', objective: '10 000 clients d’ici M18-24, rentable',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCÉNARIOS FINANCIERS (1 000 visiteurs de base, mensuel, à M3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type FinanceScenario = {
+  id: string; label: string;
+  visitors: number; diagRate: number; purchaseRate: number; // purchaseRate = part des visiteurs qui achètent
+  orders: number; aov: number; productRevenue: number;
+  grossMargin: number; acquisitionCost: number; mrr: number; netResult: number;
+  note: string; reference?: boolean;
+};
+
+function scen(id: string, label: string, visitors: number, purchaseRate: number, aov: number, marginPct: number, cac: number, mrr: number, note: string, reference = false): FinanceScenario {
+  const orders = Math.round(visitors * purchaseRate);
+  const productRevenue = Math.round(orders * aov);
+  const grossMargin = Math.round(productRevenue * marginPct);
+  const acquisitionCost = Math.round(orders * cac);
+  const fixed = 700; // tech + frais fixes mensuels d’amorçage
+  const netResult = grossMargin + mrr - acquisitionCost - fixed;
+  return { id, label, visitors, diagRate: 0.2, purchaseRate, orders, aov, productRevenue, grossMargin, acquisitionCost, mrr, netResult, note, ...(reference ? { reference: true } : {}) };
+}
+
+export const FINANCE_SCENARIOS: FinanceScenario[] = [
+  scen('pru', 'PRUDENT', 1000, 0.008, 40, 0.45, 18, 30, 'Conversion 0,8 %, AOV 40 €, CAC 18 €. Le funnel fuit.', false),
+  scen('cen', 'CENTRAL (référence)', 1000, 0.013, 42, 0.45, 14, 60, 'Conversion 1,3 %, AOV 42 € (kits), CAC 14 €. C’est notre objectif de pilotage M3.', true),
+  scen('amb', 'AMBITIEUX', 1000, 0.022, 46, 0.45, 12, 90, 'Conversion 2,2 %, AOV 46 €, kits premium + réachat engagé.', false),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 20 ACTIONS DE LANCEMENT (file d’exécution du BCC)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const LAUNCH_ACTIONS = [
+  { id: 'a01', week: 1, title: 'Activer Stripe live + webhook', owner: 'tech', dep: 'externe (clés Stripe)', kpi: '1 commande payée réelle' },
+  { id: 'a02', week: 1, title: 'Dépublier les produits Démo', owner: 'tech', dep: 'validation admin', kpi: '0 produit Démo public' },
+  { id: 'a03', week: 1, title: 'Créer la shortlist 6 marques cibles + envoyer 20 demandes de gros (tarifs/MOQ)', owner: 'ops', dep: 'interne', kpi: '20 demandes envoyées' },
+  { id: 'a04', week: 2, title: 'Saisir les 18 SKU comme brouillons catalogue (fiche ingrédient + conformité UE)', owner: 'ops/tech', dep: 'grille tarifaire reçue', kpi: '18 SKU en brouillon vérifiés' },
+  { id: 'a05', week: 2, title: 'Construire les 6 kits + 5 routines comme offres achetables', owner: 'tech', dep: 'a04', kpi: '6 kits achetables' },
+  { id: 'a06', week: 2, title: 'Commander le premier lot (mix kits, ~4-6 k€) après 3 devis comparés', owner: 'ops', dep: 'devis reçus', kpi: 'stock réceptionné' },
+  { id: 'a07', week: 3, title: 'Installer analytics + événements funnel (diag/reco/panier/achat)', owner: 'tech', dep: 'interne', kpi: 'entonnoir mesuré' },
+  { id: 'a08', week: 3, title: 'Raccourcir le diagnostic à 5 questions + hook en home', owner: 'tech', dep: 'interne', kpi: 'diagRate > 18 %' },
+  { id: 'a09', week: 3, title: 'Mettre les kits K02/K03 en tête des recommandations', owner: 'tech', dep: 'a05', kpi: 'part des kits dans les ventes' },
+  { id: 'a10', week: 4, title: 'Produire 10 vidéos de démonstration (banque de contenu)', owner: 'marketing', dep: 'interne', kpi: '10 vidéos prêtes' },
+  { id: 'a11', week: 4, title: 'Ouvrir la liste de lancement (landing + email) avec offre −15 %', owner: 'marketing/tech', dep: 'interne', kpi: '100-200 emails' },
+  { id: 'a12', week: 4, title: 'Recruter 10 beta-testeuses (réseau) pour les 10 premières commandes', owner: 'marketing', dep: 'a06', kpi: '10 commandes + avis' },
+  { id: 'a13', week: 5, title: 'Lancer TikTok 5-7 vidéos/semaine (démos diag + routines)', owner: 'marketing', dep: 'a10', kpi: 'vues → visites' },
+  { id: 'a14', week: 5, title: 'Lancer l’offre de lancement (kit −15 % + livraison offerte dès 49 €)', owner: 'marketing', dep: 'a05', kpi: '30-60 commandes' },
+  { id: 'a15', week: 6, title: 'Contacter 20 micro-créateurs, signer 4-8 barters/affiliés', owner: 'marketing', dep: 'a10', kpi: 'ventes par code' },
+  { id: 'a16', week: 7, title: 'Emails panier abandonné + relances (séquence 3 emails)', owner: 'marketing/tech', dep: 'a07', kpi: 'reprise panier > 10 %' },
+  { id: 'a17', week: 8, title: 'Collecter avis + UGC, publier avant/après, répondre aux DM', owner: 'marketing', dep: 'commandes', kpi: '20 avis, 10 UGC' },
+  { id: 'a18', week: 9, title: 'Activer parrainage 10/10 € + proposer KURLA+ post-achat', owner: 'tech/marketing', dep: 'a07', kpi: '1ers filleuls, 10-15 Plus' },
+  { id: 'a19', week: 10, title: 'Tester 3 créas UGC en paid (petit budget), couper les non-rentables', owner: 'marketing', dep: 'a15', kpi: 'ROAS > 2 sur 1 créa' },
+  { id: 'a20', week: 12, title: 'Bilan CAC/LTV par canal, doubler le canal rentable, réassort', owner: 'fondateur', dep: 'data', kpi: 'CAC < LTV/3' },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APPROVISIONNEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const SOURCING_PLAN = {
+  decision: 'Hybride : revente de marques reconnues (rapide, crédibilité immédiate) + 1 futur héros marque propre (beurre de karité, marge 55 %, sourcing Afrique de l’Ouest) dès que le volume le justifie.',
+  brands: ['Aunt Jackie’s', 'Cantu', 'Shea Moisture', 'As I Am', 'Mielle', 'Kinky-Curly', 'Camille Rose', 'Aphogee / Sunny Isle'],
+  firstOrder: 'Premier lot ~4-6 k€ HT, focalisé sur les 6 kits (kits = prédiction de la demande, donc risque de stock minimisé). Quantités : 2-3 unités par SKU accessoire, 6-10 par SKU cœur de kit.',
+  moq: 'MOQ et tarifs à confirmer auprès des distributeurs/grossistes (ex. AfricanFabs, Afro Wholesale identifiés ; aucune condition inventée).',
+  storage: 'Stockage initial en interne (fulfillment maison) pour maîtriser coûts et qualité ; passage à un logisticien (3PL) dès ~150 commandes/mois.',
+  delivery: 'Livraison suivie FR ; offerte dès 49 € ; points relais + domicile.',
+  compliance: 'Chaque SKU exige : fiche ingrédient complète, vérification Règl. (CE) 1223/2009 + Annexes, étiquetage FR, responsabilité personne responsable UE. Aucun produit publié avant vérification (conformité = fichier + date).',
+  returns: 'Retours 30 jours satisfait-ou-remboursé sur les 100 premières commandes (outil de confiance + retour d’expérience).',
+};
