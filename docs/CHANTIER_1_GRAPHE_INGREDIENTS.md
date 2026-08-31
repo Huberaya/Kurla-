@@ -83,6 +83,31 @@ disponible hors tableau de bord/Vercel) :
 > `20260883000000_ingredient_regulatory.sql`. Il est idempotent et tourne
 > **après** les lots 20260881/20260882 déjà appliqués.
 
+## Boucle publique de navigation par ingrédient (2026-08-31)
+Le graphe et la table de liaison `product_ingredients` (36 liaisons, **toutes
+résolues** vers des ingrédients réels) sont désormais navigables côté visiteur :
+- `src/server/routes/ingredients.ts` (routes publiques, lecture via le client
+  serveur car RLS ferme `products`/`product_ingredients` en `anon`) :
+  - `GET /api/ingredients/search?q=` — recherche par INCI, nom normalisé ou nom
+    commun FR, avec fonctions CosIng, drapeau allergène et nombre de produits liés ;
+  - `GET /api/ingredients/:id/products` — produits **publiés** contenant l'ingrédient ;
+  - `GET /api/products/:idOrSlug/ingredients` — composition reliée d'une fiche
+    (tri par rang INCI, ingrédients clés / allergènes / parfum signalés).
+- `professionals.ts` : la fiche `/api/ingredients/:id/card` renvoie aussi les
+  produits publiés qui contiennent l'ingrédient.
+- Front : service `ingredientNavService`, page **`/ingredients`** (recherche
+  live), fiche ingrédient enrichie d'une section « Produits qui le contiennent »,
+  fiche produit avec des pastilles d'ingrédients **cliquables** vers
+  `/ingredient/:id` (étoile = ingrédient clé, triangle = allergène).
+- Garde-fou : seuls les produits **publiés** (`serverDb.getPublicProducts()`)
+  sont renvoyés ; une fiche non publiée renvoie 404. Test `test:ingredient-nav`
+  PASS ; vérifié en local puis en production (recherche FR/INCI, produits liés,
+  composition, 404).
+
+**Critère de fin du Chantier 1 atteint** : fiche produit avec INCI/ingrédients
+reliés au graphe + recherche par ingrédient opérationnelle, le tout sur des
+données tracées et sans rien d'inventé.
+
 ## Ce qui reste (prochaines itérations, toujours gratuit)
 1. **Élargir le réservoir** : lancer `ingredients:build --top 300..600`
    (mono-substances supplémentaires, ex. acides aminés, conservateurs, filtres
