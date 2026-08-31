@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
 import { HairDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
+import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
 
 export const DiagnosticHairPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -90,14 +91,17 @@ export const DiagnosticHairPage: React.FC = () => {
                   <button
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, texture: opt.id as any }); handleNext(); }}
-                    className={`p-4 rounded-2xl border text-left transition-all ${
+                    className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                       answers.texture === opt.id
                         ? 'bg-[#C8753D]/20 border-[#C8753D] ring-1 ring-[#C8753D]'
                         : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
                     }`}
                   >
-                    <div className="font-serif-title font-bold text-base text-[#FFF7EF] mb-1">{opt.title}</div>
-                    <div className="text-xs text-[#FFF7EF]/60 font-light">{opt.desc}</div>
+                    <div className="w-24 shrink-0"><DiagnosticVisual step={1} optionId={opt.id} /></div>
+                    <div className="min-w-0">
+                      <div className="font-serif-title font-bold text-base text-[#FFF7EF] mb-1">{opt.title}</div>
+                      <div className="text-xs text-[#FFF7EF]/60 font-light">{opt.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -162,22 +166,39 @@ export const DiagnosticHairPage: React.FC = () => {
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4. Niveau de Porosité</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment tes cheveux réagissent-ils à l'eau ?</h2>
+
+              {/* Aide : test du verre d'eau */}
+              <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-4 flex gap-3">
+                <Info className="w-5 h-5 text-[#D49A63] shrink-0 mt-0.5" />
+                <div className="text-xs text-[#FFF7EF]/75 leading-relaxed">
+                  <strong className="text-[#FFF7EF] block mb-1">Le test du verre d’eau (30 secondes)</strong>
+                  Dépose un cheveu propre et sec dans un verre d’eau claire.
+                  <span className="block mt-1">• Il <strong>coule au fond</strong> → porosité <strong>forte</strong> (écailles ouvertes, boit l’eau puis la perd vite).</span>
+                  <span className="block">• Il <strong>flotte en surface</strong> → porosité <strong>faible</strong> (écailles serrées, l’eau peine à entrer).</span>
+                  <span className="block">• Il <strong>reste au milieu</strong> → porosité <strong>moyenne</strong>, l’idéal équilibré.</span>
+                  <span className="block mt-1 text-[#FFF7EF]/50">Pas le temps ? Choisis « Je ne sais pas », KURLA s’adapte.</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 gap-3 pt-2">
                 {[
-                  { id: 'forte', title: 'Porosité forte : Absorbent l’eau en 1 sec mais séchent ultra vite.', desc: 'Besoin de beurres et huiles riches pour sceller l’humidité.' },
-                  { id: 'faible', title: 'Porosité faible : L’eau glisse dessus, très longs à mouiller.', desc: 'Besoin de soins légers et de chaleur douce.' },
-                  { id: 'moyenne', title: 'Porosité moyenne : Équilibrée.', desc: 'L’eau pénètre normalement.' },
+                  { id: 'forte', title: 'Porosité forte : absorbe l’eau en 1 sec mais sèche ultra vite.', desc: 'Besoin de beurres et huiles riches pour sceller l’humidité.' },
+                  { id: 'faible', title: 'Porosité faible : l’eau glisse dessus, très longs à mouiller.', desc: 'Besoin de soins légers et de chaleur douce.' },
+                  { id: 'moyenne', title: 'Porosité moyenne : équilibrée.', desc: 'L’eau pénètre normalement.' },
                   { id: 'inconnue', title: 'Je ne sais pas.', desc: 'KURLA déterminera les textures idéales.' },
                 ].map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, porosity: opt.id as any }); handleNext(); }}
-                    className={`p-4 rounded-2xl border text-left transition-all ${
+                    className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-4 ${
                       answers.porosity === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
                     }`}
                   >
-                    <div className="font-bold text-sm mb-1">{opt.title}</div>
-                    <div className="text-xs text-[#FFF7EF]/60">{opt.desc}</div>
+                    <div className="w-28 shrink-0"><DiagnosticVisual step={4} optionId={opt.id} /></div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm mb-1">{opt.title}</div>
+                      <div className="text-xs text-[#FFF7EF]/60">{opt.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
