@@ -61,7 +61,27 @@ export const AI_GUARDRAILS = {
 
   matchesStems(value: string, stems: string[]): string[] {
     const normalized = this.normalize(value);
-    return stems.filter(stem => normalized.includes(this.normalize(stem)));
+    const tokens = normalized.split(/[^a-z0-9]+/).filter(Boolean);
+    const tokenSet = new Set(tokens);
+    const hasWordBoundaryMatch = (needle: string): boolean => {
+      if (needle.includes(' ')) {
+        // Expression de plusieurs mots : sous-chaîne autorisée (les mots sont déjà
+        // complets dans l'expression normalisée).
+        return normalized.includes(needle);
+      }
+      if (needle.length <= 4) {
+        // Racine très courte (ex. « pus », « œil ») : MOT ENTIER uniquement, pour
+        // ne pas se déclencher dans « cré**pus** » ou un mot sans rapport.
+        return tokenSet.has(needle);
+      }
+      // Racine longue : mot exact ou mot commençant par la racine
+      // (« allergi » → allergie/allergique ; « respir » → respiration).
+      return tokenSet.has(needle) || tokens.some(tok => tok.startsWith(needle));
+    };
+    return stems.filter(stem => {
+      const n = this.normalize(stem);
+      return n ? hasWordBoundaryMatch(n) : false;
+    });
   },
 
   /**

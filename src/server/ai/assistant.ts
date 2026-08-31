@@ -1,4 +1,5 @@
 import { AI_GUARDRAILS } from '../../lib/ai/guardrails';
+import { matchTopicAnswer } from '../../lib/ai/topicAnswers';
 import { serverDb } from '../../lib/serverDb';
 
 import { AvailableCatalogEntry, SUPPORTED_AI_LOCALES } from './catalog';
@@ -136,19 +137,51 @@ export function fallbackAnswer(query: string, locale: string, cards: any[], cata
     sources: sourceRefs,
     ctas: [{ label: isSpanish ? 'Ver el catálogo' : 'Ver o catálogo', href: '/boutique', type: 'boutique' }, { label: isSpanish ? 'Seguir mi rutina' : 'Acompanhar a minha rotina', href: '/account/routine-tracker', type: 'routine' }]
   };
+  const topic = matchTopicAnswer(query);
+  if (topic) {
+    // Repli « intelligent » : même sans IA générative, on répond VRAIMENT à la
+    // question avec un contenu cosmétique fiable, et on oriente vers les produits
+    // correspondant aux besoins du thème (filtrés du catalogue réel).
+    const topicSlugs = catalog
+      .filter(entry => (topic.productNeeds || []).some(need => entry.needs?.includes(need)))
+      .filter(entry => maxPrice === undefined || entry.price <= maxPrice)
+      .slice(0, 3)
+      .map(entry => entry.slug);
+    const topicRecommendations = recommendationsForSlugs(topicSlugs, catalog, fits, locale);
+    return {
+      shortAnswer: topic.shortAnswer,
+      simpleExplanation: topic.explanation,
+      routineSteps: topic.steps,
+      immediateActions: ['Fais le diagnostic pour une routine adaptée à TON cheveu.', 'Introduis un changement à la fois et observe la tolérance.'],
+      usefulProducts: topicRecommendations.length > 0 ? topicRecommendations : productRecommendations,
+      avoidCombinations: ['Éviter d’empiler plusieurs produits nouveaux en même temps.'],
+      usefulTools: topic.tool ? [{ name: topic.tool.name, description: topic.tool.description }] : [],
+      errorsToAvoid: ['Ne pas choisir un produit uniquement parce qu’il est présenté pour une texture.', 'Ne pas appliquer de cosmétique sur une peau lésée.'],
+      whenToConsultPro: 'En cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante, demande un avis médical.',
+      uncertainty: profile
+        ? 'La personnalisation reste limitée aux champs renseignés dans ton profil KURLA ID ; fais le diagnostic pour affiner.'
+        : 'Conseil cosmétique général. Connecte-toi et fais le diagnostic pour une réponse personnalisée.',
+      sources: sourceRefs,
+      ctas: [
+        { label: 'Faire le diagnostic cheveux', href: '/diagnostic/cheveux', type: 'diagnostic' },
+        { label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }
+      ]
+    };
+  }
+
   return {
-    shortAnswer: `Pour « ${query} », commence par une routine douce et régulière, sans multiplier les produits.`,
-    simpleExplanation: 'Le profil, l’environnement et l’objectif servent à définir les priorités. Il s’agit d’un conseil cosmétique, pas d’un diagnostic.',
-    routineSteps: ['Clarifier la priorité et travailler par sections si besoin.', 'Introduire un seul changement à la fois et observer la tolérance.', 'Adapter la fréquence au confort, au climat et aux résultats observés.'],
-    immediateActions: ['Garder la prochaine étape simple et douce.', 'Arrêter un produit qui provoque une réaction persistante.', 'Demander un avis professionnel si les signes sont intenses, soudains ou persistants.'],
+    shortAnswer: `Pour « ${query} », le plus efficace est de commencer par une routine simple et régulière adaptée à ton type de cheveu, puis d’ajuster un produit à la fois.`,
+    simpleExplanation: 'Je peux te guider précisément sur l’hydratation, la définition des boucles, la casse, la porosité, le cuir chevelu ou les coiffures protectrices. Faire le diagnostic me permet de répondre de façon personnalisée.',
+    routineSteps: ['Clarifie ta priorité (hydratation, définition, casse, pousse, cuir chevelu).', 'Fais le diagnostic pour identifier ta texture et ta porosité.', 'Introduis un seul changement à la fois et observe la tolérance.'],
+    immediateActions: ['Pose une question précise (ex. « comment hydrater des 4C très secs ? »).', 'Ou lance le diagnostic pour une routine sur mesure.', 'Arrête un produit qui provoque une réaction persistante.'],
     usefulProducts: productRecommendations,
     avoidCombinations: ['Éviter d’empiler plusieurs actifs nouveaux ou potentiellement irritants en même temps.'],
-    usefulTools: [],
+    usefulTools: [{ name: 'Diagnostic cheveux', description: '5 questions guidées avec visuels pour obtenir ta routine.' }],
     errorsToAvoid: ['Ne pas choisir un produit uniquement parce qu’il est présenté pour une texture ou une carnation.', 'Ne pas appliquer de cosmétique sur une peau lésée.'],
     whenToConsultPro: 'Demander un avis médical en cas de douleur, lésion, saignement, pus, chute soudaine ou réaction persistante.',
     uncertainty: profile ? 'La personnalisation reste limitée aux champs actuellement renseignés dans votre profil KURLA ID.' : 'Aucun profil KURLA ID n’a été partagé : il s’agit donc de conseils cosmétiques généraux.',
     sources: sourceRefs,
-    ctas: [{ label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }, { label: 'Suivre ma routine', href: '/account/routine-tracker', type: 'routine' }]
+    ctas: [{ label: 'Faire le diagnostic', href: '/diagnostic/cheveux', type: 'diagnostic' }, { label: 'Explorer le catalogue', href: '/boutique', type: 'boutique' }]
   };
 }
 

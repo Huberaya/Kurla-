@@ -23,7 +23,7 @@ import {
 } from '../ai/assistant';
 import { jurisdictionForCountry } from '../../lib/jurisdiction';
 import { loadJurisdictionGraph, resolveDeclaredIngredients, type JurisdictionGraph } from '../compliance';
-import { getGeminiClient } from '../ai/client';
+import { getGeminiClient, GEMINI_MODEL } from '../ai/client';
 import type { AuthenticatedRequest, AuthenticatedUser } from '../types';
 import type { Response } from 'express';
 
@@ -333,7 +333,7 @@ export function registerRecommendationRoutes(app: Express): void {
     if (aiClient) {
       try {
         const response = await aiClient.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: GEMINI_MODEL,
           contents: JSON.stringify({ diagnosticType, answers: answersForAi, locale, country }),
           config: {
             systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.`,

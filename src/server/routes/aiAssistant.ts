@@ -9,7 +9,7 @@ import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, rateLimit } from '../http';
 import { authenticateRequest, bearerToken, requireUser } from '../auth';
-import { getGeminiClient } from '../ai/client';
+import { getGeminiClient, GEMINI_MODEL } from '../ai/client';
 import { getAvailableCatalog, selectOperationalKnowledgeCards } from '../ai/catalog';
 import {
   normalizeAiCountry,
@@ -95,7 +95,7 @@ export function registerAiAssistantRoutes(app: Express): void {
         const catalogContext = catalogForPrompt(recommendationCatalog, fits);
         const systemInstruction = `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\n\nLANGUE DE SORTIE : ${locale}. Réponds dans cette langue avec des phrases simples.\nPAYS : ${country}. OBJECTIF : ${objective || 'à préciser'}. BUDGET MAXIMUM INDICATIF : ${budgetLimit(profile) === undefined ? 'non renseigné' : `${budgetLimit(profile)} EUR par article`}.\n\nPROFIL KURLA ID (données déclarées, possiblement incomplètes) :\n${JSON.stringify(profile || { unavailable: true })}\n\nBASE DE CONNAISSANCES KURLA SÉLECTIONNÉE :\n${formatKnowledgeContext(cards)}\n\nCATALOGUE VÉRIFIÉ :\n${JSON.stringify(catalogContext)}\n\nContraintes absolues : n’utilise aucune connaissance comme preuve clinique si son statut n’est pas validé ; ne pose aucun diagnostic ; usefulProducts doit contenir uniquement des objets dont productSlug est un slug EXACT du catalogue ; n’invente ni produit, ni lien, ni disponibilité. Explique chaque recommandation avec evidence reliée au profil ou indique que la personnalisation est limitée. N’utilise pas de score dans la réponse.`;
         const response = await aiClient.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: GEMINI_MODEL,
           contents: JSON.stringify({ query, objective, locale, country }),
           config: {
             systemInstruction,
@@ -121,10 +121,12 @@ export function registerAiAssistantRoutes(app: Express): void {
         answer = sanitizeStructuredAnswer(JSON.parse(response.text || '{}'), query, locale, cards, recommendationCatalog, fits, needs, profile);
         modelUsed = true;
       } catch (error) {
-        console.error('[AI Assistant] constrained model failed, using deterministic safe answer:', error);
+        console.error('[AI Assistant] constrained model failed, using deterministic safe answer:', (error as Error)?.message || error);
       }
     }
     if (!answer) answer = fallbackAnswer(query, locale, cards, recommendationCatalog, fits, needs, profile);
+    // Le repli thématique peut quand même répondre précisément : on l'indique.
+    const usedTopicFallback = !modelUsed && Boolean(answer?.shortAnswer && !/commence par une routine douce/i.test(answer.shortAnswer));
 
     const persistence = await persistAiExchange(user, session, query, JSON.stringify(answer), { kind: 'structured_answer', modelUsed, profileConfidence: profileRecord?.confidence || null, country, locale, objective }, cards.map(card => card.id), answer.uncertainty);
     // Article 50(1) du règlement (UE) 2024/1689 : la nature artificielle de
@@ -140,6 +142,9 @@ export function registerAiAssistantRoutes(app: Express): void {
       aiResponseMarker: AI_TRANSPARENCY.responseMarker,
       profileAvailable: !!profile,
       profileConfidence: profileRecord?.confidence,
+      answerSource: modelUsed ? 'gemini' : (usedTopicFallback ? 'knowledge_base' : 'generic_fallback'),
+      modelConfigured: Boolean(aiClient),
+      modelUsed,
       ...persistence
     });
   }));

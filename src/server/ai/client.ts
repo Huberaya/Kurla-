@@ -18,3 +18,12 @@ export function getGeminiClient(): GoogleGenAI | null {
     },
   });
 }
+
+/**
+ * Modèle Gemini à utiliser. Configurable via GEMINI_MODEL. Le défaut est un nom
+ * de modèle RÉEL et disponible (gemini-2.5-flash) : l'ancienne valeur
+ * « gemini-3.6-flash » n'existait pas et faisait échouer 100 % des appels, ce
+ * qui renvoyait silencieusement la réponse de repli générique (d'où une
+ * assistante qui « ne répondait pas »).
+ */
+export const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
