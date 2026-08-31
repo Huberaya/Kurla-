@@ -74,6 +74,7 @@ import { registerPrivacyRoutes } from './src/server/routes/privacy';
 import { registerEditorialComplianceRoutes } from './src/server/routes/editorialCompliance';
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
 import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
+import { registerStrategyRoutes } from './src/server/routes/strategy';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
 import {
@@ -1159,6 +1160,7 @@ registerPrivacyRoutes(app);
 registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
 registerIngredientNavRoutes(app);
+registerStrategyRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);
 

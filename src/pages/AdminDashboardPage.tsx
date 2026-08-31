@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -7,6 +7,7 @@ import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
+import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, profile, session, signOut } = useAuth();
@@ -14,7 +15,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
@@ -315,6 +316,7 @@ export const AdminDashboardPage: React.FC = () => {
               id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard,
               tabs: [
                 { id: 'analytics', label: 'Tableau de bord commercial', icon: TrendingUp },
+                { id: 'strategy', label: 'Stratégie & modèle éco', icon: Target },
               ],
             },
             {
@@ -820,6 +822,10 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 1B: PILOTAGE CATALOGUE ET APPROVISIONNEMENT — chantier 15B */}
+        {activeTab === 'strategy' && (
+          <StrategyCockpitPanel headers={adminHeaders} />
+        )}
+
         {activeTab === 'cockpit' && (
           <OperationsCockpitPanel
             headers={adminHeaders}
