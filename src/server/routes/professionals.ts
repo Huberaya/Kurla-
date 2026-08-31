@@ -438,11 +438,41 @@ export function registerProfessionalRoutes(app: Express): void {
       reviewedBy: row.reviewed_by || undefined
     }));
 
+    // CHANTIER 1 — boucle publique : les produits publiés qui contiennent cet
+    // ingrédient, pour naviguer fiche ingrédient → produits. On ne lit que des
+    // produits publiés (serverDb.getPublicProducts applique la gouvernance).
+    let containingProducts: any[] = [];
+    {
+      const { data: containingLinks, error: linkErr } = await supabase
+        .from('product_ingredients')
+        .select('product_id')
+        .eq('ingredient_id', ingredientId);
+      if (!linkErr && containingLinks && containingLinks.length) {
+        const publicProducts = await serverDb.getPublicProducts();
+        const publicById = new Map(publicProducts.map((p: any) => [String(p.id), p]));
+        const seen = new Set<string>();
+        containingProducts = containingLinks
+          .map((l: any) => publicById.get(String(l.product_id)))
+          .filter((p: any) => p && !seen.has(p.id) && seen.add(p.id))
+          .map((p: any) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            brand: p.brand ?? null,
+            price: p.price ?? null,
+            category: p.category ?? null,
+            subcategory: p.subcategory ?? p.subCategoryTag ?? null,
+            image: p.imageUrl ?? p.image_url ?? p.image ?? null,
+          }));
+      }
+    }
+
     res.json({
       ingredient,
       evidence,
       restrictions: restrictions || [],
       provenance,
+      products: containingProducts,
       verificationStatus: ingredient.verification_status ?? 'not_provided',
       bestEvidence: bestEvidenceFor(evidence),
       note: 'Le niveau de preuve indique la solidité des données publiées, pas une garantie d’effet sur votre peau ou vos cheveux.'

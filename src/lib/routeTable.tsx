@@ -57,6 +57,7 @@ import { ProtectiveTimelinePage } from '../pages/ProtectiveTimelinePage';
 import { SmartSearchPage } from '../pages/SmartSearchPage';
 import { RoutineBuilderPage } from '../pages/RoutineBuilderPage';
 import { IngredientCardPage } from '../pages/IngredientCardPage';
+import { IngredientSearchPage } from '../pages/IngredientSearchPage';
 import { ProfessionalDirectoryPage } from '../pages/ProfessionalDirectoryPage';
 import { CostSimulatorPage } from '../pages/CostSimulatorPage';
 import { MyAppointmentsPage } from '../pages/MyAppointmentsPage';
@@ -131,6 +132,11 @@ export const ROUTES: RouteEntry[] = [
   {
     path: '/produit/:slug',
     render: ({ params, onAddToCart }) => <ProductDetailPage slug={params.slug} onAddToCart={onAddToCart} />,
+  },
+  // Recherche d'ingrédients (publique et indexable).
+  {
+    path: '/ingredients',
+    render: () => <IngredientSearchPage />,
   },
   // Publique et indexable : un moteur de recherche doit pouvoir l'atteindre.
   {

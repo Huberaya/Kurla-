@@ -73,6 +73,7 @@ import { registerMobileRoutes } from './src/server/routes/mobile';
 import { registerPrivacyRoutes } from './src/server/routes/privacy';
 import { registerEditorialComplianceRoutes } from './src/server/routes/editorialCompliance';
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
+import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
 import {
@@ -1157,6 +1158,7 @@ registerMobileRoutes(app);
 registerPrivacyRoutes(app);
 registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
+registerIngredientNavRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);
 

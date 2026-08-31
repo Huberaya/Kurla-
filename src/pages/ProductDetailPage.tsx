@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, Check, CheckCircle2, Clock, Globe2,
   Image as ImageIcon, Info, Loader2, Mail, PackageCheck, RefreshCw,
-  Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle
+  Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle, AlertTriangle
 } from 'lucide-react';
 import { Product, ProductQuestion, ProductReview, ProductVariant } from '../types';
 import { getEnrichedProductGallery } from '../services/productImageService';
+import { fetchProductIngredients, type ProductIngredientEntry } from '../services/ingredientNavService';
 import { useProduct } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -107,6 +108,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
    * le checkout le refuserait de toute façon.
    */
   const [sellableInCountry, setSellableInCountry] = useState(true);
+  /** Composition reliée au graphe d'ingrédients (Chantier 1 — boucle publique). */
+  const [linkedIngredients, setLinkedIngredients] = useState<ProductIngredientEntry[]>([]);
 
   const variants = useMemo(() => product?.variants?.map(value => normalizedVariant(value, product.id, product.price)) || [], [product]);
   const selectedVariant = variants.find(variant => variant.id === selectedVariantId);
@@ -129,6 +132,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
       .then(setTrust)
       .catch(() => setTrust({ reviews: [], questions: [], verifiedReviewCount: 0, questionsCount: 0 }))
       .finally(() => setTrustLoading(false));
+
+    // Composition reliée au graphe : fiches ingrédient cliquables. Échoue
+    // silencieusement (la liste INCI déclarée reste affichée dans tous les cas).
+    setLinkedIngredients([]);
+    fetchProductIngredients(product.slug || product.id)
+      .then(data => setLinkedIngredients(data.composition || []))
+      .catch(() => setLinkedIngredients([]));
   }, [product?.id]);
 
   const clearAction = () => { setActionMessage(null); setActionError(null); };
@@ -227,7 +237,30 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-12">
-          <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<ShieldCheck className="w-5 h-5" />} title="Composition complète" /><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-2">INCI</h3><p className="text-sm leading-relaxed text-[#FFF7EF]/80 break-words">{valueOrMissing(product.inci)}</p><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mt-6 mb-2">Rôle des ingrédients principaux</h3>{product.ingredientRoles?.length ? <ul className="space-y-2">{product.ingredientRoles.map((item, index) => <li key={`${item.name}-${index}`} className="text-xs text-[#FFF7EF]/75"><strong className="text-[#FFF7EF]">{item.name}</strong> · {item.role}</li>)}</ul> : <p className="text-xs text-[#FFF7EF]/60">{missing}</p>}<div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><div><strong className="text-[#FFF7EF]">Allergènes déclarés</strong><p className="text-[#FFF7EF]/65 mt-1">{product.allergens?.length ? product.allergens.join(', ') : missing}</p></div><div><strong className="text-[#FFF7EF]">Parfum</strong><p className="text-[#FFF7EF]/65 mt-1">{product.containsFragrance === undefined ? missing : product.containsFragrance ? 'Présent' : 'Non ajouté'}</p></div></div></section>
+          <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<ShieldCheck className="w-5 h-5" />} title="Composition complète" />{linkedIngredients.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Ingrédients reliés au référentiel</h3>
+              <div className="flex flex-wrap gap-2">
+                {linkedIngredients.map((entry, idx) => {
+                  if (!entry.resolved || !entry.inciName) return null;
+                  return (
+                    <a
+                      key={`${entry.ingredientId}-${idx}`}
+                      href={`/ingredient/${entry.ingredientId}`}
+                      title={entry.functions.length ? entry.functions.join(', ') : undefined}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-colors hover:border-[#C8753D]/60 ${entry.isKeyIngredient ? 'bg-[#C8753D]/15 border-[#C8753D]/40 text-[#FFF7EF]' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/85'}`}
+                    >
+                      {entry.isKeyIngredient && <Star className="w-3 h-3 text-[#D49A63]" />}
+                      {entry.inciName}
+                      {entry.isAllergenRegulated && <AlertTriangle className="w-3 h-3 text-amber-400" aria-label="Allergène à déclarer" />}
+                      {entry.isFragrance && <span className="text-[#FFF7EF]/40">· parfum</span>}
+                    </a>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-[#FFF7EF]/50 mt-2">Touchez un ingrédient pour voir sa fiche (fonctions CosIng, restrictions UE, allergènes). L’étoile marque un ingrédient clé.</p>
+            </div>
+          )}<h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-2">INCI</h3><p className="text-sm leading-relaxed text-[#FFF7EF]/80 break-words">{valueOrMissing(product.inci)}</p><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mt-6 mb-2">Rôle des ingrédients principaux</h3>{product.ingredientRoles?.length ? <ul className="space-y-2">{product.ingredientRoles.map((item, index) => <li key={`${item.name}-${index}`} className="text-xs text-[#FFF7EF]/75"><strong className="text-[#FFF7EF]">{item.name}</strong> · {item.role}</li>)}</ul> : <p className="text-xs text-[#FFF7EF]/60">{missing}</p>}<div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><div><strong className="text-[#FFF7EF]">Allergènes déclarés</strong><p className="text-[#FFF7EF]/65 mt-1">{product.allergens?.length ? product.allergens.join(', ') : missing}</p></div><div><strong className="text-[#FFF7EF]">Parfum</strong><p className="text-[#FFF7EF]/65 mt-1">{product.containsFragrance === undefined ? missing : product.containsFragrance ? 'Présent' : 'Non ajouté'}</p></div></div></section>
 
           <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<Globe2 className="w-5 h-5" />} title="Origine, certifications & livraison" /><div className="space-y-4 text-sm"><div><span className="text-xs text-[#FFF7EF]/50 block">Pays d’origine</span><span>{valueOrMissing(product.originCountry)}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block mb-2">Certifications vérifiables</span>{certifications.length ? <div className="space-y-2">{certifications.map((cert, index) => <div key={`${cert.name}-${index}`} className="rounded-xl border border-[#FFF7EF]/10 p-3"><div className="flex justify-between gap-2"><span>{cert.name}</span><span className={`text-[10px] ${cert.status === 'verified' ? 'text-emerald-300' : 'text-amber-300'}`}>{cert.status === 'verified' ? 'Vérifiée' : 'À vérifier'}</span></div>{cert.verificationUrl && cert.status === 'verified' ? <a className="text-xs text-[#D49A63] hover:underline" href={cert.verificationUrl} target="_blank" rel="noreferrer">Voir la preuve</a> : <p className="text-[10px] text-[#FFF7EF]/50 mt-1">Preuve publique non renseignée</p>}</div>)}</div> : <p className="text-xs text-[#FFF7EF]/60">{missing}</p>}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><span className="text-xs text-[#FFF7EF]/50 block">Pays livrés</span><span>{availableCountries.length ? availableCountries.join(', ') : missing}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block">Délai indicatif</span><span>{valueOrMissing(shipping.deliveryEstimate)}</span></div></div><div><span className="text-xs text-[#FFF7EF]/50 block">Frais</span><span>{shipping.deliveryFee === undefined ? missing : `${shipping.deliveryFee.toFixed(2)} €`}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block">Retours</span><span>{valueOrMissing(shipping.returnsPolicy || product.returnsPolicy)}</span></div></div></section>
         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, BookOpen, CheckCircle2, ExternalLink, Loader2, ShieldAlert } from 'lucide-react';
+import { AlertCircle, BookOpen, CheckCircle2, ExternalLink, Loader2, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { fetchIngredientCard } from '../services/intelligenceService';
 
 const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
@@ -243,6 +243,38 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
               produit incombe à son fabricant.
             </p>
           </div>
+        )}
+
+        {/* Produits publiés qui contiennent cet ingrédient (boucle graphe → catalogue) */}
+        {Array.isArray((card as any).products) && (card as any).products.length > 0 && (
+          <section className={cardClass}>
+            <h2 className="text-xs font-semibold text-[#999999] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4" /> Produits qui le contiennent
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {(card as any).products.map((p: any) => (
+                <a
+                  key={p.id}
+                  href={`/produit/${p.slug}`}
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]/50 transition-colors"
+                >
+                  {p.image ? (
+                    <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-[#F5F1EB] shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#111111] truncate">{p.name}</p>
+                    {p.brand && <p className="text-[11px] text-[#999999] truncate">{p.brand}</p>}
+                    {p.price != null && <p className="text-[11px] text-[#C8753D] font-semibold mt-0.5">{Number(p.price).toFixed(2)} €</p>}
+                  </div>
+                </a>
+              ))}
+            </div>
+            <p className="text-xs text-[#999999] leading-relaxed mt-3">
+              Seuls les produits publiés et dont la composition est vérifiée sont listés.
+            </p>
+          </section>
         )}
 
         <p className="text-xs text-[#999999] leading-relaxed px-1">
