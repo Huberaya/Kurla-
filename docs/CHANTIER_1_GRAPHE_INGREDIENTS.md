@@ -60,8 +60,12 @@ disponible hors tableau de bord/Vercel) :
   IV colorants / V conservateurs / VI filtres UV du Règlement (CE) n°1223/2009)
   et **allergènes** de l'annexe III modifiée par le Règlement (UE) 2023/1545.
 - `scripts/buildRegulatoryMigration.ts` → `npm run ingredients:regulatory`
-  génère `supabase/migrations/20260880000000_ingredient_regulatory.sql`
-  (idempotent : `UPDATE ingredients`, `ON CONFLICT` restrictions/provenance).
+  génère `supabase/migrations/20260883000000_ingredient_regulatory.sql`
+  (idempotent : `UPDATE ingredients` **en comblement de trou** `cardinality(functions)=0`
+  pour ne jamais écraser le lot 20260881, `ON CONFLICT` restrictions/provenance).
+  Ce lot **complète le lot 2** (20260881 cosingFunctions, 20260882 incompatibilités,
+  déjà en prod) : il couvre les ingrédients du **lot étendu** (231 en base) que
+  le lot 2 — rédigé au périmètre des 118 initiaux — ne remplissait pas.
 - Couverture : **125 ingrédients** avec fonctions CosIng (116 des 118 qui en
   manquaient — les 2 résidus `Leaf`/`no1` sont des artefacts OBF sans INCI,
   laissés non étiquetés), **45 restrictions UE**, allergènes tracés. **0 id
@@ -76,7 +80,8 @@ disponible hors tableau de bord/Vercel) :
 
 > **Pour l'appliquer en production** : ouvrir la base `qzwgsarfdegqtfdnqiql`
 > dans Supabase → SQL Editor → coller/exécuter le fichier
-> `20260880000000_ingredient_regulatory.sql`. Il est idempotent.
+> `20260883000000_ingredient_regulatory.sql`. Il est idempotent et tourne
+> **après** les lots 20260881/20260882 déjà appliqués.
 
 ## Ce qui reste (prochaines itérations, toujours gratuit)
 1. **Élargir le réservoir** : lancer `ingredients:build --top 300..600`
