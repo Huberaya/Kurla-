@@ -90,6 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const subModules = [
+    { label: t('nav.ingredients'), path: '/ingredients' },
     { label: t('nav.kids'), path: '/kids' },
     { label: t('nav.protectiveStyles'), path: '/protective-styles' },
     { label: t('nav.melaninSkin'), path: '/melanin-skin' },
