@@ -26,6 +26,98 @@ import type {
  * (`reserveLocalStockUnlocked`) restent dans le noyau : ils protègent l'état
  * partagé du singleton.
  */
+/**
+ * Commande de PRÉCOMMANDE : contrairement à `saveOrder`, on ne réserve AUCUN
+ * stock (le premier lot n'est pas encore réceptionné). On crée néanmoins la
+ * commande, ses lignes, son entrée de paiement et son historique dans le même
+ * ordre que la RPC atomique, pour que le webhook Stripe puisse ensuite la
+ * confirmer (`paid`) comme n'importe quelle commande. Idempotent : une relance
+ * de checkout avec le même idempotency key / id renvoie la commande existante.
+ */
+export async function savePreorderOrder(store: SupabaseServerStore, order: ServerOrder): Promise<ServerOrder> {
+    const supabase = getSupabaseServerClient();
+
+    // Mémoire (mode hors-ligne) : pas de réserve de stock, on stocke tel quel.
+    if (!supabase) {
+        const idx = store.inMemoryOrders.findIndex(o => o.id === order.id);
+        if (idx >= 0) return store.inMemoryOrders[idx];
+        store.inMemoryOrders.unshift(order);
+        return order;
+    }
+
+    // Idempotence : ne pas recréer la commande si elle existe déjà.
+    const { data: existing, error: findError } = await supabase.from('orders').select('*').eq('id', order.id).maybeSingle();
+    ensureDatabaseSuccess('vérification commande précommande', findError);
+    if (existing) {
+      const persisted: ServerOrder = { ...order, status: existing.status, stripeSessionId: existing.stripe_session_id ?? order.stripeSessionId, stripePaymentIntentId: existing.stripe_payment_intent_id ?? order.stripePaymentIntentId };
+      return persisted;
+    }
+
+    const now = order.createdAt || new Date().toISOString();
+    const orderPayload: Record<string, unknown> = {
+        id: order.id,
+        user_id: order.userId || null,
+        customer_email: order.customerEmail,
+        items: order.items,
+        total: order.total,
+        status: order.status,
+        stripe_session_id: order.stripeSessionId || null,
+        stripe_payment_intent_id: order.stripePaymentIntentId || null,
+        checkout_idempotency_key: order.checkoutIdempotencyKey || null,
+        shipping_address: order.shippingAddress || null,
+        currency: order.currency || 'EUR',
+        vat_country: order.vatCountry || null,
+        net_amount: order.netAmount ?? null,
+        vat_amount: order.vatAmount ?? null,
+        vat_breakdown: (order.vatBreakdown as any) ?? null,
+        customer_vat_number: order.customerVatNumber || null,
+        created_at: now,
+        updated_at: now
+    };
+    const { data: orderRow, error: orderError } = await supabase.from('orders').insert(orderPayload).select('*').single();
+    ensureDatabaseSuccess('création de la commande précommande', orderError);
+
+    const lines = (Array.isArray(order.items) ? order.items : []).map((item: any) => ({
+        order_id: order.id,
+        product_id: item.productId || item.product_id,
+        variant_id: item.variantId || item.variant_id || null,
+        quantity: Number(item.quantity),
+        unit_price: Number(item.price ?? (item.unitCents ? item.unitCents / 100 : 0))
+    })).filter((l: any) => l.product_id && l.quantity > 0);
+    if (lines.length > 0) {
+        const { error: linesError } = await supabase.from('order_items').insert(lines);
+        ensureDatabaseSuccess('création des lignes précommande', linesError);
+    }
+
+    const { error: payError } = await supabase.from('payments').insert({
+        order_id: order.id,
+        amount: order.total,
+        currency: order.currency || 'EUR',
+        status: order.status,
+        stripe_payment_intent_id: order.stripePaymentIntentId || null
+    });
+    ensureDatabaseSuccess('création du ledger de paiement précommande', payError);
+
+    const { error: histError } = await supabase.from('order_status_history').insert({
+        order_id: order.id,
+        old_status: null,
+        new_status: order.status,
+        changed_by_role: 'system',
+        reason: 'Précommande créée (aucune réservation de stock : lot non réceptionné)',
+        source: 'checkout'
+    });
+    if (histError) console.error('[preorder] historique:', histError.message);
+
+    const persisted: ServerOrder = {
+        ...order,
+        status: orderRow?.status ?? order.status,
+        stripeSessionId: orderRow?.stripe_session_id ?? order.stripeSessionId,
+        stripePaymentIntentId: orderRow?.stripe_payment_intent_id ?? order.stripePaymentIntentId
+    };
+    store.inMemoryOrders.unshift(persisted);
+    return persisted;
+}
+
 export async function saveOrder(store: SupabaseServerStore, order: ServerOrder): Promise<ServerOrder> {
     const existingIdx = store.inMemoryOrders.findIndex(o => o.id === order.id);
     const supabase = getSupabaseServerClient();
@@ -461,6 +553,57 @@ async function updateOrderStatusInner(store: SupabaseServerStore, orderId: strin
     if (!order) return undefined;
 
     const supabase = getSupabaseServerClient();
+
+    // PRÉCOMMANDE : aucune réservation de stock n'a été faite (lot non
+    // réceptionné). On fait donc une transition de statut SANS toucher au
+    // stock : la RPC `transition_order_stock` lèverait « Reserved stock is
+    // inconsistent ». On met à jour la commande, le ledger et l'historique.
+    const isPreorderOrder = Array.isArray(order.items) && order.items.length > 0
+      && order.items.every((it: any) => it.isPreorder === true);
+    const isPaymentTransition = newStatus === 'paid' || newStatus === 'payment_failed' || newStatus === 'cancelled';
+    if (supabase && isPreorderOrder && isPaymentTransition) {
+      const now = new Date().toISOString();
+      const { data: row, error: updError } = await supabase
+        .from('orders')
+        .update({
+          status: newStatus,
+          stripe_payment_intent_id: extra?.stripePaymentIntentId || order.stripePaymentIntentId || null,
+          updated_at: now
+        })
+        .eq('id', order.id)
+        .select('*')
+        .single();
+      ensureDatabaseSuccess('transition précommande (statut)', updError);
+
+      if (newStatus === 'paid') {
+        const { error: payErr } = await supabase
+          .from('payments')
+          .update({ status: 'paid', stripe_payment_intent_id: extra?.stripePaymentIntentId || null, updated_at: now })
+          .eq('order_id', order.id);
+        if (payErr) console.error('[preorder] ledger paiement:', payErr.message);
+      }
+      const { error: histErr } = await supabase.from('order_status_history').insert({
+        order_id: order.id,
+        old_status: order.status,
+        new_status: newStatus,
+        changed_by_role: extra?.changedByRole || 'system',
+        reason: extra?.reason || `Précommande : transition vers ${newStatus} (sans mouvement de stock)`,
+        source: 'stripe_webhook'
+      });
+      if (histErr) console.error('[preorder] historique:', histErr.message);
+
+      const updated: ServerOrder = {
+        ...order,
+        status: (row?.status || newStatus) as ServerOrder['status'],
+        stripePaymentIntentId: row?.stripe_payment_intent_id ?? order.stripePaymentIntentId,
+        updatedAt: row?.updated_at ?? now
+      };
+      const index = store.inMemoryOrders.findIndex(existing => existing.id === updated.id);
+      if (index >= 0) store.inMemoryOrders[index] = updated;
+      else store.inMemoryOrders.unshift(updated);
+      return updated;
+    }
+
     if (supabase) {
       // PostgreSQL locks the order first, then mutates the corresponding
       // inventory rows, payment ledger and history in one transaction. This

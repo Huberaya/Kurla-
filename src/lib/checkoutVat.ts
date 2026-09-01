@@ -64,6 +64,7 @@ export interface CheckoutPricingResult {
     name: string;
     image?: string;
     slug?: string;
+    isPreorder?: boolean;
   }>;
   itemsGrossCents: number;
   shippingCents: number;
@@ -162,6 +163,7 @@ export function priceCheckoutWithVat(input: {
       name: item.name,
       image: item.image,
       slug: item.slug,
+      isPreorder: (item as any).isPreorder === true,
     };
   });
 

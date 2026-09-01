@@ -771,7 +771,14 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Persist and reserve stock before creating an external Stripe session.
     // A failed Stripe call can then release the reservation through the order
     // state machine instead of leaving an untracked checkout.
-    const persistedOrder = await serverDb.saveOrder(newOrder);
+    // PRÉCOMMANDE : si tous les articles sont des précommandes, on crée la
+    // commande SANS réserver de stock (le lot n'est pas encore réceptionné).
+    // Sinon, flux normal avec réservation atomique du stock disponible.
+    const allPreorder = verifiedItems.length > 0 && pricedItems.every((i: any) => i.isPreorder === true)
+      && verifiedItems.every((i: any) => i.isPreorder === true);
+    const persistedOrder = allPreorder
+      ? await serverDb.savePreorderOrder(newOrder)
+      : await serverDb.saveOrder(newOrder);
     persistedOrderId = orderId;
     await serverDb.notifyPaymentPending(persistedOrder);
 
