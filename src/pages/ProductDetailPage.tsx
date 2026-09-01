@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, Check, CheckCircle2, Clock, Globe2,
   Image as ImageIcon, Info, Loader2, Mail, PackageCheck, RefreshCw,
-  Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle, AlertTriangle
+  Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle, AlertTriangle,
+  Truck, CreditCard, RotateCcw, BadgeCheck, Lock
 } from 'lucide-react';
 import { Product, ProductQuestion, ProductReview, ProductVariant } from '../types';
 import { getEnrichedProductGallery } from '../services/productImageService';
@@ -215,6 +216,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
             <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span></div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? 'Ajouter au panier' : 'Indisponible'}</button></div>
 
+            {/* Bande de garanties — lève les freins à la précommande. Honnête :
+                ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
+            <TrustGuarantees isPreorder={product.isPreorder === true} />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoCard title="Bénéfice & cible" icon={<CheckCircle2 className="w-4 h-4 text-emerald-300" />}><p>{valueOrMissing(product.benefitPrimary)}</p><p className="mt-2">{targetTypes.length ? targetTypes.join(' · ') : valueOrMissing(product.forWho)}</p></InfoCard>
               <InfoCard title="Pas idéal si…" icon={<AlertCircle className="w-4 h-4 text-amber-300" />}><p>{valueOrMissing(product.notIdealIf)}</p></InfoCard>
@@ -293,4 +298,38 @@ function InfoCard({ title, icon, children }: { title: string; icon: React.ReactN
 
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   return <h2 className="text-xl font-serif-title font-bold flex items-center gap-2 mb-4">{icon}<span>{title}</span></h2>;
+}
+
+/**
+ * Bande de garanties affichée sous le bouton d'achat. Chaque point correspond à
+ * un engagement réel (CGV / processus) : rien de décoratif. En précommande, le
+ * premier argument devient l'annulation/remboursement avant expédition.
+ */
+function TrustGuarantees({ isPreorder }: { isPreorder: boolean }) {
+  const items: { icon: React.ReactNode; title: string; body: string }[] = isPreorder
+    ? [
+        { icon: <RotateCcw className="w-4 h-4" />, title: 'Précommande sans risque', body: 'Annulable et remboursable à tout moment avant expédition.' },
+        { icon: <BadgeCheck className="w-4 h-4" />, title: '14 jours pour changer d’avis', body: 'Rétractation après réception, conformément aux CGV.' },
+        { icon: <Lock className="w-4 h-4" />, title: 'Paiement sécurisé', body: 'Encaissement via Stripe. Aucune carte n’est stockée par KURLA.' },
+        { icon: <Truck className="w-4 h-4" />, title: 'Expédition dès réception du lot', body: 'Suivi communiqué par email. Livraison en France et UE.' },
+      ]
+    : [
+        { icon: <RotateCcw className="w-4 h-4" />, title: '14 jours pour changer d’avis', body: 'Rétractation et retour selon les CGV.' },
+        { icon: <BadgeCheck className="w-4 h-4" />, title: 'Avis 100 % vérifiés', body: 'Seuls les acheteurs peuvent déposer un avis, modéré avant publication.' },
+        { icon: <Lock className="w-4 h-4" />, title: 'Paiement sécurisé', body: 'Encaissement via Stripe. Aucune carte n’est stockée par KURLA.' },
+        { icon: <CreditCard className="w-4 h-4" />, title: 'Livraison suivie UE', body: 'France et plusieurs pays européens, frais calculés avant paiement.' },
+      ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {items.map((item) => (
+        <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-3.5">
+          <span className="mt-0.5 text-emerald-300 shrink-0">{item.icon}</span>
+          <div>
+            <p className="text-xs font-semibold text-[#FFF7EF]">{item.title}</p>
+            <p className="text-[11px] text-[#FFF7EF]/55 leading-snug mt-0.5">{item.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
