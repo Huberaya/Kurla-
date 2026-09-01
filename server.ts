@@ -5,6 +5,7 @@ import path from 'path';
 import { Type } from '@google/genai';
 import Stripe from 'stripe';
 import { professionalStore } from './src/lib/professionalStore';
+import { LAUNCH_KITS } from './src/lib/launchCatalog';
 import { mountSpaFallback } from './src/server/spaFallback';
 import { renderSpaDocument } from './src/server/seoResolver';
 import { jurisdictionForCountry } from './src/lib/jurisdiction';
@@ -1741,6 +1742,150 @@ app.get('/api/admin/orders/:id/history', asyncRoute(async (req: AuthenticatedReq
   const history = await serverDb.getOrderStatusHistory(req.params.id);
   res.json({ history });
 }));
+
+// Demande PRÉCOMMANDES : agrège les quantités réservées par SKU/kit sur les
+// commandes réglées (demande ferme) + intentions en attente de confirmation,
+// puis déroule les kits en composants pour éclairer le sourcing du premier lot.
+app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const [orders, products] = await Promise.all([
+    serverDb.getOrdersByCustomer('', ''),
+    serverDb.getPublicProducts()
+  ]);
+
+  // Statuts qui représentent une demande FERME (paiement confirmé, pas de
+  // remboursement/annulation). Le mode Stripe TEST reste affiché séparément.
+  const FIRM = new Set(['paid', 'processing', 'packed', 'shipped', 'delivered']);
+  const LOST = new Set(['cancelled', 'refunded', 'partially_refunded']);
+
+  const productById = new Map(products.map(p => [p.id, p]));
+
+  // Référentiel des composants d'un kit : launch-kXX -> [launch-pXX].
+  const kitComponents = new Map<string, string[]>();
+  for (const kit of LAUNCH_KITS) {
+    kitComponents.set(`launch-${kit.id}`, kit.productIds.map(pid => `launch-${pid}`));
+  }
+
+  type DemandRow = {
+    productId: string; name: string; slug?: string; category?: string;
+    isKit: boolean; isPreorder: boolean;
+    qtyFirm: number; qtyPending: number;
+    firmOrderIds: Set<string>; pendingOrderIds: Set<string>;
+    revenueFirm: number; unitPrice: number; retailPrice?: number;
+  };
+  const rows = new Map<string, DemandRow>();
+
+  const ensureRow = (productId: string): DemandRow => {
+    let row = rows.get(productId);
+    if (!row) {
+      const p = productById.get(productId);
+      row = {
+        productId,
+        name: p?.name || productId,
+        slug: p?.slug,
+        category: p?.category,
+        isKit: p?.category === 'kits',
+        isPreorder: p?.isPreorder === true || productId.startsWith('launch-'),
+        qtyFirm: 0, qtyPending: 0,
+        firmOrderIds: new Set<string>(), pendingOrderIds: new Set<string>(),
+        revenueFirm: 0,
+        unitPrice: Number(p?.price) || 0,
+        retailPrice: p?.originalPrice ? Number(p.originalPrice) : undefined
+      };
+      rows.set(productId, row);
+    }
+    return row;
+  };
+
+  let firmOrders = 0, pendingOrders = 0, firmRevenue = 0, preorderFirmOrders = 0, lostOrders = 0;
+  const stripeMode: 'test' | 'live' | 'unknown' =
+    (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_') ? 'live'
+    : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown';
+
+  for (const order of orders) {
+    const items: any[] = Array.isArray(order.items) ? order.items : [];
+    const hasPreorderItem = items.some((it: any) => it.isPreorder === true || String(it.productId || '').startsWith('launch-'));
+    const firm = FIRM.has(order.status);
+    const pending = order.status === 'payment_pending_webhook' || order.status === 'pending_payment' || order.status === 'payment_failed';
+    if (firm) { firmOrders++; firmRevenue += Number(order.total) || 0; if (hasPreorderItem) preorderFirmOrders++; }
+    else if (pending) pendingOrders++;
+    else if (LOST.has(order.status)) lostOrders++;
+    if (!firm && !pending) continue;
+
+    for (const it of items) {
+      const productId: string = it.productId || it.product_id;
+      if (!productId) continue;
+      const qty = Number(it.quantity) || 1;
+      const unit = Number(it.unitPrice ?? it.price ?? (it.lineTotal ? Number(it.lineTotal) / qty : 0)) || 0;
+      const row = ensureRow(productId);
+      const lineAmount = Number(it.lineTotal ?? (unit ? unit * qty : 0)) || 0;
+      if (firm) {
+        row.qtyFirm += qty;
+        row.revenueFirm += lineAmount;
+        row.firmOrderIds.add(order.id);
+      } else {
+        row.qtyPending += qty;
+        row.pendingOrderIds.add(order.id);
+      }
+    }
+  }
+
+  // Déroulage des kits en composants (demande induite pour le sourcing).
+  const componentDemand = new Map<string, { qtyFromKits: number; viaKits: Set<string> }>();
+  for (const [kitId, compIds] of kitComponents) {
+    const kitRow = rows.get(kitId);
+    if (!kitRow) continue;
+    for (const compId of compIds) {
+      const agg = componentDemand.get(compId) || { qtyFromKits: 0, viaKits: new Set<string>() };
+      agg.qtyFromKits += kitRow.qtyFirm + kitRow.qtyPending;
+      agg.viaKits.add(kitId);
+      componentDemand.set(compId, agg);
+    }
+  }
+
+  const products_ = Array.from(rows.values())
+    .map(r => {
+      const comp = componentDemand.get(r.productId);
+      const qtyFromKits = comp?.qtyFromKits || 0;
+      return {
+        productId: r.productId,
+        name: r.name,
+        slug: r.slug,
+        category: r.category,
+        isKit: r.isKit,
+        isPreorder: r.isPreorder,
+        qtyFirm: r.qtyFirm,
+        qtyPending: r.qtyPending,
+        orderCountFirm: r.firmOrderIds.size,
+        orderCountPending: r.pendingOrderIds.size,
+        revenueFirm: Math.round(r.revenueFirm * 100) / 100,
+        unitPrice: r.unitPrice,
+        retailPrice: r.retailPrice,
+        componentOfKits: comp ? Array.from(comp.viaKits) : [],
+        qtyFromKits,
+        qtyToSource: r.qtyFirm + r.qtyPending + qtyFromKits
+      };
+    })
+    .filter(r => r.isPreorder || r.qtyToSource > 0)
+    .sort((a, b) => b.qtyToSource - a.qtyToSource);
+
+  res.json({
+    generatedAt: new Date().toISOString(),
+    stripeMode,
+    totals: {
+      firmOrders,
+      pendingOrders,
+      lostOrders,
+      preorderFirmOrders,
+      firmRevenue: Math.round(firmRevenue * 100) / 100,
+      totalUnitsToSource: products_.reduce((s, r) => s + (r.isKit ? 0 : r.qtyToSource), 0)
+    },
+    products: products_
+  });
+}));
+
 
 // 7. Admin Real Dashboard Analytics and Operations API
 app.get('/api/admin/metrics', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

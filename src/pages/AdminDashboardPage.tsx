@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -15,7 +15,7 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
-  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
@@ -35,6 +35,16 @@ export const AdminDashboardPage: React.FC = () => {
   const [shippingOrder, setShippingOrder] = useState<any>(null);
   const [shippingForm, setShippingForm] = useState({ carrier: 'colissimo', status: 'shipped', trackingNumber: '', trackingUrl: '', estimatedDelivery: '' });
   const [shippingSaving, setShippingSaving] = useState(false);
+
+  // Demande précommandes (sourcing du premier lot).
+  const [demand, setDemand] = useState<any>(null);
+  const [demandFilter, setDemandFilter] = useState<'all' | 'kits' | 'components'>('components');
+  const fetchDemand = () => {
+    fetch('/api/admin/preorder-demand', { headers: adminHeaders })
+      .then(res => res.json())
+      .then(data => data.products && setDemand(data))
+      .catch(err => console.error('Error preorder demand:', err));
+  };
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [ticketMessages, setTicketMessages] = useState<any[]>([]);
@@ -85,6 +95,12 @@ export const AdminDashboardPage: React.FC = () => {
       .then(res => res.json())
       .then(data => data.tickets && setSupportTickets(data.tickets))
       .catch(err => console.error('Error tickets:', err));
+
+    // 5b. Demande précommandes (sourcing)
+    fetch('/api/admin/preorder-demand', { headers: adminHeaders })
+      .then(res => res.json())
+      .then(data => data.products && setDemand(data))
+      .catch(err => console.error('Error demand:', err));
 
     // 6. Fetch persisted KURLA Pro applications
     fetch('/api/admin/professional-applications', { headers: adminHeaders })
@@ -418,6 +434,7 @@ export const AdminDashboardPage: React.FC = () => {
             {
               id: 'supply', label: 'Approvisionnement', icon: Truck,
               tabs: [
+                { id: 'demand', label: 'Demande précommandes', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
                 { id: 'suppliers', label: 'Fournisseurs & sourcing', icon: Truck },
               ],
             },
@@ -783,6 +800,118 @@ export const AdminDashboardPage: React.FC = () => {
                   )}
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB DEMANDE PRÉCOMMANDES (sourcing premier lot) */}
+        {activeTab === 'demand' && (
+          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
+                  <Factory className="w-5 h-5 text-[#C8753D]" /> Demande précommandes — sourcing du premier lot
+                </h2>
+                <p className="text-xs text-[#FFF7EF]/55 mt-1 max-w-2xl">
+                  Quantités fermement réservées (commandes réglées) sur les précommandes, avec le déroulage des kits en composants pour caler les quantités à commander aux fournisseurs.
+                </p>
+              </div>
+              <button onClick={fetchDemand} className="px-4 py-2 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/15 text-[11px] font-semibold text-[#D49A63] flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+              </button>
+            </div>
+
+            {demand?.stripeMode !== 'live' && (
+              <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                Stripe est en mode <strong>TEST</strong> : ces commandes sont des simulations de paiement, pas des encaissements réels. Les quantités indiquent la demande, pas encore une trésorerie certaine.
+              </div>
+            )}
+
+            {!demand ? (
+              <p className="text-xs text-[#FFF7EF]/50 italic">Chargement de la demande…</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-emerald-500/25">
+                    <p className="text-[11px] text-emerald-300 font-bold uppercase">Commandes fermes</p>
+                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.firmOrders}</p>
+                    <p className="text-[10px] text-[#FFF7EF]/45">{demand.totals.preorderFirmOrders} contenant une précommande</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-amber-500/25">
+                    <p className="text-[11px] text-amber-300 font-bold uppercase">En attente paiement</p>
+                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.pendingOrders}</p>
+                    <p className="text-[10px] text-[#FFF7EF]/45">intentions non confirmées</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                    <p className="text-[11px] text-[#D49A63] font-bold uppercase">CA commandes fermes</p>
+                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{Number(demand.totals.firmRevenue).toFixed(2)} €</p>
+                    <p className="text-[10px] text-[#FFF7EF]/45">toutes commandes réglées (TTC)</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-indigo-500/25">
+                    <p className="text-[11px] text-indigo-300 font-bold uppercase">Unités à sourcer</p>
+                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.totalUnitsToSource}</p>
+                    <p className="text-[10px] text-[#FFF7EF]/45">SKU + composants kits (hors kits)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {([['components', 'Composants à sourcer'], ['kits', 'Kits'], ['all', 'Tout']] as const).map(([id, label]) => (
+                    <button key={id} onClick={() => setDemandFilter(id)}
+                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold border ${demandFilter === id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/60'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#FFF7EF]/10 text-[#D49A63] uppercase tracking-wider">
+                        <th className="py-3 px-3">Produit</th>
+                        <th className="py-3 px-3 text-center">Type</th>
+                        <th className="py-3 px-3 text-center">Qté ferme</th>
+                        <th className="py-3 px-3 text-center">En attente</th>
+                        <th className="py-3 px-3 text-center">Via kits</th>
+                        <th className="py-3 px-3 text-center font-bold">À sourcer</th>
+                        <th className="py-3 px-3 text-right">CA ferme</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#FFF7EF]/5">
+                      {demand.products
+                        .filter((p: any) => demandFilter === 'all' ? true : demandFilter === 'kits' ? p.isKit : !p.isKit)
+                        .map((p: any) => (
+                        <tr key={p.productId} className="hover:bg-[#050403]/40">
+                          <td className="py-2.5 px-3">
+                            <span className="font-semibold text-[#FFF7EF]">{p.name}</span>
+                            {p.componentOfKits?.length > 0 && (
+                              <p className="text-[10px] text-indigo-300/70 mt-0.5">composant de {p.componentOfKits.length} kit(s)</p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {p.isKit
+                              ? <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">KIT</span>
+                              : <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 text-[10px] font-bold">SKU</span>}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-emerald-300">{p.qtyFirm}</td>
+                          <td className="py-2.5 px-3 text-center text-amber-300">{p.qtyPending}</td>
+                          <td className="py-2.5 px-3 text-center text-indigo-300">{p.qtyFromKits || '—'}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="inline-block min-w-[2ch] px-2.5 py-1 rounded-full bg-[#C8753D]/20 text-[#F3C9A4] border border-[#C8753D]/40 font-bold">{p.qtyToSource}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-[#D49A63]">{Number(p.revenueFirm).toFixed(2)} €</td>
+                        </tr>
+                      ))}
+                      {demand.products.filter((p: any) => demandFilter === 'all' ? true : demandFilter === 'kits' ? p.isKit : !p.isKit).length === 0 && (
+                        <tr><td colSpan={7} className="py-8 text-center text-[#FFF7EF]/45 italic">Aucune demande pour ce filtre pour le moment.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[11px] text-[#FFF7EF]/40">
+                  « À sourcer » = quantités fermes + en attente + unités induites par les kits (un kit vendu = 1 unité de chacun de ses composants). Appliquez votre marge de sécurité (MOQ / casse) avant de passer commande fournisseur.
+                </p>
+              </>
             )}
           </div>
         )}
