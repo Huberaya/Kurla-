@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { SearchModal } from './components/SearchModal';
 import { AiAssistantWidget } from './components/AiAssistantWidget';
+import { AbandonedCartReminder } from './components/AbandonedCartReminder';
 import { PasswordRecoveryPanel } from './components/PasswordRecoveryPanel';
 import { CartItem, Product, ProductVariant } from './types';
 
@@ -270,6 +271,10 @@ function AppContent() {
         />
 
         <AiAssistantWidget />
+
+        {/* Relance panier abandonné : n'apparaît qu'en retour de visite
+            (absence ≥ 24 h) avec un panier non vide, jamais en continu. */}
+        <AbandonedCartReminder count={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
         {/*
           Monté au niveau de l'application, pas d'une page : le lien de
