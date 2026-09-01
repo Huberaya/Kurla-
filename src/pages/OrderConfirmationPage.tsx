@@ -98,7 +98,10 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
             <a href="/boutique" className="px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-semibold inline-flex items-center justify-center gap-2">
               <ShoppingBag className="w-4 h-4" /> Retour à la boutique
             </a>
-            <a href="/account" className="px-5 py-3 rounded-full bg-[#C8753D] text-white text-xs font-semibold">
+            <a href={`/suivi-commande?order=${encodeURIComponent(result.order.id)}`} className="px-5 py-3 rounded-full bg-[#C8753D] text-white text-xs font-semibold">
+              Suivre ma commande
+            </a>
+            <a href="/account" className="px-5 py-3 rounded-full border border-[#C8753D] text-[#C8753D] text-xs font-semibold">
               Mon espace client
             </a>
           </div>

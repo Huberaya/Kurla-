@@ -870,6 +870,56 @@ app.get('/api/stripe/checkout-session', asyncRoute(async (req: AuthenticatedRequ
   }
 }));
 
+// Public order tracking (guest + logged in): order number + email are the two
+// secrets. Returns only what a package-tracking page needs — never the full
+// shipping address or any other order. Rate limited to deter enumeration.
+app.get('/api/orders/track', rateLimit('order-track', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const orderId = typeof req.query.order === 'string' ? req.query.order.trim().toUpperCase() : '';
+  const email = typeof req.query.email === 'string' ? req.query.email.trim().toLowerCase() : '';
+  if (!/^ORD-[A-Z0-9-]+$/.test(orderId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Indique un numéro de commande (ORD-…) et l’email utilisé lors de la commande.' });
+  }
+
+  const order = await serverDb.getOrderById(orderId);
+  // On ne révèle pas si c'est l'email ou le numéro qui est faux : message unique
+  // anti-énumération.
+  if (!order || (order.customerEmail || '').toLowerCase() !== email) {
+    return res.status(404).json({ error: 'Aucune commande ne correspond à ce numéro et cet email.' });
+  }
+
+  const history = await serverDb.getOrderStatusHistory(orderId).catch(() => []);
+  const shipping = (order.shippingAddress || {}) as Record<string, unknown>;
+  const shipment = (shipping as any)?.shipment || null;
+  const steps = (Array.isArray(history) ? history : []).map(h => ({
+    status: h.newStatus,
+    at: h.createdAt,
+    reason: h.reason || null
+  }));
+
+  return res.json({
+    order: {
+      id: order.id,
+      status: order.status,
+      total: order.total,
+      currency: order.currency || 'EUR',
+      createdAt: order.createdAt,
+      items: (Array.isArray(order.items) ? order.items : []).map((it: any) => ({
+        name: it.name || 'Article',
+        slug: it.slug || undefined,
+        quantity: Number(it.quantity) || 1,
+        amount: it.lineTotal ?? (Number(it.price) ? Number(it.price) * (Number(it.quantity) || 1) : undefined),
+        isPreorder: it.isPreorder === true
+      })),
+      shippingCost: (shipping as any)?.shippingCost ?? null,
+      carrier: shipment?.carrier || null,
+      trackingNumber: shipment?.trackingNumber || null,
+      trackingUrl: shipment?.trackingUrl || null,
+      estimatedDelivery: shipment?.estimatedDelivery || null
+    },
+    timeline: steps
+  });
+}));
+
 // Authenticated Orders API Endpoint
 app.get('/api/orders', async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);

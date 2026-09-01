@@ -36,6 +36,7 @@ export const Footer: React.FC = () => {
       heading: t('footer.spaces'),
       links: [
         { label: t('footer.client'), path: '/account' },
+        { label: locale === 'fr' ? 'Suivre ma commande' : 'Track my order', path: '/suivi-commande' },
         { label: t('footer.familySpace'), path: '/famille' },
         { label: t('footer.proSpace'), path: '/pro/dashboard' },
         { label: t('footer.cgv'), path: '/cgv' },

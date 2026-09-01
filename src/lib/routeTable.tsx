@@ -51,6 +51,7 @@ import { CommunityPage } from '../pages/CommunityPage';
 import { FamilySpacePage } from '../pages/FamilySpacePage';
 import { LegalPage } from '../pages/LegalPage';
 import { OrderConfirmationPage } from '../pages/OrderConfirmationPage';
+import { OrderTrackingPage } from '../pages/OrderTrackingPage';
 import { ShelfPage } from '../pages/ShelfPage';
 import { WashDayPage } from '../pages/WashDayPage';
 import { ProtectiveTimelinePage } from '../pages/ProtectiveTimelinePage';
@@ -155,6 +156,12 @@ export const ROUTES: RouteEntry[] = [
         sessionId={search.get('session_id') || undefined}
         orderId={search.get('order_id') || undefined}
       />
+    ),
+  },
+  {
+    path: '/suivi-commande',
+    render: ({ search }) => (
+      <OrderTrackingPage orderId={search.get('order') || undefined} />
     ),
   },
 
