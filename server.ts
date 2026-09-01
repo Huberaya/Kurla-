@@ -889,7 +889,9 @@ app.get('/api/orders/track', rateLimit('order-track', 20, 60_000), asyncRoute(as
 
   const history = await serverDb.getOrderStatusHistory(orderId).catch(() => []);
   const shipping = (order.shippingAddress || {}) as Record<string, unknown>;
-  const shipment = (shipping as any)?.shipment || null;
+  // Les infos transporteur vivent dans la table `shipments` (alimentée par
+  // l'écran admin d'expédition), pas dans shippingAddress.
+  const shipment = await serverDb.getShipmentByOrderId(orderId).catch(() => undefined);
   const steps = (Array.isArray(history) ? history : []).map(h => ({
     status: h.newStatus,
     at: h.createdAt,

@@ -30,6 +30,11 @@ export const AdminDashboardPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
   const [statusUpdateReason, setStatusUpdateReason] = useState('');
+
+  // Expédition (transporteur + n° de suivi) — panneau dédié.
+  const [shippingOrder, setShippingOrder] = useState<any>(null);
+  const [shippingForm, setShippingForm] = useState({ carrier: 'colissimo', status: 'shipped', trackingNumber: '', trackingUrl: '', estimatedDelivery: '' });
+  const [shippingSaving, setShippingSaving] = useState(false);
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [ticketMessages, setTicketMessages] = useState<any[]>([]);
@@ -124,6 +129,80 @@ export const AdminDashboardPage: React.FC = () => {
     fetch(`/api/admin/orders/${orderId}/history`, { headers: adminHeaders })
       .then(res => res.json())
       .then(data => data.history && setOrderHistory(data.history));
+  };
+
+  // Liens de suivi publics des transporteurs les plus courants (FR).
+  const CARRIER_TRACK_URL: Record<string, (n: string) => string> = {
+    colissimo: (n) => `https://www.laposte.fr/outils/suivre-vos-envois?code=${encodeURIComponent(n)}`,
+    mondial_relay: (n) => `https://www.mondialrelay.fr/suivi-de-colis/?NumeroExpedition=${encodeURIComponent(n)}`,
+    chronopost: (n) => `https://www.chronopost.fr/fr/suivi-colis?${encodeURIComponent(n)}`,
+    dhl: (n) => `https://www.dhl.com/fr-fr/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(n)}`
+  };
+  const CARRIER_LABELS: Record<string, string> = {
+    manual: 'Remise en main propre', colissimo: 'Colissimo', mondial_relay: 'Mondial Relay',
+    chronopost: 'Chronopost', dhl: 'DHL', autre: 'Autre transporteur'
+  };
+
+  const openShippingPanel = async (ord: any) => {
+    setShippingOrder(ord);
+    // Pré-remplissage si un envoi existe déjà.
+    try {
+      const res = await fetch(`/api/shipments/${ord.id}`, { headers: adminHeaders });
+      if (res.ok) {
+        const data = await res.json();
+        const sh = data.shipment;
+        if (sh) {
+          setShippingForm({
+            carrier: sh.carrier || 'colissimo',
+            status: sh.status === 'delivered' ? 'delivered' : (sh.shippedAt ? 'shipped' : 'label_created'),
+            trackingNumber: sh.trackingNumber || '',
+            trackingUrl: sh.trackingUrl || '',
+            estimatedDelivery: sh.estimatedDelivery ? sh.estimatedDelivery.slice(0, 10) : ''
+          });
+          return;
+        }
+      }
+    } catch (err) { /* pas d'envoi : formulaire vierge */ }
+    setShippingForm({ carrier: 'colissimo', status: 'shipped', trackingNumber: '', trackingUrl: '', estimatedDelivery: '' });
+  };
+
+  const handleShipmentSave = async () => {
+    if (!shippingOrder) return;
+    if (shippingForm.carrier !== 'manual' && shippingForm.carrier !== 'autre' && !shippingForm.trackingNumber.trim()) {
+      alert('Renseigne le numéro de suivi du transporteur (ou choisis « Remise en main propre »).');
+      return;
+    }
+    setShippingSaving(true);
+    // URL de suivi auto si laissée vide et transporteur connu.
+    const autoUrl = !shippingForm.trackingUrl.trim() && CARRIER_TRACK_URL[shippingForm.carrier] && shippingForm.trackingNumber.trim()
+      ? CARRIER_TRACK_URL[shippingForm.carrier](shippingForm.trackingNumber.trim())
+      : shippingForm.trackingUrl.trim();
+    try {
+      const res = await fetch(`/api/admin/shipments/${shippingOrder.id}`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          carrier: shippingForm.carrier,
+          status: shippingForm.status,
+          trackingNumber: shippingForm.trackingNumber.trim(),
+          trackingUrl: autoUrl,
+          estimatedDelivery: shippingForm.estimatedDelivery ? new Date(shippingForm.estimatedDelivery).toISOString() : undefined,
+          shippedAt: ['shipped', 'in_transit', 'out_for_delivery', 'delivered'].includes(shippingForm.status)
+            ? (shippingForm.status === 'delivered' ? undefined : new Date().toISOString()) : undefined,
+          deliveredAt: shippingForm.status === 'delivered' ? new Date().toISOString() : undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Échec de l’enregistrement de l’expédition.');
+      setActionSuccess(`Expédition #${shippingOrder.id} enregistrée (${CARRIER_LABELS[shippingForm.carrier] || shippingForm.carrier}, statut commande : ${data.orderStatus}).`);
+      setShippingOrder(null);
+      loadData();
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err: any) {
+      alert(`Erreur : ${err.message}`);
+    } finally {
+      setShippingSaving(false);
+    }
   };
 
   const handleReturnDecision = async (returnId: string, status: 'approved' | 'rejected', adminComment: string) => {
@@ -571,6 +650,12 @@ export const AdminDashboardPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 flex items-center gap-2">
                           <button
+                            onClick={() => openShippingPanel(ord)}
+                            className="px-3 py-1 rounded-full bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 text-[11px] font-semibold text-indigo-300"
+                          >
+                            Expédier
+                          </button>
+                          <button
                             onClick={() => { setSelectedOrder(ord); fetchHistory(ord.id); }}
                             className="px-3 py-1 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/10 text-[11px] font-medium text-[#D49A63]"
                           >
@@ -587,6 +672,88 @@ export const AdminDashboardPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Panneau Expédition : transporteur + numéro de suivi */}
+            {shippingOrder && (
+              <div className="p-6 rounded-3xl bg-[#050403] border border-indigo-500/40 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-3">
+                  <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+                    📦 Expédier la commande <span className="font-mono">{shippingOrder.id}</span>
+                  </h3>
+                  <button onClick={() => setShippingOrder(null)} className="text-xs text-[#FFF7EF]/50 hover:text-white">Fermer</button>
+                </div>
+                <p className="text-[11px] text-[#FFF7EF]/50">
+                  Client : {shippingOrder.customerEmail} • Total {Number(shippingOrder.total).toFixed(2)} €.
+                  Le statut de la commande est mis à jour automatiquement (préparation → emballé → expédié → livré) et la cliente voit le suivi sur sa page de suivi.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                    Transporteur
+                    <select
+                      value={shippingForm.carrier}
+                      onChange={(e) => setShippingForm(f => ({ ...f, carrier: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                    >
+                      {Object.entries(CARRIER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                    Statut d'acheminement
+                    <select
+                      value={shippingForm.status}
+                      onChange={(e) => setShippingForm(f => ({ ...f, status: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                    >
+                      <option value="preparing">Préparation (commande → processing)</option>
+                      <option value="label_created">Étiquette créée (→ packed)</option>
+                      <option value="shipped">Expédiée (→ shipped)</option>
+                      <option value="in_transit">En transit (→ shipped)</option>
+                      <option value="out_for_delivery">En cours de livraison (→ shipped)</option>
+                      <option value="delivered">Livrée (→ delivered)</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                    Numéro de suivi
+                    <input
+                      type="text"
+                      value={shippingForm.trackingNumber}
+                      onChange={(e) => setShippingForm(f => ({ ...f, trackingNumber: e.target.value }))}
+                      placeholder="Ex : 8L0123456789FR"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] font-mono focus:outline-none focus:border-indigo-400"
+                    />
+                  </label>
+                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                    Date de livraison estimée
+                    <input
+                      type="date"
+                      value={shippingForm.estimatedDelivery}
+                      onChange={(e) => setShippingForm(f => ({ ...f, estimatedDelivery: e.target.value }))}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                    />
+                  </label>
+                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block sm:col-span-2">
+                    Lien de suivi (laisser vide pour le générer automatiquement selon le transporteur)
+                    <input
+                      type="url"
+                      value={shippingForm.trackingUrl}
+                      onChange={(e) => setShippingForm(f => ({ ...f, trackingUrl: e.target.value }))}
+                      placeholder="https://…"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] font-mono focus:outline-none focus:border-indigo-400"
+                    />
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button onClick={() => setShippingOrder(null)} className="px-4 py-2 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70">Annuler</button>
+                  <button
+                    onClick={handleShipmentSave}
+                    disabled={shippingSaving}
+                    className="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold"
+                  >
+                    {shippingSaving ? 'Enregistrement…' : 'Enregistrer l’expédition'}
+                  </button>
+                </div>
               </div>
             )}
 

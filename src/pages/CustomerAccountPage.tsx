@@ -462,6 +462,10 @@ export const CustomerAccountPage: React.FC = () => {
         {/* TAB 1: COMMANDES WITH TRACKING & RETURN REQUESTS */}
         {activeTab === 'commandes' && (
           <div className="space-y-6">
+            <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span>Une commande passée sans être connecté ? Retrouvez-la avec son numéro et votre email.</span>
+              <a href="/suivi-commande" className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white font-bold whitespace-nowrap">Suivre une autre commande</a>
+            </div>
             {serverOrders.length > 0 ? (
               <div className="space-y-4">
                 {serverOrders.map((order) => {
