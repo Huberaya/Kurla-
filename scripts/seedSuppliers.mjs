@@ -31,12 +31,14 @@ function guessCategory(name){
   if(/co-wash|cowash/.test(n)) return 'Co-wash';
   // Outils matériels : testés avant les produits (un peigne/brosse « démêlant »
   // ou une brosse à « edges » ne sont pas des cosmétiques).
-  if(/peigne|bonnet|vaporis|flacon applicat|taie|satin|brosse|bigoudi|pince|foulard|headwrap|filet|à edges|edge control brush|crocodile/.test(n)) return 'Accessoire';
+  if(/peigne|bonnet|vaporis|flacon applicat|taie|satin|brosse|bigoudi|pince|foulard|headwrap|filet|à edges|edge control brush|crocodile|serviette|microfibre|plopping|éponge|eponge|sponge|flexi|\brod\b|perm rod|diffuseur|durag|chouchou|steamer|vapeur|masseur|interlocking|aiguille|threading|fil coton|thermal|chauffant|nano-mist|appareil/.test(n)) return 'Accessoire';
   // « Après-shampoing » avant « shampoing » (sinon le mot « shampoing » l'emporte).
   if(/après|apres|conditionneur/.test(n)) return 'Après-shampoing';
-  if(/shampoing|shampoo|gommage cuir/.test(n)) return 'Shampoing';
-  if(/masque/.test(n)) return 'Masque';
-  if(/leave-in|leave in|spray refresh/.test(n)) return 'Leave-in';
+  if(/shampoing|shampoo|gommage cuir|rinçage|rincage|vinaigre|scalp toner/.test(n)) return 'Shampoing';
+  if(/masque|reconstruct|bond builder|soin reconstruct/.test(n)) return 'Masque';
+  if(/leave-in|leave in|spray refresh|thermo-protect|thermoprotect|spray thermo/.test(n)) return 'Leave-in';
+  // Produits finis « pousse/scalp » (cosmétiques finis → private label, pas karité brut).
+  if(/romarin|rosemary|tonique pousse|eau de romarin/.test(n)) return 'Leave-in';
   if(/mousse|gel|coiff|twist|crème de définition|creme de definition/.test(n)) return 'Gel/Coiffant';
   if(/flacon|applicateur/.test(n)) return 'Accessoire';
   // Matières premières / huiles & beurres bruts (héros marque propre).
