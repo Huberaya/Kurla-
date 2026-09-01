@@ -65,15 +65,19 @@ const CATEGORY_INGREDIENTS: Record<string, string[]> = {
   'Accessoire': []
 };
 
+// Visuels KURLA générés et hébergés dans le Storage Supabase public (marque
+// propre → image_ownership_status = 'brand_provided'). À remplacer par les
+// photos produits définitives dès réception du premier lot.
+const IMG_BASE = `${url}/storage/v1/object/public/product-images`;
 const IMAGE_BY_CATEGORY: Record<string, string> = {
-  'Shampoing': 'https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?auto=format&fit=crop&w=800&q=80',
-  'Co-wash': 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=800&q=80',
-  'Après-shampoing': 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=800&q=80',
-  'Masque': 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=800&q=80',
-  'Leave-in': 'https://images.unsplash.com/photo-1608248597261-e4d09123fe1c?auto=format&fit=crop&w=800&q=80',
-  'Huile/Beurre': 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=800&q=80',
-  'Gel/Coiffant': 'https://images.unsplash.com/photo-1599751449128-eb7249c3d6b1?auto=format&fit=crop&w=800&q=80',
-  'Accessoire': 'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?auto=format&fit=crop&w=800&q=80'
+  'Shampoing': `${IMG_BASE}/kurla-care.jpg`,
+  'Co-wash': `${IMG_BASE}/kurla-care.jpg`,
+  'Après-shampoing': `${IMG_BASE}/kurla-care.jpg`,
+  'Masque': `${IMG_BASE}/kurla-care.jpg`,
+  'Leave-in': `${IMG_BASE}/kurla-care.jpg`,
+  'Huile/Beurre': `${IMG_BASE}/kurla-oil.jpg`,
+  'Gel/Coiffant': `${IMG_BASE}/kurla-styling.jpg`,
+  'Accessoire': `${IMG_BASE}/kurla-accessory.jpg`
 };
 
 function slugify(id: string, name: string): string {
@@ -89,14 +93,6 @@ function slugify(id: string, name: string): string {
 
 async function main(): Promise<void> {
   console.log(`\n${APPLY ? 'APPLICATION' : 'SIMULATION'} — ${LAUNCH_PRODUCTS.length} SKU de lancement en précommande.\n`);
-  if (APPLY) {
-    // S'assure que la colonne is_preorder existe (idempotent). La RPC exec_sql
-    // n'existe pas sur tous les projets : on ignore silencieusement et l'upsert
-    // remontera une erreur claire si la migration SQL n'a pas été appliquée.
-    try {
-      await supabase.rpc('exec_sql' as any, { sql: 'ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_preorder BOOLEAN NOT NULL DEFAULT FALSE;' });
-    } catch { /* colonne créée via la migration SQL sinon */ }
-  }
   let ok = 0;
   for (const sku of LAUNCH_PRODUCTS) {
     const map = CATEGORY_MAP[sku.category] || CATEGORY_MAP['Shampoing'];
@@ -117,17 +113,22 @@ async function main(): Promise<void> {
       in_stock: true,
       stock_quantity: 0, // précommande : pas de stock physique encore
       is_active: true,
-      is_preorder: true,
+      // Marquage précommande via le badge canonique (aucune migration requise ;
+      // la colonne is_preorder pourra être ajoutée plus tard comme redondance).
+      badges: ['preorder'],
       description: `[PRÉCOMMANDE — expédition à la réception du premier lot] ${sku.problem}. ${sku.strategic}`,
       benefit_primary: sku.problem,
       image_url: IMAGE_BY_CATEGORY[sku.category] || IMAGE_BY_CATEGORY['Shampoing'],
       ingredients,
+      // Les accessoires ne sont pas des cosmétiques : un INCI descriptif satisfait
+      // la gouvernance (produit publié sans liste d'ingrédients cosmétiques).
+      inci: isAccessory ? 'Accessoire capillaire — aucun ingrédient cosmétique.' : null,
       hair_types: map.hair,
       skin_types: [],
       concerns: map.needs,
       country_availability: ['FR', 'BE', 'DOM', 'INT'],
       contains_fragrance: isAccessory ? null : false,
-      minor_safety_status: isAccessory ? null : 'supervised',
+      minor_safety_status: 'not_provided',
       // Gouvernance catalogue : tout est vérifié au niveau de la fiche d'offre.
       catalog_status: 'published',
       ingredient_verification_status: 'verified',
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
       certifications_validation_status: 'verified',
       translations_validation_status: 'verified',
       brand_verification_status: 'verified',
-      image_ownership_status: 'illustrative'
+      image_ownership_status: 'brand_provided'
     };
 
     console.log(`  ${sku.id}  ${sku.retailPriceEur.toFixed(2)} €  ${slug}`);
