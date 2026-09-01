@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { I18nProvider } from './lib/I18nProvider';
 import { isSupabaseConfigured } from './lib/supabaseClient';
@@ -185,7 +185,11 @@ function AppContent() {
       search: new URLSearchParams(window.location.search),
       onAddToCart: handleAddToCart,
     };
-    const view = resolved.entry.render(context);
+    const view = (
+      <Suspense fallback={<PageLoader />}>
+        {resolved.entry.render(context)}
+      </Suspense>
+    );
 
     if (!resolved.entry.auth) return view;
     return (
@@ -197,6 +201,15 @@ function AppContent() {
       </ProtectedRoute>
     );
   };
+
+  const PageLoader = () => (
+    <div className="min-h-[60vh] flex items-center justify-center bg-[#FFFDF9]">
+      <div className="flex flex-col items-center gap-3 text-[#C8753D]">
+        <div className="w-8 h-8 border-3 border-[#C8753D]/30 border-t-[#C8753D] rounded-full animate-spin" />
+        <span className="text-xs uppercase tracking-widest font-semibold">KURLA</span>
+      </div>
+    </div>
+  );
 
   const handleCheckout = async () => {
     // Handled directly inside CartDrawer with full status & error state management
