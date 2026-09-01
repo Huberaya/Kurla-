@@ -688,6 +688,51 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       console.log(`[Stripe Checkout] Auto-liquidation écartée : ${reverseCharge.reason}`);
     }
 
+    // ── Code promo ─────────────────────────────────────────────────────────
+    // La remise s'applique aux articles (TTC), jamais sur la livraison. On la
+    // valide AVANT la TVA sur le sous-total articles brut, puis on la répartit
+    // proportionnellement sur les prix unitaires : la TVA et le total restent
+    // ainsi cohérents ligne par ligne, sans coupon Stripe externe.
+    const itemsGrossBeforeDiscount = pricedItems.reduce((sum, item) => sum + item.unitAmountCents * item.quantity, 0);
+    let appliedCoupon: { code: string; description: string; discountType: string; discountValue: number; discountCents: number } | null = null;
+    const couponInput = typeof req.body.couponCode === 'string' ? req.body.couponCode.trim() : '';
+    if (couponInput) {
+      const result = await validateAndApplyCoupon(couponInput, itemsGrossBeforeDiscount);
+      if ('error' in result) {
+        return res.status(400).json({ error: result.error, code: 'COUPON_INVALID' });
+      }
+      appliedCoupon = result.coupon;
+    }
+    const discountCents = appliedCoupon?.discountCents || 0;
+
+    // Répartition de la remise sur les lignes articles, au centime près. On
+    // calcule d'abord une remise par LIGNE proportionnelle, puis on en déduit un
+    // prix UNITAIRE entier (floor). Les quelques centimes d'arrondi sont laissés
+    // au client (la remise réelle est donc très légèrement inférieure, jamais
+    // supérieure). La remise réellement appliquée est ensuite recalculée pour
+    // être tracée avec exactitude. Aucune ligne fictive n'est créée : le total
+    // Stripe reste la somme exacte des vrais articles + port.
+    let actualDiscountCents = 0;
+    if (discountCents > 0) {
+      const totalDiscount = Math.min(discountCents, itemsGrossBeforeDiscount);
+      const grossLines = pricedItems.map(item => item.unitAmountCents * item.quantity);
+      const lineDiscounts = grossLines.map((gross, idx) => {
+        if (idx < grossLines.length - 1) {
+          return Math.min(gross, Math.round(totalDiscount * gross / itemsGrossBeforeDiscount));
+        }
+        const earlier = grossLines.slice(0, idx).reduce((s, g) => s + Math.min(g, Math.round(totalDiscount * g / itemsGrossBeforeDiscount)), 0);
+        return Math.max(0, Math.min(gross, totalDiscount - earlier));
+      });
+      pricedItems.forEach((item, idx) => {
+        const newLineTotal = Math.max(0, grossLines[idx] - lineDiscounts[idx]);
+        item.unitAmountCents = item.quantity > 1
+          ? Math.floor(newLineTotal / item.quantity)
+          : newLineTotal;
+      });
+      const grossAfter = pricedItems.reduce((s, it) => s + it.unitAmountCents * it.quantity, 0);
+      actualDiscountCents = itemsGrossBeforeDiscount - grossAfter;
+    }
+
     // Tarification et TVA : la même fonction est exercée par
     // `tests/chantier_7_vat.test.ts`, donc ce qui est facturé ici est du code
     // testé, pas une copie vérifiée à côté.
@@ -700,24 +745,8 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     });
     const { vat, verifiedItems, itemsGrossCents, finalTotalCents, finalTotal } = pricing;
 
-    // ── Code promo ─────────────────────────────────────────────────────────
-    // La remise s'applique aux articles (TTC), jamais sur la livraison, et est
-    // plafonnée au sous-total articles. Validée côté serveur (le client ne
-    // fournit que le code).
-    let appliedCoupon: { code: string; description: string; discountType: string; discountValue: number; discountCents: number } | null = null;
-    const couponInput = typeof req.body.couponCode === 'string' ? req.body.couponCode.trim() : '';
-    if (couponInput) {
-      const result = await validateAndApplyCoupon(couponInput, itemsGrossCents);
-      if ('error' in result) {
-        return res.status(400).json({ error: result.error, code: 'COUPON_INVALID' });
-      }
-      appliedCoupon = result.coupon;
-    }
-    const discountCents = appliedCoupon?.discountCents || 0;
-    const discountedTotalCents = Math.max(0, finalTotalCents - discountCents);
-    const discountedTotal = discountedTotalCents / 100;
     if (appliedCoupon) {
-      console.log(`[Stripe Checkout] Coupon ${appliedCoupon.code} → remise ${fromCents(discountCents).toFixed(2)} EUR · total ${discountedTotal.toFixed(2)} EUR`);
+      console.log(`[Stripe Checkout] Coupon ${appliedCoupon.code} → remise ${fromCents(actualDiscountCents).toFixed(2)} EUR · total ${finalTotal.toFixed(2)} EUR`);
     }
 
     console.log(
@@ -734,14 +763,15 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       id: orderId,
       userId: uid,
       items: verifiedItems,
-      total: discountedTotal,
+      total: finalTotal,
       status: 'payment_pending_webhook',
       customerEmail: email,
       checkoutIdempotencyKey,
-      // Coupon appliqué (métrique + traçabilité). La remise est déduite du total.
+      // Coupon appliqué (métrique + traçabilité). La remise est déjà déduite des
+      // prix unitaires ; on trace son montant réellement accordé.
       ...(appliedCoupon ? {
         couponCode: appliedCoupon.code,
-        discountAmount: discountCents / 100
+        discountAmount: actualDiscountCents / 100
       } : {}),
       // Devise et TVA : la commande porte de quoi reconstituer la facture, sans
       // dépendre d'un recalcul ultérieur des taux (qui peuvent changer).
@@ -759,7 +789,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         // Coupon tracé dans le snapshot (aucune colonne dédiée dans orders).
         ...(appliedCoupon ? {
           couponCode: appliedCoupon.code,
-          discountAmount: fromCents(discountCents)
+          discountAmount: fromCents(actualDiscountCents)
         } : {}),
         // Instantané complet : taux, date de relevé, ventilation, port et, le cas
         // échéant, numéro de TVA vérifié. C'est la preuve de ce qui a été appliqué.
@@ -801,39 +831,6 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         quantity: 1
       });
     }
-    // La remise est portée par un coupon Stripe (les lignes price_data ne
-    // peuvent pas être négatives). Le coupon s'applique aux articles ; la
-    // livraison reste due, ce qui correspond à la règle métier.
-    let stripeCouponId: string | null = null;
-    if (discountCents > 0 && appliedCoupon) {
-      const couponId = `kurla-${appliedCoupon.code.toLowerCase().replace(/[^a-z0-9_-]+/g, '')}`;
-      try {
-        await stripe.coupons.retrieve(couponId);
-        stripeCouponId = couponId;
-      } catch {
-        try {
-          const params: any = {
-            id: couponId,
-            name: `KURLA — ${appliedCoupon.code}`,
-            metadata: { kurlaCode: appliedCoupon.code },
-            ...(appliedCoupon.discountType === 'fixed'
-              ? { amount_off: Math.round(appliedCoupon.discountValue * 100), currency: 'eur' }
-              : { percent_off: Math.min(100, appliedCoupon.discountValue) })
-          };
-          await stripe.coupons.create(params);
-          stripeCouponId = couponId;
-        } catch (createErr: any) {
-          // Coupon déjà créé par une requête concurrente : on le réutilise.
-          if (/already exists|resource_already_exists/i.test(String(createErr?.message || ''))) {
-            stripeCouponId = couponId;
-          } else {
-            console.error('[Stripe Checkout] Échec création coupon:', createErr?.message);
-            return res.status(400).json({ error: 'Impossible d’appliquer ce code promo au paiement.' });
-          }
-        }
-      }
-    }
-
     // Persist and reserve stock before creating an external Stripe session.
     // A failed Stripe call can then release the reservation through the order
     // state machine instead of leaving an untracked checkout.
@@ -852,7 +849,6 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       customer_email: email,
       metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}) },
       payment_intent_data: {
