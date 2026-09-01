@@ -442,6 +442,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
               <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
+
+            {/* Informations précontractuelles précommande + CGV */}
+            <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1">
+              {allItemsPreorder && (
+                <p>
+                  <span className="text-emerald-300 font-semibold">Précommande :</span> vos soins sont
+                  expédiés à la réception du premier lot de production. Vous pouvez annuler et être
+                  remboursé·e à tout moment avant expédition, et vous disposez de 14 jours après réception
+                  pour vous rétracter.
+                </p>
+              )}
+              <p>
+                En validant, vous acceptez nos{' '}
+                <a href="/cgv" target="_blank" rel="noopener noreferrer" className="text-[#D49A63] underline hover:text-[#F3C9A4]">
+                  conditions générales de vente
+                </a>{' '}
+                (prix TTC, frais de livraison et délais affichés avant paiement).
+              </p>
+            </div>
+
             <button
               onClick={handleStartCheckout}
               disabled={isCheckoutLoading}

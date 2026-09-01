@@ -14,64 +14,64 @@ interface CategoryCard {
 const CATEGORIES: CategoryCard[] = [
   {
     title: 'Soins Cheveux Texturés',
-    category: 'Cheveux 3A à 4C',
-    count: '48 produits',
+    category: 'Cheveux 3A à 4C · Précommande',
+    count: '14 soins en précommande',
     image: 'https://images.unsplash.com/photo-1608248597261-e4d09123fe1c?auto=format&fit=crop&w=800&q=80',
     icon: Scissors,
     href: '/boutique?cat=cheveux'
   },
   {
+    title: 'Kits & Routines Complètes',
+    category: 'Coffrets clé en main · Précommande',
+    count: '6 routines en précommande',
+    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
+    icon: Layers,
+    href: '/boutique?cat=kits'
+  },
+  {
+    title: 'Accessoires & Bonnets Satin',
+    category: 'Démêlage & protection nuit · Précommande',
+    count: '4 essentiels en précommande',
+    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=800&q=80',
+    icon: Package,
+    href: '/boutique?cat=accessoires'
+  },
+  {
     title: 'Skincare Peaux Mélaninées',
     category: 'Visage & SPF',
-    count: '32 soins',
+    count: 'Bientôt au catalogue',
     image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
     icon: Sun,
     href: '/boutique?cat=peau'
   },
   {
     title: 'Grooming Hommes',
-    category: 'Barbe & Rasage',
-    count: '16 soins',
+    category: 'Barbe & rasage',
+    count: 'Bientôt au catalogue',
     image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
     icon: UserCheck,
-    href: '/hommes'
+    href: '/boutique?cat=hommes'
   },
   {
     title: 'KURLA Kids 3+',
-    category: 'Sans Larmes',
-    count: '14 produits',
+    category: 'Sans larmes',
+    count: 'Bientôt au catalogue',
     image: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=800&q=80',
     icon: Baby,
-    href: '/kids'
-  },
-  {
-    title: 'Accessoires & Bonnets Satin',
-    category: 'Protection Nuit',
-    count: '24 articles',
-    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=800&q=80',
-    icon: Package,
-    href: '/outils'
+    href: '/boutique?cat=enfants'
   },
   {
     title: 'Matériel & Casques Vapeur',
-    category: 'Outillage Pro',
-    count: '12 références',
+    category: 'Outillage pro',
+    count: 'Bientôt au catalogue',
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
     icon: Wrench,
-    href: '/outils'
-  },
-  {
-    title: 'Kits & Routines Complètes',
-    category: 'Coffrets Clé en main',
-    count: '18 kits',
-    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
-    icon: Layers,
-    href: '/routines'
+    href: '/boutique'
   },
   {
     title: 'Marques de la Communauté',
-    category: 'Créateurs Indépendants',
-    count: '25 marques',
+    category: 'Créateurs indépendants',
+    count: 'Bientôt : revente de marques',
     image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     icon: Sparkles,
     href: '/community'
@@ -88,13 +88,13 @@ export const BoutiquePreviewSection: React.FC = () => {
           <Reveal>
             <div className="max-w-[560px]">
               <span className="text-xs uppercase tracking-widest text-[#D49A63] font-bold block mb-2">
-                Le Catalogue KURLA Beauty
+                Lancement — précommandes ouvertes
               </span>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-white mb-3">
-                Explorez la boutique par univers.
+                Le premier lot KURLA, en précommande.
               </h2>
               <p className="text-sm sm:text-base text-[#FFF7EF]/75 font-light leading-relaxed">
-                Des formulations saines sans ingrédients controversés, soigneusement sélectionnées pour l'excellence de votre rituel de beauté.
+                24 références de lancement — soins capillaires 3A à 4C, accessoires essentiels et 6 routines clé en main — réservables dès maintenant, expédiées à la réception du premier lot. Annulation et remboursement à tout moment avant expédition.
               </p>
             </div>
           </Reveal>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, HeartHandshake, Bot, Play, Pause, Scissors, Volume2, VolumeX, Maximize2, Film } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, HeartHandshake, Bot, Play, Pause, Scissors, Volume2, VolumeX, Maximize2, Film, Package } from 'lucide-react';
 import { motion } from 'motion/react';
 import { HERO_VIDEO_FRAME } from '../data/images';
 import { Reveal } from './motion/Reveal';
@@ -227,6 +227,23 @@ export const HeroSection: React.FC = () => {
                   </motion.span>
                 ))}
               </div>
+            </Reveal>
+
+            {/* Bandeau lancement — précommandes */}
+            <Reveal delay={0.22}>
+              <a
+                href="/boutique"
+                className="flex items-center gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 backdrop-blur-md px-4 py-3 text-left hover:bg-emerald-500/15 transition-colors w-fit max-w-full"
+              >
+                <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/90 text-[#050403] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <Package className="w-3.5 h-3.5" /> Précommandes
+                </span>
+                <span className="text-xs sm:text-sm text-emerald-50/90 leading-snug">
+                  <strong className="text-white">Lancement en précommande.</strong> Réservez vos soins 3A–4C :
+                  expédiés à la réception du premier lot, annulation et remboursement à tout moment avant envoi.
+                </span>
+                <ArrowRight className="w-4 h-4 text-emerald-300 shrink-0" />
+              </a>
             </Reveal>
 
             {/* Action Buttons */}

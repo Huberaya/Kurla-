@@ -63,6 +63,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
   const [activeCategory, setActiveCategory] = useState<string>(selectedCategory);
   const [activeSubCategory, setActiveSubCategory] = useState<string>('tous');
+
+  // Sélection d'onglet depuis l'URL (?cat=kits, accessoires, peau, hommes, enfants…).
+  useEffect(() => {
+    const cat = new URLSearchParams(window.location.search).get('cat');
+    if (cat) setActiveCategory(cat);
+  }, []);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
   const [needsDomainTab, setNeedsDomainTab] = useState<'cheveux' | 'peau'>('cheveux');
   const [selectedBrand, setSelectedBrand] = useState<string>('tous');
