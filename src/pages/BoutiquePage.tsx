@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X, 
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart, 
-  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle
+  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Clock
 } from 'lucide-react';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
@@ -597,11 +597,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       )}
 
                       {/* Promo or Custom Badge */}
-                      {product.badges[0] && (
+                      {product.isPreorder ? (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#2E7D5B] backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          <Clock className="w-3 h-3" /> Précommande
+                        </span>
+                      ) : product.badges[0] ? (
                         <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-semibold">
                           {product.badges[0]}
                         </span>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="flex items-center justify-between mb-1">
@@ -628,9 +632,14 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <p className="text-[11px] text-[#111111]/50 mb-2">Aucun avis vérifié pour le moment</p>
                     )}
 
-                    <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-3">
+                    <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-2">
                       {product.description}
                     </p>
+                    {product.isPreorder && (
+                      <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Expédié à la réception du premier lot
+                      </p>
+                    )}
 
                     {/* Key Ingredients tags */}
                     <div className="flex flex-wrap gap-1 mb-4">
@@ -659,7 +668,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         disabled={!product.inStock}
                         className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" /> {product.inStock ? 'Ajouter' : 'Indisponible'}
+                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : product.isPreorder ? 'Précommander' : 'Ajouter'}
                       </button>
                     </div>
                   </div>

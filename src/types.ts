@@ -155,6 +155,7 @@ export interface Product {
   communityBrand?: boolean; // Marque de la communauté afro-descendante
   isNew?: boolean;
   isPromo?: boolean;
+  isPreorder?: boolean; // Article en précommande (lot non encore réceptionné)
   subCategoryTag?: string; // Fine-grained subcategory tag
   galleryImages?: ProductGalleryImage[];
   isIllustrativeVisual?: boolean;

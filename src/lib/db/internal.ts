@@ -164,7 +164,8 @@ export function toPublicProduct(product: any): any {
     promotionPrice: isPromotionActive(product) ? Number(product.promotionPrice ?? product.promotion_price) : undefined,
     communityBrand: product.communityBrand === true,
     isNew: product.isNew === true,
-    isPromo: isPromotionActive(product)
+    isPromo: isPromotionActive(product),
+    isPreorder: product.isPreorder === true || (Array.isArray(product.badges) && product.badges.includes('preorder'))
   };
 }
 

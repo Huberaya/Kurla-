@@ -68,6 +68,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const { locale } = useI18n();
   const total = items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0);
+  const allItemsPreorder = items.length > 0 && items.every(item => (item.product as any).isPreorder === true);
   const subtotalCents = Math.round(total * 100);
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
@@ -293,6 +294,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <h4 className="text-xs font-serif-title font-bold text-[#FFF7EF] truncate">
                       {item.product.name}
                     </h4>
+                    {(item.product as any).isPreorder && (
+                      <p className="text-[10px] text-emerald-400 font-semibold">Précommande · expédiée à la réception du lot</p>
+                    )}
                     <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center border border-[#FFF7EF]/20 rounded-lg bg-[#1A0F0A]">
@@ -450,7 +454,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <span>Commander maintenant ({formatMoney(orderTotalCents, locale)})</span>
+                  <span>{allItemsPreorder ? 'Précommander' : 'Commander maintenant'} ({formatMoney(orderTotalCents, locale)})</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
