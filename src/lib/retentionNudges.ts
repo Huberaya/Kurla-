@@ -21,7 +21,12 @@
  * donnée n'est inventée : un signal absent ne produit pas de nud.
  */
 
-export type NudgeKind = 'outcome_feedback' | 'wash_day_due' | 'protective_style_removal';
+export type NudgeKind =
+  | 'outcome_feedback'
+  | 'wash_day_due'
+  | 'protective_style_removal'
+  | 'review_request'
+  | 'reorder_reminder';
 
 export interface NudgeShelfItem {
   id: string;
@@ -53,6 +58,33 @@ export interface NudgeObservation {
   productId?: string;
 }
 
+/**
+ * Commande payée, aplatie pour le calcul. On n'expose ici que les champs
+ * nécessaires à la relance : identifiants produits, dates et statut.
+ */
+export interface NudgeOrder {
+  id: string;
+  /** Statut de commande ; seuls les statuts payés ouvrent une relance. */
+  status?: string;
+  /** Date ISO de la commande (ou de sa mise à jour). */
+  createdAt?: string;
+  updatedAt?: string;
+  /** Articles achetés (produits, hors kits détaillés à la main si besoin). */
+  items: Array<{
+    productId?: string;
+    name?: string;
+    slug?: string;
+    quantity?: number;
+    /** Les soins consommables (shampoing, leave-in…) sont à racheter. */
+    repurchase?: boolean;
+  }>;
+}
+
+/** Avis produits déjà déposés par l'utilisateur (pour ne pas re-demander). */
+export interface NudgeReview {
+  productId?: string;
+}
+
 export interface NudgeInput {
   userId: string;
   shelf: NudgeShelfItem[];
@@ -60,6 +92,10 @@ export interface NudgeInput {
   protectiveEpisodes?: NudgeProtectiveEpisode[];
   /** Observations déjà collectées : on ne redemande pas un retour déjà fait. */
   observations?: NudgeObservation[];
+  /** Commandes payées : relances commerciales (avis + réassort). */
+  orders?: NudgeOrder[];
+  /** Avis produits déjà rédigés : ne pas redemander un avis sur ce produit. */
+  productReviews?: NudgeReview[];
   /** Décalage en jours avant la date max de port pour commencer à alerter. */
   protectiveWarnBeforeDays?: number;
 }
@@ -79,6 +115,101 @@ export interface Nudge {
 export const OUTCOME_FEEDBACK_AFTER_DAYS = 14;
 /** On ne redemande pas un retour sur le même produit avant ce délai. */
 export const OUTCOME_FEEDBACK_REPEAT_DAYS = 28;
+/**
+ * RELANCES COMMERCIALES (clients connectés ayant commandé).
+ * Délai après commande/statut de livraison avant de demander un avis produit.
+ */
+export const REVIEW_REQUEST_AFTER_DAYS = 7;
+/** À partir de combien de jours un soin consommable est considéré à racheter. */
+export const REORDER_MIN_DAYS = 45;
+/** Jusqu'à combien de jours on propose le réassort (après, c'est une perte sèche). */
+export const REORDER_MAX_DAYS = 110;
+
+/** Statuts représentant une commande effectivement payée. */
+const PAID_STATUSES = new Set(['paid', 'processing', 'packed', 'shipped', 'delivered']);
+
+function dateOf(order: NudgeOrder): string | undefined {
+  // La mise à jour de statut (livraison) est un meilleur point de départ que
+  // la création, mais on retombe sur la création si elle est absente.
+  return order.updatedAt || order.createdAt;
+}
+
+function orderLineOf(order: NudgeOrder, productId: string) {
+  return order.items.find((it) => it.productId === productId);
+}
+
+/**
+ * Relances commerciales : demande d'avis (J+7) et réassort (J+45..110) pour
+ * les clients connectés. Pur et déterministe : mêmes données à même date →
+ * mêmes nudges. Une ligne déjà commandée à nouveau (réachat) coupe la relance.
+ */
+function pushCommercialNudges(input: NudgeInput, now: Date, nudges: Nudge[]): void {
+  // Seules les commandes payées ouvrent une relance (jamais un panier ou un
+  // paiement échoué). Le statut est porté par le store (champ `status`).
+  const orders = (input.orders ?? []).filter((o) => dateOf(o) && PAID_STATUSES.has((o as any).status || 'paid'));
+  if (orders.length === 0) return;
+
+  const reviewedProducts = new Set((input.productReviews ?? []).map((r) => r.productId).filter(Boolean));
+
+  // Lignes achetées (commandes payées) avec la date de la commande porteuse.
+  type Line = { productId: string; name: string; slug?: string; repurchase: boolean; date: string };
+  const lines: Line[] = [];
+  for (const order of orders) {
+    const iso = dateOf(order);
+    if (!iso) continue;
+    for (const item of order.items ?? []) {
+      if (!item.productId) continue;
+      lines.push({
+        productId: item.productId,
+        name: item.name || 'votre soin',
+        slug: item.slug,
+        repurchase: item.repurchase === true,
+        date: iso,
+      });
+    }
+  }
+  if (lines.length === 0) return;
+
+  // Date de la commande la plus RÉCENTE par produit : si le client a racheté
+  // après, on relance à partir de la nouvelle date (pas l'ancienne).
+  const lastByProduct = new Map<string, Line>();
+  for (const line of lines) {
+    const current = lastByProduct.get(line.productId);
+    if (!current || new Date(line.date).getTime() > new Date(current.date).getTime()) {
+      lastByProduct.set(line.productId, line);
+    }
+  }
+
+  for (const [productId, line] of lastByProduct.entries()) {
+    const ageDays = daysBetween(line.date, now);
+    const productLink = line.slug ? `/produit/${line.slug}#avis` : '/mon-compte/commandes';
+    const shopLink = line.slug ? `/produit/${line.slug}` : '/boutique';
+
+    // 1) Demande d'avis J+7 si jamais rédigé (fenêtre d'un mois).
+    if (!reviewedProducts.has(productId) && ageDays >= REVIEW_REQUEST_AFTER_DAYS && ageDays <= REVIEW_REQUEST_AFTER_DAYS + 30) {
+      nudges.push({
+        kind: 'review_request',
+        dedupeKey: `nudge:review:${input.userId}:${productId}`,
+        title: 'Votre avis compte',
+        message: `Vous utilisez « ${line.name} » depuis plus d'une semaine. Quelques mots honnêtes sur votre expérience ? Votre avis vérifié aide d'autres cheveux texturés à se lancer en confiance.`,
+        link: productLink,
+        refId: productId,
+      });
+    }
+
+    // 2) Réassort des soins consommables (fenêtre J+45 à J+110).
+    if (line.repurchase && ageDays >= REORDER_MIN_DAYS && ageDays <= REORDER_MAX_DAYS) {
+      nudges.push({
+        kind: 'reorder_reminder',
+        dedupeKey: `nudge:reorder:${input.userId}:${productId}:${Math.floor(ageDays / 30)}`,
+        title: 'Bientôt le moment de refaire le plein ?',
+        message: `Selon votre rythme d'utilisation, « ${line.name} » pourrait bientôt arriver à épuisement. En précommande, réservez-le pour l'expédier dès réception du prochain lot.`,
+        link: shopLink,
+        refId: productId,
+      });
+    }
+  }
+}
 
 function daysBetween(fromIso: string, to: Date): number {
   const from = new Date(fromIso);
@@ -172,6 +303,9 @@ export function computeNudges(input: NudgeInput, now: Date = new Date()): Nudge[
       });
     }
   }
+
+  // Relances commerciales (clients ayant commandé) : avis J+7 et réassort.
+  pushCommercialNudges(input, now, nudges);
 
   return nudges;
 }

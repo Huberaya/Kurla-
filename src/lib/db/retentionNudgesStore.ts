@@ -1,9 +1,12 @@
 import { notificationExists, sendNotification } from './notificationsStore';
 import { intelligenceStore } from '../intelligenceStore';
+import { getSupabaseServerClient } from '../supabaseClient';
+import { getProducts } from './catalogStore';
 
 import type { SupabaseServerStore } from '../serverDb';
 import {
   NudgeInput,
+  NudgeOrder,
   computeNudges,
 } from '../retentionNudges';
 
@@ -35,12 +38,100 @@ function inc(map: Record<string, number>, key: string): void {
   map[key] = (map[key] ?? 0) + 1;
 }
 
+/**
+ * Utilisateurs ayant au moins une commande payée avec un compte (user_id
+ * renseigné). Les invités (sans compte) reçoivent déjà les emails
+ * transactionnels mais pas de notification in-app : on les exclut ici.
+ */
+async function listOrderingUserIds(limit: number): Promise<string[]> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+  try {
+    const paid = ['paid', 'processing', 'packed', 'shipped', 'delivered'];
+    const { data, error } = await supabase
+      .from('orders')
+      .select('user_id')
+      .in('status', paid)
+      .not('user_id', 'is', null)
+      .limit(limit);
+    if (error) return [];
+    const ids = new Set<string>();
+    for (const row of (data || []) as any[]) {
+      if (row?.user_id) ids.add(String(row.user_id));
+    }
+    return Array.from(ids);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Rassemble les données commerciales d'un utilisateur : commandes payées (avec
+ * slug/catégorie pour construire les liens et le flag réassort) et avis déjà
+ * déposés (pour ne pas redemander). Aucune donnée inventée : un produit absent
+ * du catalogue n'est pas marqué consommable.
+ */
+async function loadCommercialData(
+  store: SupabaseServerStore,
+  userId: string
+): Promise<{ orders: NudgeOrder[]; productReviews: Array<{ productId?: string }> }> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return { orders: [], productReviews: [] };
+
+  const [ordersRaw, catalog, reviewsRaw] = await Promise.all([
+    store.getOrdersByCustomer('', userId),
+    getProducts(store, { publishedOnly: true }).catch(() => [] as any[]),
+    supabase
+      .from('reviews')
+      .select('product_id')
+      .eq('user_id', userId),
+  ]);
+
+  const catalogById = new Map<string, any>(catalog.map((p: any) => [p.id, p]));
+  const CONSUMABLE_CATEGORIES = /shampoing|après|apres|co-wash|cowash|leave-in|leavein|masque|huile|beurre|gel|coiffant|soin|crème|creme/i;
+
+  const orders: NudgeOrder[] = ordersRaw
+    .filter((o: any) => ['paid', 'processing', 'packed', 'shipped', 'delivered'].includes(o.status))
+    .map((o: any) => {
+      const dateRef = o.updatedAt || o.createdAt;
+      return {
+        id: o.id,
+        status: o.status,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+        items: (o.items || []).map((it: any) => {
+          const pid = it.productId || it.product_id;
+          const product = pid ? catalogById.get(pid) : undefined;
+          const category = String(product?.category || '');
+          const isKit = product?.category === 'kits' || String(pid || '').startsWith('launch-k');
+          const repurchase = !isKit && CONSUMABLE_CATEGORIES.test(category) && category !== 'Accessoire';
+          return {
+            productId: pid,
+            name: it.name || product?.name || 'votre soin',
+            slug: product?.slug || it.slug,
+            quantity: Number(it.quantity) || 1,
+            repurchase,
+          };
+        }).filter((it: any) => it.productId),
+      } as NudgeOrder;
+    })
+    .filter((o: NudgeOrder) => o.items.length > 0);
+
+  const productReviews = ((reviewsRaw.data || []) as any[])
+    .map((r) => ({ productId: r.product_id ? String(r.product_id) : undefined }))
+    .filter((r) => r.productId);
+
+  return { orders, productReviews };
+}
+
 /** Construit l'entrée du calcul à partir des données du store (déjà mappées). */
 function buildInput(userId: string, data: {
   shelf: any[];
   washCycle: any;
   episodes: any[];
   observations: any[];
+  orders?: NudgeOrder[];
+  productReviews?: Array<{ productId?: string }>;
 }): NudgeInput {
   // Un cycle par défaut (jamais de lavage enregistré) n'est pas exploitable :
   // on ne doit pas déclencher de nud « wash day dû » sans historique.
@@ -74,6 +165,8 @@ function buildInput(userId: string, data: {
       shelfItemId: obs.shelfItemId,
       productId: obs.productId,
     })),
+    orders: data.orders ?? [],
+    productReviews: data.productReviews ?? [],
   };
 }
 
@@ -84,20 +177,29 @@ export async function runRetentionNudges(
   const now = options.now ?? new Date();
   const result: RetentionRunResult = { usersScanned: 0, nudgesCreated: 0, nudgesByKind: {}, perUser: [] };
 
-  const userIds = await intelligenceStore.listActiveLoopUserIds(options.limitUsers ?? 5000);
+  // Union des utilisateurs à relancer : ceux de la boucle routine (étagère,
+  // wash-day, coiffure) ET ceux qui ont commandé (avis + réassort).
+  const limit = options.limitUsers ?? 5000;
+  const [routineUsers, orderingUsers] = await Promise.all([
+    intelligenceStore.listActiveLoopUserIds(limit),
+    listOrderingUserIds(limit),
+  ]);
+  const userIds = Array.from(new Set([...routineUsers, ...orderingUsers])).slice(0, limit);
 
+  // Catalogue mis en cache une seule fois par run (catégorie/slug des produits).
   for (const userId of userIds) {
     result.usersScanned += 1;
 
     let data;
     try {
-      const [shelf, washCycle, episodes, observations] = await Promise.all([
+      const [shelf, washCycle, episodes, observations, commercial] = await Promise.all([
         intelligenceStore.getShelf(userId),
         intelligenceStore.getWashDayCycle(userId),
         intelligenceStore.getProtectiveStyles(userId),
         intelligenceStore.getOutcomes(userId),
+        loadCommercialData(store, userId),
       ]);
-      data = { shelf, washCycle, episodes, observations };
+      data = { shelf, washCycle, episodes, observations, orders: commercial.orders, productReviews: commercial.productReviews };
     } catch (err) {
       // Un utilisateur illisible ne doit pas faire échouer tout le run.
       console.error(`[Retention] lecture impossible pour ${userId}:`, (err as Error)?.message);

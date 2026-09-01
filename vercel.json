@@ -12,6 +12,12 @@
       "includeFiles": "{api/_server.cjs,dist/index.html}"
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/retention",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
