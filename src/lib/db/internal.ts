@@ -30,6 +30,23 @@ export function mapOrderVatFields(row: any): Partial<ServerOrder> {
   return fields;
 }
 
+/**
+ * Le code promo est tracé dans le snapshot JSONB `shipping_address` (aucune
+ * colonne dédiée dans `orders`). On le ré-expose au niveau de la commande pour
+ * que le webhook puisse incrémenter le compteur d'usage après paiement.
+ */
+export function mapOrderCouponFields(row: any): Partial<ServerOrder> {
+  const snap = row?.shipping_address;
+  const fields: Partial<ServerOrder> = {};
+  if (snap && typeof snap === 'object') {
+    if (typeof snap.couponCode === 'string' && snap.couponCode) fields.couponCode = snap.couponCode;
+    if (snap.discountAmount != null && Number.isFinite(Number(snap.discountAmount))) {
+      fields.discountAmount = Number(snap.discountAmount);
+    }
+  }
+  return fields;
+}
+
 export function isUuid(value: string | undefined): value is string {
   return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

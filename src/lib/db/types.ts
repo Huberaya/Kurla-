@@ -121,6 +121,10 @@ export interface ServerOrder {
   vatBreakdown?: unknown;
   /** Numéro de TVA intracommunautaire du client (exonération seulement s'il est vérifié). */
   customerVatNumber?: string;
+  /** Code promo appliqué (métrique + traçabilité). */
+  couponCode?: string;
+  /** Montant de la remise coupon, en euros (TTC). Déjà déduit de `total`. */
+  discountAmount?: number;
 }
 
 /**

@@ -18,6 +18,7 @@ import {
 } from './src/lib/shippingRules';
 import { isReverseChargeEligible, vatRateForCountry } from './src/lib/vat';
 import { priceCheckoutWithVat } from './src/lib/checkoutVat';
+import { validateAndApplyCoupon, incrementCouponUsage } from './src/lib/db/couponStore';
 import { verifyVatNumber } from './src/lib/viesVerification';
 import { fromCents, toCents } from './src/lib/currency';
 import {
@@ -233,6 +234,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
           }
           const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
           await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
+          if (order.couponCode) await incrementCouponUsage(order.couponCode);
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Commande ${order.id} payée via checkout.session.completed.`);
         }
@@ -259,6 +261,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
           }
           const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
           await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
+          if (order.couponCode) await incrementCouponUsage(order.couponCode);
           processedOrderId = order.id;
           console.log(`[Stripe Webhook] Commande ${order.id} payée via checkout.session.async_payment_succeeded.`);
         }
@@ -697,6 +700,26 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     });
     const { vat, verifiedItems, itemsGrossCents, finalTotalCents, finalTotal } = pricing;
 
+    // ── Code promo ─────────────────────────────────────────────────────────
+    // La remise s'applique aux articles (TTC), jamais sur la livraison, et est
+    // plafonnée au sous-total articles. Validée côté serveur (le client ne
+    // fournit que le code).
+    let appliedCoupon: { code: string; description: string; discountType: string; discountValue: number; discountCents: number } | null = null;
+    const couponInput = typeof req.body.couponCode === 'string' ? req.body.couponCode.trim() : '';
+    if (couponInput) {
+      const result = await validateAndApplyCoupon(couponInput, itemsGrossCents);
+      if ('error' in result) {
+        return res.status(400).json({ error: result.error, code: 'COUPON_INVALID' });
+      }
+      appliedCoupon = result.coupon;
+    }
+    const discountCents = appliedCoupon?.discountCents || 0;
+    const discountedTotalCents = Math.max(0, finalTotalCents - discountCents);
+    const discountedTotal = discountedTotalCents / 100;
+    if (appliedCoupon) {
+      console.log(`[Stripe Checkout] Coupon ${appliedCoupon.code} → remise ${fromCents(discountCents).toFixed(2)} EUR · total ${discountedTotal.toFixed(2)} EUR`);
+    }
+
     console.log(
       `[Stripe Checkout] Pays ${vat.country} · taux ${vat.ratePercent}% · articles ${fromCents(itemsGrossCents).toFixed(2)} EUR · ` +
       `port ${fromCents(shippingCents).toFixed(2)} EUR · net ${fromCents(vat.totalNetCents).toFixed(2)} EUR · ` +
@@ -711,10 +734,15 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       id: orderId,
       userId: uid,
       items: verifiedItems,
-      total: finalTotal,
+      total: discountedTotal,
       status: 'payment_pending_webhook',
       customerEmail: email,
       checkoutIdempotencyKey,
+      // Coupon appliqué (métrique + traçabilité). La remise est déduite du total.
+      ...(appliedCoupon ? {
+        couponCode: appliedCoupon.code,
+        discountAmount: discountCents / 100
+      } : {}),
       // Devise et TVA : la commande porte de quoi reconstituer la facture, sans
       // dépendre d'un recalcul ultérieur des taux (qui peuvent changer).
       currency: 'EUR',
@@ -728,6 +756,11 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         shippingMethod,
         shippingCost: fromCents(shippingCents),
         subtotal: fromCents(itemsGrossCents),
+        // Coupon tracé dans le snapshot (aucune colonne dédiée dans orders).
+        ...(appliedCoupon ? {
+          couponCode: appliedCoupon.code,
+          discountAmount: fromCents(discountCents)
+        } : {}),
         // Instantané complet : taux, date de relevé, ventilation, port et, le cas
         // échéant, numéro de TVA vérifié. C'est la preuve de ce qui a été appliqué.
         vat: {
@@ -768,6 +801,38 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         quantity: 1
       });
     }
+    // La remise est portée par un coupon Stripe (les lignes price_data ne
+    // peuvent pas être négatives). Le coupon s'applique aux articles ; la
+    // livraison reste due, ce qui correspond à la règle métier.
+    let stripeCouponId: string | null = null;
+    if (discountCents > 0 && appliedCoupon) {
+      const couponId = `kurla-${appliedCoupon.code.toLowerCase().replace(/[^a-z0-9_-]+/g, '')}`;
+      try {
+        await stripe.coupons.retrieve(couponId);
+        stripeCouponId = couponId;
+      } catch {
+        try {
+          const params: any = {
+            id: couponId,
+            name: `KURLA — ${appliedCoupon.code}`,
+            metadata: { kurlaCode: appliedCoupon.code },
+            ...(appliedCoupon.discountType === 'fixed'
+              ? { amount_off: Math.round(appliedCoupon.discountValue * 100), currency: 'eur' }
+              : { percent_off: Math.min(100, appliedCoupon.discountValue) })
+          };
+          await stripe.coupons.create(params);
+          stripeCouponId = couponId;
+        } catch (createErr: any) {
+          // Coupon déjà créé par une requête concurrente : on le réutilise.
+          if (/already exists|resource_already_exists/i.test(String(createErr?.message || ''))) {
+            stripeCouponId = couponId;
+          } else {
+            console.error('[Stripe Checkout] Échec création coupon:', createErr?.message);
+            return res.status(400).json({ error: 'Impossible d’appliquer ce code promo au paiement.' });
+          }
+        }
+      }
+    }
 
     // Persist and reserve stock before creating an external Stripe session.
     // A failed Stripe call can then release the reservation through the order
@@ -787,10 +852,11 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
+      ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       customer_email: email,
-      metadata: { orderId, userId: uid || '' },
+      metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}) },
       payment_intent_data: {
-        metadata: { orderId, userId: uid || '' }
+        metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}) }
       },
       success_url: `${appUrl}/commande/confirmation?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
       cancel_url: `${appUrl}/boutique?canceled=true`,
@@ -1135,6 +1201,46 @@ app.post('/api/products/:productId/reviews', asyncRoute(async (req: Authenticate
   if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
   const review = await serverDb.createProductReview(user.id, product.id, Number(req.body?.rating), String(req.body?.comment || ''), typeof req.body?.title === 'string' ? req.body.title : undefined, typeof req.body?.variantId === 'string' ? req.body.variantId : undefined);
   res.status(201).json({ review, message: 'Avis reçu. Il sera visible après modération.' });
+}));
+
+// Aperçu/validation d'un code promo pour le panier. Le prix est recalculé côté
+// serveur (les montants clients ne sont jamais crus), comme au checkout.
+app.post('/api/coupons/validate', rateLimit('coupon', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const code = typeof req.body?.code === 'string' ? req.body.code : '';
+  const items = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (!code.trim()) return res.status(400).json({ error: 'Code promo manquant.' });
+  if (items.length === 0) return res.status(400).json({ error: 'Le panier est vide.' });
+
+  const catalog = await serverDb.getProducts({ publishedOnly: true });
+  let subtotalCents = 0;
+  for (const raw of items) {
+    const pId = raw?.product_id || raw?.productId || raw?.product?.id || raw?.id;
+    const variantId = raw?.variant_id || raw?.variantId || '';
+    const qty = Number(raw?.quantity);
+    if (typeof pId !== 'string' || !Number.isSafeInteger(qty) || qty < 1) {
+      return res.status(400).json({ error: 'Article invalide.' });
+    }
+    const product = catalog.find(p => p.id === pId || p.slug === pId);
+    if (!product) return res.status(400).json({ error: 'Un article du panier est indisponible.' });
+    const variant = variantId ? (product.variants || []).find((v: any) => v.id === variantId && v.is_active !== false) : undefined;
+    if (variantId && !variant) return res.status(400).json({ error: 'Variante indisponible.' });
+    const price = variant ? effectiveVariantPrice(variant) : Number(product.price);
+    subtotalCents += toCents(price) * qty;
+  }
+
+  const result = await validateAndApplyCoupon(code, subtotalCents);
+  if ('error' in result) return res.status(400).json({ error: result.error });
+  const { coupon } = result;
+  res.json({
+    valid: true,
+    code: coupon.code,
+    description: coupon.description,
+    discountType: coupon.discountType,
+    discountValue: coupon.discountValue,
+    discountAmount: coupon.discountCents / 100,
+    subtotal: subtotalCents / 100,
+    newSubtotal: Math.max(0, subtotalCents - coupon.discountCents) / 100
+  });
 }));
 
 // Liste d'attente GÉNÉRALE du lancement (capture email bêta, sans compte).

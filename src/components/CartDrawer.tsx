@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink, Check, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
@@ -48,6 +48,45 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   });
   const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState(() => createIdempotencyKey());
 
+  // ── Code promo ──
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isCouponLoading, setIsCouponLoading] = useState(false);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code || isCouponLoading) return;
+    setIsCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          items: items.map(item => ({
+            product_id: item.product.id,
+            variant_id: item.variantId,
+            quantity: item.quantity
+          }))
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAppliedCoupon(null);
+        setCouponError(data?.error || 'Code promo invalide.');
+        return;
+      }
+      setAppliedCoupon({ code: data.code, discountAmount: Number(data.discountAmount) });
+      setCouponError(null);
+    } catch {
+      setCouponError('Impossible de vérifier ce code pour le moment.');
+    } finally {
+      setIsCouponLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.email && !guestEmail) setGuestEmail(user.email);
   }, [user?.email, guestEmail]);
@@ -74,6 +113,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
   const orderTotalCents = subtotalCents + shippingCents;
+  const discountCents = appliedCoupon ? Math.round(appliedCoupon.discountAmount * 100) : 0;
+  // La remise porte sur les articles ; le total affiché ne descend jamais sous
+  // 0 (le serveur plafonne déjà la remise au sous-total).
+  const finalTotalCents = Math.max(0, orderTotalCents - discountCents);
 
   /**
    * Estimation de TVA au taux du pays de livraison. Le serveur recalcule tout
@@ -141,7 +184,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           customerEmail: email,
           checkoutIdempotencyKey,
           shippingAddress,
-          shippingMethod
+          shippingMethod,
+          ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {})
         })
       });
 
@@ -176,7 +220,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       }
 
       // Tunnel de paiement ouvert → événement conversion (GA4/Plausible si configurés).
-      try { analytics.beginCheckout(orderTotalCents ? orderTotalCents / 100 : undefined); } catch (e) {}
+      try { analytics.beginCheckout(finalTotalCents ? finalTotalCents / 100 : undefined); } catch (e) {}
 
       // Attempt automatic top-level redirect
       try {
@@ -425,6 +469,49 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </label>
             </div>
 
+            {/* Code promo */}
+            <div className="space-y-1.5">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span className="font-semibold text-emerald-300">{appliedCoupon.code}</span>
+                    <span className="text-[#FFF7EF]/60">−{formatMoney(discountCents, locale)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setAppliedCoupon(null); setCouponInput(''); }}
+                    className="text-[#FFF7EF]/50 hover:text-[#FFF7EF]"
+                    aria-label="Retirer le code promo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={event => setCouponInput(event.target.value.toUpperCase())}
+                      onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyCoupon(); } }}
+                      placeholder="Code promo (ex : BIENVENUE15)"
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs uppercase tracking-wide text-[#FFF7EF] placeholder-[#FFF7EF]/40 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-[#C8753D]"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={isCouponLoading || !couponInput.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap"
+                    >
+                      {isCouponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Appliquer'}
+                    </button>
+                  </div>
+                  {couponError && <p className="text-[11px] text-rose-400">{couponError}</p>}
+                </>
+              )}
+            </div>
+
             <div className="flex justify-between text-sm text-[#FFF7EF]">
               <span className="text-[#FFF7EF]/70">Sous-total :</span>
               <span>{formatMoney(subtotalCents, locale)}</span>
@@ -433,9 +520,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <span className="text-[#FFF7EF]/70">Livraison :</span>
               <span>{formatMoney(shippingCents, locale)}</span>
             </div>
+            {discountCents > 0 && (
+              <div className="flex justify-between text-sm text-emerald-300">
+                <span>Remise {appliedCoupon?.code} :</span>
+                <span>−{formatMoney(discountCents, locale)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-base text-[#FFF7EF] border-t border-[#FFF7EF]/10 pt-3">
               <span className="font-semibold">Total estimé :</span>
-              <span className="font-bold">{formatMoney(orderTotalCents, locale)}</span>
+              <span className="font-bold">{formatMoney(finalTotalCents, locale)}</span>
             </div>
             {vatPreview && (
               <div className="flex justify-between text-[11px] text-[#FFF7EF]/60">
@@ -478,7 +571,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <span>{allItemsPreorder ? 'Précommander' : 'Commander maintenant'} ({formatMoney(orderTotalCents, locale)})</span>
+                  <span>{allItemsPreorder ? 'Précommander' : 'Commander maintenant'} ({formatMoney(finalTotalCents, locale)})</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

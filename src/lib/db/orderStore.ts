@@ -7,6 +7,7 @@ import {
   orderEmailData,
   ensureDatabaseSuccess,
   mapOrderVatFields,
+  mapOrderCouponFields,
   recordLoyaltySafely,
   toPublicProduct,
 } from './internal';
@@ -323,7 +324,8 @@ export async function getOrderById(store: SupabaseServerStore, id: string): Prom
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
-          ...mapOrderVatFields(data)
+          ...mapOrderVatFields(data),
+          ...mapOrderCouponFields(data)
         };
       }
     }
@@ -361,7 +363,8 @@ export async function getOrdersByCustomer(store: SupabaseServerStore, email: str
           shippingAddress: d.shipping_address,
           createdAt: d.created_at,
           updatedAt: d.updated_at,
-          ...mapOrderVatFields(d)
+          ...mapOrderVatFields(d),
+          ...mapOrderCouponFields(d)
         }));
         return supaOrders;
       }
@@ -529,7 +532,8 @@ export async function findOrder(store: SupabaseServerStore, query: { stripeSessi
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
-          ...mapOrderVatFields(data)
+          ...mapOrderVatFields(data),
+          ...mapOrderCouponFields(data)
         };
       }
     }

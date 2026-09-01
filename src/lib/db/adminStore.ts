@@ -15,7 +15,7 @@ import {
   evaluateEditorialCompliance,
   normalizeGenerationMode
 } from '../editorialCompliance';
-import { ensureDatabaseSuccess, isUuid, mapOrderVatFields } from './internal';
+import { ensureDatabaseSuccess, isUuid, mapOrderVatFields, mapOrderCouponFields } from './internal';
 import { mapRefundRow } from './refundSupport';
 
 import type {
@@ -542,7 +542,8 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
           shippingAddress: data.shipping_address,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
-          ...mapOrderVatFields(data)
+          ...mapOrderVatFields(data),
+          ...mapOrderCouponFields(data)
         }));
 
         const { data: refundData, error: refundsError } = await supabase.from('refunds').select('*');
