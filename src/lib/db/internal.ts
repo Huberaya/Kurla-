@@ -211,7 +211,7 @@ export function orderEmailData(order: {
   id: string;
   total: number;
   currency?: string | null;
-  items?: Array<{ name?: string; quantity?: number; price?: number; isPreorder?: boolean }>;
+  items?: Array<{ name?: string; quantity?: number; price?: number; isPreorder?: boolean; slug?: string }>;
   shippingAddress?: any;
   status?: OrderStatus;
 }): Record<string, any> {
@@ -220,10 +220,17 @@ export function orderEmailData(order: {
         name: it.name || 'Soin KURLA',
         quantity: Number(it.quantity) || 1,
         price: Number(it.price) || undefined,
-        isPreorder: it.isPreorder === true
+        isPreorder: it.isPreorder === true,
+        slug: typeof it.slug === 'string' ? it.slug : undefined
       }))
     : [];
   const shippingCost = order.shippingAddress?.shippingCost;
+  // Liens directs vers les fiches produits, pour la demande d'avis post-livraison.
+  const reviewLinks = items
+    .filter(it => it.slug)
+    .map(it => `https://kurlabeauty.vercel.app/produit/${it.slug}#avis`)
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+    .slice(0, 6);
   return {
     orderId: order.id,
     total: order.total,
@@ -231,6 +238,7 @@ export function orderEmailData(order: {
     status: order.status,
     items,
     preorder: items.some(i => i.isPreorder),
+    reviewLinks,
     ...(shippingCost != null && Number.isFinite(Number(shippingCost)) ? { shippingCost: Number(shippingCost) } : {})
   };
 }

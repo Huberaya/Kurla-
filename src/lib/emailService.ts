@@ -265,8 +265,13 @@ export class EmailService {
         return `Votre commande #${data.orderId} a été soigneusement emballée.`;
       case 'order_shipped':
         return `Votre commande #${data.orderId} a été expédiée via ${data.carrier || 'notre transporteur'} !\nNuméro de suivi : ${data.trackingNumber || 'En attente'}\nSuivi : ${data.trackingUrl || '#'}`;
-      case 'order_delivered':
-        return `Votre commande #${data.orderId} a été livrée ! Profitez bien de vos soins KURLA.`;
+      case 'order_delivered': {
+        const links: string[] = Array.isArray(data.reviewLinks) ? data.reviewLinks : [];
+        const reviewBlock = links.length
+          ? `\n\nVotre avis compte vraiment : après quelques jours d'utilisation, pourriez-vous partager votre expérience honnête sur vos soins ? Cela aide d'autres cheveux texturés à se lancer en confiance (et nous aide à corriger ce qui ne va pas, promis).\nC'est ici, 1 minute :\n${links.join('\n')}\n`
+          : `\n\nAprès quelques jours d'utilisation, votre avis honnête sur votre expérience nous aiderait énormément — et aiderait d'autres cheveux texturés à se lancer en confiance. Vous pourrez déposer votre avis directement sur la fiche de chaque produit de votre commande.`;
+        return `Votre commande #${data.orderId} a été livrée ! Profitez bien de vos soins KURLA.${reviewBlock}`;
+      }
       case 'order_cancelled':
         return `Votre commande #${data.orderId} a été annulée. Si un paiement a été capturé, son traitement vous sera confirmé séparément.`;
       case 'order_returned':
