@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
+import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
@@ -1135,6 +1136,13 @@ export const AdminDashboardPage: React.FC = () => {
         {/* TAB 5B: APPROVISIONNEMENT — chantier 16B */}
         {activeTab === 'suppliers' && (
           <div className="space-y-10">
+            <ProductSupplierPanel
+              headers={adminHeaders}
+              onSuccess={(message) => {
+                setActionSuccess(message);
+                setTimeout(() => setActionSuccess(''), 5000);
+              }}
+            />
             <SourcingProspectsPanel
               headers={adminHeaders}
               onSuccess={(message) => {

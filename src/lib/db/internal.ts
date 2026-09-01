@@ -165,7 +165,12 @@ export function toPublicProduct(product: any): any {
     communityBrand: product.communityBrand === true,
     isNew: product.isNew === true,
     isPromo: isPromotionActive(product),
-    isPreorder: product.isPreorder === true || (Array.isArray(product.badges) && product.badges.includes('preorder'))
+    isPreorder: product.isPreorder === true || (Array.isArray(product.badges) && product.badges.includes('preorder')),
+    // Référencement fournisseur : non sensible, utile à l'admin et au suivi
+    // de sourcing (le prix d'achat reste côté serveur, jamais exposé).
+    supplierId: (product as any).supplier_id ?? (product as any).supplierId ?? null,
+    supplierSku: (product as any).supplier_sku ?? (product as any).supplierSku ?? null,
+    sourceSupplier: (product as any).source_supplier ?? (product as any).sourceSupplier ?? null
   };
 }
 

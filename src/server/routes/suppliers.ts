@@ -1,6 +1,7 @@
 import type { Express, Response } from 'express';
 
 import { serverDb } from '../../lib/serverDb';
+import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { SupplierAmbiguityError, SUPPLIER_DOCUMENT_TYPES, SUPPLIER_TYPES } from '../../lib/db/supplierStore';
 import { asyncRoute, safeApiError } from '../http';
 import { requireAdmin, type AuthenticatedRequest } from '../auth';
@@ -105,6 +106,48 @@ export function registerSupplierRoutes(app: Express): void {
     } catch (error) {
       console.error('[Suppliers] document error:', error);
       res.status(400).json({ error: safeApiError(error, 'Document de conformité non enregistré.') });
+    }
+  }));
+
+  // Affectation d'un fournisseur (et SKU/coût fournisseur) à un produit.
+  // Écrit sur les colonnes supplier_id / supplier_sku / source_supplier de la
+  // table products ; renvoie le produit mis à jour. Une valeur de fournisseur
+  // vide réinitialise l'affectation.
+  app.patch('/api/admin/products/:productId/supplier', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const { supplierId, supplierSku, sourceSupplier } = req.body || {};
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base de données indisponible.' });
+
+      const update: Record<string, unknown> = {};
+      if (typeof supplierId === 'string') {
+        const sid = supplierId.trim();
+        if (sid) {
+          const { data: sup } = await supabase.from('suppliers').select('id').eq('id', sid).maybeSingle();
+          if (!sup) return res.status(400).json({ error: 'Fournisseur introuvable.' });
+          update.supplier_id = sid;
+        } else {
+          update.supplier_id = null;
+        }
+      }
+      if (typeof supplierSku === 'string') update.supplier_sku = supplierSku.trim().slice(0, 120) || null;
+      if (typeof sourceSupplier === 'string') update.source_supplier = sourceSupplier.trim().slice(0, 200) || null;
+      if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Rien à mettre à jour.' });
+
+      const { data, error } = await supabase
+        .from('products')
+        .update({ ...update, last_catalog_updated_at: new Date().toISOString(), catalog_updated_by: admin.id })
+        .eq('id', req.params.productId)
+        .select('id, name, slug, supplier_id, supplier_sku, source_supplier')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: 'Produit introuvable.' });
+      res.json({ product: data });
+    } catch (error) {
+      console.error('[Suppliers] assign error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Affectation fournisseur non enregistrée.') });
     }
   }));
 }
