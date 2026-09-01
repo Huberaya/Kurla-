@@ -15,10 +15,16 @@ export const WaitlistSection: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      const params = new URLSearchParams(window.location.search);
+      const utm = {
+        utmSource: params.get('utm_source') || undefined,
+        utmMedium: params.get('utm_medium') || undefined,
+        utmCampaign: params.get('utm_campaign') || undefined
+      };
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), profileType, country: 'FR' })
+        body: JSON.stringify({ email: email.trim(), profileType, country: 'FR', ...utm })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

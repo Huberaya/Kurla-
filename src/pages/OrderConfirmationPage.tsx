@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Loader2, ShoppingBag } from 'lucide-react';
+import { analytics } from '../lib/analytics';
 
 interface OrderConfirmationPageProps {
   sessionId?: string;
@@ -64,6 +65,22 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
   }, [sessionId, orderId]);
 
   const orderStatus = result?.order?.status || '';
+
+  // Conversion confirmée → événement purchase (GA4/Plausible), une seule fois.
+  useEffect(() => {
+    const order = result?.order;
+    const paid = ['paid', 'processing', 'packed', 'shipped', 'delivered'].includes(order?.status || '');
+    if (order && paid) {
+      const key = `kurla_purchase_${order.id}`;
+      try {
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1');
+          analytics.purchase(order.id, Number(order.total) || undefined);
+        }
+      } catch { /* noop */ }
+    }
+  }, [result]);
+
   const copy = statusCopy[orderStatus] || {
     title: 'Commande reçue',
     message: 'Nous vérifions encore le statut de votre paiement. Cette page peut être actualisée dans quelques instants.',

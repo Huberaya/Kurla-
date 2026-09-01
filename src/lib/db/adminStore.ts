@@ -573,8 +573,20 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
         ensureDatabaseSuccess('comptage des remboursements pour les métriques', refundCountError);
         supaRefundCount = refundCount || 0;
 
-        const { count: waitlistCount, error: waitlistError } = await supabase.from('product_waitlist').select('*', { count: 'exact', head: true });
-        if (!waitlistError) supaWaitlistCount = waitlistCount || 0;
+        // Liste de lancement : table dédiée launch_leads si la migration est
+        // appliquée, sinon repli sur les lignes générales de product_waitlist
+        // (ancre héro launch-p08, sans variante = capture home, pas du réassort).
+        const { count: leadsCount, error: leadsError } = await supabase
+          .from('launch_leads').select('*', { count: 'exact', head: true })
+          .eq('status', 'subscribed');
+        if (!leadsError) {
+          supaWaitlistCount = leadsCount || 0;
+        } else if (/does not exist|42P01/i.test(String(leadsError.message) + String(leadsError.code))) {
+          const { count: fbCount } = await supabase.from('product_waitlist')
+            .select('*', { count: 'exact', head: true })
+            .eq('product_id', 'launch-p08').is('variant_id', null);
+          supaWaitlistCount = fbCount || 0;
+        }
       } catch (err) {
         console.error('[serverDb] getAdminAnalyticsMetrics error:', err);
         throw err;

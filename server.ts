@@ -1137,9 +1137,12 @@ app.post('/api/products/:productId/reviews', asyncRoute(async (req: Authenticate
   res.status(201).json({ review, message: 'Avis reçu. Il sera visible après modération.' });
 }));
 
-// Liste d'attente générale du lancement (capture email, sans compte requis).
-// On réutilise la table product_waitlist avec un product_id sentinelle car la
-// colonne est NOT NULL. Limité en débit ; email validé et dédupliqué.
+// Liste d'attente GÉNÉRALE du lancement (capture email bêta, sans compte).
+// Cible la table dédiée `launch_leads` (voir migration
+// 20260901000000_launch_leads.sql). Tant que la migration n'est pas appliquée,
+// repli sur `product_waitlist` (ancre = produit héro launch-p08, statut
+// 'waiting'). Limité en débit, email validé et dédupliqué.
+const WAITLIST_FALLBACK_ANCHOR = 'launch-p08'; // héro 4C, existe toujours au lancement
 app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -1147,19 +1150,47 @@ app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (r
   }
   const country = String(req.body?.country || 'FR').toUpperCase().slice(0, 2) || 'FR';
   const profileType = String(req.body?.profileType || 'client') === 'pro' ? 'pro' : 'client';
+  const utm = {
+    source: String(req.body?.utmSource || '').slice(0, 80) || null,
+    medium: String(req.body?.utmMedium || '').slice(0, 80) || null,
+    campaign: String(req.body?.utmCampaign || '').slice(0, 80) || null
+  };
   const supabase = getSupabaseServerClient();
   if (!supabase) return res.status(503).json({ error: 'Indisponible pour le moment.' });
-  const productId = `launch-newsletter-${profileType}`;
+
+  // 1) Table dédiée launch_leads (migration appliquée).
+  const lead: Record<string, unknown> = {
+    email, profile_type: profileType, country, source: 'home_waitlist',
+    utm_source: utm.source, utm_medium: utm.medium, utm_campaign: utm.campaign,
+    status: 'subscribed'
+  };
+  const { error: leadErr } = await supabase.from('launch_leads')
+    .insert(lead)
+    .select('id')
+    .maybeSingle();
+  if (!leadErr) return res.status(201).json({ ok: true });
+  if (!/relation .*launch_leads.* does not exist|42P01/i.test(String(leadErr?.message || '') + String(leadErr?.code || ''))) {
+    // Doublon = déjà inscrit.
+    if (/duplicate|23505|unique/i.test(String(leadErr?.message || '') + String(leadErr?.code || ''))) {
+      return res.status(200).json({ ok: true, alreadySubscribed: true });
+    }
+    console.error('[waitlist] launch_leads insert error:', leadErr.message);
+    return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
+  }
+
+  // 2) Repli : product_waitlist ancrée au produit héro (statut 'waiting').
   const { data: existing } = await supabase.from('product_waitlist')
-    .select('id').eq('email', email).eq('product_id', productId).maybeSingle();
+    .select('id').eq('email', email).eq('product_id', WAITLIST_FALLBACK_ANCHOR)
+    .is('variant_id', null).maybeSingle();
   if (existing) return res.status(200).json({ ok: true, alreadySubscribed: true });
   const { error } = await supabase.from('product_waitlist').insert({
-    product_id: productId, variant_id: null, user_id: null,
-    email, country, status: 'subscribed'
+    product_id: WAITLIST_FALLBACK_ANCHOR, variant_id: null, user_id: null,
+    email, country, status: 'waiting'
   });
   if (error) {
-    // Contrainte de dédoublonnage éventuelle : on répond positivement.
-    if (!/duplicate/i.test(error.message)) return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
+    if (/duplicate|23505|unique/i.test(String(error.message))) return res.status(200).json({ ok: true, alreadySubscribed: true });
+    console.error('[waitlist] fallback insert error:', error.message);
+    return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
   }
   res.status(201).json({ ok: true });
 }));
