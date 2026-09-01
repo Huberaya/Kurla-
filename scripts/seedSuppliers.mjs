@@ -29,15 +29,19 @@ function guessCategory(name){
   const n=name.toLowerCase();
   // Produits FINIS d'abord (un masque/leave-in "au karité" n'est pas de la matière première).
   if(/co-wash|cowash/.test(n)) return 'Co-wash';
-  if(/shampoing|shampoo/.test(n)) return 'Shampoing';
-  if(/après|apres|conditionneur|démêl|demel/.test(n)) return 'Après-shampoing';
+  // Outils matériels : testés avant les produits (un peigne/brosse « démêlant »
+  // ou une brosse à « edges » ne sont pas des cosmétiques).
+  if(/peigne|bonnet|vaporis|flacon applicat|taie|satin|brosse|bigoudi|pince|foulard|headwrap|filet|à edges|edge control brush|crocodile/.test(n)) return 'Accessoire';
+  // « Après-shampoing » avant « shampoing » (sinon le mot « shampoing » l'emporte).
+  if(/après|apres|conditionneur/.test(n)) return 'Après-shampoing';
+  if(/shampoing|shampoo|gommage cuir/.test(n)) return 'Shampoing';
   if(/masque/.test(n)) return 'Masque';
-  if(/leave-in|leave in/.test(n)) return 'Leave-in';
-  if(/mousse|gel|coiff|edge|twist|crème de définition|creme de definition/.test(n)) return 'Gel/Coiffant';
-  if(/peigne|bonnet|vaporis|flacon|taie|satin/.test(n)) return 'Accessoire';
+  if(/leave-in|leave in|spray refresh/.test(n)) return 'Leave-in';
+  if(/mousse|gel|coiff|twist|crème de définition|creme de definition/.test(n)) return 'Gel/Coiffant';
+  if(/flacon|applicateur/.test(n)) return 'Accessoire';
   // Matières premières / huiles & beurres bruts (héros marque propre).
   if(/karité|karite|beurre|huile|sérum|serum|ricin|jamaï|mangue|coco/.test(n)) return 'Huile/Beurre';
-  if(/crème hydratante|creme hydratante/.test(n)) return 'Leave-in';
+  if(/crème hydratante|creme hydratante|démêl|demel/.test(n)) return 'Leave-in';
   return 'Leave-in';
 }
 
