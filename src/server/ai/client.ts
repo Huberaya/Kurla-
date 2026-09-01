@@ -27,4 +27,10 @@ export function getGeminiClient(): GoogleGenAI | null {
  * répond de façon stable et accepte la sortie structurée JSON.) Surchargeable
  * par la variable d'environnement GEMINI_MODEL.
  */
+// Modèle principal + modèle de repli. Le niveau gratuit applique un quota
+// quotidien PAR MODÈLE : en cas de 429 sur le modèle principal, on bascule sur
+// le modèle « lite » (quota distinct, JSON structuré pris en charge) avant de
+// tomber sur le repli déterministe. Surchargeable via GEMINI_MODEL /
+// GEMINI_MODEL_FALLBACK.
 export const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash';
+export const GEMINI_MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK?.trim() || 'gemini-3.5-flash-lite';

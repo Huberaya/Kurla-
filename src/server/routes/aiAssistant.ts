@@ -9,7 +9,8 @@ import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, rateLimit } from '../http';
 import { authenticateRequest, bearerToken, requireUser } from '../auth';
-import { getGeminiClient, GEMINI_MODEL } from '../ai/client';
+import { getGeminiClient, GEMINI_MODEL, GEMINI_MODEL_FALLBACK } from '../ai/client';
+import { salvageStructuredJson } from '../ai/structuredJson';
 import { getAvailableCatalog, selectOperationalKnowledgeCards, getRelevantIngredientFacts, detectIngredientAvoidance, filterCatalogByAvoidance, enrichCatalogWithIngredientFacts } from '../ai/catalog';
 import {
   normalizeAiCountry,
@@ -128,15 +129,15 @@ export function registerAiAssistantRoutes(app: Express): void {
           ? 'Quand la porosité/le type de boucle changerait concrètement la routine et que le profil ne les contient pas, mentionne en une phrase qu’un diagnostic cheveux express (3 min) affinerait la recommandation (un bouton est proposé sous la réponse). Ne le mentionne pas pour une question purement informative sur un ingrédient.'
           : '';
         const systemInstruction = `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\\n\\nLANGUE DE SORTIE : ${locale}. PAYS : ${country}. OBJECTIF : ${objective || 'à préciser'}.\\n\\nHISTORIQUE DE LA CONVERSATION (réponds en CONTINUITÉ ; une question courte comme « et le shampoing ? » ou « c'est pareil pour elle ? » fait référence au dernier échange — réutilise le profil, la texture et le sujet déjà discutés, et ne redemande pas ce qui est déjà connu) :\\n${historyContext}\\n\\nBUDGET MAXIMUM INDICATIF : ${budgetLimit(profile) === undefined ? 'non renseigné' : `${budgetLimit(profile)} EUR par article`}.\\n\\nPROFIL KURLA ID (données déclarées, possiblement incomplètes) :\\n${JSON.stringify(profile || { unavailable: true })}\\n\\nBASE DE CONNAISSANCES KURLA SÉLECTIONNÉE :\\n${formatKnowledgeContext(cards)}\\n\\nCATALOGUE VÉRIFIÉ :\\n${JSON.stringify(catalogContext)}\\n\\nFICHES INGRÉDIENT VÉRIFIÉES (graphe KURLA, source de vérité composition) :\\n${ingredientFacts.length ? JSON.stringify(ingredientFacts) : 'Aucun ingrédient mentionné résolu dans le graphe KURLA.'}\\nQuand la question porte sur un ingrédient (rôle, danger, « sans X », comédogénicité, allergène, concentration), appuie-toi EXCLUSIVEMENT sur ces fiches pour toute affirmation factuelle : cite le nom INCI, sa fonction concrète, son statut allergène réglementé, sa concentration maximale UE et son indice comédogène s’ils sont fournis. Quand tu recommandes un produit du catalogue dont les keyIngredients sont fournis, et qu’au moins un de ces ingrédients figure dans les fiches ci-dessus, cite 1 à 3 ingrédients clés VÉRIFIÉS de ce produit dans le champ reason (nom INCI + ce qu’il apporte concrètement), en ne puisant ces précisions que dans les fiches. Ne prétends pas qu’un produit contient un ingrédient s’il n’est ni dans ses keyIngredients ni dans une fiche.\\nSi la question est très vague ou se réfère à un échange précédent sans que le contexte soit suffisant, fais l’hypothèse la plus utile à partir du profil et de l’historique, réponds quand même concrètement, et indique dans uncertainty la seule info qui affinerait vraiment — ne réponds jamais par une simple question en retour.\\nSi un ingrédient n’est PAS dans ces fiches, dis-le FRANCHEMENT et d’emblée : « KURLA n’a pas encore de fiche vérifiée pour cet ingrédient, je ne peux donc rien affirmer sur sa sécurité ou sa concentration » ; n’invente ni restriction, ni allergène, ni concentration, ni fonction ; ne le qualifie jamais d’« interdit », « toxique » ou « dangereux » sans fiche l’étayant ; propose de vérifier le nom INCI exact.\\n\\nCOMPOSITION VÉRIFIÉE PAR PRODUIT (slug produit → fiches ingrédient réelles) :\\n${productFactsContext}\\nQuand tu recommandes un produit présent dans cette liste, cite dans reason 1 à 3 de ces ingrédients INCI avec leur fonction concrète (puisée dans les fiches) ; n'attribue jamais à un produit un ingrédient absent de cette liste ou de ses keyIngredients.\\n\\nCONTRAINTES D’EXCLUSION / ALLERGIES (sans X) :\\n${avoidanceContext}\\n\\n=== EXIGENCE DE QUALITÉ ET DE PROFONDEUR ===\\nTu es l'experte cheveux texturés de référence. Ne donne PAS de réponse courte ou superficielle. Fournis une réponse COMPLÈTE, PÉDAGOGIQUE et ACTIONNABLE :\\n- shortAnswer : une introduction chaleureuse de 1 à 2 phrases qui répond directement.\\n- simpleExplanation : un vrai développement de 3 à 6 phrases. Explique le POURQUOI (mécanisme : porosité, hydratation vs nutrition, écaille de la fibre, cuir chevelu, causes mécaniques/environnementales) en langage simple. Relie la réponse à la texture/porosité de la personne et à son profil KURLA ID si connu.\\n- routineSteps : 5 à 7 étapes CONCRÈTES et ORDONNÉES, chacune en une phrase complète avec le type de produit, le moment et la fréquence (ex. « 1 fois/semaine », « sur cheveux humides »). Couvre le lavage, l'hydratation, la nutrition/scellement, la protection.\\n- immediateActions : 3 à 5 gestes à faire dès maintenant.\\n- usefulProducts : choisis des produits adaptés et propose un ordre de la routine.\\n- errorsToAvoid et avoidCombinations : cite des erreurs précises et fréquentes (ex. huile sur cheveux secs sans eau, shampoing agressif, traction, surcharge protéinée).\\n- whenToConsultPro : signe concrets (plaies, rougeurs, croûtes, douleur, chute soudaine).\\n- uncertainty : dis ce qui n'est pas connu et ce qui affinerait le conseil.\\n- Si la question concerne un ENFANT : adapte tout au cuir chevelu et à la fibre d'un enfant (produits légers et doux, geste ludique et sans tiraillement, ne pas de produits agressifs, fréquence plus souple).\\n- Varie la fréquence selon les besoins, sois précise et bienveillante, évite les généralités vides.\\n\\n${diagnosticHint}\\n\\nContraintes absolues : n’utilise aucune connaissance comme preuve clinique si son statut n’est pas validé ; ne pose aucun diagnostic médical ; usefulProducts ne peut contenir que des objets dont productSlug est un slug EXACT du catalogue fourni ; n’invente ni produit, ni lien, ni disponibilité ; si aucun produit du catalogue n'est adapté, renvoie une liste utileProducts vide et concentre-toi sur le conseil. N’utilise pas de score dans la réponse.`;
-        const response = await aiClient.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: JSON.stringify({ query, objective, locale, country }),
-          config: {
-            temperature: 0.45,
-            maxOutputTokens: 4096,
-            systemInstruction,
-            responseMimeType: 'application/json',
-            responseSchema: {
+        // Essai 1 (réponse complète). Essai 2 : si le JSON est tronqué ou que
+        // le modèle bute, on redemande une version plus ramassée avec un budget
+        // de sortie plus large — on ne bascule en repli déterministe qu'après.
+        const schemaConfig = {
+          temperature: 0.45,
+          maxOutputTokens: 8192,
+          systemInstruction,
+          responseMimeType: 'application/json' as const,
+          responseSchema: {
               type: Type.OBJECT,
               properties: {
                 shortAnswer: { type: Type.STRING },
@@ -152,10 +153,66 @@ export function registerAiAssistantRoutes(app: Express): void {
               },
               required: ['shortAnswer', 'simpleExplanation', 'routineSteps', 'immediateActions', 'usefulProducts', 'avoidCombinations', 'usefulTools', 'errorsToAvoid', 'whenToConsultPro', 'uncertainty']
             }
+        };
+
+        // Détecte une erreur de quota/débit (429) : dans ce cas on ne brûle PAS
+        // un second essai tout de suite, on attend le délai conseillé par Google
+        // puis on réessaie une seule fois.
+        const isRateLimit = (e: any): { limited: boolean; delayMs: number } => {
+          const msg = String((e as any)?.message || e || '');
+          if (!/429|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(msg)) return { limited: false, delayMs: 0 };
+          const m = msg.match(/retry in ([\d.]+)s/i) || msg.match(/retryDelay[^0-9]*([\d.]+)s?/i);
+          return { limited: true, delayMs: Math.min(8000, Math.max(1500, Math.round((m ? parseFloat(m[1]) : 3) * 1000))) };
+        };
+
+        const callModel = async (concise: boolean, useFallbackModel = false): Promise<void> => {
+          const sys = concise
+            ? `${systemInstruction}\nIMPORTANT : réponds en JSON VALIDE et complet. Sois un peu plus concis dans les textes longs (simpleExplanation max 4 phrases, routineSteps 5 étapes, reason produit en 1 phrase) pour éviter toute troncature. N'omet aucun champ du schéma.`
+            : systemInstruction;
+          const response = await aiClient.models.generateContent({
+            model: useFallbackModel ? GEMINI_MODEL_FALLBACK : GEMINI_MODEL,
+            contents: JSON.stringify({ query, objective, locale, country }),
+            config: { ...schemaConfig, systemInstruction: sys }
+          });
+          const text = response.text || '';
+          const finishReason = (response as any)?.candidates?.[0]?.finishReason;
+          const parsed = salvageStructuredJson(text);
+          if (!parsed) throw new Error(`JSON structuré illisible (finishReason=${finishReason ?? 'n/a'}, ${text.length} car.)`);
+          answer = sanitizeStructuredAnswer(parsed, query, locale, cards, recommendationCatalog, fits, needs, profile);
+          modelUsed = true;
+          if (finishReason === 'MAX_TOKENS' && !concise) throw new Error('TRUNCATED');
+        };
+
+        try {
+          try {
+            await callModel(false);
+          } catch (firstError) {
+            const rate = isRateLimit(firstError);
+            if (rate.limited) {
+              // Quota du modèle principal épuisé : bascule sur le modèle lite
+              // (quota distinct), sans attendre.
+              console.warn('[AI Assistant] quota modèle principal atteint, bascule modèle lite.');
+              await callModel(false, true);
+            } else if ((firstError as Error)?.message === 'TRUNCATED' || /JSON structuré illisible|JSON/.test((firstError as Error)?.message || '')) {
+              // JSON tronqué/illisible : second essai plus ramassé.
+              try {
+                await callModel(true);
+              } catch (conciseError) {
+                if (isRateLimit(conciseError).limited) await callModel(true, true);
+                else throw conciseError;
+              }
+            } else {
+              // Autre erreur (503…) : tente aussi le modèle de repli.
+              try { await callModel(false, true); } catch { throw firstError; }
+            }
           }
-        });
-        answer = sanitizeStructuredAnswer(JSON.parse(response.text || '{}'), query, locale, cards, recommendationCatalog, fits, needs, profile);
-        modelUsed = true;
+        } catch (finalError) {
+          if (isRateLimit(finalError).limited) {
+            console.warn('[AI Assistant] quota Gemini atteint (niveau gratuit) — repli déterministe temporaire.');
+          } else {
+            console.error('[AI Assistant] Gemini échoué, repli déterministe :', (finalError as Error)?.message || finalError);
+          }
+        }
       } catch (error) {
         console.error('[AI Assistant] constrained model failed, using deterministic safe answer:', (error as Error)?.message || error);
       }
