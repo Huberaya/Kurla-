@@ -180,6 +180,39 @@ export function emailTemplateForOrderStatus(status: OrderStatus): EmailMessage['
   return `order_${status}` as EmailMessage['template'];
 }
 
+/**
+ * Données de l'email transactionnel d'une commande : récapitulatif des lignes
+ * (avec drapeau précommande), total et frais de port. Permet au template HTML
+ * d'afficher le détail de la commande sans réinterroger le catalogue.
+ */
+export function orderEmailData(order: {
+  id: string;
+  total: number;
+  currency?: string | null;
+  items?: Array<{ name?: string; quantity?: number; price?: number; isPreorder?: boolean }>;
+  shippingAddress?: any;
+  status?: OrderStatus;
+}): Record<string, any> {
+  const items = Array.isArray(order.items)
+    ? order.items.map(it => ({
+        name: it.name || 'Soin KURLA',
+        quantity: Number(it.quantity) || 1,
+        price: Number(it.price) || undefined,
+        isPreorder: it.isPreorder === true
+      }))
+    : [];
+  const shippingCost = order.shippingAddress?.shippingCost;
+  return {
+    orderId: order.id,
+    total: order.total,
+    currency: order.currency || 'EUR',
+    status: order.status,
+    items,
+    preorder: items.some(i => i.isPreorder),
+    ...(shippingCost != null && Number.isFinite(Number(shippingCost)) ? { shippingCost: Number(shippingCost) } : {})
+  };
+}
+
 
 /**
  * CHANTIER 8.3 — applique un fait de progression sans jamais faire échouer

@@ -1923,7 +1923,7 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
       changedBy: admin.id,
       changedByRole: admin.role,
       reason: `Mise à jour expédition : ${status}`,
-      emailData: { carrier, trackingNumber, trackingUrl }
+      emailData: { carrier, trackingNumber, trackingUrl, estimatedDelivery: shipment.estimatedDelivery }
     });
     resultingOrderStatus = updatedOrder?.status || orderStatus;
   }

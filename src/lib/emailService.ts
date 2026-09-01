@@ -5,6 +5,7 @@
  * delivered email. Production must use a configured provider and a verified
  * sender domain (SPF/DKIM are DNS/provider responsibilities).
  */
+import { renderOrderEmail } from './emailTemplates';
 
 export type EmailTemplate =
   | 'account_created'
@@ -77,7 +78,11 @@ export class EmailService {
       finalSubject = '[KURLA BEAUTY] Votre commande est en attente de confirmation du paiement';
     }
 
-    const content = this.renderTemplate(finalTemplate, msg.data);
+    // Rendu HTML de marque (+ version texte brut). En l'absence de template
+    // dédié, on retombe sur un rendu texte simple.
+    const rendered = renderOrderEmail(finalTemplate, msg.data || {});
+    const textContent = rendered?.text || this.renderTemplate(finalTemplate, msg.data);
+    const htmlContent = rendered?.html || null;
 
     if (this.provider === 'console') {
       if (process.env.NODE_ENV === 'production') {
@@ -96,7 +101,7 @@ export class EmailService {
       console.log(`Sujet: ${finalSubject}`);
       console.log(`Modèle: ${finalTemplate}`);
       console.log('------------------------------------------------------------');
-      console.log(content);
+      console.log(htmlContent ? textContent + '\n[HTML disponible pour les fournisseurs réels]' : textContent);
       console.log('============================================================');
 
       return {
@@ -129,7 +134,7 @@ export class EmailService {
     }
 
     try {
-      return await this.sendViaProvider(msg.to, finalSubject, content);
+      return await this.sendViaProvider(msg.to, finalSubject, htmlContent, textContent);
     } catch (err: any) {
       const providerError = err?.message || 'Erreur envoi email';
       console.error(`[Email Provider Error] ${this.provider}:`, providerError);
@@ -143,7 +148,7 @@ export class EmailService {
     }
   }
 
-  private async sendViaProvider(to: string, subject: string, content: string): Promise<EmailDeliveryResult> {
+  private async sendViaProvider(to: string, subject: string, html: string | null, text: string): Promise<EmailDeliveryResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
     timeout.unref?.();
@@ -152,6 +157,8 @@ export class EmailService {
       let endpoint: string;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       let body: Record<string, any>;
+      // HTML de marque si disponible ; sinon texte brut converti en paragraphes.
+      const htmlBody = html || this.escapeHtml(text).replace(/\n/g, '<br>');
 
       switch (this.provider) {
         case 'resend':
@@ -162,7 +169,8 @@ export class EmailService {
             to: [to],
             subject,
             ...(this.replyTo ? { reply_to: this.replyTo } : {}),
-            html: this.escapeHtml(content).replace(/\n/g, '<br>')
+            html: htmlBody,
+            ...(text ? { text } : {})
           };
           break;
         case 'sendgrid':
@@ -173,7 +181,10 @@ export class EmailService {
             from: { email: this.from },
             ...(this.replyTo ? { reply_to: { email: this.replyTo } } : {}),
             subject,
-            content: [{ type: 'text/plain', value: content }]
+            content: [
+              { type: 'text/plain', value: text },
+              { type: 'text/html', value: htmlBody }
+            ]
           };
           break;
         case 'postmark':
@@ -184,7 +195,8 @@ export class EmailService {
             To: to,
             ...(this.replyTo ? { ReplyTo: this.replyTo } : {}),
             Subject: subject,
-            TextBody: content
+            TextBody: text,
+            HtmlBody: htmlBody
           };
           break;
         default:

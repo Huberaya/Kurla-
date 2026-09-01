@@ -4,6 +4,7 @@ import type { EmailMessage } from '../emailService';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   emailTemplateForOrderStatus,
+  orderEmailData,
   ensureDatabaseSuccess,
   mapOrderVatFields,
   recordLoyaltySafely,
@@ -652,7 +653,7 @@ async function updateOrderStatusInner(store: SupabaseServerStore, orderId: strin
           to: updated.customerEmail,
           subject: `[KURLA BEAUTY] ${title}`,
           template: emailTemplateForOrderStatus(updated.status),
-          data: { orderId: updated.id, total: updated.total, status: updated.status, ...(extra?.emailData || {}) }
+          data: { ...orderEmailData(updated), status: updated.status, ...(extra?.emailData || {}) }
         };
         if (updated.userId) {
           await store.notifyUser(
@@ -792,7 +793,7 @@ async function updateOrderStatusInner(store: SupabaseServerStore, orderId: strin
         to: order.customerEmail,
         subject: `[KURLA BEAUTY] ${title}`,
         template: emailTemplateForOrderStatus(newStatus),
-        data: { orderId: order.id, total: order.total, status: newStatus, ...(extra?.emailData || {}) }
+        data: { ...orderEmailData(order), status: newStatus, ...(extra?.emailData || {}) }
       };
       if (order.userId) {
         await store.notifyUser(
