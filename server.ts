@@ -1158,24 +1158,22 @@ app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (r
   const supabase = getSupabaseServerClient();
   if (!supabase) return res.status(503).json({ error: 'Indisponible pour le moment.' });
 
-  // 1) Table dédiée launch_leads (migration appliquée).
+  // 1) Table dédiée launch_leads (migration appliquée). Toute erreur (table
+  // absente, RLS non encore en place…) fait basculer sur le repli.
   const lead: Record<string, unknown> = {
     email, profile_type: profileType, country, source: 'home_waitlist',
     utm_source: utm.source, utm_medium: utm.medium, utm_campaign: utm.campaign,
     status: 'subscribed'
   };
-  const { error: leadErr } = await supabase.from('launch_leads')
-    .insert(lead)
-    .select('id')
-    .maybeSingle();
-  if (!leadErr) return res.status(201).json({ ok: true });
-  if (!/relation .*launch_leads.* does not exist|42P01/i.test(String(leadErr?.message || '') + String(leadErr?.code || ''))) {
-    // Doublon = déjà inscrit.
-    if (/duplicate|23505|unique/i.test(String(leadErr?.message || '') + String(leadErr?.code || ''))) {
-      return res.status(200).json({ ok: true, alreadySubscribed: true });
-    }
-    console.error('[waitlist] launch_leads insert error:', leadErr.message);
-    return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
+  const { data: leadRows, error: leadErr } = await supabase.from('launch_leads')
+    .insert(lead, { count: 'exact' })
+    .select('id');
+  if (!leadErr) {
+    if ((leadRows || []).length > 0) return res.status(201).json({ ok: true });
+  } else if (/duplicate|23505|unique/i.test(String(leadErr?.message || '') + String(leadErr?.code || ''))) {
+    return res.status(200).json({ ok: true, alreadySubscribed: true });
+  } else {
+    console.warn('[waitlist] launch_leads indisponible, repli product_waitlist:', leadErr.message);
   }
 
   // 2) Repli : product_waitlist ancrée au produit héro (statut 'waiting').
@@ -1183,16 +1181,18 @@ app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (r
     .select('id').eq('email', email).eq('product_id', WAITLIST_FALLBACK_ANCHOR)
     .is('variant_id', null).maybeSingle();
   if (existing) return res.status(200).json({ ok: true, alreadySubscribed: true });
-  const { error } = await supabase.from('product_waitlist').insert({
-    product_id: WAITLIST_FALLBACK_ANCHOR, variant_id: null, user_id: null,
-    email, country, status: 'waiting'
-  });
+  const { data: fbRows, error } = await supabase.from('product_waitlist')
+    .insert({
+      product_id: WAITLIST_FALLBACK_ANCHOR, variant_id: null, user_id: null,
+      email, country, status: 'waiting'
+    }, { count: 'exact' })
+    .select('id');
   if (error) {
     if (/duplicate|23505|unique/i.test(String(error.message))) return res.status(200).json({ ok: true, alreadySubscribed: true });
     console.error('[waitlist] fallback insert error:', error.message);
     return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
   }
-  res.status(201).json({ ok: true });
+  res.status((fbRows || []).length > 0 ? 201 : 200).json({ ok: true });
 }));
 
 app.post('/api/products/:productId/waitlist', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

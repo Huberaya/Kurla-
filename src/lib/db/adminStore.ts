@@ -581,7 +581,9 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
           .eq('status', 'subscribed');
         if (!leadsError) {
           supaWaitlistCount = leadsCount || 0;
-        } else if (/does not exist|42P01/i.test(String(leadsError.message) + String(leadsError.code))) {
+        } else {
+          // Table dédiée absente/RLS → repli : lignes de capture home ancrées au
+          // produit héro (launch-p08, sans variante), distinctes du réassort.
           const { count: fbCount } = await supabase.from('product_waitlist')
             .select('*', { count: 'exact', head: true })
             .eq('product_id', 'launch-p08').is('variant_id', null);
