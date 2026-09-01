@@ -219,6 +219,19 @@ export function sanitizeStructuredAnswer(raw: any, query: string, locale: string
   if (!raw || typeof raw !== 'object') return fallback;
   const modelDetails = new Map<string, any>((Array.isArray(raw.usefulProducts) ? raw.usefulProducts : []).filter((product: any) => typeof product?.productSlug === 'string').map((product: any) => [product.productSlug, product]));
   const productRecommendations = recommendationsForSlugs(raw.usefulProducts?.map((p: any) => p?.productSlug), catalog, fits, locale, modelDetails);
+  // CTA diagnostic express : si le profil n'a pas les infos capillaires clés et
+  // que la question est une demande de routine/conseil personnalisé (pas une
+  // simple question d'information sur un ingrédient), on propose le diagnostic.
+  const hair = (profile && (profile as any).hair) || {};
+  const hasHairBasics = Boolean(hair.porosity || (Array.isArray(hair.texturePatterns) && hair.texturePatterns.length) || hair.curlType || hair.dryness);
+  const isInformational = /\b(qu'?est[- ]?ce que|c'?est quoi|définition|différence|ingrédient|inci|allerg[èe]ne|toxique|interdit|danger)\b/i.test(query);
+  const baseCtas: { label: string; href: string; type: 'diagnostic' | 'routine' | 'boutique' | 'pro' | 'medical' }[] = [
+    { label: locale === 'en' ? 'Browse the catalog' : 'Explorer le catalogue', href: '/boutique', type: 'boutique' },
+    { label: locale === 'en' ? 'Track my routine' : 'Suivre ma routine', href: '/account/routine-tracker', type: 'routine' }
+  ];
+  if (!hasHairBasics && !isInformational) {
+    baseCtas.unshift({ label: locale === 'en' ? 'Take the 3-min hair diagnostic' : 'Faire le diagnostic cheveux (3 min)', href: '/diagnostic/cheveux', type: 'diagnostic' as const });
+  }
   const answer = {
     ...fallback,
     shortAnswer: typeof raw.shortAnswer === 'string' ? raw.shortAnswer.slice(0, 1000) : fallback.shortAnswer,
@@ -232,7 +245,7 @@ export function sanitizeStructuredAnswer(raw: any, query: string, locale: string
     usefulTools: Array.isArray(raw.usefulTools) ? raw.usefulTools.filter((v: any) => typeof v?.name === 'string' && typeof v?.description === 'string').slice(0, 6) : fallback.usefulTools,
     errorsToAvoid: Array.isArray(raw.errorsToAvoid) ? raw.errorsToAvoid.filter((v: unknown): v is string => typeof v === 'string').slice(0, 8) : fallback.errorsToAvoid,
     sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })),
-    ctas: [{ label: locale === 'en' ? 'Browse the catalog' : 'Explorer le catalogue', href: '/boutique', type: 'boutique' as const }, { label: locale === 'en' ? 'Track my routine' : 'Suivre ma routine', href: '/account/routine-tracker', type: 'routine' as const }]
+    ctas: baseCtas
   };
   return answer;
 }
