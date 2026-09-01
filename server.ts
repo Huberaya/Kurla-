@@ -604,16 +604,27 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         ? (dbProduct.variants || []).find((candidate: any) => candidate.id === variantId && candidate.is_active !== false)
         : undefined;
       if (variantId && !variant) return res.status(400).json({ error: 'La variante demandée n’est pas disponible.' });
-      if (!variant && dbProduct.inStock === false) return res.status(400).json({ error: `Le produit "${dbProduct.name}" est actuellement en rupture de stock.` });
+      // PRÉCOMMANDE : un produit en précommande est vendable même sans stock
+      // physique réceptionné (le premier lot arrive plus tard). On l'autorise
+      // jusqu'à une limite de précommandes par article, au lieu d'exiger du
+      // stock disponible. Les produits normaux gardent le contrôle de stock.
+      const isPreorderProduct = dbProduct.isPreorder === true;
+      if (!isPreorderProduct && !variant && dbProduct.inStock === false) return res.status(400).json({ error: `Le produit "${dbProduct.name}" est actuellement en rupture de stock.` });
 
       const availableStock = variant
         ? Math.max(0, Number(variant.available_quantity ?? (Number(variant.stock_quantity) - Number(variant.reserved_quantity || 0))))
         : await serverDb.getAvailableStock(dbProduct.id);
       const requestedQuantity = requestedByVariant.get(requestedKey) || quantity;
-      if (requestedQuantity > availableStock) {
+      const PREORDER_MAX_PER_ITEM = 500; // plafond de précommandes acceptées avant réception du lot
+      if (!isPreorderProduct && requestedQuantity > availableStock) {
         console.error(`[Stripe Checkout Error] Stock insuffisant pour ${dbProduct.name} (${requestedQuantity}/${availableStock})`);
         return res.status(400).json({
           error: `Stock insuffisant pour "${dbProduct.name}". Quantité demandée : ${requestedQuantity}, Stock disponible : ${availableStock}.`
+        });
+      }
+      if (isPreorderProduct && requestedQuantity > PREORDER_MAX_PER_ITEM) {
+        return res.status(400).json({
+          error: `Quantité maximale de précommande atteinte pour "${dbProduct.name}" (${PREORDER_MAX_PER_ITEM} par article).`
         });
       }
 
@@ -637,6 +648,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         name: dbProduct.name,
         image: dbProduct.image,
         slug: dbProduct.slug,
+        isPreorder: dbProduct.isPreorder === true,
         priceIncludesVat,
         declaredVatRate
       });
@@ -730,11 +742,13 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       updatedAt: new Date().toISOString()
     };
 
-    const lineItems = verifiedItems.map((item) => ({
+    const preorderSlugs = new Set(pricedItems.filter((i: any) => i.isPreorder).map((i: any) => i.slug));
+    const lineItems: any[] = verifiedItems.map((item: any) => ({
       price_data: {
         currency: 'eur',
         product_data: {
-          name: item.name,
+          name: preorderSlugs.has(item.slug) ? `[Précommande] ${item.name}` : item.name,
+          description: preorderSlugs.has(item.slug) ? 'Article en précommande — expédié à la réception du premier lot.' : undefined,
           images: item.image ? [item.image] : [],
         },
         // Montant réellement encaissé, en centimes : identique au prix catalogue
@@ -747,7 +761,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       lineItems.push({
         price_data: {
           currency: 'eur',
-          product_data: { name: `Livraison ${shippingMethod}`, images: [] },
+          product_data: { name: `Livraison ${shippingMethod}`, description: undefined, images: [] },
           unit_amount: shippingCents
         },
         quantity: 1
