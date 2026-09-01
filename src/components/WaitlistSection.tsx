@@ -1,15 +1,35 @@
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck, Tag } from 'lucide-react';
+import { Sparkles, CheckCircle2, ArrowRight, ShieldCheck, Tag, Loader2 } from 'lucide-react';
+import { analytics } from '../lib/analytics';
 
 export const WaitlistSection: React.FC = () => {
   const [email, setEmail] = useState('');
   const [profileType, setProfileType] = useState<'client' | 'pro'>('client');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (!email || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), profileType, country: 'FR' })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Inscription impossible pour le moment.');
+      }
+      try { analytics.waitlistJoin(profileType); } catch { /* noop */ }
       setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,11 +95,16 @@ export const WaitlistSection: React.FC = () => {
             />
             <button
               type="submit"
-              className="px-8 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8753D]/20 transition-all flex items-center justify-center gap-2 shrink-0"
+              disabled={loading}
+              className="px-8 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-60 text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8753D]/20 transition-all flex items-center justify-center gap-2 shrink-0"
             >
-              Rejoindre la bêta <ArrowRight className="w-4 h-4" />
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription…</> : <>Rejoindre la bêta <ArrowRight className="w-4 h-4" /></>}
             </button>
           </form>
+        )}
+
+        {error && !submitted && (
+          <p className="mt-3 text-sm text-rose-600 font-medium">{error}</p>
         )}
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-[#111111]/60">

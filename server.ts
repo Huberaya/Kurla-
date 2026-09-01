@@ -10,7 +10,7 @@ import { mountSpaFallback } from './src/server/spaFallback';
 import { renderSpaDocument } from './src/server/seoResolver';
 import { jurisdictionForCountry } from './src/lib/jurisdiction';
 import { serverDb, ServerOrder } from './src/lib/serverDb';
-import { isSupabaseServerConfigured } from './src/lib/supabaseClient';
+import { isSupabaseServerConfigured, getSupabaseServerClient } from './src/lib/supabaseClient';
 import {
   calculateShippingCents,
   normalizeShippingAddress,
@@ -1135,6 +1135,33 @@ app.post('/api/products/:productId/reviews', asyncRoute(async (req: Authenticate
   if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
   const review = await serverDb.createProductReview(user.id, product.id, Number(req.body?.rating), String(req.body?.comment || ''), typeof req.body?.title === 'string' ? req.body.title : undefined, typeof req.body?.variantId === 'string' ? req.body.variantId : undefined);
   res.status(201).json({ review, message: 'Avis reçu. Il sera visible après modération.' });
+}));
+
+// Liste d'attente générale du lancement (capture email, sans compte requis).
+// On réutilise la table product_waitlist avec un product_id sentinelle car la
+// colonne est NOT NULL. Limité en débit ; email validé et dédupliqué.
+app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Adresse email invalide.' });
+  }
+  const country = String(req.body?.country || 'FR').toUpperCase().slice(0, 2) || 'FR';
+  const profileType = String(req.body?.profileType || 'client') === 'pro' ? 'pro' : 'client';
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return res.status(503).json({ error: 'Indisponible pour le moment.' });
+  const productId = `launch-newsletter-${profileType}`;
+  const { data: existing } = await supabase.from('product_waitlist')
+    .select('id').eq('email', email).eq('product_id', productId).maybeSingle();
+  if (existing) return res.status(200).json({ ok: true, alreadySubscribed: true });
+  const { error } = await supabase.from('product_waitlist').insert({
+    product_id: productId, variant_id: null, user_id: null,
+    email, country, status: 'subscribed'
+  });
+  if (error) {
+    // Contrainte de dédoublonnage éventuelle : on répond positivement.
+    if (!/duplicate/i.test(error.message)) return res.status(400).json({ error: 'Inscription impossible pour le moment.' });
+  }
+  res.status(201).json({ ok: true });
 }));
 
 app.post('/api/products/:productId/waitlist', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

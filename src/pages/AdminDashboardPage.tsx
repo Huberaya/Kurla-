@@ -10,6 +10,14 @@ import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 
+const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
+  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
+    <span className="text-[11px] uppercase tracking-wider text-[#FFF7EF]/50 block">{label}</span>
+    <strong className={`text-xl font-bold block ${tone}`}>{value}</strong>
+    {hint && <span className="text-[10px] text-[#FFF7EF]/40 block leading-snug">{hint}</span>}
+  </div>
+);
+
 export const AdminDashboardPage: React.FC = () => {
   const { user, profile, session, signOut } = useAuth();
   const isAuthenticated = Boolean(
@@ -560,6 +568,31 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-amber-300">Recherches sans résultat</span><strong className="text-2xl block">{metrics ? metrics.searchesWithoutResultsCount : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Événements persistés, requêtes ≥ 2 caractères</span></div>
               <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-sky-300">Utilisation IA</span><strong className="text-2xl block">{metrics?.aiUsageRate == null ? (metrics ? 'Non calculable' : '—') : `${metrics.aiUsageRate.toFixed(1)} %`}</strong><span className="text-[11px] text-[#FFF7EF]/45">Utilisateurs inscrits ayant utilisé l’IA</span></div>
               <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? (metrics.popularProducts?.length || 0) : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Classement issu des lignes de commandes réglées</span></div>
+            </div>
+
+            {/* ── Pilotage économique : marge / LTV / CAC / acquisition ── */}
+            <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF]">Pilotage économique</h2>
+                <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${metrics?.stripeMode === 'live' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>
+                  Stripe : {metrics?.stripeMode === 'live' ? 'LIVE (encaissements réels)' : metrics?.stripeMode === 'test' ? 'MODE TEST (aucun euro réel)' : 'non configuré'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCell label="Marge estimée" value={metrics ? `${metrics.estimatedMargin.toFixed(2)} €` : '—'} hint="CA net − coûts d'achat cibles − port" tone="text-emerald-300" />
+                <KpiCell label="Taux de marge estimé" value={metrics?.estimatedMarginRate == null ? (metrics ? '—' : '—') : `${metrics.estimatedMarginRate.toFixed(0)} %`} hint="Sur coûts cibles du plan" tone="text-emerald-300" />
+                <KpiCell label="Clients uniques" value={metrics ? metrics.uniqueCustomers : '—'} hint="Emails distincts ayant commandé" tone="text-[#FFF7EF]" />
+                <KpiCell label="Taux de réachat" value={metrics?.repeatRate == null ? '—' : `${metrics.repeatRate.toFixed(0)} %`} hint="Clients avec ≥ 2 commandes" tone="text-sky-300" />
+                <KpiCell label="LTV proxy" value={metrics?.ltvProxy == null ? '—' : `${metrics.ltvProxy.toFixed(2)} €`} hint="CA net / clients uniques" tone="text-[#D49A63]" />
+                <KpiCell label="CAC" value="—" hint="À renseigner (dépenses pub / clients acquis)" tone="text-[#FFF7EF]/70" />
+                <KpiCell label="Liste d'attente (emails)" value={metrics ? metrics.waitlistCount : '—'} hint="Emails capturés sur la home" tone="text-rose-300" />
+                <KpiCell label="Inscrits (comptes)" value={metrics ? metrics.registeredUsersCount : '—'} hint="Profils créés" tone="text-[#FFF7EF]/70" />
+              </div>
+              <p className="text-[11px] text-[#FFF7EF]/40 leading-relaxed">
+                Marge et LTV sont des estimations de pilotage basées sur les coûts d'achat cibles du plan de lancement (non comptables).
+                Le CAC se calcule une fois les premières dépenses d'acquisition engagées : cible <strong className="text-[#FFF7EF]/60">CAC &lt; LTV / 3</strong> et ROAS &gt; 2,5 avant toute publicité payante.
+                En mode TEST, tous les montants correspondent à des commandes fictives.
+              </p>
             </div>
 
             {(metrics?.topZeroResultSearches?.length > 0 || metrics?.popularProducts?.length > 0) && <div className="grid lg:grid-cols-2 gap-6">

@@ -4,6 +4,7 @@ import { CartItem } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
 import { computeOrderVat, formatVatRate } from '../lib/vat';
+import { analytics } from '../lib/analytics';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
 
@@ -173,6 +174,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       if (onCheckout) {
         try { onCheckout(); } catch (e) {}
       }
+
+      // Tunnel de paiement ouvert → événement conversion (GA4/Plausible si configurés).
+      try { analytics.beginCheckout(orderTotalCents ? orderTotalCents / 100 : undefined); } catch (e) {}
 
       // Attempt automatic top-level redirect
       try {

@@ -3,6 +3,12 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import {installApiFailureInterceptor} from './lib/apiDiagnostics';
+import {initAnalytics} from './lib/analytics';
+
+// Charge les fournisseurs d'analytics UNIQUEMENT si un identifiant est
+// configuré (VITE_GA_MEASUREMENT_ID / VITE_PLAUSIBLE_DOMAIN). Sans variable,
+// aucun script tiers n'est téléchargé.
+initAnalytics();
 
 // Installe le diagnostic d'erreur API avant le premier rendu : un déploiement
 // sans backend doit être nommé comme tel, pas affiché comme un NOT_FOUND brut.

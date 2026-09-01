@@ -9,6 +9,7 @@ import {
   normalizeContentTranslations,
 } from '../educationalContent';
 import { getSupabaseServerClient } from '../supabaseClient';
+import { LAUNCH_PRODUCTS, LAUNCH_KITS } from '../launchCatalog';
 import {
   assertPublishable,
   evaluateEditorialCompliance,
@@ -522,6 +523,7 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
     let supaSearchEvents: Array<{ query: string; result_count: number }> = [];
     let supaAiUsageEvents: Array<{ user_id?: string | null; succeeded: boolean }> = [];
     let supaRefundCount = 0;
+    let supaWaitlistCount = 0;
 
     if (supabase) {
       try {
@@ -570,6 +572,9 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
         const { count: refundCount, error: refundCountError } = await supabase.from('refunds').select('*', { count: 'exact', head: true }).in('status', ['succeeded', 'completed', 'pending']);
         ensureDatabaseSuccess('comptage des remboursements pour les métriques', refundCountError);
         supaRefundCount = refundCount || 0;
+
+        const { count: waitlistCount, error: waitlistError } = await supabase.from('product_waitlist').select('*', { count: 'exact', head: true });
+        if (!waitlistError) supaWaitlistCount = waitlistCount || 0;
       } catch (err) {
         console.error('[serverDb] getAdminAnalyticsMetrics error:', err);
         throw err;
@@ -630,6 +635,46 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
       .slice(0, 10);
     const inMemoryRefundCount = store.inMemoryRefunds.filter(refund => ['succeeded', 'completed', 'pending'].includes(refund.status)).length;
 
+    // ── Métriques BUSINESS : marge estimée, clients, réachat, LTV, CAC ──
+    // Coûts d'achat cibles HT du plan de lancement (par id launch-*). Le coût
+    // d'un kit = somme des coûts cibles de ses composants.
+    const COST: Record<string, number> = {};
+    for (const p of LAUNCH_PRODUCTS) COST[`launch-${p.id}`] = p.targetCostEur;
+    for (const k of LAUNCH_KITS) {
+      const kitCost = k.productIds.reduce((s, pid) => s + (LAUNCH_PRODUCTS.find(p => p.id === pid)?.targetCostEur || 0), 0);
+      COST[`launch-${k.id}`] = Math.round(kitCost * 100) / 100;
+    }
+    // Marge estimée (coût d'achat HT + port déduit) sur les commandes réglées
+    // launch-* uniquement. Estimation de pilotage, pas une comptabilité.
+    let estimatedMargin = 0;
+    for (const order of paidOrders) {
+      const shippingCost = Number((order.shippingAddress as any)?.shippingCost || 0);
+      let orderCost = 0;
+      let launchLines = false;
+      for (const it of ((order.items || []) as any[])) {
+        const pid: string = it.productId || it.product_id;
+        const qty = Number(it.quantity) || 1;
+        if (pid && COST[pid] != null) { orderCost += COST[pid] * qty; launchLines = true; }
+      }
+      if (launchLines) estimatedMargin += Math.max(0, Number(order.total || 0) - orderCost - shippingCost);
+    }
+    estimatedMargin = Math.round(estimatedMargin * 100) / 100;
+    const estimatedMarginRate = revenueTest > 0 ? Math.round((estimatedMargin / revenueTest) * 1000) / 10 : null;
+
+    // Clients uniques (email) ayant commandé, et clients à ≥2 commandes (réachat).
+    const customerOrders = new Map<string, number>();
+    for (const order of paidOrders) {
+      const email = (order.customerEmail || '').toLowerCase().trim();
+      if (email) customerOrders.set(email, (customerOrders.get(email) || 0) + 1);
+    }
+    const uniqueCustomers = customerOrders.size;
+    const repeatCustomers = Array.from(customerOrders.values()).filter(n => n >= 2).length;
+    const repeatRate = uniqueCustomers > 0 ? Math.round((repeatCustomers / uniqueCustomers) * 1000) / 10 : null;
+    // LTV proxy = revenu net / nombre de clients uniques.
+    const ltvProxy = uniqueCustomers > 0 ? Math.round((revenueTest / uniqueCustomers) * 100) / 100 : null;
+    // Nouveaux clients (créés en base, tous statuts).
+    const newCustomers = supaProfilesCount;
+
     const lowStockProducts = products.filter(p => p.stockQuantity < 5 && p.stockQuantity > 0);
     const outOfStockProducts = products.filter(p => p.stockQuantity === 0 || !p.inStock);
 
@@ -657,7 +702,18 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
         ? supaTicketsCount
         : store.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length,
       stripeEventsCount: supabase ? supaEventsCount : store.processedEventsSet.size,
-      registeredUsersCount: supabase ? supaProfilesCount : 0
+      registeredUsersCount: supabase ? supaProfilesCount : 0,
+      // Métriques business / pilotage
+      estimatedMargin,
+      estimatedMarginRate,
+      uniqueCustomers,
+      repeatCustomers,
+      repeatRate,
+      ltvProxy,
+      newCustomers,
+      waitlistCount: supaWaitlistCount,
+      stripeMode: (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_') ? 'live'
+        : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown'
     };
   }
 
