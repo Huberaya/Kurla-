@@ -260,6 +260,13 @@ export const ROUTE_META: RouteMeta[] = [
     description: 'Confirmation de votre commande.',
     indexable: false,
   },
+  {
+    // Suivi de commande (numéro + email) : non indexé (transactionnel).
+    path: '/suivi-commande',
+    title: 'Suivre ma commande | KURLA',
+    description: 'Suivez votre commande KURLA : statut, préparation, expédition et livraison.',
+    indexable: false,
+  },
 
   // ── Professionnels ─────────────────────────────────────────────────────────
   {
