@@ -580,7 +580,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   <div>
                     <div className="relative h-56 rounded-2xl overflow-hidden mb-4 bg-[#F8F2EC]">
                       {product.image ? (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={product.image}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

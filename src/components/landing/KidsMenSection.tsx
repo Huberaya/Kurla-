@@ -66,7 +66,7 @@ export const KidsMenSection: React.FC = () => {
 
                 {/* Visual Image Banner */}
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-[#1A0F0A]">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={MEN_GROOMING_IMAGE}
                     alt="Soins hommes grooming"
                     referrerPolicy="no-referrer"
@@ -126,7 +126,7 @@ export const KidsMenSection: React.FC = () => {
 
                 {/* Visual Image Banner */}
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-[#1A0F0A]">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={KIDS_CARE_IMAGE}
                     alt="Soins enfants kids haircare"
                     referrerPolicy="no-referrer"

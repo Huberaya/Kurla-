@@ -60,7 +60,7 @@ export const ArticleDetailPage: React.FC<ArticleDetailPageProps> = ({ slug }) =>
         </div>}
 
         <div className="relative aspect-[16/9] rounded-3xl overflow-hidden border border-[#FFF7EF]/10 mb-12 shadow-2xl">
-          {article.image ? <img src={article.image} alt={title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center">{article.contentType === 'video' ? <Video className="w-12 h-12 text-[#C8753D]" /> : <BookOpen className="w-12 h-12 text-[#C8753D]" />}</div>}
+          {article.image ? <img loading="lazy" decoding="async" src={article.image} alt={title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center">{article.contentType === 'video' ? <Video className="w-12 h-12 text-[#C8753D]" /> : <BookOpen className="w-12 h-12 text-[#C8753D]" />}</div>}
         </div>
 
         {article.contentType === 'video' && article.mediaUrl && <div className="mb-10 rounded-2xl bg-[#1A0F0A] border border-[#C8753D]/30 p-5">

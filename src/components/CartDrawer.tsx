@@ -285,7 +285,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   key={`${item.product.id}:${item.variantId || ''}`}
                   className="flex items-center gap-4 p-3 rounded-2xl bg-[#050403]/80 border border-[#FFF7EF]/10"
                 >
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={item.product.image}
                     alt={item.product.name}
                     className="w-16 h-16 rounded-xl object-cover shrink-0"

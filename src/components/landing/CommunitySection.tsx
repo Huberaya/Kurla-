@@ -117,7 +117,7 @@ export const CommunitySection: React.FC = () => {
                 <div>
                   {/* Top Image & Badge */}
                   <div className="relative aspect-[16/9] rounded-2xl overflow-hidden mb-5 bg-[#1A0F0A]">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={b.image}
                       alt={b.name}
                       referrerPolicy="no-referrer"

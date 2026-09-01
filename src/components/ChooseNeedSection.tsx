@@ -211,7 +211,7 @@ export const ChooseNeedSection: React.FC = () => {
                 >
                   {/* Background Image */}
                   <div className="absolute inset-0 z-0">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={need.image}
                       alt={need.title}
                       referrerPolicy="no-referrer"

@@ -101,14 +101,12 @@ export const HeroSection: React.FC = () => {
           muted
           loop
           playsInline
+          preload="auto"
           onLoadedData={() => setVideoLoaded(true)}
           className="w-full h-full object-cover object-center filter brightness-[0.85] contrast-105 saturate-110 scale-105 transition-opacity duration-1000"
           poster={HERO_VIDEO_FRAME}
         >
           <source src="https://assets.mixkit.co/videos/41582/41582-720.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/41579/41579-720.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/41581/41581-720.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/41580/41580-720.mp4" type="video/mp4" />
         </video>
 
 

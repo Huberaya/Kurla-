@@ -88,7 +88,7 @@ export const HairSkinSection: React.FC = () => {
             {/* Visual Highlight Image Column */}
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shadow-2xl group bg-[#1A0F0A]">
-                <img
+                <img loading="lazy" decoding="async"
                   src={activeTab === 'hair' ? HERO_IMAGE : MELANIN_SKIN_IMAGE}
                   alt={activeTab === 'hair' ? 'Soin cheveux texturés' : 'Soin peau mélaninée'}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"

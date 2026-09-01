@@ -38,7 +38,7 @@ export const BeautyHouseSection: React.FC = () => {
             </div>
 
             <div className="relative h-64 rounded-2xl overflow-hidden mb-6">
-              <img
+              <img loading="lazy" decoding="async"
                 src={HERO_IMAGE}
                 alt="Cheveux texturés"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -68,7 +68,7 @@ export const BeautyHouseSection: React.FC = () => {
             </div>
 
             <div className="relative h-64 rounded-2xl overflow-hidden mb-6">
-              <img
+              <img loading="lazy" decoding="async"
                 src={MELANIN_SKIN_IMAGE}
                 alt="Peau mélaninée"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

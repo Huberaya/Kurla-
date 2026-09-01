@@ -56,7 +56,7 @@ export const JournalPage: React.FC = () => {
             <article key={article.id} className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 hover:border-[#C8753D]/40 transition-all overflow-hidden shadow-xl flex flex-col justify-between group">
               <div>
                 <div className="relative h-60 overflow-hidden">
-                  {article.image ? <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center">{article.contentType === 'video' ? <Video className="w-10 h-10 text-[#C8753D]" /> : <BookOpen className="w-10 h-10 text-[#C8753D]" />}</div>}
+                  {article.image ? <img loading="lazy" decoding="async" src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-[#3A2218] flex items-center justify-center">{article.contentType === 'video' ? <Video className="w-10 h-10 text-[#C8753D]" /> : <BookOpen className="w-10 h-10 text-[#C8753D]" />}</div>}
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     <span className="px-3 py-1 rounded-full bg-[#050403]/80 backdrop-blur-md text-xs font-semibold text-[#D49A63]">{contentTypeLabel(article.contentType || 'article')}</span>
                     {article.topic && <span className="px-3 py-1 rounded-full bg-[#050403]/80 backdrop-blur-md text-xs text-[#FFF7EF]/80">{topicLabel(article.topic)}</span>}

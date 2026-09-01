@@ -64,7 +64,7 @@ export const TextureGallerySection: React.FC = () => {
               key={item.id}
               className="group relative h-96 rounded-3xl overflow-hidden border border-[#E8E1DA] shadow-xs hover:shadow-xl transition-all duration-500 flex flex-col justify-end"
             >
-              <img
+              <img loading="lazy" decoding="async"
                 src={item.image}
                 alt={item.title}
                 className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700 ease-out"

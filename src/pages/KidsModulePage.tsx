@@ -37,7 +37,7 @@ export const KidsModulePage: React.FC = () => {
           </div>
 
           <div className="w-full md:w-80 aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shrink-0 shadow-md">
-            <img src={KIDS_CARE_IMAGE} alt="Mom and daughter textured hair moment" className="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={KIDS_CARE_IMAGE} alt="Mom and daughter textured hair moment" className="w-full h-full object-cover" />
           </div>
         </div>
 

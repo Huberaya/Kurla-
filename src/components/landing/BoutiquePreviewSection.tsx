@@ -123,7 +123,7 @@ export const BoutiquePreviewSection: React.FC = () => {
                 >
                   {/* Image Background */}
                   <div className="absolute inset-0 z-0">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={cat.image}
                       alt={cat.title}
                       referrerPolicy="no-referrer"

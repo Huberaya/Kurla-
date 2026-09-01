@@ -2,10 +2,7 @@
 
 @layer utilities {
   .font-serif-title {
-    font-family: 'Playfair Display', 'Fraunces', Georgia, serif;
-  }
-  .font-fraunces {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
   }
 }
 

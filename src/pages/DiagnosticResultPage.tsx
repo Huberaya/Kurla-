@@ -118,7 +118,7 @@ export const DiagnosticResultPage: React.FC = () => {
             {displayProducts.map((p) => (
               <div key={p.id} className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-5 flex flex-col justify-between shadow-lg">
                 <div>
-                  <img src={p.image} alt={p.name} className="w-full h-44 object-cover rounded-2xl mb-4" />
+                  <img loading="lazy" decoding="async" src={p.image} alt={p.name} className="w-full h-44 object-cover rounded-2xl mb-4" />
                   <span className="text-[10px] uppercase font-semibold text-[#D49A63] block mb-1">{p.brand}</span>
                   <h4 className="text-base font-serif-title font-bold text-[#FFF7EF] mb-2">{p.name}</h4>
                   <p className="text-xs text-[#FFF7EF]/70 line-clamp-2 font-light mb-4">{p.description}</p>

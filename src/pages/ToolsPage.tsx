@@ -26,7 +26,7 @@ export const ToolsPage: React.FC = () => {
             <div key={tool.id} className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] overflow-hidden shadow-xs hover:border-[#C8753D] transition-all flex flex-col justify-between group">
               <div>
                 <div className="h-48 overflow-hidden relative">
-                  <img src={tool.image} alt={tool.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img loading="lazy" decoding="async" src={tool.image} alt={tool.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-[#111111]/80 backdrop-blur-md text-white text-[10px] uppercase font-bold tracking-wider">
                     {tool.category}
                   </span>

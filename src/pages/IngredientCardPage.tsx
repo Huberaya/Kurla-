@@ -259,7 +259,7 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
                   className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]/50 transition-colors"
                 >
                   {p.image ? (
-                    <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
+                    <img loading="lazy" decoding="async" src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="w-12 h-12 rounded-lg bg-[#F5F1EB] shrink-0" />
                   )}
