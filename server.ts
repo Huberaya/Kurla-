@@ -1804,15 +1804,25 @@ app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedReques
     (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_') ? 'live'
     : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown';
 
+  // La demande de lancement ne porte que sur les références réellement
+  // publiées en précommande (ids `launch-*`). Les anciennes commandes de
+  // démonstration (produits factices `p1`, `leave-in-hydratant`…) en sont
+  // exclues : elles ne représentent aucun article à sourcer.
+  const isLaunchItem = (it: any) => String(it.productId || it.product_id || '').startsWith('launch-')
+    || it.isPreorder === true;
+
   for (const order of orders) {
-    const items: any[] = Array.isArray(order.items) ? order.items : [];
-    const hasPreorderItem = items.some((it: any) => it.isPreorder === true || String(it.productId || '').startsWith('launch-'));
+    const items: any[] = (Array.isArray(order.items) ? order.items : []).filter(isLaunchItem);
+    const orderHasLaunch = items.length > 0;
     const firm = FIRM.has(order.status);
     const pending = order.status === 'payment_pending_webhook' || order.status === 'pending_payment' || order.status === 'payment_failed';
-    if (firm) { firmOrders++; firmRevenue += Number(order.total) || 0; if (hasPreorderItem) preorderFirmOrders++; }
-    else if (pending) pendingOrders++;
+    // On ne comptabilise dans les totaux que les commandes qui portent sur le
+    // catalogue de lancement.
+    if (firm) { firmRevenue += orderHasLaunch ? (Number(order.total) || 0) : 0; }
+    if (firm && orderHasLaunch) { firmOrders++; preorderFirmOrders++; }
+    else if (pending && orderHasLaunch) pendingOrders++;
     else if (LOST.has(order.status)) lostOrders++;
-    if (!firm && !pending) continue;
+    if (!orderHasLaunch) continue;
 
     for (const it of items) {
       const productId: string = it.productId || it.product_id;
