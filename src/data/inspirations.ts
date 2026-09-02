@@ -350,6 +350,94 @@ export const INSPIRATIONS: Inspiration[] = [
     ],
     aiQuestion: 'Quelle routine complète pour entretenir mes locs sans résidus ?',
   },
+  {
+    id: 'insp-butterfly-locs',
+    title: 'Butterfly locs',
+    publics: ['femme'],
+    styles: ['locs', 'protectif'],
+    image: `${IMG}/insp-butterfly-locs.jpg`,
+    description:
+      'Des faux locs volontairement « déstructurés », à l’aspect papillon. Tout le look locs sans l’engagement : ils se posent et se retirent comme des braids.',
+    poseTime: '4–6 h en salon',
+    wearTime: '4–6 semaines',
+    care: [
+      'Ne pas trop lisser : l’effet vient justement des boucles qui s’échappent.',
+      'Cuir chevelu à l’eau de romarin ou huile légère au flacon applicateur, 2 fois/semaine.',
+      'Bonnet satin XL ou filet la nuit — le frottement use la texture papillon.',
+    ],
+    productSlugs: [
+      'preco-eau-de-romarin-tonique-pousse-cuir-chevelu',
+      'preco-flacon-applicateur-embout-precis',
+      'preco-filet-de-protection-tresses-vanilles',
+    ],
+    aiQuestion: 'Butterfly locs ou vraies locs : quelles différences d’entretien et d’engagement ?',
+  },
+  {
+    id: 'insp-goddess-braids',
+    title: 'Goddess braids — chignon tressé',
+    publics: ['femme'],
+    styles: ['tresses', 'protectif'],
+    image: `${IMG}/insp-goddess-braids.jpg`,
+    description:
+      'Grosses nattes collées sculptées en chignon haut. Moins de tresses, plus de relief : la pose est plus rapide que des box braids et l’effet est spectaculaire.',
+    poseTime: '2–4 h en salon',
+    wearTime: '2–4 semaines',
+    care: [
+      'Les grosses sections tirent moins par point d’ancrage, mais pèsent : chignon posé lâche.',
+      'Mousse fixante souple sur les rangées pour maîtriser les repousses sans croûte.',
+      'Foulard satin noué autour du chignon la nuit, sans l’écraser.',
+    ],
+    productSlugs: [
+      'preco-mousse-coiffante-twist-lock-tenue-souple',
+      'preco-foulard-headwrap-satin-premium',
+      'preco-gel-de-tenue-forte-edge-twist',
+    ],
+    aiQuestion: 'Goddess braids : combien de temps les garder et comment tenir les repousses ?',
+  },
+  {
+    id: 'insp-flat-twists',
+    title: 'Flat twists',
+    publics: ['femme'],
+    styles: ['twists', 'protectif'],
+    image: `${IMG}/insp-flat-twists.jpg`,
+    description:
+      'Des vanilles plaquées au cuir chevelu, comme des cornrows en deux brins. Plus rapides à faire soi-même que des nattes collées — et défaits, ils donnent un twist-out sculpté.',
+    poseTime: '1–2 h chez soi',
+    wearTime: '1–2 semaines, puis twist-out',
+    care: [
+      'Se font sur cheveu humide + crème coiffante : c’est LE style maison par excellence.',
+      'Deux styles en un : porter plaqué, puis dérouler pour un twist-out à vagues larges.',
+      'Bonnet satin obligatoire — les flat twists frisottent vite à nu.',
+    ],
+    productSlugs: [
+      'preco-creme-de-definition-twist-out-braid-out',
+      'preco-peigne-a-queue-de-rat-metal',
+      'preco-bonnet-satin-nuit-taie-d-oreiller',
+    ],
+    aiQuestion: 'Comment réussir mes flat twists moi-même et obtenir un beau twist-out ?',
+  },
+  {
+    id: 'insp-crochet-braids',
+    title: 'Crochet braids bouclés',
+    publics: ['femme'],
+    styles: ['protectif', 'afro'],
+    image: `${IMG}/insp-crochet-braids.jpg`,
+    description:
+      'Des mèches bouclées fixées au crochet sur une base de nattes collées. Le volume XXL en 2 heures, vos cheveux entièrement protégés dessous.',
+    poseTime: '2–3 h en salon (le plus rapide des styles à rajouts)',
+    wearTime: '4–6 semaines',
+    care: [
+      'Vos cheveux nattés dessous restent VIVANTS : les hydrater en spray à travers la base chaque semaine.',
+      'Démêler les mèches bouclées aux doigts uniquement, jamais à la brosse.',
+      'Bonnet satin XL la nuit, boucles rassemblées en pineapple lâche.',
+    ],
+    productSlugs: [
+      'preco-spray-refresh-quotidien-hydratation',
+      'preco-flacon-applicateur-embout-precis',
+      'preco-bonnet-satin-nuit-taie-d-oreiller',
+    ],
+    aiQuestion: 'Crochet braids : comment entretenir mes cheveux nattés en dessous ?',
+  },
   // ——— HOMMES ———
   {
     id: 'insp-h-waves',
@@ -483,12 +571,12 @@ export const INSPIRATIONS: Inspiration[] = [
   // ——— ENFANTS ———
   {
     id: 'insp-e-fille-nattes',
-    title: 'Nattes & barrettes — fille',
+    title: 'Tresses & perles — petite fille',
     publics: ['enfant'],
     styles: ['tresses', 'protectif'],
-    image: `${IMG}/insp-e-fille-nattes.jpg`,
+    image: `${IMG}/insp-e-fille-perles.jpg`,
     description:
-      'Les nattes d’école avec barrettes et élastiques boules : rapides à vivre le matin, elles protègent le cheveu fin des manipulations quotidiennes.',
+      'Nattes collées finies en perles légères : la coiffure d’école qui tient la semaine et fait briller les yeux. La règle d’or reste la douceur.',
     poseTime: '45–90 min (maison)',
     wearTime: '1–2 semaines maximum chez l’enfant',
     care: [
