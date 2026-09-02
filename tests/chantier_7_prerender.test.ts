@@ -81,8 +81,10 @@ function runPrerenderTests(): void {
   // pouvoir lire ce qu'elle n'obtiendra jamais avant de signer.
   // 26 au chantier 1 (boucle publique) : `/ingredients`, la recherche
   // d'ingrédients, est indexable — c'est un pilier SEO de la transparence.
+  // 27 : `/inspirations`, la galerie de coiffures (femmes, hommes, enfants),
+  // indexable — c'est une porte d'entrée SEO vers la boutique et les pros.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 26, `Attendu 26 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 27, `Attendu 27 routes statiques, obtenu ${staticPublic.length}.`);
   assert.ok(
     staticPublic.some(route => route.path === '/ingredients'),
     'La recherche d’ingrédients doit être prérendue : c’est un pilier SEO.'

@@ -154,6 +154,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.6,
   },
   {
+    path: '/inspirations',
+    title: 'Galerie d’inspirations coiffures : tresses, locs, coupes | KURLA',
+    description:
+      'Trouvez votre prochaine coiffure : box braids, knotless, locs, twists, coupes et afro — femmes, hommes et enfants, avec temps de pose, entretien et produits utiles.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
     path: '/guides/ingredients',
     title: 'Guide des ingrédients cosmétiques | KURLA',
     description:
