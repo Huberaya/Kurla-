@@ -49,6 +49,7 @@ const MelaninSkinPage = lazy(() => import('../pages/MelaninSkinPage').then(m => 
 const MenGroomingPage = lazy(() => import('../pages/MenGroomingPage').then(m => ({ default: m.MenGroomingPage })));
 const ToolsPage = lazy(() => import('../pages/ToolsPage').then(m => ({ default: m.ToolsPage })));
 const InspirationsPage = lazy(() => import('../pages/InspirationsPage').then(m => ({ default: m.InspirationsPage })));
+const ApplicationPage = lazy(() => import('../pages/ApplicationPage').then(m => ({ default: m.ApplicationPage })));
 const IngredientsGuidePage = lazy(() => import('../pages/IngredientsGuidePage').then(m => ({ default: m.IngredientsGuidePage })));
 const CommunityPage = lazy(() => import('../pages/CommunityPage').then(m => ({ default: m.CommunityPage })));
 const FamilySpacePage = lazy(() => import('../pages/FamilySpacePage').then(m => ({ default: m.FamilySpacePage })));
@@ -121,6 +122,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/hommes', render: () => <MenGroomingPage /> },
   { path: '/outils', render: () => <ToolsPage /> },
   { path: '/inspirations', render: () => <InspirationsPage /> },
+  { path: '/application', render: () => <ApplicationPage /> },
   { path: '/guides/ingredients', render: () => <IngredientsGuidePage /> },
   { path: '/community', render: () => <CommunityPage /> },
   { path: '/manifeste', render: () => <ManifestePage /> },

@@ -97,6 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: t('nav.melaninSkin'), path: '/melanin-skin' },
     { label: t('nav.men'), path: '/hommes' },
     { label: t('nav.family'), path: '/famille' },
+    { label: t('nav.app'), path: '/application' },
   ];
 
   // L'état actif se compare sur le chemin sans locale, sinon depuis /en/ plus

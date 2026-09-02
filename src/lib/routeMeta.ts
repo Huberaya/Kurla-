@@ -163,6 +163,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.7,
   },
   {
+    path: '/application',
+    title: 'Installer l’application KURLA sur votre téléphone | KURLA',
+    description:
+      'KURLA s’installe comme une application : icône sur l’écran d’accueil, plein écran, ouverture hors-ligne. Pas-à-pas iPhone et Android, sans store.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.5,
+  },
+  {
     path: '/guides/ingredients',
     title: 'Guide des ingrédients cosmétiques | KURLA',
     description:
