@@ -1,28 +1,28 @@
 import React from 'react';
-import { Sparkles, Layers, PackageCheck, Award } from 'lucide-react';
+import { Boxes, ScanSearch, MessageCircleHeart, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const BenefitStrip: React.FC = () => {
   const benefits = [
     {
-      icon: Sparkles,
-      title: 'Diagnostic gratuit',
-      text: 'Cheveux ou peau, en quelques minutes.',
+      icon: Boxes,
+      title: 'Tout au même endroit',
+      text: '60+ soins, outils & innovations — du peigne afro au steamer, introuvables ailleurs.',
     },
     {
-      icon: Layers,
-      title: 'Routines personnalisées',
-      text: 'Des recommandations claires, sans surpromesse.',
+      icon: ScanSearch,
+      title: 'Diagnostic IA gratuit',
+      text: 'Votre routine sur-mesure en 3 min, sans abonnement ni carte bancaire.',
     },
     {
-      icon: PackageCheck,
-      title: 'Produits sélectionnés',
-      text: 'Pensés pour textures et peaux mélaninées.',
+      icon: MessageCircleHeart,
+      title: 'Des réponses d’expert',
+      text: 'Un assistant qui explique vraiment : mécanisme, routine, erreurs à éviter.',
     },
     {
-      icon: Award,
-      title: 'Pros certifiés',
-      text: 'Des spécialistes qui comprennent ta texture.',
+      icon: ShieldCheck,
+      title: 'Achat sans risque',
+      text: 'Précommande annulable & remboursée à tout moment avant l’envoi.',
     },
   ];
 
@@ -74,8 +74,29 @@ export const BenefitStrip: React.FC = () => {
             );
           })}
         </motion.div>
+
+        {/* Ruban catalogue : l'effet « ils ont tout » */}
+        <div className="mt-8 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+          <div className="animate-marquee gap-3">
+            {[...ITEMS, ...ITEMS].map((it, i) => (
+              <span
+                key={i}
+                className="shrink-0 inline-flex items-center gap-2 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] px-4 py-1.5 text-xs font-medium text-[#111111]/80"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C8753D]" />
+                {it}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
 };
 
+const ITEMS = [
+  'Peigne afro', 'Steamer vapeur', 'Diffuseur', 'Bonnets satin', 'Karité brut',
+  'Flexi rods', 'Curl sponge', 'Outils locs', 'Eau de romarin', 'Gel de lin',
+  'Serviette microfibre', 'Sérum pousse', 'Bond builder', 'Thermo-protecteur',
+  'Huile de ricin', 'African threading', 'Masseur cuir chevelu', 'Co-wash',
+];
