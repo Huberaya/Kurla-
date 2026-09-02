@@ -25,8 +25,20 @@ const APPLY = process.argv.includes('--apply');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 const IMG = `${url}/storage/v1/object/public/product-images`;
-// Visuel kit : l'image « soin » pour les kits ciblés cheveux.
-const KIT_IMAGE = `${IMG}/kurla-care.jpg`;
+// Visuel kit adapté au contenu de chaque coffret.
+const KIT_IMAGE_BY_ID: Record<string, string> = {
+  k01: `${IMG}/kurla-care.jpg`,
+  k02: `${IMG}/kurla-care.jpg`,
+  k03: `${IMG}/kurla-mask.jpg`,
+  k04: `${IMG}/kurla-mask.jpg`,
+  k05: `${IMG}/kurla-styling.jpg`,
+  k06: `${IMG}/kurla-mask.jpg`,
+  k07: `${IMG}/kurla-accessory.jpg`,
+  k08: `${IMG}/kurla-men.jpg`,
+  k09: `${IMG}/kurla-rollers.jpg`,
+  k10: `${IMG}/kurla-device.jpg`,
+};
+const KIT_IMAGE = `${IMG}/kurla-kit.jpg`;
 
 // Catégories de cheveux couvertes par le kit (issu des SKU membres).
 const HAIR_BY_TYPE: Record<string, string[]> = {
@@ -90,7 +102,7 @@ async function main(): Promise<void> {
       badges: ['preorder', 'kit'],
       description: `[PRÉCOMMANDE] ${kit.goal}. Kit ${kit.tier} pour cheveux ${kit.hairType}. Comprend : ${members.map(m => m.name.replace(/\s*\(.*?\)/g, '')).join(', ')}. Prix kit ${kit.kitPriceEur.toFixed(2)} € au lieu de ${kit.retailPriceEur.toFixed(2)} € (soit ${saving.toFixed(2)} € d'économie). ${kit.strategic}`,
       benefit_primary: kit.goal,
-      image_url: KIT_IMAGE,
+      image_url: KIT_IMAGE_BY_ID[kit.id] || `${IMG}/kurla-care.jpg`,
       ingredients,
       hair_types: HAIR_BY_TYPE[kit.hairType] || ['3A', '3B', '3C', '4A', '4B', '4C'],
       skin_types: [],

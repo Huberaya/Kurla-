@@ -73,12 +73,33 @@ const IMAGE_BY_CATEGORY: Record<string, string> = {
   'Shampoing': `${IMG_BASE}/kurla-care.jpg`,
   'Co-wash': `${IMG_BASE}/kurla-care.jpg`,
   'Après-shampoing': `${IMG_BASE}/kurla-care.jpg`,
-  'Masque': `${IMG_BASE}/kurla-care.jpg`,
-  'Leave-in': `${IMG_BASE}/kurla-care.jpg`,
+  'Masque': `${IMG_BASE}/kurla-mask.jpg`,
+  'Leave-in': `${IMG_BASE}/kurla-leavein.jpg`,
   'Huile/Beurre': `${IMG_BASE}/kurla-oil.jpg`,
   'Gel/Coiffant': `${IMG_BASE}/kurla-styling.jpg`,
   'Accessoire': `${IMG_BASE}/kurla-accessory.jpg`
 };
+
+// Visuel éditorial fin par produit (10 familles cohérentes avec la charte).
+// Évite de tout ramener à 4 images génériques lors d'une republication.
+function imageForSku(sku: { category: string; name: string }): string {
+  const n = sku.name.toLowerCase();
+  const img = (f: string) => `${IMG_BASE}/kurla-${f}.jpg`;
+  if (sku.category !== 'Accessoire') {
+    if (/masque|gommage|reconstruct|bond|liens/.test(n)) return img('mask');
+    if (/karité|beurre|huile|sérum|ricin|romarin|tonique/.test(n)) return img('oil');
+    if (/gel|mousse|coiff|twist|lin/.test(n)) return img('styling');
+    if (/leave-in|spray|brume|refresh|thermo|crème de jour|hydratante coiffage/.test(n)) return img('leavein');
+    if (/vinaigre|rinçage/.test(n)) return img('care');
+    return IMAGE_BY_CATEGORY[sku.category] || IMAGE_BY_CATEGORY['Shampoing'];
+  }
+  // Accessoires
+  if (/éponge|sponge|curl sponge|durag/.test(n)) return img('men');
+  if (/steamer|vapeur|diffuseur|chauffant|thermal|masseur|nano-mist|appareil|brosse vapeur/.test(n)) return img('device');
+  if (/flexi|perm rod|bigoudi|threading|rod/.test(n)) return img('rollers');
+  if (/bonnet|foulard|headwrap|taie|filet|chouchou|satin|durag|douche/.test(n)) return img('satin');
+  return img('accessory');
+}
 
 function slugify(id: string, name: string): string {
   const base = name
@@ -118,7 +139,7 @@ async function main(): Promise<void> {
       badges: ['preorder'],
       description: `[PRÉCOMMANDE — expédition à la réception du premier lot] ${sku.problem}. ${sku.strategic}`,
       benefit_primary: sku.problem,
-      image_url: IMAGE_BY_CATEGORY[sku.category] || IMAGE_BY_CATEGORY['Shampoing'],
+      image_url: imageForSku(sku),
       ingredients,
       // Les accessoires ne sont pas des cosmétiques : un INCI descriptif satisfait
       // la gouvernance (produit publié sans liste d'ingrédients cosmétiques).
