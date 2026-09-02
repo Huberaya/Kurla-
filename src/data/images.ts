@@ -11,13 +11,13 @@ export const PROTECTIVE_IMAGE = 'https://images.unsplash.com/photo-1589156280159
 export const MEN_GROOMING_IMAGE = 'https://images.unsplash.com/photo-1507152832244-10d45c7eda57?auto=format&fit=crop&w=1200&q=85'; // Real Black man grooming beard
 
 export const TEXTURE_GALLERY = [
-  { id: '1', title: 'Cheveux crépus 4C', tag: 'Volume & Nutriments', image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=1000&q=85' },
-  { id: '2', title: 'Boucles 3B/3C', tag: 'Définition & Équilibre', image: 'https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?auto=format&fit=crop&w=1000&q=85' },
-  { id: '3', title: 'Knotless Braids', tag: 'Protective Style', image: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=1000&q=85' },
-  { id: '4', title: 'Sisterlocks & Microlocks', tag: 'Soin Cuir Chevelu', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=85' },
-  { id: '5', title: 'Eclat Peau Mélaninée', tag: 'Skincare SPF 50', image: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=1000&q=85' },
-  { id: '6', title: 'Démêlage Enfant', tag: 'Douceur Anti-Larmes', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1000&q=85' },
-  { id: '7', title: 'Hommes Grooming', tag: 'Waves & Barbe Hydratée', image: 'https://images.unsplash.com/photo-1507152832244-10d45c7eda57?auto=format&fit=crop&w=1000&q=85' },
-  { id: '8', title: 'Coiffeuse Afro Certifiée', tag: 'Geste Professionnel', image: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=1000&q=85' },
+  { id: '1', title: 'Cheveux crépus 4C', tag: 'Volume & nutrition', cat: '4c', href: '/diagnostic/cheveux', image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=1000&q=85' },
+  { id: '2', title: 'Boucles 3B/3C', tag: 'Définition & équilibre', cat: 'boucles', href: '/diagnostic/cheveux', image: 'https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?auto=format&fit=crop&w=1000&q=85' },
+  { id: '3', title: 'Knotless braids', tag: 'Coiffure protectrice', cat: 'braids', href: '/protective-styles', image: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=1000&q=85' },
+  { id: '4', title: 'Locks & microlocks', tag: 'Soin du cuir chevelu', cat: 'braids', href: '/diagnostic/cheveux?need=locks', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=85' },
+  { id: '5', title: 'Éclat peau mélaninée', tag: 'Éclat & protection', cat: 'skin', href: '/melanin-skin', image: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=1000&q=85' },
+  { id: '6', title: 'Démêlage enfant', tag: 'Douceur sans larmes', cat: 'kids', href: '/kids', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1000&q=85' },
+  { id: '7', title: 'Grooming homme', tag: 'Waves & barbe', cat: 'hommes', href: '/hommes', image: 'https://images.unsplash.com/photo-1507152832244-10d45c7eda57?auto=format&fit=crop&w=1000&q=85' },
+  { id: '8', title: 'Votre coiffeuse formée aux textures', tag: 'Gestes de pro', cat: 'pro', href: '/professionnels', image: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=1000&q=85' },
 ];
 
