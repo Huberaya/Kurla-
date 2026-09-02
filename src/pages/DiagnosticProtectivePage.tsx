@@ -22,7 +22,7 @@ export const DiagnosticProtectivePage: React.FC = () => {
         {/* Progress */}
         <div className="mb-8 space-y-2">
           <div className="flex justify-between text-xs text-[#C8753D] font-bold uppercase tracking-wider">
-            <span>Diagnostic Protective Style • Étape {step} / 2</span>
+            <span>Diagnostic coiffure protectrice • Étape {step} / 2</span>
             <span>{Math.round((step / 2) * 100)}%</span>
           </div>
           <div className="w-full h-2 rounded-full bg-[#E8E1DA] overflow-hidden">
@@ -35,7 +35,7 @@ export const DiagnosticProtectivePage: React.FC = () => {
             <div className="space-y-6">
               <span className="text-xs uppercase font-bold text-[#C8753D] block">1. Style Porté</span>
               <h2 className="text-2xl font-serif-title font-bold text-[#111111]">
-                Quel est votre coiffure protectrice actuelle ou projetée ?
+                Quelle est votre coiffure protectrice actuelle ou envisagée ?
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[

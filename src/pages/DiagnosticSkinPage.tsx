@@ -55,10 +55,19 @@ export const DiagnosticSkinPage: React.FC = () => {
     <div className="min-h-screen pt-32 pb-24 bg-gradient-to-b from-[#050403] via-[#1A0F0A] to-[#050403] text-[#FFF7EF]">
       <div className="max-w-3xl mx-auto px-4">
 
+        {/* En-tête */}
+        <div className="text-center mb-8">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#C8753D]/15 border border-[#C8753D]/30 text-[#D49A63] text-xs font-semibold tracking-wider uppercase mb-4">
+            <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3 minutes · sans abonnement
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Trouvez votre routine peau</h1>
+          <p className="text-sm text-[#FFF7EF]/70 font-light max-w-md mx-auto">Répondez à 7 questions simples : hydratation, taches et protection solaire adaptées à votre carnation.</p>
+        </div>
+
         {/* Progress Bar */}
         <div className="mb-10 space-y-2">
           <div className="flex justify-between text-xs text-[#D49A63] font-semibold uppercase tracking-wider">
-            <span>Diagnostic Visage & SPF — Question {step} / 7</span>
+            <span>Diagnostic peau — Question {step} / 7</span>
             <span>{Math.round((step / 7) * 100)}% complété</span>
           </div>
           <div className="w-full h-2 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/10 overflow-hidden">
@@ -76,7 +85,7 @@ export const DiagnosticSkinPage: React.FC = () => {
           {step === 1 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">1. Type de Peau</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment qualifies-tu ton type de peau ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment qualifiez-vous votre type de peau ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'mixte', title: 'Mixte (Zone T brillante, joues normales ou sèches)' },
@@ -101,8 +110,8 @@ export const DiagnosticSkinPage: React.FC = () => {
 
           {step === 2 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2. Priorité Skincare</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est ton objectif principal ?</h2>
+              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2. Priorité soin visage</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est votre objectif principal ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'taches', title: 'Atténuer les marques post-imperfections' },
@@ -129,7 +138,7 @@ export const DiagnosticSkinPage: React.FC = () => {
           {step === 3 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">3. Protection Solaire</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est ton habitude d'usage du SPF ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est votre habitude de protection solaire ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'recherche', title: 'Je cherche activement un SPF sans traces blanches' },
@@ -154,7 +163,7 @@ export const DiagnosticSkinPage: React.FC = () => {
           {step === 4 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4. Sensibilité Cutanée</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment ta peau réagit-elle aux nouveaux produits ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment votre peau réagit-elle aux nouveaux produits ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 {[
                   { id: 'faible', title: 'Faible', desc: 'Supporte la plupart des actifs' },
@@ -179,7 +188,7 @@ export const DiagnosticSkinPage: React.FC = () => {
           {step === 5 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">5. Routine Actuelle</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Combien d'étapes comporte ta routine visage ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Combien d’étapes comporte votre routine visage ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'aucune', title: 'Aucune (Eau du robinet uniquement)' },
@@ -203,8 +212,8 @@ export const DiagnosticSkinPage: React.FC = () => {
 
           {step === 6 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">6. Budget Skincare</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est ton budget idéal ?</h2>
+              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">6. Budget soin visage</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel budget souhaitez-vous ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'moins_40', title: 'Moins de 40 €' },
@@ -229,20 +238,20 @@ export const DiagnosticSkinPage: React.FC = () => {
           {step === 7 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">7. Confirmation</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Ton adresse email pour recevoir la fiche skincare</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Voulez-vous recevoir votre fiche par e-mail ?</h2>
+              <p className="text-sm text-[#FFF7EF]/70 font-light">Votre résultat s’affiche immédiatement à l’écran. L’e-mail est facultatif.</p>
               <input
                 type="email"
                 value={answers.email}
                 onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
-                placeholder="Ton adresse email"
-                required
+                placeholder="Votre adresse e-mail (facultatif)"
                 className="w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-base focus:outline-none focus:border-[#C8753D]"
               />
 
               <div className="p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 flex items-start gap-3 text-xs text-[#FFF7EF]/60">
                 <ShieldAlert className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
                 <span>
-                  <strong>Disclaimer :</strong> Les recommandations KURLA sont des conseils beauté non médicaux.
+                  <strong>Bon à savoir :</strong> ces conseils beauté sont personnalisés et ne remplacent pas un avis médical. En cas de problème persistant de peau, consultez un dermatologue.
                 </span>
               </div>
             </div>
