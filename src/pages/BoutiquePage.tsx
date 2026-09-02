@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X, 
-  ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart, 
-  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Clock
+import {
+  Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X,
+  ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart,
+  Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Clock,
+  Baby, UserCheck, Feather, Wind, Crown, Smile, Palette, Package, Scissors
 } from 'lucide-react';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
@@ -18,53 +19,53 @@ interface NeedOption {
   id: string;
   label: string;
   domain: 'cheveux' | 'peau';
-  icon: string;
+  icon: React.ElementType;
   description: string;
 }
 
 const HAIR_NEEDS: NeedOption[] = [
-  { id: 'hydrater_cheveux', label: 'Hydrater mes cheveux', domain: 'cheveux', icon: '💧', description: 'Formules pénétrantes riches en eau & aloe pour éradiquer la sécheresse.' },
-  { id: 'reduire_casse', label: 'Réduire la casse', domain: 'cheveux', icon: '🛡️', description: 'Soins fortifiants et masques protéines pour consolider la fibre capillaire.' },
-  { id: 'demeler_cheveux', label: 'Démêler mes cheveux', domain: 'cheveux', icon: '🪮', description: 'Crèmes de démêlage ultra glissantes & brosses flex anti-traction.' },
-  { id: 'cuir_chevelu', label: 'Prendre soin du cuir chevelu', domain: 'cheveux', icon: '🌱', description: 'Huiles légères et sprays apaisants contre démangeaisons et pellicules.' },
-  { id: 'entretenir_tresses', label: 'Entretenir tresses / knotless', domain: 'cheveux', icon: '✨', description: 'Sprays rafraîchissants anti-tensions et produits de soin spécial coiffures protectrices.' },
-  { id: 'entretenir_locks', label: 'Entretenir mes locks', domain: 'cheveux', icon: '🔒', description: 'Bains d’huile légers, sprays mentholés et bonnets satin de protection.' },
-  { id: 'entretenir_perruque', label: 'Entretenir perruque / wig', domain: 'cheveux', icon: '👑', description: 'Accessoires de maintien, taies satin et soins préserve-fibre.' },
-  { id: 'definir_boucles', label: 'Définir mes boucles', domain: 'cheveux', icon: '🌀', description: 'Crèmes et gels sculptants sans effet carton pour twist-outs et wash-and-go.' },
-  { id: 'proteger_nuit', label: 'Protéger mes cheveux la nuit', domain: 'cheveux', icon: '🌙', description: 'Bonnets satin ajustables XL et taies d’oreiller 100% soie de mûrier.' },
-  { id: 'prendre_soin_barbe', label: 'Soigner ma barbe / grooming', domain: 'cheveux', icon: '🧔🏻‍♂️', description: 'Baumes apaisants et huiles adoucissantes pour poils drus et peau sous-jacente.' },
+  { id: 'hydrater_cheveux', label: 'Hydrater mes cheveux', domain: 'cheveux', icon: Droplets, description: 'Soins riches en eau et leave-in pour stopper la sécheresse.' },
+  { id: 'reduire_casse', label: 'Réduire la casse', domain: 'cheveux', icon: Feather, description: 'Soins fortifiants et masques protéinés pour consolider la fibre.' },
+  { id: 'demeler_cheveux', label: 'Démêler mes cheveux', domain: 'cheveux', icon: Scissors, description: 'Brosses et peignes anti-traction, gestes doux sans casse.' },
+  { id: 'cuir_chevelu', label: 'Prendre soin du cuir chevelu', domain: 'cheveux', icon: Sparkles, description: 'Clarifier, masser et apaiser démangeaisons et pellicules.' },
+  { id: 'entretenir_tresses', label: 'Entretenir tresses / knotless', domain: 'cheveux', icon: Layers, description: 'Rafraîchir et hydrater la racine sous les coiffures protectrices.' },
+  { id: 'entretenir_locks', label: 'Entretenir mes locks', domain: 'cheveux', icon: Shield, description: 'Laver sans résidu, hydrater la racine et resserrer en douceur.' },
+  { id: 'entretenir_perruque', label: 'Entretenir perruque / wig', domain: 'cheveux', icon: Crown, description: 'Accessoires de maintien et protection satin pour préserver la fibre.' },
+  { id: 'definir_boucles', label: 'Définir mes boucles', domain: 'cheveux', icon: Wind, description: 'Crèmes et gels sans effet carton pour twist-outs et wash-and-go.' },
+  { id: 'proteger_nuit', label: 'Protéger mes cheveux la nuit', domain: 'cheveux', icon: Moon, description: 'Bonnets et taies satin pour garder l’hydratation et la définition.' },
+  { id: 'prendre_soin_barbe', label: 'Barbe / grooming homme', domain: 'cheveux', icon: UserCheck, description: 'Outils et soins pour barbe, cheveux courts et waves.' },
 ];
 
 const SKIN_NEEDS: NeedOption[] = [
-  { id: 'hydrater_peau', label: 'Hydrater ma peau', domain: 'peau', icon: '💦', description: 'Sérums et crèmes légères pour restaurer la barrière cutanée.' },
-  { id: 'peau_sensible', label: 'Soigner une peau sensible', domain: 'peau', icon: '🌸', description: 'Formules haute tolérance apaisantes et anti-rougeurs.' },
-  { id: 'taches_hyperpigmentation', label: 'Réduire les taches (hyperpigmentation)', domain: 'peau', icon: '✨', description: 'Sérums ciblés à la niacinamide et acide tranexamique pour uniformiser le teint.' },
-  { id: 'imperfections_acne', label: 'Traiter imperfections & acné', domain: 'peau', icon: '🍃', description: 'Actifs purifiants doux non asséchants pour peaux mélaninées.' },
-  { id: 'poils_incarnes', label: 'Éviter les poils incarnés / boutons de rasage', domain: 'peau', icon: '🪒', description: 'Baumes anti-pseudofolliculite et exfoliants doux post-rasage.' },
-  { id: 'protection_solaire', label: 'Protéger ma peau du soleil (SPF 50+)', domain: 'peau', icon: '☀️', description: 'Protecteurs solaires 100% invisibles zéro reflet gris sur peaux foncées.' },
-  { id: 'soin_corps', label: 'Prendre soin de mon corps', domain: 'peau', icon: '🧴', description: 'Beurres et baumes corporels scellants pour peaux très sèches.' },
-  { id: 'teinte_maquillage', label: 'Trouver sa nuance de maquillage', domain: 'peau', icon: '🎨', description: 'Nuanciers et soins préparateurs pour carnations mates à très foncées.' },
+  { id: 'hydrater_peau', label: 'Hydrater ma peau', domain: 'peau', icon: Droplets, description: 'Restaurer la barrière cutanée, sans fini gras.' },
+  { id: 'peau_sensible', label: 'Apaiser une peau sensible', domain: 'peau', icon: Heart, description: 'Formules haute tolérance, anti-rougeurs et sans parfum agressif.' },
+  { id: 'taches_hyperpigmentation', label: 'Réduire les taches', domain: 'peau', icon: Sun, description: 'Soins unifiants doux et protection solaire quotidienne.' },
+  { id: 'imperfections_acne', label: 'Imperfections & acné', domain: 'peau', icon: Smile, description: 'Actifs purifiants doux, non asséchants pour peaux mélaninées.' },
+  { id: 'poils_incarnes', label: 'Poils incarnés / rasage', domain: 'peau', icon: UserCheck, description: 'Prévenir les boutons de rasage et exfolier en douceur.' },
+  { id: 'protection_solaire', label: 'Protection solaire invisible', domain: 'peau', icon: Sun, description: 'Un SPF sans trace blanche ni fini gris sur peaux foncées.' },
+  { id: 'soin_corps', label: 'Prendre soin de mon corps', domain: 'peau', icon: Package, description: 'Beurres et baumes nourrissants pour peaux très sèches.' },
+  { id: 'teinte_maquillage', label: 'Trouver sa nuance', domain: 'peau', icon: Palette, description: 'Conseils maquillage et soins préparateurs pour carnations mates à foncées.' },
 ];
 
 // Catégories dont les produits arrivent plus tard : on oriente vers l'espace
 // dédié (conseils/diagnostic) plutôt que d'afficher une grille vide trompeuse.
-const EMPTY_CATEGORY_HUB: Record<string, { icon: string; title: string; text: string; href: string; cta: string }> = {
+const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: string; text: string; href: string; cta: string }> = {
   peau: {
-    icon: '✨',
+    icon: Sun,
     title: 'Les soins visage arrivent bientôt',
     text: 'En attendant la gamme peau (solaire invisible, anti-taches…), découvrez nos conseils et faites votre diagnostic gratuit adapté à votre carnation.',
     href: '/melanin-skin',
     cta: 'Découvrir l’espace peau',
   },
   hommes: {
-    icon: '🧔🏾',
+    icon: UserCheck,
     title: 'L’espace hommes vous attend',
     text: 'Éponge curl sponge, durag satin, mousse twist, entretien locks et barbe : retrouvez les outils et conseils dédiés au grooming masculin.',
     href: '/hommes',
     cta: 'Découvrir l’espace hommes',
   },
   enfants: {
-    icon: '🧒🏾',
+    icon: Baby,
     title: 'L’espace kids arrive en boutique',
     text: 'Le diagnostic enfant et les conseils de coiffage sans larmes sont déjà disponibles. Les soins et accessoires kids (dès 3 ans) arrivent en précommande.',
     href: '/kids',
@@ -106,16 +107,16 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [compareIds, setCompareIds] = useState<string[]>([]);
 
   const mainCategories = [
-    { id: 'tous', name: 'Tous les soins', badge: null },
-    { id: 'besoins', name: '🎯 Trouver par besoin', badge: 'Recommandé' },
-    { id: 'cheveux', name: 'Cheveux & Boucles', badge: null },
-    { id: 'peau', name: 'Visage & Peau', badge: null },
-    { id: 'accessoires', name: 'Accessoires & Outils', badge: null },
-    { id: 'kits', name: 'Kits & Routines', badge: 'Offres' },
-    { id: 'hommes', name: 'Hommes Grooming', badge: null },
-    { id: 'enfants', name: 'Kids Haircare', badge: null },
-    { id: 'nouveautes', name: '✨ Nouveautés', badge: 'New' },
-    { id: 'promotions', name: '🏷️ Promotions', badge: 'Solde' },
+    { id: 'tous', name: 'Tout le catalogue', icon: ShoppingBag, badge: null },
+    { id: 'besoins', name: 'Trouver par besoin', icon: Sparkles, badge: 'Recommandé' },
+    { id: 'cheveux', name: 'Cheveux & boucles', icon: Droplets, badge: null },
+    { id: 'peau', name: 'Visage & peau', icon: Sun, badge: null },
+    { id: 'accessoires', name: 'Outils & accessoires', icon: Package, badge: null },
+    { id: 'kits', name: 'Kits & routines', icon: Layers, badge: 'Offres' },
+    { id: 'hommes', name: 'Hommes', icon: UserCheck, badge: null },
+    { id: 'enfants', name: 'Enfants', icon: Baby, badge: null },
+    { id: 'nouveautes', name: 'Nouveautés', icon: Zap, badge: 'New' },
+    { id: 'promotions', name: 'Promotions', icon: Tag, badge: 'Solde' },
   ];
 
   const subCategoriesMap: Record<string, { id: string; name: string }[]> = {
@@ -281,7 +282,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     : 'text-[#111111]/70 hover:text-[#111111]'
                 }`}
               >
-                <span>💇🏽‍♀️ Pour les Cheveux</span>
+                <span className="inline-flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5" /> Pour les cheveux</span>
               </button>
               <button
                 onClick={() => setNeedsDomainTab('peau')}
@@ -291,7 +292,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     : 'text-[#111111]/70 hover:text-[#111111]'
                 }`}
               >
-                <span>✨ Pour la Peau</span>
+                <span className="inline-flex items-center gap-1.5"><Sun className="w-3.5 h-3.5" /> Pour la peau</span>
               </button>
             </div>
           </div>
@@ -300,6 +301,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {(needsDomainTab === 'cheveux' ? HAIR_NEEDS : SKIN_NEEDS).map(need => {
               const isSelected = selectedNeedId === need.id;
+              const NeedIcon = need.icon;
               return (
                 <button
                   key={need.id}
@@ -311,20 +313,25 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       setActiveCategory('besoins');
                     }
                   }}
-                  className={`p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between group relative ${
+                  className={`p-4 rounded-2xl text-left border transition-all group relative h-full ${
                     isSelected
                       ? 'bg-[#111111] border-[#111111] text-white shadow-md'
-                      : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D] text-[#111111] hover:bg-[#FFF]'
+                      : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D] text-[#111111] hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xl">{need.icon}</span>
-                    {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
-                    )}
-                  </div>
-                  <span className={`text-xs font-bold leading-tight block ${isSelected ? 'text-white' : 'text-[#111111]'}`}>
+                  {isSelected && (
+                    <CheckCircle2 className="w-4 h-4 text-[#D49A63] absolute top-3 right-3" />
+                  )}
+                  <span className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                    isSelected ? 'bg-[#C8753D] text-white' : 'bg-[#C8753D]/10 text-[#C8753D] group-hover:bg-[#C8753D] group-hover:text-white'
+                  }`}>
+                    <NeedIcon className="w-5 h-5" />
+                  </span>
+                  <span className={`text-xs font-bold leading-snug block mb-1 ${isSelected ? 'text-white' : 'text-[#111111]'}`}>
                     {need.label}
+                  </span>
+                  <span className={`text-[11px] leading-snug block font-light ${isSelected ? 'text-white/70' : 'text-[#111111]/60'}`}>
+                    {need.description}
                   </span>
                 </button>
               );
@@ -347,8 +354,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           {activeNeedObj && (
             <div className="mt-6 p-4 rounded-2xl bg-[#111111] text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#C8753D] flex items-center justify-center text-xl shrink-0">
-                  {activeNeedObj.icon}
+                <div className="w-10 h-10 rounded-full bg-[#C8753D] text-white flex items-center justify-center shrink-0">
+                  {React.createElement(activeNeedObj.icon, { className: 'w-5 h-5' })}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -392,6 +399,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       : 'bg-[#FFFDF9] text-[#111111] hover:bg-[#E8E1DA] border border-[#E8E1DA]'
                   }`}
                 >
+                  {cat.icon && (() => { const CI = cat.icon; return <CI className="w-3.5 h-3.5" />; })()}
                   <span>{cat.name}</span>
                   {cat.badge && (
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
@@ -494,8 +502,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   onChange={(e) => setOnlyAfroCommunity(e.target.checked)}
                   className="rounded text-[#C8753D] focus:ring-[#C8753D] w-4 h-4"
                 />
-                <span className="font-semibold text-[#111111]">
-                  🏿 Créateurs & Marques Afro-descendantes uniquement
+                <span className="font-semibold text-[#111111] inline-flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-[#C8753D]" /> Marques afro-descendantes uniquement
                 </span>
               </label>
 
@@ -585,10 +593,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         ) : filteredProducts.length === 0 && EMPTY_CATEGORY_HUB[activeCategory] ? (
           (() => {
             const hub = EMPTY_CATEGORY_HUB[activeCategory];
+            const HubIcon = hub.icon;
             return (
               <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
-                <div className="w-14 h-14 rounded-2xl bg-[#C8753D]/10 text-[#C8753D] flex items-center justify-center mx-auto mb-4 text-2xl">
-                  {hub.icon}
+                <div className="w-14 h-14 rounded-2xl bg-[#C8753D]/10 text-[#C8753D] flex items-center justify-center mx-auto mb-4">
+                  <HubIcon className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-serif-title font-bold text-[#111111] mb-2">{hub.title}</h3>
                 <p className="text-sm text-[#111111]/70 max-w-md mx-auto mb-6 font-light leading-relaxed">{hub.text}</p>
