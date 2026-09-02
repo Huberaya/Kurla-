@@ -27,6 +27,20 @@ export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
+  // CAC : dépenses d'acquisition cumulées, saisies par l'admin (aucune valeur
+  // inventée). Persistées localement sur le poste d'administration ; le CAC
+  // affiché = dépenses saisies / clients uniques ayant commandé.
+  const [adSpend, setAdSpend] = useState<string>(() => {
+    try { return localStorage.getItem('kurla_admin_ad_spend') || ''; } catch { return ''; }
+  });
+  const adSpendValue = Number(adSpend.replace(',', '.'));
+  const cacValue = Number.isFinite(adSpendValue) && adSpendValue > 0 && metrics?.uniqueCustomers > 0
+    ? adSpendValue / metrics.uniqueCustomers
+    : null;
+  const handleAdSpendChange = (value: string) => {
+    setAdSpend(value);
+    try { localStorage.setItem('kurla_admin_ad_spend', value); } catch { /* noop */ }
+  };
   const [adminDashboard, setAdminDashboard] = useState<any>(null);
   const [serverOrders, setServerOrders] = useState<any[]>([]);
   const [returnsList, setReturnsList] = useState<any[]>([]);
@@ -584,13 +598,33 @@ export const AdminDashboardPage: React.FC = () => {
                 <KpiCell label="Clients uniques" value={metrics ? metrics.uniqueCustomers : '—'} hint="Emails distincts ayant commandé" tone="text-[#FFF7EF]" />
                 <KpiCell label="Taux de réachat" value={metrics?.repeatRate == null ? '—' : `${metrics.repeatRate.toFixed(0)} %`} hint="Clients avec ≥ 2 commandes" tone="text-sky-300" />
                 <KpiCell label="LTV proxy" value={metrics?.ltvProxy == null ? '—' : `${metrics.ltvProxy.toFixed(2)} €`} hint="CA net / clients uniques" tone="text-[#D49A63]" />
-                <KpiCell label="CAC" value="—" hint="À renseigner (dépenses pub / clients acquis)" tone="text-[#FFF7EF]/70" />
+                <KpiCell
+                  label="CAC"
+                  value={cacValue == null ? '—' : `${cacValue.toFixed(2)} €`}
+                  hint={cacValue == null ? 'Saisir les dépenses d’acquisition ci-dessous' : `${adSpendValue.toFixed(0)} € dépensés / ${metrics.uniqueCustomers} clients`}
+                  tone={cacValue == null ? 'text-[#FFF7EF]/70' : (metrics?.ltvProxy != null && cacValue > metrics.ltvProxy / 3 ? 'text-rose-300' : 'text-emerald-300')}
+                />
                 <KpiCell label="Liste d'attente (emails)" value={metrics ? metrics.waitlistCount : '—'} hint="Emails capturés sur la home" tone="text-rose-300" />
                 <KpiCell label="Inscrits (comptes)" value={metrics ? metrics.registeredUsersCount : '—'} hint="Profils créés" tone="text-[#FFF7EF]/70" />
               </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <label htmlFor="admin-ad-spend" className="text-xs text-[#FFF7EF]/60 font-semibold">Dépenses d’acquisition cumulées (€)</label>
+                <input
+                  id="admin-ad-spend"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="decimal"
+                  value={adSpend}
+                  onChange={e => handleAdSpendChange(e.target.value)}
+                  placeholder="ex. 900"
+                  className="w-32 px-3 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]/60"
+                />
+                <span className="text-[11px] text-[#FFF7EF]/40">Créateurs + publicité + barters. Le CAC ci-dessus = ce montant / clients uniques ayant commandé.</span>
+              </div>
               <p className="text-[11px] text-[#FFF7EF]/40 leading-relaxed">
-                Marge et LTV sont des estimations de pilotage basées sur les coûts d'achat cibles du plan de lancement (non comptables).
-                Le CAC se calcule une fois les premières dépenses d'acquisition engagées : cible <strong className="text-[#FFF7EF]/60">CAC &lt; LTV / 3</strong> et ROAS &gt; 2,5 avant toute publicité payante.
+                Marge et LTV sont des estimations de pilotage basées sur les coûts d'achat cibles du plan de lancement (non comptables) ; la marge est calculée sur le CA net de TVA.
+                Cible <strong className="text-[#FFF7EF]/60">CAC &lt; LTV / 3</strong> et ROAS &gt; 2,5 avant toute publicité payante (le CAC passe en rouge si la cible est dépassée).
                 En mode TEST, tous les montants correspondent à des commandes fictives.
               </p>
             </div>

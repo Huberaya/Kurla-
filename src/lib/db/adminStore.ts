@@ -661,6 +661,10 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
     }
     // Marge estimée (coût d'achat HT + port déduit) sur les commandes réglées
     // launch-* uniquement. Estimation de pilotage, pas une comptabilité.
+    // CORRECTION AUDIT 2026-09-02 : `order.total` est TTC — la TVA collectée
+    // n'est pas de la marge. On part du montant net (HT) enregistré sur la
+    // commande (`netAmount`) quand il existe, sinon on retire une TVA FR 20 %
+    // par prudence. Le port est lui aussi ramené au HT.
     let estimatedMargin = 0;
     for (const order of paidOrders) {
       const shippingCost = Number((order.shippingAddress as any)?.shippingCost || 0);
@@ -671,7 +675,12 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
         const qty = Number(it.quantity) || 1;
         if (pid && COST[pid] != null) { orderCost += COST[pid] * qty; launchLines = true; }
       }
-      if (launchLines) estimatedMargin += Math.max(0, Number(order.total || 0) - orderCost - shippingCost);
+      if (launchLines) {
+        const grossTotal = Number(order.total || 0);
+        const netTotal = Number((order as any).netAmount) > 0 ? Number((order as any).netAmount) : grossTotal / 1.2;
+        const netShipping = shippingCost / 1.2;
+        estimatedMargin += Math.max(0, netTotal - orderCost - netShipping);
+      }
     }
     estimatedMargin = Math.round(estimatedMargin * 100) / 100;
     const estimatedMarginRate = revenueTest > 0 ? Math.round((estimatedMargin / revenueTest) * 1000) / 10 : null;

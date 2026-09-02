@@ -63,7 +63,7 @@ export function LaunchPlanSection() {
             </tbody>
           </table>
         </Card>
-        <p className="text-[10px] text-[#FFF7EF]/40 mt-2 italic">* Objectif de coût d’achat HT déduit du prix public pour viser ~45 % de marge ; le coût réel est saisi à réception de la grille fournisseur. Aucun produit n’est publié avant fiche ingrédient + conformité UE (Règl. 1223/2009).</p>
+        <p className="text-[10px] text-[#FFF7EF]/40 mt-2 italic">* Marge brute réelle calculée sur le prix HT (TVA 20 % déduite) : les objectifs de coût donnent ~34 % sur les soins et ~56-60 % sur les accessoires. Pour viser 45 % de marge HT réelle, les coûts d’achat doivent être renégociés (~46 % du prix TTC). Le coût réel est saisi à réception de la grille fournisseur. Aucun produit n’est publié avant fiche ingrédient + conformité UE (Règl. 1223/2009).</p>
       </div>
 
       {/* KITS */}

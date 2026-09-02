@@ -9,6 +9,7 @@ import { Product, ProductQuestion, ProductReview, ProductVariant } from '../type
 import { getEnrichedProductGallery } from '../services/productImageService';
 import { fetchProductIngredients, type ProductIngredientEntry } from '../services/ingredientNavService';
 import { useProduct } from '../services/productService';
+import { analytics } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import {
   askProductQuestion,
@@ -124,6 +125,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
   useEffect(() => {
     if (!product) return;
+    // Funnel : vue de fiche produit (view_item GA4).
+    try { analytics.viewItem(product.id, product.name, product.price, product.category); } catch { /* noop */ }
     setActiveImageIndex(0);
     const firstAvailable = variants.find(variant => variant.inStock);
     setSelectedVariantId(firstAvailable?.id);

@@ -40,7 +40,7 @@ export const WaitlistSection: React.FC = () => {
   };
 
   return (
-    <section className="py-24 bg-[#F8F2EC] text-[#111111] relative border-t border-[#E8E1DA] overflow-hidden">
+    <section id="waitlist" className="py-24 bg-[#F8F2EC] text-[#111111] relative border-t border-[#E8E1DA] overflow-hidden">
       {/* Background Ambient Glow */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(200,117,61,0.1),transparent_70%)] pointer-events-none" />
 

@@ -38,8 +38,8 @@ export const OFFERS: Offer[] = [
     name: 'Produits capillaires texturés (shampoings, soins, leave-in, gels)',
     content: 'Sélection curée de produits adaptés aux cheveux bouclés/crépus/afro, traités par ingrédient et notés transparence.',
     target: 'Tous les personas', priceEur: 14.9, priceNote: 'fourchette 9,90–34,90 €',
-    costEur: 8.2, marginPct: 45, recurrence: 'subscribe',
-    salesStrategy: 'Achat-révente (marge ~45 %) puis marketplace (commission 15-30 %). Réachat cyclique 6-8 sem.',
+    costEur: 8.2, marginPct: 34, recurrence: 'subscribe',
+    salesStrategy: 'Achat-révente (marge HT réelle ~34 % avec les coûts cibles actuels ; 45 % exige de renégocier l’achat à ~46 % du prix TTC) puis marketplace (commission 15-30 %). Réachat cyclique 6-8 sem.',
   },
   {
     id: 'kit-routine', category: 'kit',
@@ -53,7 +53,7 @@ export const OFFERS: Offer[] = [
     id: 'kurla-plus', category: 'subscription',
     name: 'KURLA+ (confort, pas l’honnêteté)',
     content: 'Historique illimité de routine, suivi des résultats, alertes de fin de produit & réappro, assistant dossier, comparaisons approfondies, -10 % sur le réappro.',
-    target: 'Utilisateurs actifs qui veulent tenir leur routine', priceEur: 7.9, priceNote: '7,90 €/mois ou 79 €/an (2 mois offerts)',
+    target: 'Utilisateurs actifs qui veulent tenir leur routine', priceEur: 8.4, priceNote: '7 € HT/mois (8,40 € TTC FR) ou 70 € HT/an (2 mois offerts) — aligné sur le plan KURLA+ réellement implémenté',
     costEur: 0.6, marginPct: 92, recurrence: 'monthly',
     salesStrategy: 'Vendu APRÈS la première valeur (post-reco / post-achat), jamais sur la confiance. Cible 5 % des clients.',
   },
@@ -291,9 +291,9 @@ export type FinanceHorizon = {
 
 export const FINANCE_ASSUMPTIONS = [
   'AOV 42 € au démarrage (kit-driven) → 48 € à 24 mois.',
-  'Marge brute produits 45 % (achat-révente) ; MRR ~90 % de marge.',
+  'Marge brute produits : ~34 % HT avec les coûts d’achat cibles actuels (45 % affiché historiquement incluait la TVA à tort) ; objectif 45 % HT après renégociation. MRR ~90 % de marge.',
   'Réachat 90 j : 18 % à M3 → 30 % à M12.',
-  'KURLA+ 7,90 €/mois, 5 % des clients s’abonnent ; KURLA Pro 49 €/mois à partir de M9.',
+  'KURLA+ 7 € HT/mois (8,40 € TTC FR), 5 % des clients s’abonnent ; KURLA Pro 49 €/mois à partir de M9.',
   'CAC organique/barter ~8-15 € au début ; mix paid ~22 € à partir de M6.',
   'Fondateur non rémunéré jusqu’à M12 ; 1 support à temps partiel à M9, 2 ETP à M24.',
   'Stock initial et création de contenu = investissement de lancement one-off.',

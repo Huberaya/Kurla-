@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, X, Send, Sparkles, ShieldAlert, Bot } from 'lucide-react';
 import { AiDisclosureBadge } from './AiDisclosureBadge';
+import { analytics } from '../lib/analytics';
 
 export const AiAssistantWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,6 +21,7 @@ export const AiAssistantWidget: React.FC = () => {
   ];
 
   const handleSend = async (questionText?: string) => {
+    try { analytics.aiAssistantMessage(); } catch { /* noop */ }
     const textToSend = questionText || input;
     if (!textToSend.trim() || loading) return;
 

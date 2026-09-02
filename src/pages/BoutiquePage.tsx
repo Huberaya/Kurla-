@@ -615,6 +615,28 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               </div>
             );
           })()
+        ) : filteredProducts.length === 0 && count === 0 ? (
+          /* Catalogue entièrement vide (aucun produit publié) : ne jamais
+             afficher un « Voir tout le catalogue (0) » en cul-de-sac. On
+             oriente vers le diagnostic (valeur immédiate) et la liste de
+             lancement (capture d'email). */
+          <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
+            <Sparkles className="w-10 h-10 text-[#C8753D] mx-auto mb-3" />
+            <h3 className="text-xl font-serif-title font-bold text-[#111111] mb-2">La boutique ouvre très bientôt</h3>
+            <p className="text-sm text-[#111111]/70 max-w-md mx-auto mb-6 font-light leading-relaxed">
+              Les premières références (kits, soins et outils pour cheveux texturés) sont en cours de publication.
+              En attendant, faites votre diagnostic gratuit : votre routine personnalisée sera prête dès l’ouverture,
+              et la liste de lancement donne accès à l’offre de bienvenue.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a href="/diagnostic/cheveux" className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
+                Faire mon diagnostic gratuit <ArrowRight className="w-4 h-4" />
+              </a>
+              <a href="/#waitlist" className="px-6 py-3 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111] text-xs font-semibold hover:border-[#C8753D]">
+                Rejoindre la liste de lancement
+              </a>
+            </div>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
             <Filter className="w-10 h-10 text-[#C8753D] mx-auto mb-3 opacity-60" />

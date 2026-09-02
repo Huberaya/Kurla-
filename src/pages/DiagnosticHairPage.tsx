@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
 import { HairDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
+import { analytics } from '../lib/analytics';
 import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
 import { useAuth } from '../context/AuthContext';
 
 export const DiagnosticHairPage: React.FC = () => {
   const { session } = useAuth();
   const [step, setStep] = useState(1);
+  React.useEffect(() => { try { analytics.diagnosticStart('hair'); } catch { /* noop */ } }, []);
   const [loading, setLoading] = useState(false);
 
   const [answers, setAnswers] = useState<HairDiagnosticAnswers>({
@@ -34,6 +36,8 @@ export const DiagnosticHairPage: React.FC = () => {
   };
 
   const submitDiagnostic = async () => {
+    // Funnel : diagnostic complété (KPI diagRate du plan de lancement).
+    try { analytics.diagnosticComplete('hair'); } catch { /* noop */ }
     setLoading(true);
     try {
       const res = await fetch('/api/ai/routine-result', {

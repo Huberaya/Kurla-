@@ -8,6 +8,7 @@ import { resolveRoute } from './lib/routeTable';
 import type { RouteContext } from './lib/routeTable';
 import { useDocumentMeta } from './lib/useDocumentMeta';
 import { AlertTriangle } from 'lucide-react';
+import { analytics } from './lib/analytics';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -134,6 +135,9 @@ function AppContent() {
   const handleAddToCart = (product: Product, variant?: ProductVariant) => {
     const variantId = variant?.id;
     const unitPrice = variant?.price ?? product.price;
+    // Funnel : chaque ajout panier est mesuré (produit, prix), quelle que soit
+    // la page d'origine (fiche produit, boutique, routine, recommandation).
+    try { analytics.addToCart(product.id, product.name, unitPrice); } catch { /* jamais bloquant */ }
     setCartItems(prev => {
       const existing = prev.find(i => i.product.id === product.id && i.variantId === variantId);
       if (existing) {

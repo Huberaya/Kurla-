@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { SkinDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
+import { analytics } from '../lib/analytics';
 
 export const DiagnosticSkinPage: React.FC = () => {
   const [step, setStep] = useState(1);
+  React.useEffect(() => { try { analytics.diagnosticStart('skin'); } catch { /* noop */ } }, []);
   const [loading, setLoading] = useState(false);
 
   const [answers, setAnswers] = useState<SkinDiagnosticAnswers>({
@@ -30,6 +32,8 @@ export const DiagnosticSkinPage: React.FC = () => {
   };
 
   const submitDiagnostic = async () => {
+    // Funnel : diagnostic complété (KPI diagRate du plan de lancement).
+    try { analytics.diagnosticComplete('skin'); } catch { /* noop */ }
     setLoading(true);
     try {
       const res = await fetch('/api/ai/routine-result', {

@@ -79,8 +79,14 @@ function runPrerenderTests(): void {
   // 24 au chantier 8.6c1 (`/createurs`), 25 au chantier 8.6c2 (`/marques`) :
   // les règles de l'espace marque sont publiques, parce qu'une marque doit
   // pouvoir lire ce qu'elle n'obtiendra jamais avant de signer.
+  // 26 au chantier 1 (boucle publique) : `/ingredients`, la recherche
+  // d'ingrédients, est indexable — c'est un pilier SEO de la transparence.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 25, `Attendu 25 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 26, `Attendu 26 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.ok(
+    staticPublic.some(route => route.path === '/ingredients'),
+    'La recherche d’ingrédients doit être prérendue : c’est un pilier SEO.'
+  );
   assert.ok(
     staticPublic.some(route => route.path === '/api-docs'),
     'La documentation de l’API publique doit être prérendue.'

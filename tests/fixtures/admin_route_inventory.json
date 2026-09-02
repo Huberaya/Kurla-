@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T19:14:47.635Z",
+  "generatedAt": "2026-09-02T11:29:50.925Z",
   "routes": [
     {
       "method": "GET",
@@ -281,6 +281,15 @@
       ]
     },
     {
+      "method": "PATCH",
+      "path": "/api/admin/products/:productId/supplier",
+      "file": "src/server/routes/suppliers.ts:116",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/ProductSupplierPanel.tsx:78"
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/admin/professionals/:professionalId/verify",
       "file": "src/server/routes/professionals.ts:284",
@@ -290,7 +299,7 @@
     {
       "method": "POST",
       "path": "/api/admin/retention/run",
-      "file": "src/server/routes/retentionNudges.ts:17",
+      "file": "src/server/routes/retentionNudges.ts:22",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminOperationsPanel.tsx:74"
@@ -311,7 +320,7 @@
       "file": "src/server/routes/prospects.ts:54",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:104"
+        "src/components/SourcingProspectsPanel.tsx:106"
       ]
     },
     {
@@ -320,7 +329,7 @@
       "file": "src/server/routes/prospects.ts:79",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:104"
+        "src/components/SourcingProspectsPanel.tsx:106"
       ]
     },
     {
@@ -329,7 +338,7 @@
       "file": "src/server/routes/prospects.ts:67",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:139"
+        "src/components/SourcingProspectsPanel.tsx:141"
       ]
     },
     {
@@ -385,7 +394,7 @@
       "file": "src/server/routes/prospects.ts:17",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:103"
+        "src/components/SourcingProspectsPanel.tsx:105"
       ]
     },
     {
@@ -394,7 +403,7 @@
       "file": "src/server/routes/prospects.ts:41",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:103"
+        "src/components/SourcingProspectsPanel.tsx:105"
       ]
     },
     {
@@ -403,7 +412,7 @@
       "file": "src/server/routes/prospects.ts:29",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:122"
+        "src/components/SourcingProspectsPanel.tsx:124"
       ]
     },
     {
@@ -427,10 +436,11 @@
     {
       "method": "GET",
       "path": "/api/admin/suppliers",
-      "file": "src/server/routes/suppliers.ts:27",
+      "file": "src/server/routes/suppliers.ts:28",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:109",
+        "src/components/ProductSupplierPanel.tsx:41",
         "src/components/SupplierAdminPanel.tsx:85",
         "src/components/SupplierAdminPanel.tsx:116"
       ]
@@ -438,10 +448,11 @@
     {
       "method": "POST",
       "path": "/api/admin/suppliers",
-      "file": "src/server/routes/suppliers.ts:67",
+      "file": "src/server/routes/suppliers.ts:68",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:109",
+        "src/components/ProductSupplierPanel.tsx:41",
         "src/components/SupplierAdminPanel.tsx:85",
         "src/components/SupplierAdminPanel.tsx:116"
       ]
@@ -449,7 +460,7 @@
     {
       "method": "GET",
       "path": "/api/admin/suppliers/:supplierId",
-      "file": "src/server/routes/suppliers.ts:55",
+      "file": "src/server/routes/suppliers.ts:56",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:103",
@@ -459,7 +470,7 @@
     {
       "method": "PATCH",
       "path": "/api/admin/suppliers/:supplierId",
-      "file": "src/server/routes/suppliers.ts:87",
+      "file": "src/server/routes/suppliers.ts:88",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:103",
@@ -469,7 +480,7 @@
     {
       "method": "POST",
       "path": "/api/admin/suppliers/:supplierId/documents",
-      "file": "src/server/routes/suppliers.ts:99",
+      "file": "src/server/routes/suppliers.ts:100",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:170"

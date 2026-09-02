@@ -58,12 +58,39 @@ export function trackEvent(name: string, params: EventParams = {}): void {
   try { (window as any).plausible?.(name, { props: clean }); } catch { /* noop */ }
 }
 
-// ── Événements e-commerce standard (GA4) ─────────────────────────────────────
+// ── Événements e-commerce standard (GA4) + funnel KURLA ─────────────────────
+// Couvre l'entonnoir complet du plan de lancement (action a07) :
+// découverte → diagnostic → recommandation → produit → panier → achat.
+// Sans ces événements, ni la conversion, ni le CAC, ni le taux
+// diagnostic→achat ne sont mesurables.
 export const analytics = {
+  // ── Bas de funnel (transaction) ──
   beginCheckout: (value?: number, currency = 'EUR') =>
     trackEvent('begin_checkout', { currency, value }),
   purchase: (transactionId: string, value?: number, currency = 'EUR') =>
     trackEvent('purchase', { transaction_id: transactionId, currency, value }),
+
+  // ── Milieu de funnel (catalogue / panier) ──
+  viewItem: (itemId: string, itemName?: string, price?: number, category?: string) =>
+    trackEvent('view_item', { currency: 'EUR', value: price, item_id: itemId, item_name: itemName, item_category: category }),
+  addToCart: (itemId: string, itemName?: string, price?: number, quantity = 1, source?: string) =>
+    trackEvent('add_to_cart', { currency: 'EUR', value: price !== undefined ? price * quantity : undefined, item_id: itemId, item_name: itemName, quantity, source }),
+  removeFromCart: (itemId: string) =>
+    trackEvent('remove_from_cart', { item_id: itemId }),
+  viewItemList: (listName: string, itemsCount?: number) =>
+    trackEvent('view_item_list', { item_list_name: listName, items_count: itemsCount }),
+
+  // ── Haut de funnel (diagnostic / IA / recherche) ──
+  diagnosticStart: (diagnosticType: string) =>
+    trackEvent('diagnostic_start', { diagnostic_type: diagnosticType }),
+  diagnosticComplete: (diagnosticType: string) =>
+    trackEvent('diagnostic_complete', { diagnostic_type: diagnosticType }),
+  recommendationClick: (itemId: string, origin: string) =>
+    trackEvent('select_promotion', { item_id: itemId, promotion_name: origin }),
+  aiAssistantMessage: () => trackEvent('ai_assistant_message'),
+  search: (term: string) => trackEvent('search', { search_term: term.slice(0, 100) }),
+
+  // ── Compte / lead ──
   signUp: () => trackEvent('sign_up'),
   waitlistJoin: (profileType = 'client') =>
     trackEvent('generate_lead', { content_name: 'launch_waitlist', content_type: profileType })

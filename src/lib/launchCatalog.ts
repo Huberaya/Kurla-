@@ -113,6 +113,23 @@ export const LAUNCH_PRODUCTS: LaunchProduct[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CORRECTION AUDIT 2026-09-02 — MARGES RÉELLES (HT, TVA 20 % déduite).
+// Les `marginPct` déclarés ci-dessus étaient calculés sur le PRIX TTC
+// ((TTC − coût HT) / TTC ≈ 45 %). C'est faux : la TVA collectée (20 %) n'est
+// pas de la marge. La marge brute réelle se calcule sur le prix HT :
+//   marge = (TTC/1,20 − coût HT) / (TTC/1,20).
+// Conséquence : les produits « 45 % » sont en réalité à ~34 %, les accessoires
+// « 63-67 % » à ~56-60 %. Toute décision de pricing, de CAC cible et de
+// scénario financier doit partir de ces valeurs corrigées — sinon chaque
+// commande peut être vendue à perte sans que personne ne le voie.
+// ─────────────────────────────────────────────────────────────────────────────
+export const LAUNCH_VAT_RATE = 1.2;
+LAUNCH_PRODUCTS.forEach(p => {
+  const priceHt = p.retailPriceEur / LAUNCH_VAT_RATE;
+  p.marginPct = Math.round(((priceHt - p.targetCostEur) / priceHt) * 100);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 6 KITS DE LANCEMENT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -133,7 +150,10 @@ function kitFrom(ids: string[], price: number): { sumRetail: number; sumCost: nu
 
 function makeKit(k: Omit<LaunchKit, 'retailPriceEur' | 'marginEur'>): LaunchKit {
   const { sumRetail, sumCost } = kitFrom(k.productIds, k.kitPriceEur);
-  return { ...k, retailPriceEur: sumRetail, marginEur: Math.round((k.kitPriceEur - sumCost) * 100) / 100 };
+  // CORRECTION AUDIT 2026-09-02 : la marge d'un kit se calcule sur le prix HT
+  // (prix TTC / 1,20), pas sur le prix TTC — la TVA n'est pas de la marge.
+  const kitPriceHt = k.kitPriceEur / LAUNCH_VAT_RATE;
+  return { ...k, retailPriceEur: sumRetail, marginEur: Math.round((kitPriceHt - sumCost) * 100) / 100 };
 }
 
 export const LAUNCH_KITS: LaunchKit[] = [
@@ -328,7 +348,11 @@ export type FinanceScenario = {
 function scen(id: string, label: string, visitors: number, purchaseRate: number, aov: number, marginPct: number, cac: number, mrr: number, note: string, reference = false): FinanceScenario {
   const orders = Math.round(visitors * purchaseRate);
   const productRevenue = Math.round(orders * aov);
-  const grossMargin = Math.round(productRevenue * marginPct);
+  // CORRECTION AUDIT 2026-09-02 : l'AOV est TTC ; la marge brute se calcule
+  // sur le revenu HT (TTC / 1,20). `marginPct` est désormais la marge brute
+  // réelle sur prix HT (mix kits ≈ 30-34 %, pas 45 %).
+  const netRevenue = productRevenue / LAUNCH_VAT_RATE;
+  const grossMargin = Math.round(netRevenue * marginPct);
   const acquisitionCost = Math.round(orders * cac);
   const fixed = 700; // tech + frais fixes mensuels d’amorçage
   const netResult = grossMargin + mrr - acquisitionCost - fixed;
@@ -336,9 +360,9 @@ function scen(id: string, label: string, visitors: number, purchaseRate: number,
 }
 
 export const FINANCE_SCENARIOS: FinanceScenario[] = [
-  scen('pru', 'PRUDENT', 1000, 0.008, 40, 0.45, 18, 30, 'Conversion 0,8 %, AOV 40 €, CAC 18 €. Le funnel fuit.', false),
-  scen('cen', 'CENTRAL (référence)', 1000, 0.013, 42, 0.45, 14, 60, 'Conversion 1,3 %, AOV 42 € (kits), CAC 14 €. C’est notre objectif de pilotage M3.', true),
-  scen('amb', 'AMBITIEUX', 1000, 0.022, 46, 0.45, 12, 90, 'Conversion 2,2 %, AOV 46 €, kits premium + réachat engagé.', false),
+  scen('pru', 'PRUDENT', 1000, 0.008, 40, 0.30, 18, 30, 'Conversion 0,8 %, AOV 40 € TTC, marge HT réelle 30 % (mix kits remisés), CAC 18 €. Le funnel fuit et chaque commande détruit de la valeur.', false),
+  scen('cen', 'CENTRAL (référence)', 1000, 0.013, 42, 0.34, 14, 60, 'Conversion 1,3 %, AOV 42 € TTC, marge HT réelle 34 %, CAC 14 €. Même ce scénario reste déficitaire à 1 000 visiteurs : la rentabilité exige plus de trafic, un AOV plus haut ou des coûts d’achat renégociés.', true),
+  scen('amb', 'AMBITIEUX', 1000, 0.022, 46, 0.38, 12, 90, 'Conversion 2,2 %, AOV 46 € TTC, marge HT 38 % (plus d’accessoires/devices au panier), CAC 12 €.', false),
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
