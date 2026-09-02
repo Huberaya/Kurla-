@@ -46,6 +46,32 @@ const SKIN_NEEDS: NeedOption[] = [
   { id: 'teinte_maquillage', label: 'Trouver sa nuance de maquillage', domain: 'peau', icon: '🎨', description: 'Nuanciers et soins préparateurs pour carnations mates à très foncées.' },
 ];
 
+// Catégories dont les produits arrivent plus tard : on oriente vers l'espace
+// dédié (conseils/diagnostic) plutôt que d'afficher une grille vide trompeuse.
+const EMPTY_CATEGORY_HUB: Record<string, { icon: string; title: string; text: string; href: string; cta: string }> = {
+  peau: {
+    icon: '✨',
+    title: 'Les soins visage arrivent bientôt',
+    text: 'En attendant la gamme peau (solaire invisible, anti-taches…), découvrez nos conseils et faites votre diagnostic gratuit adapté à votre carnation.',
+    href: '/melanin-skin',
+    cta: 'Découvrir l’espace peau',
+  },
+  hommes: {
+    icon: '🧔🏾',
+    title: 'L’espace hommes vous attend',
+    text: 'Éponge curl sponge, durag satin, mousse twist, entretien locks et barbe : retrouvez les outils et conseils dédiés au grooming masculin.',
+    href: '/hommes',
+    cta: 'Découvrir l’espace hommes',
+  },
+  enfants: {
+    icon: '🧒🏾',
+    title: 'L’espace kids arrive en boutique',
+    text: 'Le diagnostic enfant et les conseils de coiffage sans larmes sont déjà disponibles. Les soins et accessoires kids (dès 3 ans) arrivent en précommande.',
+    href: '/kids',
+    cta: 'Découvrir l’espace kids',
+  },
+};
+
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
   const { products, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
   const { profile } = useAuth();
@@ -211,22 +237,22 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Audit Header Banner */}
+        {/* En-tête boutique */}
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-bold uppercase tracking-widest mb-3 border border-[#C8753D]/20">
-            <Sparkles className="w-3.5 h-3.5" /> Catalogue publié KURLA
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-bold uppercase tracking-widest mb-3 border border-emerald-500/20">
+            <Clock className="w-3.5 h-3.5" /> Précommandes ouvertes
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 tracking-tight">
-            La Boutique Conseillère d'Achat.
+            La boutique des cheveux texturés.
           </h1>
           <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
-            Trouvez des soins publiés avec des informations vérifiées pour vos cheveux et votre peau.
-            Filtrez par besoin réel, composition, pays de livraison et compatibilité avec votre profil.
+            Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer.
+            Réservez en précommande : annulation et remboursement à tout moment avant l’envoi.
           </p>
 
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#C8753D]/20 bg-[#C8753D]/5 text-[#7c4826]">
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
             <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
-            <span>Chaque produit affiché a franchi le contrôle de publication KURLA.</span>
+            <span>{count} références — expédiées à la réception du premier lot.</span>
           </div>
         </div>
 
@@ -235,13 +261,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
               <span className="text-xs uppercase tracking-widest font-bold text-[#C8753D] block mb-1">
-                Espace Guidance Intuitive
+                Trouver par besoin
               </span>
               <h2 className="text-2xl font-serif-title font-bold text-[#111111] flex items-center gap-2">
                 Que recherchez-vous ?
               </h2>
               <p className="text-xs text-[#111111]/70 font-light mt-1">
-                Cliquez sur votre objectif prioritaire pour afficher directement les produits conseillés.
+                Choisissez votre objectif pour voir les produits et outils conseillés.
               </p>
             </div>
 
@@ -304,6 +330,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               );
             })}
           </div>
+
+          {/* Note soin visage : pas encore en boutique, diagnostic disponible */}
+          {needsDomainTab === 'peau' && !activeNeedObj && (
+            <div className="mt-6 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <p className="text-xs text-[#111111]/75 font-light leading-relaxed">
+                <strong className="font-semibold text-[#111111]">Les soins visage arrivent bientôt.</strong> En attendant, le diagnostic peau vous donne gratuitement votre routine adaptée à votre carnation.
+              </p>
+              <a href="/diagnostic/peau" className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold">
+                Faire le diagnostic peau <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
 
           {/* Active Need Explanation Banner */}
           {activeNeedObj && (
@@ -397,7 +435,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher produit, actif (Niacinamide, Mangue)..."
+                placeholder="Rechercher un produit ou un outil (steamer, karité, peigne…)…"
                 className="w-full pl-9 pr-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs focus:outline-none focus:border-[#C8753D]"
               />
               {searchQuery && (
@@ -475,7 +513,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </div>
             {onlyCompatible && !hasKurlaProfile && (
               <p className="w-full text-[11px] text-[#9a5b2d]">
-                Complète ton KURLA ID pour activer une compatibilité personnalisée.
+                Complétez votre KURLA ID pour activer une compatibilité personnalisée.
               </p>
             )}
 
@@ -504,7 +542,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-xs text-[#111111]/70 font-medium">
-            Affichage de <strong className="text-[#111111]">{filteredProducts.length}</strong> produit(s) publié(s)
+            <strong className="text-[#111111]">{filteredProducts.length}</strong> référence{filteredProducts.length > 1 ? 's' : ''}
           </p>
         </div>
 
@@ -544,12 +582,36 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <RefreshCw className="w-3.5 h-3.5" /> Réessayer la connexion
             </button>
           </div>
+        ) : filteredProducts.length === 0 && EMPTY_CATEGORY_HUB[activeCategory] ? (
+          (() => {
+            const hub = EMPTY_CATEGORY_HUB[activeCategory];
+            return (
+              <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
+                <div className="w-14 h-14 rounded-2xl bg-[#C8753D]/10 text-[#C8753D] flex items-center justify-center mx-auto mb-4 text-2xl">
+                  {hub.icon}
+                </div>
+                <h3 className="text-xl font-serif-title font-bold text-[#111111] mb-2">{hub.title}</h3>
+                <p className="text-sm text-[#111111]/70 max-w-md mx-auto mb-6 font-light leading-relaxed">{hub.text}</p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <a href={hub.href} className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
+                    {hub.cta} <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <button
+                    onClick={() => { setSelectedNeedId(null); setSelectedBrand('tous'); setOnlyAfroCommunity(false); setSelectedCountry('tous'); setSearchQuery(''); setOnlyCompatible(false); setActiveCategory('tous'); setActiveSubCategory('tous'); }}
+                    className="px-6 py-3 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111] text-xs font-semibold hover:border-[#C8753D]"
+                  >
+                    Voir tout le catalogue ({count})
+                  </button>
+                </div>
+              </div>
+            );
+          })()
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
             <Filter className="w-10 h-10 text-[#C8753D] mx-auto mb-3 opacity-60" />
             <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Aucun produit trouvé</h3>
             <p className="text-xs text-[#111111]/70 max-w-md mx-auto mb-6">
-              Aucun produit publié ne correspond à vos filtres actuels.
+              Aucune référence ne correspond à vos filtres. Essayez d’élargir votre recherche.
             </p>
             <button
               onClick={() => {
@@ -564,7 +626,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               }}
               className="px-5 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold shadow-xs hover:bg-[#b06330]"
             >
-              Voir tout le catalogue ({count} produits)
+              Voir tout le catalogue ({count})
             </button>
           </div>
         ) : (
@@ -590,8 +652,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       )}
                       
                       {compatibleWithProfile && (
-                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
-                          <Award className="w-3 h-3 text-[#D49A63]" /> Compatible avec ton profil
+                        <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+                          <Award className="w-3 h-3 text-[#D49A63]" /> Vous correspond
                         </div>
                       )}
 
@@ -619,7 +681,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         {product.brand}
                       </span>
                       <span className="text-[10px] text-[#111111]/50 font-medium text-right">
-                        {product.countryAvailability?.length ? `Livraison : ${product.countryAvailability.join(', ')}` : 'Pays de livraison non renseignés'}
+                        {product.countryAvailability?.length ? `Livraison : ${product.countryAvailability.join(', ')}` : 'Livraison France & UE'}
                       </span>                    </div>
 
                     <a href={`/produit/${product.slug}`} className="hover:underline">
@@ -635,7 +697,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         <span className="text-[#111111]/40">({product.verifiedReviewCount} avis vérifiés)</span>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-[#111111]/50 mb-2">Aucun avis vérifié pour le moment</p>
+                      <p className="text-[11px] text-[#111111]/40 mb-2">Nouveau — soyez parmi les premiers à donner votre avis</p>
                     )}
 
                     <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-2">
