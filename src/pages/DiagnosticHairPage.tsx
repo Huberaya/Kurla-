@@ -62,6 +62,15 @@ export const DiagnosticHairPage: React.FC = () => {
     <div className="min-h-screen pt-32 pb-24 bg-gradient-to-b from-[#050403] via-[#1A0F0A] to-[#050403] text-[#FFF7EF]">
       <div className="max-w-3xl mx-auto px-4">
 
+        {/* En-tête */}
+        <div className="text-center mb-8">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#C8753D]/15 border border-[#C8753D]/30 text-[#D49A63] text-xs font-semibold tracking-wider uppercase mb-4">
+            <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3 minutes · sans abonnement
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Trouvez votre routine cheveux</h1>
+          <p className="text-sm text-[#FFF7EF]/70 font-light max-w-md mx-auto">Répondez à 8 questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
+        </div>
+
         {/* Progress Bar */}
         <div className="mb-10 space-y-2">
           <div className="flex justify-between text-xs text-[#D49A63] font-semibold uppercase tracking-wider">
@@ -83,15 +92,15 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 1 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">1. Texture Principale</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est la texture dominante de tes cheveux ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est la texture dominante de vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
-                  { id: 'crepue', title: 'Crépue (Spire 4A-4C)', desc: 'Très serrée, rétrécissement important à sec.' },
+                  { id: 'crepue', title: 'Crépue (4A–4C)', desc: 'Très serrée, rétrécissement important à sec.' },
                   { id: 'frisee', title: 'Frisée / Bouclée (3B-3C)', desc: 'Boucles en S bien définies ou ressorts.' },
                   { id: 'locksee', title: 'Locks / Microlocks', desc: 'Cheveux ancrés en locks ou twist locks.' },
-                  { id: 'protective', title: 'Protective Style Actif', desc: 'En braids, twists ou tissage.' },
+                  { id: 'protective', title: 'Coiffure protectrice', desc: 'En braids, twists ou tissage.' },
                   { id: 'defrisee', title: 'Défrisée / En transition', desc: 'Textures mixtes ou sensibilisées.' },
-                  { id: 'inconnue', title: 'Je ne sais pas exactement', desc: 'Laisse KURLA analyser tes réponses.' },
+                  { id: 'inconnue', title: 'Je ne sais pas exactement', desc: 'Laissez KURLA analyser vos réponses.' },
                 ].map(opt => (
                   <button
                     key={opt.id}
@@ -116,14 +125,14 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 2 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2. Coiffage Actuel</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment portes-tu tes cheveux en ce moment ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment portez-vous vos cheveux en ce moment ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
-                  { id: 'naturel', title: 'Au naturel (Afro, Puff, Wash & Go)' },
+                  { id: 'naturel', title: 'Au naturel (afro, puff, wash & go)' },
                   { id: 'braids', title: 'Tresses / Knotless Braids' },
                   { id: 'twists', title: 'Vanilles / Passion Twists' },
                   { id: 'locks', title: 'Locks / Microlocks' },
-                  { id: 'wig', title: 'Wig / Tissage / Pose' },
+                  { id: 'wig', title: 'Perruque / Tissage / Pose' },
                   { id: 'enfant', title: 'Coiffure enfant (Douceur)' },
                 ].map(opt => (
                   <button
@@ -143,13 +152,13 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 3 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">3. Priorité Beauté</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est ta priorité numéro 1 ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est votre priorité ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'hydratation', title: 'Stopper la sécheresse intense' },
                   { id: 'casse', title: 'Éviter la casse au démêlage' },
                   { id: 'definition', title: 'Définir les boucles sans cartonner' },
-                  { id: 'pousse', title: 'Stimuler la pousse & densité' },
+                  { id: 'pousse', title: 'Favoriser la santé des longueurs & racines' },
                   { id: 'cuir_chevelu', title: 'Apaiser les démangeaisons cuir chevelu' },
                   { id: 'demelage_enfant', title: 'Faciliter le démêlage enfant sans larmes' },
                 ].map(opt => (
@@ -170,18 +179,18 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 4 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4. Niveau de Porosité</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment tes cheveux réagissent-ils à l'eau ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment vos cheveux réagissent-ils à l’eau ?</h2>
 
               {/* Aide : test du verre d'eau */}
               <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-4 flex gap-3">
                 <Info className="w-5 h-5 text-[#D49A63] shrink-0 mt-0.5" />
                 <div className="text-xs text-[#FFF7EF]/75 leading-relaxed">
                   <strong className="text-[#FFF7EF] block mb-1">Le test du verre d’eau (30 secondes)</strong>
-                  Dépose un cheveu propre et sec dans un verre d’eau claire.
+                  Déposez un cheveu propre et sec dans un verre d’eau claire.
                   <span className="block mt-1">• Il <strong>coule au fond</strong> → porosité <strong>forte</strong> (écailles ouvertes, boit l’eau puis la perd vite).</span>
                   <span className="block">• Il <strong>flotte en surface</strong> → porosité <strong>faible</strong> (écailles serrées, l’eau peine à entrer).</span>
                   <span className="block">• Il <strong>reste au milieu</strong> → porosité <strong>moyenne</strong>, l’idéal équilibré.</span>
-                  <span className="block mt-1 text-[#FFF7EF]/50">Pas le temps ? Choisis « Je ne sais pas », KURLA s’adapte.</span>
+                  <span className="block mt-1 text-[#FFF7EF]/50">Pas le temps ? Choisissez « Je ne sais pas », KURLA s’adapte.</span>
                 </div>
               </div>
 
@@ -190,7 +199,7 @@ export const DiagnosticHairPage: React.FC = () => {
                   { id: 'forte', title: 'Porosité forte : absorbe l’eau en 1 sec mais sèche ultra vite.', desc: 'Besoin de beurres et huiles riches pour sceller l’humidité.' },
                   { id: 'faible', title: 'Porosité faible : l’eau glisse dessus, très longs à mouiller.', desc: 'Besoin de soins légers et de chaleur douce.' },
                   { id: 'moyenne', title: 'Porosité moyenne : équilibrée.', desc: 'L’eau pénètre normalement.' },
-                  { id: 'inconnue', title: 'Je ne sais pas.', desc: 'KURLA déterminera les textures idéales.' },
+                  { id: 'inconnue', title: 'Je ne sais pas.', desc: 'KURLA détermine les produits adaptés à vos réponses.' },
                 ].map(opt => (
                   <button
                     key={opt.id}
@@ -213,7 +222,7 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 5 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">5. Cuir Chevelu</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est l’état de ton cuir chevelu ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est l’état de votre cuir chevelu ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'normal', title: 'Normal & confortable' },
@@ -239,10 +248,10 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 6 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">6. Fréquence Routine</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">À quelle fréquence fais-tu ton shampoing / soin ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">À quelle fréquence lavez-vous vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
-                  { id: 'debutante', title: 'Débutante (Je n’ai pas de routine fixe)' },
+                  { id: 'debutante', title: 'Je débute (pas encore de routine fixe)' },
                   { id: '1x_semaine', title: '1 fois par semaine (Wash Day fixe)' },
                   { id: '2x_semaine', title: '2 fois par semaine' },
                   { id: 'irreguliere', title: 'Variable / Selon le temps' },
@@ -264,7 +273,7 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 7 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">7. Budget Routine</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est ton budget idéal pour un kit complet ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel budget souhaitez-vous pour votre routine ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
                   { id: 'moins_40', title: 'Moins de 40 € (Essential Kit)' },
@@ -289,23 +298,22 @@ export const DiagnosticHairPage: React.FC = () => {
           {step === 8 && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">8. Finalisation</span>
-              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Où devons-nous t’envoyer ta routine personnalisée ?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Voulez-vous recevoir votre routine par e-mail ?</h2>
               <p className="text-sm text-[#FFF7EF]/70 font-light">
-                Ton analyse IA supervisée sera immédiatement affichée à l’écran et sauvegardée.
+                Votre routine s’affiche immédiatement à l’écran. L’e-mail est facultatif : il sert uniquement à vous la renvoyer et à la sauvegarder.
               </p>
               <input
                 type="email"
                 value={answers.email}
                 onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
-                placeholder="Ton adresse email"
-                required
+                placeholder="Votre adresse e-mail (facultatif)"
                 className="w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-base focus:outline-none focus:border-[#C8753D]"
               />
 
               <div className="p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 flex items-start gap-3 text-xs text-[#FFF7EF]/60">
                 <ShieldAlert className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
                 <span>
-                  <strong>Disclaimer :</strong> Les recommandations KURLA sont des conseils beauté non médicaux.
+                  <strong>Bon à savoir :</strong> Ces conseils beauté sont personnalisés et ne remplacent pas un avis médical. En cas de problème persistant du cuir chevelu, consultez un professionnel de santé.
                 </span>
               </div>
             </div>
