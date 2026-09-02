@@ -14,6 +14,7 @@ const DiagnosticResultPage = lazy(() => import('../pages/DiagnosticResultPage').
 const DiagnosticKidsPage = lazy(() => import('../pages/DiagnosticKidsPage').then(m => ({ default: m.DiagnosticKidsPage })));
 const DiagnosticProtectivePage = lazy(() => import('../pages/DiagnosticProtectivePage').then(m => ({ default: m.DiagnosticProtectivePage })));
 const BoutiquePage = lazy(() => import('../pages/BoutiquePage').then(m => ({ default: m.BoutiquePage })));
+const NeedHubPage = lazy(() => import('../pages/NeedHubPage').then(m => ({ default: m.NeedHubPage })));
 const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
 const RoutinesPage = lazy(() => import('../pages/RoutinesPage').then(m => ({ default: m.RoutinesPage })));
 const RoutineDetailPage = lazy(() => import('../pages/RoutineDetailPage').then(m => ({ default: m.RoutineDetailPage })));
@@ -134,6 +135,10 @@ export const ROUTES: RouteEntry[] = [
   {
     path: '/produit/:slug',
     render: ({ params, onAddToCart }) => <ProductDetailPage slug={params.slug} onAddToCart={onAddToCart} />,
+  },
+  {
+    path: '/besoin/:need',
+    render: ({ params, onAddToCart }) => <NeedHubPage need={params.need} onAddToCart={onAddToCart} />,
   },
   // Recherche d'ingrédients (publique et indexable).
   {
