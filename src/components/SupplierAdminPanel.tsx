@@ -13,6 +13,10 @@ type SupplierRow = {
   tradeName?: string;
   supplierType: string;
   country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  notes?: string;
   verificationStatus: 'verified' | 'pending' | 'not_provided';
   moqUnits: number | null;
   leadTimeDays: number | null;
@@ -77,6 +81,9 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
   const [documentDraft, setDocumentDraft] = useState({
     documentType: 'cpsr', reference: '', issuedOn: '', expiresOn: '', fileUrl: '', note: ''
   });
+  // Coordonnées éditables d'un fournisseur EXISTANT : jusqu'ici seul le
+  // formulaire de création portait le contact — impossible de le compléter après coup.
+  const [contactDraft, setContactDraft] = useState({ contactName: '', contactEmail: '', website: '', notes: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,6 +111,12 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Fiche fournisseur indisponible.');
       setDetail(data);
+      setContactDraft({
+        contactName: data.supplier?.contactName || '',
+        contactEmail: data.supplier?.contactEmail || '',
+        website: data.supplier?.website || '',
+        notes: data.supplier?.notes || ''
+      });
     } catch (detailError: any) {
       setError(detailError.message || 'Fiche fournisseur indisponible.');
     }
@@ -157,6 +170,26 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
       await openDetail(supplierId);
     } catch (statusError: any) {
       setError(statusError.message || 'Statut non mis à jour.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveContact = async () => {
+    if (!detail) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/suppliers/${encodeURIComponent(detail.supplier.id)}`, {
+        method: 'PATCH', headers, body: JSON.stringify(contactDraft)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Coordonnées non enregistrées.');
+      onSuccess?.(`Coordonnées de « ${detail.supplier.legalName} » mises à jour.`);
+      await load();
+      await openDetail(detail.supplier.id);
+    } catch (contactError: any) {
+      setError(contactError.message || 'Coordonnées non enregistrées.');
     } finally {
       setBusy(false);
     }
@@ -223,6 +256,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                   <th className="py-2 pr-3">Raison sociale</th>
                   <th className="py-2 pr-3">Métier</th>
                   <th className="py-2 pr-3">Pays</th>
+                  <th className="py-2 pr-3">Contact</th>
                   <th className="py-2 pr-3">MOQ</th>
                   <th className="py-2 pr-3">Délai</th>
                   <th className="py-2 pr-3">Preuves</th>
@@ -238,6 +272,13 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                       <td className="py-2 pr-3 text-[#FFF7EF]">{supplier.legalName}{supplier.tradeName ? <span className="text-[#FFF7EF]/40"> · {supplier.tradeName}</span> : null}</td>
                       <td className="py-2 pr-3 text-[#FFF7EF]/70">{SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType}</td>
                       <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.country || '—'}</td>
+                      <td className="py-2 pr-3 text-[#FFF7EF]/70">
+                        {supplier.contactEmail
+                          ? <a href={`mailto:${supplier.contactEmail}`} className="text-[#C8753D] hover:underline">{supplier.contactEmail}</a>
+                          : supplier.contactName
+                            ? <span title="E-mail à compléter">{supplier.contactName}</span>
+                            : <span className="text-amber-300/80">à compléter</span>}
+                      </td>
                       <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.moqUnits ? `${supplier.moqUnits} u.` : '—'}</td>
                       <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.leadTimeDays ? `${supplier.leadTimeDays} j` : '—'}</td>
                       <td className="py-2 pr-3 text-[#FFF7EF]/70">
@@ -322,6 +363,37 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
             « Vérifié » exige au moins un document enregistré ci-dessous : sans preuve, la
             plateforme refuse le changement de statut.
           </p>
+
+          <div className="rounded-xl border border-[#FFF7EF]/10 bg-[#050403]/60 p-4 mb-5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Coordonnées & contact</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="space-y-1"><span className={labelClass()}>Nom du contact</span>
+                <input className={inputClass()} value={contactDraft.contactName}
+                  onChange={event => setContactDraft({ ...contactDraft, contactName: event.target.value })}
+                  placeholder="Ex. Service commercial" /></label>
+              <label className="space-y-1"><span className={labelClass()}>E-mail</span>
+                <input type="email" className={inputClass()} value={contactDraft.contactEmail}
+                  onChange={event => setContactDraft({ ...contactDraft, contactEmail: event.target.value })}
+                  placeholder="contact@fournisseur.com" /></label>
+              <label className="space-y-1"><span className={labelClass()}>Site web</span>
+                <input className={inputClass()} value={contactDraft.website}
+                  onChange={event => setContactDraft({ ...contactDraft, website: event.target.value })}
+                  placeholder="https://…" /></label>
+              <label className="space-y-1 md:col-span-3"><span className={labelClass()}>Notes (téléphone, adresse, alternatives qualifiées)</span>
+                <textarea rows={3} className={inputClass()} value={contactDraft.notes}
+                  onChange={event => setContactDraft({ ...contactDraft, notes: event.target.value })} /></label>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-3">
+              <p className="text-[10px] text-[#FFF7EF]/40">
+                Uniquement des coordonnées publiques réelles et vérifiées (page contact officielle,
+                registre) — jamais une adresse devinée. Si le contact est inconnu, laissez vide.
+              </p>
+              <button onClick={() => void saveContact()} disabled={busy}
+                className="px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40 shrink-0">
+                <Save size={13} /> Enregistrer le contact
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>

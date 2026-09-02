@@ -58,6 +58,7 @@ type ProductDraft = {
   imageSupervisionStatus: 'verified' | 'pending' | 'not_provided';
   sourceSupplier: string;
   supplierSku: string;
+  supplierId: string;
   variants: VariantDraft[];
 };
 
@@ -66,7 +67,7 @@ const emptyDraft = (): ProductDraft => ({
   name: '', slug: '', brand: '', category: 'cheveux', subCategory: '', price: '', originalPrice: '', promotionPrice: '',
   promotionStartsAt: '', promotionEndsAt: '', isPromo: false, vatRate: '20', priceIncludesVat: true, stockQuantity: '0',
   isActive: false, countryAvailability: 'FR', description: '', image: '', imageOwnershipStatus: 'unverified', images: '', ingredients: '', inci: '', warnings: '',
-  certifications: '[]', catalogCategoryTags: [], targetAudiences: [], recommendedAgeBand: 'not_provided', recommendedAgeMin: '', recommendedAgeMax: '', minorSafetyStatus: 'not_provided', adultOnlyActives: '', parentalSupervisionRequired: false, imageSupervisionStatus: 'not_provided', sourceSupplier: '', supplierSku: '', variants: []
+  certifications: '[]', catalogCategoryTags: [], targetAudiences: [], recommendedAgeBand: 'not_provided', recommendedAgeMin: '', recommendedAgeMax: '', minorSafetyStatus: 'not_provided', adultOnlyActives: '', parentalSupervisionRequired: false, imageSupervisionStatus: 'not_provided', sourceSupplier: '', supplierSku: '', supplierId: '', variants: []
 });
 
 function inputClass(): string {
@@ -114,7 +115,7 @@ function draftFromProduct(product: any): ProductDraft {
     adultOnlyActives: (product.adultOnlyActives || product.adult_only_actives || []).join(' | '),
     parentalSupervisionRequired: product.parentalSupervisionRequired === true || product.parental_supervision_required === true,
     imageSupervisionStatus: product.imageSupervisionStatus || product.image_supervision_status || 'not_provided',
-    sourceSupplier: product.sourceSupplier || '', supplierSku: product.supplierSku || '', variants: (product.variants || []).map(variantFromApi)
+    sourceSupplier: product.sourceSupplier || '', supplierSku: product.supplierSku || '', supplierId: product.supplierId || '', variants: (product.variants || []).map(variantFromApi)
   };
 }
 
@@ -123,6 +124,9 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
   const [categories, setCategories] = useState<any[]>([]);
   const [audiences, setAudiences] = useState<any[]>([]);
   const [imports, setImports] = useState<any[]>([]);
+  // Référentiel fournisseurs : joint côté écran par supplier_id pour afficher
+  // le contact réel de chaque produit (jamais inventé — il vient de la table suppliers).
+  const [suppliersRef, setSuppliersRef] = useState<any[]>([]);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft());
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvText, setCsvText] = useState('');
@@ -139,19 +143,22 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     setBusy(true);
     setError('');
     try {
-      const [catalogResponse, taxonomyResponse, importsResponse] = await Promise.all([
+      const [catalogResponse, taxonomyResponse, importsResponse, suppliersResponse] = await Promise.all([
         fetch('/api/admin/catalog/products', { headers }),
         fetch('/api/admin/catalog/taxonomy', { headers }),
-        fetch('/api/admin/catalog/imports', { headers })
+        fetch('/api/admin/catalog/imports', { headers }),
+        fetch('/api/admin/suppliers', { headers })
       ]);
       const catalog = await catalogResponse.json();
       const taxonomy = await taxonomyResponse.json();
       const importData = await importsResponse.json();
+      const suppliersData = await suppliersResponse.json().catch(() => ({}));
       if (!catalogResponse.ok) throw new Error(catalog.error || 'Catalogue indisponible.');
       setProducts(catalog.products || []);
       setCategories(taxonomy.categories || []);
       setAudiences(taxonomy.audiences || []);
       setImports(importData.imports || []);
+      if (suppliersResponse.ok) setSuppliersRef(suppliersData.suppliers || []);
     } catch (loadError: any) {
       setError(loadError.message || 'Impossible de charger le catalogue.');
     } finally {
@@ -162,6 +169,11 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
   useEffect(() => { loadCatalog(); }, []);
 
   const filteredProducts = useMemo(() => products.filter(product => `${product.name} ${product.brand || ''} ${product.slug}`.toLowerCase().includes(filter.toLowerCase())), [products, filter]);
+  const supplierById = useMemo(() => {
+    const index: Record<string, any> = {};
+    for (const item of suppliersRef) index[item.id] = item;
+    return index;
+  }, [suppliersRef]);
 
   const setField = (field: keyof ProductDraft, value: any) => setDraft(current => ({ ...current, [field]: value }));
   const toggleValue = (field: 'catalogCategoryTags' | 'targetAudiences', value: string) => {
@@ -195,7 +207,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
       adultOnlyActives: splitLines(draft.adultOnlyActives),
       parentalSupervisionRequired: draft.parentalSupervisionRequired,
       imageSupervisionStatus: draft.imageSupervisionStatus,
-      sourceSupplier: draft.sourceSupplier, supplierSku: draft.supplierSku,
+      sourceSupplier: draft.sourceSupplier, supplierSku: draft.supplierSku, supplierId: draft.supplierId || undefined,
       variants: draft.variants.map(variant => ({ id: variant.id, name: variant.name, price: variant.price || draft.price, stockQuantity: variant.stockQuantity, sku: variant.sku,
         optionType: variant.size ? 'size' : variant.format ? 'format' : variant.shade ? 'shade' : variant.scent ? 'scent' : undefined,
         optionValue: variant.size || variant.format || variant.shade || variant.scent || undefined, formatLabel: variant.format, color: variant.color, shade: variant.shade,
@@ -324,6 +336,29 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><label className="space-y-1"><span className={labelClass()}>Composition / ingrédients</span><textarea rows={3} value={draft.ingredients} onChange={e => setField('ingredients', e.target.value)} className={inputClass()} placeholder="Séparer par |" /></label><label className="space-y-1"><span className={labelClass()}>INCI</span><textarea rows={3} value={draft.inci} onChange={e => setField('inci', e.target.value)} className={inputClass()} /></label><label className="space-y-1"><span className={labelClass()}>Avertissements</span><textarea rows={3} value={draft.warnings} onChange={e => setField('warnings', e.target.value)} className={inputClass()} placeholder="Uniquement ceux fournis par la source" /></label><label className="space-y-1"><span className={labelClass()}>Certifications (JSON)</span><textarea rows={3} value={draft.certifications} onChange={e => setField('certifications', e.target.value)} className={inputClass()} placeholder='[] si non renseigné' /></label></div>
           <label className="space-y-1 block"><span className={labelClass()}>Description</span><textarea rows={3} value={draft.description} onChange={e => setField('description', e.target.value)} className={inputClass()} /></label>
 
+          <div className="p-4 rounded-2xl bg-[#050403] border border-[#C8753D]/25 space-y-3">
+            <div>
+              <p className={labelClass()}>Fournisseur & sourcing</p>
+              <p className="text-[11px] text-[#FFF7EF]/50 mt-1">Chaque produit référence une entité du référentiel fournisseurs : son contact s’affiche automatiquement ici et sur la fiche. Sans rattachement, le produit est marqué « sourcing à qualifier ».</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="space-y-1"><span className={labelClass()}>Fournisseur (référentiel)</span>
+                <select value={draft.supplierId} onChange={e => setField('supplierId', e.target.value)} className={inputClass()}>
+                  <option value="">— aucun (à qualifier) —</option>
+                  {suppliersRef.map(item => <option key={item.id} value={item.id}>{item.legalName}{item.country ? ` (${item.country})` : ''}</option>)}
+                </select></label>
+              <label className="space-y-1"><span className={labelClass()}>Libellé sourcing (texte libre)</span><input value={draft.sourceSupplier} onChange={e => setField('sourceSupplier', e.target.value)} className={inputClass()} placeholder="Ex. Distristar — achat-revente" /></label>
+              <label className="space-y-1"><span className={labelClass()}>SKU fournisseur</span><input value={draft.supplierSku} onChange={e => setField('supplierSku', e.target.value)} className={inputClass()} /></label>
+            </div>
+            {draft.supplierId && supplierById[draft.supplierId] && (
+              <p className="text-[11px] text-[#FFF7EF]/65">
+                Contact : <span className="font-bold">{supplierById[draft.supplierId].contactName || 'non renseigné'}</span>
+                {supplierById[draft.supplierId].contactEmail ? <> · <a href={`mailto:${supplierById[draft.supplierId].contactEmail}`} className="text-[#D49A63] underline">{supplierById[draft.supplierId].contactEmail}</a></> : null}
+                {supplierById[draft.supplierId].website ? <> · <a href={supplierById[draft.supplierId].website} target="_blank" rel="noreferrer" className="text-[#D49A63] underline">{supplierById[draft.supplierId].website.replace(/^https?:\/\//, '')}</a></> : null}
+              </p>
+            )}
+          </div>
+
           <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-3"><div className="flex items-center justify-between"><span className={labelClass()}>Variantes : tailles, formats, couleurs, parfums</span><button type="button" onClick={() => setDraft(current => ({ ...current, variants: [...current.variants, emptyVariant()] }))} className="px-2.5 py-1.5 rounded-lg bg-[#C8753D] text-[11px] font-bold flex items-center gap-1"><Plus className="w-3 h-3" /> Ajouter</button></div>{draft.variants.map((variant, index) => <div key={index} className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl border border-[#FFF7EF]/10"><input placeholder="Nom / libellé *" value={variant.name} onChange={e => updateVariant(index, 'name', e.target.value)} className={inputClass()} /><input placeholder="Prix" type="number" min="0" step="0.01" value={variant.price} onChange={e => updateVariant(index, 'price', e.target.value)} className={inputClass()} /><input placeholder="Stock" type="number" min="0" value={variant.stockQuantity} onChange={e => updateVariant(index, 'stockQuantity', e.target.value)} className={inputClass()} /><input placeholder="SKU" value={variant.sku} onChange={e => updateVariant(index, 'sku', e.target.value)} className={inputClass()} /><input placeholder="Taille" value={variant.size} onChange={e => updateVariant(index, 'size', e.target.value)} className={inputClass()} /><input placeholder="Format" value={variant.format} onChange={e => updateVariant(index, 'format', e.target.value)} className={inputClass()} /><input placeholder="Couleur / teinte" value={variant.color || variant.shade} onChange={e => { updateVariant(index, 'color', e.target.value); updateVariant(index, 'shade', e.target.value); }} className={inputClass()} /><input placeholder="Parfum" value={variant.scent} onChange={e => updateVariant(index, 'scent', e.target.value)} className={inputClass()} /><label className="text-[11px] flex items-center gap-2"><input type="checkbox" checked={variant.isActive} onChange={e => updateVariant(index, 'isActive', e.target.checked)} /> Variante active</label><button type="button" onClick={() => setDraft(current => ({ ...current, variants: current.variants.filter((_, variantIndex) => variantIndex !== index) }))} className="text-[11px] text-rose-300 flex items-center gap-1"><X className="w-3 h-3" /> Retirer</button></div>)}</div>
           <div className="flex items-center justify-between gap-3"><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={draft.isActive} onChange={e => setField('isActive', e.target.checked)} /> Fiche active (publication toujours soumise aux contrôles)</label><button disabled={busy} type="submit" className="px-5 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2"><Save className="w-3.5 h-3.5" /> Enregistrer</button></div>
         </form>
@@ -335,7 +370,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
         </div>
       </div>
 
-      <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({products.length})</h3><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-72 px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" /></div>{filteredProducts.length === 0 ? <p className="text-xs text-[#FFF7EF]/45">Aucune fiche catalogue.</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8753D]/15 text-[#D49A63]">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span></div><p className="text-[11px] text-[#FFF7EF]/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p></div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => loadReturnInsight(product.id)} disabled={insightLoading === product.id} className="px-3 py-1.5 rounded-lg bg-[#050403] border border-[#FFF7EF]/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RefreshCw className={`w-3 h-3 ${insightLoading === product.id ? 'animate-spin' : ''}`} /> Retours</button><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-[#C8753D] text-[11px] font-bold">Modifier</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div>{returnInsights[product.id] && <div className="mt-3 p-3 rounded-xl border border-[#FFF7EF]/10 bg-[#1A0F0A] space-y-2"><p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold">Intelligence des retours — interne</p><p className="text-[11px] text-[#FFF7EF]/65">{returnInsights[product.id].totalReturns} retour(s) enregistré(s), dont {returnInsights[product.id].informativeReturns} avec une raison exploitable.</p>{returnInsights[product.id].topReasons.length > 0 && <ul className="space-y-1">{returnInsights[product.id].topReasons.map(reason => <li key={reason.reason} className="text-[11px] text-[#FFF7EF]/60">• {reason.label} — {reason.count} signalement(s), {Math.round(reason.share * 100)} %</li>)}</ul>}{returnInsights[product.id].catalogAlert && <p className="text-[11px] text-amber-300 font-semibold">⚠ {returnInsights[product.id].catalogAlert}</p>}{returnInsights[product.id].archetypeHotspots.length > 0 && <p className="text-[11px] text-[#FFF7EF]/55">Cohortes concernées : {returnInsights[product.id].archetypeHotspots.map(hotspot => hotspot.archetypeId).join(', ')}.</p>}{returnInsights[product.id].limitations.length > 0 && <ul className="space-y-0.5">{returnInsights[product.id].limitations.map((limitation, index) => <li key={index} className="text-[10px] text-[#FFF7EF]/40">· {limitation}</li>)}</ul>}<p className="text-[10px] text-[#FFF7EF]/35">Ces signaux sont réservés à l’équipe catalogue. Ils ne sont jamais affichés aux clientes.</p></div>}</div>)}</div>}</div>
+      <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({products.length})</h3><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-72 px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" /></div>{filteredProducts.length === 0 ? <p className="text-xs text-[#FFF7EF]/45">Aucune fiche catalogue.</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-[#C8753D]/15 text-[#D49A63]">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span></div><p className="text-[11px] text-[#FFF7EF]/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p>{(() => { const linked = product.supplierId ? supplierById[product.supplierId] : null; return linked ? <p className="text-[11px] mt-1 text-[#FFF7EF]/70">Fournisseur : <span className="font-bold text-[#D49A63]">{linked.legalName}</span>{linked.country ? ` (${linked.country})` : ''} — {linked.contactName || 'contact non nommé'}{linked.contactEmail ? <> · <a href={`mailto:${linked.contactEmail}`} className="text-[#D49A63] underline">{linked.contactEmail}</a></> : <span className="text-amber-300"> · e-mail à compléter</span>}{linked.website ? <> · <a href={linked.website} target="_blank" rel="noreferrer" className="text-[#D49A63] underline">{String(linked.website).replace(/^https?:\/\//, '')}</a></> : null}</p> : <p className="text-[11px] mt-1 text-amber-300/85">Fournisseur non rattaché — sourcing à qualifier{product.sourceSupplier ? ` (${product.sourceSupplier})` : ''}</p>; })()}</div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => loadReturnInsight(product.id)} disabled={insightLoading === product.id} className="px-3 py-1.5 rounded-lg bg-[#050403] border border-[#FFF7EF]/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RefreshCw className={`w-3 h-3 ${insightLoading === product.id ? 'animate-spin' : ''}`} /> Retours</button><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-[#C8753D] text-[11px] font-bold">Modifier</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div>{returnInsights[product.id] && <div className="mt-3 p-3 rounded-xl border border-[#FFF7EF]/10 bg-[#1A0F0A] space-y-2"><p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold">Intelligence des retours — interne</p><p className="text-[11px] text-[#FFF7EF]/65">{returnInsights[product.id].totalReturns} retour(s) enregistré(s), dont {returnInsights[product.id].informativeReturns} avec une raison exploitable.</p>{returnInsights[product.id].topReasons.length > 0 && <ul className="space-y-1">{returnInsights[product.id].topReasons.map(reason => <li key={reason.reason} className="text-[11px] text-[#FFF7EF]/60">• {reason.label} — {reason.count} signalement(s), {Math.round(reason.share * 100)} %</li>)}</ul>}{returnInsights[product.id].catalogAlert && <p className="text-[11px] text-amber-300 font-semibold">⚠ {returnInsights[product.id].catalogAlert}</p>}{returnInsights[product.id].archetypeHotspots.length > 0 && <p className="text-[11px] text-[#FFF7EF]/55">Cohortes concernées : {returnInsights[product.id].archetypeHotspots.map(hotspot => hotspot.archetypeId).join(', ')}.</p>}{returnInsights[product.id].limitations.length > 0 && <ul className="space-y-0.5">{returnInsights[product.id].limitations.map((limitation, index) => <li key={index} className="text-[10px] text-[#FFF7EF]/40">· {limitation}</li>)}</ul>}<p className="text-[10px] text-[#FFF7EF]/35">Ces signaux sont réservés à l’équipe catalogue. Ils ne sont jamais affichés aux clientes.</p></div>}</div>)}</div>}</div>
     </div>
   );
 };
