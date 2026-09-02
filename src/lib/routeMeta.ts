@@ -217,6 +217,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: '/besoin/:need',
+    title: 'Votre besoin, expliqué et conseillé | KURLA',
+    description:
+      'Conseils d’expert, routine étape par étape et produits adaptés aux cheveux texturés 3A à 4C, à la peau mélanée, aux tresses, locks, hommes et enfants.',
+    indexable: true,
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
     path: '/ingredients',
     title: 'Recherche d’ingrédients cosmétiques | KURLA',
     description:
