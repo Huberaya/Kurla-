@@ -104,8 +104,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setStripeUrl(null);
   }, [cartSignature]);
 
-  if (!isOpen) return null;
-
+  // ⚠️ Tous les hooks (useI18n, useMemo) doivent être appelés AVANT le
+  // `return null` conditionnel : un hook placé après un retour anticipé
+  // change le nombre de hooks entre le rendu « fermé » et le rendu « ouvert »
+  // et fait planter React à l'ouverture du panier
+  // (« Rendered more hooks than during the previous render »).
   const { locale } = useI18n();
   const total = items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0);
   const allItemsPreorder = items.length > 0 && items.every(item => (item.product as any).isPreorder === true);
@@ -139,6 +142,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       return null;
     }
   }, [items, shippingOption, shippingCents, shippingAddress.country]);
+
+  if (!isOpen) return null;
 
   const handleStartCheckout = async () => {
     const email = user?.email || guestEmail.trim();

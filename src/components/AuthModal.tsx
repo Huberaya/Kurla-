@@ -45,6 +45,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Cooldown anti-spam sur le renvoi d'email de confirmation.
+  // ⚠️ Ce hook DOIT rester déclaré avant le `return null` conditionnel :
+  // un hook placé après un retour anticipé change le nombre de hooks entre
+  // deux rendus (fermé → ouvert) et fait planter React
+  // (« Rendered more hooks than during the previous render ») — la modale
+  // de connexion/inscription ne s'affichait pas à cause de cela.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  // Ré-ouverture : repartir du mode demandé (login/signup/forgot) et
+  // repartir d'un état de message propre.
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setLocalError(null);
+      setSuccessMsg(null);
+    }
+  }, [isOpen, initialMode]);
+
   if (!isOpen) return null;
 
   const handleSwitchMode = (newMode: 'login' | 'signup' | 'forgot' | 'confirm') => {
@@ -53,13 +75,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccessMsg(null);
     clearError();
   };
-
-  // Cooldown anti-spam sur le renvoi d'email de confirmation.
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
 
   const handleResendConfirmation = async () => {
     const target = pendingEmail || email;
