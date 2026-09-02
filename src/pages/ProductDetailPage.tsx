@@ -10,6 +10,7 @@ import { getEnrichedProductGallery } from '../services/productImageService';
 import { fetchProductIngredients, type ProductIngredientEntry } from '../services/ingredientNavService';
 import { useProduct } from '../services/productService';
 import { analytics } from '../lib/analytics';
+import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { useAuth } from '../context/AuthContext';
 import {
   askProductQuestion,
@@ -232,7 +233,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoCard title="Bénéfice & cible" icon={<CheckCircle2 className="w-4 h-4 text-emerald-300" />}><p>{valueOrMissing(product.benefitPrimary)}</p><p className="mt-2">{targetTypes.length ? targetTypes.join(' · ') : valueOrMissing(product.forWho)}</p></InfoCard>
               <InfoCard title="Pas idéal si…" icon={<AlertCircle className="w-4 h-4 text-amber-300" />}><p>{valueOrMissing(product.notIdealIf)}</p></InfoCard>
-              <InfoCard title="Texture, parfum & usage" icon={<RefreshCw className="w-4 h-4 text-[#D49A63]" />}><p>Texture : {valueOrMissing(product.texture)}</p><p>Parfum : {valueOrMissing(product.fragrance)}</p><p>Fréquence : {valueOrMissing(product.usageFrequency)}</p><p>Mode d’emploi : {valueOrMissing(product.howToUse)}</p></InfoCard>
+              <InfoCard title="Texture, parfum & usage" icon={<RefreshCw className="w-4 h-4 text-[#D49A63]" />}><p>Texture : {valueOrMissing(product.texture)}</p><p>Parfum : {valueOrMissing(product.fragrance)}</p><p>Fréquence : {valueOrMissing(product.usageFrequency)}</p><p>Mode d’emploi : {valueOrMissing(product.howToUse)}</p>{TOOL_BY_PRODUCT_SLUG.has(product.slug) && <a href={`/outils#${TOOL_BY_PRODUCT_SLUG.get(product.slug)!.id}`} className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-[#D49A63] hover:underline">Guide d’utilisation complet de cet outil →</a>}</InfoCard>
               <InfoCard title="Format & rendement" icon={<PackageCheck className="w-4 h-4 text-[#D49A63]" />}><p>Format : {valueOrMissing(product.sizeLabel)}</p><p>Rendement estimé : {valueOrMissing(product.estimatedYield)}</p></InfoCard>
             </div>
 

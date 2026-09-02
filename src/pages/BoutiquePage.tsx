@@ -3,8 +3,9 @@ import {
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X,
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart,
   Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Clock,
-  Baby, UserCheck, Feather, Wind, Crown, Smile, Palette, Package, Scissors
+  Baby, UserCheck, Feather, Wind, Crown, Smile, Palette, Package, Scissors, BookOpen
 } from 'lucide-react';
+import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
@@ -738,6 +739,17 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> Expédié à la réception du premier lot
                       </p>
+                    )}
+
+                    {/* HARMONISATION : ce produit a une fiche pédagogique dans le
+                        guide des outils → lien direct vers sa fiche (ancre). */}
+                    {TOOL_BY_PRODUCT_SLUG.has(product.slug) && (
+                      <a
+                        href={`/outils#${TOOL_BY_PRODUCT_SLUG.get(product.slug)!.id}`}
+                        className="text-[10px] font-semibold text-[#C8753D] hover:underline mb-3 inline-flex items-center gap-1"
+                      >
+                        <BookOpen className="w-3 h-3" /> Guide d’utilisation : quand et comment s’en servir
+                      </a>
                     )}
 
                     {/* Key Ingredients tags */}
