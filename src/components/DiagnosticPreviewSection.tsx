@@ -14,24 +14,24 @@ export const DiagnosticPreviewSection: React.FC = () => {
           {/* Left Column: Text & Features */}
           <div className="lg:col-span-6 space-y-6">
             <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#C8753D]" /> Diagnostic Intelligent Inclusif
+              <Sparkles className="w-4 h-4 text-[#C8753D]" /> Diagnostic personnalisé &amp; gratuit
             </span>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-[#111111] leading-tight">
-              Ton diagnostic en 3 minutes.
+              Votre diagnostic en 3 minutes, sans frais.
             </h2>
 
             <p className="text-base text-[#111111]/80 max-w-[520px] font-light leading-relaxed">
-              Réponds à quelques questions ciblées. KURLA te propose une routine beauté non médicale, claire et personnalisée selon la texture de tes cheveux et tes besoins de peau.
+              Répondez à quelques questions ciblées : KURLA établit une routine claire et personnalisée selon la texture de vos cheveux et les besoins de votre peau. Gratuit, sans abonnement ni carte bancaire.
             </p>
 
             {/* Checklist of what user gets */}
             <div className="space-y-3 pt-2">
               {[
-                'Analyse de texture (4A-4C, boucles, locks, protective style)',
-                'Évaluation du niveau de porosité et cuir chevelu',
-                'Routine quotidienne étape par étape sans superflu',
-                'Recommandations de produits certifiés & pros à proximité'
+                'Votre texture identifiée (3A à 4C, boucles, locks, tresses)',
+                'Votre porosité et l’état de votre cuir chevelu évalués',
+                'Une routine étape par étape, claire et sans superflu',
+                'Des produits du catalogue et des pros près de chez vous'
               ].map((item, idx) => (
                 <div key={idx} className="flex items-start gap-3 text-sm text-[#111111]/90 font-medium">
                   <div className="w-5 h-5 rounded-full bg-[#C8753D]/15 text-[#C8753D] flex items-center justify-center shrink-0 mt-0.5">
@@ -48,7 +48,7 @@ export const DiagnosticPreviewSection: React.FC = () => {
                 href="/diagnostic/cheveux"
                 className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-base shadow-lg shadow-[#C8753D]/20 transition-all transform hover:-translate-y-0.5"
               >
-                Démarrer mon diagnostic (3 min)
+                Démarrer mon diagnostic gratuit
                 <ArrowRight className="w-5 h-5" />
               </a>
             </div>
@@ -57,7 +57,7 @@ export const DiagnosticPreviewSection: React.FC = () => {
             <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex items-start gap-3 text-xs text-[#111111]/70 max-w-[520px] shadow-xs">
               <ShieldAlert className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" />
               <span>
-                <strong>Disclaimer :</strong> Les recommandations KURLA sont des conseils beauté non médicaux. Elles ne remplacent pas l’avis d’un dermatologue ou d’un professionnel de santé.
+                <strong>Bon à savoir :</strong> le diagnostic donne des conseils beauté personnalisés, pas un avis médical. En cas de problème persistant du cuir chevelu ou de la peau, tournez-vous vers un professionnel de santé.
               </span>
             </div>
           </div>
