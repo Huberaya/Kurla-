@@ -9,3 +9,7 @@ coverage/
 
 # Bundle serveur genere par le build Vercel (esbuild server.ts)
 api/_server.cjs
+
+# Playwright
+test-results/
+playwright-report/
