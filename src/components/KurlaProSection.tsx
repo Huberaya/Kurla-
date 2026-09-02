@@ -46,13 +46,13 @@ export const KurlaProSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center mb-16">
           <div className="lg:col-span-7 space-y-4">
             <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#C8753D]" /> Charte Qualité Certifiée KURLA Pro
+              <ShieldCheck className="w-4 h-4 text-[#C8753D]" /> Réseau de professionnels vérifiés
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-[#111111] leading-tight">
-              Des pros qui comprennent vraiment ta texture.
+              Des pros qui comprennent vraiment votre texture.
             </h2>
             <p className="text-base text-[#111111]/75 font-light max-w-[520px] leading-relaxed">
-              Braiders, locticians, coiffeurs afro et expertes skincare peaux mélaninées sélectionnés selon une charte d'hygiène, d'écoute et de maîtrise de la fibre texturée.
+              Braiders, locticians, coiffeurs afro et spécialistes de la peau mélaninée, référencés selon une charte d’hygiène, d’écoute et de maîtrise de la fibre texturée. Chaque profil est vérifié avant d’apparaître — jamais de fiche inventée.
             </p>
           </div>
 
@@ -138,12 +138,20 @@ export const KurlaProSection: React.FC = () => {
                 ? 'KURLA n’affiche que des professionnels dont l’identité et les qualifications ont été vérifiées par un administrateur. L’annuaire est vide aujourd’hui : nous préférons cela à une liste de profils inventés.'
                 : 'Chargement de l’annuaire…'}
             </p>
-            <a
-              href="/professionnels"
-              className="inline-flex items-center gap-1.5 mt-5 text-xs font-semibold text-[#C8753D] hover:underline"
-            >
-              Voir l’annuaire complet <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="/professionnels"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold transition-all"
+              >
+                Voir l’annuaire <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+              <a
+                href="/professionnels/rejoindre"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#F8F2EC] hover:bg-[#E8E1DA] border border-[#E8E1DA] text-[#111111] text-xs font-semibold transition-all"
+              >
+                Vous êtes pro ? Rejoignez KURLA
+              </a>
+            </div>
           </div>
         )}
 

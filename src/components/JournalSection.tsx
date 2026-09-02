@@ -19,7 +19,7 @@ export const JournalSection: React.FC = () => {
               Comprendre avant d’acheter.
             </h2>
             <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
-              Guides simples et scientifiques pour mieux comprendre ta porosité, choisir tes produits et tes routines.
+              Des guides clairs et sourcés pour comprendre votre porosité, choisir vos produits et bâtir vos routines.
             </p>
           </div>
 
@@ -33,8 +33,8 @@ export const JournalSection: React.FC = () => {
 
         {/* 3 Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {loading && <p className="md:col-span-3 text-sm text-[#111111]/55">Chargement des articles publiés…</p>}
-          {!loading && articles.length === 0 && <p className="md:col-span-3 text-sm text-[#111111]/55">Aucun article publié pour le moment.</p>}
+          {loading && <p className="md:col-span-3 text-sm text-[#111111]/55">Chargement des articles…</p>}
+          {!loading && articles.length === 0 && <p className="md:col-span-3 text-sm text-[#111111]/55">De nouveaux articles arrivent très bientôt.</p>}
           {articles.slice(0, 3).map((article) => (
             <article
               key={article.id}

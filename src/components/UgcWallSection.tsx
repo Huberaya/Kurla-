@@ -45,23 +45,16 @@ export const UgcWallSection: React.FC = () => {
     <section className="py-24 bg-[#F8F2EC] text-[#111111] relative border-t border-[#E8E1DA]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold flex items-center justify-center gap-1.5 mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> État réel de la communauté
+          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> La communauté KURLA
         </span>
         <h2 className="text-3xl sm:text-4xl font-serif-title font-bold text-[#111111] mb-4">
-          Aucun témoignage inventé.
+          Une communauté qui se construit, avec vous.
         </h2>
         <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-xl mx-auto">
-          Les chiffres ci-dessous sont lus dans la base au chargement de cette page.
-          Quand une valeur est nulle, c&apos;est qu&apos;elle l&apos;est vraiment : KURLA ne remplace
-          pas le silence par de la preuve sociale fabriquée.
+          KURLA démarre : avis, questions et professionnels vérifiés apparaîtront ici au fur et à mesure, en chiffres réels. Chaque avis provient d&apos;un achat vérifié et chaque réponse d&apos;un membre identifié — jamais de témoignage inventé.
         </p>
 
-        {failed ? (
-          <p className="mt-10 text-sm text-[#111111]/60">
-            Les compteurs n&apos;ont pas pu être chargés. Plutôt que d&apos;afficher des nombres
-            approximatifs, cette section reste vide.
-          </p>
-        ) : (
+        {!failed && (
           <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 px-2 sm:px-8 py-6 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA]">
             {stats.map(stat => (
               <div key={stat.label} className="flex flex-col items-center gap-1.5 text-sm text-[#111111]/70">
@@ -73,11 +66,20 @@ export const UgcWallSection: React.FC = () => {
           </div>
         )}
 
-        <p className="mt-6 text-xs text-[#111111]/50 max-w-lg mx-auto">
-          Un avis publié ici provient d&apos;un achat réel. Une réponse provient d&apos;un membre
-          identifié ; le badge « professionnel vérifié » n&apos;est accordé qu&apos;après validation du
-          dossier, jamais sur déclaration.
-        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/community"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold shadow-md transition-all"
+          >
+            <Users className="w-4 h-4" /> Rejoindre la communauté
+          </a>
+          <a
+            href="/professionnels/rejoindre"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#FFFDF9] hover:bg-[#F8F2EC] border border-[#E8E1DA] text-[#111111] text-xs font-semibold transition-all"
+          >
+            Être référencé comme pro
+          </a>
+        </div>
       </div>
     </section>
   );

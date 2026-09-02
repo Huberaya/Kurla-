@@ -47,15 +47,15 @@ export const WaitlistSection: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
 
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#C8753D] text-xs font-semibold tracking-wider uppercase mb-6 shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Bêta Privée KURLA Europe
+          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Lancement — précommandes ouvertes
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 leading-tight">
-          Rejoins la communauté KURLA.
+          Soyez parmi les premiers servis.
         </h2>
 
         <p className="text-base sm:text-lg text-[#111111]/80 font-light max-w-xl mx-auto mb-8 leading-relaxed">
-          Diagnostic gratuit, -15% sur ta première routine et un accès prioritaire aux professionnels certifiés de ta ville.
+          Laissez votre e-mail : diagnostic gratuit, <strong className="font-semibold">−15 % sur votre première routine</strong>, et un accès prioritaire dès l’expédition du premier lot.
         </p>
 
         {/* Profile Selector (Client vs Pro) */}
@@ -69,7 +69,7 @@ export const WaitlistSection: React.FC = () => {
                 : 'text-[#111111]/70 hover:text-[#111111]'
             }`}
           >
-            Je cherche mes soins (Client)
+            Je cherche mes soins
           </button>
           <button
             type="button"
@@ -80,14 +80,14 @@ export const WaitlistSection: React.FC = () => {
                 : 'text-[#111111]/70 hover:text-[#111111]'
             }`}
           >
-            Je suis Coiffeur / Expert (Pro)
+            Je suis coiffeur / expert
           </button>
         </div>
 
         {submitted ? (
           <div className="p-6 rounded-2xl bg-[#FFFDF9] border border-emerald-500/40 text-emerald-700 font-semibold text-base inline-flex items-center gap-3 shadow-md animate-in fade-in duration-300">
             <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-            Merci ! Ton accès bêta et ton code -15% ont été réservés pour {email}.
+            Merci ! Votre code −15 % est réservé pour {email}.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
@@ -95,7 +95,7 @@ export const WaitlistSection: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={profileType === 'client' ? "Ton adresse email" : "Email professionnel ou salon"}
+              placeholder={profileType === 'client' ? "Votre adresse e-mail" : "E-mail professionnel ou salon"}
               required
               className="flex-1 px-5 py-4 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111] placeholder-[#111111]/40 text-sm focus:outline-none focus:border-[#C8753D] shadow-xs transition-all"
             />
@@ -104,7 +104,7 @@ export const WaitlistSection: React.FC = () => {
               disabled={loading}
               className="px-8 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-60 text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8753D]/20 transition-all flex items-center justify-center gap-2 shrink-0"
             >
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription…</> : <>Rejoindre la bêta <ArrowRight className="w-4 h-4" /></>}
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription…</> : <>Rejoindre <ArrowRight className="w-4 h-4" /></>}
             </button>
           </form>
         )}
@@ -115,7 +115,7 @@ export const WaitlistSection: React.FC = () => {
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-[#111111]/60">
           <span className="flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-[#C8753D]" /> -15% réservés sur ta 1ère commande
+            <Tag className="w-3.5 h-3.5 text-[#C8753D]" /> −15 % sur votre 1ère commande
           </span>
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#C8753D]" /> Pas de spam, désinscription en 1 clic
