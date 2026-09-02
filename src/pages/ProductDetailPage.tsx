@@ -120,6 +120,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const availableCountries = shipping.countries?.length ? shipping.countries : product?.countryAvailability || [];
   const effectiveInStock = selectedVariant ? selectedVariant.inStock : Boolean(product?.inStock);
   const effectivePrice = selectedVariant?.price ?? product?.price ?? 0;
+  const isPreorder = product?.isPreorder === true;
 
   useEffect(() => {
     if (!product) return;
@@ -148,7 +149,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
     if (!product || !effectiveInStock || !sellableInCountry) return;
     clearAction();
     onAddToCart(product, selectedVariant);
-    setActionMessage('Article ajouté au panier.');
+    setActionMessage(isPreorder ? 'Précommande ajoutée au panier.' : 'Article ajouté au panier.');
   };
 
   const withAction = async (action: () => Promise<{ message?: string }>) => {
@@ -165,7 +166,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   };
 
   if (loading) {
-    return <div className="min-h-screen pt-32 bg-[#050403] text-[#FFF7EF] flex items-center justify-center"><div className="text-center p-8"><Loader2 className="w-10 h-10 text-[#C8753D] animate-spin mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Chargement du produit publié…</h2><p className="text-xs text-[#FFF7EF]/60">Nous vérifions les informations disponibles avant de les afficher.</p></div></div>;
+    return <div className="min-h-screen pt-32 bg-[#050403] text-[#FFF7EF] flex items-center justify-center"><div className="text-center p-8"><Loader2 className="w-10 h-10 text-[#C8753D] animate-spin mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Chargement du produit…</h2></div></div>;
   }
 
   if (error || !product) {
@@ -199,14 +200,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               <h1 className="text-3xl sm:text-5xl font-serif-title font-bold leading-tight mb-3">{product.name}</h1>
               {product.benefitPrimary && <p className="text-lg text-[#D49A63]">{product.benefitPrimary}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-4 text-xs">
-                <span className={`px-2.5 py-1 rounded-full border ${effectiveInStock ? 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20' : 'text-amber-300 border-amber-400/30 bg-amber-900/20'}`}>{effectiveInStock ? 'Disponible' : 'Rupture pour cette option'}</span>
+                <span className={`px-2.5 py-1 rounded-full border ${effectiveInStock ? (isPreorder ? 'text-amber-300 border-amber-400/30 bg-amber-900/20' : 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20') : 'text-rose-300 border-rose-400/30 bg-rose-900/20'}`}>
+                  {effectiveInStock ? (isPreorder ? 'En précommande' : 'Disponible') : 'Indisponible pour cette option'}
+                </span>
+                {isPreorder && effectiveInStock && (
+                  <span className="px-2.5 py-1 rounded-full border border-amber-400/20 bg-amber-900/10 text-amber-200/90 text-[11px]">Expédié à la réception du premier lot</span>
+                )}
                 {trust.verifiedReviewCount > 0 && <span className="flex items-center gap-1 text-amber-300"><Star className="w-3.5 h-3.5 fill-current" /> {(trust.reviews.reduce((sum, review) => sum + review.rating, 0) / trust.reviews.length).toFixed(1)} · {trust.verifiedReviewCount} avis vérifiés</span>}
               </div>
             </div>
 
             <p className="text-sm text-[#FFF7EF]/78 leading-relaxed">{valueOrMissing(product.description)}</p>
 
-            {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {variant.inStock ? 'En stock' : 'Indisponible'}</span></button>)}</div></section>}
+            {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {variant.inStock ? (isPreorder ? 'En précommande' : 'En stock') : 'Indisponible'}</span></button>)}</div></section>}
 
             <ProductComplianceBanner
               productId={product.id}
@@ -214,7 +220,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               onVerdictChange={sellable => setSellableInCountry(sellable)}
             />
 
-            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span></div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? 'Ajouter au panier' : 'Indisponible'}</button></div>
+            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span></div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? (isPreorder ? 'Précommander' : 'Ajouter au panier') : 'Indisponible'}</button></div>
 
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
