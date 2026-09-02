@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquare, X, Send, Sparkles, ShieldAlert, Bot } from 'lucide-react';
 import { AiDisclosureBadge } from './AiDisclosureBadge';
 import { analytics } from '../lib/analytics';
@@ -13,6 +13,22 @@ export const AiAssistantWidget: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  /**
+   * GUIDE OUTILS ↔ ASSISTANTE : le guide /outils (et toute autre page) peut
+   * ouvrir le widget avec une question pré-remplie via
+   * `window.dispatchEvent(new CustomEvent('kurla:ask-assistant', { detail: { question } }))`.
+   * On pré-remplit sans envoyer : l'utilisateur garde la main.
+   */
+  useEffect(() => {
+    const onAsk = (event: Event) => {
+      const question = (event as CustomEvent<{ question?: string }>).detail?.question;
+      setIsOpen(true);
+      if (question) setInput(question);
+    };
+    window.addEventListener('kurla:ask-assistant', onAsk);
+    return () => window.removeEventListener('kurla:ask-assistant', onAsk);
+  }, []);
 
   const suggestedQuestions = [
     'Ma fille a des cheveux 4C très secs, par quoi commencer ?',
