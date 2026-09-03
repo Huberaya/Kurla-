@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingBag, User, Users, Menu, X, Sparkles, ChevronRight, LogOut, ShieldCheck, Lock, CalendarDays, NotebookPen, Package, Droplets , Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Logo } from './Logo';
 import { AuthModal } from './AuthModal';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath, splitLocale, type Locale } from '../lib/i18n';
@@ -114,16 +115,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Logo */}
-        <a href={localizedPath('/', locale)} className="flex items-center gap-2 group shrink-0">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-serif-title font-bold text-lg shadow-md shadow-[#C8753D]/30 group-hover:scale-105 transition-transform">
-            K
-          </div>
+        <a href={localizedPath('/', locale)} className="flex items-center gap-2.5 group shrink-0" aria-label="KURLA Beauty — accueil">
+          <Logo
+            variant="lockup"
+            tone={scrolled ? 'dark' : 'light'}
+            height={34}
+            className="shrink-0 group-hover:opacity-90 transition-opacity"
+            title=""
+          />
           <div className="flex flex-col">
-            <span className={`font-serif-title text-xl font-bold tracking-tight transition-colors ${
-              scrolled ? 'text-[#111111] group-hover:text-[#C8753D]' : 'text-white group-hover:text-[#D49A63]'
-            }`}>
-              KURLA <span className="font-sans font-light text-xs tracking-widest uppercase text-[#C8753D]">Beauty</span>
-            </span>
             <span className={`text-[9px] uppercase tracking-widest font-medium ${
               scrolled ? 'text-[#111111]/60' : 'text-white/60'
             }`}>

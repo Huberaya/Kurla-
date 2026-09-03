@@ -1,5 +1,6 @@
 import React from 'react';
 import { useI18n } from '../lib/I18nProvider';
+import { Logo } from './Logo';
 import { localizedPath } from '../lib/i18n';
 
 /**
@@ -54,13 +55,8 @@ export const Footer: React.FC = () => {
 
           {/* Brand Info */}
           <div className="md:col-span-5 space-y-4">
-            <a href={localizedPath('/', locale)} className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-serif-title font-bold text-base">
-                K
-              </div>
-              <span className="font-serif-title text-xl font-bold tracking-tight text-[#FFF7EF]">
-                KURLA <span className="font-sans font-light text-xs tracking-widest uppercase text-[#C8753D]">Beauty</span>
-              </span>
+            <a href={localizedPath('/', locale)} className="inline-flex" aria-label="KURLA Beauty — accueil">
+              <Logo variant="lockup" tone="light" height={34} title="" />
             </a>
 
             <p className="text-xs text-[#FFF7EF]/60 font-light max-w-sm leading-relaxed">
