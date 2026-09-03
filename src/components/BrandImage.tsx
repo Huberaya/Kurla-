@@ -58,6 +58,12 @@ export interface BrandImageProps {
    * transmis au CDN pour que le cadrage soit fait côté serveur.
    */
   fill?: boolean;
+  /**
+   * Ratio alternatif sous 640 px. Un portrait recadré en 16/10 sur un écran de
+   * téléphone devient un gros plan inexploitable ; on demande donc au CDN un
+   * cadrage portrait sur mobile via <picture>. Laissé vide = même ratio partout.
+   */
+  mobileRatio?: number;
 }
 
 /**
@@ -80,6 +86,7 @@ const BrandImageComponent: React.FC<BrandImageProps> = ({
   children,
   style,
   fill = false,
+  mobileRatio,
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -106,21 +113,30 @@ const BrandImageComponent: React.FC<BrandImageProps> = ({
           }}
         />
       ) : (
-        <img
-          src={brandImageSrc(image, 800, ratio)}
-          srcSet={brandImageSrcSet(image, ratio)}
-          sizes={sizes}
-          alt={image.alt}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          fetchPriority={priority ? 'high' : 'auto'}
-          referrerPolicy="no-referrer"
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out ${
-            loaded ? 'opacity-100' : 'opacity-0'
-          } ${className}`}
-        />
+        <picture>
+          {mobileRatio ? (
+            <source
+              media="(max-width: 640px)"
+              srcSet={brandImageSrcSet(image, mobileRatio)}
+              sizes={sizes}
+            />
+          ) : null}
+          <img
+            src={brandImageSrc(image, 800, ratio)}
+            srcSet={brandImageSrcSet(image, ratio)}
+            sizes={sizes}
+            alt={image.alt}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
+            referrerPolicy="no-referrer"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out ${
+              loaded ? 'opacity-100' : 'opacity-0'
+            } ${className}`}
+          />
+        </picture>
       )}
 
       {grade === 'warm' && !failed && (

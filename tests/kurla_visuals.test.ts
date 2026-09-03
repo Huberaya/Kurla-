@@ -107,6 +107,14 @@ function walk(dir: string, out: string[] = []): string[] {
   assert.ok(srcset.split(',').length >= 4, 'srcset trop pauvre pour être utile');
   assert.ok(/ 2000w$/.test(srcset.trim()), 'srcset sans grand format');
 
+  // Un portrait recadré en 16/10 sur un téléphone devient un gros plan
+  // inexploitable : le ratio mobile doit donc produire une URL distincte.
+  const mobile = brandImageSrc(img, 400, 4 / 5);
+  const desktopWide = brandImageSrc(img, 400, 16 / 9);
+  assert.notEqual(mobile, desktopWide, 'le ratio ne change pas l’URL');
+  assert.ok(mobile.includes('h=500'), 'ratio portrait : hauteur attendue 500');
+  assert.ok(desktopWide.includes('h=225'), 'ratio paysage : hauteur attendue 225');
+
   ok('URL : ratio imposé (w+h), crop=faces, auto=format, srcset 400→2000');
 }
 

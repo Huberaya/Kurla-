@@ -56,6 +56,7 @@ export const HeroSection: React.FC = () => {
           image={HERO_IMAGE}
           fill
           ratio={16 / 10}
+          mobileRatio={4 / 5}
           priority
           grade="warm"
           sizes="100vw"

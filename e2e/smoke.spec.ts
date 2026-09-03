@@ -122,8 +122,16 @@ test.describe('visuels de marque', () => {
           // Le cadre doit exister AVANT et APRÈS chargement : c'est la
           // définition même de l'absence de décalage de mise en page (CLS).
           const box = img.getBoundingClientRect();
-          const parentBox = img.parentElement?.getBoundingClientRect();
-          if (box.height === 0 || !parentBox || parentBox.height === 0) {
+          // <picture> et <source> n'ont pas de boîte : on remonte jusqu'au
+          // premier ancêtre qui en a une (le cadre posé par BrandImage).
+          let frame: HTMLElement | null = img.parentElement;
+          let frameHeight = 0;
+          for (let depth = 0; frame && depth < 4; depth += 1) {
+            frameHeight = frame.getBoundingClientRect().height;
+            if (frameHeight > 0) break;
+            frame = frame.parentElement;
+          }
+          if (box.height === 0 || frameHeight === 0) {
             out.collapsed.push(`${label} (${Math.round(box.height)}px)`);
           }
         }
