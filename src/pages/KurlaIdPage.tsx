@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { BeautyProfileEditor } from '../components/BeautyProfileEditor';
+import { WhyItMatters } from '../components/account/WhyItMatters';
 
 export const KurlaIdPage: React.FC = () => {
   return (
@@ -9,6 +10,8 @@ export const KurlaIdPage: React.FC = () => {
         <a href="/account" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] font-semibold mb-6 hover:underline">
           <ArrowLeft className="w-4 h-4" /> Retour à mon compte
         </a>
+
+        <WhyItMatters featureId="kurla-id" variant="card" defaultOpen />
         <BeautyProfileEditor focus="all" />
       </div>
     </div>

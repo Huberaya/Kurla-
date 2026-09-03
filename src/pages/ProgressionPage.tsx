@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { WhyItMatters } from '../components/account/WhyItMatters';
 import { Award, BadgeCheck, Gift, ScanLine, Sparkles, TrendingUp } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -108,6 +109,8 @@ export const ProgressionPage: React.FC = () => {
             qui ne commande jamais puisse atteindre le dernier niveau.
           </p>
         </header>
+
+        <WhyItMatters featureId="progression" variant="banner" />
 
         {error && (
           <div className="p-4 rounded-2xl bg-[#C0392B]/15 border border-[#C0392B]/40 text-sm">{error}</div>

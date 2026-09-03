@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, AlertTriangle, CalendarCheck, Check, Droplets, Loader2, Moon, RefreshCw, Save, ShieldAlert, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { WhyItMatters } from '../components/account/WhyItMatters';
 import {
   getWashDay,
   markWashDayDone,
@@ -164,6 +165,8 @@ export const WashDayPage: React.FC = () => {
             réel et garde le quotidien volontairement minimal : moins de manipulation, moins de casse.
           </p>
         </header>
+
+        <WhyItMatters featureId="wash-day" variant="card" />
 
         {error && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900"><AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{error}</div>}
         {notice && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900"><Check className="w-4 h-4 shrink-0 mt-0.5" />{notice}</div>}

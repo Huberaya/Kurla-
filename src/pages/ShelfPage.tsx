@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { lookupProductByBarcode, normalizeBarcode, type BarcodeProduct } from '../lib/barcodeLookup';
 import { useAuth } from '../context/AuthContext';
+import { WhyItMatters } from '../components/account/WhyItMatters';
 import {
   ABANDONMENT_LABELS,
   ABANDONMENT_REASONS,
@@ -259,6 +260,8 @@ export const ShelfPage: React.FC = () => {
             ce qu'il te manque réellement — y compris quand la réponse est « rien ».
           </p>
         </header>
+
+        <WhyItMatters featureId="shelf" variant="card" />
 
         {error && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900"><AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{error}</div>}
         {notice && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900"><Check className="w-4 h-4 shrink-0 mt-0.5" />{notice}</div>}
