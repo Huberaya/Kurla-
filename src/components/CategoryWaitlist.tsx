@@ -22,7 +22,10 @@ import { analytics } from '../lib/analytics';
 type Props = {
   /** Identifiant du rayon, tel qu'accepté par `/api/waitlist`. */
   source: string;
-  /** Nom lisible du rayon, pour la phrase d'accroche. */
+  /**
+   * Groupe nominal SANS article : « soins visage », « produits grooming ».
+   * La phrase fournit l'article — le passer ici le doublerait.
+   */
   label: string;
   tone?: 'light' | 'dark';
   className?: string;
@@ -75,7 +78,7 @@ export const CategoryWaitlist: React.FC<Props> = ({ source, label, tone = 'light
       <div className={`flex items-start gap-2.5 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 ${className}`}>
         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
         <p className={`text-xs leading-relaxed ${dark ? 'text-[#FFF7EF]/85' : 'text-[#111111]/80'}`}>
-          C’est noté. Tu recevras un e-mail dès que les premiers produits <strong className="font-semibold">{label}</strong> seront disponibles — pas avant, pas de newsletter déguisée.
+          C’est noté. Tu recevras un e-mail dès que les <strong className="font-semibold">{label}</strong> seront disponibles — pas avant, pas de newsletter déguisée.
         </p>
       </div>
     );
@@ -108,7 +111,7 @@ export const CategoryWaitlist: React.FC<Props> = ({ source, label, tone = 'light
       {error
         ? <p className="mt-2 text-[11px] text-red-400">{error}</p>
         : <p className={`mt-2 text-[11px] ${muted}`}>
-            Un seul e-mail, quand le rayon <strong className="font-semibold">{label}</strong> ouvrira. Désinscription en un clic.
+            Un seul e-mail, quand les <strong className="font-semibold">{label}</strong> arriveront en boutique. Désinscription en un clic.
           </p>}
     </form>
   );

@@ -39,7 +39,7 @@ export const MenGroomingPage: React.FC = () => {
                 rien, on lui propose d'être prévenue. Une adresse capturée vaut
                 mieux qu'une promesse creuse. */}
             <div className="pt-2">
-              <CategoryWaitlist source="categorie_hommes" label="les produits grooming" />
+              <CategoryWaitlist source="categorie_hommes" label="produits grooming" />
             </div>
             </div>
           </div>

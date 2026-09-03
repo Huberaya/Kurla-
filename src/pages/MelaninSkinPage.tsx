@@ -54,7 +54,7 @@ export const MelaninSkinPage: React.FC = () => {
                 rien, on lui propose d'être prévenue. Une adresse capturée vaut
                 mieux qu'une promesse creuse. */}
             <div className="pt-2">
-              <CategoryWaitlist source="categorie_peau" label="les soins peau" />
+              <CategoryWaitlist source="categorie_peau" label="soins peau" />
             </div>
             </div>
           </div>

@@ -37,6 +37,19 @@ import {
   WAITLIST_SOURCES
 } from '../src/lib/shopCategories';
 
+/** Tous les fichiers source TypeScript/TSX de `src/`, parcourus une seule fois. */
+const files: string[] = [];
+{
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.tsx?$/.test(full)) files.push(full);
+    }
+  };
+  walk(join(process.cwd(), 'src'));
+}
+
 let checks = 0;
 const ok = (label: string) => {
   checks += 1;
@@ -104,16 +117,6 @@ const ok = (label: string) => {
 
 // ——— 4. Aucun lien interne ne doit employer le mauvais paramètre ———
 {
-  const files: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) walk(full);
-      else if (/\.tsx?$/.test(full)) files.push(full);
-    }
-  };
-  walk(join(process.cwd(), 'src'));
-
   const badParam: string[] = [];
   const badValue: string[] = [];
   let boutiqueLinks = 0;
@@ -188,6 +191,33 @@ const ok = (label: string) => {
     );
   }
   ok('rayons vides : hub + alerte sur la boutique et les trois pages d’audience');
+
+  // ——— 6. Les libellés d'alerte ne portent pas d'article ———
+  //
+  // Le composant écrit « dès que les {label} seront disponibles ». Un libellé
+  // commençant par un article donnait « les premiers produits les produits
+  // grooming seront disponibles » — une phrase cassée, en production, sur la
+  // page la plus visible du parcours. Le libellé est donc un groupe nominal nu.
+  const withArticle: string[] = [];
+  for (const file of files) {
+    const text = readFileSync(file, 'utf-8');
+    for (const match of text.matchAll(/(?:waitlistLabel|label)="([^"]+)"/g)) {
+      if (/^(le|la|les|l'|l’|un|une|des|du|de la)\s/i.test(match[1])) {
+        withArticle.push(`${file.replace(process.cwd(), '.')} → « ${match[1]} »`);
+      }
+    }
+    for (const match of text.matchAll(/waitlistLabel:\s*'([^']+)'/g)) {
+      if (/^(le|la|les|l'|l’|un|une|des|du|de la)\s/i.test(match[1])) {
+        withArticle.push(`${file.replace(process.cwd(), '.')} → « ${match[1]} »`);
+      }
+    }
+  }
+  assert.deepEqual(
+    withArticle,
+    [],
+    `libellé d'alerte commençant par un article (la phrase fournit déjà l'article) : ${withArticle.join(' ; ')}`
+  );
+  ok('libellés d’alerte sans article : la phrase reste grammaticale');
 }
 
 console.log(`\nCHANTIER RAYONS VIDES — ${checks} contrôles passés.\n`);

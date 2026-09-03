@@ -56,7 +56,7 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
   peau: {
     icon: Sun,
     title: 'Les soins visage arrivent bientôt',
-    waitlistLabel: 'les soins visage',
+    waitlistLabel: 'soins visage',
     text: 'En attendant la gamme peau (solaire invisible, anti-taches…), découvrez nos conseils et faites votre diagnostic gratuit adapté à votre carnation.',
     href: '/melanin-skin',
     cta: 'Découvrir l’espace peau',
@@ -64,7 +64,7 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
   hommes: {
     icon: UserCheck,
     title: 'L’espace hommes vous attend',
-    waitlistLabel: 'les produits grooming',
+    waitlistLabel: 'produits grooming',
     text: 'Éponge curl sponge, durag satin, mousse twist, entretien locks et barbe : retrouvez les outils et conseils dédiés au grooming masculin.',
     href: '/hommes',
     cta: 'Découvrir l’espace hommes',
@@ -72,7 +72,7 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
   enfants: {
     icon: Baby,
     title: 'L’espace kids arrive en boutique',
-    waitlistLabel: 'les produits kids',
+    waitlistLabel: 'produits kids',
     text: 'Le diagnostic enfant et les conseils de coiffage sans larmes sont déjà disponibles. Les soins et accessoires kids (dès 3 ans) arrivent en précommande.',
     href: '/kids',
     cta: 'Découvrir l’espace kids',

@@ -40,7 +40,7 @@ export const KidsModulePage: React.FC = () => {
                 rien, on lui propose d'être prévenue. Une adresse capturée vaut
                 mieux qu'une promesse creuse. */}
             <div className="pt-2">
-              <CategoryWaitlist source="categorie_enfants" label="les produits kids" />
+              <CategoryWaitlist source="categorie_enfants" label="produits kids" />
             </div>
             </div>
           </div>
