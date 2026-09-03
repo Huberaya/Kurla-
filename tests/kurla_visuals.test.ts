@@ -18,7 +18,7 @@
  * 4. Le héros pointe bien vers la banque, pas vers une URL externe quelconque.
  */
 import { strict as assert } from 'node:assert';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BRAND_IMAGES } from '../src/data/brandImages';
@@ -124,6 +124,29 @@ function walk(dir: string, out: string[] = []): string[] {
   const galleryIds = TEXTURE_GALLERY.map((i) => i.image.photoId);
   assert.equal(new Set(galleryIds).size, galleryIds.length, 'Galerie : deux cartes partagent la même photo');
   ok('galerie de textures : 8 visuels distincts, tous issus de la banque');
+}
+
+// ——— 5. Aucune image locale dans src/ : tout passe par la banque ———
+// Une image stockée dans le dépôt est une image qu'on ne peut pas vérifier,
+// qu'on ne peut pas recadrer côté CDN et qui alourdit le clone. On a déjà
+// retrouvé 11 Mo de visuels générés, importés puis abandonnés : ce garde-fou
+// empêche que ça recommence.
+{
+  const dir = join(process.cwd(), 'src', 'assets');
+  const found: string[] = [];
+  if (existsSync(dir)) {
+    const stack = [dir];
+    while (stack.length) {
+      const current = stack.pop()!;
+      for (const entry of readdirSync(current)) {
+        const full = join(current, entry);
+        if (statSync(full).isDirectory()) stack.push(full);
+        else if (/\.(jpe?g|png|webp|avif|gif|svg)$/i.test(full)) found.push(full.replace(process.cwd(), '.'));
+      }
+    }
+  }
+  assert.deepEqual(found, [], `Images locales dans src/ : ${found.join(', ')}`);
+  ok('src/ ne contient aucune image locale : 100% des visuels passent par la banque');
 }
 
 console.log(`\nCHANTIER VISUELS — ${checks} contrôles passés.\n`);
