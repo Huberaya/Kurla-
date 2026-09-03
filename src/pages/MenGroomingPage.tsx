@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, Scissors, ShieldCheck, ArrowRight } from 'lucide-react';
 import { MEN_GROOMING_IMAGE } from '../data/images';
 import { BrandImage } from '../components/BrandImage';
+import { CategoryWaitlist } from '../components/CategoryWaitlist';
 
 export const MenGroomingPage: React.FC = () => {
   return (
@@ -33,6 +34,13 @@ export const MenGroomingPage: React.FC = () => {
               >
                 Poser une question Barbe / Waves
               </a>
+            {/* Le rayon « les produits grooming » n'a encore aucun produit publié. Plutôt que
+                d'envoyer la visiteuse vers une boutique filtrée qui n'affiche
+                rien, on lui propose d'être prévenue. Une adresse capturée vaut
+                mieux qu'une promesse creuse. */}
+            <div className="pt-2">
+              <CategoryWaitlist source="categorie_hommes" label="les produits grooming" />
+            </div>
             </div>
           </div>
 

@@ -2,13 +2,23 @@ import React from 'react';
 import { ArrowRight, ShoppingBag, Layers, Package, Sun, UserCheck, Baby, Scissors, Sparkles, Cpu } from 'lucide-react';
 import { Reveal } from '../motion/Reveal';
 import { BRAND_IMAGES } from '../../data/brandImages';
+import { useProducts } from '../../services/productService';
+import type { ShopCategory } from '../../lib/shopCategories';
 import { BrandImage } from '../BrandImage';
 import type { BrandImage as BrandImageType } from '../../types';
 
 interface CategoryCard {
   title: string;
   tag: string;
+  /**
+   * Texte affiché tant que le catalogue n'est pas chargé — et définitif pour
+   * les cartes qui ne correspondent à aucun rayon (communauté, innovations).
+   */
   count: string;
+  /** Rayon à compter en direct. Sans lui, `count` est affiché tel quel. */
+  category?: ShopCategory;
+  /** Nom qui suit le nombre : « 26 soins », « 28 outils », « 10 coffrets ». */
+  noun?: string;
   image: BrandImageType;
   icon: React.ElementType;
   href: string;
@@ -19,7 +29,9 @@ const CATEGORIES: CategoryCard[] = [
   {
     title: 'Soins cheveux 3A–4C',
     tag: 'Shampoings, masques, leave-in, huiles',
-    count: '26 soins en précommande',
+    count: 'Soins en précommande',
+    category: 'cheveux',
+    noun: 'soins',
     image: BRAND_IMAGES.skincareTowel,
     icon: Scissors,
     href: '/boutique?cat=cheveux',
@@ -28,7 +40,9 @@ const CATEGORIES: CategoryCard[] = [
   {
     title: 'Outils & accessoires',
     tag: 'Peigne afro, diffuseur, satin, rods…',
-    count: '28 outils en précommande',
+    count: 'Outils en précommande',
+    category: 'accessoires',
+    noun: 'outils',
     image: BRAND_IMAGES.braidsProfile,
     icon: Package,
     href: '/boutique?cat=accessoires',
@@ -46,7 +60,9 @@ const CATEGORIES: CategoryCard[] = [
   {
     title: 'Kits & routines complètes',
     tag: 'Coffrets clé en main, jusqu’à -20 %',
-    count: '10 coffrets en précommande',
+    count: 'Coffrets en précommande',
+    category: 'kits',
+    noun: 'coffrets',
     image: BRAND_IMAGES.afroStudio,
     icon: Layers,
     href: '/boutique?cat=kits',
@@ -55,7 +71,9 @@ const CATEGORIES: CategoryCard[] = [
   {
     title: 'Grooming homme',
     tag: 'Curl sponge, durag, soin barbe & cuir chevelu',
-    count: 'Disponible en précommande',
+    count: 'Bientôt — espace grooming ouvert',
+    category: 'hommes',
+    noun: 'produits',
     image: BRAND_IMAGES.manStudio,
     icon: UserCheck,
     href: '/hommes',
@@ -65,6 +83,8 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Peau & carnations',
     tag: 'Visage, taches & SPF invisible',
     count: 'Bientôt — diagnostic disponible',
+    category: 'peau',
+    noun: 'soins',
     image: BRAND_IMAGES.skincareLotion,
     icon: Sun,
     href: '/melanin-skin',
@@ -91,6 +111,25 @@ const CATEGORIES: CategoryCard[] = [
 ];
 
 export const BoutiquePreviewSection: React.FC = () => {
+  /**
+   * Compteurs vivants.
+   *
+   * « 26 soins », « 28 outils » et « 10 coffrets » étaient écrits en dur : ils
+   * étaient justes le 2026-09-03, mais le prochain import de catalogue les
+   * aurait transformés en mensonge sans que rien ne le signale. Le nombre
+   * affiché vient désormais du catalogue publié.
+   *
+   * Un rayon à zéro produit garde son texte d'attente plutôt que d'annoncer
+   * « 0 soins en précommande » : l'honnêteté prime sur la précision ici.
+   */
+  const { products } = useProducts();
+
+  const countLabelFor = (cat: CategoryCard): string => {
+    if (!cat.category || products.length === 0) return cat.count;
+    const total = products.filter(product => (product as { category?: string }).category === cat.category).length;
+    return total > 0 ? `${total} ${cat.noun} en précommande` : cat.count;
+  };
+
   return (
     <section className="py-24 bg-[#050403] text-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -162,7 +201,7 @@ export const BoutiquePreviewSection: React.FC = () => {
 
                   {/* Texte bas */}
                   <div className="relative z-10 p-6 flex flex-col justify-end text-white">
-                    <span className="text-[11px] text-[#FFF7EF]/70 font-medium block mb-1">{cat.count}</span>
+                    <span className="text-[11px] text-[#FFF7EF]/70 font-medium block mb-1">{countLabelFor(cat)}</span>
                     <h3 className="text-lg font-serif-title font-bold text-white group-hover:text-[#D49A63] transition-colors flex items-center justify-between gap-2">
                       {cat.title}
                       <ArrowRight className="w-4 h-4 text-[#C8753D] group-hover:translate-x-1 transition-transform shrink-0" />

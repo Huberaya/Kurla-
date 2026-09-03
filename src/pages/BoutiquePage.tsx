@@ -9,6 +9,8 @@ import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
+import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategories';
+import { CategoryWaitlist } from '../components/CategoryWaitlist';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -93,9 +95,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [activeSubCategory, setActiveSubCategory] = useState<string>('tous');
 
   // Sélection d'onglet depuis l'URL (?cat=kits, accessoires, peau, hommes, enfants…).
+  //
+  // La lecture passe par `readShopCategory` : une valeur inconnue est ramenée à
+  // « tous » au lieu d'afficher un rayon vide sans explication, et l'alias
+  // `?category=` reste accepté pour les liens déjà partagés — mais plus aucun
+  // lien interne ne l'emploie (verrouillé par le banc `kurla_shop_categories`).
   useEffect(() => {
-    const cat = new URLSearchParams(window.location.search).get('cat');
-    if (cat) setActiveCategory(cat);
+    setActiveCategory(readShopCategory(new URLSearchParams(window.location.search)));
   }, []);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
   const [needsDomainTab, setNeedsDomainTab] = useState<'cheveux' | 'peau'>('cheveux');
@@ -613,6 +619,20 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     Voir tout le catalogue ({count})
                   </button>
                 </div>
+
+                {/* Le rayon est vide : on enregistre l'intention au lieu de
+                    renvoyer la visiteuse vers une page qui n'a rien à vendre. */}
+                {waitlistSourceForCategory(activeCategory) && (
+                  <div className="mt-8 max-w-md mx-auto">
+                    <p className="text-[11px] uppercase tracking-widest font-bold text-[#C8753D] mb-3">
+                      Être prévenue à l’ouverture
+                    </p>
+                    <CategoryWaitlist
+                      source={waitlistSourceForCategory(activeCategory)!}
+                      label={hub.title.replace(/^Les |^L’espace |^Le /i, '').toLowerCase()}
+                    />
+                  </div>
+                )}
               </div>
             );
           })()

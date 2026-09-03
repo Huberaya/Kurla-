@@ -226,7 +226,7 @@ export const ToolsPage: React.FC = () => {
                           </a>
                         ) : (
                           <a
-                            href="/boutique?category=accessoires"
+                            href="/boutique?cat=accessoires"
                             className="w-full py-2.5 rounded-xl bg-[#F8F2EC] hover:bg-[#C8753D] text-[#111111] hover:text-white text-xs font-semibold text-center transition-all flex items-center justify-center gap-1.5"
                           >
                             <ShoppingBag className="w-3.5 h-3.5" /> Voir les modèles en boutique
@@ -256,7 +256,7 @@ export const ToolsPage: React.FC = () => {
             </div>
           </div>
           <a
-            href={kitOutils ? `/produit/${kitOutils.slug}` : '/boutique?category=kits'}
+            href={kitOutils ? `/produit/${kitOutils.slug}` : '/boutique?cat=kits'}
             className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold inline-flex items-center gap-2 whitespace-nowrap shrink-0"
           >
             Découvrir le kit <ArrowRight className="w-4 h-4" />
@@ -265,7 +265,7 @@ export const ToolsPage: React.FC = () => {
 
         {/* ── Lien retour boutique ───────────────────────────────── */}
         <div className="text-center mt-10">
-          <a href="/boutique?category=accessoires" className="text-xs font-semibold text-[#C8753D] hover:underline inline-flex items-center gap-1.5">
+          <a href="/boutique?cat=accessoires" className="text-xs font-semibold text-[#C8753D] hover:underline inline-flex items-center gap-1.5">
             Voir tous les accessoires en boutique <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>

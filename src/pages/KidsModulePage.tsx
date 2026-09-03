@@ -2,6 +2,7 @@ import React from 'react';
 import { Heart, Sparkles, CheckCircle2, ShieldCheck, ArrowRight, BookOpen, Clock, AlertTriangle } from 'lucide-react';
 import { KIDS_CARE_IMAGE } from '../data/images';
 import { BrandImage } from '../components/BrandImage';
+import { CategoryWaitlist } from '../components/CategoryWaitlist';
 
 export const KidsModulePage: React.FC = () => {
   return (
@@ -34,6 +35,13 @@ export const KidsModulePage: React.FC = () => {
                 <BookOpen className="w-4 h-4 text-[#C8753D]" /> Poser une question à l'IA Kids
               </a>
               <a href="/famille" className="px-6 py-3.5 rounded-full border border-[#C8753D]/40 text-[#C8753D] text-xs font-semibold flex items-center gap-2"><Heart className="w-4 h-4" /> Créer un espace famille</a>
+            {/* Le rayon « les produits kids » n'a encore aucun produit publié. Plutôt que
+                d'envoyer la visiteuse vers une boutique filtrée qui n'affiche
+                rien, on lui propose d'être prévenue. Une adresse capturée vaut
+                mieux qu'une promesse creuse. */}
+            <div className="pt-2">
+              <CategoryWaitlist source="categorie_enfants" label="les produits kids" />
+            </div>
             </div>
           </div>
 

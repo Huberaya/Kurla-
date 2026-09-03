@@ -4,6 +4,7 @@ import { MELANIN_SKIN_IMAGE } from '../data/images';
 import { BrandImage } from '../components/BrandImage';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath } from '../lib/i18n';
+import { CategoryWaitlist } from '../components/CategoryWaitlist';
 
 /**
  * Module « Peaux riches en mélanine ».
@@ -43,11 +44,18 @@ export const MelaninSkinPage: React.FC = () => {
                 <Sparkles className="w-4 h-4" /> {t('pages.melaninSkin.ctaDiagnostic')}
               </a>
               <a
-                href={localizedPath('/boutique?category=skincare', locale)}
+                href={localizedPath('/boutique?cat=peau', locale)}
                 className="px-6 py-3.5 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] text-[#111111] text-xs font-semibold flex items-center gap-2"
               >
                 {t('pages.melaninSkin.ctaShop')}
               </a>
+            {/* Le rayon « les soins peau » n'a encore aucun produit publié. Plutôt que
+                d'envoyer la visiteuse vers une boutique filtrée qui n'affiche
+                rien, on lui propose d'être prévenue. Une adresse capturée vaut
+                mieux qu'une promesse creuse. */}
+            <div className="pt-2">
+              <CategoryWaitlist source="categorie_peau" label="les soins peau" />
+            </div>
             </div>
           </div>
 

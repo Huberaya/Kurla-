@@ -84,6 +84,7 @@ import {
   cancelMembershipFromSubscription,
   renewMembershipFromInvoice
 } from './src/server/payments/membershipActivation';
+import { normalizeWaitlistSource } from './src/lib/waitlistSources';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -1245,6 +1246,8 @@ app.post('/api/coupons/validate', rateLimit('coupon', 20, 60_000), asyncRoute(as
 // repli sur `product_waitlist` (ancre = produit héro launch-p08, statut
 // 'waiting'). Limité en débit, email validé et dédupliqué.
 const WAITLIST_FALLBACK_ANCHOR = 'launch-p08'; // héro 4C, existe toujours au lancement
+
+
 app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -1252,6 +1255,14 @@ app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (r
   }
   const country = String(req.body?.country || 'FR').toUpperCase().slice(0, 2) || 'FR';
   const profileType = String(req.body?.profileType || 'client') === 'pro' ? 'pro' : 'client';
+
+  // CHANTIER « rayons vides » — la source d'inscription doit être identifiable,
+  // sinon une personne qui attend la gamme peau et une autre qui s'inscrit depuis
+  // la home sont indiscernables, et aucune relance ciblée n'est possible.
+  // Liste fermée : une source arbitraire serait un canal de pollution de la
+  // table, donc toute valeur hors liste retombe sur 'home_waitlist'.
+  const source = normalizeWaitlistSource(req.body?.source);
+
   const utm = {
     source: String(req.body?.utmSource || '').slice(0, 80) || null,
     medium: String(req.body?.utmMedium || '').slice(0, 80) || null,
@@ -1263,7 +1274,7 @@ app.post('/api/waitlist', rateLimit('waitlist', 10, 60_000), asyncRoute(async (r
   // 1) Table dédiée launch_leads (migration appliquée). Toute erreur (table
   // absente, RLS non encore en place…) fait basculer sur le repli.
   const lead: Record<string, unknown> = {
-    email, profile_type: profileType, country, source: 'home_waitlist',
+    email, profile_type: profileType, country, source,
     utm_source: utm.source, utm_medium: utm.medium, utm_campaign: utm.campaign,
     status: 'subscribed'
   };

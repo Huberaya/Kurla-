@@ -143,6 +143,33 @@ test.describe('visuels de marque', () => {
     });
   }
 
+  /**
+   * CHANTIER « RAYONS VIDES » — un rayon annoncé ne doit jamais être un cul-de-sac.
+   *
+   * Peau, hommes et enfants sont mis en avant par la home et par une page
+   * marketing complète, sans qu'aucun produit n'y soit publié. Tant que c'est
+   * le cas, la page doit au minimum proposer d'être prévenue : une visiteuse
+   * qui clique et ne trouve rien, sans filet, ne revient pas.
+   */
+  for (const [path, rayon] of [['/boutique?cat=peau', 'peau'], ['/boutique?cat=hommes', 'hommes'], ['/boutique?cat=enfants', 'enfants']] as const) {
+    test(`le rayon vide «${rayon}» propose d'être prévenu`, async ({ page }) => {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => (document.getElementById('root')?.innerText || '').trim().length > 40,
+        undefined,
+        { timeout: 15_000 },
+      );
+
+      const alerte = page.getByPlaceholder('ton@email.fr').first();
+      await expect(alerte).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('button', { name: /Préviens-moi/i }).first()).toBeVisible();
+
+      // Le rayon est bien vide : le test n'a de sens que tant qu'il l'est.
+      const fiches = await page.locator('a[href^="/produit/"]').count();
+      expect(fiches, `le rayon ${rayon} a des produits : l'alerte n'est plus utile`).toBe(0);
+    });
+  }
+
   test('le héros affiche une photographie de marque cadrée sur le visage', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const hero = page.locator('section img').first();
