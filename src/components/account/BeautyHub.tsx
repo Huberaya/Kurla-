@@ -43,7 +43,7 @@ function daysSince(iso?: string | null): number | null {
 }
 
 /** Anneau de progression. Une seule valeur, lisible d'un coup d'œil. */
-const ProgressionRing: React.FC<{ value: number; size?: number }> = ({ value, size = 96 }) => {
+export const ProgressionRing: React.FC<{ value: number; size?: number }> = ({ value, size = 96 }) => {
   const stroke = 8;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
