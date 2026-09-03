@@ -80,3 +80,87 @@ test('la galerie inspirations ouvre une fiche style', async ({ page }) => {
   }
   expect(errors, `exceptions JS : ${errors.join(' | ')}`).toEqual([]);
 });
+
+/**
+ * Les visuels de marque : aucune image cassée, et un héros réellement affiché.
+ *
+ * Ce test existe parce que la production a déjà livré une home dont le héros
+ * était une vidéo « road trip en van » et dont cinq cadres d'images étaient
+ * vides (URL en 404). TypeScript ne voit rien de tout ça, et le banc API non
+ * plus : seul un vrai navigateur qui mesure `naturalWidth` le voit.
+ *
+ * On ne vérifie pas qu'une image est « belle » — on vérifie qu'elle est
+ * chargée, aux bonnes dimensions, et qu'aucune ne casse.
+ */
+const VISUAL_PAGES = ['/', '/boutique', '/melanin-skin', '/hommes', '/kids', '/protective-styles'];
+
+test.describe('visuels de marque', () => {
+  for (const path of VISUAL_PAGES) {
+    test(`«${path}» n'affiche aucune image cassée`, async ({ page }) => {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => (document.getElementById('root')?.innerText || '').trim().length > 40,
+        undefined,
+        { timeout: 15_000 },
+      );
+      // Laisse le temps au lazy-loading de déclencher les images visibles.
+      await page.waitForTimeout(1200);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.waitForTimeout(1500);
+
+      const report = await page.evaluate(() => {
+        const out = { total: 0, broken: [] as string[], collapsed: [] as string[] };
+        for (const img of Array.from(document.images)) {
+          // Les images hors écran et non encore déclenchées ne comptent pas.
+          if (img.loading === 'lazy' && !img.complete) continue;
+          out.total += 1;
+          const label = (img.currentSrc || img.src || '').slice(-70) || img.alt;
+          if (img.complete && img.naturalWidth === 0) {
+            out.broken.push(label);
+            continue;
+          }
+          // Le cadre doit exister AVANT et APRÈS chargement : c'est la
+          // définition même de l'absence de décalage de mise en page (CLS).
+          const box = img.getBoundingClientRect();
+          const parentBox = img.parentElement?.getBoundingClientRect();
+          if (box.height === 0 || !parentBox || parentBox.height === 0) {
+            out.collapsed.push(`${label} (${Math.round(box.height)}px)`);
+          }
+        }
+        return out;
+      });
+
+      expect(report.broken, `images cassées sur ${path} : ${report.broken.join(' | ')}`).toEqual([]);
+      expect(report.collapsed, `cadres d'image effondrés sur ${path} : ${report.collapsed.join(' | ')}`).toEqual([]);
+    });
+  }
+
+  test('le héros affiche une photographie de marque cadrée sur le visage', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const hero = page.locator('section img').first();
+    await hero.waitFor({ state: 'visible', timeout: 15_000 });
+    await page.waitForFunction(
+      () => {
+        const img = document.querySelector('section img');
+        return !!img && (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0;
+      },
+      undefined,
+      { timeout: 20_000 },
+    );
+
+    const src = await hero.getAttribute('src');
+    expect(src, 'le héros n’a pas de source').toBeTruthy();
+    expect(src).toContain('images.unsplash.com');
+    expect(src).toContain('crop=faces');
+    expect(src).toMatch(/[?&]w=/);
+    expect(src).toMatch(/[?&]h=/);
+
+    const srcset = await hero.getAttribute('srcset');
+    expect(srcset, 'le héros n’a pas de srcset').toBeTruthy();
+    expect(srcset!.split(',').length).toBeGreaterThanOrEqual(4);
+
+    const alt = await hero.getAttribute('alt');
+    expect(alt, 'le héros n’a pas de texte alternatif').toBeTruthy();
+    expect(alt!.length).toBeGreaterThan(20);
+  });
+});
