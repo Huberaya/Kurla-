@@ -74,7 +74,7 @@ export const AiAssistantWidget: React.FC = () => {
         aria-label="Discuter avec l'assistant KURLA"
       >
         <Sparkles className="w-5 h-5 text-white animate-pulse" />
-        <span className="text-xs font-bold tracking-wide pr-1 hidden sm:inline">Assistant KURLA IA</span>
+        <span className="text-xs font-bold tracking-wide pr-1 hidden sm:inline">Assistant KURLA</span>
       </button>
 
       {/* Assistant Modal Window */}
@@ -121,7 +121,7 @@ export const AiAssistantWidget: React.FC = () => {
 
             {loading && (
               <div className="flex items-center gap-2 text-xs text-[#D49A63] italic p-2">
-                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#C8753D]" /> Rédaction du conseil KURLA en cours...
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#C8753D]" /> Génération KURLA en cours…
               </div>
             )}
           </div>

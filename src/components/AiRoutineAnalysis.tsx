@@ -199,7 +199,7 @@ export const AiRoutineAnalysis: React.FC<AiRoutineAnalysisProps> = ({
           </div>
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#C8753D] uppercase tracking-wider">
-              Analyse IA KURLA Knowledge Base
+              Analyse KURLA · base de connaissances
             </div>
             <h2 className="text-xl font-serif-title font-bold text-[#111111]">
               Diagnostic & Analyse de Routine

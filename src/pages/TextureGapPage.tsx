@@ -71,7 +71,7 @@ export const TextureGapPage: React.FC = () => {
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}
           </p>
         )}
-        {loading && <p className="text-[#FFF7EF]/60">Génération du rapport…</p>}
+        {loading && <p className="text-[#FFF7EF]/60">Génération KURLA de ton rapport…</p>}
 
         {availability && (
           <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">

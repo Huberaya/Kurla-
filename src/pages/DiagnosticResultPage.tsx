@@ -56,7 +56,7 @@ export const DiagnosticResultPage: React.FC = () => {
         {/* Top Header */}
         <div className="text-center space-y-4 mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#3A2218] text-[#D49A63] border border-[#C8753D]/30 text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-[#C8753D]" /> Analyse IA Supervisée KURLA
+            <Sparkles className="w-4 h-4 text-[#C8753D]" /> Analyse KURLA supervisée
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#FFF7EF]">
             {result.recommendedRoutine}

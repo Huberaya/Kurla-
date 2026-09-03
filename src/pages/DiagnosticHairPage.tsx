@@ -341,7 +341,7 @@ export const DiagnosticHairPage: React.FC = () => {
               className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
             >
               {loading ? (
-                <span>Génération IA en cours...</span>
+                <span>Génération KURLA en cours…</span>
               ) : step === 8 ? (
                 <>Voir ma routine <Sparkles className="w-4 h-4" /></>
               ) : (

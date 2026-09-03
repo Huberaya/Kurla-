@@ -279,7 +279,7 @@ export const DiagnosticSkinPage: React.FC = () => {
               className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
             >
               {loading ? (
-                <span>Génération IA...</span>
+                <span>Génération KURLA…</span>
               ) : step === 7 ? (
                 <>Générer mon analyse <Sparkles className="w-4 h-4" /></>
               ) : (
