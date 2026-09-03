@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, AlertTriangle, HeartHandshake } from 'lucide-react';
 import { PROTECTIVE_IMAGE } from '../data/images';
+import { BrandImage } from '../components/BrandImage';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath } from '../lib/i18n';
 
@@ -63,7 +64,7 @@ export const ProtectiveStylesPage: React.FC = () => {
           </div>
 
           <div className="w-full md:w-80 aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shrink-0 shadow-md">
-            <img loading="lazy" decoding="async" src={PROTECTIVE_IMAGE} alt="Braids protective style" className="w-full h-full object-cover" />
+            <BrandImage image={PROTECTIVE_IMAGE} ratio={4 / 5} sizes="(max-width: 768px) 100vw, 320px" />
           </div>
         </div>
 

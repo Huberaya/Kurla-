@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { TEXTURE_GALLERY } from '../data/images';
+import { BrandImage } from './BrandImage';
+import type { BrandImage as BrandImageType } from '../types';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Reveal } from './motion/Reveal';
 
@@ -9,7 +11,7 @@ interface TextureItem {
   tag: string;
   cat: string;
   href: string;
-  image: string;
+  image: BrandImageType;
 }
 
 const CATEGORIES: { id: string; label: string }[] = [
@@ -35,7 +37,7 @@ const CTA_BY_CAT: Record<string, string> = {
 export const TextureGallerySection: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const items: TextureItem[] = TEXTURE_GALLERY as TextureItem[];
+  const items: TextureItem[] = TEXTURE_GALLERY;
   const filteredItems = selectedCategory === 'all'
     ? items
     : items.filter((item) => item.cat === selectedCategory || (selectedCategory === 'braids' && item.cat === 'braids'));
@@ -84,11 +86,13 @@ export const TextureGallerySection: React.FC = () => {
                 href={item.href}
                 className="group relative h-96 rounded-3xl overflow-hidden border border-[#E8E1DA] shadow-xs hover:shadow-xl hover:border-[#C8753D] transition-all duration-500 flex flex-col justify-end block"
               >
-                <img loading="lazy" decoding="async"
-                  src={item.image}
-                  alt={item.title}
-                  referrerPolicy="no-referrer"
-                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                <BrandImage
+                  image={item.image}
+                  fill
+                  ratio={3 / 4}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="group-hover:scale-105 transition-transform duration-700 ease-out"
+                  wrapperClassName="absolute inset-0 z-0"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/85 via-[#050403]/30 to-transparent" />
 

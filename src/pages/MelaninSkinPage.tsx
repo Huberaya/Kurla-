@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sun, Sparkles, AlertCircle } from 'lucide-react';
 import { MELANIN_SKIN_IMAGE } from '../data/images';
+import { BrandImage } from '../components/BrandImage';
 import { useI18n } from '../lib/I18nProvider';
 import { localizedPath } from '../lib/i18n';
 
@@ -51,7 +52,7 @@ export const MelaninSkinPage: React.FC = () => {
           </div>
 
           <div className="w-full md:w-80 aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shrink-0 shadow-md">
-            <img loading="lazy" decoding="async" src={MELANIN_SKIN_IMAGE} alt="Melanin skin glow" className="w-full h-full object-cover" />
+            <BrandImage image={MELANIN_SKIN_IMAGE} ratio={4 / 5} sizes="(max-width: 768px) 100vw, 320px" />
           </div>
         </div>
 

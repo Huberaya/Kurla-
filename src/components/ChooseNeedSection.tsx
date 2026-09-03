@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, Droplet, Shield, Heart, Sun, Feather, Scissors, UserCheck, Baby, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HERO_IMAGE, PROTECTIVE_IMAGE, MELANIN_SKIN_IMAGE, KIDS_CARE_IMAGE, MEN_GROOMING_IMAGE } from '../data/images';
+import { BRAND_IMAGES } from '../data/brandImages';
+import type { BrandImage as BrandImageData } from '../types';
+import { BrandImage } from './BrandImage';
 import { Reveal } from './motion/Reveal';
 
 interface NeedCard {
@@ -10,7 +12,7 @@ interface NeedCard {
   badge: string;
   title: string;
   subtitle: string;
-  image: string;
+  image: BrandImageData;
   link: string;
   icon: React.ElementType;
 }
@@ -22,7 +24,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Cheveux 3A–4C',
     title: 'Hydrater mes cheveux',
     subtitle: 'Retrouver souplesse et élasticité, et garder l’hydratation plus longtemps.',
-    image: HERO_IMAGE,
+    image: BRAND_IMAGES.afroSquare,
     link: '/besoin/hydrater',
     icon: Droplet,
   },
@@ -32,7 +34,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Cheveux fragiles',
     title: 'Réduire la casse',
     subtitle: 'Renforcer la fibre et protéger les pointes pour garder ses longueurs.',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.afroPortrait,
     link: '/besoin/casse',
     icon: Feather,
   },
@@ -42,7 +44,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Cuir chevelu',
     title: 'Apaiser mon cuir chevelu',
     subtitle: 'Réduire les tiraillements et les pellicules, assainir en douceur.',
-    image: 'https://images.unsplash.com/photo-1608248540480-17637841852d?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.washDay,
     link: '/besoin/cuir-chevelu',
     icon: Sparkles,
   },
@@ -52,7 +54,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Tresses & coiffures',
     title: 'Entretenir mes tresses',
     subtitle: 'Garder le cuir chevelu hydraté et protéger ses edges sous les coiffures.',
-    image: PROTECTIVE_IMAGE,
+    image: BRAND_IMAGES.braidsProfile,
     link: '/besoin/protective',
     icon: Scissors,
   },
@@ -62,7 +64,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Locks & vanilles',
     title: 'Entretenir mes locks',
     subtitle: 'Des lavages sans résidu et des huiles pures pour un cuir chevelu sain.',
-    image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.locsGlasses,
     link: '/besoin/locks',
     icon: Shield,
   },
@@ -72,7 +74,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Grooming homme',
     title: 'Prendre soin de ma barbe',
     subtitle: 'Assouplir la barbe, éviter les poils incarnés et rendre le rasage confortable.',
-    image: MEN_GROOMING_IMAGE,
+    image: BRAND_IMAGES.manCrewNeck,
     link: '/besoin/barbe',
     icon: UserCheck,
   },
@@ -82,7 +84,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Peaux sèches',
     title: 'Hydrater ma peau',
     subtitle: 'Une peau souple et confortable, sans fini gras ni brillances.',
-    image: MELANIN_SKIN_IMAGE,
+    image: BRAND_IMAGES.skincareTowel,
     link: '/besoin/hydrater-peau',
     icon: Droplet,
   },
@@ -92,7 +94,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Teint unifié',
     title: 'Estomper les taches',
     subtitle: 'Atténuer les marques et les zones d’ombre avec des soins unifiants doux.',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.skincareLotion,
     link: '/besoin/taches',
     icon: Sun,
   },
@@ -102,7 +104,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Peaux sensibles',
     title: 'Apaiser ma peau',
     subtitle: 'Des formules douces sans parfum agressif, adaptées aux peaux réactives.',
-    image: 'https://images.unsplash.com/photo-1512290900678-ebaa85d56b00?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.beautyLips,
     link: '/besoin/sensible',
     icon: Heart,
   },
@@ -112,7 +114,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'Protection solaire',
     title: 'Trouver un SPF invisible',
     subtitle: 'Une protection solaire qui ne laisse aucune trace blanche sur peau noire.',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.afroSunglasses,
     link: '/besoin/spf',
     icon: Shield,
   },
@@ -122,7 +124,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'KURLA Kids',
     title: 'Une routine pour mon enfant',
     subtitle: 'Des gestes tout doux et des formules adaptées pour coiffer sans larmes.',
-    image: KIDS_CARE_IMAGE,
+    image: BRAND_IMAGES.childNature,
     link: '/besoin/enfant',
     icon: Baby,
   },
@@ -132,7 +134,7 @@ const ALL_NEEDS: NeedCard[] = [
     badge: 'KURLA Homme',
     title: 'Une routine pour homme',
     subtitle: 'Du cheveu court aux waves et à la barbe : un rituel simple au quotidien.',
-    image: MEN_GROOMING_IMAGE,
+    image: BRAND_IMAGES.manCrewNeck,
     link: '/besoin/homme',
     icon: UserCheck,
   },
@@ -212,11 +214,13 @@ export const ChooseNeedSection: React.FC = () => {
                   >
                     {/* Image */}
                     <div className="absolute inset-0 z-0">
-                      <img loading="lazy" decoding="async"
-                        src={need.image}
-                        alt={need.title}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700 ease-out"
+                      <BrandImage
+                        image={need.image}
+                        fill
+                        ratio={4 / 5}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="group-hover:scale-110 transition-transform duration-700 ease-out"
+                        wrapperClassName="absolute inset-0 z-0"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/90 via-[#050403]/40 to-transparent" />
                     </div>

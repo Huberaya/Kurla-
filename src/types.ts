@@ -286,3 +286,30 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 }
+
+// ——— Visuels de marque ———
+// Un visuel de marque est une photographie décorative sélectionnée et vérifiée :
+// elle montre des personnes afro-descendantes / métisses, des cheveux texturés ou
+// des peaux riches en mélanine, sous licence Unsplash (usage commercial autorisé).
+export interface BrandImageCredit {
+  author: string;
+  url: string;
+}
+
+export interface BrandImage {
+  id: string;
+  photoId: string;
+  /** Texte alternatif en français — obligatoire, décrit ce que montre réellement la photo. */
+  alt: string;
+  /** Texte alternatif en anglais. */
+  altEn: string;
+  credit: BrandImageCredit;
+  /** Tonalité de peau dominante mesurée : deep | dark | texture. */
+  tone: string;
+  /** Couleur dominante, utilisée comme fond pendant le chargement. */
+  color: string;
+  /** Largeur / hauteur de la source. */
+  ratio: number;
+  /** Placeholder flouté en base64 (LQIP) — évite tout décalage de mise en page. */
+  lqip: string;
+}

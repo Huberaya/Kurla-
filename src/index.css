@@ -73,3 +73,26 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ——— Système visuel KURLA ——— */
+
+/* Mouvement lent type Ken Burns, réservé aux visuels plein écran.
+   Le `scale` de départ évite tout bord visible pendant l'animation. */
+@keyframes kurlaKenBurns {
+  0%   { transform: scale(1.06) translate3d(0, 0, 0); }
+  100% { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
+}
+
+.kurla-kenburns {
+  animation: kurlaKenBurns 26s ease-out forwards;
+  will-change: transform;
+}
+
+/* Voile chaud : harmonise des photos prises par des photographes différents
+   et les rattache à la palette KURLA (cuivre #C8753D sur encre #050403). */
+.kurla-grade {
+  background:
+    radial-gradient(120% 85% at 15% 10%, rgba(200, 117, 61, 0.20), transparent 60%),
+    linear-gradient(180deg, rgba(212, 154, 99, 0.06), rgba(5, 4, 3, 0.22));
+  mix-blend-mode: soft-light;
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, Scissors, ShieldCheck, ArrowRight } from 'lucide-react';
 import { MEN_GROOMING_IMAGE } from '../data/images';
+import { BrandImage } from '../components/BrandImage';
 
 export const MenGroomingPage: React.FC = () => {
   return (
@@ -36,7 +37,7 @@ export const MenGroomingPage: React.FC = () => {
           </div>
 
           <div className="w-full md:w-80 aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shrink-0 shadow-md">
-            <img loading="lazy" decoding="async" src={MEN_GROOMING_IMAGE} alt="Men grooming waves and beard" className="w-full h-full object-cover" />
+            <BrandImage image={MEN_GROOMING_IMAGE} ratio={4 / 5} sizes="(max-width: 768px) 100vw, 320px" />
           </div>
         </div>
 

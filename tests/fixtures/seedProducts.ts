@@ -1,7 +1,12 @@
 // FIXTURES DE TEST UNIQUEMENT. Ces produits servent à semer le store dans
 // les bancs ; ils ne sont importés par aucun code d'exécution.
 import { Product } from '../../src/types';
-import { MELANIN_SKIN_IMAGE, MEN_GROOMING_IMAGE, PROTECTIVE_IMAGE } from '../../src/data/images';
+// Visuels de fixtures : URL figées volontairement. Ce sont des jeux de test,
+// leur valeur fait partie de l'inventaire de référence — ne pas les faire dériver
+// de la banque de marque, sinon les baselines bougent à chaque changement visuel.
+const FIXTURE_IMAGE_HAIR = 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=800&q=80';
+const FIXTURE_IMAGE_MEN = 'https://images.unsplash.com/photo-1507152832244-10d45c7eda57?auto=format&fit=crop&w=800&q=80';
+const FIXTURE_IMAGE_SKIN = 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=800&q=80';
 
 export const SEED_PRODUCTS: Product[] = [
   {
@@ -407,7 +412,7 @@ export const SEED_PRODUCTS: Product[] = [
     originalPrice: 63.80,
     rating: 4.95,
     reviewsCount: 88,
-    image: PROTECTIVE_IMAGE,
+    image: FIXTURE_IMAGE_HAIR,
     badges: ['Best-Seller', 'Anti-Démangeaisons', 'Économie 18%'],
     forWho: 'Porteurs de knotless braids, twists, faux locs ou locks.',
     notIdealIf: 'Sans coiffure protectrice.',
@@ -423,7 +428,7 @@ export const SEED_PRODUCTS: Product[] = [
     isNew: false,
     isPromo: true,
     galleryImages: [
-      { url: PROTECTIVE_IMAGE, label: '1. Vue principale (Hero Kit Officiel)', type: 'hero', isOfficial: true },
+      { url: FIXTURE_IMAGE_HAIR, label: '1. Vue principale (Hero Kit Officiel)', type: 'hero', isOfficial: true },
       { url: 'https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=800&q=80', label: '2. Vue Détaillée Trio Soins & Bonnet Satin', type: 'detail', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&w=800&q=80', label: '3. Routine Protective Style au Salon', type: 'lifestyle', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=800&q=80', label: '4. Application Spray + Massages Cuir Chevelu', type: 'use', isOfficial: false },
@@ -443,7 +448,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 19.90,
     rating: 4.85,
     reviewsCount: 42,
-    image: MEN_GROOMING_IMAGE,
+    image: FIXTURE_IMAGE_MEN,
     badges: ['Spécial Hommes', 'Anti-Boutons Rasage', 'Nouveauté'],
     forWho: 'Hommes souffrant d’irritations, boutons et poils incarnés suite au rasage ou à la taille de barbe.',
     notIdealIf: 'Peau sans aucune pilosité ni rasage.',
@@ -459,7 +464,7 @@ export const SEED_PRODUCTS: Product[] = [
     isNew: true,
     isPromo: false,
     galleryImages: [
-      { url: MEN_GROOMING_IMAGE, label: '1. Vue principale (Hero Officiel)', type: 'hero', isOfficial: true },
+      { url: FIXTURE_IMAGE_MEN, label: '1. Vue principale (Hero Officiel)', type: 'hero', isOfficial: true },
       { url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80', label: '2. Baume Apaisant Acide Salicylique', type: 'detail', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80', label: '3. Ambiance Espace Grooming & Barber', type: 'lifestyle', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=800&q=80', label: '4. Application Apaisante Mâchoire & Cou', type: 'use', isOfficial: false },
@@ -513,7 +518,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 24.90,
     rating: 4.96,
     reviewsCount: 215,
-    image: MELANIN_SKIN_IMAGE,
+    image: FIXTURE_IMAGE_SKIN,
     badges: ['Cult Classic', 'Marque Fondatrice Afro', 'Sans Résidu'],
     forWho: 'Peaux noires et métissées cherchant une hydratation solaire ultra fondeuse sans masque blanc.',
     notIdealIf: 'Tu cherches un écran solaire en poudre.',
@@ -529,7 +534,7 @@ export const SEED_PRODUCTS: Product[] = [
     isNew: false,
     isPromo: false,
     galleryImages: [
-      { url: MELANIN_SKIN_IMAGE, label: '1. Vue principale (Hero Officiel BGS)', type: 'hero', isOfficial: true },
+      { url: FIXTURE_IMAGE_SKIN, label: '1. Vue principale (Hero Officiel BGS)', type: 'hero', isOfficial: true },
       { url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80', label: '2. Absence Totale de Résidu ou Voile Gris', type: 'detail', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', label: '3. Décor Ensoleillé Plage / Extérieur', type: 'lifestyle', isOfficial: false },
       { url: 'https://images.unsplash.com/photo-1512290900678-ebaa85d56b00?auto=format&fit=crop&w=800&q=80', label: '4. Application Visage & Décolleté', type: 'use', isOfficial: false },

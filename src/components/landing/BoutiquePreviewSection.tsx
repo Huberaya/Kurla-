@@ -1,12 +1,15 @@
 import React from 'react';
 import { ArrowRight, ShoppingBag, Layers, Package, Sun, UserCheck, Baby, Scissors, Sparkles, Cpu } from 'lucide-react';
 import { Reveal } from '../motion/Reveal';
+import { BRAND_IMAGES } from '../../data/brandImages';
+import { BrandImage } from '../BrandImage';
+import type { BrandImage as BrandImageType } from '../../types';
 
 interface CategoryCard {
   title: string;
   tag: string;
   count: string;
-  image: string;
+  image: BrandImageType;
   icon: React.ElementType;
   href: string;
   status: 'preco' | 'soon';
@@ -17,7 +20,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Soins cheveux 3A–4C',
     tag: 'Shampoings, masques, leave-in, huiles',
     count: '26 soins en précommande',
-    image: 'https://images.unsplash.com/photo-1608248597261-e4d09123fe1c?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.skincareTowel,
     icon: Scissors,
     href: '/boutique?cat=cheveux',
     status: 'preco',
@@ -26,7 +29,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Outils & accessoires',
     tag: 'Peigne afro, diffuseur, satin, rods…',
     count: '28 outils en précommande',
-    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.braidsProfile,
     icon: Package,
     href: '/boutique?cat=accessoires',
     status: 'preco',
@@ -35,7 +38,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Appareils & innovations',
     tag: 'Steamer vapeur, brosse brume, masseur',
     count: 'Les innovations « waouh »',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.afroRed,
     icon: Cpu,
     href: '/boutique?cat=accessoires',
     status: 'preco',
@@ -44,7 +47,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Kits & routines complètes',
     tag: 'Coffrets clé en main, jusqu’à -20 %',
     count: '10 coffrets en précommande',
-    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.afroStudio,
     icon: Layers,
     href: '/boutique?cat=kits',
     status: 'preco',
@@ -53,7 +56,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Grooming homme',
     tag: 'Curl sponge, durag, soin barbe & cuir chevelu',
     count: 'Disponible en précommande',
-    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.manStudio,
     icon: UserCheck,
     href: '/hommes',
     status: 'preco',
@@ -62,7 +65,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Peau & carnations',
     tag: 'Visage, taches & SPF invisible',
     count: 'Bientôt — diagnostic disponible',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.skincareLotion,
     icon: Sun,
     href: '/melanin-skin',
     status: 'soon',
@@ -71,7 +74,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'KURLA Kids',
     tag: 'Routines douces sans larmes, dès 3 ans',
     count: 'Bientôt — espace kids ouvert',
-    image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1200&q=80',
+    image: BRAND_IMAGES.childNature,
     icon: Baby,
     href: '/kids',
     status: 'soon',
@@ -80,7 +83,7 @@ const CATEGORIES: CategoryCard[] = [
     title: 'Marques de la communauté',
     tag: 'Créateurs & marques afro indépendantes',
     count: 'Bientôt : revente de marques',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+    image: BRAND_IMAGES.salonClient,
     icon: Sparkles,
     href: '/community',
     status: 'soon',
@@ -133,11 +136,13 @@ export const BoutiquePreviewSection: React.FC = () => {
                 >
                   {/* Image */}
                   <div className="absolute inset-0 z-0">
-                    <img loading="lazy" decoding="async"
-                      src={cat.image}
-                      alt={cat.title}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    <BrandImage
+                      image={cat.image}
+                      fill
+                      ratio={4 / 5}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="group-hover:scale-105 transition-transform duration-700 ease-out"
+                      wrapperClassName="absolute inset-0 z-0"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/90 via-[#050403]/45 to-transparent" />
                   </div>

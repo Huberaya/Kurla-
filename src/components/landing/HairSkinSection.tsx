@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Sun, Scissors, Droplets, Wind, Sparkles, ShieldCheck, Heart, Users, Baby } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../../data/images';
+import { BrandImage } from '../BrandImage';
 import { Reveal } from '../motion/Reveal';
 
 interface Feature {
@@ -88,10 +89,13 @@ export const HairSkinSection: React.FC = () => {
             {/* Visuel */}
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shadow-2xl group bg-[#1A0F0A]">
-                <img loading="lazy" decoding="async"
-                  src={activeTab === 'hair' ? HERO_IMAGE : MELANIN_SKIN_IMAGE}
-                  alt={activeTab === 'hair' ? 'Soin des cheveux texturés' : 'Soin de la peau mélaninée'}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                <BrandImage
+                  image={activeTab === 'hair' ? HERO_IMAGE : MELANIN_SKIN_IMAGE}
+                  fill
+                  ratio={4 / 5}
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="group-hover:scale-105 transition-transform duration-700"
+                  wrapperClassName="absolute inset-0"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/80 via-transparent to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl bg-[#050403]/85 backdrop-blur-md border border-white/10 text-white">

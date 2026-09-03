@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, UserCheck, Baby, ShieldAlert, Check, Users, Sparkles } from 'lucide-react';
 import { MEN_GROOMING_IMAGE, KIDS_CARE_IMAGE } from '../../data/images';
+import { BrandImage } from '../BrandImage';
 import { Reveal } from '../motion/Reveal';
 
 export const KidsMenSection: React.FC = () => {
@@ -84,7 +85,7 @@ export const KidsMenSection: React.FC = () => {
               </div>
 
               <div className="relative h-44 rounded-2xl overflow-hidden mb-6 bg-[#1A0F0A]">
-                <img loading="lazy" decoding="async" src={MEN_GROOMING_IMAGE} alt="Soins et grooming homme" referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <BrandImage image={MEN_GROOMING_IMAGE} fill ratio={16 / 9} sizes="(max-width: 1024px) 100vw, 33vw" className="group-hover:scale-105 transition-transform duration-500" wrapperClassName="absolute inset-0" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               </div>
 
@@ -139,7 +140,7 @@ export const KidsMenSection: React.FC = () => {
               </div>
 
               <div className="relative h-44 rounded-2xl overflow-hidden mb-4 bg-[#1A0F0A]">
-                <img loading="lazy" decoding="async" src={KIDS_CARE_IMAGE} alt="Soin des cheveux d'un enfant" referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <BrandImage image={KIDS_CARE_IMAGE} fill ratio={16 / 9} sizes="(max-width: 1024px) 100vw, 33vw" className="group-hover:scale-105 transition-transform duration-500" wrapperClassName="absolute inset-0" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               </div>
 

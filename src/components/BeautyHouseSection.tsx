@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { HERO_IMAGE, MELANIN_SKIN_IMAGE } from '../data/images';
+import { BrandImage } from './BrandImage';
 import { Reveal } from './motion/Reveal';
 
 export const BeautyHouseSection: React.FC = () => {
@@ -42,10 +43,13 @@ export const BeautyHouseSection: React.FC = () => {
               </div>
 
               <div className="relative h-64 rounded-2xl overflow-hidden mb-6">
-                <img loading="lazy" decoding="async"
-                  src={HERO_IMAGE}
-                  alt="Soin des cheveux texturés"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                <BrandImage
+                  image={HERO_IMAGE}
+                  fill
+                  ratio={16 / 11}
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="group-hover:scale-105 transition-transform duration-500"
+                  wrapperClassName="absolute inset-0"
                 />
               </div>
 
@@ -71,10 +75,13 @@ export const BeautyHouseSection: React.FC = () => {
               </div>
 
               <div className="relative h-64 rounded-2xl overflow-hidden mb-6">
-                <img loading="lazy" decoding="async"
-                  src={MELANIN_SKIN_IMAGE}
-                  alt="Soin de la peau mélaninée"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                <BrandImage
+                  image={MELANIN_SKIN_IMAGE}
+                  fill
+                  ratio={16 / 11}
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="group-hover:scale-105 transition-transform duration-500"
+                  wrapperClassName="absolute inset-0"
                 />
               </div>
 

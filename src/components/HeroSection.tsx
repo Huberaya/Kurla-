@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ShieldCheck, HeartHandshake, Bot, Package, Volume2, VolumeX, ShoppingBag, ScanSearch, MessageCircleHeart, BadgeCheck } from 'lucide-react';
+import React from 'react';
+import { ArrowRight, ShieldCheck, HeartHandshake, Bot, Package, ShoppingBag, ScanSearch, MessageCircleHeart, BadgeCheck } from 'lucide-react';
 import { motion } from 'motion/react';
-import { HERO_VIDEO_FRAME } from '../data/images';
+import { HERO_IMAGE } from '../data/images';
+import { BrandImage } from './BrandImage';
 import { Reveal } from './motion/Reveal';
 
 const PILLARS = [
@@ -32,24 +33,6 @@ const PILLARS = [
 ];
 
 export const HeroSection: React.FC = () => {
-  const bgVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [isMuted, setIsMuted] = useState(true);
-
-  useEffect(() => {
-    const video = bgVideoRef.current;
-    if (!video) return;
-    video.muted = true;
-    video.play().catch(() => {});
-  }, []);
-
-  const toggleMute = () => {
-    const video = bgVideoRef.current;
-    if (!video) return;
-    const next = !isMuted;
-    video.muted = next;
-    setIsMuted(next);
-  };
-
   return (
     <section className="relative min-h-screen pt-28 pb-20 flex items-center bg-[#050403] text-white overflow-hidden select-none">
 
@@ -65,20 +48,20 @@ export const HeroSection: React.FC = () => {
         className="absolute bottom-10 right-10 w-[450px] h-[450px] bg-[#D49A63]/20 rounded-full blur-[120px] pointer-events-none z-10"
       />
 
-      {/* Vidéo cinématique en fond */}
+      {/* Photographie de marque en fond.
+          Le cadrage est fait côté CDN (crop=faces) : le visage reste dans le cadre
+          quelle que soit la largeur d'écran. Mouvement lent type Ken Burns. */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <video
-          ref={bgVideoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster={HERO_VIDEO_FRAME}
-          className="w-full h-full object-cover object-center filter brightness-[0.78] contrast-105 saturate-110 scale-105"
-        >
-          <source src="https://assets.mixkit.co/videos/41582/41582-720.mp4" type="video/mp4" />
-        </video>
+        <BrandImage
+          image={HERO_IMAGE}
+          fill
+          ratio={16 / 10}
+          priority
+          grade="warm"
+          sizes="100vw"
+          className="kurla-kenburns"
+          wrapperClassName="absolute inset-0"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050403] via-[#050403]/75 to-[#050403]/45 z-10" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#050403]/90 via-[#050403]/55 to-[#050403]/10 z-10" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(200,117,61,0.22),transparent_65%)] pointer-events-none z-10" />
@@ -197,14 +180,6 @@ export const HeroSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Contrôle son discret */}
-      <button
-        onClick={toggleMute}
-        aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-        className="absolute bottom-6 right-6 z-30 w-10 h-10 rounded-full bg-[#1A0F0A]/70 border border-white/15 backdrop-blur-md flex items-center justify-center text-[#D49A63] hover:bg-[#3A2218] hover:text-white transition-colors"
-      >
-        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-      </button>
     </section>
   );
 };
