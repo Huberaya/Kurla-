@@ -33,8 +33,14 @@ import type { SupabaseServerStore } from '../serverDb';
  * compte vraiment, et elle est tentée en dernier.
  */
 
-/** Tables personnelles supprimées par `user_id` quand la base est configurée. */
-const PERSONAL_TABLES: Array<[string, string]> = [
+/**
+ * Tables personnelles supprimées par `user_id` quand la base est configurée.
+ *
+ * Exporté pour que le banc « vie privée » puisse vérifier qu'aucune table
+ * contenant des données personnelles n'est oubliée : c'est exactement le
+ * défaut qu'avait `carts` avant le 2026-09-03.
+ */
+export const PERSONAL_TABLES: Array<[string, string]> = [
   ['beauty_profiles', 'user_id'],
   ['beauty_profile_history', 'user_id'],
   ['beauty_profile_photos', 'user_id'],
@@ -58,7 +64,8 @@ const PERSONAL_TABLES: Array<[string, string]> = [
   ['brand_test_participations', 'user_id'],
   ['brand_test_observations', 'user_id'],
   ['mobile_sync_actions', 'user_id'],
-  ['professional_applications', 'user_id']
+  ['professional_applications', 'user_id'],
+  ['carts', 'user_id']
 ];
 
 /** Pièces conservées pour obligation légale : la réponse le déclare. */
@@ -182,12 +189,30 @@ export interface UserDataDeletion {
   deletedAt: string;
   retainedForLegalReasons: string[];
   accountDeleted: boolean;
+  /** Cause de l'échec quand le compte d'authentification n'a PAS été supprimé. */
+  accountDeletionError: string | null;
 }
 
 export async function deleteUserData(store: SupabaseServerStore, userId: string): Promise<UserDataDeletion> {
   const supabase = getSupabaseServerClient();
 
   if (supabase) {
+    // Le panier d'abord, lignes comprises. `cart_items` n'a pas de `user_id` :
+    // on passe par les paniers du membre. C'est aussi ce qui garantit
+    // l'effacement même si la cascade de clé étrangère n'a pas été appliquée.
+    const { data: memberCarts } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', userId)
+      .then(result => (result.error ? { data: null } : result), () => ({ data: null }));
+    if (memberCarts && memberCarts.length > 0) {
+      await supabase
+        .from('cart_items')
+        .delete()
+        .in('cart_id', memberCarts.map(cart => (cart as { id: string }).id))
+        .then(() => undefined, () => undefined);
+    }
+
     for (const [table, column] of PERSONAL_TABLES) {
       // Meilleure volonté : une table absente ne bloque pas l'effacement du reste.
       await supabase.from(table).delete().eq(column, userId).then(() => undefined, () => undefined);
@@ -228,16 +253,25 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   await deleteAiSessions(store, userId).catch(() => undefined);
 
   // --- Le compte d'authentification, en dernier. ---
+  //
+  // C'est la seule suppression qui compte vraiment : si elle échoue, le membre
+  // peut encore se connecter et KURLA détient toujours son identité. L'erreur
+  // est donc remontée textuellement dans `accountDeletionError` plutôt que
+  // réduite à un booléen muet — la route s'en sert pour répondre 500 au lieu
+  // d'annoncer un effacement qui n'a pas eu lieu.
   let accountDeleted = false;
+  let accountDeletionError: string | null = null;
   if (supabase?.auth?.admin?.deleteUser) {
     const { error } = await supabase.auth.admin.deleteUser(userId);
     accountDeleted = !error;
+    if (error) accountDeletionError = error.message || 'Suppression du compte refusée par le fournisseur d’authentification.';
   }
 
   return {
     userId,
     deletedAt: new Date().toISOString(),
     retainedForLegalReasons: RETAINED_FOR_LEGAL_REASONS,
-    accountDeleted
+    accountDeleted,
+    accountDeletionError
   };
 }

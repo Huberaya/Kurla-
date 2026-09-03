@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { serverDb } from '../src/lib/serverDb';
 import { intelligenceStore } from '../src/lib/intelligenceStore';
 import {
+  PERSONAL_TABLES,
   RETAINED_FOR_LEGAL_REASONS,
   deleteUserData,
   exportUserData
@@ -112,6 +116,31 @@ async function runPrivacyTests(): Promise<void> {
   // Le voisin est intact : la suppression est bornée au compte demandé.
   assert.equal(serverDb.inMemoryBeautyProfiles.has(NEIGHBOUR), true);
   assert.equal(serverDb.inMemoryNotifications.some(notification => notification.userId === NEIGHBOUR), true);
+
+  // -----------------------------------------------------------------------
+  // 4. Régression du 2026-09-03 : le panier bloquait la suppression du compte.
+  //
+  // `carts.user_id` était en ON DELETE SET NULL. Effacer un compte ramenait la
+  // ligne à (user_id NULL, anonymous_id NULL), ce qui viole `carts_owner_check`
+  // — la transaction était annulée, `auth.admin.deleteUser()` échouait, et le
+  // compte n'était pas supprimé. Le droit à l'effacement (RGPD art. 17) ne
+  // s'exerçait pas, alors que la route répondait 200.
+  //
+  // Deux verrous : le panier est effacé avant le compte (code), et la clé
+  // étrangère passe en CASCADE (migration).
+  // -----------------------------------------------------------------------
+  const personalTables = PERSONAL_TABLES.map(([table]) => table);
+  assert.ok(personalTables.includes('carts'), 'le panier doit être effacé avec le compte : il bloque sinon la suppression');
+  assert.equal(new Set(personalTables).size, personalTables.length, 'table listée deux fois dans PERSONAL_TABLES');
+  assert.equal(deletion.accountDeletionError, null, 'aucune erreur de suppression en mode mémoire');
+
+  const migrationDir = join(process.cwd(), 'supabase', 'migrations');
+  const cartMigrations = readdirSync(migrationDir).filter(name => /cart.*cascade|cascade.*cart/i.test(name));
+  assert.equal(cartMigrations.length, 1, `migration de cascade du panier attendue, trouvée : ${cartMigrations.join(', ') || 'aucune'}`);
+  const migrationSql = readFileSync(join(migrationDir, cartMigrations[0]), 'utf-8');
+  assert.match(migrationSql, /carts[\s\S]*?ON DELETE CASCADE/, 'la migration doit passer carts.user_id en ON DELETE CASCADE');
+  assert.match(migrationSql, /carts_owner_check/, 'la migration doit documenter la contrainte qu’elle contournait');
+  console.log('  ✓ RGPD : effacement du panier avant le compte + migration CASCADE présente');
   assert.equal((await intelligenceStore.getShelf(NEIGHBOUR)).length, 1);
 
   // Un second export après suppression ne renvoie plus rien de personnel.

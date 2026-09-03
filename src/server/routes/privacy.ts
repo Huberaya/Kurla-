@@ -28,11 +28,29 @@ export function registerPrivacyRoutes(app: Express): void {
    * Suppression en 1 clic. La confirmation est exigée côté client ; ici on
    * vérifie seulement l'identité. La réponse dit honnêtement ce qui est
    * conservé pour obligation légale.
+   *
+   * Et surtout, elle ne dit pas « supprimé » quand le compte existe toujours.
+   * Un échec de `auth.admin.deleteUser` laisse le membre capable de se
+   * reconnecter : répondre 200 avec `accountDeleted: false` revenait à lui
+   * affirmer que son droit à l'effacement avait été exercé alors qu'il ne
+   * l'était pas. L'échec est désormais un 500 explicite, cause incluse.
    */
   app.post('/api/account/delete', rateLimit('account-delete', 3, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const user = await requireUser(req, res);
     if (!user) return;
     const result = await deleteUserData(serverDb, user.id);
+
+    if (result.accountDeletionError) {
+      res.status(500).json({
+        error: 'account_delete_failed',
+        message: 'Tes données ont été effacées, mais le compte d’authentification n’a pas pu être supprimé. Réessaie ou écris-nous : tu peux encore te reconnecter.',
+        cause: result.accountDeletionError,
+        deletedAt: result.deletedAt,
+        retainedForLegalReasons: result.retainedForLegalReasons
+      });
+      return;
+    }
+
     res.json(result);
   }));
 
