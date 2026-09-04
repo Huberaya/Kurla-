@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MailWarning, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
 
 type Props = {
   dashboard: any;
@@ -61,6 +61,38 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
   const [couponForm, setCouponForm] = useState<any>(emptyCoupon());
   const [notificationForm, setNotificationForm] = useState({ userId: '', type: 'account_created', title: '', message: '', link: '' });
   const [shipmentDrafts, setShipmentDrafts] = useState<Record<string, any>>({});
+  /**
+   * Santé de la livraison des e-mails, chargée à l'ouverture du panneau.
+   *
+   * Une clé d'API invalide ne fait planter aucune requête : la commande est
+   * enregistrée, le paiement encaissé, et la confirmation ne part jamais. Sans
+   * ce bandeau, la panne n'existe pour personne — pas d'erreur à l'écran, pas
+   * de page cassée, juste des clientes qui n'ont aucune trace de leur achat.
+   */
+  const [emailHealth, setEmailHealth] = useState<{
+    provider: string;
+    isRealProvider: boolean;
+    counts: { sent: number; failed: number; logged: number; total: number };
+    outage: boolean;
+    lastError: string | null;
+    lastAttemptAt: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/admin/email-health', { headers });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setEmailHealth(data);
+      } catch {
+        // Un bandeau de santé qui échoue ne doit pas empêcher le panneau de
+        // s'afficher : on reste muet plutôt que de bloquer l'outil.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [shipmentHistories, setShipmentHistories] = useState<Record<string, any[]>>({});
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
@@ -314,6 +346,28 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
       <div className="flex flex-wrap gap-2">
         {nav.map(([id, label, Icon]) => <button key={id} onClick={() => setSection(id)} className={`px-3 py-2 rounded-xl text-[11px] font-semibold flex items-center gap-2 ${section === id ? 'bg-[#C8753D] text-white' : 'bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/65 hover:text-white'}`}><Icon className="w-3.5 h-3.5" />{label}</button>)}
       </div>
+
+      {emailHealth && (emailHealth.outage || !emailHealth.isRealProvider) && (
+        <div className="p-4 rounded-2xl bg-[#2A0F0F] border border-red-500/40 flex items-start gap-3">
+          <MailWarning className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-red-200">
+              Les e-mails ne partent pas — {emailHealth.outage ? 'les dernières tentatives ont toutes échoué' : 'fournisseur non configuré'}
+            </p>
+            <p className="text-xs text-red-200/80 leading-relaxed">
+              Fournisseur déclaré : <span className="font-mono">{emailHealth.provider || 'aucun'}</span>
+              {emailHealth.counts.total > 0 && <> · {emailHealth.counts.failed} échec(s) sur {emailHealth.counts.total} tentative(s)</>}
+              {emailHealth.lastAttemptAt && <> · dernière tentative {new Date(emailHealth.lastAttemptAt).toLocaleString('fr-FR')}</>}
+            </p>
+            {emailHealth.lastError && (
+              <p className="text-[11px] font-mono text-red-300/90 break-all">{emailHealth.lastError}</p>
+            )}
+            <p className="text-[11px] text-red-200/70">
+              Les commandes sont encaissées normalement, mais aucune confirmation n'est remise à la cliente. Corriger la clé d'API du fournisseur dans les variables d'environnement.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-serif-title font-bold flex items-center gap-2"><Layers3 className="w-5 h-5 text-[#C8753D]" />{sectionTitle}</h2><p className="text-xs text-[#FFF7EF]/50 mt-1">Source : Supabase. Les mutations sensibles sont réservées aux rôles admin et journalisées.</p></div><div className="flex items-center gap-2"><input className={inputClass + ' sm:w-64'} placeholder="Filtrer cette section…" value={filter} onChange={e => setFilter(e.target.value)} />{message && <span className="text-xs text-[#D49A63] max-w-sm">{message}</span>}</div></div>
         {content}

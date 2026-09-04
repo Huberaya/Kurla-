@@ -86,6 +86,8 @@ import {
 } from './src/server/payments/membershipActivation';
 import { normalizeWaitlistSource } from './src/lib/waitlistSources';
 import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
+import { emailService } from './src/lib/emailService';
+import { computeEmailHealth } from './src/lib/emailHealth';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -2264,6 +2266,29 @@ app.get('/api/admin/notification-logs', asyncRoute(async (req: AuthenticatedRequ
   const limit = Number(req.query.limit || 100);
   const logs = await serverDb.getNotificationDeliveryLogs(undefined, Number.isFinite(limit) ? limit : 100);
   res.json({ logs });
+}));
+
+/**
+ * ÉTAT DE SANTÉ DE LA LIVRAISON DES E-MAILS.
+ *
+ * Ce point d'entrée existe à cause d'une panne réelle. Le 2026-09-03, la
+ * production renvoyait « API resend HTTP 401 : API key is invalid » depuis le
+ * 1er septembre : aucune confirmation de commande, aucune notification
+ * d'expédition, aucune réinitialisation de mot de passe n'était partie. Et rien
+ * ne le signalait nulle part — la seule trace vivait dans une table que
+ * personne n'ouvre.
+ *
+ * Un e-mail qui n'arrive pas n'est pas un incident technique : c'est une
+ * cliente qui a payé et qui n'a aucune preuve de son achat. La panne doit
+ * remonter d'elle-même, pas attendre qu'on aille la chercher.
+ */
+app.get('/api/admin/email-health', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const logs = await serverDb.getNotificationDeliveryLogs(undefined, 50);
+  const health = computeEmailHealth(logs, emailService.getProviderName(), emailService.isProductionReady());
+  res.json(health);
 }));
 
 app.post('/api/admin/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

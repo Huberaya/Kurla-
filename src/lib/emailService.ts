@@ -66,6 +66,19 @@ export class EmailService {
     return this.provider;
   }
 
+  /**
+   * Vrai si le service est configuré pour envoyer réellement.
+   *
+   * Cette méthode existe pour qu'un tableau de bord puisse afficher « les
+   * e-mails ne partent pas » AVANT le premier incident, et non après avoir
+   * compté les plaintes. Une configuration invalide est un état, pas une
+   * exception : rien ne lève, et c'est précisément pour ça qu'une panne peut
+   * durer trois jours sans que personne ne la voie.
+   */
+  public isProductionReady(): boolean {
+    return REAL_PROVIDERS.has(this.provider) && Boolean(this.apiKey);
+  }
+
   public async sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
     const isWebhookEnabled = process.env.STRIPE_WEBHOOK_ENABLED === 'true';
     let finalTemplate = msg.template;
