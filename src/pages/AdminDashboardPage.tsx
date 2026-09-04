@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -24,6 +24,38 @@ export const AdminDashboardPage: React.FC = () => {
     user && session?.access_token && profile && ['admin', 'superadmin'].includes(profile.role)
   );
   
+  /**
+   * Santé de la livraison des e-mails, affichée quel que soit l'onglet.
+   *
+   * Une clé d'API invalide ne casse aucune page : les commandes sont
+   * enregistrées, les paiements encaissés, et la confirmation ne part jamais.
+   * Sans bandeau, la panne n'existe pour personne. Il est donc placé sur le
+   * tableau de bord, là où l'administration arrive en premier — pas dans un
+   * onglet secondaire qu'il faudrait savoir ouvrir.
+   */
+  const [emailHealth, setEmailHealth] = useState<{
+    provider: string;
+    isRealProvider: boolean;
+    counts: { sent: number; failed: number; logged: number; total: number };
+    outage: boolean;
+    lastError: string | null;
+    lastAttemptAt: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/admin/email-health', { headers: adminHeaders });
+        if (!response.ok) return;
+        if (!cancelled) setEmailHealth(await response.json());
+      } catch {
+        // Un bandeau de santé qui échoue ne doit jamais bloquer le tableau de bord.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
@@ -424,6 +456,28 @@ export const AdminDashboardPage: React.FC = () => {
         {actionSuccess && (
           <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
             <CheckCircle2 className="w-4 h-4" /> {actionSuccess}
+          </div>
+        )}
+
+        {emailHealth && (emailHealth.outage || !emailHealth.isRealProvider) && (
+          <div className="p-4 rounded-2xl bg-[#2A0F0F] border border-red-500/40 flex items-start gap-3 animate-fadeIn">
+            <MailWarning className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-red-200">
+                Les e-mails ne partent pas — {emailHealth.outage ? 'aucune tentative réussie' : 'fournisseur non configuré'}
+              </p>
+              <p className="text-xs text-red-200/80 leading-relaxed">
+                Fournisseur déclaré : <span className="font-mono">{emailHealth.provider || 'aucun'}</span>
+                {emailHealth.counts.total > 0 && <> · {emailHealth.counts.failed} échec(s), {emailHealth.counts.sent} envoi(s) réussi(s) sur {emailHealth.counts.total} tentative(s)</>}
+                {emailHealth.lastAttemptAt && <> · dernière tentative le {new Date(emailHealth.lastAttemptAt).toLocaleString('fr-FR')}</>}
+              </p>
+              {emailHealth.lastError && (
+                <p className="text-[11px] font-mono text-red-300/90 break-all">{emailHealth.lastError}</p>
+              )}
+              <p className="text-[11px] text-red-200/70">
+                Les commandes sont encaissées normalement, mais la cliente ne reçoit rien : ni confirmation, ni suivi d’expédition, ni réinitialisation de mot de passe. Corriger la clé d’API du fournisseur dans les variables d’environnement Vercel.
+              </p>
+            </div>
           </div>
         )}
 
