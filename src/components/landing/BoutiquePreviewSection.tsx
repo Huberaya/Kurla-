@@ -6,6 +6,7 @@ import { useProducts } from '../../services/productService';
 import type { ShopCategory } from '../../lib/shopCategories';
 import { BrandImage } from '../BrandImage';
 import type { BrandImage as BrandImageType } from '../../types';
+import { DISPATCH_SENTENCE } from '../../lib/preorderPromise';
 
 interface CategoryCard {
   title: string;
@@ -145,7 +146,7 @@ export const BoutiquePreviewSection: React.FC = () => {
                 Tout ce que vous cherchiez, au même endroit.
               </h2>
               <p className="text-sm sm:text-base text-[#FFF7EF]/75 font-light leading-relaxed">
-                Plus de 60 références : soins capillaires 3A à 4C, les outils introuvables ailleurs — peigne afro, steamer, diffuseur, satin — 10 coffrets et les dernières innovations. Réservez dès maintenant, expédition à la réception du premier lot, annulation et remboursement à tout moment.
+                Plus de 60 références : soins capillaires 3A à 4C, les outils introuvables ailleurs — peigne afro, steamer, diffuseur, satin — 10 coffrets et les dernières innovations. Réservez dès maintenant, {DISPATCH_SENTENCE.toLowerCase()} Annulation et remboursement à tout moment avant expédition.
               </p>
             </div>
           </Reveal>

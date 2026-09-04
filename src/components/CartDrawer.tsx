@@ -7,6 +7,7 @@ import { computeOrderVat, formatVatRate } from '../lib/vat';
 import { analytics } from '../lib/analytics';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -348,7 +349,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       {item.product.name}
                     </h4>
                     {(item.product as any).isPreorder && (
-                      <p className="text-[10px] text-emerald-400 font-semibold">Précommande · expédiée à la réception du lot</p>
+                      <p className="text-[10px] text-emerald-400 font-semibold">Précommande · {DISPATCH_SHORT}</p>
                     )}
                     <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
@@ -549,10 +550,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1">
               {allItemsPreorder && (
                 <p>
-                  <span className="text-emerald-300 font-semibold">Précommande :</span> vos soins sont
-                  expédiés à la réception du premier lot de production. Vous pouvez annuler et être
-                  remboursé·e à tout moment avant expédition, et vous disposez de 14 jours après réception
-                  pour vous rétracter.
+                  <span className="text-emerald-300 font-semibold">Précommande :</span> {DISPATCH_SENTENCE} Vous
+                  pouvez annuler et être remboursé·e à tout moment avant expédition, et vous disposez de 14 jours
+                  après réception pour vous rétracter.{' '}
+                  <span className="text-[#FFF7EF]/55">{DISPATCH_LEGAL}</span>
                 </p>
               )}
               <p>

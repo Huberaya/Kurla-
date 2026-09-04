@@ -7,6 +7,8 @@
  * pour passer les filtres des webmails (tableaux, styles en ligne).
  */
 
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE } from './preorderPromise';
+
 export interface EmailOrderItem {
   name?: string;
   quantity?: number;
@@ -147,7 +149,7 @@ function orderItemsBlock(items?: EmailOrderItem[], total?: number | string, curr
     : '';
   const preorderRow = showPreorderNote
     ? `<tr><td colspan="2" style="padding:14px;margin-top:12px;background:${C.creamCard};border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${C.ink};">
-        <strong>Commande en précommande.</strong> Votre colis est expédié à la réception de notre premier lot de production. Nous vous écrivons dès qu'il prend la route, avec le numéro de suivi.</td></tr>`
+        <strong>Commande en précommande.</strong> ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL} Nous vous écrivons dès qu'il prend la route, avec le numéro de suivi.</td></tr>`
     : '';
   return `<tr><td style="padding:16px 40px 8px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     ${rows}${totalRow}${preorderRow}
@@ -193,7 +195,7 @@ export function renderOrderEmail(template: string, data: EmailData): RenderedEma
           blocks: orderItemsBlock(data.items, data.total, currency, hasPreorder),
           cta: { label: 'Suivre ma commande', url: trackLink(orderId) }
         }),
-        text: `Merci pour votre commande ${orderId} ! Montant : ${money(data.total, currency)}.${hasPreorder ? ' (précommande — expédition à la réception du premier lot.)' : ''}\nSuivez-la : ${trackLink(orderId)}`
+        text: `Merci pour votre commande ${orderId} ! Montant : ${money(data.total, currency)}.${hasPreorder ? ` (précommande — ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL})` : ''}\nSuivez-la : ${trackLink(orderId)}`
       };
     }
     case 'payment_pending': {

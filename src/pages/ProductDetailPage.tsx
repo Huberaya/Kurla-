@@ -22,6 +22,7 @@ import {
 import { ArchetypeRatingsPanel } from '../components/product/ArchetypeRatingsPanel';
 import { ProductVerificationPanel } from '../components/product/ProductVerificationPanel';
 import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -208,7 +209,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                   {effectiveInStock ? (isPreorder ? 'En précommande' : 'Disponible') : 'Indisponible pour cette option'}
                 </span>
                 {isPreorder && effectiveInStock && (
-                  <span className="px-2.5 py-1 rounded-full border border-amber-400/20 bg-amber-900/10 text-amber-200/90 text-[11px]">Expédié à la réception du premier lot</span>
+                  <span className="px-2.5 py-1 rounded-full border border-amber-400/20 bg-amber-900/10 text-amber-200/90 text-[11px]">{DISPATCH_SHORT}</span>
                 )}
                 {trust.verifiedReviewCount > 0 && <span className="flex items-center gap-1 text-amber-300"><Star className="w-3.5 h-3.5 fill-current" /> {(trust.reviews.reduce((sum, review) => sum + review.rating, 0) / trust.reviews.length).toFixed(1)} · {trust.verifiedReviewCount} avis vérifiés</span>}
               </div>
@@ -321,7 +322,7 @@ function TrustGuarantees({ isPreorder }: { isPreorder: boolean }) {
         { icon: <RotateCcw className="w-4 h-4" />, title: 'Précommande sans risque', body: 'Annulable et remboursable à tout moment avant expédition.' },
         { icon: <BadgeCheck className="w-4 h-4" />, title: '14 jours pour changer d’avis', body: 'Rétractation après réception, conformément aux CGV.' },
         { icon: <Lock className="w-4 h-4" />, title: 'Paiement sécurisé', body: 'Encaissement via Stripe. Aucune carte n’est stockée par KURLA.' },
-        { icon: <Truck className="w-4 h-4" />, title: 'Expédition dès réception du lot', body: 'Suivi communiqué par email. Livraison en France et UE.' },
+        { icon: <Truck className="w-4 h-4" />, title: DISPATCH_SHORT, body: `Suivi communiqué par email. Livraison en France et UE. ${DISPATCH_LEGAL}` },
       ]
     : [
         { icon: <RotateCcw className="w-4 h-4" />, title: '14 jours pour changer d’avis', body: 'Rétractation et retour selon les CGV.' },

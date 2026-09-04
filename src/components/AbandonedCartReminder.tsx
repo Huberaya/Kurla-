@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ShoppingBag, X, Tag, ArrowRight } from 'lucide-react';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 
 interface Props {
   count: number;
@@ -64,7 +65,7 @@ export const AbandonedCartReminder: React.FC<Props> = ({ count, onOpenCart }) =>
         </div>
         <p className="text-xs text-[#FFF7EF]/70 leading-relaxed">
           Vous avez <strong className="text-[#FFF7EF]">{count} article{count > 1 ? 's' : ''}</strong> en attente dans votre panier.
-          En précommande, vos soins sont réservés et expédiés à la réception du premier lot.
+          {DISPATCH_SENTENCE}
         </p>
         <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-3 py-2">
           <Tag className="w-4 h-4 text-emerald-300 shrink-0" />

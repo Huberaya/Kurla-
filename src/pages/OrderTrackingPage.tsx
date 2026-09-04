@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Package, Search, CheckCircle2, Clock3, XCircle, Truck, MapPin, ShoppingBag, RotateCcw, Box } from 'lucide-react';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 
 interface TrackItem {
   name: string;
@@ -195,7 +196,7 @@ export const OrderTrackingPage: React.FC<{ orderId?: string }> = ({ orderId }) =
                 <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                   <Clock3 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <p className="text-xs text-emerald-800">
-                    Cette commande contient une ou plusieurs <strong>précommandes</strong>. Elle sera expédiée à la réception du premier lot ; tu seras notifié(e) par email dès l’expédition.
+                    Cette commande contient une ou plusieurs <strong>précommandes</strong>. {DISPATCH_SENTENCE} Tu seras notifié(e) par email dès l’expédition, avec le numéro de suivi. {DISPATCH_LEGAL}
                   </p>
                 </div>
               )}

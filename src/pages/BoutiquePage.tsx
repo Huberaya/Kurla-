@@ -11,6 +11,7 @@ import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategories';
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -263,7 +264,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
             <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
-            <span>{count} références — expédiées à la réception du premier lot.</span>
+            <span>{count} références — {DISPATCH_SHORT.toLowerCase()}.</span>
           </div>
         </div>
 
@@ -760,7 +761,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     </p>
                     {product.isPreorder && (
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Expédié à la réception du premier lot
+                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT}
                       </p>
                     )}
 

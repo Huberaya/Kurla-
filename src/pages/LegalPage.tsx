@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
+import { preorderCgvDelay, preorderCgvNotice } from '../lib/preorderPromise';
 
 interface LegalPageProps {
   kind: 'cgv' | 'confidentialite';
@@ -51,7 +52,7 @@ const content: Record<'cgv' | 'confidentialite', LegalContent> = {
         blocks: [
           'Les caractéristiques essentielles de chaque produit (composition, contenance, cheveux/peaux cibles, pays d’expédition), son prix TTC et sa disponibilité sont présentés sur la fiche produit avant la commande.',
           '• Une précommande est une réservation d’un produit avant sa disponibilité physique. Le prix affiché au moment de la précommande est garanti pour la cliente, même si le prix évolue ensuite.',
-          '• Les produits en précommande sont signalés par un badge « Précommande » et par la mention « Expédié à la réception du premier lot ».',
+          preorderCgvNotice(),
           'Les photographies et illustrations sont indicatives. Les cosmétiques sont des produits d’hygiène : leur vente est définitive une fois le produit descellé, sous réserve des droits prévus aux articles 6 et 7.'
         ]
       },
@@ -68,8 +69,7 @@ const content: Record<'cgv' | 'confidentialite', LegalContent> = {
         heading: '5. Livraison et délais (spécifique précommande)',
         blocks: [
           '• Zones de livraison : France métropolitaine, Belgique, DOM-TOM et international selon les options proposées au paiement. Transporteurs : Colissimo, Mondial Relay et autres transporteurs indiqués selon la destination.',
-          '• Délai de précommande : les commandes sont expédiées à la réception du premier lot de production. Un délai indicatif figure sur chaque fiche produit (ordre de grandeur : semaines nécessaires à la production et à l’acheminement du lot). KURLA Beauty informe la cliente par email de l’expédition, avec le numéro de suivi du transporteur.',
-          '• Délai légal maximal : KURLA Beauty s’engage à livrer au plus tard dans les 30 jours suivant la date de disponibilité annoncée (art. L. 216-1 du Code de la consommation).',
+          preorderCgvDelay(),
           'En cas de retard ou d’indisponibilité rendant la livraison impossible dans le délai annoncé, la cliente en est informée sans délai. Elle peut alors maintenir sa commande ou demander l’annulation et le remboursement intégral des sommes versées, recréditées sous 14 jours sur le moyen de paiement utilisé.',
           'La livraison est réputée effectuée à la remise du colis au transporteur désigné par la cliente (ou à la réception, en cas de perte/avarie). Toute anomalie (colis endommagé, produit manquant) doit être signalée à bonjour@kurlabeauty.fr dans les 72 h suivant la réception.'
         ]
