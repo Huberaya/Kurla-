@@ -118,6 +118,13 @@ const ok = (label: string) => {
 
 // ——— 4. Aucune occurrence de la formulation en dehors du module ———
 {
+  //
+  // Le balayage couvre aussi `scripts/` et `server.ts` : c'est là que se
+  // cachaient les deux dernières occurrences, invisibles depuis `src/`.
+  //   • `scripts/publishLaunchSkus.ts` écrit le préfixe DANS les descriptions
+  //     produit — il était donc figé en base pour 54 fiches.
+  //   • `server.ts` renseigne la description affichée sur la page de paiement
+  //     Stripe, c'est-à-dire le dernier texte lu avant de payer.
   const files: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir)) {
@@ -127,6 +134,8 @@ const ok = (label: string) => {
     }
   };
   walk(join(process.cwd(), 'src'));
+  walk(join(process.cwd(), 'scripts'));
+  files.push(join(process.cwd(), 'server.ts'));
 
   const stripComments = (text: string): string =>
     text
@@ -144,6 +153,9 @@ const ok = (label: string) => {
 
     // Le module lui-même porte la formulation : c'est son rôle.
     if (relative.endsWith('src/lib/preorderPromise.ts')) continue;
+    // Le banc lui-même cite l'ancienne formulation dans ses commentaires ; ils
+    // sont retirés par `stripComments`, mais le fichier est de toute façon exclu.
+    if (relative.endsWith('tests/kurla_preorder_promise.test.ts')) continue;
 
     if (/réception du (premier )?lot|premier lot de production/.test(text)) {
       orphans.push(relative);
@@ -161,6 +173,8 @@ const ok = (label: string) => {
   // afficher deux versions différentes de la même engagement.
   const required = [
     'src/pages/ProductDetailPage.tsx',
+    'scripts/publishLaunchSkus.ts',
+    'server.ts',
     'src/components/CartDrawer.tsx',
     'src/pages/OrderTrackingPage.tsx',
     'src/components/AbandonedCartReminder.tsx',

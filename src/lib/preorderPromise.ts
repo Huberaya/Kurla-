@@ -125,6 +125,20 @@ export const DISPATCH_SENTENCE = preorderDispatchPromise().sentence;
 export const DISPATCH_LEGAL = preorderDispatchPromise().legal;
 
 /**
+ * Préfixe apposé à la description produit.
+ *
+ * Ce n'est pas un détail d'affichage : le préfixe est **écrit dans les données**
+ * au moment de la publication du catalogue (voir `scripts/publishLaunchSkus.ts`)
+ * et se retrouve donc dans 54 descriptions en base. Le corriger dans le code ne
+ * suffit pas — il faut aussi reprendre les données, sinon le site affiche deux
+ * promesses différentes selon l'endroit.
+ */
+export const PREORDER_DESCRIPTION_PREFIX = `[PRÉCOMMANDE — ${DISPATCH_SHORT.toLowerCase()}]`;
+
+/** Ancien préfixe, conservé pour la reprise des descriptions déjà publiées. */
+export const LEGACY_DESCRIPTION_PREFIX = '[PRÉCOMMANDE — expédition à la réception du premier lot]';
+
+/**
  * Clause CGV « signalement de la précommande ».
  *
  * L'ancienne version citait la mention « Expédié à la réception du premier

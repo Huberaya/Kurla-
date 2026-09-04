@@ -26,6 +26,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { LAUNCH_PRODUCTS } from '../src/lib/launchCatalog';
+import { PREORDER_DESCRIPTION_PREFIX } from '../src/lib/preorderPromise';
 
 const env = (name: string): string => (process.env[name] || '').trim();
 
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
       // Marquage précommande via le badge canonique (aucune migration requise ;
       // la colonne is_preorder pourra être ajoutée plus tard comme redondance).
       badges: ['preorder'],
-      description: `[PRÉCOMMANDE — expédition à la réception du premier lot] ${sku.problem}. ${sku.strategic}`,
+      description: `${PREORDER_DESCRIPTION_PREFIX} ${sku.problem}. ${sku.strategic}`,
       benefit_primary: sku.problem,
       image_url: imageForSku(sku),
       ingredients,

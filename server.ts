@@ -85,6 +85,7 @@ import {
   renewMembershipFromInvoice
 } from './src/server/payments/membershipActivation';
 import { normalizeWaitlistSource } from './src/lib/waitlistSources';
+import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
 
 // Initialize persistent product database via Supabase. The startup path awaits
 // this promise so a schema/connection error cannot be hidden behind a healthy
@@ -813,7 +814,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         currency: 'eur',
         product_data: {
           name: preorderSlugs.has(item.slug) ? `[Précommande] ${item.name}` : item.name,
-          description: preorderSlugs.has(item.slug) ? 'Article en précommande — expédié à la réception du premier lot.' : undefined,
+          description: preorderSlugs.has(item.slug) ? `Article en précommande — ${DISPATCH_SENTENCE}` : undefined,
           images: item.image ? [item.image] : [],
         },
         // Montant réellement encaissé, en centimes : identique au prix catalogue
