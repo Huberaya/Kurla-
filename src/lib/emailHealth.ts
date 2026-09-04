@@ -64,9 +64,16 @@ export function computeEmailHealth(
     }
   }
 
+  //
+  // La règle n'est pas « tous les échecs » mais « aucun succès ». La différence
+  // compte : le journal réel mélange cinq échecs Resend et quatre entrées
+  // « logged » d'une période en mode console. Exiger que les dix dernières
+  // soient toutes des échecs laissait passer la panne, alors qu'aucun e-mail
+  // n'était jamais arrivé.
   const recent = emails.slice(0, OUTAGE_WINDOW);
-  const outage =
-    recent.length >= MIN_SAMPLES_FOR_OUTAGE && recent.every(entry => entry.status === 'failed');
+  const hasFailure = recent.some(entry => entry.status === 'failed');
+  const hasSuccess = recent.some(entry => entry.status === 'sent');
+  const outage = recent.length >= MIN_SAMPLES_FOR_OUTAGE && hasFailure && !hasSuccess;
 
   return {
     provider,

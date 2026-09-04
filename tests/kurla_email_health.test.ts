@@ -106,6 +106,29 @@ function email(index: number, status: 'sent' | 'failed' | 'logged', error?: stri
   ok('fournisseur non configuré détecté même sans aucune tentative');
 }
 
+// ——— 4 bis. Journal réel : échecs récents mêlés à d'anciennes entrées console ———
+{
+  // C'est le journal exact relevé en production. Les quatre dernières lignes
+  // sont des « logged » (mode console d'avant la mise en production) : exiger
+  // que TOUTES les tentatives soient des échecs passait à côté de la panne.
+  const real = [
+    email(0, 'failed', RESEND_401),
+    email(1, 'failed', RESEND_401),
+    email(2, 'failed', RESEND_401),
+    email(3, 'failed', RESEND_401),
+    email(4, 'failed', RESEND_401),
+    email(5, 'logged'),
+    email(6, 'logged'),
+    email(7, 'logged'),
+    email(8, 'logged')
+  ];
+  const health = computeEmailHealth(real, 'resend', true);
+  assert.equal(health.counts.sent, 0);
+  assert.equal(health.outage, true, 'aucun succès et des échecs : c’est une panne, même avec d’anciennes entrées console');
+  assert.equal(shouldWarn(health), true);
+  ok('journal de production réel : panne détectée malgré les entrées console mêlées');
+}
+
 // ——— 5. Robustesse ———
 {
   const empty = computeEmailHealth([], 'resend', true);
