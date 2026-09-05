@@ -40,6 +40,10 @@ export const AdminDashboardPage: React.FC = () => {
     outage: boolean;
     lastError: string | null;
     lastAttemptAt: string | null;
+    from?: string | null;
+    cause?: string | null;
+    what?: string | null;
+    fix?: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -462,12 +466,22 @@ export const AdminDashboardPage: React.FC = () => {
         {emailHealth && (emailHealth.outage || !emailHealth.isRealProvider) && (
           <div className="p-4 rounded-2xl bg-[#2A0F0F] border border-red-500/40 flex items-start gap-3 animate-fadeIn">
             <MailWarning className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <p className="text-sm font-semibold text-red-200">
                 Les e-mails ne partent pas — {emailHealth.outage ? 'aucune tentative réussie' : 'fournisseur non configuré'}
               </p>
-              <p className="text-xs text-red-200/80 leading-relaxed">
+              {emailHealth.what && (
+                <p className="text-xs font-semibold text-red-100">{emailHealth.what}</p>
+              )}
+              {emailHealth.fix && (
+                <p className="text-xs text-red-100/85 leading-relaxed bg-red-950/50 border border-red-500/25 rounded-lg px-2.5 py-2">
+                  <span className="font-semibold">Réparation : </span>{emailHealth.fix}
+                </p>
+              )}
+              <p className="text-[11px] text-red-200/70">
                 Fournisseur déclaré : <span className="font-mono">{emailHealth.provider || 'aucun'}</span>
+                {' · expéditeur : '}
+                <span className="font-mono">{emailHealth.from ?? 'non configuré'}</span>
                 {emailHealth.counts.total > 0 && <> · {emailHealth.counts.failed} échec(s), {emailHealth.counts.sent} envoi(s) réussi(s) sur {emailHealth.counts.total} tentative(s)</>}
                 {emailHealth.lastAttemptAt && <> · dernière tentative le {new Date(emailHealth.lastAttemptAt).toLocaleString('fr-FR')}</>}
               </p>
@@ -475,7 +489,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <p className="text-[11px] font-mono text-red-300/90 break-all">{emailHealth.lastError}</p>
               )}
               <p className="text-[11px] text-red-200/70">
-                Les commandes sont encaissées normalement, mais la cliente ne reçoit rien : ni confirmation, ni suivi d’expédition, ni réinitialisation de mot de passe. Corriger la clé d’API du fournisseur dans les variables d’environnement Vercel.
+                Les commandes sont encaissées normalement, mais la cliente ne reçoit rien : ni confirmation, ni suivi d’expédition, ni réinitialisation de mot de passe.
               </p>
             </div>
           </div>

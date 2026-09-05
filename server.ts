@@ -2288,7 +2288,23 @@ app.get('/api/admin/email-health', asyncRoute(async (req: AuthenticatedRequest, 
 
   const logs = await serverDb.getNotificationDeliveryLogs(undefined, 50);
   const health = computeEmailHealth(logs, emailService.getProviderName(), emailService.isProductionReady());
-  res.json(health);
+  const from = emailService.getFromAddress();
+
+  // Sans EMAIL_FROM, l'adresse de repli désigne un domaine que personne ne
+  // possède : aucun fournisseur n'acceptera l'envoi, quelles que soient les
+  // clés. Le dire ici évite de chercher une panne de clé qui n'existe pas.
+  if (!from) {
+    res.json({
+      ...health,
+      from: null,
+      cause: 'no_sender' as const,
+      what: "Aucune adresse expéditeur configurée : la variable EMAIL_FROM est absente.",
+      fix: "Renseigner EMAIL_FROM dans Vercel avec une adresse d'un domaine vérifié chez le fournisseur (par exemple no-reply@kurla.eu après vérification du domaine), puis redéployer."
+    });
+    return;
+  }
+
+  res.json({ ...health, from });
 }));
 
 app.post('/api/admin/notifications', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

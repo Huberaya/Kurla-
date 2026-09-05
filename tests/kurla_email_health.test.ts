@@ -19,6 +19,7 @@ import { strict as assert } from 'node:assert';
 
 import {
   OUTAGE_WINDOW,
+  classifyEmailError,
   computeEmailHealth,
   shouldWarn
 } from '../src/lib/emailHealth';
@@ -155,6 +156,53 @@ function email(index: number, status: 'sent' | 'failed' | 'logged', error?: stri
   assert.equal(mixed.counts.total, 3, 'seuls les envois e-mail sont comptés');
   assert.equal(mixed.outage, true);
   ok('journal vide, absent ou mixte : calcul robuste, seuls les e-mails comptent');
+}
+
+// ——— 6. Chaque panne nommée, avec sa réparation ———
+{
+  // Confondre « clé invalide » et « domaine non vérifié » fait chercher au
+  // mauvais endroit pendant des heures. C'est arrivé : le message brut
+  // mentionnait un domaine que personne ne possède.
+  const invalide = classifyEmailError('API resend HTTP 401: {"message":"API key is invalid"}');
+  assert.equal(invalide.cause, 'invalid_key');
+  assert.match(invalide.fix, /EMAIL_PROVIDER_API_KEY/);
+
+  const domaine = classifyEmailError('The kurla.eu domain is not verified. Please, add and verify your domain');
+  assert.equal(domaine.cause, 'domain_not_verified');
+  assert.match(domaine.what, /kurla\.eu/, 'la cause doit nommer le domaine réellement refusé');
+  assert.match(domaine.fix, /SPF/);
+
+  const test = classifyEmailError('You can only send testing emails to your own email address (vous@exemple.com)');
+  assert.equal(test.cause, 'testing_mode');
+  assert.match(test.fix, /vous@exemple\.com/, 'le propriétaire du compte doit être nommé');
+
+  const quota = classifyEmailError('HTTP 429: rate limit exceeded');
+  assert.equal(quota.cause, 'rate_limited');
+  assert.match(quota.fix, /quota/);
+
+  const inconnu = classifyEmailError(null);
+  assert.equal(inconnu.cause, 'unknown');
+  assert.equal(classifyEmailError('').cause, 'unknown');
+
+  ok('chaque panne est nommée et assortie de sa réparation');
+}
+
+// ——— 7. La panne réelle d'aujourd'hui : domaine non vérifié, clé pourtant valide ———
+{
+  // C'est le message exact renvoyé par Resend le 2026-09-05 avec la nouvelle
+  // clé : la clé est bonne, le domaine ne l'est pas. Une alerte qui dirait
+  // « vérifiez votre clé » serait fausse.
+  const RESEND_403 = '{"statusCode":403,"message":"The kurla.eu domain is not verified."}';
+  const health = computeEmailHealth(
+    [email(0, 'failed', RESEND_403), email(1, 'failed', RESEND_403), email(2, 'failed', RESEND_403)],
+    'resend',
+    true
+  );
+  assert.equal(health.outage, true);
+  assert.equal(health.cause, 'domain_not_verified');
+  assert.match(health.what as string, /kurla\.eu/);
+  assert.ok(!/clé|API key/i.test(health.fix as string), 'ne pas renvoyer vers la clé quand le problème est le domaine');
+  ok('clé valide + domaine non vérifié : la réparation parle du domaine, pas de la clé');
 }
 
 console.log(`\nCHANTIER E-MAILS — ${checks} contrôles passés.\n`);

@@ -96,7 +96,8 @@
     "test:password-recovery": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_password_recovery.test.ts",
     "test:auth-errors": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_auth_errors.test.ts",
     "test:smoke": "playwright test",
-    "test:visuals": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_visuals.test.ts"
+    "test:visuals": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_visuals.test.ts",
+    "email:check": "tsx scripts/emailPreflight.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

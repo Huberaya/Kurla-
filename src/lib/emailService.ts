@@ -54,10 +54,13 @@ export class EmailService {
   private from: string;
   private replyTo?: string;
   private apiKey?: string;
+  /** Adresse expéditeur issue de EMAIL_FROM, distincte de la valeur de repli. */
+  private configuredFrom?: string;
 
   constructor() {
     this.provider = (process.env.EMAIL_PROVIDER || 'console').trim().toLowerCase();
     this.from = (process.env.EMAIL_FROM || 'no-reply@kurla-beauty.com').trim();
+    this.configuredFrom = process.env.EMAIL_FROM?.trim() || undefined;
     this.replyTo = process.env.EMAIL_REPLY_TO?.trim() || undefined;
     this.apiKey = process.env.EMAIL_PROVIDER_API_KEY?.trim() || undefined;
   }
@@ -76,7 +79,21 @@ export class EmailService {
    * durer trois jours sans que personne ne la voie.
    */
   public isProductionReady(): boolean {
-    return REAL_PROVIDERS.has(this.provider) && Boolean(this.apiKey);
+    return REAL_PROVIDERS.has(this.provider) && Boolean(this.apiKey) && Boolean(this.configuredFrom);
+  }
+
+  /**
+   * Adresse expéditeur réellement configurée, ou null.
+   *
+   * La valeur de repli historique (`no-reply@kurla-beauty.com`) désigne un
+   * domaine que personne ne possède : un envoi depuis cette adresse est refusé
+   * par tous les fournisseurs, quelles que soient les clés. La garder comme
+   * valeur par défaut laissait croire à une configuration complète alors
+   * qu'aucun e-mail ne pouvait partir. On la garde pour ne rien casser, mais
+   * elle ne compte plus comme une configuration prête.
+   */
+  public getFromAddress(): string | null {
+    return this.configuredFrom || null;
   }
 
   public async sendEmail(msg: EmailMessage): Promise<EmailDeliveryResult> {
