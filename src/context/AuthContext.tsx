@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { translateAuthError } from '../lib/authErrors';
+import { analytics } from '../lib/analytics';
 import { User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient';
 import { UserProfile, UserRole } from '../types';
@@ -245,6 +246,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
        * pas mes identifiants » : rien n'était faux côté Supabase, tout était
        * faux côté interface.
        */
+      // Le compte existe dans tous les cas : confirmé ou non, c'est une
+      // inscription. La mesurer avant le branchement sur la session évite
+      // de ne compter que les comptes déjà confirmés par e-mail — qui
+      // dépendent de la délivrabilité.
+      try { analytics.signUp(); } catch { /* l'analytics ne bloque jamais une inscription */ }
+
       if (data.user && !data.session) {
         setLoading(false);
         return { success: true, needsConfirmation: true };

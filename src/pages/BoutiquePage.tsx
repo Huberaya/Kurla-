@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { analytics } from '../lib/analytics';
 import {
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X,
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart,
@@ -219,6 +220,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
     profile, hasKurlaProfile
   ]);
+
+  // Mesure de la page catalogue : sans elle, on sait qu'une commande est
+  // passée mais on ignore combien de visites il a fallu pour l'obtenir.
+  useEffect(() => {
+    try { analytics.viewItemList('boutique', filteredProducts.length); } catch { /* noop */ }
+    // volontairement non dépendant des filtres : on compte la visite, pas
+    // chaque réaffichage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const query = searchQuery.trim();
