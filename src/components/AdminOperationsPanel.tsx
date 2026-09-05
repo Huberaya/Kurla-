@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MailWarning, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
+import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MailWarning, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, RefreshCw, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
 
 type Props = {
   dashboard: any;
@@ -69,6 +69,12 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
    * ce bandeau, la panne n'existe pour personne — pas d'erreur à l'écran, pas
    * de page cassée, juste des clientes qui n'ont aucune trace de leur achat.
    */
+  // Réconciliation des paiements : une commande réglée dont le webhook n'est
+  // jamais arrivé resterait « en attente » à vie. Ce bouton interroge Stripe
+  // et aligne la commande sur l'encaissement réel.
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<string | null>(null);
+
   const [emailHealth, setEmailHealth] = useState<{
     provider: string;
     isRealProvider: boolean;
@@ -148,6 +154,29 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
       if (response.ok) setShipmentHistories(prev => ({ ...prev, [orderId]: data.history || [] }));
     } catch {
       setMessage('Historique de livraison indisponible.');
+    }
+  };
+
+
+  const runReconciliation = async () => {
+    setReconciling(true);
+    setReconcileResult(null);
+    try {
+      const response = await fetch('/api/admin/reconcile-payments', { method: 'POST', headers });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Réconciliation refusée.');
+      const parts = [
+        `${data.examined ?? 0} commande(s) examinée(s)`,
+        `${(data.paid || []).length} réglée(s)`,
+        `${(data.cancelled || []).length} annulée(s) (session expirée)`,
+        `${data.skipped ?? 0} laissée(s) en attente`
+      ];
+      if (data.unavailable) parts.push(`${data.unavailable} injoignable(s)`);
+      setReconcileResult(parts.join(' · '));
+    } catch (error: any) {
+      setReconcileResult(`Échec : ${error?.message || error}`);
+    } finally {
+      setReconciling(false);
     }
   };
 
@@ -368,6 +397,21 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
           </div>
         </div>
       )}
+      <div className="p-4 rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 flex flex-wrap items-center gap-3">
+        <RefreshCw className={`w-5 h-5 text-[#C8753D] ${reconciling ? 'animate-spin' : ''}`} />
+        <div className="flex-1 min-w-[16rem]">
+          <p className="text-sm font-semibold text-[#FFF7EF]">Vérifier les paiements auprès de Stripe</p>
+          <p className="text-xs text-[#FFF7EF]/55 leading-relaxed">
+            Rattrape les commandes dont le webhook n’est jamais arrivé, et annule celles dont la session de paiement a expiré — ce qui libère le stock réservé par un panier abandonné.
+          </p>
+          {reconcileResult && <p className="text-xs text-[#D49A63] mt-1.5">{reconcileResult}</p>}
+        </div>
+        <button type="button" onClick={runReconciliation} disabled={reconciling}
+          className="px-4 py-2 rounded-xl bg-[#C8753D] hover:bg-[#D98A4E] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+          {reconciling ? 'Vérification…' : 'Vérifier maintenant'}
+        </button>
+      </div>
+
       <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-serif-title font-bold flex items-center gap-2"><Layers3 className="w-5 h-5 text-[#C8753D]" />{sectionTitle}</h2><p className="text-xs text-[#FFF7EF]/50 mt-1">Source : Supabase. Les mutations sensibles sont réservées aux rôles admin et journalisées.</p></div><div className="flex items-center gap-2"><input className={inputClass + ' sm:w-64'} placeholder="Filtrer cette section…" value={filter} onChange={e => setFilter(e.target.value)} />{message && <span className="text-xs text-[#D49A63] max-w-sm">{message}</span>}</div></div>
         {content}

@@ -372,6 +372,63 @@ export async function getOrdersByCustomer(store: SupabaseServerStore, email: str
     return supabase ? [] : memOrders;
   }
 
+/**
+ * Commandes dans l'un des statuts donnés, les plus anciennes d'abord.
+ *
+ * Écrite pour la réconciliation des paiements : c'est une lecture de file
+ * d'attente, pas une lecture métier. Elle existe parce qu'un webhook manqué
+ * laisse une commande en attente indéfiniment — encore faut-il pouvoir la
+ * retrouver pour la réparer.
+ */
+export async function listOrdersByStatus(
+  store: SupabaseServerStore,
+  statuses: OrderStatus[],
+  options: { limit?: number; olderThan?: Date } = {}
+): Promise<ServerOrder[]> {
+  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 50), 1), 200);
+  const cutoff = options.olderThan instanceof Date && !Number.isNaN(options.olderThan.getTime())
+    ? options.olderThan
+    : null;
+
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return store.inMemoryOrders
+      .filter(o => statuses.includes(o.status))
+      .filter(o => !cutoff || new Date(o.createdAt).getTime() < cutoff.getTime())
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+      .slice(0, limit);
+  }
+
+  let req = supabase
+    .from('orders')
+    .select('*')
+    .in('status', statuses)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (cutoff) req = req.lt('created_at', cutoff.toISOString());
+
+  const { data, error } = await req;
+  ensureDatabaseSuccess('lecture des commandes par statut', error);
+  if (!data || data.length === 0) return [];
+
+  return data.map(d => ({
+    id: d.id,
+    userId: d.user_id,
+    customerEmail: d.customer_email,
+    items: d.items,
+    total: Number(d.total),
+    status: d.status,
+    stripeSessionId: d.stripe_session_id,
+    stripePaymentIntentId: d.stripe_payment_intent_id,
+    checkoutIdempotencyKey: d.checkout_idempotency_key,
+    shippingAddress: d.shipping_address,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
+    ...mapOrderVatFields(d),
+    ...mapOrderCouponFields(d)
+  }));
+}
+
   // Persistent Carts (public.carts & public.cart_items)
 export async function normalizeCartItems(store: SupabaseServerStore, items: { productId: string; quantity: number; variantId?: string }[]): Promise<{ productId: string; quantity: number; variantId?: string }[]> {
     if (!Array.isArray(items)) throw new Error('Panier invalide.');

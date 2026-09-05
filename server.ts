@@ -18,7 +18,7 @@ import {
 } from './src/lib/shippingRules';
 import { isReverseChargeEligible, vatRateForCountry } from './src/lib/vat';
 import { priceCheckoutWithVat } from './src/lib/checkoutVat';
-import { validateAndApplyCoupon, incrementCouponUsage } from './src/lib/db/couponStore';
+import { validateAndApplyCoupon } from './src/lib/db/couponStore';
 import { verifyVatNumber } from './src/lib/viesVerification';
 import { fromCents, toCents } from './src/lib/currency';
 import {
@@ -43,6 +43,7 @@ import {
 import type { AuthenticatedRequest, AuthenticatedUser } from './src/server/types';
 import { getGeminiClient } from './src/server/ai/client';
 import { getStripeClient } from './src/server/payments/stripeClient';
+import { confirmOrderPaidFromCheckoutSession, reconcileOrderPayment, reconcilePendingOrders } from './src/server/payments/reconcileCheckout';
 import {
   JurisdictionGraph,
   assessProductComplianceForCountry,
@@ -219,55 +220,40 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
           break;
         }
 
-        const orderId = session.metadata?.orderId;
-        const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
-        if (order) {
-          if (['refunded', 'partially_refunded'].includes(order.status)) {
-            console.warn(`[Stripe Webhook] Confirmation reçue après remboursement pour la commande ${order.id}; statut conservé.`);
-            break;
-          }
-          const expectedCents = Math.round(order.total * 100);
-          if (session.amount_total !== expectedCents) {
-            throw new Error(`Montant Checkout incohérent pour ${order.id}: attendu ${expectedCents}, reçu ${session.amount_total ?? 'null'}.`);
-          }
-          if (session.currency && session.currency.toLowerCase() !== 'eur') {
-            throw new Error(`Devise Checkout incohérente pour ${order.id}: ${session.currency}.`);
-          }
-          if (session.payment_status !== 'paid') {
-            throw new Error(`Checkout ${session.id} non payé (${session.payment_status || 'statut absent'}).`);
-          }
-          const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
-          await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
-          if (order.couponCode) await incrementCouponUsage(order.couponCode);
-          processedOrderId = order.id;
-          console.log(`[Stripe Webhook] Commande ${order.id} payée via checkout.session.completed.`);
+        // La confirmation passe par la fonction partagée : les mêmes gardes et
+        // les mêmes effets que la réconciliation. Deux chemins qui divergent
+        // finissent toujours par se contredire.
+        const confirmation = await confirmOrderPaidFromCheckoutSession(session, {
+          reason: 'Webhook Stripe : checkout.session.completed'
+        });
+        if (['rejected', 'unpaid', 'expired'].includes(confirmation.outcome)) {
+          throw new Error(`Checkout ${session.id} non confirmé (${confirmation.outcome}) : ${confirmation.detail || 'sans détail'}`);
+        }
+        if (confirmation.outcome === 'status_locked') {
+          console.warn(`[Stripe Webhook] Confirmation reçue alors que la commande ${confirmation.orderId} est verrouillée : ${confirmation.detail}`);
+          break;
+        }
+        if (confirmation.outcome === 'paid') {
+          processedOrderId = confirmation.orderId;
+          console.log(`[Stripe Webhook] Commande ${confirmation.orderId} payée via checkout.session.completed.`);
         }
         break;
       }
       case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const orderId = session.metadata?.orderId;
-        const order = await serverDb.findOrder({ stripeSessionId: session.id, orderId });
-        if (order) {
-          if (['refunded', 'partially_refunded'].includes(order.status)) {
-            console.warn(`[Stripe Webhook] Confirmation asynchrone reçue après remboursement pour la commande ${order.id}; statut conservé.`);
-            break;
-          }
-          const expectedCents = Math.round(order.total * 100);
-          if (session.amount_total !== expectedCents) {
-            throw new Error(`Montant Checkout asynchrone incohérent pour ${order.id}.`);
-          }
-          if (session.currency && session.currency.toLowerCase() !== 'eur') {
-            throw new Error(`Devise Checkout asynchrone incohérente pour ${order.id}.`);
-          }
-          if (session.payment_status !== 'paid') {
-            throw new Error(`Checkout asynchrone ${session.id} non payé.`);
-          }
-          const pi = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
-          await serverDb.updateOrderStatus(order.id, 'paid', { stripePaymentIntentId: pi });
-          if (order.couponCode) await incrementCouponUsage(order.couponCode);
-          processedOrderId = order.id;
-          console.log(`[Stripe Webhook] Commande ${order.id} payée via checkout.session.async_payment_succeeded.`);
+        const confirmation = await confirmOrderPaidFromCheckoutSession(session, {
+          reason: 'Webhook Stripe : checkout.session.async_payment_succeeded'
+        });
+        if (['rejected', 'unpaid', 'expired'].includes(confirmation.outcome)) {
+          throw new Error(`Checkout asynchrone ${session.id} non confirmé (${confirmation.outcome}) : ${confirmation.detail || 'sans détail'}`);
+        }
+        if (confirmation.outcome === 'status_locked') {
+          console.warn(`[Stripe Webhook] Confirmation asynchrone reçue alors que la commande ${confirmation.orderId} est verrouillée : ${confirmation.detail}`);
+          break;
+        }
+        if (confirmation.outcome === 'paid') {
+          processedOrderId = confirmation.orderId;
+          console.log(`[Stripe Webhook] Commande ${confirmation.orderId} payée via checkout.session.async_payment_succeeded.`);
         }
         break;
       }
@@ -919,12 +905,34 @@ app.get('/api/stripe/checkout-session', asyncRoute(async (req: AuthenticatedRequ
       return res.status(409).json({ error: 'Les informations de paiement ne correspondent pas à la commande.' });
     }
 
+    //
+    // RÉCONCILIATION — l'argent encaissé fait foi, pas le webhook.
+    //
+    // Si Stripe confirme le paiement et que la commande est encore en attente,
+    // c'est que le webhook n'est jamais arrivé : déploiement en cours,
+    // indisponibilité passagère, secret tourné. Sans cela, la cliente a payé
+    // et sa commande reste « en attente » à vie — pas d'expédition, pas
+    // d'e-mail, et rien dans l'administration qui le signale.
+    //
+    // Constaté en production : 38 commandes sur 39 bloquées à
+    // « payment_pending_webhook ».
+    const reconciliation = await confirmOrderPaidFromCheckoutSession(checkoutSession, {
+      reason: 'Retour de paiement : encaissement confirmé auprès de Stripe'
+    });
+    if (reconciliation.outcome === 'paid') {
+      console.log(`[Stripe Confirmation] Commande ${reconciliation.orderId} réconciliée au retour de paiement (webhook non arrivé).`);
+    }
+
+    // La commande vient peut-être de changer de statut : on la relit pour ne
+    // pas afficher « en attente » à une cliente qui vient de payer.
+    const settledOrder = (await serverDb.findOrder({ stripeSessionId: sessionId })) ?? order;
+
     return res.json({
       order: {
-        id: order.id,
-        total: order.total,
-        status: order.status,
-        createdAt: order.createdAt
+        id: settledOrder.id,
+        total: settledOrder.total,
+        status: settledOrder.status,
+        createdAt: settledOrder.createdAt
       },
       checkout: {
         paymentStatus: checkoutSession.payment_status || null,
@@ -2282,6 +2290,58 @@ app.get('/api/admin/notification-logs', asyncRoute(async (req: AuthenticatedRequ
  * cliente qui a payé et qui n'a aucune preuve de son achat. La panne doit
  * remonter d'elle-même, pas attendre qu'on aille la chercher.
  */
+// ── Réconciliation des paiements ────────────────────────────────────────────
+//
+// Le webhook Stripe ne peut pas être la seule voie : s'il n'arrive pas, la
+// cliente a payé et sa commande reste « en attente » à vie — sans expédition,
+// sans e-mail, sans alerte. Ces deux endpoints rattrapent les commandes dont
+// le webhook a été manqué.
+app.get('/api/cron/reconcile-payments', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    // Sans secret, l'endpoint refuse de s'exécuter publiquement : personne ne
+    // peut déclencher un balayage de commandes depuis l'extérieur.
+    return res.status(503).json({ error: 'Cron non configuré (CRON_SECRET absent).' });
+  }
+  const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (provided !== secret) {
+    return res.status(401).json({ error: 'Accès cron refusé.' });
+  }
+  try {
+    const result = await reconcilePendingOrders({});
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('[Réconciliation] cron error:', error);
+    res.status(500).json({ error: safeApiError(error, 'Réconciliation indisponible.') });
+  }
+}));
+
+app.post('/api/admin/reconcile-payments', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await reconcilePendingOrders({});
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('[Réconciliation] admin error:', error);
+    res.status(500).json({ error: safeApiError(error, 'Réconciliation indisponible.') });
+  }
+}));
+
+app.post('/api/admin/orders/:orderId/reconcile-payment', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const orderId = String(req.params.orderId || '');
+  if (!/^ORD-[A-Z0-9-]+$/.test(orderId)) {
+    return res.status(400).json({ error: 'Numéro de commande invalide.' });
+  }
+  try {
+    res.json({ ok: true, ...(await reconcileOrderPayment(orderId)) });
+  } catch (error) {
+    res.status(500).json({ error: safeApiError(error, 'Vérification du paiement impossible.') });
+  }
+}));
+
 app.get('/api/admin/email-health', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;

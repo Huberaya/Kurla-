@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T14:18:30.470Z",
+  "generatedAt": "2026-09-05T11:31:45.692Z",
   "routes": [
     {
       "method": "GET",
@@ -258,7 +258,7 @@
     {
       "method": "POST",
       "path": "/api/admin/maintenance/photo-purge",
-      "file": "src/server/routes/privacy.ts:57",
+      "file": "src/server/routes/privacy.ts:75",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -302,7 +302,7 @@
       "file": "src/server/routes/retentionNudges.ts:22",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/AdminOperationsPanel.tsx:74"
+        "src/components/AdminOperationsPanel.tsx:106"
       ]
     },
     {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T06:55:34.885Z",
+  "generatedAt": "2026-09-05T11:31:45.059Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -74,6 +74,7 @@
     "GET /api/creators",
     "GET /api/creators/me",
     "GET /api/creators/program",
+    "GET /api/cron/reconcile-payments",
     "GET /api/cron/retention",
     "GET /api/dossier-shares",
     "GET /api/family",
@@ -179,9 +180,11 @@
     "POST /api/admin/maintenance/photo-purge",
     "POST /api/admin/notifications",
     "POST /api/admin/orders/:id/status",
+    "POST /api/admin/orders/:orderId/reconcile-payment",
     "POST /api/admin/payments/:id/status",
     "POST /api/admin/professional-applications/:id/status",
     "POST /api/admin/professionals/:professionalId/verify",
+    "POST /api/admin/reconcile-payments",
     "POST /api/admin/refunds",
     "POST /api/admin/retention/run",
     "POST /api/admin/returns/:id/status",

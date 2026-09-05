@@ -264,6 +264,7 @@ export class SupabaseServerStore {
   public listAllocatableOrderItems!: Curried<typeof batchStore>['listAllocatableOrderItems'];
   public getOrderById!: Curried<typeof orderStore>['getOrderById'];
   public updateOrderStatus!: Curried<typeof orderStore>['updateOrderStatus'];
+  public listOrdersByStatus!: Curried<typeof orderStore>['listOrdersByStatus'];
   public logOrderStatusHistory!: Curried<typeof orderStore>['logOrderStatusHistory'];
   public recordAdminAudit!: Curried<typeof adminStore>['recordAdminAudit'];
   public applyLoyaltyEvent!: Curried<typeof loyaltyStore>['applyLoyaltyEvent'];
