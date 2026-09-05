@@ -92,6 +92,7 @@ export function buildRouteHtml(
   route: RouteMeta,
   siteUrl: string,
   locale: Locale = 'fr',
+  entity?: { jsonLd?: unknown; ogType?: 'website' | 'article' | 'product'; imageUrl?: string; priceLabel?: string },
 ): string {
   const canonical = `${siteUrl}${route.path}`;
   const title = escapeHtml(route.title);
@@ -125,6 +126,22 @@ export function buildRouteHtml(
    * des pages à plusieurs canoniques, la première pointant sur l'accueil —
    * vérifié sur `dist/boutique/index.html` (3 canoniques) avant correction.
    */
+  //
+  // Une fiche produit annonce un `Product` — avec son prix et sa disponibilité
+  // — et non une `WebPage` générique. Sans `offers`, aucun moteur ne peut
+  // afficher de résultat enrichi (prix, disponibilité) ni alimenter une
+  // comparaison shopping : la page la plus commerciale du site était, pour
+  // l'index, une page comme une autre.
+  const jsonLd = entity?.jsonLd ?? {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: route.title,
+    description: route.description,
+    url: canonical,
+    inLanguage: locale,
+    isPartOf: { '@type': 'WebSite', name: 'KURLA Beauty', url: siteUrl }
+  };
+
   html = applySeoHead(html, {
     title: route.title,
     description: route.description,
@@ -135,24 +152,16 @@ export function buildRouteHtml(
      * sur des pages qui n'étaient de toute façon jamais générées — voir main().
      */
     indexable: route.indexable !== false,
-    ogType: route.path === '/' ? 'website' : 'article',
+    ogType: entity?.ogType ?? (route.path === '/' ? 'website' : 'article'),
     ogLocale: OG_LOCALE[locale],
-    imageUrl: `${siteUrl}/og-default.png`,
+    imageUrl: entity?.imageUrl || `${siteUrl}/og-default.png`,
     alternates,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: route.title,
-      description: route.description,
-      url: canonical,
-      inLanguage: locale,
-      isPartOf: { '@type': 'WebSite', name: 'KURLA Beauty', url: siteUrl }
-    }
+    jsonLd
   });
 
   // Amorce de contenu : un <h1> et la description, pour qu'il y ait du texte
   // réel dans le HTML avant exécution du JavaScript.
-  html = applyContentSeed(html, route.title, route.description);
+  html = applyContentSeed(html, route.title, route.description, entity?.priceLabel);
 
   return html;
 }
@@ -198,7 +207,7 @@ async function main(): Promise<void> {
       changefreq: 'monthly',
       priority: 0.7,
     };
-    const html = buildRouteHtml(template, meta, SITE_URL);
+    const html = buildRouteHtml(template, meta, SITE_URL, 'fr', page);
     const file = join('dist', page.path.replace(/^\//, ''), 'index.html');
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, html, 'utf8');

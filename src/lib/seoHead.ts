@@ -112,11 +112,13 @@ export function applySeoHead(html: string, input: SeoHeadInput): string {
 }
 
 /** Amorce de contenu lisible sans JavaScript. */
-export function buildContentSeed(title: string, description: string): string {
+export function buildContentSeed(title: string, description: string, extra?: string): string {
   return (
     `<main class="prerender-seed" style="min-height:60vh;display:flex;flex-direction:column;` +
     `align-items:center;justify-content:center;text-align:center;padding:2rem">` +
-    `<h1>${escapeAttribute(title)}</h1><p style="max-width:38rem">${escapeAttribute(description)}</p></main>`
+    `<h1>${escapeAttribute(title)}</h1><p style="max-width:38rem">${escapeAttribute(description)}</p>` +
+    (extra ? `<p style="font-size:1.125rem;font-weight:600">${escapeAttribute(extra)}</p>` : '') +
+    `</main>`
   );
 }
 
@@ -128,8 +130,8 @@ export function buildContentSeed(title: string, description: string): string {
  * prérendu). Sans cela, une fiche produit servie à un moteur sans JavaScript
  * afficherait le `<h1>` de l'accueil.
  */
-export function applyContentSeed(html: string, title: string, description: string): string {
-  const seed = buildContentSeed(title, description);
+export function applyContentSeed(html: string, title: string, description: string, extra?: string): string {
+  const seed = buildContentSeed(title, description, extra);
   return html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${seed}</div>`);
 }
 

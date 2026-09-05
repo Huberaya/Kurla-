@@ -11,11 +11,51 @@
  * reste un sitemap valide.
  */
 
+const SITE_URL_FALLBACK = (
+  process.env.SITEMAP_BASE_URL ||
+  process.env.VITE_APP_URL ||
+  'https://kurlabeauty.vercel.app'
+).replace(/\/+$/, '');
+
 export interface EntityPage {
   path: string;
   title: string;
   description: string;
+  /** Données structurées propres à l'entité. Absent : WebPage générique. */
+  jsonLd?: unknown;
+  ogType?: 'website' | 'article' | 'product';
+  imageUrl?: string;
+  /** Ligne supplémentaire dans l'amorce : pour un produit, son prix. */
+  priceLabel?: string;
 }
+
+/** Prix effectivement servi : la remise si elle est active et inférieure. */
+function priceOf(product: any): number | null {
+  const base = Number(product?.price);
+  const promo = product?.promotion_price == null ? Number.NaN : Number(product.promotion_price);
+  const value =
+    Number.isFinite(promo) && promo > 0 && (!Number.isFinite(base) || promo < base) ? promo : base;
+  return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
+}
+
+/**
+ * Disponibilité au sens schema.org.
+ *
+ * `PreOrder` existe et c'est exactement le cas de la boutique : l'article est
+ * vendu avant réception du lot. L'annoncer évite d'afficher « en stock » à un
+ * moteur, ce qui serait faux et sanctionnable.
+ */
+function availabilityOf(product: any): string {
+  if (product?.in_stock === false) return 'https://schema.org/OutOfStock';
+  if (product?.isPreorder === true) return 'https://schema.org/PreOrder';
+  return 'https://schema.org/InStock';
+}
+
+const AVAILABILITY_LABEL: Record<string, string> = {
+  'https://schema.org/OutOfStock': 'Rupture de stock',
+  'https://schema.org/PreOrder': 'En précommande',
+  'https://schema.org/InStock': 'En stock'
+};
 
 function env(name: string): string | undefined {
   return (process.env[name] || '').trim() || undefined;
@@ -80,17 +120,55 @@ export async function fetchIngredientPages(): Promise<EntityPage[]> {
  * Exposée séparément pour être testable sans credentials : c'est elle qui décide
  * du chemin et du texte, et c'est elle que le banc vérifie.
  */
-export function productPagesFrom(products: any[]): EntityPage[] {
+export function productPagesFrom(products: any[], siteUrl: string = ''): EntityPage[] {
   return (products || [])
     .filter(product => typeof product?.slug === 'string' && product.slug.trim() !== '')
-    .map(product => ({
-      path: `/produit/${encodeURIComponent(product.slug)}`,
-      title: `${product.name || product.slug} | KURLA Beauty`,
-      description: String(
+    .map(product => {
+      const path = `/produit/${encodeURIComponent(product.slug)}`;
+      const title = `${product.name || product.slug} | KURLA Beauty`;
+      const description = String(
         product.description
         || `${product.name || product.slug} : composition, texture et besoins couverts, évalués sans parti pris de marque.`
-      ).slice(0, 300)
-    }));
+      ).slice(0, 300);
+
+      const price = priceOf(product);
+      const availability = availabilityOf(product);
+      const image = typeof product.image_url === 'string' && product.image_url.trim() !== ''
+        ? product.image_url.trim()
+        : (typeof product.image === 'string' && product.image.trim() !== '' ? product.image.trim() : null);
+
+      return {
+        path,
+        title,
+        description,
+        ogType: 'product' as const,
+        ...(image ? { imageUrl: image } : {}),
+        ...(price !== null
+          ? { priceLabel: `${price.toFixed(2).replace('.', ',')} € — ${AVAILABILITY_LABEL[availability]}` }
+          : { priceLabel: AVAILABILITY_LABEL[availability] }),
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name || product.slug,
+          description,
+          sku: product.id ?? product.slug,
+          ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
+          ...(product.category ? { category: product.category } : {}),
+          ...(image ? { image: [image] } : {}),
+          ...(price !== null
+            ? {
+                offers: {
+                  '@type': 'Offer',
+                  price: price.toFixed(2),
+                  priceCurrency: 'EUR',
+                  availability,
+                  ...(siteUrl ? { url: `${siteUrl}${path}` } : {})
+                }
+              }
+            : {})
+        }
+      };
+    });
 }
 
 export async function fetchProductPages(): Promise<EntityPage[]> {
@@ -104,7 +182,7 @@ export async function fetchProductPages(): Promise<EntityPage[]> {
     // Import dynamique : sans base, l'initialisation ne doit pas casser le build.
     const { serverDb } = await import('../src/lib/serverDb');
     const products = await serverDb.getPublicProducts();
-    const pages = productPagesFrom(products);
+    const pages = productPagesFrom(products, SITE_URL_FALLBACK);
     console.log(`[SEO] ${pages.length} fiche(s) produit publiables retenue(s) pour le sitemap.`);
     return pages;
   } catch (error) {
