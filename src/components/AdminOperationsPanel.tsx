@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MailWarning, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, RefreshCw, Save, Send, ShieldCheck, Tag, Truck, UserCog, Users, X } from 'lucide-react';
+import { Bell, BellRing, BookOpen, CircleDollarSign, FileText, FolderTree, Image, KeyRound, Layers3, ListChecks, MailWarning, MessageSquare, PackageCheck, Pencil, Plus, ReceiptText, RefreshCw, Save, Send, ShieldCheck, ShoppingBag, Tag, Truck, UserCog, Users, X } from 'lucide-react';
 
 type Props = {
   dashboard: any;
@@ -103,6 +103,24 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
   const [retentionResult, setRetentionResult] = useState<any>(null);
+  const [abandonedResult, setAbandonedResult] = useState<any>(null);
+
+  const runAbandonedRecovery = async () => {
+    setBusy('abandoned');
+    setMessage('');
+    setAbandonedResult(null);
+    try {
+      const response = await fetch('/api/admin/retention/recover-abandoned', { method: 'POST', headers, body: '{}' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Relance des paniers indisponible.');
+      setAbandonedResult(data.abandoned || data);
+      setMessage('Relance des paniers abandonnés exécutée.');
+    } catch (error: any) {
+      setMessage(error.message || 'Relance des paniers indisponible.');
+    } finally {
+      setBusy('');
+    }
+  };
 
   const runRetentionNudges = async () => {
     setBusy('retention');
@@ -348,6 +366,35 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
           </div>
         </div>
       )}
+
+      {/* Paniers / paiements abandonnés (emails de récupération) */}
+      <div className="p-5 rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-3">
+        <p className="text-sm font-semibold flex items-center gap-2">
+          <ShoppingBag className="w-4 h-4 text-[#D49A63]" /> Récupération des paniers abandonnés
+        </p>
+        <p className="text-[11px] text-[#FFF7EF]/55 leading-relaxed">
+          Relance par <strong>email</strong> les commandes créées au checkout mais jamais payées
+          (souvent des invitées) : rappel à <strong>+2 h</strong>, relance avec code <strong>RETOUR10</strong> à <strong>+24 h</strong>,
+          ultime à <strong>+72 h</strong>. Idempotent (1 ligne par commande et par étape en base).
+        </p>
+        <button className={buttonClass} disabled={busy === 'abandoned'} onClick={runAbandonedRecovery}>
+          <ShoppingBag className={`w-3.5 h-3.5 ${busy === 'abandoned' ? 'animate-spin' : ''}`} />
+          Relancer les paniers abandonnés
+        </button>
+        {abandonedResult && (
+          <div className="p-4 rounded-xl bg-[#050403] border border-[#D49A63]/30">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div><p className="text-xl font-bold text-[#FFF7EF]">{abandonedResult.eligible ?? 0}</p><p className="text-[10px] text-[#FFF7EF]/55">à relancer</p></div>
+              <div><p className="text-xl font-bold text-emerald-300">{abandonedResult.emailsSent ?? 0}</p><p className="text-[10px] text-[#FFF7EF]/55">emails envoyés</p></div>
+              <div><p className="text-xl font-bold text-[#D49A63]">{abandonedResult.emailsLogged ?? 0}</p><p className="text-[10px] text-[#FFF7EF]/55">journalisés (mode test)</p></div>
+              <div><p className="text-xl font-bold text-rose-300">{abandonedResult.emailsFailed ?? 0}</p><p className="text-[10px] text-[#FFF7EF]/55">échecs</p></div>
+            </div>
+            {abandonedResult.skippedNoTable && (
+              <p className="mt-3 text-[10px] text-amber-300">Table de suivi absente : appliquez la migration <code>abandoned_cart_recovery.sql</code> pour persister la déduplication.</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -368,7 +415,7 @@ export const AdminOperationsPanel: React.FC<Props> = ({ dashboard, headers, onRe
     if (section === 'notifications') return renderNotifications();
     if (section === 'retention') return renderRetention();
     return renderLogs();
-  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, shipmentHistories, busy, message, retentionResult]);
+  }, [section, filter, rows, brandForm, categoryForm, articleForm, sourceForm, couponForm, notificationForm, shipmentDrafts, shipmentHistories, busy, message, retentionResult, abandonedResult]);
 
   return (
     <div className="space-y-6">

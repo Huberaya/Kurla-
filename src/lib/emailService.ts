@@ -28,7 +28,10 @@ export type EmailTemplate =
   | 'support_reply'
   | 'low_stock'
   | 'routine_reminder'
-  | 'referral_reward';
+  | 'referral_reward'
+  | 'abandoned_cart_1'
+  | 'abandoned_cart_2'
+  | 'abandoned_cart_3';
 
 export type EmailDeliveryStatus = 'sent' | 'logged' | 'failed';
 
@@ -323,6 +326,14 @@ export class EmailService {
         return `Rappel KURLA BEAUTY : ${data.message || (data.taskTitle ? `la tâche « ${data.taskTitle} » est prévue le ${data.scheduledFor || 'aujourd’hui'}.` : 'une étape de votre routine vous attend aujourd’hui.')}`;
       case 'referral_reward':
         return `Merci pour votre parrainage ! Une personne que vous avez parrainée vient de passer sa première commande chez KURLA.\nVous avez gagné ${data.rewardEur || 10} EUR de réduction sur votre prochaine commande (sans minimum).\nVotre code promo : ${data.rewardCode || ''}\nSaisissez-le dans votre panier pour en profiter. Code valable une fois, non cumulable avec un autre code promo.`;
+      case 'abandoned_cart_1':
+      case 'abandoned_cart_2':
+      case 'abandoned_cart_3': {
+        const stage = template === 'abandoned_cart_3' ? 3 : template === 'abandoned_cart_2' ? 2 : 1;
+        const link = data.resumeUrl || 'https://kurla.app/boutique';
+        const inc = stage >= 2 ? '\nCode RETOUR10 : -10 EUR dès 49 EUR d’articles.' : '';
+        return `Votre commande KURLA #${data.orderId || ''} n’est pas finalisée${data.total != null ? ` (${data.total} EUR)` : ''}. Reprenez votre paiement : ${link}${inc}`;
+      }
       default:
         return `Notification KURLA BEAUTY pour la commande #${data.orderId || ''}`;
     }

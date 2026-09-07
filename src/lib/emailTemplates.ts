@@ -354,6 +354,34 @@ export function renderOrderEmail(template: string, data: EmailData): RenderedEma
         text: `Stock faible: ${data.productName || data.productId} (${data.quantity ?? '?'} restants).`
       };
     }
+    case 'abandoned_cart_1':
+    case 'abandoned_cart_2':
+    case 'abandoned_cart_3': {
+      const stage = template === 'abandoned_cart_3' ? 3 : template === 'abandoned_cart_2' ? 2 : 1;
+      const heading = stage === 3
+        ? 'Votre panier expire bientôt ⏳'
+        : stage === 2
+          ? 'Vos soins vous attendent encore 🧡'
+          : 'Vous avez oublié un petit quelque chose ?';
+      const intro = stage === 3
+        ? `Votre commande <strong>${esc(orderId)}</strong> n'est pas encore finalisée. Les articles en précommande partent par lots : <strong>finalisez-la maintenant</strong> pour être du prochain envoi.`
+        : stage === 2
+          ? `Votre sélection pour la commande <strong>${esc(orderId)}</strong> est toujours réservée. Il ne manque qu'une étape : le paiement.`
+          : `Bonjour, votre panier KURLA (commande <strong>${esc(orderId)}</strong>) vous attend. Reprenez où vous en étiez en un clic.`;
+      const incentive = stage >= 2
+        ? `<tr><td style="padding:6px 40px 2px;"><div style="background:#3A2218;border:1px dashed #C8753D;border-radius:12px;padding:12px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#FFF7EF;text-align:center;">Besoin d'un coup de pouce ? Le code <strong style="letter-spacing:1px;">RETOUR10</strong> vous offre <strong>10&nbsp;€</strong> sur cette commande (dès 49&nbsp;€ d'articles).</div></td></tr>`
+        : '';
+      const ctaUrl = data.resumeUrl ? String(data.resumeUrl) : `${baseUrl()}/boutique`;
+      return {
+        html: shell({
+          heading,
+          intro,
+          blocks: orderItemsBlock(data.items, data.total, currency, hasPreorder) + incentive,
+          cta: { label: stage === 3 ? 'Finaliser ma commande' : 'Reprendre mon paiement', url: ctaUrl },
+        }),
+        text: `Votre commande KURLA ${orderId} n'est pas finalisée${data.total != null ? ` (${money(data.total, currency)})` : ''}. Reprenez votre paiement : ${ctaUrl}${stage >= 2 ? " Code RETOUR10 = -10€ dès 49€ d’articles." : ''}${hasPreorder ? ` Précommande — ${DISPATCH_SENTENCE}.` : ''}`
+      };
+    }
     default:
       return null;
   }
