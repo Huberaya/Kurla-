@@ -11,6 +11,7 @@ import { useI18n } from '../lib/I18nProvider';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
 import { recommendAddOns } from '../lib/launchCatalog';
 import { useProducts } from '../services/productService';
+import { getStoredReferralCode } from '../lib/referralCapture';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -60,6 +61,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isCouponLoading, setIsCouponLoading] = useState(false);
+  const [referralHint, setReferralHint] = useState<string | null>(null);
+
+  // Pré-remplissage du code de parrainage capté à l'arrivée (?ref=…). On ne
+  // l'applique pas automatiquement : la cliente voit la remise et la valide.
+  useEffect(() => {
+    if (isOpen && !appliedCoupon && !couponInput) {
+      const ref = getStoredReferralCode();
+      if (ref) {
+        setCouponInput(ref);
+        setReferralHint(ref);
+      }
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyCoupon = async () => {
     const code = couponInput.trim();

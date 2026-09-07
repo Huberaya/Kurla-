@@ -101,3 +101,68 @@ export async function incrementCouponUsage(code: string): Promise<void> {
     /* métrique non critique */
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRÉATION DE COUPONS (parrainage) — idempotente : ne plante pas si le coupon
+// existe déjà (contrainte d'unicité sur `code`). On renvoie simplement ok.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CreateCouponInput = {
+  code: string;
+  description: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  currency?: string;
+  minimumOrderAmount?: number | null;
+  maxUses?: number | null;      // null = illimité (code parrain multi-filleuls)
+  active?: boolean;
+};
+
+/** Crée un coupon s'il n'existe pas. Idempotent (true si présent/créé). */
+export async function ensureCoupon(input: CreateCouponInput): Promise<{ ok: boolean; existed: boolean }> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return { ok: false, existed: false };
+  const code = input.code.trim().toUpperCase();
+
+  const { data: existing } = await supabase.from('coupons').select('code').eq('code', code).maybeSingle();
+  if (existing) return { ok: true, existed: true };
+
+  const row = {
+    code,
+    description: input.description,
+    discount_type: input.discountType,
+    discount_value: input.discountValue,
+    currency: input.currency ?? 'EUR',
+    minimum_order_amount: input.minimumOrderAmount ?? null,
+    starts_at: new Date().toISOString(),
+    ends_at: null,
+    max_uses: input.maxUses ?? null,
+    used_count: 0,
+    active: input.active ?? true,
+  };
+  const { error } = await supabase.from('coupons').insert(row);
+  if (error) {
+    // Course concurrente : un autre processus l'a créé entre-temps.
+    if (/duplicate|unique|constraint/i.test(String(error.message || error))) {
+      return { ok: true, existed: true };
+    }
+    return { ok: false, existed: false };
+  }
+  return { ok: true, existed: false };
+}
+
+/** Compte les coupons de récompense d'un parrain (codes MERCI-<seg>-%). */
+export async function countRewardCoupons(referrerSegment: string): Promise<number> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return 0;
+  try {
+    const prefix = `MERCI-${referrerSegment.toUpperCase()}-`;
+    const { count } = await supabase
+      .from('coupons')
+      .select('code', { count: 'exact', head: true })
+      .like('code', `${prefix}%`);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, ShoppingBag, Sparkles, MapPin, Calendar, CheckCircle2, Heart, Clock, AlertCircle, Save, LogOut, ShieldCheck, Bell, MessageSquare, RotateCcw, Truck, Send, Check, Trash2, Settings, ExternalLink } from 'lucide-react';
+import { User, ShoppingBag, Sparkles, MapPin, Calendar, CheckCircle2, Heart, Clock, AlertCircle, Save, LogOut, ShieldCheck, Bell, MessageSquare, RotateCcw, Truck, Send, Check, Trash2, Settings, ExternalLink, Gift } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { BeautyHub } from '../components/account/BeautyHub';
+import { ReferralPanel } from '../components/account/ReferralPanel';
 import { formatMoney, toCents } from '../lib/currency';
 import { formatVatRate } from '../lib/vat';
 import { UserProfile } from '../types';
@@ -35,7 +36,7 @@ interface ServerOrder {
 
 export const CustomerAccountPage: React.FC = () => {
   const { user, profile, session, signOut, updateProfile, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'beaute' | 'commandes' | 'notifications' | 'support' | 'preferences' | 'profil'>('beaute');
+  const [activeTab, setActiveTab] = useState<'beaute' | 'commandes' | 'parrainage' | 'notifications' | 'support' | 'preferences' | 'profil'>('beaute');
   
   const [serverOrders, setServerOrders] = useState<ServerOrder[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -430,6 +431,7 @@ export const CustomerAccountPage: React.FC = () => {
           {[
             { id: 'beaute', label: 'Mon espace beauté', icon: Sparkles },
             { id: 'commandes', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
+            { id: 'parrainage', label: 'Parrainage', icon: Gift },
             { id: 'notifications', label: `Notifications (${unreadNotifsCount})`, icon: Bell },
             { id: 'support', label: `Support Client (${supportTickets.length})`, icon: MessageSquare },
             { id: 'preferences', label: 'Préférences Emails', icon: Settings },
@@ -580,6 +582,13 @@ export const CustomerAccountPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB PARRAINAGE 10/10 € */}
+        {activeTab === 'parrainage' && (
+          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
+            <ReferralPanel />
           </div>
         )}
 

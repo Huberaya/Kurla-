@@ -27,7 +27,8 @@ export type EmailTemplate =
   | 'return_requested'
   | 'support_reply'
   | 'low_stock'
-  | 'routine_reminder';
+  | 'routine_reminder'
+  | 'referral_reward';
 
 export type EmailDeliveryStatus = 'sent' | 'logged' | 'failed';
 
@@ -320,6 +321,8 @@ export class EmailService {
         return `Alerte stock faible : ${data.productName || data.productId || 'un produit'} dispose de ${data.quantity ?? 'une quantité non renseignée'} unité(s) disponible(s).`;
       case 'routine_reminder':
         return `Rappel KURLA BEAUTY : ${data.message || (data.taskTitle ? `la tâche « ${data.taskTitle} » est prévue le ${data.scheduledFor || 'aujourd’hui'}.` : 'une étape de votre routine vous attend aujourd’hui.')}`;
+      case 'referral_reward':
+        return `Merci pour votre parrainage ! Une personne que vous avez parrainée vient de passer sa première commande chez KURLA.\nVous avez gagné ${data.rewardEur || 10} EUR de réduction sur votre prochaine commande (sans minimum).\nVotre code promo : ${data.rewardCode || ''}\nSaisissez-le dans votre panier pour en profiter. Code valable une fois, non cumulable avec un autre code promo.`;
       default:
         return `Notification KURLA BEAUTY pour la commande #${data.orderId || ''}`;
     }

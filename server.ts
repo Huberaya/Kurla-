@@ -90,6 +90,9 @@ import { registerBatchRoutes } from './src/server/routes/batches';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
+import { registerReferralRoutes } from './src/server/routes/referral';
+import { grantReferralReward } from './src/lib/referralRewards';
+import { isReferralCode, isSelfReferral } from './src/lib/referral';
 import { registerBeautyJourneyRoutes } from './src/server/routes/beautyJourney';
 import { registerMembershipRoutes } from './src/server/routes/membership';
 import { registerPublicApiRoutes } from './src/server/routes/publicApi';
@@ -386,6 +389,27 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '
       }
       default:
         console.log(`[Stripe Webhook] Événement ignoré: ${event.type}`);
+    }
+
+    // ── Parrainage : si la commande payée utilisait un code KURLA-XXXX, on
+    // récompense le parrain (coupon unique 10 € + email). Idempotent : la
+    // récompense ne doit jamais faire échouer la confirmation de commande.
+    try {
+      if (processedOrderId) {
+        const paidSession = (event.data?.object ?? {}) as Stripe.Checkout.Session | Stripe.PaymentIntent;
+        const meta = ('metadata' in paidSession ? paidSession.metadata : null) as Record<string, string> | null;
+        const couponUsed = meta?.couponCode || '';
+        if (isReferralCode(couponUsed)) {
+          const outcome = await grantReferralReward({
+            couponUsed,
+            friendRef: processedOrderId,
+            friendEmail: meta?.customerEmail || ('customer_email' in paidSession ? String((paidSession as Stripe.Checkout.Session).customer_email || '') : null),
+          });
+          console.log(`[Stripe Webhook] Parrainage pour ${processedOrderId} : ${outcome.granted ? 'récompense émise' : 'pas de récompense (' + outcome.reason + ')'}`);
+        }
+      }
+    } catch (referralErr) {
+      console.error('[Stripe Webhook] Récompense parrainage échouée (non bloquant) :', referralErr instanceof Error ? referralErr.message : referralErr);
     }
 
     await serverDb.markEventProcessed(event.id, event.type, { processedOrderId });
@@ -713,6 +737,10 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       const result = await validateAndApplyCoupon(couponInput, itemsGrossBeforeDiscount);
       if ('error' in result) {
         return res.status(400).json({ error: result.error, code: 'COUPON_INVALID' });
+      }
+      // Anti-fraude parrainage : on n'applique pas son propre code de parrainage.
+      if (isReferralCode(result.coupon.code) && isSelfReferral(result.coupon.code, uid)) {
+        return res.status(400).json({ error: 'Ce code de parrainage est le vôtre : il est destiné à vos filleuls.', code: 'COUPON_SELF_REFERRAL' });
       }
       appliedCoupon = result.coupon;
     }
@@ -1427,6 +1455,7 @@ app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: Authent
 // montage est conservé, et `tests/route_inventory.test.ts` vérifie que les 163
 // routes sont toujours là, sans doublon.
 registerFamilyRoutes(app);
+registerReferralRoutes(app);
 registerIntelligenceRoutes(app);
 registerChantierARoutes(app);
 registerProfessionalRoutes(app);
