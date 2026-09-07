@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink, Check, Tag } from 'lucide-react';
-import { CartItem } from '../types';
+import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Loader2, AlertTriangle, RotateCcw, ExternalLink, Check, Tag, Plus, Truck, Sparkles } from 'lucide-react';
+import { CartItem, Product } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
 import { computeOrderVat, formatVatRate } from '../lib/vat';
@@ -9,9 +9,12 @@ import { getOrderAttribution } from '../lib/attribution';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
+import { recommendAddOns } from '../lib/launchCatalog';
+import { useProducts } from '../services/productService';
 
 interface CartDrawerProps {
   isOpen: boolean;
+  onAddItem?: (product: Product, variant?: unknown) => void;
   onClose: () => void;
   items: CartItem[];
   onUpdateQuantity: (productId: string, quantity: number, variantId?: string) => void;
@@ -32,9 +35,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   items,
   onUpdateQuantity,
   onRemoveItem,
+  onAddItem,
   onCheckout
 }) => {
   const { user, session } = useAuth();
+  const { products } = useProducts();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
@@ -118,6 +123,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
   const orderTotalCents = subtotalCents + shippingCents;
+
+  // ── Add-ons de panier : cross-sell d'outils à forte marge + jauge livraison offerte ──
+  const addOnData = React.useMemo(() => {
+    if (!shippingOption?.freeFromCents || items.length === 0) return null;
+    const cartLike = items.map(i => ({ id: i.product.id, price: unitPrice(i), category: i.product.category, inStock: i.product.inStock }));
+    const rec = recommendAddOns(cartLike, products as unknown as { id: string; price: number; category?: string; inStock?: boolean }[], { freeFromCents: shippingOption.freeFromCents });
+    const addOns = rec.addOnIds
+      .map(id => products.find(p => p.id === id))
+      .filter((p): p is Product => !!p)
+      .map(p => ({ product: p, crossesThreshold: p.id === rec.crossesId }));
+    return { gapCents: rec.gapCents, freeShipUnlocked: rec.freeShipUnlocked, addOns };
+  }, [products, items, shippingOption]);
   const discountCents = appliedCoupon ? Math.round(appliedCoupon.discountAmount * 100) : 0;
   // La remise porte sur les articles ; le total affiché ne descend jamais sous
   // 0 (le serveur plafonne déjà la remise au sous-total).
@@ -386,6 +403,70 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
           )}
         </div>
+
+        {/* ── ADD-ONS : jauge livraison offerte + outils à forte marge ── */}
+        {addOnData && addOnData.addOns.length > 0 && (
+          <div className="px-6 py-5 border-t border-[#FFF7EF]/10 bg-[#0A0705]/60">
+            {/* Jauge de livraison offerte */}
+            {shippingOption?.freeFromCents && (
+              <div className="mb-4">
+                {addOnData.freeShipUnlocked ? (
+                  <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+                    <Truck className="w-4 h-4" /> Livraison offerte débloquée !
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-[#FFF7EF]/75 mb-2 flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-[#D49A63]" />
+                      Plus que <b className="text-[#FFF7EF]">{formatMoney(addOnData.gapCents)}</b> pour la <b className="text-[#D49A63]">livraison offerte</b>
+                    </p>
+                    <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] transition-all"
+                        style={{ width: `${Math.min(100, Math.round((subtotalCents / shippingOption.freeFromCents) * 100))}%` }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-[#D49A63] font-bold mb-3">
+              <Sparkles className="w-3.5 h-3.5" /> Complétez votre routine
+            </p>
+            <div className="space-y-2.5">
+              {addOnData.addOns.map(({ product: p, crossesThreshold }) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-3 p-2.5 rounded-2xl border transition ${
+                    crossesThreshold ? 'border-[#C8753D]/50 bg-[#3A2218]/50' : 'border-[#FFF7EF]/10 bg-[#1A0F0A]/60'
+                  }`}
+                >
+                  <img loading="lazy" src={p.image} alt={p.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[#FFF7EF] leading-tight line-clamp-2">{p.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm font-bold text-[#D49A63]">{p.price.toFixed(2)} €</span>
+                      {crossesThreshold && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#C8753D]/20 text-[#D49A63] whitespace-nowrap">
+                          Débloque la livraison offerte
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { onAddItem?.(p); try { analytics.addToCart(p.id, p.name, p.price, 1, 'cart_addon'); } catch { /* noop */ } }}
+                    className="shrink-0 w-8 h-8 rounded-full bg-[#C8753D] text-white flex items-center justify-center hover:bg-[#b06330] transition"
+                    aria-label={`Ajouter ${p.name}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer Checkout Summary */}
         {items.length > 0 && (

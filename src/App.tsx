@@ -266,6 +266,7 @@ function AppContent() {
           items={cartItems}
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
+          onAddItem={handleAddToCart}
           onCheckout={handleCheckout}
         />
 

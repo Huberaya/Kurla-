@@ -449,3 +449,98 @@ export function recommendKit(input: {
   // Défaut : le kit central 3C/4A, meilleur compromis
   return { kitId: 'k02', reason: 'Ce kit est le meilleur point de départ pour hydrater et définir vos boucles.', alternative: 'k01' };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADD-ONS DE PANIER (cross-sell) — faire monter le panier moyen vers la
+// livraison offerte avec des outils à forte marge, proposés au bon moment.
+// Règles : complète ce qui est déjà dans le panier, jamais de doublon, met en
+// avant l'article qui fait franchir le seuil de livraison offerte.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Best-sellers outils (en stock, FR/BE/INT), ordre = priorité de marge/pertinence.
+const UPSELL_TOOL_IDS = {
+  // Universels wash day
+  afroPick: 'launch-p35',       // peigne afro métal 4,90
+  clips: 'launch-p23',          // pinces sectionnement 6,90
+  scalpMassager: 'launch-p36',  // brosse massage cuir chevelu 7,90
+  detangler: 'launch-p16',      // démêloir dents larges 6,90
+  microfibre: 'launch-p37',     // serviette microfibre 12,90
+  satinBonnet: 'launch-p17',    // bonnet satin nuit + taie 12,90
+  edgeBrush: 'launch-p21',      // brosse à edges 5,90
+  // Protectrices / locks
+  hairNet: 'launch-p27',        // filet protection tresses 5,90
+  interlock: 'launch-p42',      // outil interlocking 9,90
+  satinScrunchie: 'launch-p45', // chouchous satin 6,90
+};
+
+export type AddOnResult = {
+  gapCents: number;              // montant restant pour la livraison offerte (<=0 = atteint)
+  freeShipUnlocked: boolean;
+  addOns: { product: AddOnProductLike; crossesThreshold: boolean }[];
+};
+
+type AddOnProductLike = { id: string; price: number; category?: string; inStock?: boolean };
+
+export function recommendAddOns(
+  cart: AddOnProductLike[],
+  catalog: AddOnProductLike[],
+  opts: { freeFromCents: number }
+): { gapCents: number; freeShipUnlocked: boolean; addOnIds: string[]; crossesId: string | null } {
+  const subtotalCents = Math.round(cart.reduce((s, i) => s + i.price * 100, 0));
+  const gapCents = opts.freeFromCents - subtotalCents;
+  const freeShipUnlocked = gapCents <= 0;
+
+  const cartIds = new Set(cart.map(i => i.id));
+  const byId = new Map(catalog.map(p => [p.id, p]));
+
+  // Détecte le contexte du panier
+  const hasKit = cart.some(i => i.id.includes('launch-k') || i.category === 'kits');
+  const hasProtective = cart.some(i =>
+    i.id.includes('launch-k05') || i.id.includes('launch-k08') ||
+    /protect|tress|lock|twist|vanille/i.test(i.id)
+  );
+  const hasSatin = cart.some(i => i.id === UPSELL_TOOL_IDS.satinBonnet);
+
+  // 1) Candidats contextuels (complètent le panier), puis universels.
+  const contextual: string[] = [];
+  if (hasProtective) {
+    contextual.push(UPSELL_TOOL_IDS.hairNet, UPSELL_TOOL_IDS.interlock, UPSELL_TOOL_IDS.satinScrunchie);
+  }
+  if (hasKit) {
+    contextual.push(UPSELL_TOOL_IDS.detangler, UPSELL_TOOL_IDS.clips, UPSELL_TOOL_IDS.scalpMassager, UPSELL_TOOL_IDS.microfibre);
+  }
+  const universal = [
+    UPSELL_TOOL_IDS.afroPick, UPSELL_TOOL_IDS.edgeBrush, UPSELL_TOOL_IDS.scalpMassager,
+    ...(hasSatin ? [] : [UPSELL_TOOL_IDS.satinBonnet]),
+  ];
+
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  [...contextual, ...universal].forEach(id => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    ordered.push(id);
+  });
+
+  // Ne garde que des produits réels, en stock, pas déjà dans le panier.
+  const available = ordered
+    .map(id => byId.get(id))
+    .filter((p): p is AddOnProductLike => !!p && !cartIds.has(p.id) && (p.inStock === undefined || p.inStock === true));
+
+  // 2) Celui qui fait franchir le seuil à lui seul (le moins cher qui dépasse le gap),
+  //    sinon les petits prix pour s'en rapprocher.
+  let crossesId: string | null = null;
+  if (!freeShipUnlocked) {
+    const crossing = available
+      .filter(p => Math.round(p.price * 100) >= gapCents)
+      .sort((a, b) => a.price - b.price);
+    if (crossing.length > 0 && crossing[0].price <= 25) crossesId = crossing[0].id;
+  }
+
+  // 3) Ordre final : le produit « qui débloque la livraison » en tête, puis le reste.
+  const addOnIds: string[] = [];
+  if (crossesId) addOnIds.push(crossesId);
+  available.forEach(p => { if (addOnIds.length < 3 && p.id !== crossesId) addOnIds.push(p.id); });
+
+  return { gapCents, freeShipUnlocked, addOnIds: addOnIds.slice(0, 3), crossesId };
+}
