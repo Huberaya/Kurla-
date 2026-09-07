@@ -2,10 +2,10 @@ import React, { useMemo, useState } from 'react';
 import {
   Rocket, AlertTriangle, CheckCircle2, Circle, Calculator, Map as MapIcon,
   Layers, Users, Target, ChevronRight, Zap, TrendingUp, Crosshair, Gauge,
-  Megaphone, Handshake, HeartHandshake,
+  Megaphone, Handshake, HeartHandshake, CalendarDays,
 } from 'lucide-react';
 import {
-  PEN_LADDER, PEN_SEGMENTS_FR, PEN_MARKETS, PEN_FIRST100, PEN_WEEKLY,
+  PEN_LADDER, PEN_SEGMENTS_FR, PEN_MARKETS, PEN_FIRST100, PEN_WEEKLY, PEN_MONTHLY,
   PEN_PHASE_META, penetrationCalc, penetrationAlerts, penetrationChannelBoard,
   PEN_INFLUENCE, INFLUENCE_PIPELINE, PEN_PARTNERS, PEN_DEPTH, PEN_DEPTH_KPIS,
   type PenMarket,
@@ -144,6 +144,49 @@ export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) 
           </div>
           <p className="text-[10px] text-[#FFF7EF]/40 mt-2">Progression réelle : {real.ordersPaid}/100 commandes du palier initial — la semaine affichée suit cette avancée.</p>
         </Card>
+      </div>
+
+      {/* ②b ROADMAP MENSUELLE M1–M12 */}
+      <div>
+        <Title icon={CalendarDays} title="Roadmap mensuelle de pénétration — M1 à M12 (France → Belgique)" sub="Chaque mois : objectifs chiffrés, budget, CAC, contenu, canaux, partenaires, recrutement et décision GO/PIVOT. Le mois courant est mis en évidence." />
+        <div className="grid gap-2.5">
+          {PEN_MONTHLY.map(m => {
+            const reached = real.ordersPaid >= m.cumClients;
+            const active = !reached && (m.month === 1 || real.ordersPaid >= (PEN_MONTHLY[m.month - 2]?.cumClients ?? 0));
+            return (
+              <Card key={m.month} className={`!p-4 ${active ? 'border-[#C8753D]/50' : ''} ${!reached && !active ? 'opacity-75' : ''}`}>
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center border shrink-0 text-[10px] font-bold ${
+                    reached ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                    : active ? 'bg-[#C8753D]/25 border-[#C8753D] text-[#D49A63]'
+                    : 'bg-[#FFF7EF]/5 border-[#FFF7EF]/15 text-[#FFF7EF]/40'}`}>{m.month}</span>
+                  <p className="text-xs font-bold text-[#FFF7EF] flex-1">{m.label}</p>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/70">{m.phase}</span>
+                  <span className="text-[9px] text-[#FFF7EF]/50">{m.market}</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-1.5 text-[10px] mb-2">
+                  <MStat label="Clients cumulés" value={num(m.cumClients)} />
+                  <MStat label="Nouveaux / mois" value={`+${num(m.newClients)}`} />
+                  <MStat label="Commandes / mois" value={num(m.ordersMo)} />
+                  <MStat label="CA mensuel" value={eur(m.revenueMoEur)} />
+                  <MStat label="Budget pénétration" value={eur(m.budgetEur)} />
+                  <MStat label="CAC max" value={eur(m.maxCacEur)} />
+                  <MStat label="Contenus / sem." value={num(m.contentsPerWeek)} />
+                </div>
+                <div className="text-[10px] space-y-1 text-[#FFF7EF]/70">
+                  <p><b className="text-[#D49A63]">Canaux :</b> {m.channels}</p>
+                  <p><b className="text-[#D49A63]">Partenaires :</b> {m.partners} · <b className="text-[#D49A63]">Produits :</b> {m.products}</p>
+                  <p><b className="text-[#D49A63]">Équipe :</b> {m.team}</p>
+                </div>
+                <div className="mt-2 pt-2 border-t border-[#FFF7EF]/10 grid sm:grid-cols-2 gap-2 text-[10px]">
+                  <p className="text-[#FFF7EF]/75"><b className="text-[#D49A63]">KPI :</b> {m.kpi}</p>
+                  <p className={m.month % 6 === 0 ? 'text-emerald-300' : 'text-amber-200/90'}><b>Porte :</b> {m.gate}</p>
+                  <p className="sm:col-span-2 text-[#FFF7EF]/65"><b className="text-[#C8753D]">Décision :</b> {m.decision}</p>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* ③ ESCALIER DE PÉNÉTRATION */}
@@ -500,6 +543,14 @@ function Metric({ label, value, hint }: { label: string; value: string; hint?: s
       <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">{label}</p>
       <p className="text-[13px] font-bold text-[#FFF7EF]">{value}</p>
       {hint && <p className="text-[9px] text-[#FFF7EF]/35 leading-tight">{hint}</p>}
+    </div>
+  );
+}
+function MStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">{label}</p>
+      <p className="text-[12px] font-bold text-[#FFF7EF]">{value}</p>
     </div>
   );
 }

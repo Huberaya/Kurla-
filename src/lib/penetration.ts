@@ -397,7 +397,95 @@ export function penetrationCalc(input: PenCalcInput): PenCalcOutput {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 8b. TABLEAU DE BORD DES CANAUX DE PÉNÉTRATION — planifié vs réel
+// 12. ROADMAP MENSUELLE DE PÉNÉTRATION M1–M12 (France, cap sur 1 000)
+// Chaque mois : objectif, acquis réels cumulés, budget, contenu, canaux,
+// partenaires, produits/features, recrutement, KPI et décision GO/PIVOT.
+// Les chiffres sont des OBJECTIFS de pénétration (cumulés), jamais des faits.
+// ════════════════════════════════════════════════════════════════════════════
+export type PenMonth = {
+  month: number; label: string; phase: string; market: string;
+  cumClients: number; newClients: number; ordersMo: number; revenueMoEur: number;
+  budgetEur: number; maxCacEur: number; contentsPerWeek: number;
+  channels: string; partners: string; products: string; team: string;
+  kpi: string; gate: string; decision: string;
+};
+
+export const PEN_MONTHLY: PenMonth[] = [
+  { month: 1, label: 'M1 — Lancer la pénétration du micro-segment', phase: 'Test', market: 'FR · IdF/Lyon · 4C',
+    cumClients: 30, newClients: 30, ordersMo: 30, revenueMoEur: 1300, budgetEur: 600, maxCacEur: 22, contentsPerWeek: 7,
+    channels: 'TikTok organique + DM communautés + réseau fondateur', partners: 'démarrage 10 salons (2 visés)',
+    products: 'Kits K02/K03 + offre 100 premiers (−20 %)', team: 'Fondateur seul',
+    kpi: '30 cmd, 5 avis, lancement contenu tenu', gate: 'rythme 7 vid/sem. tenu + ≥ 1 vidéo > 5k vues',
+    decision: 'GO si ≥ 20 cmd ; sinon on revoit le message/hook avant de dépenser' },
+  { month: 2, label: 'M2 — Activer créateurs & salons (boucler les 100)', phase: 'Test', market: 'FR · IdF/Lyon · 4C',
+    cumClients: 100, newClients: 70, ordersMo: 70, revenueMoEur: 3000, budgetEur: 1200, maxCacEur: 20, contentsPerWeek: 7,
+    channels: 'TikTok + 6 créateurs barter + 2 salons pilotes + DM', partners: '2 salons actifs, 6 créateurs',
+    products: 'Kits + add-ons panier', team: 'Fondateur + 1 community freelance',
+    kpi: '100 cmd cumulées, 20 avis, 10 UGC, CAC ≤ 20 €, AOV ≥ 42 €', gate: 'PORTE DE PASSAGE 100 atteinte',
+    decision: 'GO vers 1 000 si gate atteint ; PIVOT offre/canal sinon (< 40 cmd = repositionner)' },
+  { month: 3, label: 'M3 — Industrialiser le canal gagnant', phase: 'Validation', market: 'FR · 4C national',
+    cumClients: 220, newClients: 120, ordersMo: 120, revenueMoEur: 5500, budgetEur: 1800, maxCacEur: 18, contentsPerWeek: 9,
+    channels: 'Canal n°1 renforcé + SEO long-tail (2 art/sem) + emails segmentés', partners: '3 salons, 10 créateurs',
+    products: 'Kits + relance panier active + sourcing karité Ghana lancé', team: '+ 1 contenu freelance',
+    kpi: '120 cmd/mois, conv ≥ 0,8 %, CAC ≤ 18 €', gate: 'process créateurs documenté + 1 canal rentable',
+    decision: 'On double le budget du canal qui tient le CAC ; on coupe les morts' },
+  { month: 4, label: 'M4 — Scaling paid prudent', phase: 'Validation', market: 'FR · 4C national',
+    cumClients: 380, newClients: 160, ordersMo: 160, revenueMoEur: 7400, budgetEur: 2200, maxCacEur: 16, contentsPerWeek: 10,
+    channels: 'Paid test Meta/TikTok (ROAS > 2) + organique + créateurs continus', partners: '4 salons, 14 créateurs',
+    products: 'Kits + KURLA+ proposé post-achat', team: 'Fondateur + growth freelance',
+    kpi: '160 cmd, ROAS ≥ 2 sur la créa gagnante, AOV ≥ 45 €', gate: '1 créa paid rentable identifiée',
+    decision: 'On augmente le budget paid si ROAS tenu ; on reste organique sinon' },
+  { month: 5, label: 'M5 — Rétention & réachat', phase: 'Validation', market: 'FR · 4C national',
+    cumClients: 560, newClients: 180, ordersMo: 180, revenueMoEur: 8300, budgetEur: 2400, maxCacEur: 15, contentsPerWeek: 10,
+    channels: 'Paid + CRM (réachat, fin de produit) + parrainage intra-segment', partners: '5 salons, 18 créateurs',
+    products: 'Campagne réachat + parrainage 10/10 poussé', team: 'stable',
+    kpi: '180 cmd, réachat 90 j ≥ 15 %, 10–15 abonnés KURLA+', gate: 'réachat qui monte vers 20 %',
+    decision: 'Si réachat < 10 % : on corrige le produit/onboarding avant de scaler' },
+  { month: 6, label: 'M6 — BILAN : cap sur 1 000 (saturation segment 4C)', phase: 'Validation', market: 'FR · 4C saturé',
+    cumClients: 1000, newClients: 440, ordersMo: 440, revenueMoEur: 20000, budgetEur: 4000, maxCacEur: 15, contentsPerWeek: 12,
+    channels: 'Paid scaling + créateurs + SEO + programme ambassadeurs (10)', partners: '5 salons, 20 créateurs, 10 ambassadrices',
+    products: 'Gamme complète 4C + KURLA+', team: '+ 1 customer care (3PL si > 150 cmd/mois)',
+    kpi: '1 000 clients, 90 cmd/mois organique, conv ≥ 1,2 %, CAC ≤ 15 €, réachat ≥ 20 %, marge contributive positive',
+    gate: 'PORTE DE PASSAGE 1 000 atteinte', decision: 'GO segments adjacents + test Belgique ; STOP extension si marge négative' },
+  { month: 7, label: 'M7 — Ouvrir le segment adjacent n°1 (bouclées 3A–3C)', phase: 'Scale', market: 'FR · bouclées',
+    cumClients: 1500, newClients: 500, ordersMo: 500, revenueMoEur: 26000, budgetEur: 7000, maxCacEur: 18, contentsPerWeek: 12,
+    channels: 'Paid par segment + créateurs bouclées + SEO bouclées', partners: '7 salons, 25 créateurs',
+    products: 'K01/K02 mis en avant pour les bouclées', team: 'stable',
+    kpi: '500 cmd/mois multi-segments, CAC segment ≤ 18 €', gate: 'segment bouclées : ≥ 150 cmd',
+    decision: 'On renforce le segment si son CAC tient ; on le gèle sinon' },
+  { month: 8, label: 'M8 — Segment protectrices / locs', phase: 'Scale', market: 'FR · protectrices',
+    cumClients: 2100, newClients: 600, ordersMo: 600, revenueMoEur: 31000, budgetEur: 8000, maxCacEur: 18, contentsPerWeek: 12,
+    channels: 'Créateurs tresses/locs + salons spécialisés', partners: '10 salons dont spécialisés',
+    products: 'K05 protectrices + K08 locs en tête', team: 'stable',
+    kpi: '600 cmd/mois, 10 salons partenaires actifs', gate: 'protectrices : ≥ 150 cmd',
+    decision: 'Idem : on garde le segment si rentable' },
+  { month: 9, label: 'M9 — Lancer le test Belgique/Luxembourg', phase: 'Scale', market: 'FR + BE/LU',
+    cumClients: 2800, newClients: 700, ordersMo: 700, revenueMoEur: 36000, budgetEur: 9000, maxCacEur: 18, contentsPerWeek: 12,
+    channels: 'FR scaling + TikTok FR-BE + 4 créateurs bruxellois (test 1 500 €)', partners: '12 salons FR + 2 Bruxelles',
+    products: 'Mêmes kits €, cross-border FR', team: 'stable',
+    kpi: '700 cmd/mois, BE : premières commandes', gate: 'BE : cible 30 cmd/60 j lancée',
+    decision: 'BE < 10 cmd/60 j après 1 500 € → on retarde, on reste FR' },
+  { month: 10, label: 'M10 — Segment enfants', phase: 'Scale', market: 'FR/BE · kids',
+    cumClients: 3700, newClients: 900, ordersMo: 900, revenueMoEur: 46000, budgetEur: 10000, maxCacEur: 18, contentsPerWeek: 14,
+    channels: 'Instagram parents + créatrices mères + paid', partners: '13 salons, 35 créateurs',
+    products: 'Gamme enfant (conformité mineurs vérifiée)', team: '+ 1 ops (3PL confirmé)',
+    kpi: '900 cmd/mois, note ≥ 4,4', gate: 'kids : ≥ 200 cmd, conformité OK',
+    decision: 'On continue si la conformité et la note suivent' },
+  { month: 11, label: 'M11 — Segment hommes + Belgique à confirmer', phase: 'Scale', market: 'FR + BE · hommes',
+    cumClients: 4800, newClients: 1100, ordersMo: 1100, revenueMoEur: 56000, budgetEur: 11000, maxCacEur: 18, contentsPerWeek: 14,
+    channels: 'TikTok/Reels hommes + barbiers + paid BE si concluant', partners: '20 barbiers/salons, 40 créateurs',
+    products: 'Gamme hommes (éponge, durag, barbe)', team: 'stable',
+    kpi: '1 100 cmd/mois, BE ≥ 30 cmd/60 j (seuil)', gate: 'hommes ≥ 200 cmd + BE validée',
+    decision: 'BE validée → on prépare UK ; sinon on reste FR/BE' },
+  { month: 12, label: 'M12 — BILAN FRANCE + préparation Europe', phase: 'Scale→Domination', market: 'FR multi-segments + BE',
+    cumClients: 6000, newClients: 1200, ordersMo: 620, revenueMoEur: 28500, budgetEur: 9000, maxCacEur: 17, contentsPerWeek: 12,
+    channels: 'Mix paid/organique/créateurs/SEO rentable par segment', partners: '15 salons/barbiers, 40+ créateurs, ambassadrices',
+    products: 'Catalogue complet + marque propre karité', team: 'Équipe 4–5 (growth, contenu, care, ops)',
+    kpi: '~6 000 clients, 620 cmd/mois, CA ~28 k€/mois, marge nette positive, BE active',
+    gate: 'PORTE DE PASSAGE 10 000 en vue + Belgique validée', decision: 'GO préparation UK (localisation EN/£) ; Aucune extension si marge non tenue' },
+];
+
+
 // Les ventes réelles remontent par UTM (data.performance.channels). On mappe ces
 // canaux réels aux 5 canaux du plan des 100 premiers, et on décide pour chacun :
 // GAGNANT (renforcer/industrialiser) · ACTIF (accélérer) · À LANCER.
