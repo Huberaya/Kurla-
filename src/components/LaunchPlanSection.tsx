@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   LAUNCH_PRODUCTS, LAUNCH_KITS, LAUNCH_ROUTINES, LAUNCH_TOOLS,
   FIRST_CLIENTS, FINANCE_SCENARIOS, LAUNCH_ACTIONS, SOURCING_PLAN,
 } from '../lib/launchCatalog';
-import { Package, Boxes, ListOrdered, Wrench, Users, Wallet, Truck, ListChecks } from 'lucide-react';
+import { Package, Boxes, ListOrdered, Wrench, Users, Wallet, Truck, ListChecks, Search } from 'lucide-react';
 
 const eur = (v: number) => `${v.toLocaleString('fr-FR').replace(',', ',')} €`;
 
@@ -24,11 +24,87 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 const prod = (id: string) => LAUNCH_PRODUCTS.find(p => p.id === id);
 
 export function LaunchPlanSection() {
+  // Filtrage de la table catalogue (54 lignes)
+  const [catFilter, setCatFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const categories = useMemo(
+    () => Array.from(new Set(LAUNCH_PRODUCTS.map(p => p.category))),
+    []
+  );
+  const shownProducts = useMemo(() => LAUNCH_PRODUCTS.filter(p => {
+    const okCat = catFilter === 'all' || p.category === catFilter;
+    const q = query.trim().toLowerCase();
+    const okQ = !q || p.name.toLowerCase().includes(q) || p.problem.toLowerCase().includes(q) || p.strategic.toLowerCase().includes(q);
+    return okCat && okQ;
+  }), [catFilter, query]);
+
+  // ── Synthèse chiffrée calculée depuis les vraies données catalogue ──
+  const nProducts = LAUNCH_PRODUCTS.length;
+  const nKits = LAUNCH_KITS.length;
+  const nRoutines = LAUNCH_ROUTINES.length;
+  const nToolsLaunch = LAUNCH_TOOLS.filter(t => t.atLaunch).length;
+  const priceMin = Math.min(...LAUNCH_PRODUCTS.map(p => p.retailPriceEur));
+  const priceMax = Math.max(...LAUNCH_PRODUCTS.map(p => p.retailPriceEur));
+  const avgMargin = Math.round(LAUNCH_PRODUCTS.reduce((s, p) => s + p.marginPct, 0) / nProducts);
+  const catalogRetailValue = Math.round(LAUNCH_PRODUCTS.reduce((s, p) => s + p.retailPriceEur, 0));
+  const catalogCostValue = Math.round(LAUNCH_PRODUCTS.reduce((s, p) => s + p.targetCostEur, 0));
+  const kitPriceMin = Math.min(...LAUNCH_KITS.map(k => k.kitPriceEur));
+  const kitPriceMax = Math.max(...LAUNCH_KITS.map(k => k.kitPriceEur));
+  const strongRepurchase = LAUNCH_PRODUCTS.filter(p => p.repurchase === 'fort').length;
+  const stats = [
+    { label: 'SKU au catalogue', value: `${nProducts}` },
+    { label: 'Kits achetables', value: `${nKits}` },
+    { label: 'Routines guidées', value: `${nRoutines}` },
+    { label: 'Outils au jour 1', value: `${nToolsLaunch}` },
+    { label: 'Prix produit', value: `${priceMin.toFixed(0)}–${priceMax.toFixed(0)} €` },
+    { label: 'Prix kit', value: `${kitPriceMin.toFixed(0)}–${kitPriceMax.toFixed(0)} €` },
+    { label: 'Marge brute moyenne', value: `~${avgMargin} %` },
+    { label: 'Réachat fort', value: `${strongRepurchase} SKU` },
+    { label: 'Valeur catalogue (détail)', value: `${catalogRetailValue} €` },
+    { label: 'Coût d’achat visé (HT)', value: `${catalogCostValue} €` },
+  ];
+
   return (
     <div className="space-y-8">
+      {/* SYNTHÈSE CHIFFRÉE — CE QUE KURLA VEND AU LANCEMENT */}
+      <div id="synthese">
+        <BlockTitle icon={Package} title="L’offre jour 1, en chiffres" sub="Tout est calculé depuis le catalogue décidé ci-dessous ; les coûts sont des cibles de négoce jusqu’à réception des grilles fournisseurs." />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {stats.map(s => (
+            <div key={s.label} className="rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-3">
+              <p className="text-lg font-bold text-[#FFF7EF] leading-tight">{s.value}</p>
+              <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45 mt-1 leading-tight">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* CATALOGUE PRODUITS */}
       <div id="catalogue">
-        <BlockTitle icon={Package} title="Catalogue de lancement — 18 SKU décidés" sub="Marque = cible de sourcing (à contacter) · coût = objectif d’achat HT (cible de négoce, pas un devis) · statut = à sourcer/vérifier." />
+        <BlockTitle icon={Package} title={`Catalogue de lancement — ${nProducts} SKU décidés`} sub="Marque = cible de sourcing (à contacter) · coût = objectif d’achat HT (cible de négoce, pas un devis) · marge = brute estimée · réachat = fréquence de rachat." />
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-[#FFF7EF]/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Rechercher un produit, un besoin…"
+              className="pl-7 pr-3 py-1.5 rounded-lg bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px] text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:outline-none focus:border-[#C8753D] w-56"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {['all', ...categories].map(c => (
+              <button
+                key={c}
+                onClick={() => setCatFilter(c)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors ${catFilter === c ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'border-[#FFF7EF]/15 text-[#FFF7EF]/60 hover:border-[#C8753D]'}`}
+              >
+                {c === 'all' ? 'Tout' : c}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] text-[#FFF7EF]/40 ml-auto">{shownProducts.length} / {nProducts} SKU</span>
+        </div>
         <Card className="!p-0 overflow-x-auto">
           <table className="w-full text-[11px] min-w-[820px]">
             <thead>
@@ -44,7 +120,7 @@ export function LaunchPlanSection() {
               </tr>
             </thead>
             <tbody>
-              {LAUNCH_PRODUCTS.map(p => (
+              {shownProducts.map(p => (
                 <tr key={p.id} className="border-b border-[#FFF7EF]/5 last:border-0 align-top">
                   <td className="px-3 py-2">
                     <p className="font-bold text-[#FFF7EF]">{p.name}</p>
@@ -68,7 +144,7 @@ export function LaunchPlanSection() {
 
       {/* KITS */}
       <div id="kits">
-        <BlockTitle icon={Boxes} title="6 kits de lancement" sub="Le kit réduit la décision et fait monter le panier moyen ; remise client ~10-15 % vs prix séparés." />
+        <BlockTitle icon={Boxes} title={`${nKits} kits de lancement`} sub="Le kit réduit la décision et fait monter le panier moyen ; remise client ~10-15 % vs prix séparés. Marge KURLA = prix kit − coût d’achat visé des contenus." />
         <div className="grid md:grid-cols-2 gap-3">
           {LAUNCH_KITS.map(k => {
             const saving = Math.round((k.retailPriceEur - k.kitPriceEur) * 100) / 100;
@@ -99,7 +175,7 @@ export function LaunchPlanSection() {
 
       {/* ROUTINES */}
       <div id="routines">
-        <BlockTitle icon={ListOrdered} title="5 routines concrètes" sub="Chaque étape pointe un produit du catalogue ; total = prix des produits au détail." />
+        <BlockTitle icon={ListOrdered} title={`${nRoutines} routines concrètes`} sub="Chaque étape pointe un produit du catalogue ; total = prix des produits au détail. Alternatives économique et premium proposées." />
         <div className="grid md:grid-cols-2 gap-3">
           {LAUNCH_ROUTINES.map(r => (
             <Card key={r.id} className="!p-4">
@@ -199,7 +275,7 @@ export function LaunchPlanSection() {
             </tbody>
           </table>
         </Card>
-        <p className="text-[10px] text-[#FFF7EF]/40 mt-2 italic">* Après marge brute + MRR − coût d’acquisition − ~700 € de frais fixes/tech mensuels. La leçon : à 1 000 visiteurs, seuls les scénarios central/ambitieux approchent l’équilibre → d’où la priorité absolue sur le trafic (TikTok/SEO) et l’AOV (kits).</p>
+        <p className="text-[10px] text-[#FFF7EF]/40 mt-2 italic">* Après marge brute + MRR − coût d’acquisition − ~700 € de frais fixes/tech mensuels. Lecture honnête : à seulement 1 000 visiteurs/mois, les trois scénarios restent déficitaires (−670 / −576 / −419 €). Le point d’équilibre est une question de VOLUME : il faut ~3 000-5 000 visiteurs/mois (cumul SEO/TikTok) pour passer au positif — d’où la priorité absolue au trafic (TikTok + SEO routines/ingrédients) et à l’AOV (kits), qui améliorent directement les deux leviers. La projection pluriannuelle complète est dans l’onglet Finance.</p>
       </div>
 
       {/* APPROVISIONNEMENT */}
