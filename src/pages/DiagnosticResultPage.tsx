@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, ShieldCheck, CheckCircle2, ArrowRight, ShoppingBag, AlertTriangle, Loader2 } from 'lucide-react';
+import { Sparkles, ShieldCheck, CheckCircle2, ArrowRight, ShoppingBag, AlertTriangle, Loader2, Boxes, Clock, Percent } from 'lucide-react';
 import { AIRecommendationResult, Product } from '../types';
 import { useProducts } from '../services/productService';
+import { recommendKit } from '../lib/launchCatalog';
 
 export const DiagnosticResultPage: React.FC = () => {
   const { products, loading, error, count } = useProducts();
   const [result, setResult] = useState<AIRecommendationResult | null>(null);
+  const [diagContext, setDiagContext] = useState<{ texture?: string; priority?: string; style?: string } | null>(null);
 
   useEffect(() => {
+    // Contexte du diagnostic (texture/priorité) pour la reco kit en tête.
+    try {
+      const ans = sessionStorage.getItem('kurla_diagnostic_answers');
+      if (ans) setDiagContext(JSON.parse(ans));
+    } catch { /* ignore */ }
     const cached = sessionStorage.getItem('kurla_diagnostic_result');
     if (cached) {
       try {
@@ -48,6 +55,21 @@ export const DiagnosticResultPage: React.FC = () => {
   );
 
   const displayProducts = matchedProducts;
+
+  // ── KIT RECOMMANDÉ en tête (levier de panier moyen) ──
+  // On choisit le kit selon la texture/priorité du diagnostic, puis on le
+  // résout dans le catalogue réel (jamais de kit inventé si absent).
+  const reco = recommendKit({
+    texture: diagContext?.texture,
+    priority: diagContext?.priority,
+    protective: diagContext?.style === 'protectrice' || /protect|tresse|lock|twist/i.test(String(diagContext?.priority || '')),
+  });
+  const recommendedKit: Product | undefined = products.find(p =>
+    p.id === `launch-${reco.kitId}` || p.id === reco.kitId || p.slug?.includes(reco.kitId)
+  );
+  const altKit: Product | undefined = reco.alternative
+    ? products.find(p => p.id === `launch-${reco.alternative}` || p.id === reco.alternative)
+    : undefined;
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
@@ -107,6 +129,60 @@ export const DiagnosticResultPage: React.FC = () => {
           </div>
         </div>
 
+        {/* KIT RECOMMANDÉ — mis en tête pour faire monter le panier moyen */}
+        {recommendedKit && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Boxes className="w-5 h-5 text-[#C8753D]" />
+              <h3 className="text-2xl font-serif-title font-bold text-[#FFF7EF]">Votre routine en un kit</h3>
+            </div>
+            <div className="relative overflow-hidden rounded-3xl border border-[#C8753D]/40 bg-gradient-to-br from-[#1A0F0A] to-[#050403] shadow-2xl">
+              <div className="grid md:grid-cols-[260px_1fr] gap-0">
+                <div className="relative h-56 md:h-full bg-[#3A2218]/40">
+                  <img loading="lazy" decoding="async" src={recommendedKit.image} alt={recommendedKit.name} className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-[#2E7D5B] text-white text-[10px] font-bold flex items-center gap-1 shadow">
+                    <Clock className="w-3 h-3" /> Précommande
+                  </span>
+                </div>
+                <div className="p-6 md:p-8 flex flex-col">
+                  <span className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold mb-1">Recommandé pour votre diagnostic</span>
+                  <h4 className="text-xl md:text-2xl font-serif-title font-bold text-[#FFF7EF] mb-2">{recommendedKit.name}</h4>
+                  <p className="text-sm text-[#FFF7EF]/75 font-light leading-relaxed mb-4">{reco.reason}</p>
+
+                  <ul className="space-y-1.5 mb-5">
+                    {['Tout ce qu’il faut pour une routine complète', 'Économique par rapport aux produits à l’unité', 'Satisfait ou remboursé 30 jours'].map((t) => (
+                      <li key={t} className="flex items-start gap-2 text-xs text-[#FFF7EF]/70">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /> {t}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#FFF7EF]/10">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#FFF7EF]">{recommendedKit.price.toFixed(2)} €</span>
+                      {recommendedKit.originalPrice && recommendedKit.originalPrice > recommendedKit.price && (
+                        <span className="text-sm text-[#FFF7EF]/40 line-through flex items-center gap-1">
+                          <Percent className="w-3 h-3" />{recommendedKit.originalPrice.toFixed(2)} €
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <a href={`/produit/${recommendedKit.slug}`} className="px-6 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold shadow-lg hover:opacity-95 transition flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4" /> Précommander ce kit
+                      </a>
+                    </div>
+                  </div>
+                  {altKit && (
+                    <a href={`/produit/${altKit.slug}`} className="mt-3 text-[11px] text-[#D49A63] hover:underline self-start">
+                      Alternative : {altKit.name.replace(/^Kit\s*—\s*/i, '')} →
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recommended Products Showcase */}
         <div className="space-y-6 mb-12">
           <div className="flex items-center justify-between">
@@ -142,16 +218,16 @@ export const DiagnosticResultPage: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="/boutique"
+            href={recommendedKit ? `/produit/${recommendedKit.slug}` : '/boutique'}
             className="px-8 py-4 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white font-semibold text-sm text-center shadow-xl"
           >
-            Commander le kit recommandé
+            {recommendedKit ? `Commander « ${recommendedKit.name.replace(/^Kit\s*—\s*/i, '')} »` : 'Commander le kit recommandé'}
           </a>
           <a
-            href="/professionnels"
+            href="/boutique"
             className="px-8 py-4 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/20 text-[#FFF7EF] font-medium text-sm text-center"
           >
-            Prendre rendez-vous avec un pro certifié
+            Voir tout le catalogue
           </a>
         </div>
 

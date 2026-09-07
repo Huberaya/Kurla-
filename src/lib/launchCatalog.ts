@@ -406,3 +406,46 @@ export const SOURCING_PLAN = {
   compliance: 'Chaque SKU exige : fiche ingrédient complète, vérification Règl. (CE) 1223/2009 + Annexes, étiquetage FR, responsabilité personne responsable UE. Aucun produit publié avant vérification (conformité = fichier + date).',
   returns: 'Retours 30 jours satisfait-ou-remboursé sur les 100 premières commandes (outil de confiance + retour d’expérience).',
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECOMMANDATION KIT POST-DIAGNOSTIC
+// Choix tranché : le kit est mis en tête des recommandations (levier AOV).
+// On mappe la texture + la priorité du diagnostic vers le kit le plus pertinent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type KitRecommendation = { kitId: string; reason: string; alternative?: string };
+
+/**
+ * @param texture  'ondulee' | 'bouclee' | 'tres_bouclee' | 'crepue' (réponses diagnostic)
+ * @param priority 'hydratation' | 'casse' | 'definition' | 'pousse' | 'cuir_chevelu' | ...
+ * @param protective si la personne porte des coiffures protectrices / locks
+ */
+export function recommendKit(input: {
+  texture?: string;
+  priority?: string;
+  protective?: boolean;
+}): KitRecommendation {
+  const t = (input.texture || '').toLowerCase();
+  const p = (input.priority || '').toLowerCase();
+  const isCrepu = t.includes('crep') || t.includes('tres');
+  const isBoucle = t.includes('boucl') || t.includes('ondul');
+
+  // Coiffures protectrices / locks → kit dédié
+  if (input.protective || p.includes('protect') || p.includes('lock') || p.includes('tresse') || p.includes('twist')) {
+    return { kitId: 'k05', reason: 'Vos coiffures protectrices demandent tenue et hydratation : ce kit réunit les produits qui font tenir twist-out et tresses.', alternative: isCrepu ? 'k03' : 'k02' };
+  }
+  // Réparation / pousse / casse
+  if (p.includes('casse') || p.includes('repousse') || p.includes('pousse') || p.includes('abim') || p.includes('reparat')) {
+    return { kitId: 'k04', reason: 'Cheveux abîmés ou cassants : ce kit reconstruit et fortifie, de la racine à la pointe.', alternative: 'k06' };
+  }
+  // Crépus 4B/4C → nutrition profonde (cible n°1)
+  if (isCrepu) {
+    return { kitId: 'k03', reason: 'Vos cheveux crépus ont besoin d’une nutrition riche qui scelle l’hydratation toute la semaine.', alternative: 'k06' };
+  }
+  // Bouclés 3A-4A → hydratation & définition
+  if (isBoucle) {
+    return { kitId: 'k02', reason: 'Ce kit hydrate en profondeur et dessine vos boucles sans effet cartonné.', alternative: 'k01' };
+  }
+  // Défaut : le kit central 3C/4A, meilleur compromis
+  return { kitId: 'k02', reason: 'Ce kit est le meilleur point de départ pour hydrater et définir vos boucles.', alternative: 'k01' };
+}

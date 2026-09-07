@@ -52,6 +52,11 @@ export const DiagnosticHairPage: React.FC = () => {
         })
       });
       const data = await res.json();
+      // On conserve le contexte du diagnostic (texture/priorité) pour que la
+      // page résultat puisse recommander LE kit le plus pertinent en tête.
+      try {
+        sessionStorage.setItem('kurla_diagnostic_answers', JSON.stringify(answers));
+      } catch { /* sessionStorage indisponible */ }
       sessionStorage.setItem('kurla_diagnostic_result', JSON.stringify(data));
       navigate('/diagnostic/resultat/hair-latest');
     } catch (e) {
