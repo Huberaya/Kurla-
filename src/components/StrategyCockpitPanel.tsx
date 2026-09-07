@@ -12,6 +12,7 @@ import {
   STRATEGY_KPIS,
 } from '../lib/businessStrategy';
 import { LaunchPlanSection } from './LaunchPlanSection';
+import { PenetrationCommandCenter } from './PenetrationCommandCenter';
 
 type Props = { headers: HeadersInit };
 
@@ -58,6 +59,7 @@ const num = (v: number | null | undefined) => v === null || v === undefined ? '�
 
 const SECTIONS = [
   { id: 'actions', label: 'À faire maintenant', icon: ListChecks },
+  { id: 'penetration', label: 'Pénétration & expansion', icon: Rocket },
   { id: 'performance', label: 'Ventes réelles', icon: BarChart3 },
   { id: 'conquete', label: 'Conquête & expansion', icon: Globe },
   { id: 'positioning', label: 'Positionnement', icon: Target },
@@ -190,6 +192,20 @@ export function StrategyCockpitPanel({ headers }: Props) {
       </div>
 
       {/* PERFORMANCE COMMERCIALE RÉELLE — quel produit/kit se vend, marge réelle */}
+      {/* KURLA MARKET PENETRATION & EXPANSION COMMAND CENTER */}
+      <div id="penetration" className="scroll-mt-4">
+        <PenetrationCommandCenter
+          real={{
+            ordersPaid: s.ordersPaid,
+            aovEur: data.kpis.find(k => k.id === 'aov')?.measure ?? null,
+            kitSharePct: data.performance?.funnel?.conversions?.kitSharePct ?? null,
+            repeatRatePct: data.performance?.funnel?.conversions?.repeatRatePct ?? null,
+            cartToOrderPct: data.performance?.funnel?.conversions?.cartToOrderPct ?? null,
+            paymentsReady: s.paymentsReady,
+          }}
+        />
+      </div>
+
       <div id="performance" className="scroll-mt-4">
         <SectionTitle icon={BarChart3} title="Performance commerciale — chiffres réels" sub="Agrégation des lignes de commande payées. La marge est réelle si un coût d’achat est saisi en base, sinon estimée sur la cible catalogue. Aucune donnée inventée." />
         {(() => {
