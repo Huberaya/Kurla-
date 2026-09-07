@@ -202,6 +202,7 @@ export function StrategyCockpitPanel({ headers }: Props) {
             repeatRatePct: data.performance?.funnel?.conversions?.repeatRatePct ?? null,
             cartToOrderPct: data.performance?.funnel?.conversions?.cartToOrderPct ?? null,
             paymentsReady: s.paymentsReady,
+            channels: data.performance?.channels?.map(c => ({ channel: c.channel, orders: c.orders, revenue: c.revenue })) ?? [],
           }}
         />
       </div>

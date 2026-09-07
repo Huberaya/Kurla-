@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import {
   PEN_LADDER, PEN_SEGMENTS_FR, PEN_MARKETS, PEN_FIRST100, PEN_WEEKLY,
-  PEN_PHASE_META, penetrationCalc, penetrationAlerts,
+  PEN_PHASE_META, penetrationCalc, penetrationAlerts, penetrationChannelBoard,
   type PenMarket,
 } from '../lib/penetration';
 
@@ -17,6 +17,7 @@ export type PenReal = {
   repeatRatePct: number | null;
   cartToOrderPct: number | null;
   paymentsReady: boolean;
+  channels?: { channel: string; orders: number; revenue: number }[];
 };
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -48,6 +49,7 @@ const phaseColor: Record<string, string> = {
 
 export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) => {
   const alerts = useMemo(() => penetrationAlerts(real), [real]);
+  const channelBoard = useMemo(() => penetrationChannelBoard(real.channels || []), [real.channels]);
   const redAlerts = alerts.filter(a => a.level === 'red');
   const greenAlerts = alerts.filter(a => a.level === 'green');
   const grayAlerts = alerts.filter(a => a.level === 'gray');
@@ -234,6 +236,49 @@ export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) 
           <p className="text-sm font-bold text-emerald-300 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> TOTAL : 100 clients pour {eur(PEN_FIRST100.find(c => c.id === 99)?.budgetEur)} de budget</p>
           <p className="text-[11px] text-[#FFF7EF]/70 mt-1">{PEN_FIRST100.find(c => c.id === 99)?.measure}</p>
         </Card>
+
+        {/* Tableau de bord des canaux : planifié vs ventes réelles (UTM) */}
+        <div className="mt-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#D49A63] mb-2 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5" /> Performance réelle par canal de pénétration (attribution UTM)
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {channelBoard.channels.map(ch => {
+              const tone = ch.status === 'win'
+                ? { border: 'border-emerald-500/40', chip: 'bg-emerald-500/20 text-emerald-300', label: 'GAGNANT — renforcer' }
+                : ch.status === 'active'
+                  ? { border: 'border-amber-400/40', chip: 'bg-amber-400/20 text-amber-200', label: 'ACTIF — accélérer' }
+                  : { border: 'border-[#FFF7EF]/15', chip: 'bg-[#FFF7EF]/10 text-[#FFF7EF]/60', label: 'À LANCER' };
+              return (
+                <div key={ch.id} className={`rounded-xl border ${tone.border} bg-[#050403] p-3 flex flex-col`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full self-start mb-1.5 ${tone.chip}`}>{tone.label}</span>
+                  <p className="text-[10px] font-semibold text-[#FFF7EF] leading-tight mb-2">{ch.name}</p>
+                  <div className="flex items-end justify-between mb-1">
+                    <span className="text-lg font-bold text-[#D49A63]">{ch.realOrders}</span>
+                    <span className="text-[10px] text-[#FFF7EF]/50">/ {ch.targetClients} visés</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden mb-1.5">
+                    <div className={`h-full ${ch.status === 'win' ? 'bg-emerald-400' : ch.status === 'active' ? 'bg-amber-400' : 'bg-[#FFF7EF]/30'}`}
+                      style={{ width: `${Math.min(100, ch.attainmentPct)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-[#FFF7EF]/50">{ch.attainmentPct}% de l'objectif · {eur(ch.realRevenue)}</p>
+                  <p className="text-[10px] text-[#FFF7EF]/60 mt-1.5 pt-1.5 border-t border-[#FFF7EF]/8 leading-snug">{ch.decision}</p>
+                </div>
+              );
+            })}
+          </div>
+          {channelBoard.otherChannels.length > 0 && (
+            <p className="text-[10px] text-[#FFF7EF]/50 mt-2">
+              Autres canaux réels hors palier 100 (leviers d'échelle) : {channelBoard.otherChannels.map(o => `${o.channel} (${o.orders})`).join(' · ')}.
+            </p>
+          )}
+          {(real.channels?.length ?? 0) === 0 && (
+            <p className="text-[10px] text-amber-300/90 mt-2">
+              Aucune vente attribuée à un canal : pose des paramètres UTM sur TOUS les liens (TikTok, créateurs, communautés, salons, parrainage) et applique la migration
+              <code className="mx-1">orders.attribution</code> pour que la répartition par canal remonte.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* ⑤ SEGMENTS FRANCE */}

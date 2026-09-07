@@ -397,6 +397,70 @@ export function penetrationCalc(input: PenCalcInput): PenCalcOutput {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// 8b. TABLEAU DE BORD DES CANAUX DE PÉNÉTRATION — planifié vs réel
+// Les ventes réelles remontent par UTM (data.performance.channels). On mappe ces
+// canaux réels aux 5 canaux du plan des 100 premiers, et on décide pour chacun :
+// GAGNANT (renforcer/industrialiser) · ACTIF (accélérer) · À LANCER.
+// ════════════════════════════════════════════════════════════════════════════
+export type PenChannelStatus = 'win' | 'active' | 'launch';
+export type PenChannelStat = {
+  id: number; name: string; targetClients: number; budgetEur: number;
+  realOrders: number; realRevenue: number; attainmentPct: number;
+  status: PenChannelStatus; decision: string;
+  matchedFrom: string[];
+};
+
+// Mots-clés (libellé de canal réel normalisé) → canal de pénétration PEN_FIRST100.
+const CHANNEL_KEYWORDS: Record<number, string[]> = {
+  1: ['tiktok'],
+  2: ['créateur', 'createur', 'creator', 'influence', 'affilie', 'affiliate', 'ugc'],
+  3: ['communaute', 'communauté', 'groupe', 'whatsapp', 'dm'],
+  4: ['salon', 'coiff', 'partenaire', 'pro', 'barbier'],
+  5: ['parrainage', 'referral', 'réseau', 'reseau', 'network'],
+};
+
+export function penetrationChannelBoard(
+  realChannels: { channel: string; orders: number; revenue: number }[],
+): { channels: PenChannelStat[]; otherChannels: { channel: string; orders: number; revenue: number }[] } {
+  const norm = (s: string) => s.toLowerCase();
+  const matchedReal = new Set<string>();
+
+  const channels: PenChannelStat[] = PEN_FIRST100
+    .filter(c => c.id !== 99)
+    .map(c => {
+      const kws = CHANNEL_KEYWORDS[c.id] || [];
+      let realOrders = 0; let realRevenue = 0; const matchedFrom: string[] = [];
+      realChannels.forEach(rc => {
+        const label = norm(rc.channel);
+        if (kws.some(k => label.includes(k))) {
+          realOrders += rc.orders; realRevenue += rc.revenue; matchedFrom.push(rc.channel); matchedReal.add(rc.channel);
+        }
+      });
+      const attainmentPct = c.targetClients > 0 ? Math.round((realOrders / c.targetClients) * 100) : 0;
+      let status: PenChannelStatus = 'launch';
+      let decision: string;
+      if (realOrders >= c.targetClients * 0.8) {
+        status = 'win';
+        decision = 'CANAL GAGNANT : on renforce et on industrialise (budget + process + créateurs en continu). C’est lui qui porte la montée vers 1 000.';
+      } else if (realOrders >= 1) {
+        status = 'active';
+        decision = 'Canal actif mais sous l’objectif : on accélère (cadence, volume de DM/contenu), on itère le message qui convertit.';
+      } else {
+        status = 'launch';
+        decision = 'Aucune vente attribuée : lancer ce canal cette semaine selon le plan (actions quantifiées ci-dessus). Vérifier que les liens portent le bon UTM/code.';
+      }
+      return { id: c.id, name: c.name, targetClients: c.targetClients, budgetEur: c.budgetEur, realOrders, realRevenue: Math.round(realRevenue), attainmentPct, status, decision, matchedFrom };
+    });
+
+  // Canaux réels qui ne relèvent pas du palier 100 (leviers des paliers suivants).
+  const otherChannels = realChannels
+    .filter(rc => !matchedReal.has(rc.channel) && rc.orders > 0 && !/non attribué|direct/i.test(rc.channel))
+    .map(rc => ({ channel: rc.channel, orders: rc.orders, revenue: Math.round(rc.revenue) }));
+
+  return { channels, otherChannels };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // 8. ALERTES DE PÉNÉTRATION (comparaison planifié vs réel)
 // ════════════════════════════════════════════════════════════════════════════
 export type PenRealMetrics = {
