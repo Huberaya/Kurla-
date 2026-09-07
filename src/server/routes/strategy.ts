@@ -312,6 +312,132 @@ export function registerStrategyRoutes(app: Express): void {
         .sort((a, b) => b.revenue - a.revenue)
         .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }));
 
+      // ── ENTONNOIR DE CONVERSION (comptes réels par étape) ──────────────────
+      // Le trafic pur (visites) vit dans GA4/Plausible (hors base). Tout ce qui
+      // suit est mesuré en base : leads → paniers → commandes → paiement → réachat
+      // → parrainage, avec part des kits. Les paliers sans donnée restent null
+      // (jamais inventés) et l'UI affiche « non mesuré ».
+      let beautyProfiles = 0;
+      let launchLeads = 0;
+      let waitlistLeads = 0;
+      let activeCarts = 0;
+      let ordersWithKit = 0;
+      let repeatCustomers = 0;
+      let distinctPaidCustomers = 0;
+      let referralOrders = 0;
+      let rewardCoupons = 0;
+      let abandonedRecoverable = ordersTotal - ordersPaid;
+
+      try { beautyProfiles = await safeCount(supabase, 'beauty_profiles'); } catch { /* ignore */ }
+      try {
+        launchLeads = await safeCount(supabase, 'launch_leads');
+      } catch {
+        // Table de migration pas encore appliquée : repli 0.
+        launchLeads = 0;
+      }
+      try { waitlistLeads = await safeCount(supabase, 'product_waitlist'); } catch { waitlistLeads = 0; }
+      try {
+        // Paniers non vides : on compte les cart_items rattachés à un panier.
+        const { data: cartRows } = await supabase.from('carts').select('id').limit(10000);
+        if (Array.isArray(cartRows) && cartRows.length) {
+          const cartIds = cartRows.map((c: any) => c.id);
+          // On compte les cart_items dont le panier existe (lots de 500 bornés).
+          let nonEmpty = 0;
+          const batches = [];
+          for (let i = 0; i < cartIds.length; i += 500) batches.push(cartIds.slice(i, i + 500));
+          for (const batch of batches) {
+            const { count } = await supabase.from('cart_items').select('cart_id', { count: 'exact', head: true }).in('cart_id', batch);
+            nonEmpty += Number(count ?? 0);
+          }
+          activeCarts = nonEmpty;
+        }
+      } catch { /* carts peut être absent */ }
+
+      try {
+        // Sélection tolérante : coupon_code n'existe pas avant une migration (le
+        // code promo voyage dans les métadonnées Stripe). On ne casse pas si la
+        // colonne manque ; la détection parrainage retombe alors sur 0.
+        const { data: ordFull } = await supabase
+          .from('orders')
+          .select('id,status,user_id,customer_email,items')
+          .limit(10000);
+        const revStatuses = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed'];
+        const paidRows = (ordFull || []).filter((o: any) => revStatuses.includes(o.status));
+
+        // Clients distincts (user_id sinon email)
+        const customerKeys = new Set<string>();
+        paidRows.forEach((o: any) => {
+          const key = o.user_id || (o.customer_email ? 'e:' + String(o.customer_email).toLowerCase().trim() : null);
+          if (key) customerKeys.add(key);
+        });
+        distinctPaidCustomers = customerKeys.size;
+
+        // Réachat : clients avec ≥2 commandes payées
+        const perCustomer = new Map<string, number>();
+        paidRows.forEach((o: any) => {
+          const key = o.user_id || (o.customer_email ? 'e:' + String(o.customer_email).toLowerCase().trim() : null);
+          if (!key) return;
+          perCustomer.set(key, (perCustomer.get(key) || 0) + 1);
+        });
+        repeatCustomers = Array.from(perCustomer.values()).filter(n => n >= 2).length;
+
+        // Part des kits : commande contenant un kit (items JSON).
+        const kitIdSet = new Set(LAUNCH_KITS.map((k) => `launch-${k.id}`));
+        paidRows.forEach((o: any) => {
+          const it = Array.isArray(o.items) ? o.items : [];
+          const hasKit = it.some((line: any) => {
+            const pid = String(line?.productId || line?.product_id || '');
+            return kitIdSet.has(pid) || /launch-k\d/i.test(pid);
+          });
+          if (hasKit) ordersWithKit++;
+        });
+      } catch { /* ignore */ }
+
+      // Parrainage : on lit les métadonnées Stripe (le code promo n'est pas une
+      // colonne orders). On compte les coupons MERCI émis (= filleuls payés).
+      try {
+        const { count: merci } = await supabase
+          .from('coupons')
+          .select('code', { count: 'exact', head: true })
+          .like('code', 'MERCI-%');
+        rewardCoupons = Number(merci ?? 0);
+        // Une récompense MERCI émise = un filleul payé par parrainage.
+        referralOrders = rewardCoupons;
+      } catch { /* coupons peut être absent */ }
+
+      const pct = (part: number, total: number): number | null =>
+        total > 0 ? Math.round((part / total) * 1000) / 10 : null;
+
+      // Graphe de l'entonnoir : chaque étape avec sa valeur et le % de transition.
+      const leadsTotal = launchLeads + waitlistLeads;
+      const funnel = {
+        stages: [
+          { key: 'leads',        label: 'Leads (diagnostics / liste de lancement)', value: leadsTotal,
+            note: 'Comptes beauté créés + inscriptions liste de lancement. Le trafic pur est dans GA4.' },
+          { key: 'beautyProfiles', label: 'Profils beauté / diagnostics enregistrés', value: beautyProfiles,
+            note: 'Diagnostics ayant débouché sur un profil KURLA Hair ID enregistré.' },
+          { key: 'carts',        label: 'Paniers actifs (non vides)', value: activeCarts,
+            note: 'Paniers persistés contenant au moins un article (connectés + invités).' },
+          { key: 'orders',       label: 'Commandes payées', value: ordersPaid,
+            note: 'Commandes confirmées payées (hors attente webhook).' },
+          { key: 'kitOrders',    label: 'dont commandes avec un kit', value: ordersWithKit,
+            note: 'Levier panier moyen : kits recommandés en tête du diagnostic.' },
+          { key: 'repeat',       label: 'Clients ayant réacheté (≥ 2)', value: repeatCustomers,
+            note: 'Fidélisation : clients distincts avec au moins deux commandes payées.' },
+        ],
+        conversions: {
+          cartToOrderPct: pct(ordersPaid, activeCarts),                 // panier → achat
+          leadToOrderPct: pct(ordersPaid, Math.max(leadsTotal, beautyProfiles)),
+          kitSharePct: pct(ordersWithKit, ordersPaid),                  // part des kits dans les commandes
+          repeatRatePct: pct(repeatCustomers, Math.max(distinctPaidCustomers, 1)), // réachat
+          referralOrders,                                              // ventes issues de parrainage
+          rewardCoupons,                                               // récompenses parrain émises
+        },
+        targets: { cartToOrderPct: 35, kitSharePct: 50, repeatRatePct: 20 },
+        pendingOrders: abandonedRecoverable,
+        note: 'Les étapes hautes (visites, démarrages de diagnostic) relèvent de GA4/Plausible. Cet entonnoir mesure les actes persistés en base, donc actionnables par les relances et le parrainage.',
+      };
+
       const performance = {
         itemsAvailable,
         totalSoldQty,
@@ -328,6 +454,7 @@ export function registerStrategyRoutes(app: Express): void {
         channelNote: ordersWithAttribution > 0
           ? 'Canal issu des UTM/référents capturés au checkout (first/last-touch). Les « Non attribué » sont des visites directes ou antérieures à l’instrumentation.'
           : 'Ajoutez des paramètres UTM aux liens (TikTok, créateurs, emails) : les ventes seront alors réparties par canal ici. Les commandes sans UTM apparaissent en « Non attribué ».',
+        funnel,
       };
 
       res.json({

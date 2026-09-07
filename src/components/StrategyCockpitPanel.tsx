@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle, CheckCircle2, Circle, Loader2, RefreshCw, Target, Rocket, Crown,
   Building2, ShieldAlert, Sparkles, ShoppingBag, Users, Megaphone, TrendingUp,
-  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge, BarChart3, Trophy, Boxes, Globe, Lock,
+  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge, BarChart3, Trophy, Boxes, Globe, Lock, Filter,
 } from 'lucide-react';
 import {
   OFFERS, PERSONAS, POSITIONING, CHANNELS, FUNNEL, PLAN_90,
@@ -39,6 +39,16 @@ type Cockpit = {
     channels: { channel: string; orders: number; revenue: number }[];
     ordersWithAttribution: number;
     targets: { aovEur: number; kitSharePct: number }; channelNote: string;
+    funnel?: {
+      stages: { key: string; label: string; value: number; note?: string }[];
+      conversions: {
+        cartToOrderPct: number | null; leadToOrderPct: number | null;
+        kitSharePct: number | null; repeatRatePct: number | null;
+        referralOrders: number; rewardCoupons: number;
+      };
+      targets: { cartToOrderPct: number; kitSharePct: number; repeatRatePct: number };
+      pendingOrders: number; note?: string;
+    };
   };
   phases: Phase[]; kpis: Kpi[]; actions: Action[];
 };
@@ -55,7 +65,7 @@ const SECTIONS = [
   { id: 'offers', label: 'Offres & prix', icon: ShoppingBag },
   { id: 'personas', label: 'Cibles', icon: Users },
   { id: 'channels', label: 'Acquisition', icon: Megaphone },
-  { id: 'funnel', label: 'Funnel', icon: ArrowRight },
+  { id: 'funnel', label: 'Entonnoir & conversion', icon: Filter },
   { id: 'plan90', label: '90 jours', icon: CalendarDays },
   { id: 'roadmap', label: 'Roadmap', icon: Rocket },
   { id: 'kpis', label: 'KPI', icon: Gauge },
@@ -617,27 +627,125 @@ export function StrategyCockpitPanel({ headers }: Props) {
 
       {/* FUNNEL */}
       <div id="funnel">
-        <SectionTitle icon={ArrowRight} title="Funnel de vente & taux cibles" />
-        <Card>
-          <ol className="space-y-3">
-            {FUNNEL.map((f, i) => (
-              <li key={f.id} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <span className="w-6 h-6 rounded-full bg-[#1A0F0A] border border-[#C8753D] text-[#C8753D] text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
-                  {i < FUNNEL.length - 1 && <span className="w-px flex-1 bg-[#FFF7EF]/15 mt-1" />}
+        <SectionTitle icon={Filter} title="Entonnoir de conversion — actes réels" sub="Comptes mesurés en base (leads → diagnostics → paniers → commandes payantes → kits → réachat). Le trafic pur (visites, GA4) n’est pas persisté ici ; les paliers sans donnée affichent 0, jamais d’invention." />
+        {(() => {
+          const fn = data.performance?.funnel;
+          if (!fn) {
+            return <Card className="!p-5"><p className="text-xs text-[#FFF7EF]/60 flex items-center gap-2"><Filter className="w-4 h-4 text-[#C8753D]" /> L’entonnoir chiffré s’active avec le suivi des ventes (commande + paniers persistés).</p></Card>;
+          }
+          const stages: { key: string; label: string; value: number; note?: string }[] = fn.stages || [];
+          const maxVal = Math.max(1, ...stages.map(s => s.value || 0));
+          const conv = (fn.conversions || {}) as {
+            cartToOrderPct: number | null; leadToOrderPct: number | null;
+            kitSharePct: number | null; repeatRatePct: number | null;
+            referralOrders: number; rewardCoupons: number;
+          };
+          const tg = (fn.targets || {}) as { cartToOrderPct: number; kitSharePct: number; repeatRatePct: number };
+          const rateChip = (val: number | null | undefined, target: number, invert = false) => {
+            if (val === null || val === undefined) return <span className="text-[10px] text-[#FFF7EF]/40">non mesuré</span>;
+            const ok = invert ? val <= target : val >= target;
+            return (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ok ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>
+                {val}% {ok ? '✓' : `· cible ${target}%`}
+              </span>
+            );
+          };
+          return (
+            <div className="space-y-4">
+              {/* Barres d'entonnoir */}
+              <Card className="!p-5">
+                <div className="space-y-3">
+                  {stages.map((s, i) => {
+                    const widthPct = Math.round((s.value / maxVal) * 100);
+                    const prevVal = i > 0 ? stages[i - 1].value : null;
+                    const stepPct = prevVal !== null && prevVal > 0 ? Math.round((s.value / prevVal) * 100) : null;
+                    const isSub = s.key === 'kitOrders' || s.key === 'repeat';
+                    return (
+                      <div key={s.key} className={isSub ? 'pl-6 opacity-95' : ''}>
+                        <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                          <p className="text-xs font-semibold text-[#FFF7EF] flex items-center gap-2">
+                            {isSub && <span className="text-[#C8753D]">↳</span>}
+                            {s.label}
+                            {stepPct !== null && !isSub && <span className="text-[10px] text-[#D49A63] font-bold">{stepPct}% de l’étape précédente</span>}
+                          </p>
+                          <p className="text-sm font-bold text-[#D49A63]">{s.value.toLocaleString('fr-FR')}</p>
+                        </div>
+                        <div className="h-7 rounded-lg bg-[#050403] border border-[#FFF7EF]/8 overflow-hidden">
+                          <div
+                            className={`h-full rounded-lg flex items-center justify-end pr-2 transition-all ${isSub ? 'bg-gradient-to-r from-[#8a5326] to-[#C8753D]/70' : 'bg-gradient-to-r from-[#C8753D] to-[#D49A63]'}`}
+                            style={{ width: `${Math.max(s.value > 0 ? 6 : 2, widthPct)}%` }}
+                          >
+                            {s.value > 0 && widthPct > 18 && <span className="text-[10px] font-bold text-white">{s.value}</span>}
+                          </div>
+                        </div>
+                        {s.note && <p className="text-[10px] text-[#FFF7EF]/45 mt-0.5">{s.note}</p>}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="pb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-bold text-[#FFF7EF]">{f.step}</p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">cible {f.targetRate}</span>
+                {typeof fn.pendingOrders === 'number' && fn.pendingOrders > 0 && (
+                  <div className="mt-4 pt-3 border-t border-[#FFF7EF]/10 flex items-center gap-2 text-[11px]">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+                    <p className="text-[#FFF7EF]/70">
+                      <b className="text-amber-300">{fn.pendingOrders} commande(s) en attente de paiement</b> — relancées automatiquement par la boucle de récupération (3 emails sur 72 h).
+                    </p>
                   </div>
-                  <p className="text-[10px] text-rose-300/80 mt-0.5">Abandon : {f.dropCauses}</p>
-                  <p className="text-[11px] text-[#FFF7EF]/65">Correctif : {f.fix}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Card>
+                )}
+              </Card>
+
+              {/* Taux de conversion vs cibles */}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Card className="!p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold mb-1">Panier → commande</p>
+                  <p className="text-xl font-bold text-[#FFF7EF] mb-1">{conv.cartToOrderPct ?? '—'}{conv.cartToOrderPct != null && '%'}</p>
+                  {rateChip(conv.cartToOrderPct, tg.cartToOrderPct ?? 35)}
+                  <p className="text-[10px] text-[#FFF7EF]/45 mt-1">Paniers non vides qui se concluent en achat.</p>
+                </Card>
+                <Card className="!p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold mb-1">Commandes avec un kit</p>
+                  <p className="text-xl font-bold text-[#FFF7EF] mb-1">{conv.kitSharePct ?? '—'}{conv.kitSharePct != null && '%'}</p>
+                  {rateChip(conv.kitSharePct, tg.kitSharePct ?? 50)}
+                  <p className="text-[10px] text-[#FFF7EF]/45 mt-1">Levier AOV : kits recommandés en tête du diagnostic.</p>
+                </Card>
+                <Card className="!p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold mb-1">Taux de réachat</p>
+                  <p className="text-xl font-bold text-[#FFF7EF] mb-1">{conv.repeatRatePct ?? '—'}{conv.repeatRatePct != null && '%'}</p>
+                  {rateChip(conv.repeatRatePct, tg.repeatRatePct ?? 20)}
+                  <p className="text-[10px] text-[#FFF7EF]/45 mt-1">Clients distincts avec ≥ 2 commandes. Cible plan : 20 % à 90 j.</p>
+                </Card>
+                <Card className="!p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold mb-1">Parrainage</p>
+                  <p className="text-xl font-bold text-[#FFF7EF] mb-1">{conv.referralOrders ?? 0} <span className="text-xs font-normal text-[#FFF7EF]/50">vente(s)</span></p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C8753D]/15 text-[#D49A63]">{conv.rewardCoupons ?? 0} récompense(s) émise(s)</span>
+                  <p className="text-[10px] text-[#FFF7EF]/45 mt-1">Ventes via code parrain KURLA-… + coupons MERCI générés.</p>
+                </Card>
+              </div>
+
+              {/* Référentiel théorique du FUNNEL planifié (causes d'abandon + correctifs) */}
+              <Card className="!p-5">
+                <p className="text-[11px] uppercase tracking-widest text-[#D49A63] font-bold mb-3">Référentiel — où agir à chaque étape</p>
+                <ol className="space-y-3">
+                  {FUNNEL.map((f, i) => (
+                    <li key={f.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="w-6 h-6 rounded-full bg-[#1A0F0A] border border-[#C8753D] text-[#C8753D] text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                        {i < FUNNEL.length - 1 && <span className="w-px flex-1 bg-[#FFF7EF]/15 mt-1" />}
+                      </div>
+                      <div className="pb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-bold text-[#FFF7EF]">{f.step}</p>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">cible {f.targetRate}</span>
+                        </div>
+                        <p className="text-[10px] text-rose-300/80 mt-0.5">Abandon : {f.dropCauses}</p>
+                        <p className="text-[11px] text-[#FFF7EF]/65">Correctif : {f.fix}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </Card>
+            </div>
+          );
+        })()}
       </div>
 
       {/* PLAN 90 */}
