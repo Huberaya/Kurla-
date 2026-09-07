@@ -2,6 +2,7 @@ import type { Express, Response } from 'express';
 
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { STRATEGY_PHASES, STRATEGY_KPIS } from '../../lib/businessStrategy';
+import { LAUNCH_PRODUCTS, LAUNCH_KITS } from '../../lib/launchCatalog';
 import { asyncRoute, rateLimit } from '../http';
 import { requireAdmin } from '../auth';
 import type { AuthenticatedRequest } from '../types';
@@ -219,6 +220,83 @@ export function registerStrategyRoutes(app: Express): void {
       const doneAuto = phases.reduce((n, p) => n + p.milestones.filter((m) => m.done).length, 0);
       const totalAuto = phases.reduce((n, p) => n + p.milestones.length, 0);
 
+      // ── PERFORMANCE COMMERCIALE RÉELLE (agrégation des lignes de commande) ──
+      // On joint order_items → products pour avoir nom/prix, et on détecte les kits
+      // via les badges. Le coût/marge réel n'est calculé que si un prix de revient
+      // existe en base ; sinon on retombe sur la cible de marge catalogue (jamais
+      // inventé : explicitement marqué « estimé »).
+      type PerfRow = { id: string; name: string; qty: number; revenue: number; estimatedMargin: number | null; isKit: boolean };
+      const productSales = new Map<string, PerfRow>();
+      let itemsAvailable = false;
+      try {
+        // Statuts des commandes (joint en JS : fiable même sans FK déclarée)
+        const { data: ordRows } = await supabase.from('orders').select('id, status').limit(10000);
+        const orderStatus = new Map((ordRows || []).map((o: any) => [o.id, o.status]));
+        const { data: lines } = await supabase
+          .from('order_items')
+          .select('order_id, product_id, quantity, unit_price')
+          .limit(20000);
+        const revenueStatuses = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed'];
+        const validLines = (lines || []).filter((l: any) => revenueStatuses.includes(orderStatus.get(l.order_id)));
+        itemsAvailable = Array.isArray(lines);
+        if (validLines.length) {
+          // Catalogue de référence pour noms/détection kits/coûts
+          const prodById = new Map(LAUNCH_PRODUCTS.map((p) => [`launch-${p.id}`, p]));
+          const kitIds = new Set(LAUNCH_KITS.map((k) => `launch-${k.id}`));
+          const { data: prodRows } = await supabase
+            .from('products')
+            .select('id, name, price, cost_price, unit_cost, purchase_price, badges')
+            .limit(2000);
+          const dbProd = new Map((prodRows || []).map((p: any) => [p.id, p]));
+          for (const l of validLines) {
+            const pid = String(l.product_id);
+            const qty = Number(l.quantity || 0);
+            const unit = Number(l.unit_price || 0);
+            if (!pid || qty <= 0) continue;
+            const db = dbProd.get(pid);
+            const launch = prodById.get(pid);
+            const name = db?.name || launch?.name || pid;
+            const isKit = kitIds.has(pid) || (Array.isArray(db?.badges) && db?.badges.includes('kit'));
+            const revenue = qty * unit;
+            // Marge : coût réel en base si présent, sinon cible catalogue (estimé)
+            const realCost = db?.cost_price ?? db?.unit_cost ?? db?.purchase_price;
+            let margin: number | null = null;
+            if (realCost != null && Number(realCost) > 0) {
+              margin = (unit - Number(realCost)) * qty;
+            } else if (launch) {
+              margin = revenue * (launch.marginPct / 100);
+            }
+            const cur = productSales.get(pid) || { id: pid, name, qty: 0, revenue: 0, estimatedMargin: null, isKit };
+            cur.qty += qty;
+            cur.revenue = Math.round((cur.revenue + revenue) * 100) / 100;
+            cur.estimatedMargin = margin != null
+              ? Math.round(((cur.estimatedMargin ?? 0) + margin) * 100) / 100
+              : null;
+            productSales.set(pid, cur);
+          }
+        }
+      } catch { /* table order_items peut être absente — la vue affichera « pas encore de ventes » */ }
+
+      const allSold = Array.from(productSales.values()).sort((a, b) => b.revenue - a.revenue);
+      const topProducts = allSold.filter((r) => !r.isKit).slice(0, 8);
+      const topKits = allSold.filter((r) => r.isKit).slice(0, 8);
+      const kitRevenue = allSold.filter((r) => r.isKit).reduce((s, r) => s + r.revenue, 0);
+      const totalItemRevenue = allSold.reduce((s, r) => s + r.revenue, 0);
+      const totalSoldQty = allSold.reduce((s, r) => s + r.qty, 0);
+      const performance = {
+        itemsAvailable,
+        totalSoldQty,
+        totalItemRevenue: Math.round(totalItemRevenue * 100) / 100,
+        kitRevenue: Math.round(kitRevenue * 100) / 100,
+        kitSharePct: totalItemRevenue > 0 ? Math.round((kitRevenue / totalItemRevenue) * 100) : 0,
+        topProducts,
+        topKits,
+        // Objectifs AOV/part kit du plan (CENTRAL) pour comparaison au réel
+        targets: { aovEur: 42, kitSharePct: 50 },
+        // L'attribution canal (UTM) n'est pas encore capturée au checkout → on ne l'invente pas
+        channelNote: 'Attribution canal non encore instrumentée : ajouter les paramètres UTM à la création de commande pour mesurer quel canal est rentable.',
+      };
+
       res.json({
         generatedAt: new Date().toISOString(),
         summary: {
@@ -231,6 +309,7 @@ export function registerStrategyRoutes(app: Express): void {
           roadmapDone: doneAuto, roadmapTotal: totalAuto,
           paymentsReady: paymentsReady === 1,
         },
+        performance,
         phases,
         kpis,
         actions,

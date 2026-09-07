@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle, CheckCircle2, Circle, Loader2, RefreshCw, Target, Rocket, Crown,
   Building2, ShieldAlert, Sparkles, ShoppingBag, Users, Megaphone, TrendingUp,
-  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge,
+  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge, BarChart3, Trophy, Boxes,
 } from 'lucide-react';
 import {
   OFFERS, PERSONAS, POSITIONING, CHANNELS, FUNNEL, PLAN_90,
@@ -21,6 +21,7 @@ type Kpi = {
 type Milestone = { id: string; label: string; auto: boolean; done: boolean };
 type Phase = { level: number; id: string; title: string; window: string; goal: string; kpi: string; deadline: string; expected: string; milestones: Milestone[] };
 type Action = { priority: 'critical' | 'haute' | 'moyenne'; title: string; detail: string; expected: string; kpi: string; done: boolean };
+type PerfRow = { id: string; name: string; qty: number; revenue: number; estimatedMargin: number | null; isKit: boolean };
 type Cockpit = {
   generatedAt: string;
   summary: {
@@ -28,6 +29,11 @@ type Cockpit = {
     productsPublished: number; productsTotal: number; demoRemaining: number;
     ingredients: number; ingredientsWithFunctions: number; members: number; appointments: number;
     roadmapDone: number; roadmapTotal: number; paymentsReady: boolean;
+  };
+  performance?: {
+    itemsAvailable: boolean; totalSoldQty: number; totalItemRevenue: number;
+    kitRevenue: number; kitSharePct: number; topProducts: PerfRow[]; topKits: PerfRow[];
+    targets: { aovEur: number; kitSharePct: number }; channelNote: string;
   };
   phases: Phase[]; kpis: Kpi[]; actions: Action[];
 };
@@ -37,6 +43,7 @@ const num = (v: number | null | undefined) => v === null || v === undefined ? '�
 
 const SECTIONS = [
   { id: 'actions', label: 'À faire maintenant', icon: ListChecks },
+  { id: 'performance', label: 'Ventes réelles', icon: BarChart3 },
   { id: 'positioning', label: 'Positionnement', icon: Target },
   { id: 'launch', label: 'Plan de lancement', icon: Rocket },
   { id: 'offers', label: 'Offres & prix', icon: ShoppingBag },
@@ -164,6 +171,96 @@ export function StrategyCockpitPanel({ headers }: Props) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* PERFORMANCE COMMERCIALE RÉELLE — quel produit/kit se vend, marge réelle */}
+      <div id="performance" className="scroll-mt-4">
+        <SectionTitle icon={BarChart3} title="Performance commerciale — chiffres réels" sub="Agrégation des lignes de commande payées. La marge est réelle si un coût d’achat est saisi en base, sinon estimée sur la cible catalogue. Aucune donnée inventée." />
+        {(() => {
+          const perf = data.performance;
+          if (!perf || !perf.itemsAvailable) {
+            return <Card className="!p-5"><p className="text-xs text-[#FFF7EF]/60 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-[#C8753D]" /> Le suivi des ventes par produit s’active dès la première commande payée (table des lignes de commande en place).</p></Card>;
+          }
+          const hasSales = perf.totalSoldQty > 0;
+          const realAov = data.summary.ordersPaid > 0 ? Math.round(perf.totalItemRevenue / data.summary.ordersPaid) : 0;
+          const aovVsTarget = data.summary.ordersPaid > 0 ? Math.round((realAov / perf.targets.aovEur) * 100) : 0;
+          const Row = ({ r, rank }: { r: PerfRow; rank: number }) => (
+            <tr className="border-b border-[#FFF7EF]/5 last:border-0 align-top">
+              <td className="px-3 py-2 text-[#C8753D] font-bold w-6">{rank}</td>
+              <td className="px-3 py-2 text-[#FFF7EF] font-medium">{r.name}</td>
+              <td className="px-3 py-2 text-right text-[#FFF7EF]/70 whitespace-nowrap">×{r.qty}</td>
+              <td className="px-3 py-2 text-right font-bold text-[#FFF7EF] whitespace-nowrap">{eur(r.revenue)}</td>
+              <td className="px-3 py-2 text-right text-emerald-300/90 whitespace-nowrap">{r.estimatedMargin == null ? '—' : eur(r.estimatedMargin)}</td>
+            </tr>
+          );
+          return (
+            <div className="space-y-4">
+              {/* KPIs réels vs objectifs plan CENTRAL */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <Card className="!p-3">
+                  <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Unités vendues</p>
+                  <p className="text-xl font-bold text-[#FFF7EF]">{num(perf.totalSoldQty)}</p>
+                  <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">{num(data.summary.ordersPaid)} commande(s) payée(s)</p>
+                </Card>
+                <Card className="!p-3">
+                  <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">CA produits (lignes)</p>
+                  <p className="text-xl font-bold text-[#FFF7EF]">{eur(perf.totalItemRevenue)}</p>
+                </Card>
+                <Card className="!p-3">
+                  <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Panier moyen (réel)</p>
+                  <p className="text-xl font-bold text-[#FFF7EF]">{data.summary.ordersPaid ? `${realAov} €` : '—'}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: aovVsTarget >= 100 ? '#6ee7b7' : '#f0abfc' }}>{data.summary.ordersPaid ? `objectif ${perf.targets.aovEur} € · ${aovVsTarget}%` : `objectif ${perf.targets.aovEur} €`}</p>
+                </Card>
+                <Card className="!p-3">
+                  <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Part des kits</p>
+                  <p className="text-xl font-bold text-[#FFF7EF]">{perf.kitSharePct} %</p>
+                  <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">objectif {perf.targets.kitSharePct}% · {eur(perf.kitRevenue)}</p>
+                </Card>
+              </div>
+
+              {!hasSales ? (
+                <Card className="!p-6 text-center">
+                  <Trophy className="w-6 h-6 text-[#C8753D] mx-auto mb-2" />
+                  <p className="text-sm font-bold text-[#FFF7EF]">Aucune vente pour l’instant — c’est normal en pré-lancement.</p>
+                  <p className="text-[11px] text-[#FFF7EF]/55 mt-1">Dès les premières commandes payées, cette section montrera automatiquement : le produit qui se vend le mieux, le kit le plus performant, le CA et la marge réels.</p>
+                </Card>
+              ) : (
+                <div className="grid lg:grid-cols-2 gap-3">
+                  <Card className="!p-0 overflow-hidden">
+                    <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold px-3 pt-3 pb-2 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Top produits</p>
+                    <table className="w-full text-[11px]">
+                      <thead><tr className="text-left text-[#FFF7EF]/40 border-b border-[#FFF7EF]/10">
+                        <th className="px-3 py-1.5"></th><th className="px-3 py-1.5 font-medium">Produit</th>
+                        <th className="px-3 py-1.5 font-medium text-right">Qté</th><th className="px-3 py-1.5 font-medium text-right">CA</th>
+                        <th className="px-3 py-1.5 font-medium text-right">Marge</th>
+                      </tr></thead>
+                      <tbody>{perf.topProducts.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
+                    </table>
+                  </Card>
+                  <Card className="!p-0 overflow-hidden">
+                    <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold px-3 pt-3 pb-2 flex items-center gap-1.5"><Boxes className="w-3.5 h-3.5" /> Top kits</p>
+                    {perf.topKits.length === 0 ? (
+                      <p className="px-3 pb-4 pt-1 text-[11px] text-[#FFF7EF]/50">Aucun kit vendu pour l’instant. Les kits sont le levier de panier moyen (objectif {perf.targets.kitSharePct}% du CA).</p>
+                    ) : (
+                      <table className="w-full text-[11px]">
+                        <thead><tr className="text-left text-[#FFF7EF]/40 border-b border-[#FFF7EF]/10">
+                          <th className="px-3 py-1.5"></th><th className="px-3 py-1.5 font-medium">Kit</th>
+                          <th className="px-3 py-1.5 font-medium text-right">Qté</th><th className="px-3 py-1.5 font-medium text-right">CA</th>
+                          <th className="px-3 py-1.5 font-medium text-right">Marge</th>
+                        </tr></thead>
+                        <tbody>{perf.topKits.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
+                      </table>
+                    )}
+                  </Card>
+                </div>
+              )}
+
+              <Card className="!p-3 !bg-amber-400/5 border-amber-400/20">
+                <p className="text-[10px] text-amber-200/90 flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {perf.channelNote} Sans cette attribution, on saura QUEL produit se vend mais pas encore PAR QUEL canal — à instrumenter avant de lancer le budget payant (action a07).</p>
+              </Card>
+            </div>
+          );
+        })()}
       </div>
 
       {/* PLAN DE LANCEMENT (catalogue, kits, routines, outils, scénarios, actions) */}
