@@ -461,8 +461,114 @@ export function penetrationChannelBoard(
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 8. ALERTES DE PÉNÉTRATION (comparaison planifié vs réel)
+// 9. PLAN D'INFLUENCE POUR LA PÉNÉTRATION — par taille de créateur
+// Conçu pour pénétrer un segment : on commence nano (crédibilité), on passe
+// micro (portée ciblée), on garde macro/experts pour l'amplification/autorité.
+// Recrutement CONTINU : à chaque nouveau segment/marché, on relance le pipeline.
 // ════════════════════════════════════════════════════════════════════════════
+export type PenInfluenceTier = {
+  tier: string; followers: string;
+  count100: number; count1k: number; count10k: number;
+  compensation: string; budgetEach: string; clientsEach: string;
+  campaign: string; kpi: string; renew: string; stop: string;
+};
+
+export const PEN_INFLUENCE: PenInfluenceTier[] = [
+  { tier: 'Nano-créateurs (segment)', followers: '1k–10k', count100: 6, count1k: 20, count10k: 60,
+    compensation: 'Produit offert (kit) + code −15 %', budgetEach: '0 € cash (~70 € produit)', clientsEach: '3–5 ventes',
+    campaign: 'Honnête review du kit + routine 4C, code UTM unique', kpi: '≥ 3 ventes/code ou ≥ 20k vues',
+    renew: '≥ 3 ventes → on renvoie produit + on passe en collaboration récurrente', stop: '0 vente et < 5k vues après 2 contenus → on ne renouvelle pas' },
+  { tier: 'Micro-créateurs (segment)', followers: '10k–50k', count100: 0, count1k: 6, count10k: 40,
+    compensation: 'Produit + 100–300 €/contenu selon engagement', budgetEach: '150–300 €', clientsEach: '8–15 ventes',
+    campaign: 'Vidéo dédiée wash day / avant-après + UGC réutilisable en paid', kpi: 'ROAS ≥ 1,5 ou ≥ 8 ventes',
+    renew: 'ROAS ≥ 1,5 → contrat trimestriel + budget paid sur leur contenu', stop: 'ROAS < 1 sur 2 campagnes → stop' },
+  { tier: 'Macro-créateurs (amplification)', followers: '50k–300k', count100: 0, count1k: 0, count10k: 6,
+    compensation: 'Fee 500–2 000 € + affiliation', budgetEach: '800–2 000 €', clientsEach: '30–80 ventes',
+    campaign: 'Lancement de gamme / mise en avant nationale (palier 10k)', kpi: 'ROAS ≥ 2 + notoriété (vues, recherches marque)',
+    renew: 'ROAS ≥ 2 sur le lancement → on reconduit au lancement suivant', stop: 'ROAS < 1,5 → retour micro/nano' },
+  { tier: 'Experts reconnus (autorité)', followers: 'coiffeurs/visagistes référents', count100: 1, count1k: 3, count10k: 10,
+    compensation: 'Partenariat expert (kit pro + commission)', budgetEach: 'produit + 15 % commission', clientsEach: 'crédibilité + 10–20 ventes',
+    campaign: 'Co-création de contenu éducatif, validation pro des routines', kpi: 'contenu expert + clics vers diagnostic',
+    renew: 'engagement fort + apport de crédibilité → relation long terme', stop: 'pas de résonance auprès du segment → stop' },
+  { tier: 'Créateurs UGC (authenticité)', followers: '0–5k (clients)', count100: 10, count1k: 50, count10k: 200,
+    compensation: 'Clientes satisfaites : produit/remise contre vidéo', budgetEach: 'bon d’achat 20–40 €', clientsEach: 'contenu publicitaire (pas de vente directe)',
+    campaign: 'Vidéo cliente authentique → bibliothèque de créas pour le paid', kpi: '≥ 10 UGC utilisables en paid',
+    renew: 'bonne UGC → on en redemande + on les transforme en ambassadrices', stop: 'qualité insuffisante → on remercie' },
+];
+
+// Pipeline de recrutement continu (à lancer dans CHAQUE nouveau segment/marché).
+export const INFLUENCE_PIPELINE = [
+  'Lister 50 créateurs du segment cible (tableau : pseudo, ab., engagement, contact, langue, pays)',
+  'DM personnalisés (25/sem.) avec le pitch barter → objectif 20 % de réponse, 30 % d’acceptation',
+  'Envoyer le kit + brief créa (3 angles) + code UTM unique',
+  'Relance J7/J14, fournir les idées de contenu qui marchent (issues des gagnants)',
+  'Mesurer ventes par code → classer GAGNANT/ACTIF/STOP → doubler les gagnants, couper les morts',
+  'Transformer les meilleures en ambassadrices (produit continu + commission + avant-premières)',
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// 10. PARTENARIATS DE PÉNÉTRATION — accélérateurs par segment et par marché
+// ════════════════════════════════════════════════════════════════════════════
+export type PenPartner = {
+  type: string; where: string; segment: string; jointOffer: string;
+  partnerInterest: string; expectedAcq: string; kpi: string; renew: string;
+};
+
+export const PEN_PARTNERS: PenPartner[] = [
+  { type: 'Salons de coiffure spécialisés 4C', where: 'IdF/Lyon puis national', segment: 'Femmes 4C',
+    jointOffer: 'Kit à recommander entre 2 RDV + carte diagnostic + commission 10–15 %', partnerInterest: 'Revenu complémentaire + résultat qui tient entre les RDV (clientes fidèles)',
+    expectedAcq: '10 clients/salon sur la durée', kpi: 'ventes via code salon + RDV supplémentaires', renew: '≥ 10 ventes → on approfondit (stock salon, formation)' },
+  { type: 'Coiffeurs/barbiers influents', where: 'France puis UK/DE', segment: 'Hommes texturés / 4C',
+    jointOffer: 'Gamme hommes + outils (éponge twist, durag) en salon + code', partnerInterest: 'Offre produit à vendre/recommander à leur audience',
+    expectedAcq: '15–30 clients/partenaire', kpi: 'ventes code + contenu', renew: 'ROI positif → contrat ambassadeur' },
+  { type: 'Écoles de coiffure & beauté', where: 'Grandes villes', segment: 'Pros / future pros',
+    jointOffer: 'KURLA Pro : produits pédagogiques + certification routine texturée', partnerInterest: 'Enseigner la diversité capillaire (manque criant : < 150 salons capables)',
+    expectedAcq: 'notoriété + future pros prescriptrices', kpi: 'écoles partenaires + élèves formés', renew: '1 promotion formée → on reconduit' },
+  { type: 'Associations & communautés (afro, naturalistes)', where: 'IdF/Lyon → national', segment: '4C / naturalistes',
+    jointOffer: 'Ateliers wash day gratuits + code communauté + don/reversement', partnerInterest: 'Valeur apportée à leurs membres (éducation capillaire)',
+    expectedAcq: '10–20 membres / communauté', kpi: 'participation ateliers + ventes code', renew: 'atelier complet + ventes → récurrence mensuelle' },
+  { type: 'Marques complémentaires (soin peau noire, accessoires)', where: 'France/Belgique', segment: 'cross-segment',
+    jointOffer: 'Coffrets croisés, bundles, concours communs', partnerInterest: 'Audience partagée, panier enrichi',
+    expectedAcq: '20–50 clients / opération', kpi: 'ventes croisées + followers', renew: 'opération rentable → programmation trimestrielle' },
+  { type: 'Médias & événements spécialisés', where: 'France, UK, Afrique', segment: 'tous',
+    jointOffer: 'Sponsoring/présence salons afro, beauty events, podcasts', partnerInterest: 'Marque sponsore pertinente',
+    expectedAcq: 'notoriété + leads locaux', kpi: 'leads + ventes post-event', renew: 'coût/lead < CAC → reconduire' },
+  { type: 'Distributeurs locaux (marchés internationaux)', where: 'Sénégal, Côte d’Ivoire, Nigeria', segment: 'classe moyenne urbaine',
+    jointOffer: 'Gamme entrée/outils en gros + exclusivité régionale conditionnelle', partnerInterest: 'Marge distributeur + produit tendance',
+    expectedAcq: '60+ clients via distributeur/marketplace', kpi: 'récommandes distributeur + ventes marketplace', renew: 'réappro dans les 90 j → on élargit le catalogue' },
+  { type: '3PL & marketplaces (logistique pénétration)', where: 'UK, Afrique du Sud, Jumia/Konga', segment: 'nouveaux marchés',
+    jointOffer: 'Stock local + vente marketplace sans infrastructure propre', partnerInterest: 'volume de vente pour la marketplace',
+    expectedAcq: '50–100 commandes/marché test', kpi: 'commandes pays + délai livraison', renew: '≥ seuil test pays → stock local puis scale' },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// 11. PROFONDEUR DE PÉNÉTRATION — du 1er achat à l'ambassadeur
+// Acquérir ne suffit pas : un segment est « possédé » quand les clientes
+// reviennent, s'abonnent, recommandent et pénètrent le segment POUR KURLA.
+// ════════════════════════════════════════════════════════════════════════════
+export type PenDepthStep = {
+  step: string; meaning: string; mechanism: string; tool: string; kpi: string; target: string;
+};
+
+export const PEN_DEPTH: PenDepthStep[] = [
+  { step: '1er achat', meaning: 'Pénétration initiale (kit recommandé post-diagnostic)', mechanism: 'Diagnostic → kit K02/K03 en tête + offre 100 premiers', tool: 'Reco kit + add-ons panier', kpi: 'Taux de conversion visite→commande', target: '≥ 1,2 %' },
+  { step: '2e achat', meaning: 'Confirmation que le produit tient la promesse', mechanism: 'Email « fin de produit » + réachat −10 % + relance panier', tool: 'CRM/email segmenté + relance 3 emails', kpi: 'Réachat 90 j', target: '≥ 20 %' },
+  { step: 'Routine ancrée', meaning: 'La cliente suit sa routine KURLA (wash day récurrent)', mechanism: 'Routine tracker, rappels, contenu éducatif ciblé 4C', tool: 'Beauty hub + routine tracker + notifications', kpi: 'Activité routine + 3e achat', target: 'LTV ≥ 2× AOV' },
+  { step: 'Abonnement (KURLA+)', meaning: 'Pénétration durable, revenu récurrent', mechanism: 'Proposer KURLA+ après la 1ère valeur perçue (post-2e achat)', tool: 'Membership 7,90 €/mois', kpi: 'Taux d’abonnement', target: '10–15 abonnés/1 000 clients' },
+  { step: 'Recommandation', meaning: 'Pénétration virale dans le segment', mechanism: 'Parrainage 10/10 € activé après satisfaction', tool: 'Programme de parrainage (livré)', kpi: '% de nouveaux clients par parrainage', target: '15–25 % des nouveaux à M6' },
+  { step: 'Ambassadrice', meaning: 'La cliente pénètre le segment pour KURLA', mechanism: 'Meilleures clientes + UGC → ambassadrices (produit continu, commission, avant-premières)', tool: 'Programme ambassadeurs + codes', kpi: 'Nb d’ambassadrices actives + ventes générées', target: '1 ambassadrice/100 clients' },
+];
+
+// Mesure de la PROFONDEUR (pas seulement le volume) par segment.
+export const PEN_DEPTH_KPIS = [
+  'LTV par segment (CA cumulé/cliente) — cible ≥ 3× CAC',
+  'Taux de réachat 90 j — cible ≥ 20 % (sinon pénétration superficielle)',
+  'Taux de recommandation / % de ventes parrainées — cible 15–25 %',
+  'NPS par segment — cible ≥ 50 (preuve d’« amour » du segment)',
+  'Part des clientes qui passent 1er → 2e achat — cible ≥ 30 %',
+];
+
+
 export type PenRealMetrics = {
   ordersPaid: number;
   aovEur: number | null;

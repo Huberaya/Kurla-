@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import {
   Rocket, AlertTriangle, CheckCircle2, Circle, Calculator, Map as MapIcon,
   Layers, Users, Target, ChevronRight, Zap, TrendingUp, Crosshair, Gauge,
+  Megaphone, Handshake, HeartHandshake,
 } from 'lucide-react';
 import {
   PEN_LADDER, PEN_SEGMENTS_FR, PEN_MARKETS, PEN_FIRST100, PEN_WEEKLY,
   PEN_PHASE_META, penetrationCalc, penetrationAlerts, penetrationChannelBoard,
+  PEN_INFLUENCE, INFLUENCE_PIPELINE, PEN_PARTNERS, PEN_DEPTH, PEN_DEPTH_KPIS,
   type PenMarket,
 } from '../lib/penetration';
 
@@ -346,6 +348,98 @@ export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) 
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ⑥b PLAN D'INFLUENCE */}
+      <div>
+        <Title icon={Megaphone} title="Plan d'influence pour pénétrer le segment" sub="Recrutement continu dans chaque nouveau segment/marché : nano (crédibilité) → micro (portée) → macro/experts (amplification/autorité) → UGC clientes." />
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px]">
+            <thead><tr className="text-[#D49A63] border-b border-[#FFF7EF]/10">
+              <th className="py-2 pr-3 text-left">Palier créateurs</th>
+              <th className="py-2 pr-3 text-center">100</th><th className="py-2 pr-3 text-center">1k</th><th className="py-2 pr-3 text-center">10k</th>
+              <th className="py-2 pr-3 text-left">Rémunération</th><th className="py-2 pr-3 text-left">Campagne / KPI</th>
+              <th className="py-2 text-left">Renouveler / arrêter</th>
+            </tr></thead>
+            <tbody className="divide-y divide-[#FFF7EF]/5">
+              {PEN_INFLUENCE.map((t, i) => (
+                <tr key={i}>
+                  <td className="py-2.5 pr-3 font-semibold text-[#FFF7EF] whitespace-nowrap">{t.tier}<br /><span className="text-[#FFF7EF]/40 font-normal">{t.followers}</span></td>
+                  <td className="py-2.5 pr-3 text-center font-bold text-[#FFF7EF]">{t.count100}</td>
+                  <td className="py-2.5 pr-3 text-center font-bold text-[#FFF7EF]">{t.count1k}</td>
+                  <td className="py-2.5 pr-3 text-center font-bold text-[#D49A63]">{t.count10k}</td>
+                  <td className="py-2.5 pr-3 text-[#FFF7EF]/70 whitespace-nowrap">{t.compensation}<br /><span className="text-[#D49A63]">{t.budgetEach} · {t.clientsEach}</span></td>
+                  <td className="py-2.5 pr-3 text-[#FFF7EF]/65 max-w-[220px]">{t.campaign}<br /><span className="text-emerald-300/80">KPI : {t.kpi}</span></td>
+                  <td className="py-2 text-[#FFF7EF]/60 max-w-[200px]"><span className="text-emerald-300/80">✓ {t.renew}</span><br /><span className="text-rose-300/80">✗ {t.stop}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Card className="mt-3 !p-4">
+          <p className="text-[11px] font-bold text-[#D49A63] mb-2">Pipeline de recrutement continu (relancé dans CHAQUE segment/marché)</p>
+          <ol className="space-y-1.5">
+            {INFLUENCE_PIPELINE.map((step, i) => (
+              <li key={i} className="flex items-start gap-2 text-[11px] text-[#FFF7EF]/75">
+                <span className="w-4 h-4 rounded-full bg-[#C8753D]/20 text-[#D49A63] text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </Card>
+      </div>
+
+      {/* ⑥c PARTENARIATS DE PÉNÉTRATION */}
+      <div>
+        <Title icon={Handshake} title="Partenaires de pénétration — accélérateurs par segment & marché" sub="Chaque partenaire a une offre conjointe, un intérêt clair, une acquisition attendue et un critère de renouvellement." />
+        <div className="grid md:grid-cols-2 gap-3">
+          {PEN_PARTNERS.map((p, i) => (
+            <Card key={i} className="!p-4">
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <p className="text-xs font-bold text-[#FFF7EF]">{p.type}</p>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/60 whitespace-nowrap">{p.where}</span>
+              </div>
+              <p className="text-[10px] text-[#D49A63] mb-2">Segment : {p.segment}</p>
+              <div className="space-y-1 text-[10px] text-[#FFF7EF]/70">
+                <p><b className="text-[#FFF7EF]/90">Offre conjointe :</b> {p.jointOffer}</p>
+                <p><b className="text-[#FFF7EF]/90">Intérêt du partenaire :</b> {p.partnerInterest}</p>
+                <p className="text-[#D49A63]"><b>Acquisition attendue :</b> {p.expectedAcq}</p>
+                <p><b className="text-[#FFF7EF]/90">KPI :</b> {p.kpi}</p>
+                <p className="text-emerald-300/80"><b>Renouvellement :</b> {p.renew}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* ⑥d PROFONDEUR DE PÉNÉTRATION */}
+      <div>
+        <Title icon={HeartHandshake} title="Profondeur de pénétration — du 1er achat à l'ambassadrice" sub="Un segment est « possédé » quand les clientes reviennent, s'abonnent, recommandent et pénètrent le segment pour KURLA." />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+          {PEN_DEPTH.map((d, i) => (
+            <Card key={i} className="!p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-6 h-6 rounded-full bg-[#C8753D]/20 text-[#D49A63] text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                <p className="text-xs font-bold text-[#FFF7EF]">{d.step}</p>
+              </div>
+              <p className="text-[10px] text-[#FFF7EF]/60 mb-2">{d.meaning}</p>
+              <p className="text-[10px] text-[#FFF7EF]/75 mb-1.5"><b className="text-[#D49A63]">Mécanisme :</b> {d.mechanism}</p>
+              <p className="text-[10px] text-[#FFF7EF]/55 mb-2"><b className="text-[#FFF7EF]/80">Outil :</b> {d.tool}</p>
+              <div className="pt-2 border-t border-[#FFF7EF]/10 flex items-center justify-between text-[10px]">
+                <span className="text-[#FFF7EF]/60">{d.kpi}</span>
+                <span className="text-emerald-300 font-bold whitespace-nowrap">{d.target}</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+        <Card className="!p-4">
+          <p className="text-[11px] font-bold text-[#D49A63] mb-2">On mesure la PROFONDEUR (pas seulement le volume) par segment</p>
+          <ul className="grid sm:grid-cols-2 gap-1.5">
+            {PEN_DEPTH_KPIS.map((k, i) => (
+              <li key={i} className="flex items-start gap-2 text-[11px] text-[#FFF7EF]/75"><Gauge className="w-3.5 h-3.5 text-[#C8753D] shrink-0 mt-0.5" />{k}</li>
+            ))}
+          </ul>
+        </Card>
       </div>
 
       {/* ⑦ CALCULATRICE DE PÉNÉTRATION */}
