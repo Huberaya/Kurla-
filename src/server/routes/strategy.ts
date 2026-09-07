@@ -283,6 +283,35 @@ export function registerStrategyRoutes(app: Express): void {
       const kitRevenue = allSold.filter((r) => r.isKit).reduce((s, r) => s + r.revenue, 0);
       const totalItemRevenue = allSold.reduce((s, r) => s + r.revenue, 0);
       const totalSoldQty = allSold.reduce((s, r) => s + r.qty, 0);
+
+      // ── Ventes par canal d'acquisition (orders.attribution, sinon coupon) ──
+      type ChannelRow = { channel: string; orders: number; revenue: number };
+      const channelMap = new Map<string, ChannelRow>();
+      let ordersWithAttribution = 0;
+      try {
+        const { data: ordForChannel } = await supabase
+          .from('orders')
+          .select('id, status, total, attribution')
+          .limit(10000);
+        const revStatuses = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed'];
+        for (const o of (ordForChannel || [])) {
+          if (!revStatuses.includes(o.status)) continue;
+          let channel: string | null = null;
+          const attr = o.attribution as { last?: { channel?: string; source?: string; medium?: string } } | null;
+          channel = attr?.last?.channel || null;
+          if (channel) ordersWithAttribution++;
+          else channel = 'Non attribué';
+          const rev = Number(o.total || 0);
+          const cur = channelMap.get(channel) || { channel, orders: 0, revenue: 0 };
+          cur.orders += 1;
+          cur.revenue = Math.round((cur.revenue + rev) * 100) / 100;
+          channelMap.set(channel, cur);
+        }
+      } catch { /* colonne attribution peut être absente avant migration */ }
+      const channels = Array.from(channelMap.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }));
+
       const performance = {
         itemsAvailable,
         totalSoldQty,
@@ -291,10 +320,14 @@ export function registerStrategyRoutes(app: Express): void {
         kitSharePct: totalItemRevenue > 0 ? Math.round((kitRevenue / totalItemRevenue) * 100) : 0,
         topProducts,
         topKits,
+        channels,
+        ordersWithAttribution,
         // Objectifs AOV/part kit du plan (CENTRAL) pour comparaison au réel
         targets: { aovEur: 42, kitSharePct: 50 },
-        // L'attribution canal (UTM) n'est pas encore capturée au checkout → on ne l'invente pas
-        channelNote: 'Attribution canal non encore instrumentée : ajouter les paramètres UTM à la création de commande pour mesurer quel canal est rentable.',
+        // L'attribution est mesurée dès que les commandes portent un UTM/référent.
+        channelNote: ordersWithAttribution > 0
+          ? 'Canal issu des UTM/référents capturés au checkout (first/last-touch). Les « Non attribué » sont des visites directes ou antérieures à l’instrumentation.'
+          : 'Ajoutez des paramètres UTM aux liens (TikTok, créateurs, emails) : les ventes seront alors réparties par canal ici. Les commandes sans UTM apparaissent en « Non attribué ».',
       };
 
       res.json({

@@ -125,6 +125,13 @@ export interface ServerOrder {
   couponCode?: string;
   /** Montant de la remise coupon, en euros (TTC). Déjà déduit de `total`. */
   discountAmount?: number;
+  /** Origine d'acquisition (UTM/référent), last-touch + first-touch. */
+  attribution?: OrderAttribution | null;
+}
+
+export interface OrderAttribution {
+  last?: Record<string, unknown> | null;
+  first?: Record<string, unknown> | null;
 }
 
 /**

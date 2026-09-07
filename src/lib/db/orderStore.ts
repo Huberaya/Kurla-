@@ -29,6 +29,29 @@ import type {
  * partagé du singleton.
  */
 /**
+ * Insertion d'une commande tolérante à l'absence de la colonne `attribution`.
+ * La migration qui ajoute cette colonne peut être appliquée après le code :
+ * si l'insert échoue à cause d'une colonne inconnue, on réessaie sans ce champ
+ * (l'attribution reste alors récupérable via les métadonnées Stripe).
+ */
+async function insertOrderWithAttributionFallback(
+  supabase: NonNullable<ReturnType<typeof getSupabaseServerClient>>,
+  payload: Record<string, unknown>,
+  context: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  const attempt = async (p: Record<string, unknown>) =>
+    supabase.from('orders').insert(p).select('*').single();
+  let { data, error } = await attempt(payload);
+  if (error && /attribution|column .* does not exist|could not find column/i.test(String(error?.message || error))) {
+    const { attribution: _drop, ...payloadWithoutAttr } = payload;
+    ({ data, error } = await attempt(payloadWithoutAttr));
+  }
+  ensureDatabaseSuccess(context, error);
+  return data;
+}
+
+/**
  * Commande de PRÉCOMMANDE : contrairement à `saveOrder`, on ne réserve AUCUN
  * stock (le premier lot n'est pas encore réceptionné). On crée néanmoins la
  * commande, ses lignes, son entrée de paiement et son historique dans le même
@@ -73,11 +96,11 @@ export async function savePreorderOrder(store: SupabaseServerStore, order: Serve
         vat_amount: order.vatAmount ?? null,
         vat_breakdown: (order.vatBreakdown as any) ?? null,
         customer_vat_number: order.customerVatNumber || null,
+        attribution: order.attribution ?? null,
         created_at: now,
         updated_at: now
     };
-    const { data: orderRow, error: orderError } = await supabase.from('orders').insert(orderPayload).select('*').single();
-    ensureDatabaseSuccess('création de la commande précommande', orderError);
+    const orderRow = await insertOrderWithAttributionFallback(supabase, orderPayload, 'création de la commande précommande');
 
     const lines = (Array.isArray(order.items) ? order.items : []).map((item: any) => ({
         order_id: order.id,
@@ -212,8 +235,12 @@ export async function saveOrder(store: SupabaseServerStore, order: ServerOrder):
     }
 
     if (supabase) {
-      // 1. Save main order in public.orders
-      const { error: orderError } = await supabase.from('orders').upsert({
+      // 1. Save main order in public.orders. L'attribution (et la TVA, déjà
+      // tolérée) est écrite dans une colonne qui peut être absente avant
+      // migration : on réessaie sans ces colonnes si la base les refuse.
+      const upsertOrder = async (payload: Record<string, unknown>) =>
+        supabase.from('orders').upsert(payload, { onConflict: 'id' });
+      const baseOrderPayload: Record<string, unknown> = {
         id: order.id,
         user_id: order.userId || null,
         customer_email: order.customerEmail,
@@ -225,8 +252,15 @@ export async function saveOrder(store: SupabaseServerStore, order: ServerOrder):
         checkout_idempotency_key: order.checkoutIdempotencyKey || null,
         shipping_address: order.shippingAddress || null,
         created_at: order.createdAt,
-        updated_at: order.updatedAt
-      }, { onConflict: 'id' });
+        updated_at: order.updatedAt,
+        // Origine d'acquisition (colonne ajoutée par migration ; tolérée si absente).
+        attribution: order.attribution ?? null,
+      };
+      let { error: orderError } = await upsertOrder(baseOrderPayload);
+      if (orderError && /attribution|column .* does not exist|could not find column/i.test(String(orderError?.message || orderError))) {
+        const { attribution: _drop, ...fallbackPayload } = baseOrderPayload;
+        ({ error: orderError } = await upsertOrder(fallbackPayload));
+      }
       ensureDatabaseSuccess('création de la commande', orderError);
 
       // 2. Save detailed line items in public.order_items

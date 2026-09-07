@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { calculateShippingCents, getShippingOption, normalizeShippingAddress, SHIPPING_OPTIONS, ShippingMethod } from '../lib/shippingRules';
 import { computeOrderVat, formatVatRate } from '../lib/vat';
 import { analytics } from '../lib/analytics';
+import { getOrderAttribution } from '../lib/attribution';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
@@ -191,6 +192,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           checkoutIdempotencyKey,
           shippingAddress,
           shippingMethod,
+          attribution: getOrderAttribution(),
           ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {})
         })
       });

@@ -44,6 +44,29 @@ import type { AuthenticatedRequest, AuthenticatedUser } from './src/server/types
 import { getGeminiClient } from './src/server/ai/client';
 import { getStripeClient } from './src/server/payments/stripeClient';
 import { confirmOrderPaidFromCheckoutSession, reconcileOrderPayment, reconcilePendingOrders } from './src/server/payments/reconcileCheckout';
+
+/**
+ * Assainit l'attribution d'acquisition envoyée par le client : ne conserve que
+ * des chaînes courtes sur un jeu de clés connu, pour éviter toute injection ou
+ * tout dépassement de taille. Renvoie null si rien d'exploitable.
+ */
+function sanitizeAttribution(raw: unknown): { last: Record<string, string> | null; first: Record<string, string> | null } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const allowed = ['source', 'medium', 'campaign', 'term', 'content', 'referrer', 'channel', 'landingPath', 'capturedAt'];
+  const clean = (part: unknown): Record<string, string> | null => {
+    if (!part || typeof part !== 'object') return null;
+    const out: Record<string, string> = {};
+    for (const k of allowed) {
+      const v = (part as Record<string, unknown>)[k];
+      if (typeof v === 'string' && v.trim()) out[k] = v.trim().slice(0, 120);
+    }
+    return Object.keys(out).length ? out : null;
+  };
+  const r = raw as Record<string, unknown>;
+  const last = clean(r.last);
+  const first = clean(r.first);
+  return last || first ? { last, first } : null;
+}
 import {
   JurisdictionGraph,
   assessProductComplianceForCountry,
@@ -749,6 +772,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Save order with user_id, shipping details and status payment_pending_webhook.
     // The shipping cost is stored in the order snapshot so the customer and
     // operations team can reconstruct exactly what was paid.
+    const attribution = sanitizeAttribution(req.body?.attribution);
     const newOrder: ServerOrder = {
       id: orderId,
       userId: uid,
@@ -757,6 +781,7 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
       status: 'payment_pending_webhook',
       customerEmail: email,
       checkoutIdempotencyKey,
+      ...(attribution ? { attribution } : {}),
       // Coupon appliqué (métrique + traçabilité). La remise est déjà déduite des
       // prix unitaires ; on trace son montant réellement accordé.
       ...(appliedCoupon ? {
@@ -835,14 +860,25 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     persistedOrderId = orderId;
     await serverDb.notifyPaymentPending(persistedOrder);
 
+    // Attribution canal aplatie en métadonnées Stripe (chaînes courtes, secours
+    // si la colonne `attribution` de orders n'est pas encore migrée).
+    const attrMeta: Record<string, string> = {};
+    if (attribution?.last) {
+      if (attribution.last.channel) attrMeta.attrChannel = attribution.last.channel.slice(0, 60);
+      if (attribution.last.source) attrMeta.attrSource = attribution.last.source.slice(0, 60);
+      if (attribution.last.medium) attrMeta.attrMedium = attribution.last.medium.slice(0, 60);
+      if (attribution.last.campaign) attrMeta.attrCampaign = attribution.last.campaign.slice(0, 60);
+      if (attribution.last.referrer) attrMeta.attrReferrer = attribution.last.referrer.slice(0, 60);
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
       customer_email: email,
-      metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}) },
+      metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}), ...attrMeta },
       payment_intent_data: {
-        metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}) }
+        metadata: { orderId, userId: uid || '', ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}), ...attrMeta }
       },
       success_url: `${appUrl}/commande/confirmation?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
       cancel_url: `${appUrl}/boutique?canceled=true`,

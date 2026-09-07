@@ -33,6 +33,8 @@ type Cockpit = {
   performance?: {
     itemsAvailable: boolean; totalSoldQty: number; totalItemRevenue: number;
     kitRevenue: number; kitSharePct: number; topProducts: PerfRow[]; topKits: PerfRow[];
+    channels: { channel: string; orders: number; revenue: number }[];
+    ordersWithAttribution: number;
     targets: { aovEur: number; kitSharePct: number }; channelNote: string;
   };
   phases: Phase[]; kpis: Kpi[]; actions: Action[];
@@ -255,8 +257,44 @@ export function StrategyCockpitPanel({ headers }: Props) {
                 </div>
               )}
 
+              {/* VENTES PAR CANAL */}
+              <Card className="!p-0 overflow-hidden">
+                <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold px-3 pt-3 pb-2 flex items-center gap-1.5"><Megaphone className="w-3.5 h-3.5" /> Ventes par canal d'acquisition</p>
+                {perf.channels.length === 0 ? (
+                  <p className="px-3 pb-4 pt-1 text-[11px] text-[#FFF7EF]/50">Aucune vente payée pour l’instant.</p>
+                ) : (
+                  <table className="w-full text-[11px]">
+                    <thead><tr className="text-left text-[#FFF7EF]/40 border-b border-[#FFF7EF]/10">
+                      <th className="px-3 py-1.5 font-medium">Canal</th>
+                      <th className="px-3 py-1.5 font-medium text-right">Commandes</th>
+                      <th className="px-3 py-1.5 font-medium text-right">CA</th>
+                      <th className="px-3 py-1.5 font-medium text-right">Part du CA</th>
+                    </tr></thead>
+                    <tbody>
+                      {perf.channels.map((c) => {
+                        const totalRev = perf.channels.reduce((s, x) => s + x.revenue, 0) || 1;
+                        const share = Math.round((c.revenue / totalRev) * 100);
+                        return (
+                          <tr key={c.channel} className="border-b border-[#FFF7EF]/5 last:border-0">
+                            <td className="px-3 py-2 text-[#FFF7EF] font-medium">{c.channel}</td>
+                            <td className="px-3 py-2 text-right text-[#FFF7EF]/70">{c.orders}</td>
+                            <td className="px-3 py-2 text-right font-bold text-[#FFF7EF] whitespace-nowrap">{eur(c.revenue)}</td>
+                            <td className="px-3 py-2 text-right">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-16 h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden"><span className="block h-full bg-[#C8753D]" style={{ width: `${share}%` }} /></span>
+                                <span className="text-[#FFF7EF]/60 w-9 text-right">{share}%</span>
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </Card>
+
               <Card className="!p-3 !bg-amber-400/5 border-amber-400/20">
-                <p className="text-[10px] text-amber-200/90 flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {perf.channelNote} Sans cette attribution, on saura QUEL produit se vend mais pas encore PAR QUEL canal — à instrumenter avant de lancer le budget payant (action a07).</p>
+                <p className="text-[10px] text-amber-200/90 flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {perf.channelNote}</p>
               </Card>
             </div>
           );
