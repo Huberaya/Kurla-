@@ -468,3 +468,103 @@ export const CONQUEST_WAVES = [
   { wave: 5, market: 'Afrique : Afrique du Sud (premium) + Sénégal/Côte d’Ivoire (distributeur/marketplace)', window: 'M24+', status: 'Sourcing Ghana dès M3', model: '3PL ZA ; marketplace + distributeur UEMOA' },
   { wave: 6, market: 'Plateforme mondiale (marketplace tiers, B2B données, IA)', window: 'M30+', status: 'Vision', model: 'Marketplace + KURLA Intelligence (agrégats)' },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. ROADMAP DE CONQUÊTE — le PLAN_CONQUETE traduit en étapes datées et jalons.
+// Chaque étape porte un objectif chiffré et des jalons ; les jalons `auto` sont
+// cochés par le BCC sur les mesures réelles (commandes, paiement, abonnés Pro).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ConquestMilestone = {
+  label: string;
+  /** Jalon mesuré : référence un KPI du cockpit (id STRATEGY_KPIS) ou une mesure summary. */
+  auto?: { kpiId: string; gte?: number; eq?: number };
+};
+
+export type ConquestStage = {
+  id: string;
+  index: number;
+  title: string;
+  window: string;
+  market: string;
+  offer: string;
+  objectiveClients: number | null;   // cumul de clients payants
+  objectiveRevenueEur: number | null; // CA mensuel visé en fin d'étape
+  budgetNote: string;
+  passGate: string;
+  milestones: ConquestMilestone[];
+};
+
+export const CONQUEST_ROADMAP: ConquestStage[] = [
+  {
+    id: 'stage0', index: 0, title: 'Amorçage — rendre la machine encaissable', window: 'M0–M2',
+    market: 'France · Île-de-France (puis Lyon) · segment 4C', offer: 'K02/K03 en tête de reco · kit −20 % pour les 100 premiers',
+    objectiveClients: 100, objectiveRevenueEur: 1500,
+    budgetNote: '~1 800 € (contenu + barter)',
+    passGate: '100 commandes + 20 avis + 10 UGC + CAC < 20 €',
+    milestones: [
+      { label: 'Stripe LIVE + webhook opérationnels', auto: { kpiId: 'paymentsReady', eq: 1 } },
+      { label: 'Première commande payée en réel', auto: { kpiId: 'orders', gte: 1 } },
+      { label: '100 clients payants', auto: { kpiId: 'orders', gte: 100 } },
+      { label: 'Premier lot réceptionné (4-6 k€ focalisé kits)' },
+      { label: 'TikTok 5-7 vidéos/semaine lancé' },
+      { label: '20 avis + 10 UGC collectés' },
+    ],
+  },
+  {
+    id: 'stage1', index: 1, title: 'Validation — prouver que le funnel convertit', window: 'M3–M6',
+    market: 'France · tous types 3A-4C', offer: 'Kit −15 % + livraison offerte dès 49 € · parrainage 10/10 €',
+    objectiveClients: 1000, objectiveRevenueEur: 9240,
+    budgetNote: '~9 000 € cumulé (créateurs + contenu)',
+    passGate: '90 cmd/mois, conv ≥ 1,2 %, CAC < 15 €, AOV ≥ 42 €, funnel rentable',
+    milestones: [
+      { label: '1 000 clients payants', auto: { kpiId: 'orders', gte: 1000 } },
+      { label: '4-8 micro-créateurs/mois avec codes UTM' },
+      { label: 'Emails panier abandonné + réachat −10 % actifs' },
+      { label: 'Réachat 90 j ≥ 20 %' },
+      { label: '1 créa payante rentable (ROAS > 2)' },
+    ],
+  },
+  {
+    id: 'stage2', index: 2, title: 'Croissance France + tête de pont Belgique', window: 'M7–M12',
+    market: 'France scale + Belgique/Luxembourg (FR, €)', offer: 'Kits premium K06/K10 · KURLA+ · test paid',
+    objectiveClients: 6000, objectiveRevenueEur: 28500,
+    budgetNote: '~1 500 € test Belgique + paid scaling (ROAS > 2,5)',
+    passGate: '620 cmd/mois, CA ~28 k€/mois, marge contributive positive, Belgique validée (30 cmd/60 j)',
+    milestones: [
+      { label: '6 000 clients payants', auto: { kpiId: 'orders', gte: 6000 } },
+      { label: 'Belgique ouverte : 30 commandes en 60 j' },
+      { label: 'Paid scaling avec ROAS > 2,5' },
+      { label: '15 abonnés KURLA+', auto: { kpiId: 'plusSubscribers', gte: 15 } },
+      { label: '5 salons pilotes (code pro + commission)' },
+    ],
+  },
+  {
+    id: 'stage3', index: 3, title: 'Europe — UK puis Allemagne/Pays-Bas + rentabilité', window: 'M13–M24',
+    market: 'Royaume-Uni (EN, £) puis DE (DE) / NL', offer: 'Kits localisés · KURLA Pro salons · marque propre karité',
+    objectiveClients: 10000, objectiveRevenueEur: 110000,
+    budgetNote: 'Tests pays : UK 4 k€ · DE 3 k€ · NL 2 k€',
+    passGate: 'Rentabilité nette mensuelle (≈M14) · CAC < LTV/3 · 2-3 pays actifs',
+    milestones: [
+      { label: '10 000 clients payants', auto: { kpiId: 'orders', gte: 10000 } },
+      { label: 'Localisation EN déployée (UK)' },
+      { label: '15 salons KURLA Pro', auto: { kpiId: 'proSubscribers', gte: 15 } },
+      { label: '3-5 produits marque propre (karité)' },
+      { label: 'Marketplace ouverte à des marques tierces' },
+    ],
+  },
+  {
+    id: 'stage4', index: 4, title: 'Afrique + plateforme mondiale', window: 'M24–M36',
+    market: 'Afrique du Sud (premium, 3PL) + Sénégal/Côte d’Ivoire (distributeur/marketplace)', offer: 'Kits premium ZA · outils/petits kits UEMOA · B2B données',
+    objectiveClients: 50000, objectiveRevenueEur: null,
+    budgetNote: 'Co-investissement distributeur/marketplace (pas de paid massif)',
+    passGate: 'Afrique du Sud : 50 commandes/90 j · sourcing karité structuré · B2B > 10 % du revenu',
+    milestones: [
+      { label: '50 000 clients payants', auto: { kpiId: 'orders', gte: 50000 } },
+      { label: 'Sourcing karité Ghana structuré (marge 45-55 %)' },
+      { label: 'Afrique du Sud : 50 commandes via 3PL' },
+      { label: 'Sénégal/CI : 1 distributeur + marketplace actifs' },
+      { label: 'KURLA Intelligence (agrégats k-anonymes) lancé' },
+    ],
+  },
+];

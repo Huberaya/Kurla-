@@ -8,6 +8,7 @@ import {
   OFFERS, PERSONAS, POSITIONING, CHANNELS, FUNNEL, PLAN_90,
   FINANCE_PROJECTION, FINANCE_ASSUMPTIONS, BREAKEVEN, STRATEGY_GUARDRAILS,
   CONQUEST_TIERS, EXPANSION_GATES, CONQUEST_WAVES,
+  CONQUEST_ROADMAP,
   STRATEGY_KPIS,
 } from '../lib/businessStrategy';
 import { LaunchPlanSection } from './LaunchPlanSection';
@@ -409,6 +410,96 @@ export function StrategyCockpitPanel({ headers }: Props) {
             </tbody>
           </table>
         </Card>
+
+        {/* ROADMAP DE CONQUÊTE — frise datée, jalons auto-vérifiés */}
+        <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold mb-2 mt-5">Roadmap de conquête (traduction du plan en étapes)</p>
+        {(() => {
+          const liveByKpi = new Map<string, number | null>(data.kpis.map(k => [k.id, k.measure]));
+          const evalMs = (ms: { auto?: { kpiId: string; gte?: number; eq?: number } }) => {
+            if (!ms.auto) return null; // jalon opérationnel (suivi manuel)
+            const m = liveByKpi.get(ms.auto.kpiId);
+            if (m === null || m === undefined) return null;
+            if (ms.auto.eq !== undefined) return m === ms.auto.eq;
+            if (ms.auto.gte !== undefined) return m >= ms.auto.gte;
+            return null;
+          };
+          const stages = CONQUEST_ROADMAP.map(st => {
+            const ms = st.milestones.map(m => ({ m, state: evalMs(m) }));
+            const autoMs = ms.filter(x => x.m.auto);
+            const autoDone = autoMs.filter(x => x.state === true).length;
+            const allAutoPass = autoMs.length > 0 && autoMs.every(x => x.state === true);
+            return { st, ms, autoDone, autoTotal: autoMs.length, allAutoPass };
+          });
+          const currentIndex = stages.findIndex(s => !s.allAutoPass);
+          const activeIndex = currentIndex === -1 ? stages.length : currentIndex;
+          return (
+            <div className="relative pl-1">
+              {stages.map(({ st, ms, autoDone, autoTotal, allAutoPass }, i) => {
+                const done = i < activeIndex;
+                const active = i === activeIndex;
+                const liveClients = data.summary.ordersPaid;
+                const clientPct = st.objectiveClients ? Math.min(100, Math.round((liveClients / st.objectiveClients) * 100)) : null;
+                return (
+                  <div key={st.id} className={`relative pl-7 pb-5 ${i === stages.length - 1 ? 'pb-0' : ''}`}>
+                    {/* ligne verticale */}
+                    {i < stages.length - 1 && <span className="absolute left-[11px] top-6 bottom-0 w-px bg-[#FFF7EF]/15" />}
+                    {/* pastille */}
+                    <span className={`absolute left-0 top-1 w-[23px] h-[23px] rounded-full flex items-center justify-center border ${done ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : active ? 'bg-[#C8753D]/25 border-[#C8753D] text-[#D49A63]' : 'bg-[#FFF7EF]/5 border-[#FFF7EF]/15 text-[#FFF7EF]/40'}`}>
+                      {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : <span className="text-[10px] font-bold">{st.index}</span>}
+                    </span>
+                    <Card className={`!p-3.5 ${active ? 'border-[#C8753D]/40' : ''} ${!done && !active ? 'opacity-70' : ''}`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-[#FFF7EF]">{st.title}</p>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/70">{st.window}</span>
+                        {done ? <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Atteinte</span>
+                          : active ? <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#C8753D]/20 text-[#D49A63]">En cours</span>
+                            : <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/50">Verrouillée</span>}
+                      </div>
+                      <p className="text-[10px] text-[#FFF7EF]/55 mt-1">📍 {st.market}</p>
+                      <p className="text-[10px] text-[#FFF7EF]/55">🎁 {st.offer}</p>
+
+                      {/* objectifs chiffrés */}
+                      <div className="flex flex-wrap gap-3 mt-2 text-[10px]">
+                        {st.objectiveClients && (
+                          <span className="text-[#FFF7EF]/70">Objectif <b className="text-[#FFF7EF]">{st.objectiveClients.toLocaleString('fr-FR')} clients</b>
+                            {clientPct !== null && active && <span className="text-[#D49A63]"> · {liveClients}/{st.objectiveClients.toLocaleString('fr-FR')} ({clientPct}%)</span>}
+                          </span>
+                        )}
+                        {st.objectiveRevenueEur && <span className="text-[#FFF7EF]/70">CA visé <b className="text-[#FFF7EF]">{st.objectiveRevenueEur.toLocaleString('fr-FR')} €/mois</b></span>}
+                      </div>
+                      {active && clientPct !== null && (
+                        <div className="mt-1.5 h-1 rounded-full bg-[#FFF7EF]/10 overflow-hidden">
+                          <div className="h-full bg-[#C8753D]" style={{ width: `${Math.max(clientPct, 2)}%` }} />
+                        </div>
+                      )}
+
+                      {/* jalons */}
+                      <ul className="mt-2.5 space-y-1">
+                        {ms.map(({ m, state }, j) => (
+                          <li key={j} className="flex items-start gap-2 text-[11px]">
+                            {state === true ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                              : state === false ? <Circle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                                : <Circle className="w-3.5 h-3.5 text-[#FFF7EF]/30 shrink-0 mt-0.5" />}
+                            <span className={state === true ? 'text-[#FFF7EF]/80' : 'text-[#FFF7EF]/60'}>
+                              {m.label}
+                              {m.auto && <span className="text-[#FFF7EF]/30 italic"> · auto</span>}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="mt-2.5 pt-2 border-t border-[#FFF7EF]/10 flex flex-wrap gap-x-4 gap-y-1 text-[10px]">
+                        <span className="text-[#D49A63]"><b>Porte de passage :</b> {st.passGate}</span>
+                        <span className="text-[#FFF7EF]/50"><b>Budget :</b> {st.budgetNote}</span>
+                        {autoTotal > 0 && <span className="text-[#FFF7EF]/45"><b>Jalons auto :</b> {autoDone}/{autoTotal} validés</span>}
+                      </div>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* PLAN DE LANCEMENT (catalogue, kits, routines, outils, scénarios, actions) */}

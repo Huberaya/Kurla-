@@ -417,6 +417,7 @@ Intégré au **Business Control Center** (`/admin`), nouvelle vue **« Conquête
 - **Ventes par canal** (déjà construit : UTM → TikTok/SEO/créateurs/paid/parrainage) avec **CAC et ROAS par canal**.
 - **Ventes par territoire/pays** (FR régions puis BE/UK…) à mesure de l'expansion.
 - **Conditions d'expansion (§27) en checklist vivante** : les 8 critères passent au vert automatiquement quand les données les atteignent → le dashboard dit explicitement « PRÊT à ouvrir la Belgique » ou « PAS ENCORE : réachat 12 % < 20 % ».
+- **Roadmap de conquête en frise datée** (`CONQUEST_ROADMAP` dans `businessStrategy.ts`) : **5 étapes M0→M36** (Amorçage → Validation → Croissance FR + Belgique → Europe/Rentabilité → Afrique/Monde), chacune avec marché, offre, objectif clients/CA, budget, porte de passage et **jalons**. Les jalons `auto` (paiement live, seuils de clients, abonnés KURLA+/Pro) sont **cochés automatiquement sur les données réelles** ; l'étape courante est mise en évidence avec sa barre de progression clients. Les jalons opérationnels (1er lot, TikTok, créateurs, réachat) sont suivis manuellement.
 - **Suivi des 20 actions** (§29) avec statut.
 
 > Cette vue lit les mêmes données réelles que le reste du BCC (commandes, `order_items`, `orders.attribution`) ; les objectifs/paliers sont les constantes décidées dans ce document. Aucun chiffre inventé : ce qui n'est pas encore mesurable s'affiche « à instrumenter ».
