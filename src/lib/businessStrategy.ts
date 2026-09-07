@@ -415,3 +415,56 @@ export const STRATEGY_GUARDRAILS = [
 export function kpiById(id: string): KpiDef | undefined {
   return STRATEGY_KPIS.find((k) => k.id === id);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. PLAN DE CONQUÊTE — paliers clients, conditions d'expansion, marchés
+// Source de vérité de la vue « Conquête » du BCC. Voir PLAN_CONQUETE_KURLA.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ClientTier = {
+  id: string; label: string; clients: number; window: string;
+  channel: string; offer: string; budgetEur: number; gate: string;
+};
+
+export const CONQUEST_TIERS: ClientTier[] = [
+  { id: 't100', label: '100 premiers clients', clients: 100, window: 'M0–M2',
+    channel: 'Réseau + beta + TikTok naissant', offer: 'Kit −20 % pour les 100 premiers, remboursé 30 j',
+    budgetEur: 1500, gate: '20 avis + 10 UGC + CAC < 20 € + 1 créa qui convertit' },
+  { id: 't1k', label: '1 000 clients', clients: 1000, window: 'M3–M6',
+    channel: 'TikTok organique + 4-8 créateurs/mois + SEO + parrainage', offer: 'Kit −15 % + livraison offerte dès 49 €',
+    budgetEur: 9000, gate: '90 cmd/mois, conv ≥ 1,2 %, CAC < 15 €, AOV ≥ 42 €, funnel rentable' },
+  { id: 't10k', label: '10 000 clients', clients: 10000, window: 'M7–M18',
+    channel: 'Paid scaling (ROAS > 2,5) + SEO massif + Belgique', offer: 'Réachat −10 %, KURLA+, kits premium',
+    budgetEur: 60000, gate: '620 cmd/mois, CA ~28 k€/mois, réachat ≥ 25 %, marge contributive positive' },
+  { id: 't50k', label: '50 000 clients', clients: 50000, window: 'M19–M36',
+    channel: 'Marque propre + marketplace + Europe scale + Afrique du Sud pilote', offer: 'Gamme élargie, abonnements, fidélité',
+    budgetEur: 25000, gate: 'CA ~127 k€/mois, rentabilité nette stable, 2-3 pays actifs' },
+];
+
+// Condition d'expansion : chacune se règle sur une mesure réelle quand elle
+// existe ; les autres restent des prérequis suivis manuellement (auto=false).
+export type ExpansionGate = {
+  id: string; label: string; target: number; unit: 'clients' | 'percent' | 'euro' | 'ratio' | 'flag';
+  measureKey?: string; comparator: 'gte' | 'eq'; auto: boolean;
+};
+
+export const EXPANSION_GATES: ExpansionGate[] = [
+  { id: 'clients', label: '≥ 1 000 clients payants en France', target: 1000, unit: 'clients', measureKey: 'orders', comparator: 'gte', auto: true },
+  { id: 'repeat', label: 'Réachat à 90 j ≥ 20 %', target: 20, unit: 'percent', comparator: 'gte', auto: false },
+  { id: 'cac', label: 'CAC ≤ 15 € (LTV/CAC ≥ 3)', target: 15, unit: 'euro', comparator: 'gte', auto: false },
+  { id: 'margin', label: 'Marge contributive positive sur 2 mois', target: 1, unit: 'flag', comparator: 'eq', auto: false },
+  { id: 'funnel', label: 'Funnel mesuré de bout en bout (analytics + UTM)', target: 1, unit: 'flag', comparator: 'eq', auto: false },
+  { id: 'logistics', label: 'Logistique validée (livraison > 97 %, retours < 8 %)', target: 1, unit: 'flag', comparator: 'eq', auto: false },
+  { id: 'rating', label: 'Offre validée (note ≥ 4,3/5, ≥ 30 avis)', target: 30, unit: 'clients', comparator: 'gte', auto: false },
+  { id: 'payments', label: 'Stripe LIVE + 1er lot réceptionné + SIRET', target: 1, unit: 'flag', measureKey: 'paymentsReady', comparator: 'eq', auto: true },
+];
+
+// Séquence d'ouverture des marchés (décidée).
+export const CONQUEST_WAVES = [
+  { wave: 1, market: 'France — segment 4C (IdF puis Lyon/Marseille)', window: 'M0–M6', status: 'En cours', model: 'E-commerce direct, fulfilment maison' },
+  { wave: 2, market: 'France — autres segments (bouclées, hommes/locs, pro)', window: 'M4–M12', status: 'Préparé', model: 'Même plateforme, kits dédiés (K01/K08)' },
+  { wave: 3, market: 'Belgique + Luxembourg (FR, €)', window: 'M9–M12', status: 'Décidé, test 1 500 €', model: 'Cross-border depuis FR, créateurs BE' },
+  { wave: 4, market: 'Royaume-Uni puis Allemagne / Pays-Bas', window: 'M13–M20', status: 'Après localisation EN/DE/£', model: '3PL EU, stock local selon volume' },
+  { wave: 5, market: 'Afrique : Afrique du Sud (premium) + Sénégal/Côte d’Ivoire (distributeur/marketplace)', window: 'M24+', status: 'Sourcing Ghana dès M3', model: '3PL ZA ; marketplace + distributeur UEMOA' },
+  { wave: 6, market: 'Plateforme mondiale (marketplace tiers, B2B données, IA)', window: 'M30+', status: 'Vision', model: 'Marketplace + KURLA Intelligence (agrégats)' },
+];

@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle, CheckCircle2, Circle, Loader2, RefreshCw, Target, Rocket, Crown,
   Building2, ShieldAlert, Sparkles, ShoppingBag, Users, Megaphone, TrendingUp,
-  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge, BarChart3, Trophy, Boxes,
+  Wallet, CalendarDays, ListChecks, ArrowRight, Euro, Gauge, BarChart3, Trophy, Boxes, Globe, Lock,
 } from 'lucide-react';
 import {
   OFFERS, PERSONAS, POSITIONING, CHANNELS, FUNNEL, PLAN_90,
   FINANCE_PROJECTION, FINANCE_ASSUMPTIONS, BREAKEVEN, STRATEGY_GUARDRAILS,
+  CONQUEST_TIERS, EXPANSION_GATES, CONQUEST_WAVES,
+  STRATEGY_KPIS,
 } from '../lib/businessStrategy';
 import { LaunchPlanSection } from './LaunchPlanSection';
 
@@ -46,6 +48,7 @@ const num = (v: number | null | undefined) => v === null || v === undefined ? '�
 const SECTIONS = [
   { id: 'actions', label: 'À faire maintenant', icon: ListChecks },
   { id: 'performance', label: 'Ventes réelles', icon: BarChart3 },
+  { id: 'conquete', label: 'Conquête & expansion', icon: Globe },
   { id: 'positioning', label: 'Positionnement', icon: Target },
   { id: 'launch', label: 'Plan de lancement', icon: Rocket },
   { id: 'offers', label: 'Offres & prix', icon: ShoppingBag },
@@ -299,6 +302,113 @@ export function StrategyCockpitPanel({ headers }: Props) {
             </div>
           );
         })()}
+      </div>
+
+      {/* CONQUÊTE — paliers clients, conditions d'expansion, vagues marchés */}
+      <div id="conquete" className="scroll-mt-4">
+        <SectionTitle icon={Globe} title="Plan de conquête — France → Europe → Afrique" sub="Beachhead : femmes 4C d'Île-de-France/Lyon via diagnostic + kits K02/K03. L'expansion se mérite : les conditions passent au vert sur données réelles." />
+
+        {/* Paliers clients */}
+        <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold mb-2">Paliers de conquête (réel vs objectif)</p>
+        <div className="grid md:grid-cols-2 gap-2 mb-4">
+          {CONQUEST_TIERS.map((tier) => {
+            const current = data.summary.ordersPaid; // proxy commandes payées (clients)
+            const pct = Math.min(100, Math.round((current / tier.clients) * 100));
+            const reached = current >= tier.clients;
+            return (
+              <Card key={tier.id} className="!p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-[#FFF7EF]">{tier.label} <span className="text-[#FFF7EF]/45 font-normal">· {tier.window}</span></p>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${reached ? 'bg-emerald-500/20 text-emerald-300' : 'bg-[#FFF7EF]/10 text-[#FFF7EF]/60'}`}>{reached ? 'Atteint' : `${current}/${tier.clients}`}</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden">
+                  <div className={`h-full ${reached ? 'bg-emerald-400' : 'bg-[#C8753D]'}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+                </div>
+                <p className="text-[10px] text-[#FFF7EF]/55 mt-2"><b className="text-[#FFF7EF]/75">Canaux :</b> {tier.channel}</p>
+                <p className="text-[10px] text-[#D49A63]/90 mt-1"><b>Porte de passage :</b> {tier.gate}</p>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Conditions d'expansion */}
+        <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold mb-2 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Conditions obligatoires avant d'ouvrir le marché suivant</p>
+        <Card className="!p-3 mb-4">
+          {(() => {
+            // Valeur réelle par id de KPI (définition STRATEGY_KPIS ↔ mesure cockpit).
+            const liveValue = new Map<string, number | null>(data.kpis.map(k => [k.id, k.measure]));
+            const checks = EXPANSION_GATES.map(g => {
+              let done: boolean | null = null;
+              let value: string | null = null;
+              if (g.auto) {
+                // Résolution de la mesure : via le measureKey de la définition KPI,
+                // avec repli sur la commande payée pour le seuil « clients ».
+                let m: number | null | undefined;
+                const def = STRATEGY_KPIS.find(k => k.id === g.id);
+                if (g.id === 'clients') {
+                  m = data.summary.ordersPaid;
+                } else if (def?.measureKey) {
+                  const liveKpi = data.kpis.find(k => k.id === def.id);
+                  m = liveKpi?.measure ?? liveValue.get(def.measureKey) ?? null;
+                }
+                if (m !== null && m !== undefined) {
+                  done = g.comparator === 'gte' ? m >= g.target : m === g.target;
+                  value = `${m}`;
+                }
+              }
+              return { g, done, value };
+            });
+            const autoCount = checks.filter(c => c.done !== null).length;
+            const passed = checks.filter(c => c.done === true).length;
+            const ready = checks.every(c => c.done === true);
+            return (
+              <>
+                <div className={`rounded-lg p-2.5 mb-3 text-[11px] font-bold flex items-center gap-2 ${ready ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#C8753D]/10 text-[#D49A63]'}`}>
+                  {ready ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  {ready
+                    ? '✅ Conditions remplies — prêt à ouvrir la Belgique (vague 3).'
+                    : `Pas encore d'expansion : ${passed} condition(s) auto validées sur ${autoCount} mesurables ; les autres sont des prérequis opérationnels à tenir.`}
+                </div>
+                <ul className="space-y-1.5">
+                  {checks.map(({ g, done, value }) => (
+                    <li key={g.id} className="flex items-start gap-2 text-[11px]">
+                      {done === true ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        : done === false ? <Circle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        : <Circle className="w-4 h-4 text-[#FFF7EF]/30 shrink-0 mt-0.5" />}
+                      <span className={done === true ? 'text-[#FFF7EF]/80' : 'text-[#FFF7EF]/65'}>
+                        {g.label}{value !== null && <span className="text-[#FFF7EF]/40"> (réel : {value})</span>}
+                        {!g.auto && <span className="text-[#FFF7EF]/35 italic"> — suivi opérationnel</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            );
+          })()}
+        </Card>
+
+        {/* Vagues d'expansion */}
+        <p className="text-[10px] uppercase tracking-widest text-[#D49A63] font-bold mb-2">Séquence des vagues</p>
+        <Card className="!p-0 overflow-x-auto">
+          <table className="w-full text-[11px] min-w-[640px]">
+            <thead><tr className="text-left text-[#FFF7EF]/45 border-b border-[#FFF7EF]/10">
+              <th className="px-3 py-2 font-medium">Vague</th><th className="px-3 py-2 font-medium">Marché</th>
+              <th className="px-3 py-2 font-medium">Fenêtre</th><th className="px-3 py-2 font-medium">Modèle d'entrée</th>
+              <th className="px-3 py-2 font-medium">Statut</th>
+            </tr></thead>
+            <tbody>
+              {CONQUEST_WAVES.map(w => (
+                <tr key={w.wave} className="border-b border-[#FFF7EF]/5 last:border-0">
+                  <td className="px-3 py-2 font-bold text-[#C8753D]">{w.wave}</td>
+                  <td className="px-3 py-2 text-[#FFF7EF] font-medium">{w.market}</td>
+                  <td className="px-3 py-2 text-[#FFF7EF]/60 whitespace-nowrap">{w.window}</td>
+                  <td className="px-3 py-2 text-[#FFF7EF]/60">{w.model}</td>
+                  <td className="px-3 py-2"><span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/70 whitespace-nowrap">{w.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       </div>
 
       {/* PLAN DE LANCEMENT (catalogue, kits, routines, outils, scénarios, actions) */}
