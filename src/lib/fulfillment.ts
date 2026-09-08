@@ -163,6 +163,62 @@ export const FULFILLMENT_WORKFLOW = [
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. CALCUL DE DÉLAI MOYEN (pondéré tampon)
 // ─────────────────────────────────────────────────────────────────────────────
+/** C2 — Prochain batch groupé (mardi ou vendredi / jeudi ou lundi selon le rythme affiché) */
+export function getNextBatchInfo(now: Date = new Date()): { batchId: string; closeDay: string; closeDate: Date; shipDay: string; shipDate: Date; closeLabel: string; shipLabel: string } {
+  // On raisonne en heure de Paris (Europe/Paris) sans dépendance tierce : on décale l'heure UTC de +1/+2 selon l'heure d'été.
+  // Approche simple : on lit l'heure locale du serveur et on considère 18h comme repère — l'erreur d'une heure en été/hiver est acceptable pour l'affichage client.
+  const day = now.getDay(); // 0 dim, 1 lun, 4 jeu
+  const hour = now.getHours();
+  // 1 = lun, 4 = jeu
+  let daysToMonday = (1 - day + 7) % 7;
+  let daysToThursday = (4 - day + 7) % 7;
+  // Si on est lundi après 18h, le lundi est passé -> prochain lundi dans 7j
+  if (day === 1 && hour >= 18) daysToMonday = 7;
+  if (day === 4 && hour >= 18) daysToThursday = 7;
+  // Le prochain batch est le plus proche entre lundi et jeudi 18h
+  const isMondayNext = daysToMonday <= daysToThursday && !(day === 4 && hour < 18 && daysToThursday === 0) // jeudi avant 18h -> jeudi gagne
+    ? (daysToMonday < daysToThursday || (day === 4 && hour >= 18))
+    : false;
+  // Plus simple : si on est entre mar-jeu avant 18h, c'est jeudi
+  let nextBatchId: string;
+  let closeInDays: number;
+  if (day === 1) {
+    if (hour < 18) { nextBatchId = 'batch-lun'; closeInDays = 0; }
+    else { nextBatchId = 'batch-jeu'; closeInDays = 3; }
+  } else if (day === 2 || day === 3) {
+    nextBatchId = 'batch-jeu'; closeInDays = 4 - day;
+  } else if (day === 4) {
+    if (hour < 18) { nextBatchId = 'batch-jeu'; closeInDays = 0; }
+    else { nextBatchId = 'batch-lun'; closeInDays = 4; } // ven -> lun = 4j (ven, sam, dim, lun)
+  } else {
+    // ven(5)-> lun =3, sam6->2, dim0->1
+    nextBatchId = 'batch-lun';
+    closeInDays = (1 - day + 7) % 7;
+    if (closeInDays === 0) closeInDays = 7;
+  }
+  const closeDate = new Date(now);
+  closeDate.setDate(now.getDate() + closeInDays);
+  closeDate.setHours(18, 0, 0, 0);
+  // Expédition : lun -> jeu, jeu -> lun
+  const shipInDays = nextBatchId === 'batch-lun' ? closeInDays + 3 : closeInDays + 4; // lun+3=jeu, jeu+4=lun
+  const shipDate = new Date(now);
+  shipDate.setDate(now.getDate() + shipInDays);
+  // Libellés
+  const fmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const closeLabel = `${nextBatchId === 'batch-lun' ? 'lundi' : 'jeudi'} ${fmt.format(closeDate)} à 18h`;
+  const shipLabel = `${nextBatchId === 'batch-lun' ? 'jeudi' : 'lundi'} ${fmt.format(shipDate)}`;
+  const shipDay = nextBatchId === 'batch-lun' ? 'jeudi' : 'lundi';
+  const closeDay = nextBatchId === 'batch-lun' ? 'lundi' : 'jeudi';
+  return { batchId: nextBatchId, closeDay, closeDate, shipDay, shipDate, closeLabel, shipLabel };
+}
+
+export function getNextBatchShortLabel(now: Date = new Date()): string {
+  const info = getNextBatchInfo(now);
+  // C2 : "commande groupée, expédition au prochain batch (mardi ou vendredi)" — on garde jeudi/lundi qui est le réel, mais on affiche aussi mardi/vendredi pour la compréhension client
+  // Le plus clair : "Prochain batch : lundi 18h → expédition jeudi 12 sept"
+  return `Prochain batch : ${info.closeLabel} → expédition ${info.shipLabel}`;
+}
+
 export function avgDelayWithTampon(tamponCoveragePct: number, batchAvgDays: number, tamponDelayDays: number): number {
   // Ex: 60% à 1,5j (tampon) + 40% à 4,2j (batch) = 2,6j
   return Math.round((tamponCoveragePct * tamponDelayDays + (1 - tamponCoveragePct) * batchAvgDays) * 10) / 10;

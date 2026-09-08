@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategories';
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
+import { getNextBatchShortLabel } from '../lib/fulfillment';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -284,6 +285,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             <span className="hidden sm:inline text-[#111111]/30">·</span>
             <span className="inline-flex items-center gap-1 text-amber-700"><Clock className="w-3 h-3" /> Petite production lun & jeu 18h</span>
           </div>
+          <p className="mt-2 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl inline-block px-3 py-1.5">📦 {getNextBatchShortLabel(new Date())} — suivi par email dès remise transporteur. Si délai &gt;5j → info + remboursement immédiat.</p>
           <p className="mt-2 text-[11px] text-[#111111]/50">Paiement Stripe sécurisé — précommande sans risque (CGV : remboursement avant expédition, 14j après réception).</p>
         </div>
 

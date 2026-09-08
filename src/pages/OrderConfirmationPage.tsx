@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Loader2, ShoppingBag, Clock } from 'lucide-react';
 import { analytics } from '../lib/analytics';
 import { DISPATCH_SENTENCE, DISPATCH_LEGAL } from '../lib/preorderPromise';
+import { getNextBatchShortLabel } from '../lib/fulfillment';
 
 interface OrderConfirmationPageProps {
   sessionId?: string;
@@ -104,9 +105,12 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
           <h1 className="mt-2 text-3xl font-serif-title font-bold">{loading ? 'Vérification du paiement…' : requestError ? 'Vérification impossible' : copy.title}</h1>
           <p className="mt-3 text-sm text-[#111111]/70 leading-relaxed">{requestError || copy.message}</p>
           {!requestError && copy.tone === 'success' && (
-            <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-left">
+            <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-left space-y-1.5">
               <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Précommande — expédié sous 3–5 jours</p>
-              <p className="text-[11px] text-[#111111]/65 mt-1 leading-relaxed">{DISPATCH_SENTENCE} <span className="font-semibold">Petite production hebdomadaire : lun & jeu 18h</span> (via 3PL IDF). Vous pouvez annuler et être remboursé·e à tout moment avant expédition. {DISPATCH_LEGAL}</p>
+              <p className="text-[11px] text-[#111111]/65 leading-relaxed">{DISPATCH_SENTENCE} <span className="font-semibold">Petite production hebdomadaire : lun & jeu 18h</span> (via 3PL IDF). Vous pouvez annuler et être remboursé·e à tout moment avant expédition.</p>
+              <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5">📦 <strong>Commande groupée</strong> : {getNextBatchShortLabel(new Date())}. Suivi par email dès remise au transporteur.</p>
+              <p className="text-[10px] text-[#111111]/50">Si le délai dépasse 5 jours, nous vous informons immédiatement et vous pouvez annuler avec <strong>remboursement immédiat</strong> (CGV précommande).</p>
+              <p className="text-[10px] text-[#111111]/50">{DISPATCH_LEGAL}</p>
             </div>
           )}
 

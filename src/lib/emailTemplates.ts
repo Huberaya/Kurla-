@@ -8,6 +8,7 @@
  */
 
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE } from './preorderPromise';
+import { getNextBatchShortLabel } from './fulfillment';
 
 export interface EmailOrderItem {
   name?: string;
@@ -149,7 +150,7 @@ function orderItemsBlock(items?: EmailOrderItem[], total?: number | string, curr
     : '';
   const preorderRow = showPreorderNote
     ? `<tr><td colspan="2" style="padding:14px;margin-top:12px;background:${C.creamCard};border-radius:12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${C.ink};">
-        <strong>Commande en précommande.</strong> ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL} Nous vous écrivons dès qu'il prend la route, avec le numéro de suivi.</td></tr>`
+        <strong>Commande en précommande.</strong> ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL} <br><strong>Petite production hebdomadaire : lun & jeu 18h</strong> (via 3PL IDF, suivi par email). Si le délai dépasse 5 jours, nous vous informons et vous pouvez annuler avec remboursement immédiat. Nous vous écrivons dès qu'il prend la route, avec le numéro de suivi.</td></tr>`
     : '';
   return `<tr><td style="padding:16px 40px 8px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     ${rows}${totalRow}${preorderRow}
@@ -185,17 +186,19 @@ export function renderOrderEmail(template: string, data: EmailData): RenderedEma
   const hasPreorder = data.preorder === true || (Array.isArray(data.items) && data.items.some(i => i.isPreorder));
 
   switch (template) {
-    case 'payment_confirmed':
+        case 'payment_confirmed':
     case 'order_created': {
       const heading = 'Merci pour votre commande ! 🧡';
-      const intro = `Votre commande <strong>${esc(orderId)}</strong> est confirmée${data.total != null ? ` — montant <strong>${money(data.total, currency)}</strong>` : ''}. ${hasPreorder ? 'Elle contient des articles en <strong>précommande</strong>.' : 'Nous vous écrivons à chaque étape de sa préparation.'}`;
+      const batchLabel = getNextBatchShortLabel(new Date());
+      const intro = `Votre commande <strong>${esc(orderId)}</strong> est confirmée${data.total != null ? ` — montant <strong>${money(data.total, currency)}</strong>` : ''}. ${hasPreorder ? `Elle contient des articles en <strong>précommande</strong> — <strong>commande groupée, expédition au prochain batch</strong> : ${esc(batchLabel)} (suivi par email dès remise transporteur).` : 'Nous vous écrivons à chaque étape de sa préparation.'}`;
+      const batchBlock = hasPreorder ? `<tr><td style="padding:8px 40px 8px;"><div style="background:${C.creamCard};border:1px solid #e8d5c0;border-radius:12px;padding:12px 16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${C.ink};">📦 <strong>Commande groupée</strong> : ${esc(batchLabel)}<br><span style="color:#9a8977;">Petite production hebdomadaire (lun & jeu 18h) via 3PL IDF. 60% expédiés en 24–48h via tampon si disponible. Si délai &gt;5j, info + remboursement immédiat sur demande.</span></div></td></tr>` : '';
       return {
         html: shell({
           heading, intro,
-          blocks: orderItemsBlock(data.items, data.total, currency, hasPreorder),
+          blocks: orderItemsBlock(data.items, data.total, currency, hasPreorder) + batchBlock,
           cta: { label: 'Suivre ma commande', url: trackLink(orderId) }
         }),
-        text: `Merci pour votre commande ${orderId} ! Montant : ${money(data.total, currency)}.${hasPreorder ? ` (précommande — ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL})` : ''}\nSuivez-la : ${trackLink(orderId)}`
+        text: `Merci pour votre commande ${orderId} ! Montant : ${money(data.total, currency)}.${hasPreorder ? ` (précommande — ${DISPATCH_SENTENCE} ${DISPATCH_LEGAL} — ${batchLabel})` : ''}\nSuivez-la : ${trackLink(orderId)}`
       };
     }
     case 'payment_pending': {

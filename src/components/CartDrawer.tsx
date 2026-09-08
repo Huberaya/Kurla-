@@ -9,6 +9,7 @@ import { getOrderAttribution } from '../lib/attribution';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, getCartDispatchSummary, isDropshipProduct } from '../lib/preorderPromise';
+import { getNextBatchInfo, getNextBatchShortLabel } from '../lib/fulfillment';
 import { recommendAddOns } from '../lib/launchCatalog';
 import { useProducts } from '../services/productService';
 import { getStoredReferralCode } from '../lib/referralCapture';
@@ -137,6 +138,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const allItemsPreorder = hasPreorderItems && !hasDropshipItems;
   const isMixedCart = hasPreorderItems && hasDropshipItems;
   const cartDispatchSummary = getCartDispatchSummary(items as any);
+  const nextBatch = React.useMemo(() => getNextBatchInfo(new Date()), [items.length]);
+  const nextBatchLabel = React.useMemo(() => getNextBatchShortLabel(new Date()), [items.length]);
   const subtotalCents = Math.round(total * 100);
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
@@ -660,10 +663,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </p>
               )}
               {items.length > 0 && (hasPreorderItems || isMixedCart) && (
-                <p className="flex items-start gap-1.5 text-amber-200/80 bg-amber-500/10 border border-amber-500/15 rounded-xl px-2.5 py-1.5">
-                  <span className="mt-0.5">⏱</span>
-                  <span><strong>Petite production hebdomadaire</strong> : commandes groupées <strong>lun & jeu 18h</strong> → expédition via 3PL IDF (mardi/vendredi). 60% expédiés en 24–48h via tampon si disponible.</span>
-                </p>
+                <div className="space-y-1.5">
+                  <p className="flex items-start gap-1.5 text-amber-200/90 bg-amber-500/10 border border-amber-500/15 rounded-xl px-2.5 py-1.5">
+                    <span className="mt-0.5">⏱</span>
+                    <span><strong>Commande groupée</strong> — expédition au <strong>prochain batch</strong> : {nextBatchLabel}. Via 3PL IDF, suivi par email dès remise transporteur.</span>
+                  </p>
+                  <p className="text-[11px] text-[#FFF7EF]/50 pl-1">Petite production hebdomadaire (lun & jeu 18h). 60% expédiés en 24–48h via tampon si disponible. Si délai &gt;5j → info + remboursement immédiat sur demande.</p>
+                </div>
               )}
               <p>
                 En validant, vous acceptez nos{' '}
@@ -674,6 +680,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </p>
             </div>
 
+            {(hasPreorderItems || isMixedCart) && (
+              <p className="text-[11px] text-[#FFF7EF]/60 text-center -mb-1">En validant, ta commande est <strong className="text-[#FFF7EF]">réservée</strong> et part au <strong className="text-amber-300">{nextBatch.closeDay} 18h → expédition {nextBatch.shipDay}</strong> (batch {nextBatch.batchId === 'batch-lun' ? 'lundi' : 'jeudi'}).</p>
+            )}
             <button
               onClick={handleStartCheckout}
               disabled={isCheckoutLoading}

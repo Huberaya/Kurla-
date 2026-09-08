@@ -23,6 +23,7 @@ import { ArchetypeRatingsPanel } from '../components/product/ArchetypeRatingsPan
 import { ProductVerificationPanel } from '../components/product/ProductVerificationPanel';
 import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, isDropshipProduct } from '../lib/preorderPromise';
+import { getNextBatchShortLabel } from '../lib/fulfillment';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -230,7 +231,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               onVerdictChange={sellable => setSellableInCountry(sellable)}
             />
 
-            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span>{!isDropshipTool && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} Petite production hebdomadaire : lun & jeu 18h.</span>}</div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? (isDropshipTool ? 'Ajouter au panier' : 'Précommander') : 'Indisponible'}</button></div>
+            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span>{!isDropshipTool && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-[#FFF7EF]/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!effectiveInStock || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : effectiveInStock ? (isDropshipTool ? 'Ajouter au panier' : 'Précommander') : 'Indisponible'}</button></div>
 
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
