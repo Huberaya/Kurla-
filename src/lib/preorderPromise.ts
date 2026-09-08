@@ -60,11 +60,14 @@ export const TOOL_DISPATCH_SHORT = 'En stock partenaire — expédié en 24–48
 export const TOOL_DISPATCH_SENTENCE =
   'Outils et accessoires expédiés en 24–48h depuis notre partenaire UE. Si votre panier contient aussi des soins, tout est regroupé en un seul colis via notre 3PL (délai global 3–5 jours).';
 
-export function isDropshipProduct(product: { id: string } | null | undefined): boolean {
+export function isDropshipProduct(product: { id: string; badges?: string[] } | null | undefined): boolean {
+  if (!product) return false;
+  const b = (product as any).badges as string[] | undefined;
+  if (Array.isArray(b) && (b.includes('dropship') || b.includes('dropship_24_48h') || b.includes('dropship_24-48h'))) return true;
   return isDropshipToolId(product?.id || '');
 }
 
-export function getProductDispatchPromise(product: { id: string } | null | undefined): DispatchPromise {
+export function getProductDispatchPromise(product: { id: string; badges?: string[] } | null | undefined): DispatchPromise {
   if (isDropshipProduct(product)) {
     return {
       kind: 'delayed',
@@ -76,7 +79,7 @@ export function getProductDispatchPromise(product: { id: string } | null | undef
   return preorderDispatchPromise();
 }
 
-export function getProductDispatchShort(product: { id: string } | null | undefined): string {
+export function getProductDispatchShort(product: { id: string; badges?: string[] } | null | undefined): string {
   return isDropshipProduct(product) ? TOOL_DISPATCH_SHORT : DISPATCH_SHORT;
 }
 

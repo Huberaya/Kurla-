@@ -449,6 +449,8 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
     const minorSafetyStatus = ['verified', 'pending', 'not_provided'].includes(source.minorSafetyStatus ?? source.minor_safety_status) ? (source.minorSafetyStatus ?? source.minor_safety_status) : existing?.minorSafetyStatus || existing?.minor_safety_status || 'not_provided';
     const imageSupervisionStatus = ['verified', 'pending', 'not_provided'].includes(source.imageSupervisionStatus ?? source.image_supervision_status) ? (source.imageSupervisionStatus ?? source.image_supervision_status) : existing?.imageSupervisionStatus || existing?.image_supervision_status || 'not_provided';
     const adultOnlyActives = array(source.adultOnlyActives ?? source.adult_only_actives);
+    const badgesProvided = source.badges !== undefined;
+    const badges = array(source.badges).map(b => String(b).trim()).filter(Boolean).slice(0, 20);
     const parentalSupervisionRequired = source.parentalSupervisionRequired === undefined && source.parental_supervision_required === undefined
       ? existing?.parentalSupervisionRequired === true || existing?.parental_supervision_required === true
       : parseBoolean(source.parentalSupervisionRequired ?? source.parental_supervision_required, false);
@@ -601,6 +603,8 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       estimatedYield: text(source.estimatedYield, 240),
       ingredientRoles: Array.isArray(source.ingredientRoles) ? source.ingredientRoles.slice(0, 50) : [],
       allergens: array(source.allergens),
+      badges,
+      badgesProvided,
       containsFragrance: typeof source.containsFragrance === 'boolean' ? source.containsFragrance : undefined,
       originCountry: text(source.originCountry, 80),
       returnsPolicy: text(source.returnsPolicy, 3000),
@@ -718,6 +722,7 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         is_active: normalized.isActive,
         category: normalized.category || null,
         subcategory: normalized.subCategory || null,
+
         sub_category_tag: normalized.subCategory || null,
         catalog_category_tags: normalized.catalogCategoryTags,
         target_audiences: normalized.targetAudiences,
@@ -761,6 +766,7 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         last_imported_at: normalized.lastImportedAt,
         catalog_updated_by: adminId,
         last_catalog_updated_at: now,
+        ...(normalized.badgesProvided ? { badges: normalized.badges } : {}),
         updated_at: now,
         ...quality
       };

@@ -135,8 +135,12 @@ export function isDropshipToolId(id: string | null | undefined): boolean {
   return (DROPSHIP_TOOLS_IMMEDIATE as readonly string[]).includes(n);
 }
 
-export function isDropshipToolProduct(product: { id: string; slug?: string } | null | undefined): boolean {
+export function isDropshipToolProduct(product: { id: string; slug?: string; badges?: string[]; isPreorder?: boolean } | null | undefined): boolean {
   if (!product) return false;
+  // 1) Badge explicite (autonomie admin sans code) : 'dropship' ou 'dropship_24_48h'
+  const b = (product as any).badges as string[] | undefined;
+  if (Array.isArray(b) && (b.includes('dropship') || b.includes('dropship_24_48h') || b.includes('dropship_24-48h'))) return true;
+  // 2) Liste codée des 12 héros (compatibilité)
   return isDropshipToolId(product.id);
 }
 
