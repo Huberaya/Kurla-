@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ReturnInsightSummary } from '../lib/returnInsight';
-import { Check, CheckCircle2, FileText, Image as ImageIcon, Package, Plus, RefreshCw, Save, Upload, X } from 'lucide-react';
+import { Check, CheckCircle2, FileText, Image as ImageIcon, Package, Plus, RefreshCw, Save, Upload, X, ArrowRight } from 'lucide-react';
 
 type CatalogAdminPanelProps = {
   headers: HeadersInit;
   onSuccess?: (message: string) => void;
+  onOpenGuide?: () => void;
 };
 
 type VariantDraft = {
@@ -121,7 +122,7 @@ function draftFromProduct(product: any): ProductDraft {
   };
 }
 
-export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess }) => {
+export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [audiences, setAudiences] = useState<any[]>([]);
@@ -304,11 +305,18 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
           <button onClick={loadCatalog} className="px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-xs flex items-center gap-2"><RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} /> Actualiser</button>
         </div>
         {error && <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/30 text-rose-300 text-xs">{error}</div>}
-        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
-          <span className="text-emerald-300 mt-0.5">📘</span>
-          <p className="text-[11px] leading-relaxed text-emerald-100">
-            <strong>Guide dropship 0 carton</strong> intégré au dashboard : va dans l’onglet <span className="font-bold text-emerald-300">Catalogue &amp; Stock → Guide dropship 0 carton</span> pour la fiche complète (7 étapes, modèles de fiches, checklist, toggle autonome <code className="px-1 py-0.5 rounded bg-[#050403] border border-emerald-500/20 text-emerald-200">☑ Dropship 24–48h</code>).
-          </p>
+        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <span className="text-emerald-300 mt-0.5">📘</span>
+            <p className="text-[11px] leading-relaxed text-emerald-100">
+              <strong>Guide dropship 0 carton</strong> intégré : 7 étapes, modèles, checklist &amp; toggle autonome <code className="px-1 py-0.5 rounded bg-[#050403] border border-emerald-500/20 text-emerald-200">☑ Dropship 24–48h</code> — ouvre le guide en 1 clic.
+            </p>
+          </div>
+          {onOpenGuide && (
+            <button onClick={onOpenGuide} className="shrink-0 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow">
+              Ouvrir le guide <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
         </div>
       </div>
 

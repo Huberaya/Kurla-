@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookOpen, CheckCircle2, AlertTriangle, Clock, Package, Truck, Euro, Image as ImageIcon, ClipboardCheck, Sparkles, ExternalLink, ArrowRight, Shield, Boxes } from 'lucide-react';
 
-export const DropshipGuidePanel: React.FC = () => {
+export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ onCreateTool }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -48,6 +48,14 @@ export const DropshipGuidePanel: React.FC = () => {
           </div>
         </div>
 
+        {onCreateTool && (
+          <div className="flex flex-wrap gap-2">
+            <button onClick={onCreateTool} className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow">
+              Créer un outil maintenant <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-[11px] text-[#FFF7EF]/45 self-center">Ouvre directement la fiche <code className="text-emerald-300">Catalogue produits</code> avec la case <code className="text-emerald-300">☑ Dropship 24–48h</code></span>
+          </div>
+        )}
         <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 flex items-start gap-2.5">
           <CheckCircle2 className="w-4 h-4 text-emerald-300 mt-0.5 shrink-0" />
           <p className="text-xs text-emerald-100 leading-relaxed">

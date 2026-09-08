@@ -1247,7 +1247,7 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 5D: GUIDE DROPSHIP 0 CARTON — fiche opérationnelle intégrée */}
         {activeTab === 'guide_dropship' && (
-          <DropshipGuidePanel />
+          <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
         )}
 
         {/* TAB 5: PRODUCT CATALOG */}
@@ -1259,6 +1259,7 @@ export const AdminDashboardPage: React.FC = () => {
               loadData();
               setTimeout(() => setActionSuccess(''), 4000);
             }}
+            onOpenGuide={() => setActiveTab('guide_dropship')}
           />
         )}
 
