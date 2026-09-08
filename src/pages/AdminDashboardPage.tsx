@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -11,6 +11,7 @@ import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
+import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -62,7 +63,7 @@ export const AdminDashboardPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   // CAC : dépenses d'acquisition cumulées, saisies par l'admin (aucune valeur
@@ -522,6 +523,7 @@ export const AdminDashboardPage: React.FC = () => {
                 { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
                 { id: 'catalog', label: 'Catalogue produits', icon: Package },
                 { id: 'batches', label: 'Lots & traçabilité', icon: Boxes },
+                { id: 'guide_dropship', label: 'Guide dropship 0 carton', icon: BookOpen },
               ],
             },
             {
@@ -1241,6 +1243,11 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 5D: GUIDE DROPSHIP 0 CARTON — fiche opérationnelle intégrée */}
+        {activeTab === 'guide_dropship' && (
+          <DropshipGuidePanel />
         )}
 
         {/* TAB 5: PRODUCT CATALOG */}
