@@ -3,6 +3,7 @@ import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, Rotat
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
+import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
@@ -1268,9 +1269,10 @@ export const AdminDashboardPage: React.FC = () => {
           />
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B */}
+        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B + fulfillment sans stock */}
         {activeTab === 'suppliers' && (
           <div className="space-y-10">
+            <FulfillmentContactPanel />
             <ProductSupplierPanel
               headers={adminHeaders}
               onSuccess={(message) => {
