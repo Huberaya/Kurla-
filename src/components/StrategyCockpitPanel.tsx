@@ -38,6 +38,7 @@ type Cockpit = {
     itemsAvailable: boolean; totalSoldQty: number; totalItemRevenue: number;
     kitRevenue: number; kitSharePct: number; topProducts: PerfRow[]; topKits: PerfRow[];
     channels: { channel: string; orders: number; revenue: number }[];
+    campaigns?: { campaign: string; channel: string; orders: number; revenue: number }[];
     ordersWithAttribution: number;
     targets: { aovEur: number; kitSharePct: number }; channelNote: string;
     funnel?: {
@@ -203,6 +204,7 @@ export function StrategyCockpitPanel({ headers }: Props) {
             cartToOrderPct: data.performance?.funnel?.conversions?.cartToOrderPct ?? null,
             paymentsReady: s.paymentsReady,
             channels: data.performance?.channels?.map(c => ({ channel: c.channel, orders: c.orders, revenue: c.revenue })) ?? [],
+            campaigns: data.performance?.campaigns?.map(c => ({ campaign: c.campaign, orders: c.orders, revenue: c.revenue })) ?? [],
           }}
         />
       </div>

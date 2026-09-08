@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import {
   Rocket, AlertTriangle, CheckCircle2, Circle, Calculator, Map as MapIcon,
   Layers, Users, Target, ChevronRight, Zap, TrendingUp, Crosshair, Gauge,
-  Megaphone, Handshake, HeartHandshake, CalendarDays,
+  Megaphone, Handshake, HeartHandshake, CalendarDays, ClipboardList, Tag, Copy,
 } from 'lucide-react';
 import {
   PEN_LADDER, PEN_SEGMENTS_FR, PEN_MARKETS, PEN_FIRST100, PEN_WEEKLY, PEN_MONTHLY,
   PEN_PHASE_META, penetrationCalc, penetrationAlerts, penetrationChannelBoard,
-  PEN_INFLUENCE, INFLUENCE_PIPELINE, PEN_PARTNERS, PEN_DEPTH, PEN_DEPTH_KPIS,
+  PEN_CAMPAIGNS, penetrationCampaignBoard, PEN_INFLUENCE, INFLUENCE_PIPELINE, PEN_PARTNERS, PEN_DEPTH, PEN_DEPTH_KPIS,
   type PenMarket,
 } from '../lib/penetration';
 
@@ -20,6 +20,7 @@ export type PenReal = {
   cartToOrderPct: number | null;
   paymentsReady: boolean;
   channels?: { channel: string; orders: number; revenue: number }[];
+  campaigns?: { campaign: string; orders: number; revenue: number }[];
 };
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -52,6 +53,8 @@ const phaseColor: Record<string, string> = {
 export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) => {
   const alerts = useMemo(() => penetrationAlerts(real), [real]);
   const channelBoard = useMemo(() => penetrationChannelBoard(real.channels || []), [real.channels]);
+  const campaignBoard = useMemo(() => penetrationCampaignBoard(real.campaigns || [], real.channels || []), [real.campaigns, real.channels]);
+  const [campaignFilter, setCampaignFilter] = useState<'all'|'m1m2'|'m3m6'>('all');
   const redAlerts = alerts.filter(a => a.level === 'red');
   const greenAlerts = alerts.filter(a => a.level === 'green');
   const grayAlerts = alerts.filter(a => a.level === 'gray');
@@ -324,6 +327,113 @@ export const PenetrationCommandCenter: React.FC<{ real: PenReal }> = ({ real }) 
             </p>
           )}
         </div>
+      </div>
+
+      {/* ④b CAMPAIGN PLANNER — planifié vs réel par campagne UTM */}
+      <div>
+        <Title icon={ClipboardList} title="Campaign Planner — planifié vs réel par campagne (UTM utm_campaign)" sub="11 campagnes chiffrées qui portent les 1 000 premiers clients (100 en M1-M2 + 900 en M3-M6). Chaque campagne a son UTM campagne à poser — le réel ne remonte que si l'UTM est posée. Le tableau de bord des canaux reste la vue par canal ; le planner est la vue par campagne exécutable." />
+        {/* Résumé */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+          <Card className="!p-3">
+            <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Clients planifiés (campa.)</p>
+            <p className="text-xl font-bold text-[#FFF7EF]">{num(campaignBoard.totals.plannedClients)}</p>
+            <p className="text-[10px] text-[#FFF7EF]/50">100 (M1-M2) + 900 (M3-M6)</p>
+          </Card>
+          <Card className="!p-3">
+            <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Commandes réelles (campagnes)</p>
+            <p className="text-xl font-bold text-[#D49A63]">{num(campaignBoard.totals.realOrders)}</p>
+            <p className="text-[10px] text-[#FFF7EF]/50">{campaignBoard.totals.attainmentPct}% de l'objectif · {num(campaignBoard.totals.plannedClients - campaignBoard.totals.realOrders)} restantes</p>
+          </Card>
+          <Card className="!p-3">
+            <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">CA planifié (campagnes)</p>
+            <p className="text-xl font-bold text-[#FFF7EF]">{eur(campaignBoard.totals.plannedRevenue)}</p>
+            <p className="text-[10px] text-[#FFF7EF]/50">réel {eur(campaignBoard.totals.realRevenue)}</p>
+          </Card>
+          <Card className="!p-3">
+            <p className="text-[9px] uppercase tracking-wider text-[#FFF7EF]/45">Budget planifié (campagnes)</p>
+            <p className="text-xl font-bold text-[#FFF7EF]">{eur(campaignBoard.totals.plannedBudget)}</p>
+            <p className="text-[10px] text-[#FFF7EF]/50">M1-M6 : 1 800 € + 10 100 €</p>
+          </Card>
+        </div>
+        <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden mb-3">
+          <div className="h-full bg-gradient-to-r from-[#C8753D] to-[#D49A63]" style={{ width: `${Math.min(100, campaignBoard.totals.attainmentPct)}%` }} />
+        </div>
+        {/* Filtres */}
+        <div className="flex gap-1.5 mb-3">
+          {([
+            { id: 'all', label: 'Toutes (11)' },
+            { id: 'm1m2', label: 'M1-M2 — palier 100 (5)' },
+            { id: 'm3m6', label: 'M3-M6 — échelle 1 000 (6)' },
+          ] as const).map(f => (
+            <button key={f.id} onClick={() => setCampaignFilter(f.id as any)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border ${campaignFilter === f.id ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-[#1A0F0A] text-[#FFF7EF]/60 border-[#FFF7EF]/10 hover:border-[#C8753D]/30'}`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {/* Grille campagnes */}
+        <div className="grid md:grid-cols-2 gap-3">
+          {campaignBoard.campaigns
+            .filter(c => campaignFilter === 'all' ? true : campaignFilter === 'm1m2' ? c.window.includes('M1') : c.window.includes('M3') || c.window.includes('M4') || c.window.includes('M5') || c.window.includes('M6'))
+            .map(c => {
+              const tone = c.status === 'win'
+                ? { border: 'border-emerald-500/40', chip: 'bg-emerald-500/20 text-emerald-300', label: 'GAGNANTE — industrialiser' }
+                : c.status === 'active'
+                  ? { border: 'border-amber-400/40', chip: 'bg-amber-400/20 text-amber-200', label: 'EN COURS' }
+                  : { border: 'border-[#FFF7EF]/15', chip: 'bg-[#FFF7EF]/10 text-[#FFF7EF]/60', label: 'À LANCER' };
+              const cacDisplay = c.targetCacEur === null ? 'organique' : eur(c.targetCacEur);
+              return (
+                <div key={c.id} className={`rounded-xl border ${tone.border} bg-[#050403] p-4 flex flex-col`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#FFF7EF] leading-tight">{c.name}</p>
+                      <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">{c.channel} · {c.window} · {c.segment}</p>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tone.chip}`}>{tone.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#FFF7EF]/10 text-[#D49A63] border border-[#FFF7EF]/10">utm_campaign={c.utmCampaign}</span>
+                    <span className="text-[9px] text-[#FFF7EF]/40">utm_source={c.utmSource} · utm_medium={c.utmMedium}</span>
+                  </div>
+                  <p className="text-[10px] text-[#FFF7EF]/60 mb-2"><b className="text-[#D49A63]">Offre :</b> {c.offer} · <b className="text-[#D49A63]">Budget :</b> {eur(c.budgetEur)} · CAC cible {cacDisplay}</p>
+                  <div className="flex items-end justify-between mb-1">
+                    <span className="text-lg font-bold text-[#D49A63]">{c.realOrders}</span>
+                    <span className="text-[10px] text-[#FFF7EF]/50">/ {c.targetClients} clients visés</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden mb-1.5">
+                    <div className={`h-full ${c.status === 'win' ? 'bg-emerald-400' : c.status === 'active' ? 'bg-amber-400' : 'bg-[#FFF7EF]/30'}`} style={{ width: `${Math.min(100, c.attainmentPct)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-[#FFF7EF]/50">{c.attainmentPct}% · {eur(c.realRevenue)} / {eur(c.targetRevenueEur)} prévus</p>
+                  <p className="text-[10px] text-[#FFF7EF]/60 mt-2 pt-2 border-t border-[#FFF7EF]/8 leading-snug">{c.decision}</p>
+                  {c.matchedFrom.length > 0 && <p className="text-[9px] text-[#FFF7EF]/40 mt-1">Matché via : {c.matchedFrom.join(', ')}</p>}
+                  <div className="mt-2 space-y-1">
+                    <p className="text-[10px] font-bold text-[#D49A63]">Actions :</p>
+                    <ul className="space-y-0.5">
+                      {c.actions.map((a, i) => (
+                        <li key={i} className="text-[10px] text-[#FFF7EF]/75 flex gap-1.5"><span className="text-[#C8753D]">▸</span>{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[#FFF7EF]/10 grid grid-cols-2 gap-2 text-[10px]">
+                    <p className="text-[#FFF7EF]/60"><b className="text-[#D49A63]">KPI :</b> {c.kpi}</p>
+                    <p className="text-emerald-300/80"><b>Porte :</b> {c.gate}</p>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+        {campaignBoard.otherCampaigns.length > 0 && (
+          <p className="text-[10px] text-[#FFF7EF]/50 mt-3">
+            Autres campagnes réelles hors plan (leviers non planifiés ou UTM libres) : {campaignBoard.otherCampaigns.map(o => `${o.campaign} (${o.orders})`).join(' · ')}.
+          </p>
+        )}
+        {(real.campaigns?.length ?? 0) === 0 && (
+          <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+            <p className="text-[11px] font-bold text-amber-200 flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" /> Aucune campagne tracée — comment tracer ?</p>
+            <p className="text-[11px] text-[#FFF7EF]/70 mt-1">Ajoute <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10">?utm_source=...&utm_medium=...&utm_campaign=kurla-...</code> à TOUS les liens (bio TikTok, DM, messages créatrices, QR salon, emails, parrainage). Les 11 UTM campagnes à poser sont listées ci-dessus. Sans utm_campaign, le planner reste à 0 et le tableau de bord des canaux est la seule vue disponible.</p>
+            <p className="text-[10px] text-[#FFF7EF]/50 mt-1.5">Exemples : <code className="text-[10px]">kurla.app/diagnostic?utm_source=tiktok&amp;utm_medium=organic&amp;utm_campaign=kurla-tiktok-organic</code> · <code className="text-[10px]">kurla.app/boutique?utm_source=creator&amp;utm_medium=affiliate&amp;utm_campaign=kurla-crea-barter</code></p>
+          </div>
+        )}
       </div>
 
       {/* ⑤ SEGMENTS FRANCE */}

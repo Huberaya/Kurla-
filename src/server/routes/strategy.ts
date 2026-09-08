@@ -312,6 +312,33 @@ export function registerStrategyRoutes(app: Express): void {
         .sort((a, b) => b.revenue - a.revenue)
         .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }));
 
+      // ── Campagnes d'acquisition (orders.attribution.last.campaign) ─────────
+      type CampaignRow = { campaign: string; channel: string; orders: number; revenue: number };
+      const campaignMap = new Map<string, CampaignRow>();
+      try {
+        const { data: ordForCampaign } = await supabase
+          .from('orders')
+          .select('id, status, total, attribution')
+          .limit(10000);
+        const revSt = ['paid', 'processing', 'packed', 'shipped', 'delivered', 'completed'];
+        for (const o of (ordForCampaign || [])) {
+          if (!revSt.includes(o.status)) continue;
+          const attr = o.attribution as { last?: { campaign?: string; channel?: string } } | null;
+          const campRaw = attr?.last?.campaign?.trim();
+          if (!campRaw) continue;
+          const camp = campRaw.slice(0, 80);
+          const ch = attr?.last?.channel || 'Non attribué';
+          const rev = Number(o.total || 0);
+          const cur = campaignMap.get(camp) || { campaign: camp, channel: ch, orders: 0, revenue: 0 };
+          cur.orders += 1;
+          cur.revenue = Math.round((cur.revenue + rev) * 100) / 100;
+          campaignMap.set(camp, cur);
+        }
+      } catch { /* colonne attribution peut être absente */ }
+      const campaigns = Array.from(campaignMap.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .map(c => ({ ...c, revenue: Math.round(c.revenue * 100) / 100 }));
+
       // ── ENTONNOIR DE CONVERSION (comptes réels par étape) ──────────────────
       // Le trafic pur (visites) vit dans GA4/Plausible (hors base). Tout ce qui
       // suit est mesuré en base : leads → paniers → commandes → paiement → réachat
@@ -447,6 +474,7 @@ export function registerStrategyRoutes(app: Express): void {
         topProducts,
         topKits,
         channels,
+        campaigns,
         ordersWithAttribution,
         // Objectifs AOV/part kit du plan (CENTRAL) pour comparaison au réel
         targets: { aovEur: 42, kitSharePct: 50 },

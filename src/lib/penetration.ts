@@ -486,6 +486,174 @@ export const PEN_MONTHLY: PenMonth[] = [
 ];
 
 
+// ════════════════════════════════════════════════════════════════════════════
+// 13. CAMPAIGN PLANNER — planifié vs réel par campagne (UTM utm_campaign)
+// Chaque campagne porte son UTM campagne, sa fenêtre, son offre et ses cibles.
+// Le réel vient de `performance.campaigns` (agrégation orders.attribution.last.campaign)
+// et n'est jamais inventé. Sans utm_campaign posée, la campagne reste « À lancer »
+// et l'UI rappelle l'UTM à poser. Le total planifié 100 (M1-M2) + 900 (M3-M6) = 1 000
+// correspond à l'escalier ; les budgets M1-M6 = 1 800 + 10 100 ≈ 11 900 €
+// (cohérent avec PEN_MONTHLY M1-M6 = 600+1 200+1 800+2 200+2 400+4 000 = 12 200 €,
+// l'écart est la marge de test/ops).
+// ════════════════════════════════════════════════════════════════════════════
+export type PenCampaign = {
+  id: string;
+  name: string;
+  channel: string;              // libellé canal (pour regroupement)
+  channelId: number | null;     // 1–5 pour le palier 100, null pour les leviers d'échelle
+  segment: string;
+  window: string;               // ex. "S1–S8 · M1–M2"
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;          // valeur exacte à poser en utm_campaign
+  offer: string;
+  budgetEur: number;
+  targetClients: number;
+  targetRevenueEur: number;     // clients × AOV cible du palier
+  targetCacEur: number | null;  // null = organique
+  kpi: string;
+  gate: string;
+  actions: string[];            // 2–3 actions opérationnelles de la campagne
+};
+
+export const PEN_CAMPAIGNS: PenCampaign[] = [
+  // ── PALIER 100 — M1-M2 (5 campagnes = 100 clients, 1 800 €) ──────────────
+  { id: 'c-tiktok-organic', name: 'TikTok organique — compte fondateur',
+    channel: 'TikTok', channelId: 1, segment: '4C IdF/Lyon',
+    window: 'S1–S8 · M1–M2', utmSource: 'tiktok', utmMedium: 'organic', utmCampaign: 'kurla-tiktok-organic',
+    offer: 'Diagnostic gratuit → Kit K03/K02', budgetEur: 0, targetClients: 25, targetRevenueEur: 1050, targetCacEur: null,
+    kpi: '25 clients · ≥ 250k vues cumulées', gate: '25 clients via TikTok à M2',
+    actions: ['Publier 7 vidéos/sem. (56 au total)', 'Bio = lien diagnostic avec UTM', 'Répondre à 100 % des commentaires'] },
+  { id: 'c-crea-barter', name: 'Micro-créatrices 4C — barter 6',
+    channel: 'Créateurs', channelId: 2, segment: '4C IdF/Lyon',
+    window: 'S2–S8 · M1–M2', utmSource: 'creator', utmMedium: 'affiliate', utmCampaign: 'kurla-crea-barter',
+    offer: 'Kit offert + code −15 % + UTM créatrice', budgetEur: 600, targetClients: 20, targetRevenueEur: 840, targetCacEur: 30,
+    kpi: '20 clients via codes créatrices', gate: '6 créatrices actives, ≥ 3 ventes/code',
+    actions: ['Lister 50 nano/micro-créatrices 4C', 'Envoyer 6 kits + brief 3 angles + code', 'Relance J7/J14'] },
+  { id: 'c-dm-community', name: 'DM & communautés ciblées',
+    channel: 'Communautés', channelId: 3, segment: '4C IdF/Lyon (groupes FB, Discord, WhatsApp)',
+    window: 'S1–S8 · M1–M2', utmSource: 'community', utmMedium: 'dm', utmCampaign: 'kurla-dm-community',
+    offer: 'Diagnostic gratuit en DM', budgetEur: 0, targetClients: 20, targetRevenueEur: 840, targetCacEur: null,
+    kpi: '20 clients sur ~400 DM qualifiées (5 %)', gate: '400 DM envoyées, 20 groupes activés',
+    actions: ['Rejoindre 20 groupes 4C IdF/Lyon', '20–25 DM personnalisés/sem. (valeur d’abord)', 'Noter canal « Communautés/DM »'] },
+  { id: 'c-salon-pilote', name: 'Salons 4C pilotes — IdF/Lyon',
+    channel: 'Salons', channelId: 4, segment: '4C IdF/Lyon',
+    window: 'S3–S8 · M1–M2', utmSource: 'salon', utmMedium: 'partner', utmCampaign: 'kurla-salon-pilote',
+    offer: 'Kit démo salon + commission 10–15 % + code pro', budgetEur: 700, targetClients: 20, targetRevenueEur: 840, targetCacEur: 35,
+    kpi: '20 clients via 2 salons (10/salon)', gate: '2 salons pilotes signés + 1 wash-day',
+    actions: ['Démarcher 10 salons 4C IdF/Lyon', 'Signer 2 pilotes + stock démo', 'Organiser 1 journée wash-day'] },
+  { id: 'c-reseau-waitlist', name: 'Réseau fondateur & waitlist',
+    channel: 'Réseau', channelId: 5, segment: 'Proches + liste de lancement',
+    window: 'S1–S2 · M1–M2', utmSource: 'referral', utmMedium: 'network', utmCampaign: 'kurla-reseau-waitlist',
+    offer: 'Kit −20 % pour les 100 premiers + parrainage 10/10', budgetEur: 500, targetClients: 15, targetRevenueEur: 630, targetCacEur: 33,
+    kpi: '15 clients via réseau/waitlist', gate: '100 contacts + email waitlist envoyés',
+    actions: ['Message perso à 100 contacts cible', 'Email waitlist : offre 100 premiers', 'Activer parrainage 10/10'] },
+
+  // ── ÉCHELLE M3–M6 — vers 1 000 (6 campagnes = 900 clients, 10 100 €) ──────
+  // Le total 100 + 900 = 1 000 (palier r1k). Budget 10 100 € + 1 800 € = 11 900 €
+  // vs PEN_MONTHLY M1–M6 (12 200 €) : cohérent (300 € d’ops/test non affectés).
+  { id: 'c-paid-scale', name: 'Paid Meta/TikTok — scale',
+    channel: 'Paid', channelId: null, segment: '4C national (IdF/Lyon élargi)',
+    window: 'M3–M6', utmSource: 'tiktok-ads', utmMedium: 'paid', utmCampaign: 'kurla-paid-scale',
+    offer: 'Kits K02/K03 en tête de reco + UGC paid', budgetEur: 4800, targetClients: 320, targetRevenueEur: 14720, targetCacEur: 15,
+    kpi: '320 clients · ROAS ≥ 2 · CAC ≤ 15 €', gate: 'ROAS ≥ 2 sur 1 créa, puis scale',
+    actions: ['Tester 3 créas UGC à 5 €/j', 'Scaler la créa ROAS>2', 'Couper ROAS<1,5 à J7'] },
+  { id: 'c-crea-continu', name: 'Créateurs continus — 4 à 8/mois',
+    channel: 'Créateurs', channelId: null, segment: '4C national',
+    window: 'M3–M6', utmSource: 'creator', utmMedium: 'affiliate', utmCampaign: 'kurla-crea-continu',
+    offer: 'Kit + affiliation + UGC réutilisable en paid', budgetEur: 3000, targetClients: 260, targetRevenueEur: 11960, targetCacEur: 12,
+    kpi: '260 clients via 20 créateurs (13/moy.)', gate: '20 créateurs actifs, ≥ 8 ventes/créa rentable',
+    actions: ['Recruter 20 créateurs 10k–50k (5/mois)', 'Contrats trimestriels si ROAS≥1,5', 'Bibliothèque UGC → paid'] },
+  { id: 'c-seo-longtail', name: 'SEO long-tail — 2 articles/sem.',
+    channel: 'Recherche (SEO)', channelId: null, segment: '4C → bouclées (M6)',
+    window: 'M3–M6', utmSource: 'google', utmMedium: 'organic', utmCampaign: 'kurla-seo-longtail',
+    offer: 'Guides routine 4C + pages ingrédients', budgetEur: 600, targetClients: 80, targetRevenueEur: 3680, targetCacEur: 8,
+    kpi: '80 clients via SEO · 2 art/sem. indexés', gate: '32 articles publiés, trafic organique en hausse',
+    actions: ['Publier 2 long-tail/sem. (hydratation 4C, démêlage…)', 'Mailler vers diagnostic', 'Suivre clics organiques → cmd'] },
+  { id: 'c-email-crm', name: 'CRM email & relance panier',
+    channel: 'Email', channelId: null, segment: 'Leads diagnostic + paniers abandonnés',
+    window: 'M4–M6', utmSource: 'email', utmMedium: 'email', utmCampaign: 'kurla-email-crm',
+    offer: 'Séquence 3 emails panier + réachat −10 %', budgetEur: 0, targetClients: 80, targetRevenueEur: 3680, targetCacEur: null,
+    kpi: '80 clients via email (panier→achat ≥ 35 %)', gate: 'Relance 3 emails active + réachat ≥ 15 %',
+    actions: ['Activer relance panier 3 emails/72h', 'Nurturing leads non-acheteurs (3 emails)', 'Campagne fin de produit à J45'] },
+  { id: 'c-salons-elargi', name: 'Salons élargis — 5 salons',
+    channel: 'Salons', channelId: null, segment: '4C national',
+    window: 'M3–M6', utmSource: 'salon', utmMedium: 'partner', utmCampaign: 'kurla-salons-elargi',
+    offer: 'Stock salon + formation routine 4C', budgetEur: 1000, targetClients: 80, targetRevenueEur: 3680, targetCacEur: 13,
+    kpi: '80 clients via 5 salons (16/salon)', gate: '5 salons actifs, réappro dans 90 j',
+    actions: ['Passer de 2 à 5 salons pilotes', 'Former les coiffeuses au diagnostic', 'Suivre ventes code salon'] },
+  { id: 'c-parrainage-scale', name: 'Parrainage 10/10 & ambassadeurs',
+    channel: 'Parrainage', channelId: null, segment: 'Clientes satisfaites (≥ 1 achat)',
+    window: 'M5–M6', utmSource: 'referral', utmMedium: 'referral', utmCampaign: 'kurla-parrainage',
+    offer: '10 € / 10 € + programme ambassadrices', budgetEur: 700, targetClients: 80, targetRevenueEur: 3680, targetCacEur: 9,
+    kpi: '80 clients parrainés · 15–25 % des nouveaux', gate: '10 ambassadrices actives (≥ 3 filleuls)',
+    actions: ['Pousser parrainage post-achat J7', 'Transformer 10 UGC clientes en ambassadrices', 'Suivre filleuls/code KURLA-…'] },
+];
+
+export type PenCampaignStatus = 'win' | 'active' | 'planned';
+export type PenCampaignStat = PenCampaign & {
+  realOrders: number;
+  realRevenue: number;
+  attainmentPct: number;
+  status: PenCampaignStatus;
+  decision: string;
+  matchedFrom: string[]; // campagnes UTM réelles matchées
+};
+
+export function penetrationCampaignBoard(
+  realCampaigns: { campaign: string; orders: number; revenue: number }[],
+  realChannels: { channel: string; orders: number; revenue: number }[] = [],
+): { campaigns: PenCampaignStat[]; otherCampaigns: { campaign: string; orders: number; revenue: number }[]; totals: { plannedClients: number; realOrders: number; plannedRevenue: number; realRevenue: number; plannedBudget: number; attainmentPct: number } } {
+  const norm = (s: string) => (s || '').toLowerCase();
+  const matchedReal = new Set<string>();
+
+  const campaigns: PenCampaignStat[] = PEN_CAMPAIGNS.map(c => {
+    let realOrders = 0; let realRevenue = 0; const matchedFrom: string[] = [];
+    const kw = norm(c.utmCampaign);
+    realCampaigns.forEach(rc => {
+      const label = norm(rc.campaign);
+      if (label && (label === kw || label.includes(kw) || kw.includes(label))) {
+        realOrders += rc.orders; realRevenue += rc.revenue; matchedFrom.push(rc.campaign); matchedReal.add(rc.campaign);
+      }
+    });
+    // Note : on ne fait PAS de fallback canal→campagne ici pour éviter le double
+    // comptage (un canal alimente plusieurs campagnes à l'échelle). Le tableau
+    // de bord des canaux reste la référence canal. Si aucune campagne n'est
+    // tracée, le planner affiche « À lancer » et rappelle l'UTM à poser.
+    const attainmentPct = c.targetClients > 0 ? Math.round((realOrders / c.targetClients) * 100) : 0;
+    let status: PenCampaignStatus = 'planned';
+    let decision: string;
+    if (realOrders >= c.targetClients * 0.8) {
+      status = 'win';
+      decision = 'CAMPAGNE GAGNANTE : on industrialise (budget + créas/UTM en continu).';
+    } else if (realOrders >= 1) {
+      status = 'active';
+      decision = realOrders >= c.targetClients * 0.4
+        ? 'En cours — on accélère la cadence et on itère le message qui convertit.'
+        : 'Premiers signaux — on double la cadence et on corrige le hook si faible.';
+    } else {
+      status = 'planned';
+      decision = `À LANCER : poser utm_campaign=${c.utmCampaign} (utm_source=${c.utmSource} utm_medium=${c.utmMedium}) sur tous les liens de cette campagne, puis exécuter les actions ci-dessous.`;
+    }
+    return { ...c, realOrders, realRevenue: Math.round(realRevenue), attainmentPct, status, decision, matchedFrom };
+  });
+
+  const otherCampaigns = realCampaigns
+    .filter(rc => !matchedReal.has(rc.campaign) && rc.orders > 0 && !/direct|non attribué/i.test(rc.campaign))
+    .map(rc => ({ campaign: rc.campaign, orders: rc.orders, revenue: Math.round(rc.revenue) }));
+
+  const plannedClients = PEN_CAMPAIGNS.reduce((s, c) => s + c.targetClients, 0);
+  const plannedRevenue = PEN_CAMPAIGNS.reduce((s, c) => s + c.targetRevenueEur, 0);
+  const plannedBudget = PEN_CAMPAIGNS.reduce((s, c) => s + c.budgetEur, 0);
+  const realOrders = campaigns.reduce((s, c) => s + c.realOrders, 0);
+  const realRevenue = campaigns.reduce((s, c) => s + c.realRevenue, 0);
+  const attainmentPct = plannedClients ? Math.round((realOrders / plannedClients) * 100) : 0;
+
+  return { campaigns, otherCampaigns, totals: { plannedClients, realOrders, plannedRevenue, realRevenue, plannedBudget, attainmentPct } };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 14. TABLEAU DE BORD CANAL — planifié vs réel (UTM last.channel)
 // Les ventes réelles remontent par UTM (data.performance.channels). On mappe ces
 // canaux réels aux 5 canaux du plan des 100 premiers, et on décide pour chacun :
 // GAGNANT (renforcer/industrialiser) · ACTIF (accélérer) · À LANCER.
