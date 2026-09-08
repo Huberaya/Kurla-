@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
 import { checkProductVocabulary } from './taxonomyStore';
-import { registerSupplierByName } from './supplierStore';
+import { getSupplierById, getSupplierCompliance, registerSupplierByName } from './supplierStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   effectiveCatalogPrice,
@@ -13,6 +13,7 @@ import {
   recordLoyaltySafely,
   toPublicProduct,
 } from './internal';
+import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
 
 import type {
   MarketplaceQuestion,
@@ -1028,11 +1029,31 @@ export async function updateCatalogStatus(store: SupabaseServerStore, productId:
      * politiques en base (`product_ingredients` ne devient lisible que pour un
      * produit publié). Un statut qui ne correspond à rien est pire qu'un
      * statut absent.
+     *
+     * B1 (2026-09-08) — 8ᵉ porte : cosmétique UE. Un cosmétique sans
+     * CPNP/RP/CPSR vérifiés n'est pas publiée, même si les 7 vérifications
+     * historiques sont au vert. Les outils/accessoires ne sont pas concernés.
      */
     if (status === 'published') {
       const readiness = await getCatalogPublicationReadiness(store, productId);
       if (!readiness.ready) {
         throw new Error(`Publication refusée — ${readiness.missing.length} exigence(s) non satisfaite(s) : ${readiness.missing.map(item => item.label).join(' ; ')}.`);
+      }
+      if (requiresCpnp(existing)) {
+        const supplierId = existing.supplierId || existing.supplier_id;
+        if (!supplierId) {
+          throw new Error('Publication refusée — cosmétique UE sans fournisseur rattaché : CPNP / Personne Responsable / CPSR non prouvables. Rattachez un fournisseur vérifié puis joignez CPSR + notification CPNP + attestation Personne Responsable (art. 4-5 Règl. 1223/2009).');
+        }
+        const supplier = await getSupplierById(store, String(supplierId));
+        if (!supplier) throw new Error(`Publication refusée — fournisseur « ${supplierId} » introuvable.`);
+        const compliance = await getSupplierCompliance(store, supplier.id);
+        const evalCpnp = evaluateCosmeticCompliance(existing, compliance.heldTypes, compliance.expiredTypes, supplier.verificationStatus);
+        if (!evalCpnp.compliant) {
+          const alt = compliance.heldTypes.length === 0
+            ? ` Aucun document enregistré chez « ${supplier.legalName} » — solution : joindre CPSR + CPNP + RP, ou basculer vers un grossiste UE qui les fournit (ex. AfricanFabs / Afro Wholesale avec dossier).`
+            : '';
+          throw new Error(`Publication refusée — conformité cosmétique UE manquante : ${evalCpnp.missing.map(m => m.label).join(' ; ')}.${alt}`);
+        }
       }
     }
     const supabase = getSupabaseServerClient();
@@ -1163,7 +1184,30 @@ export async function getCatalogPublicationReadiness(store: SupabaseServerStore,
   // nommer, sinon la réponse est « introuvable » pour un produit qui existe.
   const product = await getProductForAdministration(store, productId);
   if (!product) throw new Error('Produit introuvable.');
-  return evaluateCatalogPublicationReadiness(product, productId);
+  const base = evaluateCatalogPublicationReadiness(product, productId);
+  // B1 — enrichissement cosmétique : si le produit est cosmétique, on ajoute
+  // les manques CPNP/RP/CPSR fournis avec preuve (sans bloquer les outils).
+  if (requiresCpnp(product)) {
+    try {
+      const supplierId = product.supplierId || product.supplier_id;
+      if (!supplierId) {
+        base.missing.push({ field: 'supplier_document:cpnp', label: 'CPNP+RP+CPSR manquants — aucun fournisseur rattaché (Règl. 1223/2009)' });
+      } else {
+        const supplier = await getSupplierById(store, String(supplierId));
+        if (!supplier) {
+          base.missing.push({ field: 'supplier_id', label: `Fournisseur « ${supplierId} » introuvable` });
+        } else {
+          const compliance = await getSupplierCompliance(store, supplier.id);
+          const evalCpnp = evaluateCosmeticCompliance(product, compliance.heldTypes, compliance.expiredTypes, supplier.verificationStatus);
+          evalCpnp.missing.forEach(m => base.missing.push({ field: m.field, label: m.label }));
+        }
+      }
+    } catch {
+      // Un incident de conformité ne masque pas les autres manques déjà calculés.
+    }
+    base.ready = base.missing.length === 0;
+  }
+  return base;
 }
 
 /**
@@ -1197,17 +1241,41 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
   for (const row of rows) {
     const product = row;
     const productId = String(product.id);
-    const readiness = evaluateCatalogPublicationReadiness(product, productId);
+    const baseReadiness = evaluateCatalogPublicationReadiness(product, productId);
+    // B1 — CPNP/RP/CPSR cosmétique : même enrichissement que le get unitaire,
+    // mais sans N× requêtes séquentielles coûteuses : on ne charge le
+    // fournisseur que si le produit est cosmétique.
+    const missing = [...baseReadiness.missing];
+    if (requiresCpnp(product)) {
+      try {
+        const supplierId = product.supplier_id || product.supplierId;
+        if (!supplierId) {
+          missing.push({ field: 'supplier_document:cpnp', label: 'CPNP+RP+CPSR manquants — aucun fournisseur rattaché (Règl. 1223/2009)' });
+        } else {
+          const supplier = await getSupplierById(store, String(supplierId));
+          if (!supplier) {
+            missing.push({ field: 'supplier_id', label: `Fournisseur « ${supplierId} » introuvable` });
+          } else {
+            const compliance = await getSupplierCompliance(store, supplier.id);
+            const evalCpnp = evaluateCosmeticCompliance(product, compliance.heldTypes, compliance.expiredTypes, supplier.verificationStatus);
+            evalCpnp.missing.forEach(m => missing.push({ field: m.field, label: m.label }));
+          }
+        }
+      } catch {
+        // Ne masque pas les autres manques.
+      }
+    }
+    const ready = missing.length === 0;
     const status = String(product.catalog_status || product.catalogStatus || 'draft');
     if (status === 'published') publishedStatus += 1;
-    if (readiness.ready) readyToPublish += 1;
+    if (ready) readyToPublish += 1;
     if (status === 'published' && !isPublishableProduct(product)) publishedButNotListable += 1;
     perProduct.push({
       productId,
       title: String(product.title || product.name || productId),
       catalogStatus: status,
-      ready: readiness.ready,
-      missing: readiness.missing.map(item => item.label)
+      ready,
+      missing: missing.map(item => item.label)
     });
   }
 

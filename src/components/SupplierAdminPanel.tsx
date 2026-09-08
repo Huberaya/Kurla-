@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Building2, FileCheck2, Package, Plus, RefreshCw, Save } from 'lucide-react';
+import { AlertTriangle, Building2, FileCheck2, Package, Plus, RefreshCw, Save, ShieldCheck } from 'lucide-react';
 import { SUPPLIER_DOCUMENT_LABELS } from '../lib/sourcingDocuments';
+import { COSMETIC_REQUIRED_DOCS, COSMETIC_DOC_LABELS, COSMETIC_DOC_REASONS } from '../lib/cosmeticCompliance';
 
 type SupplierAdminPanelProps = {
   headers: HeadersInit;
@@ -36,6 +37,8 @@ type SupplierDetail = {
     note?: string;
   }>;
   products: Array<{ id: string; slug: string; name: string; catalogStatus?: string }>;
+  heldTypes?: string[];
+  expiredTypes?: string[];
 };
 
 const SUPPLIER_TYPE_LABELS: Record<string, string> = {
@@ -359,10 +362,51 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
             </label>
           </div>
 
-          <p className="text-[10px] text-[#FFF7EF]/50 mb-4">
+          <p className="text-[10px] text-[#FFF7EF]/50 mb-2">
             « Vérifié » exige au moins un document enregistré ci-dessous : sans preuve, la
             plateforme refuse le changement de statut.
           </p>
+
+          {(() => {
+            const held = new Set<string>((detail.heldTypes || detail.documents.map(d => d.documentType)));
+            const expired = new Set<string>(detail.expiredTypes || detail.documents.filter(d => d.expiresOn && d.expiresOn < new Date().toISOString().slice(0,10)).map(d => d.documentType));
+            const today = new Date().toISOString().slice(0,10);
+            const allExpired = (t: string) => detail.documents.filter(d => d.documentType === t).every(d => d.expiresOn && d.expiresOn < today) && held.has(t);
+            return (
+              <div className="rounded-xl border border-[#C8753D]/30 bg-[#1A0F0A] p-4 mb-5 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-2"><ShieldCheck size={13} /> Dossier cosmétique UE — 5 héros (CPNP / RP / CPSR)</h4>
+                <p className="text-[10px] text-[#FFF7EF]/50 leading-relaxed">
+                  Un cosmétique (tout soin p01–p15, p28–p34, p51–p54) n'est vendable qu'avec le trio vérifié <strong className="text-[#FFF7EF]">CPSR + notification CPNP + Personne Responsable UE</strong> (Règl. 1223/2009). Sans ce trio chez le fournisseur, le catalogue bloque la publication — basculez vers un grossiste UE qui fournit le dossier (ex. AfricanFabs / Afro Wholesale avec CPSR+CPNP déjà constitués).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {COSMETIC_REQUIRED_DOCS.map(doc => {
+                    const has = held.has(doc);
+                    const exp = expired.has(doc) || allExpired(doc);
+                    return (
+                      <div key={doc} className={`p-2.5 rounded-xl border text-[11px] ${!has ? 'bg-rose-950/30 border-rose-500/30 text-rose-200' : exp ? 'bg-amber-950/30 border-amber-500/30 text-amber-200' : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'}`}>
+                        <p className="font-bold">{COSMETIC_DOC_LABELS[doc] || doc}</p>
+                        <p className="text-[10px] opacity-70 mt-1">{COSMETIC_DOC_REASONS[doc]}</p>
+                        <p className="mt-1.5 font-semibold">{!has ? '— manquant' : exp ? '— expiré (à renouveler)' : '✓ versé + vérifiable'}</p>
+                        {has && !exp && detail.documents.filter(d => d.documentType === doc).slice(0,1).map(d => (
+                          <a key={d.id} href={d.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] underline break-all opacity-80">{d.fileUrl}</a>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+                {(() => {
+                  const ok = COSMETIC_REQUIRED_DOCS.every(d => held.has(d) && !expired.has(d));
+                  const needs = detail.products.length > 0 ? ` — ${detail.products.length} produit(s) rattaché(s)` : '';
+                  return (
+                    <p className={`text-xs font-bold flex items-center gap-1.5 ${ok ? 'text-emerald-300' : 'text-rose-300'}`}>
+                      {ok ? '✓ Dossier cosmétique complet — produits rattachés publiables (si 7 vérifications au vert).' : `⛔ Dossier incomplet — aucun cosmétique rattaché ne peut passer en « publié »${needs}.`}
+                    </p>
+                  );
+                })()}
+                <p className="text-[10px] text-[#FFF7EF]/35">Astuce : si le façonnier ne peut pas fournir le CPSR/CPNP, ne bloquez pas la vente — importez le même SKU via un grossiste UE vérifié (il porte déjà le trio). L'écran « Fournisseur & sourcing » du catalogue permet de basculer le rattachement en 1 clic.</p>
+              </div>
+            );
+          })()}
 
           <div className="rounded-xl border border-[#FFF7EF]/10 bg-[#050403]/60 p-4 mb-5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Coordonnées & contact</h4>

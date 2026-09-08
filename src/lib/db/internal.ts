@@ -82,6 +82,33 @@ export function isPublishableProduct(product: any): boolean {
   const hasPromotionFacts = !product?.isPromo && !product?.is_promo
     ? true
     : isPromotionActive(product);
+  // B1 — la publiabilité cosmétique est porteuse d'une 8ᵉ exigence : sans CPNP/RP/CPSR,
+  // le produit est cosmétique mais non vendable UE. Le flag est porté par la
+  // colonne `cpnp_ready` (ou `cpnpReady`) si elle existe : un produit cosmétique
+  // sans fournisseur vérifié ne passe pas, même si les 7 vérifications sont au vert.
+  // Les outils / accessoires ne sont jamais bloqués par cette porte.
+  const requiresCpnp = (() => {
+    const cat = String(product?.category || product?.department || '').toLowerCase();
+    const sub = String(product?.subCategory || product?.subcategory || product?.sub_category_tag || '').toLowerCase();
+    const isAccessory =
+      cat.includes('accessoir') || cat.includes('outil') || cat.includes('device') ||
+      ['accessoire', 'accessoires', 'kits', 'kit'].includes(cat);
+    if (isAccessory) return false;
+    if (!cat && !sub) return false;
+    if (['cheveux', 'peau'].includes(cat)) return true;
+    if (['shampoing', 'apres-shampoing', 'masque', 'leave-in', 'huile/beurre', 'gel/coiffant', 'co-wash'].includes(cat)) return true;
+    if (['shampoing', 'masque', 'leave-in', 'huile', 'gel', 'co-wash'].some(k => cat.includes(k) || sub.includes(k))) return true;
+    const hasIngr = Array.isArray(ingredients) && ingredients.length > 0;
+    if ((hasIngr || inci !== '') && (cat || sub)) return true;
+    return false;
+  })();
+  if (requiresCpnp) {
+    const cpnpReady = product?.cpnpReady ?? product?.cpnp_ready;
+    // Si la colonne existe et vaut false, le produit est cosmétique non conforme.
+    // Si elle n'existe pas, on ne bloque pas en lecture (compatibilité) : la porte
+    // d'écriture (`updateCatalogStatus`) fait la vérification fournie avec preuve.
+    if (cpnpReady === false) return false;
+  }
   return product?.is_active === true
     && product?.catalog_status === 'published'
     && product?.ingredient_verification_status === 'verified'

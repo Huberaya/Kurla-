@@ -98,6 +98,8 @@
     "test:smoke": "playwright test",
     "test:visuals": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_visuals.test.ts",
     "email:check": "tsx scripts/emailPreflight.ts",
+    "catalog:guard": "tsx scripts/verifyCatalogGuard.ts",
+    "catalog:guard:ci": "tsx scripts/verifyCatalogGuard.ts --ci",
     "test:payment-reconciliation": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_payment_reconciliation.test.ts",
     "test:product-schema": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_product_schema.test.ts"
   },

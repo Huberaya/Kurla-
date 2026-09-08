@@ -12,6 +12,7 @@ import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
+import { KittingAdminPanel } from '../components/KittingAdminPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1278,11 +1279,12 @@ export const AdminDashboardPage: React.FC = () => {
           />
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B + fulfillment sans stock (A3 tampon) */}
+        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B + fulfillment sans stock (A3 tampon) + B2 kitting */}
         {activeTab === 'suppliers' && (
           <div className="space-y-10">
             <TamponOrderPanel />
             <FulfillmentContactPanel />
+            <KittingAdminPanel />
             <ProductSupplierPanel
               headers={adminHeaders}
               onSuccess={(message) => {

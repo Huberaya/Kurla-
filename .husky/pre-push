@@ -1,0 +1,18 @@
+#!/bin/sh
+# B3 — garde-fou catalogue : le fichier launchCatalog.ts ne doit jamais bouger
+# via un push 3PL. On coupe net si le diff n'est pas vide.
+if ! git diff --quiet -- src/lib/launchCatalog.ts; then
+  echo "⛔ push refusé — src/lib/launchCatalog.ts a été modifié."
+  echo "   Règle B3 : ce fichier est une décision (54 SKU / 10 kits) — le flux 3PL n'écrit que dans src/lib/fulfillment.ts."
+  echo "   Annulez avec : git checkout -- src/lib/launchCatalog.ts"
+  git diff -- src/lib/launchCatalog.ts --stat
+  exit 1
+fi
+# Vérifie aussi le compte (supporte npx et binaire local)
+if [ -x "./node_modules/.bin/tsx" ]; then
+  ./node_modules/.bin/tsx scripts/verifyCatalogGuard.ts --ci || exit 1
+elif command -v npx >/dev/null 2>&1; then
+  npx --yes tsx scripts/verifyCatalogGuard.ts --ci || exit 1
+else
+  echo "⚠ tsx introuvable — garde-fou comptes ignoré (mais diff déjà vérifié)"
+fi
