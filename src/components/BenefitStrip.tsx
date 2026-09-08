@@ -21,8 +21,8 @@ export const BenefitStrip: React.FC = () => {
     },
     {
       icon: ShieldCheck,
-      title: 'Achat sans risque',
-      text: 'Précommande annulable & remboursée à tout moment avant l’envoi.',
+      title: 'Précommande sans risque',
+      text: 'Expédié sous 3–5 jours — petite production hebdomadaire (lun & jeu 18h), annulable & remboursée avant envoi.',
     },
   ];
 

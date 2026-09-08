@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Clock3, Loader2, ShoppingBag } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, Loader2, ShoppingBag, Clock } from 'lucide-react';
 import { analytics } from '../lib/analytics';
+import { DISPATCH_SENTENCE, DISPATCH_LEGAL } from '../lib/preorderPromise';
 
 interface OrderConfirmationPageProps {
   sessionId?: string;
@@ -102,6 +103,12 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
           <span className="mt-6 block text-xs uppercase tracking-widest text-[#C8753D] font-bold">KURLA Beauty</span>
           <h1 className="mt-2 text-3xl font-serif-title font-bold">{loading ? 'Vérification du paiement…' : requestError ? 'Vérification impossible' : copy.title}</h1>
           <p className="mt-3 text-sm text-[#111111]/70 leading-relaxed">{requestError || copy.message}</p>
+          {!requestError && copy.tone === 'success' && (
+            <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-left">
+              <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Précommande — expédié sous 3–5 jours</p>
+              <p className="text-[11px] text-[#111111]/65 mt-1 leading-relaxed">{DISPATCH_SENTENCE} <span className="font-semibold">Petite production hebdomadaire : lun & jeu 18h</span> (via 3PL IDF). Vous pouvez annuler et être remboursé·e à tout moment avant expédition. {DISPATCH_LEGAL}</p>
+            </div>
+          )}
 
           {result?.order && !requestError && (
             <div className="mt-6 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-left text-sm space-y-2">

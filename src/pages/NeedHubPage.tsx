@@ -7,6 +7,7 @@ import {
 import { motion } from 'motion/react';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
+import { isDropshipProduct } from '../lib/preorderPromise';
 import { NeedContent, NEEDS_HUB } from '../lib/needsHub';
 
 const ICONS: Record<string, React.ElementType> = {
@@ -188,9 +189,14 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-[#111111]/40">Image bientôt</div>
                           )}
-                          {p.isPreorder && (
-                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-700/95 text-white text-[9px] font-bold">
-                              <Clock className="w-2.5 h-2.5" /> Précommande
+                          {!isDropshipProduct(p as any) && (
+                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-700/95 text-white text-[9px] font-bold">
+                              <Clock className="w-2.5 h-2.5" /> Précommande — 3–5j
+                            </span>
+                          )}
+                          {isDropshipProduct(p as any) && (
+                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold">
+                              <Clock className="w-2.5 h-2.5" /> 24–48h
                             </span>
                           )}
                         </div>
@@ -206,7 +212,7 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                             disabled={!p.inStock}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-40 text-white text-[11px] font-semibold"
                           >
-                            <ShoppingBag className="w-3.5 h-3.5" /> {p.isPreorder ? 'Précommander' : 'Ajouter'}
+                            <ShoppingBag className="w-3.5 h-3.5" /> {isDropshipProduct(p as any) ? 'Ajouter' : 'Précommander'}
                           </button>
                         </div>
                       </div>

@@ -259,23 +259,32 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* En-tête boutique */}
+        {/* En-tête boutique — C1 : mode précommande 3–5j assumé */}
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-bold uppercase tracking-widest mb-3 border border-emerald-500/20">
-            <Clock className="w-3.5 h-3.5" /> Précommandes ouvertes
+          <div className="inline-flex flex-wrap justify-center items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-bold uppercase tracking-widest border border-emerald-500/20">
+              <Clock className="w-3.5 h-3.5" /> Précommande — expédié sous 3–5 jours
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-[11px] font-bold uppercase tracking-wider border border-amber-500/20">
+              Petite production hebdomadaire (lun & jeu 18h)
+            </span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 tracking-tight">
             La boutique des cheveux texturés.
           </h1>
           <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
             Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer.
-            Réservez en précommande : annulation et remboursement à tout moment avant l’envoi.
+            <span className="font-semibold text-[#111111]"> Réservez en précommande</span> : annulation et remboursement à tout moment avant l’envoi.
+            <span className="block mt-2 text-xs text-[#111111]/60">Lot hebdomadaire : commandes groupées <strong>lundi & jeudi 18h</strong> → expédition via 3PL IDF (mardi/vendredi). 60% expédiés en 24–48h via tampon.</span>
           </p>
 
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
+          <div className="mt-4 inline-flex flex-wrap justify-center items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
             <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
             <span>{count} références — soins {DISPATCH_SHORT.toLowerCase()} · outils {TOOL_DISPATCH_SHORT.toLowerCase()}.</span>
+            <span className="hidden sm:inline text-[#111111]/30">·</span>
+            <span className="inline-flex items-center gap-1 text-amber-700"><Clock className="w-3 h-3" /> Petite production lun & jeu 18h</span>
           </div>
+          <p className="mt-2 text-[11px] text-[#111111]/50">Paiement Stripe sécurisé — précommande sans risque (CGV : remboursement avant expédition, 14j après réception).</p>
         </div>
 
         {/* A4 — 12 outils à 24–48h (sans stock Paris, marge 56–66%) */}
@@ -747,16 +756,17 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         </div>
                       )}
 
-                      {/* Badge fulfillment A4 : 24–48h outils vs 3–5j soins */}
+                      {/* Badge fulfillment C1 : 24–48h outils vs Précommande 3–5j soins */}
                       {isDropshipProduct(product as any) ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> 24–48h
                         </span>
-                      ) : product.isPreorder ? (
+                      ) : (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#2E7D5B] backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> Précommande
                         </span>
-                      ) : product.badges[0] ? (
+                      )}
+                      {false && product.badges[0] ? (
                         <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-semibold">
                           {product.badges[0]}
                         </span>
@@ -794,11 +804,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <p className="text-[10px] text-emerald-600 font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {TOOL_DISPATCH_SHORT}
                       </p>
-                    ) : product.isPreorder ? (
+                    ) : (
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT}
+                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT} <span className="text-[#111111]/40 font-normal">· Petite production lun & jeu 18h</span>
                       </p>
-                    ) : null}
+                    )}
 
                     {/* HARMONISATION : ce produit a une fiche pédagogique dans le
                         guide des outils → lien direct vers sa fiche (ancre). */}
@@ -838,7 +848,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         disabled={!product.inStock}
                         className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : isDropshipProduct(product as any) ? 'Ajouter' : product.isPreorder ? 'Précommander' : 'Ajouter'}
+                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : isDropshipProduct(product as any) ? 'Ajouter' : 'Précommander'}
                       </button>
                     </div>
                   </div>

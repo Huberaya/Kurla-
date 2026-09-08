@@ -387,9 +387,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </h4>
                     {isDropshipProduct(item.product as any) ? (
                       <p className="text-[10px] text-emerald-300 font-semibold">{TOOL_DISPATCH_SHORT}</p>
-                    ) : (item.product as any).isPreorder ? (
+                    ) : (
                       <p className="text-[10px] text-amber-300 font-semibold">Précommande · {DISPATCH_SHORT}</p>
-                    ) : null}
+                    )}
                     <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center border border-[#FFF7EF]/20 rounded-lg bg-[#1A0F0A]">
@@ -649,14 +649,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
 
-            {/* Informations précontractuelles précommande + CGV */}
-            <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1">
+            {/* Informations précontractuelles précommande + CGV — C1 : petite production hebdomadaire explicite */}
+            <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1.5">
               {items.length > 0 && (
                 <p>
                   <span className="text-emerald-300 font-semibold">{hasDropshipItems && !hasPreorderItems ? 'Stock partenaire :' : isMixedCart ? 'Panier mixte :' : 'Précommande :'}</span> {cartDispatchSummary} Vous
                   pouvez annuler et être remboursé·e à tout moment avant expédition, et vous disposez de 14 jours
                   après réception pour vous rétracter.{' '}
                   <span className="text-[#FFF7EF]/55">{DISPATCH_LEGAL}</span>
+                </p>
+              )}
+              {items.length > 0 && (hasPreorderItems || isMixedCart) && (
+                <p className="flex items-start gap-1.5 text-amber-200/80 bg-amber-500/10 border border-amber-500/15 rounded-xl px-2.5 py-1.5">
+                  <span className="mt-0.5">⏱</span>
+                  <span><strong>Petite production hebdomadaire</strong> : commandes groupées <strong>lun & jeu 18h</strong> → expédition via 3PL IDF (mardi/vendredi). 60% expédiés en 24–48h via tampon si disponible.</span>
                 </p>
               )}
               <p>
