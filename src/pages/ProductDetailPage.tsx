@@ -22,7 +22,7 @@ import {
 import { ArchetypeRatingsPanel } from '../components/product/ArchetypeRatingsPanel';
 import { ProductVerificationPanel } from '../components/product/ProductVerificationPanel';
 import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
-import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, isDropshipProduct } from '../lib/preorderPromise';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -123,7 +123,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const availableCountries = shipping.countries?.length ? shipping.countries : product?.countryAvailability || [];
   const effectiveInStock = selectedVariant ? selectedVariant.inStock : Boolean(product?.inStock);
   const effectivePrice = selectedVariant?.price ?? product?.price ?? 0;
-  const isPreorder = product?.isPreorder === true;
+  const rawIsPreorder = product?.isPreorder === true;
+  const isDropshipTool = isDropshipProduct(product as any);
+  const isPreorder = rawIsPreorder && !isDropshipTool;
 
   useEffect(() => {
     if (!product) return;
@@ -205,10 +207,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               <h1 className="text-3xl sm:text-5xl font-serif-title font-bold leading-tight mb-3">{product.name}</h1>
               {product.benefitPrimary && <p className="text-lg text-[#D49A63]">{product.benefitPrimary}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-4 text-xs">
-                <span className={`px-2.5 py-1 rounded-full border ${effectiveInStock ? (isPreorder ? 'text-amber-300 border-amber-400/30 bg-amber-900/20' : 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20') : 'text-rose-300 border-rose-400/30 bg-rose-900/20'}`}>
-                  {effectiveInStock ? (isPreorder ? 'En précommande' : 'Disponible') : 'Indisponible pour cette option'}
+                <span className={`px-2.5 py-1 rounded-full border ${effectiveInStock ? (isDropshipTool ? 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20' : isPreorder ? 'text-amber-300 border-amber-400/30 bg-amber-900/20' : 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20') : 'text-rose-300 border-rose-400/30 bg-rose-900/20'}`}>
+                  {effectiveInStock ? (isDropshipTool ? 'En stock partenaire — 24–48h' : isPreorder ? 'En précommande' : 'Disponible') : 'Indisponible pour cette option'}
                 </span>
-                {isPreorder && effectiveInStock && (
+                {isDropshipTool && effectiveInStock && (
+                  <span className="px-2.5 py-1 rounded-full border border-emerald-400/20 bg-emerald-900/10 text-emerald-200/90 text-[11px]">{TOOL_DISPATCH_SHORT}</span>
+                )}
+                {isPreorder && effectiveInStock && !isDropshipTool && (
                   <span className="px-2.5 py-1 rounded-full border border-amber-400/20 bg-amber-900/10 text-amber-200/90 text-[11px]">{DISPATCH_SHORT}</span>
                 )}
                 {trust.verifiedReviewCount > 0 && <span className="flex items-center gap-1 text-amber-300"><Star className="w-3.5 h-3.5 fill-current" /> {(trust.reviews.reduce((sum, review) => sum + review.rating, 0) / trust.reviews.length).toFixed(1)} · {trust.verifiedReviewCount} avis vérifiés</span>}
@@ -217,7 +222,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
             <p className="text-sm text-[#FFF7EF]/78 leading-relaxed">{valueOrMissing(product.description)}</p>
 
-            {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {variant.inStock ? (isPreorder ? 'En précommande' : 'En stock') : 'Indisponible'}</span></button>)}</div></section>}
+            {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {isDropshipTool ? (variant.inStock ? '24–48h' : 'Indisponible') : variant.inStock ? (isPreorder ? 'En précommande' : 'En stock') : 'Indisponible'}</span></button>)}</div></section>}
 
             <ProductComplianceBanner
               productId={product.id}

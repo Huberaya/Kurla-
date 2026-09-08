@@ -99,10 +99,11 @@ export const THREE_PL_SHORTLIST: ThreePLQuote[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. SPLIT IMMÉDIAT OUTILS (dropship UE, 24h)
+// 5. SPLIT IMMÉDIAT OUTILS (dropship UE, 24h) — A4
 // ─────────────────────────────────────────────────────────────────────────────
 // 12 outils best-sellers à 56-66% HT, déjà chez AfricanFabs/Afro Wholesale (NL)
 // Expédiés en direct en 2-3j pendant que le kit arrive en 3-5j
+// IDs = pXX dans launchCatalog.ts ; en base ils sont `launch-pXX`
 export const DROPSHIP_TOOLS_IMMEDIATE = [
   'p35', // peigne afro métal 4,90€
   'p36', // brosse massage cuir chevelu 7,90€
@@ -117,6 +118,31 @@ export const DROPSHIP_TOOLS_IMMEDIATE = [
   'p45', // chouchous satin 6,90€
   'p38', // peigne queue de rat 5,90€
 ] as const;
+
+export const DROPSHIP_TOOLS_SET: ReadonlySet<string> = new Set([
+  ...DROPSHIP_TOOLS_IMMEDIATE as unknown as string[],
+  ...DROPSHIP_TOOLS_IMMEDIATE.map(id => `launch-${id}`),
+]);
+
+export function normalizeLaunchId(id: string): string {
+  return id.startsWith('launch-') ? id.slice(7) : id;
+}
+
+export function isDropshipToolId(id: string | null | undefined): boolean {
+  if (!id) return false;
+  if ((DROPSHIP_TOOLS_SET as Set<string>).has(id)) return true;
+  const n = normalizeLaunchId(id);
+  return (DROPSHIP_TOOLS_IMMEDIATE as readonly string[]).includes(n);
+}
+
+export function isDropshipToolProduct(product: { id: string; slug?: string } | null | undefined): boolean {
+  if (!product) return false;
+  return isDropshipToolId(product.id);
+}
+
+export function getProductFulfillmentMode(product: { id: string } | null | undefined): 'dropship_24_48h' | 'preorder_3_5j' {
+  return isDropshipToolId(product?.id || '') ? 'dropship_24_48h' : 'preorder_3_5j';
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. WORKFLOW OPÉRATIONNEL (qui fait quoi, sans toucher au catalogue)

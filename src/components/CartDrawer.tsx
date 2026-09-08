@@ -8,7 +8,7 @@ import { analytics } from '../lib/analytics';
 import { getOrderAttribution } from '../lib/attribution';
 import { formatMoney, toCents } from '../lib/currency';
 import { useI18n } from '../lib/I18nProvider';
-import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, getCartDispatchSummary, isDropshipProduct } from '../lib/preorderPromise';
 import { recommendAddOns } from '../lib/launchCatalog';
 import { useProducts } from '../services/productService';
 import { getStoredReferralCode } from '../lib/referralCapture';
@@ -132,7 +132,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   // (« Rendered more hooks than during the previous render »).
   const { locale } = useI18n();
   const total = items.reduce((sum, item) => sum + unitPrice(item) * item.quantity, 0);
-  const allItemsPreorder = items.length > 0 && items.every(item => (item.product as any).isPreorder === true);
+  const hasDropshipItems = items.some(item => isDropshipProduct(item.product as any));
+  const hasPreorderItems = items.some(item => !isDropshipProduct(item.product as any) && (item.product as any).isPreorder !== false);
+  const allItemsPreorder = hasPreorderItems && !hasDropshipItems;
+  const isMixedCart = hasPreorderItems && hasDropshipItems;
+  const cartDispatchSummary = getCartDispatchSummary(items as any);
   const subtotalCents = Math.round(total * 100);
   const shippingOption = getShippingOption(shippingAddress.country);
   const shippingCents = shippingOption ? calculateShippingCents(subtotalCents, shippingAddress.country, shippingMethod) : 0;
@@ -381,9 +385,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <h4 className="text-xs font-serif-title font-bold text-[#FFF7EF] truncate">
                       {item.product.name}
                     </h4>
-                    {(item.product as any).isPreorder && (
-                      <p className="text-[10px] text-emerald-400 font-semibold">Précommande · {DISPATCH_SHORT}</p>
-                    )}
+                    {isDropshipProduct(item.product as any) ? (
+                      <p className="text-[10px] text-emerald-300 font-semibold">{TOOL_DISPATCH_SHORT}</p>
+                    ) : (item.product as any).isPreorder ? (
+                      <p className="text-[10px] text-amber-300 font-semibold">Précommande · {DISPATCH_SHORT}</p>
+                    ) : null}
                     <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center border border-[#FFF7EF]/20 rounded-lg bg-[#1A0F0A]">
@@ -645,9 +651,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Informations précontractuelles précommande + CGV */}
             <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1">
-              {allItemsPreorder && (
+              {items.length > 0 && (
                 <p>
-                  <span className="text-emerald-300 font-semibold">Précommande :</span> {DISPATCH_SENTENCE} Vous
+                  <span className="text-emerald-300 font-semibold">{hasDropshipItems && !hasPreorderItems ? 'Stock partenaire :' : isMixedCart ? 'Panier mixte :' : 'Précommande :'}</span> {cartDispatchSummary} Vous
                   pouvez annuler et être remboursé·e à tout moment avant expédition, et vous disposez de 14 jours
                   après réception pour vous rétracter.{' '}
                   <span className="text-[#FFF7EF]/55">{DISPATCH_LEGAL}</span>
@@ -674,7 +680,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <span>{allItemsPreorder ? 'Précommander' : 'Commander maintenant'} ({formatMoney(finalTotalCents, locale)})</span>
+                  <span>{(hasPreorderItems || allItemsPreorder) ? 'Précommander' : 'Commander maintenant'} ({formatMoney(finalTotalCents, locale)})</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

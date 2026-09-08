@@ -1,49 +1,34 @@
 /**
  * Promesse d'expédition en précommande — source unique.
  *
- * Pourquoi ce fichier : la même phrase était recopiée, avec des variantes, dans
- * une douzaine d'endroits — fiche produit, panier, boutique, suivi de commande,
- * relance de panier abandonné, e-mails et CGV. Deux conséquences concrètes :
+ * A4 — Année 1 sans stock : la promesse légale à 30j est remplacée par le
+ * modèle flux tendu 3–5j (batch lun+jeu + tampon 75u chez 3PL). Les 12 outils
+ * best-sellers sont en dropship 24–48h depuis partenaire UE (sans CPNP).
  *
- *  1. **Le texte ne pouvait pas être corrigé.** Changer la promesse supposait
- *     de retrouver les douze occurrences à la main ; une seule oubliée, et le
- *     site se contredit lui-même.
- *  2. **Les CGV promettaient quelque chose que le site ne fait pas.** Elles
- *     annoncent « un délai indicatif figure sur chaque fiche produit » — aucune
- *     fiche produit n'affiche de délai, indicatif ou non. Une clause des CGV
- *     qui décrit une fonctionnalité absente n'est pas un détail de rédaction.
- *
- * Ce module ne contient **aucune date inventée**. Tant que `ANNOUNCED_AT`
- * reste `null`, le texte affiché énonce le droit de la cliente — le délai
- * légal — au lieu d'annoncer une échéance que KURLA ne maîtrise pas. Une date
- * annoncée serait un engagement : elle ne se met qu'ici, et seulement quand
- * elle est réelle.
+ * Ce module reste la source unique affichée en 12+ endroits — fiche produit,
+ * panier, boutique, suivi, emails, CGV. Une seule modif ici met à jour tout.
  */
+
+// ── Import du modèle A4 (liste des 12 outils en 24–48h) ──
+import { DROPSHIP_TOOLS_IMMEDIATE, isDropshipToolId } from './fulfillment';
 
 /**
  * Date d'expédition annoncée, au format ISO `AAAA-MM-JJ`.
- *
- * `null` = la date n'est pas encore connue. C'est la situation actuelle, et
- * elle est assumée : mieux vaut énoncer le délai légal que promettre une
- * échéance qu'on ne tiendra pas. Renseigner cette date suffit à mettre à jour
- * les douze emplacements.
+ * `null` = la date n'est pas encore connue. Conservé pour compatibilité
+ * (si une date ponctuelle est fixée, elle prime).
  */
 export const ANNOUNCED_AT: string | null = null;
 
 /**
  * Délai maximum annoncé, en jours à compter de la commande.
- * `null` = aucun délai annoncé ; le droit commun s'applique.
+ * A4 : 5 = "Expédié sous 3–5 jours — petite production hebdomadaire"
+ * (batch lun+jeu 18h, tampon 3PL). `null` retombe sur le délai légal 30j.
  */
-export const ANNOUNCED_MAX_DAYS: number | null = null;
+export const ANNOUNCED_MAX_DAYS: number | null = 5;
 
 /**
  * Délai légal de livraison à défaut de date convenue (jours).
- *
- * Article L216-1 du code de la consommation : le professionnel livre dans les
- * trente jours suivant la conclusion du contrat lorsqu'aucune date n'a été
- * convenue. Cette obligation existe déjà, que le site l'écrive ou non —
- * l'énoncer n'engage à rien de plus, et informe la cliente d'un droit qu'elle
- * a de toute façon.
+ * Article L216-1 du code de la consommation.
  */
 export const LEGAL_MAX_DAYS = 30;
 
@@ -51,11 +36,8 @@ export type DispatchPromiseKind = 'dated' | 'delayed' | 'legal';
 
 export interface DispatchPromise {
   kind: DispatchPromiseKind;
-  /** Formulation courte, pour un badge ou une ligne de panier. */
   short: string;
-  /** Phrase complète, pour un encart d'information précontractuelle. */
   sentence: string;
-  /** Rappel du droit applicable. Toujours affiché : c'est le plancher. */
   legal: string;
 }
 
@@ -67,18 +49,39 @@ export function formatDispatchDate(iso: string): string {
   return dateFormatter.format(parsed);
 }
 
-/** Vrai si la chaîne est une date ISO `AAAA-MM-JJ` réellement existante. */
 export function isValidDispatchDate(iso: unknown): iso is string {
   if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
   const parsed = new Date(`${iso}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso;
 }
 
+// ── Promesse 24–48h pour les 12 outils dropship (A4) ──
+export const TOOL_DISPATCH_SHORT = 'En stock partenaire — expédié en 24–48h';
+export const TOOL_DISPATCH_SENTENCE =
+  'Outils et accessoires expédiés en 24–48h depuis notre partenaire UE. Si votre panier contient aussi des soins, tout est regroupé en un seul colis via notre 3PL (délai global 3–5 jours).';
+
+export function isDropshipProduct(product: { id: string } | null | undefined): boolean {
+  return isDropshipToolId(product?.id || '');
+}
+
+export function getProductDispatchPromise(product: { id: string } | null | undefined): DispatchPromise {
+  if (isDropshipProduct(product)) {
+    return {
+      kind: 'delayed',
+      short: TOOL_DISPATCH_SHORT,
+      sentence: TOOL_DISPATCH_SENTENCE,
+      legal: `Délai légal ${LEGAL_MAX_DAYS}j (L216-1) à défaut de date convenue.`,
+    };
+  }
+  return preorderDispatchPromise();
+}
+
+export function getProductDispatchShort(product: { id: string } | null | undefined): string {
+  return isDropshipProduct(product) ? TOOL_DISPATCH_SHORT : DISPATCH_SHORT;
+}
+
 /**
- * La promesse, calculée une seule fois.
- *
- * `legal` est toujours renvoyé et doit toujours être affiché : c'est le
- * plancher, indépendant de ce que KURLA annonce par ailleurs.
+ * La promesse cosmétique / kits (3–5j), calculée une seule fois.
  */
 export function preorderDispatchPromise(): DispatchPromise {
   const legal =
@@ -98,6 +101,16 @@ export function preorderDispatchPromise(): DispatchPromise {
   }
 
   if (typeof ANNOUNCED_MAX_DAYS === 'number' && ANNOUNCED_MAX_DAYS > 0) {
+    // A4 : 5 jours = formulation "3–5 jours — petite production hebdomadaire"
+    if (ANNOUNCED_MAX_DAYS === 5) {
+      return {
+        kind: 'delayed',
+        short: 'Expédié sous 3–5 jours — petite production hebdomadaire',
+        sentence:
+          'Vos soins sont réservés et expédiés sous 3 à 5 jours (petite production hebdomadaire : batch lundi & jeudi 18h, via 3PL IDF). Vous recevez un e-mail avec le numéro de suivi dès la remise au transporteur.',
+        legal
+      };
+    }
     return {
       kind: 'delayed',
       short: `Expédié sous ${ANNOUNCED_MAX_DAYS} jours`,
@@ -126,12 +139,6 @@ export const DISPATCH_LEGAL = preorderDispatchPromise().legal;
 
 /**
  * Préfixe apposé à la description produit.
- *
- * Ce n'est pas un détail d'affichage : le préfixe est **écrit dans les données**
- * au moment de la publication du catalogue (voir `scripts/publishLaunchSkus.ts`)
- * et se retrouve donc dans 54 descriptions en base. Le corriger dans le code ne
- * suffit pas — il faut aussi reprendre les données, sinon le site affiche deux
- * promesses différentes selon l'endroit.
  */
 export const PREORDER_DESCRIPTION_PREFIX = `[PRÉCOMMANDE — ${DISPATCH_SHORT.toLowerCase()}]`;
 
@@ -139,41 +146,32 @@ export const PREORDER_DESCRIPTION_PREFIX = `[PRÉCOMMANDE — ${DISPATCH_SHORT.t
 export const LEGACY_DESCRIPTION_PREFIX = '[PRÉCOMMANDE — expédition à la réception du premier lot]';
 
 /**
- * Clause CGV « signalement de la précommande ».
- *
- * L'ancienne version citait la mention « Expédié à la réception du premier
- * lot » mot pour mot : le jour où la formulation change, les CGV se mettent à
- * décrire un texte qui n'existe plus. La clause est désormais générée.
+ * Message panier mixte : outils 24–48h + soins 3–5j
  */
+export function getCartDispatchSummary(items: Array<{ product: { id: string } }>): string {
+  const hasDropship = items.some(i => isDropshipProduct(i.product));
+  const hasPreorder = items.some(i => !isDropshipProduct(i.product));
+  if (hasDropship && hasPreorder) {
+    return 'Panier mixte : outils 24–48h + soins 3–5j — regroupés en 1 seul colis via notre 3PL (délai global 3–5 jours).';
+  }
+  if (hasDropship) return TOOL_DISPATCH_SENTENCE;
+  return DISPATCH_SENTENCE;
+}
+
 export function preorderCgvNotice(): string {
   return (
-    `• Les produits en précommande sont signalés par un badge « Précommande » sur leur fiche, ` +
-    `dans le panier et sur le récapitulatif avant paiement, acompte compris.`
+    `• Les produits en précommande sont signalés par un badge « Précommande — 3–5 jours » sur leur fiche, ` +
+    `dans le panier et sur le récapitulatif avant paiement, acompte compris. Les 12 outils et accessoires (peigne afro, bonnet satin, etc.) sont signalés « En stock partenaire — 24–48h » et expédiés depuis notre partenaire UE.`
   );
 }
 
-/**
- * Clause CGV « délai de précommande ».
- *
- * Deux défauts corrigés ici :
- *
- *  1. L'ancienne clause annonçait « un délai indicatif figure sur chaque fiche
- *     produit ». Aucune fiche produit n'affiche de délai : les CGV décrivaient
- *     une fonctionnalité absente.
- *  2. Elle fixait l'échéance à « 30 jours suivant la date de disponibilité
- *     annoncée ». Or aucune date n'est annoncée : le compteur ne démarrait
- *     jamais, et la cliente n'avait en réalité aucune échéance opposable.
- *     L'article L. 216-1 du code de la consommation dit précisément l'inverse —
- *     à défaut de date indiquée, le bien est livré au plus tard trente jours
- *     après la conclusion du contrat. C'est cette règle qui est énoncée.
- */
 export function preorderCgvDelay(): string {
   const promise = preorderDispatchPromise();
   const delay =
     promise.kind === 'dated'
       ? `• Délai de précommande : ${promise.sentence}`
       : promise.kind === 'delayed'
-        ? `• Délai de précommande : ${promise.sentence}`
+        ? `• Délai soins & kits : ${promise.sentence} Les outils/accessoires (liste des 12) sont expédiés sous 24–48h ; panier mixte = 1 colis, délai global 3–5 jours.`
         : `• Délai de précommande : ${promise.sentence} Aucun délai indicatif n'est affiché sur les ` +
           `fiches produit tant que la date de réception du lot n'est pas connue : plutôt que d'avancer ` +
           `un ordre de grandeur qui n'engagerait à rien et ne protégerait personne, le délai légal ` +
@@ -188,3 +186,6 @@ export function preorderCgvDelay(): string {
     `le numéro de suivi du transporteur.`
   );
 }
+
+// Réexport pour compatibilité (anciens imports)
+export { DROPSHIP_TOOLS_IMMEDIATE };

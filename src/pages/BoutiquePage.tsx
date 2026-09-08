@@ -12,7 +12,7 @@ import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategories';
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
-import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT } from '../lib/preorderPromise';
+import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -274,8 +274,25 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
             <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
-            <span>{count} références — {DISPATCH_SHORT.toLowerCase()}.</span>
+            <span>{count} références — soins {DISPATCH_SHORT.toLowerCase()} · outils {TOOL_DISPATCH_SHORT.toLowerCase()}.</span>
           </div>
+        </div>
+
+        {/* A4 — 12 outils à 24–48h (sans stock Paris, marge 56–66%) */}
+        <div className="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">A4 — 12 outils en stock partenaire</p>
+              <p className="text-sm font-semibold text-[#111111] leading-tight">Expédiés en 24–48h depuis notre partenaire UE — 0 carton à Paris</p>
+              <p className="text-xs text-[#111111]/60 font-light mt-0.5">Peigne afro · bonnet satin · éponge twist · scalp massager · Denman · pinces croco + 6 autres. Panier mixte (outils + soins) = 1 seul colis, délai global 3–5j.</p>
+            </div>
+          </div>
+          <a href="/boutique?cat=accessoires" onClick={(e)=>{e.preventDefault(); setActiveCategory('accessoires'); window.scrollTo({top: 0, behavior: 'smooth'});}} className="shrink-0 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5">
+            Voir les 12 outils <ArrowRight className="w-3.5 h-3.5" />
+          </a>
         </div>
 
         {/* SECTION 1: QUE RECHERCHEZ-VOUS ? / TROUVER PAR BESOIN */}
@@ -730,8 +747,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         </div>
                       )}
 
-                      {/* Promo or Custom Badge */}
-                      {product.isPreorder ? (
+                      {/* Badge fulfillment A4 : 24–48h outils vs 3–5j soins */}
+                      {isDropshipProduct(product as any) ? (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          <Clock className="w-3 h-3" /> 24–48h
+                        </span>
+                      ) : product.isPreorder ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#2E7D5B] backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> Précommande
                         </span>
@@ -769,11 +790,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-2">
                       {product.description}
                     </p>
-                    {product.isPreorder && (
+                    {isDropshipProduct(product as any) ? (
+                      <p className="text-[10px] text-emerald-600 font-semibold mb-3 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {TOOL_DISPATCH_SHORT}
+                      </p>
+                    ) : product.isPreorder ? (
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {DISPATCH_SHORT}
                       </p>
-                    )}
+                    ) : null}
 
                     {/* HARMONISATION : ce produit a une fiche pédagogique dans le
                         guide des outils → lien direct vers sa fiche (ancre). */}
@@ -813,7 +838,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         disabled={!product.inStock}
                         className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : product.isPreorder ? 'Précommander' : 'Ajouter'}
+                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : isDropshipProduct(product as any) ? 'Ajouter' : product.isPreorder ? 'Précommander' : 'Ajouter'}
                       </button>
                     </div>
                   </div>

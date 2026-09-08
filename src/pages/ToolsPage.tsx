@@ -3,6 +3,7 @@ import { BookOpen, ShoppingBag, ArrowRight, Clock, Package, Sparkles, MessageSqu
 import { KURLA_TOOLS, GESTURES, HAIR_TYPE_KITS, TOOL_BY_ID } from '../lib/knowledge/tools';
 
 import { useProducts } from '../services/productService';
+import { TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 
 /**
  * LE GUIDE DES OUTILS — décision produit : la boutique est l'unique lieu
@@ -174,11 +175,15 @@ export const ToolsPage: React.FC = () => {
                       <div>
                         <div className="h-44 overflow-hidden relative bg-[#F8F2EC]">
                           <img loading="lazy" decoding="async" src={image} alt={tool.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                          {product?.isPreorder && (
+                          {product && isDropshipProduct(product as any) ? (
+                            <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                              <Clock className="w-3 h-3" /> 24–48h
+                            </span>
+                          ) : product?.isPreorder ? (
                             <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-[#2E7D5B] backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                               <Clock className="w-3 h-3" /> Précommande
                             </span>
-                          )}
+                          ) : null}
                         </div>
 
                         <div className="p-5 space-y-3">
