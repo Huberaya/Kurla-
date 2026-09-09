@@ -14,6 +14,7 @@ import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategori
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
+import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -183,8 +184,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       // Subcategory Tag Filter
       if (activeSubCategory !== 'tous' && (p as any).subCategoryTag !== activeSubCategory) return false;
 
-      // Need Filter
-      if (selectedNeedId && (!p.needs || !p.needs.includes(selectedNeedId))) return false;
+      // Need Filter — CHANTIER 2 : utilise la correction + alias (demeler, barbe) pour que chaque besoin affiche VRAIMENT ses outils
+      if (selectedNeedId) {
+        const aliases = BOUTIQUE_NEED_ALIAS[selectedNeedId] || [selectedNeedId];
+        const pNeeds = p.needs || [];
+        if (!aliases.some(a => pNeeds.includes(a))) return false;
+      }
 
       // Brand Filter
       if (selectedBrand !== 'tous' && p.brand !== selectedBrand) return false;

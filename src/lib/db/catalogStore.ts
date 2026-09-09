@@ -14,6 +14,7 @@ import {
   toPublicProduct,
 } from './internal';
 import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
+import { CORRECTED_PRODUCT_NEEDS } from '../productNeedsCorrection';
 
 import type {
   MarketplaceQuestion,
@@ -21,6 +22,11 @@ import type {
   ProductSubscription,
   SupabaseServerStore,
 } from '../serverDb';
+
+function correctedNeeds(productId: string, fallback: string[]): string[] {
+  const fixed = CORRECTED_PRODUCT_NEEDS[productId];
+  return Array.isArray(fixed) && fixed.length > 0 ? fixed : fallback;
+}
 
 /**
  * CHANTIER 8.2c — catalogue : produits publics, avis, questions, liste
@@ -110,8 +116,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         targetHairTypes: p.hair_types || [],
         skinTypes: p.skin_types || [],
         targetSkinTypes: p.skin_types || [],
-        concerns: p.concerns || [],
-        needs: p.concerns || [],
+        concerns: correctedNeeds(p.id, p.concerns || []),
+        needs: correctedNeeds(p.id, p.concerns || []),
         countryAvailability: p.country_availability || [],
         isActive: p.is_active === true,
         createdAt: p.created_at,
@@ -208,10 +214,14 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
       country_availability: product.country_availability ?? product.countryAvailability,
       image_url: product.image_url ?? product.image ?? product.imageUrl,
       galleryImages: product.galleryImages ?? product.images
+    })).map(p => ({
+      ...p,
+      concerns: correctedNeeds(p.id, (p as any).concerns || (p as any).needs || []),
+      needs: correctedNeeds(p.id, (p as any).concerns || (p as any).needs || []),
     }));
     return options.publishedOnly
       ? memoryMapped.filter(product => isPublishableProduct(product))
-      : [...store.inMemoryProducts];
+      : memoryMapped;
   }
 
 export async function getProductById(store: SupabaseServerStore, idOrSlug: string): Promise<any | undefined> {

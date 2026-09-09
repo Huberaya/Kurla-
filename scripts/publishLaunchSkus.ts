@@ -27,6 +27,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { LAUNCH_PRODUCTS } from '../src/lib/launchCatalog';
 import { PREORDER_DESCRIPTION_PREFIX } from '../src/lib/preorderPromise';
+import { CORRECTED_PRODUCT_NEEDS } from '../src/lib/productNeedsCorrection';
 
 const env = (name: string): string => (process.env[name] || '').trim();
 
@@ -121,8 +122,9 @@ async function main(): Promise<void> {
     const slug = slugify(sku.id, sku.name);
     const ingredients = CATEGORY_INGREDIENTS[sku.category] || [];
     const isAccessory = sku.category === 'Accessoire';
+    const pid = `launch-${sku.id}`;
     const product = {
-      id: `launch-${sku.id}`,
+      id: pid,
       slug,
       name: sku.name,
       brand: sku.category === 'Accessoire' ? 'KURLA Essentials' : 'KURLA Botanicals',
@@ -147,7 +149,7 @@ async function main(): Promise<void> {
       inci: isAccessory ? 'Accessoire capillaire — aucun ingrédient cosmétique.' : null,
       hair_types: map.hair,
       skin_types: [],
-      concerns: map.needs,
+      concerns: (CORRECTED_PRODUCT_NEEDS as Record<string,string[]>)[pid] || map.needs,
       country_availability: ['FR', 'BE', 'DOM', 'INT'],
       contains_fragrance: isAccessory ? null : false,
       minor_safety_status: 'not_provided',
