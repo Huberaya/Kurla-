@@ -5,6 +5,7 @@ import type { BeautyProfile } from '../lib/beautyProfile';
 import { createEmptyBeautyProfile } from '../lib/beautyProfile';
 import { useAuth } from '../context/AuthContext';
 import { loadObservance, toggleToday, getStreak, getWeekHistory } from '../lib/skinObservance';
+import { queryBeautyAssistant } from '../lib/ai/assistant';
 
 type JournalEntry = {
   date: string; // YYYY-MM-DD
@@ -73,6 +74,10 @@ export const SkinJournalPage: React.FC = () => {
   const [photoDataUrl, setPhotoDataUrl] = useState<string | undefined>(undefined);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  // C11 — Synthèse IA journal (sans diagnostic médical, cosmétique chiffrée)
+  const [aiSynthesis, setAiSynthesis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   // C7 — Observance peau (C4.3) intégrée au journal
   const [observance, setObservance] = useState(() => { try { return loadObservance(); } catch { return {}; } });
 
@@ -227,6 +232,20 @@ export const SkinJournalPage: React.FC = () => {
       } catch { /* ignore */ }
     }
     setMessage('Entrée supprimée.');
+  };
+
+  const handleAiSynthesis = async () => {
+    if (entries.length < 2) { setAiError('Ajoutez au moins 2 entrées (ex: J+0 + J+7) pour une synthèse.'); return; }
+    setAiLoading(true); setAiError(null); setAiSynthesis(null);
+    try {
+      const summary = entries.slice(0, 5).map(e => `${e.date} ${e.milestone||''} ${e.feelingScore}/5 ${e.concerns.join(',')} ${e.notes||''}`.slice(0,120)).join(' | ');
+      const prompt = `Synthèse journal peau cosmétique (pas de diagnostic médical) : profil ${profile.skin?.skinType||'—'} tone ${profile.skin?.toneDepth||'—'} HPI ${profile.skin?.hyperpigmentationTendency||'—'} budget ${profile.skin?.budget||'—'}. Entrées: ${summary}. Donne 3 observations cosmétiques chiffrées (ressenti moyen, préoccupation récurrente, observance matin/soir) + 1 conseil routine sans parfum + garde uniformiser≠éclaircir + invite pro peau si taches persistent. Format court, français, décision concrète.`;
+      const res = await queryBeautyAssistant(prompt, { locale: 'fr', country: 'FR', objective: 'journal peau synthèse', memoryConsent: false });
+      const text = (res as any).answer?.answer || (res as any).answer?.content || (res as any).medicalMessage || JSON.stringify((res as any).answer).slice(0, 900);
+      setAiSynthesis(typeof text === 'string' ? text : JSON.stringify(text).slice(0, 900));
+    } catch (e: any) {
+      setAiError(e instanceof Error ? e.message : 'Synthèse IA indisponible.');
+    } finally { setAiLoading(false); }
   };
 
   if (loading) return <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center text-sm text-[#111111]/60">Chargement du journal peau…</div>;
@@ -468,6 +487,20 @@ export const SkinJournalPage: React.FC = () => {
               <strong>Astuce :</strong> Revenez à J+7 et J+30 avec la même lumière (fenêtre, visage neutre) pour comparer. V1 affiche la photo brute — slider avant/après et analyse teint arriveront en P2.
             </div>
           )}
+        </section>
+
+        {/* C11 — Synthèse IA journal (cosmétique, chiffrée, sans diag médical) */}
+        <section className="p-6 rounded-3xl bg-[#111111] text-white border border-[#FFF7EF]/10">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#D49A63]" /> Synthèse IA de votre journal</h3>
+              <p className="text-xs text-white/70 mt-1 leading-relaxed max-w-2xl">À partir de J+0/J+7/J+30, ressenti 1–5, préoccupations et observance. L’IA donne 3 observations chiffrées + 1 conseil routine <strong className="text-white">sans parfum</strong> + garde <em>uniformiser≠éclaircir</em>. <strong className="text-[#D49A63]">Aucun diagnostic médical</strong> — si lésion qui persiste → pro peau.</p>
+            </div>
+            <button onClick={handleAiSynthesis} disabled={aiLoading || entries.length < 2} className="px-5 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold disabled:opacity-40 shrink-0">{aiLoading ? 'Analyse…' : 'Générer synthèse IA →'}</button>
+          </div>
+          {aiError && <p className="mt-3 p-3 rounded-xl bg-rose-900/30 border border-rose-400/30 text-xs text-rose-200">{aiError}</p>}
+          {aiSynthesis && <div className="mt-4 p-4 rounded-2xl bg-white text-[#111111] text-sm leading-relaxed whitespace-pre-wrap">{aiSynthesis}<p className="text-[11px] text-[#111111]/50 mt-3">Synthèse cosmétique générée par KURLA AI — ne remplace pas un avis dermatologique. <a href="/assistant" className="text-[#C8753D] underline">Poser une question à l’IA →</a> · <a href="/professionnels?cat=peau" className="text-[#C8753D] underline">Voir pros peau →</a></p></div>}
+          {entries.length < 2 && !aiSynthesis && <p className="mt-3 text-xs text-white/50">Ajoutez 2 entrées minimum pour activer la synthèse (ex: J+0 + J+7).</p>}
         </section>
 
         {/* Cross links */}

@@ -264,14 +264,14 @@ export const ProfessionalDirectoryPage: React.FC = () => {
                     </label>
                     <label className="block">
                       <span className="text-xs font-medium text-[#666666] block mb-1.5">
-                        Votre besoin (optionnel)
+                        Votre besoin {filter==='peau' ? 'peau (HPI, SPF, barrière)' : ''} (optionnel)
                       </span>
                       <textarea
                         className={inputClass}
                         rows={3}
                         value={clientNotes}
                         onChange={event => setClientNotes(event.target.value)}
-                        placeholder="Ce que vous souhaitez aborder lors du rendez-vous."
+                        placeholder={filter==='peau' ? "Ex: taches HPI post-acné, SPF sans trace blanche qui grise, routine actuelle (Équilibrée 62€ sans parfum) — ce que vous voulez aborder en visio." : "Ce que vous souhaitez aborder lors du rendez-vous."}
                       />
                     </label>
 

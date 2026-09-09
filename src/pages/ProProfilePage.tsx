@@ -43,6 +43,7 @@ export const ProProfilePage: React.FC<ProProfilePageProps> = ({ slug }) => {
   const [pro, setPro] = useState<DirectoryProfessional | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [isVisioModalOpen, setIsVisioModalOpen] = useState(false);
+  const isPeauProHeader = pro ? /peau|dermato|esthét|skin/i.test(`${pro.profession} ${(pro as any).specialty || ''}`) : false;
 
   useEffect(() => {
     let cancelled = false;
@@ -108,8 +109,9 @@ export const ProProfilePage: React.FC<ProProfilePageProps> = ({ slug }) => {
               className="px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <Video className="w-4 h-4" />
-              <span>Demande de consultation visio</span>
+              <span>{isPeauProHeader ? 'Téléconsultation peau visio' : 'Demande de consultation visio'}</span>
             </button>
+            {isPeauProHeader && <p className="text-[11px] text-[#FFF7EF]/60 text-center">Visio 30 min · partage profil peau sur consentement · HPI/SPF/barrière</p>}
 
             <div className="p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/70 max-w-xs">
               <ShieldCheck className="w-4 h-4 text-[#C8753D] mb-1" />
