@@ -19,6 +19,7 @@ import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
 import { PeauDemandStockGapPanel } from '../components/PeauDemandStockGapPanel';
 import { PeauGatesCockpitPanel } from '../components/PeauGatesCockpitPanel';
 import { PeauCatalogPublishPanel } from '../components/PeauCatalogPublishPanel';
+import { PeauQAFatouC21Panel } from '../components/PeauQAFatouC21Panel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1292,6 +1293,7 @@ export const AdminDashboardPage: React.FC = () => {
                 setTimeout(() => setActionSuccess(''), 5000);
               }}
             />
+            <PeauQAFatouC21Panel headers={adminHeaders} />
           </div>
         )}
 
