@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { isDropshipProduct } from '../lib/preorderPromise';
+import { PEAU_KITS } from '../lib/peauKits';
 import { NeedContent, NEEDS_HUB } from '../lib/needsHub';
 
 const ICONS: Record<string, React.ElementType> = {
@@ -162,6 +163,22 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                 <div className="rounded-2xl border border-[#E8E1DA] bg-[#F8F2EC] p-5 text-xs text-[#111111]/75 font-light leading-relaxed">
                   Les soins visage (solaire invisible, anti-taches, sensibilité) arrivent au prochain lot.
                   En attendant, le diagnostic peau vous donne gratuitement votre routine adaptée.
+                </div>
+              )}
+
+              {/* C6 — NeedHub peau : kits peau quand catalogue peau = précommande */}
+              {content.domain === 'peau' && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D]">Kits peau — précommande 3–5j</p>
+                  {PEAU_KITS.map(kit => (
+                    <a key={kit.id} href={`/boutique?cat=kits`} className="block p-4 rounded-2xl bg-white border border-[#E8E1DA] hover:border-[#C8753D] transition-colors">
+                      <p className="text-sm font-bold">{kit.name} · {kit.priceBundle.toFixed(2)}€ <span className="text-xs font-normal text-[#111111]/40 line-through ml-1">{kit.priceSeparate.toFixed(2)}€</span></p>
+                      <p className="text-xs text-[#111111]/60">{kit.tagline} · {kit.routine}</p>
+                      <p className="text-[11px] text-emerald-700 font-bold mt-1">−{kit.economyPct}% · {kit.products.length} soins</p>
+                    </a>
+                  ))}
+                  <a href={`/boutique?cat=peau&need=${content.homeSlug}`} className="block text-center text-xs font-bold text-[#C8753D] hover:underline">Boutique peau filtrée “{content.title}” →</a>
+                  <a href={`/guides/ingredients`} className="block text-center text-[11px] text-[#111111]/60 hover:underline">→ 15 fiches ingrédient peau (niacinamide, céramides…)</a>
                 </div>
               )}
 

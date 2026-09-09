@@ -17,10 +17,14 @@ const UNKNOWN = 'inconnu';
 export const DiagnosticSkinPage: React.FC = () => {
   const { session } = useAuth();
   const [isExpress, setIsExpress] = useState(false);
+  // C6 — CTA express mobile : 12 steps pénible → express par défaut sur mobile quand aucun ?mode=
   useEffect(() => {
     try {
       const sp = new URLSearchParams(window.location.search);
-      setIsExpress(sp.get('mode') === 'express');
+      const mode = sp.get('mode');
+      if (mode === 'express') setIsExpress(true);
+      else if (mode === 'complet') setIsExpress(false);
+      else if (typeof window !== 'undefined' && window.innerWidth < 768) setIsExpress(true);
     } catch { /* ignore */ }
     try { analytics.diagnosticStart('skin'); } catch { /* noop */ }
   }, []);

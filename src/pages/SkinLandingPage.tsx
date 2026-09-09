@@ -246,14 +246,26 @@ export const SkinLandingPage: React.FC = () => {
           <div>
             <h3 className="text-xl font-bold">Prête à comprendre votre peau ?</h3>
             <p className="text-sm text-white/70 font-light mt-1">Diagnostic express 2 min ou complet 5 min. Sauvegardé dans “Ma peau”, modifiable à tout moment.</p>
+            <p className="text-[11px] text-white/50 mt-1 hidden sm:block">Sur mobile, l’express est recommandé par défaut — 5 questions, même précision pour démarrer.</p>
           </div>
           <div className="flex gap-3 shrink-0">
-            <a href="/peau/diagnostic?mode=express" className="px-6 py-3.5 rounded-full bg-white text-[#111111] text-xs font-bold">Express →</a>
-            <a href="/peau/diagnostic" className="px-6 py-3.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold">Complet →</a>
+            <a href="/peau/diagnostic?mode=express" className="px-6 py-3.5 rounded-full bg-white text-[#111111] text-xs font-bold">Express 2 min →</a>
+            <a href="/peau/diagnostic" className="px-6 py-3.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold">Complet 5 min →</a>
           </div>
         </div>
 
       </div>
+
+      {/* C6 — CTA express sticky mobile : 12 steps pénible → express par défaut */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-white/95 backdrop-blur-md border-t border-[#E8E1DA] flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold leading-tight">Diagnostic peau express</p>
+          <p className="text-[11px] text-[#111111]/60 leading-tight">2 min · 5 questions · sans photo</p>
+        </div>
+        <a href="/peau/diagnostic?mode=express" className="shrink-0 px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-bold inline-flex items-center gap-1.5">Express 2 min <Zap className="w-3.5 h-3.5 text-[#C8753D]" /></a>
+        <a href="/peau/diagnostic" className="shrink-0 px-3 py-3 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-[#111111] text-xs font-bold">Complet</a>
+      </div>
+      <div className="lg:hidden h-20" aria-hidden />
     </div>
   );
 };
