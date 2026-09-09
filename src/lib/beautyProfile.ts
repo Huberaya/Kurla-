@@ -47,6 +47,18 @@ export interface SkinBeautyProfile {
   texturePreference: string;
   finishPreference: string;
   reactionHistory: string;
+  // KURLA SKIN — Phase 2 infra (12 étapes diagnostic)
+  skinType: string; // normale/seche/grasse/mixte/sensible/deshydratee/mature
+  hydrationLevel: string; // confortable/deshydratee/seche…
+  skinConcerns: string[]; // 17 préoccupations
+  skinObjectives: string[]; // 12 objectifs
+  currentRoutine: string; // aucune/basique/intermediaire/complete
+  budget: string; // petit/moyen/confortable/premium
+  sensitivities: string[]; // parfum, alcool…
+  preferences: string[]; // sans parfum, vegan…
+  ageRange: string;
+  // Journal peau V1
+  journal: Array<{ date: string; feeling: string; concerns: string[]; notes?: string }>;
 }
 
 export interface BeautyEnvironmentProfile {
@@ -333,6 +345,73 @@ export const SKIN_ZONE_OPTIONS = [
   { value: UNKNOWN, label: 'Je ne sais pas' }
 ];
 
+export const SKIN_TYPE_OPTIONS = [
+  { value: 'normale', label: 'Normale · confortable, peu de brillance' },
+  { value: 'seche', label: 'Sèche · tiraillements, rugosité' },
+  { value: 'tres_seche', label: 'Très sèche · inconfort, squames' },
+  { value: 'grasse', label: 'Grasse · brillance, pores visibles' },
+  { value: 'mixte', label: 'Mixte · zone T grasse, joues sèches' },
+  { value: 'sensible', label: 'Sensible · réactive, rougeurs' },
+  { value: 'deshydratee', label: 'Déshydratée · manque d’eau (même grasse)' },
+  { value: 'mature', label: 'Mature · ridules, fermeté' },
+  { value: UNKNOWN, label: 'Je ne sais pas encore' }
+];
+
+export const SKIN_CONCERN_OPTIONS = [
+  { value: 'secheresse', label: 'Sécheresse / tiraillements' },
+  { value: 'deshydratation', label: 'Déshydratation' },
+  { value: 'teint_terne', label: 'Teint terne / manque d’éclat' },
+  { value: 'taches', label: 'Taches / hyperpigmentation' },
+  { value: 'rougeurs', label: 'Rougeurs / irritations' },
+  { value: 'imperfections', label: 'Imperfections / boutons' },
+  { value: 'points_noirs', label: 'Points noirs / pores dilatés' },
+  { value: 'grain_irregulier', label: 'Grain de peau irrégulier' },
+  { value: 'cicatrices', label: 'Cicatrices post-acné' },
+  { value: 'rides', label: 'Rides / ridules' },
+  { value: 'fermete', label: 'Perte de fermeté' },
+  { value: 'cernes', label: 'Cernes / poches' },
+  { value: 'levres_seches', label: 'Lèvres sèches' },
+  { value: 'peau_corps', label: 'Peau du corps' },
+  { value: 'protection_solaire', label: 'Protection solaire' },
+  { value: 'sensibilite', label: 'Sensibilité / réactivité' },
+  { value: 'teint_non_uniforme', label: 'Teint non uniforme' },
+  { value: UNKNOWN, label: 'Aucune / je ne sais pas' }
+];
+
+export const SKIN_OBJECTIVE_OPTIONS = [
+  { value: 'hydrater', label: 'Hydrater en profondeur' },
+  { value: 'eclat', label: 'Retrouver de l’éclat' },
+  { value: 'uniformiser', label: 'Uniformiser le teint' },
+  { value: 'attenuer_taches', label: 'Atténuer les taches' },
+  { value: 'apaiser', label: 'Apaiser la peau' },
+  { value: 'reduire_imperfections', label: 'Réduire les imperfections' },
+  { value: 'affiner_grain', label: 'Affiner le grain de peau' },
+  { value: 'renforcer_barriere', label: 'Renforcer la barrière' },
+  { value: 'proteger_spf', label: 'Protéger du soleil/pollution' },
+  { value: 'prevenir_age', label: 'Prévenir les signes de l’âge' },
+  { value: 'simplifier', label: 'Simplifier la routine' },
+  { value: 'carnation', label: 'Produits adaptés à ma carnation' },
+  { value: UNKNOWN, label: 'Je ne sais pas encore' }
+];
+
+export const SKIN_ROUTINE_OPTIONS = [
+  { value: 'aucune', label: 'Aucune routine' },
+  { value: 'basique', label: 'Basique (nettoyant + crème)' },
+  { value: 'intermediaire', label: 'Quelques étapes (nettoyant + sérum + crème)' },
+  { value: 'complete', label: 'Complète (nettoyant + tonique + sérum + crème + SPF)' },
+  { value: UNKNOWN, label: 'Je ne sais pas' }
+];
+
+export const SKIN_SENSITIVITY_OPTIONS = [
+  { value: 'aucune', label: 'Aucune sensibilité connue' },
+  { value: 'parfum', label: 'Parfum / fragrance' },
+  { value: 'alcool', label: 'Alcool dénaturé' },
+  { value: 'huiles_essentielles', label: 'Huiles essentielles' },
+  { value: 'retinol', label: 'Rétinol / AHA' },
+  { value: 'sensible', label: 'Peau très réactive' },
+  { value: UNKNOWN, label: 'Je ne sais pas' }
+];
+
 export const TEXTURE_OPTIONS = [
   { value: 'gel', label: 'Gel léger' },
   { value: 'lotion', label: 'Lotion fluide' },
@@ -426,7 +505,17 @@ export function createEmptyBeautyProfile(): BeautyProfile {
       concernZones: [UNKNOWN],
       texturePreference: UNKNOWN,
       finishPreference: UNKNOWN,
-      reactionHistory: ''
+      reactionHistory: '',
+      skinType: UNKNOWN,
+      hydrationLevel: UNKNOWN,
+      skinConcerns: [UNKNOWN],
+      skinObjectives: [UNKNOWN],
+      currentRoutine: UNKNOWN,
+      budget: UNKNOWN,
+      sensitivities: [UNKNOWN],
+      preferences: [UNKNOWN],
+      ageRange: UNKNOWN,
+      journal: []
     },
     environment: {
       climate: UNKNOWN,
@@ -508,7 +597,17 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
       concernZones: safeArray(skin.concernZones),
       texturePreference: safeString(skin.texturePreference),
       finishPreference: safeString(skin.finishPreference),
-      reactionHistory: safeString(skin.reactionHistory, '')
+      reactionHistory: safeString(skin.reactionHistory, ''),
+      skinType: safeString(skin.skinType ?? skin.skin_type),
+      hydrationLevel: safeString(skin.hydrationLevel ?? skin.hydration_level),
+      skinConcerns: safeArray(skin.skinConcerns ?? skin.skin_concerns),
+      skinObjectives: safeArray(skin.skinObjectives ?? skin.skin_objectives),
+      currentRoutine: safeString(skin.currentRoutine ?? skin.current_routine),
+      budget: safeString(skin.budget),
+      sensitivities: safeArray(skin.sensitivities),
+      preferences: safeArray(skin.preferences),
+      ageRange: safeString(skin.ageRange ?? skin.age_range),
+      journal: Array.isArray(skin.journal) ? skin.journal.slice(0, 50) as any : []
     },
     environment: {
       climate: safeString(environment.climate),

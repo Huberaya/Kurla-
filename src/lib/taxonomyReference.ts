@@ -24,6 +24,9 @@ export const TAXONOMY_REFERENCE: ReadonlyArray<{ id: string; label: string; desc
   { id: "routine_step", label: "Étapes", description: "Position dans la routine. Détermine les doublons et les trous." },
   { id: "market", label: "Marchés", description: "Juridictions de commercialisation, base du filtrage réglementaire." },
   { id: "tone_depth", label: "Profondeurs de ton", description: "Profondeur de mélanine, sans jugement de valeur." },
+  { id: "skin_type", label: "Types de peau", description: "Typologie de peau pour le diagnostic et les filtres peau." },
+  { id: "skin_concern", label: "Préoccupations peau", description: "Préoccupations cutanées pour le moteur de reco peau." },
+  { id: "skin_objective", label: "Objectifs peau", description: "Objectifs utilisateur pour la routine peau." },
 ] as const;
 
 export const TAXONOMY_TERMS: readonly TaxonomyReferenceTerm[] = [
@@ -79,6 +82,46 @@ export const TAXONOMY_TERMS: readonly TaxonomyReferenceTerm[] = [
   { id: "tone_deep", taxonomy: "tone_depth", code: "deep", labelFr: "Ton profond", labelEn: "Deep tone", synonyms: [], sortOrder: 5 },
   { id: "tone_rich", taxonomy: "tone_depth", code: "rich", labelFr: "Ton très profond", labelEn: "Rich tone", synonyms: [], sortOrder: 6 },
   { id: "tone_unknown", taxonomy: "tone_depth", code: "unknown", labelFr: "Non déclaré", labelEn: "Not declared", synonyms: [], sortOrder: 99 },
+  // --- Skin types (8) ---
+  { id: "skin_type_normale", taxonomy: "skin_type", code: "normale", labelFr: "Normale", labelEn: "Normal", synonyms: ["normale", "equilibree"], sortOrder: 1 },
+  { id: "skin_type_seche", taxonomy: "skin_type", code: "seche", labelFr: "Sèche", labelEn: "Dry", synonyms: ["seche", "tire", "rugueuse"], sortOrder: 2 },
+  { id: "skin_type_tres_seche", taxonomy: "skin_type", code: "tres_seche", labelFr: "Très sèche", labelEn: "Very dry", synonyms: ["tres seche", "very dry", "squameuse"], sortOrder: 3 },
+  { id: "skin_type_grasse", taxonomy: "skin_type", code: "grasse", labelFr: "Grasse", labelEn: "Oily", synonyms: ["grasse", "brillance", "sebum", "oily"], sortOrder: 4 },
+  { id: "skin_type_mixte", taxonomy: "skin_type", code: "mixte", labelFr: "Mixte", labelEn: "Combination", synonyms: ["mixte", "zone T", "combination"], sortOrder: 5 },
+  { id: "skin_type_sensible", taxonomy: "skin_type", code: "sensible", labelFr: "Sensible", labelEn: "Sensitive", synonyms: ["sensible", "reactive", "rougeur"], sortOrder: 6 },
+  { id: "skin_type_deshydratee", taxonomy: "skin_type", code: "deshydratee", labelFr: "Déshydratée", labelEn: "Dehydrated", synonyms: ["deshydratee", "manque eau", "dehydrated"], sortOrder: 7 },
+  { id: "skin_type_mature", taxonomy: "skin_type", code: "mature", labelFr: "Mature", labelEn: "Mature", synonyms: ["mature", "rides", "agee"], sortOrder: 8 },
+  // --- Skin concerns (17) ---
+  { id: "skin_concern_secheresse", taxonomy: "skin_concern", code: "secheresse", labelFr: "Sécheresse / tiraillements", labelEn: "Dryness", synonyms: ["secheresse", "tiraillement", "sec"], sortOrder: 1 },
+  { id: "skin_concern_deshydratation", taxonomy: "skin_concern", code: "deshydratation", labelFr: "Déshydratation", labelEn: "Dehydration", synonyms: ["deshydratation", "manque eau"], sortOrder: 2 },
+  { id: "skin_concern_teint_terne", taxonomy: "skin_concern", code: "teint_terne", labelFr: "Teint terne / manque d'éclat", labelEn: "Dullness", synonyms: ["terne", "eclat", "lumineux"], sortOrder: 3 },
+  { id: "skin_concern_taches", taxonomy: "skin_concern", code: "taches", labelFr: "Taches / hyperpigmentation", labelEn: "Dark spots", synonyms: ["tache", "hyperpigmentation", "HPI", "melasma"], sortOrder: 4 },
+  { id: "skin_concern_rougeurs", taxonomy: "skin_concern", code: "rougeurs", labelFr: "Rougeurs / irritations", labelEn: "Redness", synonyms: ["rougeur", "irritation", "sensible"], sortOrder: 5 },
+  { id: "skin_concern_imperfections", taxonomy: "skin_concern", code: "imperfections", labelFr: "Imperfections / boutons", labelEn: "Blemishes", synonyms: ["imperfection", "bouton", "acne", "comedo"], sortOrder: 6 },
+  { id: "skin_concern_points_noirs", taxonomy: "skin_concern", code: "points_noirs", labelFr: "Points noirs / pores dilatés", labelEn: "Blackheads", synonyms: ["point noir", "pore", "comedo"], sortOrder: 7 },
+  { id: "skin_concern_grain_irregulier", taxonomy: "skin_concern", code: "grain_irregulier", labelFr: "Grain de peau irrégulier", labelEn: "Uneven texture", synonyms: ["grain", "texture", "rugueux"], sortOrder: 8 },
+  { id: "skin_concern_cicatrices", taxonomy: "skin_concern", code: "cicatrices", labelFr: "Cicatrices post-acné", labelEn: "Scars", synonyms: ["cicatrice", "marque", "acne scar"], sortOrder: 9 },
+  { id: "skin_concern_rides", taxonomy: "skin_concern", code: "rides", labelFr: "Rides / ridules", labelEn: "Wrinkles", synonyms: ["ride", "ridule", "age"], sortOrder: 10 },
+  { id: "skin_concern_fermete", taxonomy: "skin_concern", code: "fermete", labelFr: "Perte de fermeté", labelEn: "Loss of firmness", synonyms: ["fermete", "relachement", "firmness"], sortOrder: 11 },
+  { id: "skin_concern_cernes", taxonomy: "skin_concern", code: "cernes", labelFr: "Cernes / poches", labelEn: "Dark circles", synonyms: ["cerne", "poche", "eye"], sortOrder: 12 },
+  { id: "skin_concern_levres", taxonomy: "skin_concern", code: "levres_seches", labelFr: "Lèvres sèches", labelEn: "Dry lips", synonyms: ["levre", "gercee", "lips"], sortOrder: 13 },
+  { id: "skin_concern_corps", taxonomy: "skin_concern", code: "peau_corps", labelFr: "Peau du corps", labelEn: "Body skin", synonyms: ["corps", "keratose", "body"], sortOrder: 14 },
+  { id: "skin_concern_spf", taxonomy: "skin_concern", code: "protection_solaire", labelFr: "Protection solaire", labelEn: "Sun protection", synonyms: ["spf", "solaire", "uv"], sortOrder: 15 },
+  { id: "skin_concern_sensibilite", taxonomy: "skin_concern", code: "sensibilite", labelFr: "Sensibilité / réactivité", labelEn: "Sensitivity", synonyms: ["sensible", "reactive"], sortOrder: 16 },
+  { id: "skin_concern_teint_non_uniforme", taxonomy: "skin_concern", code: "teint_non_uniforme", labelFr: "Teint non uniforme", labelEn: "Uneven tone", synonyms: ["uniforme", "heterogene", "teint"], sortOrder: 17 },
+  // --- Skin objectives (12) ---
+  { id: "skin_objective_hydrater", taxonomy: "skin_objective", code: "hydrater", labelFr: "Hydrater en profondeur", labelEn: "Deep hydration", synonyms: ["hydrater", "nourrir"], sortOrder: 1 },
+  { id: "skin_objective_eclat", taxonomy: "skin_objective", code: "eclat", labelFr: "Retrouver de l'éclat", labelEn: "Glow", synonyms: ["eclat", "lumineux", "radiance"], sortOrder: 2 },
+  { id: "skin_objective_uniformiser", taxonomy: "skin_objective", code: "uniformiser", labelFr: "Uniformiser le teint", labelEn: "Even tone", synonyms: ["uniformiser", "tache", "hyperpigmentation"], sortOrder: 3 },
+  { id: "skin_objective_attenuer_taches", taxonomy: "skin_objective", code: "attenuer_taches", labelFr: "Atténuer les taches", labelEn: "Fade spots", synonyms: ["tache", "hyperpigmentation"], sortOrder: 4 },
+  { id: "skin_objective_apaiser", taxonomy: "skin_objective", code: "apaiser", labelFr: "Apaiser la peau", labelEn: "Soothe", synonyms: ["apaiser", "calmer", "rougeur"], sortOrder: 5 },
+  { id: "skin_objective_imperfections", taxonomy: "skin_objective", code: "reduire_imperfections", labelFr: "Réduire les imperfections", labelEn: "Clear blemishes", synonyms: ["imperfection", "bouton"], sortOrder: 6 },
+  { id: "skin_objective_grain", taxonomy: "skin_objective", code: "affiner_grain", labelFr: "Affiner le grain de peau", labelEn: "Refine texture", synonyms: ["grain", "texture", "pore"], sortOrder: 7 },
+  { id: "skin_objective_barriere", taxonomy: "skin_objective", code: "renforcer_barriere", labelFr: "Renforcer la barrière", labelEn: "Strengthen barrier", synonyms: ["barriere", "ceramide"], sortOrder: 8 },
+  { id: "skin_objective_spf", taxonomy: "skin_objective", code: "proteger_spf", labelFr: "Protéger du soleil/pollution", labelEn: "Protect", synonyms: ["spf", "pollution", "uv"], sortOrder: 9 },
+  { id: "skin_objective_anti_age", taxonomy: "skin_objective", code: "prevenir_age", labelFr: "Prévenir les signes de l'âge", labelEn: "Anti-aging", synonyms: ["age", "ride", "anti-age"], sortOrder: 10 },
+  { id: "skin_objective_simplifier", taxonomy: "skin_objective", code: "simplifier", labelFr: "Simplifier la routine", labelEn: "Simplify", synonyms: ["simple", "minimaliste"], sortOrder: 11 },
+  { id: "skin_objective_carnation", taxonomy: "skin_objective", code: "carnation", labelFr: "Produits adaptés à ma carnation", labelEn: "Shade match", synonyms: ["carnation", "teinte", "melanine"], sortOrder: 12 },
 ] as const;
 
 /**
@@ -89,6 +132,9 @@ export const PRODUCT_VOCABULARY_FIELDS: ReadonlyArray<{ field: string; taxonomy:
   { field: 'concerns', taxonomy: 'need', label: 'besoins' },
   { field: 'needs', taxonomy: 'need', label: 'besoins' },
   { field: 'hairTypes', taxonomy: 'texture', label: 'textures capillaires' },
+  { field: 'skinTypes', taxonomy: 'skin_type', label: 'types de peau' },
+  { field: 'skinConcerns', taxonomy: 'skin_concern', label: 'préoccupations peau' },
+  { field: 'skinObjectives', taxonomy: 'skin_objective', label: 'objectifs peau' },
   { field: 'routineSteps', taxonomy: 'routine_step', label: 'étapes de routine' },
   { field: 'countryAvailability', taxonomy: 'market', label: 'marchés' },
   { field: 'toneDepths', taxonomy: 'tone_depth', label: 'profondeurs de ton' }
