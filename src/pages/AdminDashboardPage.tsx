@@ -18,6 +18,7 @@ import { PeauSourcingCahierPanel } from '../components/PeauSourcingCahierPanel';
 import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
 import { PeauDemandStockGapPanel } from '../components/PeauDemandStockGapPanel';
 import { PeauGatesCockpitPanel } from '../components/PeauGatesCockpitPanel';
+import { PeauCatalogPublishPanel } from '../components/PeauCatalogPublishPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1260,17 +1261,20 @@ export const AdminDashboardPage: React.FC = () => {
           <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
         )}
 
-        {/* TAB 5: PRODUCT CATALOG */}
+        {/* TAB 5: PRODUCT CATALOG — C20 peau publication TEST contrôlée */}
         {activeTab === 'catalog' && (
-          <CatalogAdminPanel
-            headers={adminHeaders}
-            onSuccess={(message) => {
-              setActionSuccess(message);
-              loadData();
-              setTimeout(() => setActionSuccess(''), 4000);
-            }}
-            onOpenGuide={() => setActiveTab('guide_dropship')}
-          />
+          <div className="space-y-10">
+            <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />
+            <CatalogAdminPanel
+              headers={adminHeaders}
+              onSuccess={(message) => {
+                setActionSuccess(message);
+                loadData();
+                setTimeout(() => setActionSuccess(''), 4000);
+              }}
+              onOpenGuide={() => setActiveTab('guide_dropship')}
+            />
+          </div>
         )}
 
         {/* TAB 1B: PILOTAGE CATALOGUE ET APPROVISIONNEMENT — chantier 15B */}
