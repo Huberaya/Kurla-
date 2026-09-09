@@ -83,12 +83,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   // locale au moment du rendu. Le libellé, lui, vient du dictionnaire.
   const primaryNavLinks = [
     { label: t('nav.diagnostic'), path: '/diagnostic/cheveux' },
+    { label: 'Peau', path: '/peau' },
     { label: t('nav.assistant'), path: '/assistant-beaute' },
     { label: t('nav.shop'), path: '/boutique' },
     { label: t('nav.inspirations'), path: '/inspirations' },
     { label: t('nav.tools'), path: '/outils' },
     { label: t('nav.pro'), path: '/professionnels' },
-    { label: t('nav.community'), path: '/community' },
   ];
 
   const subModules = [

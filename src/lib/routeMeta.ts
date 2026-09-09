@@ -135,6 +135,33 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.7,
   },
   {
+    path: '/peau',
+    title: 'KURLA SKIN — Diagnostic peau & routines pour peaux riches en mélanine',
+    description:
+      'Diagnostic peau 2 min, 15 besoins, catalogue filtré par type de peau et actif, routines matin/soir et guide SPF sans trace blanche. Expertise peaux mates à foncées.',
+    indexable: true,
+    changefreq: 'weekly',
+    priority: 0.9,
+  },
+  {
+    path: '/peau/diagnostic',
+    title: 'Diagnostic peau gratuit — 12 questions | KURLA SKIN',
+    description:
+      'Type de peau, phototype, préoccupations, objectifs, budget. Un diagnostic progressif, visuel et non anxiogène, qui génère votre routine personnalisée.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.9,
+  },
+  {
+    path: '/peau/routine',
+    title: 'Construisez votre routine peau | KURLA SKIN',
+    description:
+      'Routine matin (protéger) + soir (réparer) + hebdo. 3 niveaux, prix total, alternatives à chaque étape et alertes de compatibilité d’actifs.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
     path: '/hommes',
     title: 'Barbe, cuir chevelu et soins pour hommes | KURLA',
     description:
