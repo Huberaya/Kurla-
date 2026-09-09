@@ -90,6 +90,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [professionalApplications, setProfessionalApplications] = useState<any[]>([]);
   const [professionalStatusDrafts, setProfessionalStatusDrafts] = useState<Record<string, string>>({});
   const [professionalComments, setProfessionalComments] = useState<Record<string, string>>({});
+  const [prosFilter, setProsFilter] = useState<'all' | 'peau' | 'cheveux' | 'pending'>('all');
   
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
@@ -1330,43 +1331,91 @@ export const AdminDashboardPage: React.FC = () => {
           <AdminOperationsPanel dashboard={adminDashboard} headers={adminHeaders} onReload={loadData} />
         )}
 
-        {/* TAB 7: CERTIFICATIONS PROS */}
-        {activeTab === 'pros' && (
+        {/* TAB 7: CERTIFICATIONS PROS — C15 peau : filtre Peau/Cheveux + vérif HPI/SPF */}
+        {activeTab === 'pros' && (() => {
+          const isPeauProfession = (prof: string) => /skincare|peau|dermat|esthét/i.test(prof || '');
+          const peauCount = professionalApplications.filter(a => isPeauProfession(a.profession)).length;
+          const cheveuxCount = professionalApplications.length - peauCount;
+          const pendingCount = professionalApplications.filter(a => a.status === 'submitted' || a.status === 'under_review').length;
+          const filtered = professionalApplications.filter(a => {
+            if (prosFilter === 'peau') return isPeauProfession(a.profession);
+            if (prosFilter === 'cheveux') return !isPeauProfession(a.profession);
+            if (prosFilter === 'pending') return a.status === 'submitted' || a.status === 'under_review';
+            return true;
+          });
+          return (
           <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
             <div>
               <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#C8753D]" /> Candidatures KURLA Pro
+                <Users className="w-5 h-5 text-[#C8753D]" /> Candidatures KURLA Pro — C15 peau & cheveux
               </h2>
-              <p className="text-xs text-[#FFF7EF]/55 mt-2">Les candidatures sont chargées depuis le stockage serveur. Une validation admin ne crée pas automatiquement un compte professionnel.</p>
+              <p className="text-xs text-[#FFF7EF]/55 mt-2">Les candidatures sont chargées depuis le stockage serveur. Une validation admin ne crée pas automatiquement un compte professionnel — le Trust Score (identité + qualification + avis sur prestation réelle) reste la porte d’entrée vers l’annuaire public.</p>
+              <div className="mt-3 p-3 rounded-2xl bg-[#050403] border border-emerald-500/20 flex flex-wrap gap-2 text-[11px] leading-relaxed">
+                <span className="px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">Peau riche en mélanine</span>
+                <span className="text-[#FFF7EF]/60">Vérifier pour <strong className="text-[#FFF7EF]">Experte Skincare / Dermato / Esthéticienne peau</strong> : formation HPI (hyperpigmentation), conseils SPF <em>sans trace blanche</em> testés phototypes V–VI, barrière hydratation. Demander portfolio / diplôme / cas avant/après si doute. Vocabulaire : <strong className="text-[#FFF7EF]">uniformiser ≠ éclaircir</strong>.</span>
+              </div>
+            </div>
+
+            {/* Stats rapides */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-center"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold">Total</p><p className="text-xl font-bold text-[#FFF7EF]">{professionalApplications.length}</p></div>
+              <div className="p-3 rounded-2xl bg-[#050403] border border-emerald-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Peau</p><p className="text-xl font-bold text-emerald-300">{peauCount}</p><p className="text-[10px] text-[#FFF7EF]/40">{peauCount ? 'skincare / peau' : '0 peau'}</p></div>
+              <div className="p-3 rounded-2xl bg-[#050403] border border-amber-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Cheveux</p><p className="text-xl font-bold text-amber-300">{cheveuxCount}</p></div>
+              <div className="p-3 rounded-2xl bg-[#050403] border border-sky-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-sky-300 font-bold">En attente</p><p className="text-xl font-bold text-sky-300">{pendingCount}</p><p className="text-[10px] text-[#FFF7EF]/40">à traiter</p></div>
+            </div>
+
+            {/* Filtres */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(['all','peau','cheveux','pending'] as const).map(id => {
+                const labels: Record<string,string> = { all:`Tous · ${professionalApplications.length}`, peau:`Peau · ${peauCount}`, cheveux:`Cheveux · ${cheveuxCount}`, pending:`En attente · ${pendingCount}` };
+                const active = prosFilter===id;
+                return (
+                  <button key={id} onClick={()=>setProsFilter(id)} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${active ? 'bg-[#FFF7EF] text-[#1A0F0A] border-[#FFF7EF]' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/70 hover:text-white hover:border-[#FFF7EF]/30'}`}>{labels[id]}</button>
+                );
+              })}
+              <a href="/professionnels?cat=peau" target="_blank" rel="noreferrer" className="ml-auto px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:bg-emerald-500/25">Voir annuaire peau →</a>
+              <a href="/peau/guide" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-xs font-semibold hover:border-[#C8753D]">Guide peau</a>
             </div>
 
             {professionalApplications.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 text-center space-y-2">
+                <p className="text-sm text-[#FFF7EF]/55">Aucune candidature enregistrée.</p>
+                <p className="text-xs text-[#FFF7EF]/35">Astuce peau : partager <span className="font-mono text-[#D49A63]">/professionnels/rejoindre</span> avec spécialité « Experte Skincare Peaux Mélaninées » — les candidatures peau apparaîtront ici avec le badge Peau.</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="p-8 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 text-center text-sm text-[#FFF7EF]/55">
-                Aucune candidature enregistrée.
+                Aucune candidature pour le filtre « {prosFilter} ».
               </div>
             ) : (
               <div className="space-y-4">
-                {professionalApplications.map((application: any) => {
+                {filtered.map((application: any) => {
                   const draftStatus = professionalStatusDrafts[application.id] || application.status;
                   const statusLabel = application.status === 'under_review'
                     ? 'En examen'
                     : application.status === 'approved'
                       ? 'Approuvée'
                       : application.status === 'rejected' ? 'Refusée' : 'Soumise';
+                  const isPeau = isPeauProfession(application.profession);
                   return (
-                    <div key={application.id} className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 space-y-4">
+                    <div key={application.id} className={`p-5 rounded-2xl bg-[#050403] border space-y-4 ${isPeau ? 'border-emerald-500/30' : 'border-[#FFF7EF]/5'}`}>
                       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">{application.name}</h3>
-                            <span className="px-2 py-1 rounded-full bg-[#C8753D]/15 text-[#D49A63] text-[10px] font-semibold">{statusLabel}</span>
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${isPeau ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>{isPeau ? 'Peau' : 'Cheveux'} · {application.profession}</span>
+                            <span className="px-2 py-1 rounded-full bg-[#C8753D]/15 text-[#D49A63] text-[10px] font-semibold border border-[#C8753D]/20">{statusLabel}</span>
                           </div>
-                          <p className="text-xs text-[#D49A63] mt-1">{application.profession} • {application.experience} • {application.city}</p>
+                          <p className="text-xs text-[#FFF7EF]/70 mt-1">{application.experience} • {application.city} {isPeau && <span className="text-emerald-300">• HPI / SPF sans trace à vérifier</span>}</p>
                           <p className="text-xs text-[#FFF7EF]/60 mt-1">{application.email} • {application.phone}</p>
                           {application.portfolioUrl && (
                             <a href={application.portfolioUrl} target="_blank" rel="noreferrer" className="text-xs text-sky-300 hover:text-sky-200 underline break-all">Voir le portfolio</a>
                           )}
                           <p className="text-[11px] text-[#FFF7EF]/40 mt-1">Reçue le {new Date(application.createdAt).toLocaleString('fr-FR')}</p>
+                          {isPeau && (
+                            <p className="mt-2 text-[11px] leading-relaxed p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/20 text-emerald-200">
+                              Checklist peau : diplôme / attestation HPI ou cas taches ? SPF conseillé testé V–VI sans trace blanche ? Routine barrière (céramides/niacinamide) maîtrisée ? Si documents manquants → passer en <em>En examen</em> et demander pièces.
+                            </p>
+                          )}
                         </div>
 
                         <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -1392,7 +1441,7 @@ export const AdminDashboardPage: React.FC = () => {
                         onChange={e => setProfessionalComments({ ...professionalComments, [application.id]: e.target.value })}
                         maxLength={1000}
                         rows={2}
-                        placeholder="Commentaire interne (facultatif)"
+                        placeholder={isPeau ? "Commentaire interne peau : HPI / SPF testé V-VI / barrière — pièces reçues ?" : "Commentaire interne (facultatif)"}
                         className="w-full p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
                       />
                     </div>
@@ -1400,8 +1449,9 @@ export const AdminDashboardPage: React.FC = () => {
                 })}
               </div>
             )}
+            <p className="text-[11px] text-[#FFF7EF]/35 leading-relaxed">C15 : filtre Peau/Cheveux + badge + checklist HPI/SPF. Une candidature approuvée devient publique seulement si identité + qualification vérifiées (Trust Score) — l’annuaire peau reste vide tant qu’aucun pro n’est approuvé, c’est voulu.</p>
           </div>
-        )}
+          ); })()}
 
       </div>
     </div>
