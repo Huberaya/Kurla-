@@ -191,6 +191,20 @@ export const AiBeautyAssistantPage: React.FC = () => {
           </p>
         </div>
 
+        {/* C8 — IA peau : expertise mélanine + gardes + double entrée directe/guidée */}
+        <div className="max-w-3xl mx-auto mb-6 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex-1">
+            <p className="text-xs font-bold flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-[#C8753D]" /> Peau riche en mélanine — notre position claire</p>
+            <p className="text-xs text-[#111111]/70 leading-relaxed mt-1"><strong className="text-[#111111]">Uniformiser ≠ éclaircir.</strong> KURLA parle HPI (taches post-inflammatoires), SPF sans trace blanche (white cast), barrière (céramides) et tolérance aux actifs — jamais de “blanchir” ou “dépigmenter”. Besoin peau ? 2 entrées : <em>directe</em> (filtres boutique + 15 fiches) ou <em>guidée</em> (diagnostic).</p>
+            <p className="text-[11px] text-[#111111]/50 mt-1.5">Garde : si rougeurs, douleurs, lésions qui persistent → dermatologue/pharmacien. L’IA propose des routines chiffrées (ex: “40€ · sans parfum · HPI”) et cite ses sources cosmétiques.</p>
+          </div>
+          <div className="flex flex-col gap-2 shrink-0">
+            <a href="/peau/diagnostic?mode=express" className="px-4 py-2.5 rounded-full bg-[#111111] text-white text-xs font-bold text-center">Diagnostic peau 2 min →</a>
+            <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold text-center hover:border-[#C8753D]">Boutique peau filtrée →</a>
+            <a href="/guides/ingredients" className="text-[11px] text-[#C8753D] font-bold hover:underline text-center">15 fiches peau →</a>
+          </div>
+        </div>
+
         <section className="bg-[#F8F2EC] border border-[#E8E1DA] rounded-3xl p-4 sm:p-6 mb-8 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <label className="text-xs font-semibold text-[#111111]/70">

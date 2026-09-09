@@ -114,12 +114,13 @@ export const CORRECTED_PRODUCT_NEEDS: Record<string, string[]> = {
 
 // Alias boutique → taxonomy — garde-fou si un produit n'a qu'un des deux synonymes proches.
 // La plupart des produits portent déjà les deux tags, l'alias ne sert qu'en fallback.
+// C8 : ajoute alias spf/ingredient pour aligner SkinLandingPage (spf, ingredient) avec boutique (protection_solaire, par_ingredient)
 export const BOUTIQUE_NEED_ALIAS: Record<string, string[]> = {
   'demeler_cheveux': ['demeler_cheveux'],
   'prendre_soin_barbe': ['barbe'],
   'cuir_chevelu': ['cuir_chevelu', 'apaiser_cuir_chevelu'],
   'proteger_nuit': ['proteger_nuit'],
-  // KURLA SKIN — 15 familles peau
+  // KURLA SKIN — 15 familles peau (ids needsHub = boutique peau)
   'hydrater': ['hydrater_peau', 'hydrater', 'hydrater_cheveux'],
   'eclat': ['eclat', 'teint_terne', 'hydrater_peau'],
   'taches': ['taches_hyperpigmentation', 'taches', 'attenuer_taches', 'teint_non_uniforme'],
@@ -128,6 +129,7 @@ export const BOUTIQUE_NEED_ALIAS: Record<string, string[]> = {
   'imperfections': ['imperfections_acne', 'imperfections', 'points_noirs'],
   'sensible': ['peau_sensible', 'sensibilite', 'rougeurs'],
   'protection_solaire': ['protection_solaire', 'proteger_spf', 'spf'],
+  'spf': ['protection_solaire', 'proteger_spf', 'spf'],
   'anti_age': ['rides', 'fermete', 'prevenir_age', 'anti_age'],
   'contour_yeux': ['cernes', 'contour_yeux', 'poches'],
   'levres': ['levres_seches', 'levres'],
@@ -135,6 +137,7 @@ export const BOUTIQUE_NEED_ALIAS: Record<string, string[]> = {
   'cicatrices': ['cicatrices', 'grain_irregulier'],
   'barriere': ['barriere', 'renforcer_barriere', 'hydrater_peau'],
   'par_ingredient': ['par_ingredient', 'ingredient'],
+  'ingredient': ['par_ingredient', 'ingredient'],
 };
 
 export function getCorrectedNeeds(productId: string, fallback: string[]): string[] {

@@ -54,14 +54,14 @@ const SKIN_NEEDS: NeedOption[] = [
   { id: 'grasse', label: 'Peau grasse', domain: 'peau', icon: Wind, description: 'Matifier, réguler sans assécher.' },
   { id: 'imperfections', label: 'Imperfections', domain: 'peau', icon: Smile, description: 'Boutons, pores — doux pour peaux mélaninées.' },
   { id: 'sensible', label: 'Peau sensible', domain: 'peau', icon: Shield, description: 'Apaiser, haute tolérance.' },
-  { id: 'protection_solaire', label: 'Protection solaire', domain: 'peau', icon: Sun, description: 'SPF 50+ sans trace blanche (white cast).' },
+  { id: 'spf', label: 'Protection solaire', domain: 'peau', icon: Sun, description: 'SPF 50+ sans trace blanche (white cast).' },
   { id: 'anti_age', label: 'Anti-âge', domain: 'peau', icon: Clock, description: 'Prévenir, raffermir.' },
   { id: 'contour_yeux', label: 'Contour des yeux', domain: 'peau', icon: Eye, description: 'Cernes, poches.' },
   { id: 'levres', label: 'Lèvres', domain: 'peau', icon: Heart, description: 'Hydrater, réparer.' },
   { id: 'corps', label: 'Corps', domain: 'peau', icon: Package, description: 'Hydratation, texture.' },
   { id: 'cicatrices', label: 'Cicatrices', domain: 'peau', icon: Layers, description: 'Atténuer, lisser.' },
   { id: 'barriere', label: 'Barrière cutanée', domain: 'peau', icon: Shield, description: 'Réparer, renforcer.' },
-  { id: 'par_ingredient', label: 'Par ingrédient', domain: 'peau', icon: FlaskConical, description: 'Niacinamide, rétinol, AHA/BHA, vitamine C.' },
+  { id: 'ingredient', label: 'Par ingrédient', domain: 'peau', icon: FlaskConical, description: 'Niacinamide, rétinol, AHA/BHA, vitamine C.' },
 ];
 
 // Catégories dont les produits arrivent plus tard : on oriente vers l'espace
@@ -125,7 +125,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     // double entrée : /boutique?cat=peau&need=taches  +  /boutique?cat=peau&q=niacinamide
     const need = sp.get('need') || sp.get('besoin') || sp.get('q_need');
     if (need) {
-      const normalized = need.toLowerCase().trim();
+      let normalized = need.toLowerCase().trim();
+      // C8 alias : supporte anciennes URLs protection_solaire/par_ingredient et hydrater_peau → hydrater
+      const ALIAS: Record<string,string> = { protection_solaire: 'spf', par_ingredient: 'ingredient', hydrater_peau: 'hydrater' };
+      normalized = ALIAS[normalized] || normalized;
       const allIds = [...HAIR_NEEDS, ...SKIN_NEEDS].map(n => n.id);
       const found = allIds.find(id => id === normalized || normalized.includes(id) || id.includes(normalized));
       if (found) { setSelectedNeedId(found); setNeedsDomainTab(SKIN_NEEDS.some(n => n.id === found) ? 'peau' : 'cheveux'); }
@@ -462,6 +465,21 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </>
           )}
         </div>
+
+        {/* C8 — Double entrée peau : directe (15 besoins + 5 filtres) vs guidée (diagnostic 2 min → filtres) */}
+        {activeCategory === 'peau' && (
+          <div className="mb-6 p-4 rounded-2xl bg-white border border-[#E8E1DA] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div>
+              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Double entrée — à vous de choisir</p>
+              <p className="text-xs text-[#111111]/60 leading-relaxed">Directe : 15 besoins, 5 filtres (actif/phototype/texture/fini/sensibilité) + budget/sans parfum/SPF. Guidée : diagnostic 2 min → filtres pré-remplis + routine chiffrée (40/62/84€).</p>
+              <p className="text-[11px] text-[#111111]/50 mt-1">Hybride possible : lancez le diagnostic, puis affinez avec les filtres directs.</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <a href="#trouver-par-besoin" className="px-4 py-2 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Filtres directs ↓</a>
+              <a href="/peau/diagnostic?mode=express" className="px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-bold">Guidée 2 min →</a>
+            </div>
+          </div>
+        )}
 
         {/* Banner guidé peau : applique vos préférences diagnostic en 1 clic */}
         {activeCategory === 'peau' && guidedSkin && (guidedSkin.budget || (guidedSkin.sensitivities || []).includes('parfum')) && (
@@ -1084,6 +1102,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                           <Clock className="w-3 h-3" /> Précommande
                         </span>
                       )}
+                      {/* C8 — Peau V-VI safe + SPF sans trace blanche (mélanine, HPI) */}
+                      {(() => {
+                        const isSPF = /spf|solaire|protection.*soleil/i.test(`${product.name} ${product.description} ${(product.keyIngredients||[]).join(' ')}`);
+                        if ((product as any).category === 'peau' && isSPF) return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[#111111] text-[9px] font-bold border border-[#E8E1DA] shadow-sm">SPF sans trace blanche</span>;
+                        if ((product as any).category === 'peau') return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-[#111111]/85 backdrop-blur-md text-white text-[9px] font-bold border border-white/15 shadow-sm">V-VI safe · HPI</span>;
+                        return null;
+                      })()}
                       {false && product.badges[0] ? (
                         <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-semibold">
                           {product.badges[0]}
