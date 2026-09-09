@@ -15,6 +15,7 @@ import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
 import { PeauSourcingCahierPanel } from '../components/PeauSourcingCahierPanel';
+import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1318,14 +1319,17 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 5C: LOTS ET TRAÇABILITÉ — écran du chantier 16D */}
         {activeTab === 'batches' && (
-          <BatchAdminPanel
-            headers={adminHeaders}
-            onSuccess={(message) => {
-              setActionSuccess(message);
-              loadData();
-              setTimeout(() => setActionSuccess(''), 5000);
-            }}
-          />
+          <div className="space-y-10">
+            <PeauKitsCoutServiPanel headers={adminHeaders} />
+            <BatchAdminPanel
+              headers={adminHeaders}
+              onSuccess={(message) => {
+                setActionSuccess(message);
+                loadData();
+                setTimeout(() => setActionSuccess(''), 5000);
+              }}
+            />
+          </div>
         )}
 
         {/* TAB 6: DAILY OPERATIONS */}
