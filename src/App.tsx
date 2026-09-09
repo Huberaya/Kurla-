@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState, useEffect } from 'react';
+import React, { Suspense, useRef, useState, useEffect, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { I18nProvider } from './lib/I18nProvider';
 import { isSupabaseConfigured } from './lib/supabaseClient';
@@ -14,12 +14,13 @@ import { Navbar } from './components/Navbar';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Footer } from './components/Footer';
 
-// Modals & Widgets
-import { CartDrawer } from './components/CartDrawer';
-import { SearchModal } from './components/SearchModal';
-import { AiAssistantWidget } from './components/AiAssistantWidget';
-import { AbandonedCartReminder } from './components/AbandonedCartReminder';
-import { PasswordRecoveryPanel } from './components/PasswordRecoveryPanel';
+// Modals & Widgets — différés (hors chemin critique). Le hero doit peindre
+// avant que le JS du panier ou de l'assistant IA ne soit téléchargé.
+const CartDrawer = lazy(() => import('./components/CartDrawer').then(m => ({ default: m.CartDrawer })));
+const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
+const AiAssistantWidget = lazy(() => import('./components/AiAssistantWidget').then(m => ({ default: m.AiAssistantWidget })));
+const AbandonedCartReminder = lazy(() => import('./components/AbandonedCartReminder').then(m => ({ default: m.AbandonedCartReminder })));
+const PasswordRecoveryPanel = lazy(() => import('./components/PasswordRecoveryPanel').then(m => ({ default: m.PasswordRecoveryPanel })));
 import { CartItem, Product, ProductVariant } from './types';
 
 function AppContent() {
@@ -259,35 +260,25 @@ function AppContent() {
 
         <Footer />
 
-        {/* Global Drawers & Modals */}
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cartItems}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-          onAddItem={handleAddToCart}
-          onCheckout={handleCheckout}
-        />
-
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-        />
-
-        <AiAssistantWidget />
-
-        {/* Relance panier abandonné : n'apparaît qu'en retour de visite
-            (absence ≥ 24 h) avec un panier non vide, jamais en continu. */}
-        <AbandonedCartReminder count={cartCount} onOpenCart={() => setIsCartOpen(true)} />
-
-        {/*
-          Monté au niveau de l'application, pas d'une page : le lien de
-          réinitialisation dépose l'utilisateur sur le site à la racine
-          (`site_url` + fragment), sans `redirect_to` garanti. Limité à la page
-          compte, le panneau n'aurait été atteint par personne.
-        */}
-        <PasswordRecoveryPanel />
+        {/* Global Drawers & Modals — chargés après le premier paint */}
+        <Suspense fallback={null}>
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            items={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onAddItem={handleAddToCart}
+            onCheckout={handleCheckout}
+          />
+          <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+          />
+          <AiAssistantWidget />
+          <AbandonedCartReminder count={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+          <PasswordRecoveryPanel />
+        </Suspense>
       </div>
   );
 }

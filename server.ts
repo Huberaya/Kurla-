@@ -116,9 +116,10 @@ import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
 import { emailService } from './src/lib/emailService';
 import { computeEmailHealth } from './src/lib/emailHealth';
 
-// Initialize persistent product database via Supabase. The startup path awaits
-// this promise so a schema/connection error cannot be hidden behind a healthy
-// HTTP listener.
+// Init Supabase — lancée au chargement du module mais ne bloque plus
+// l'écoute HTTP. 1–2 s de réseau au cold start ne doivent pas retarder le
+// TTFB : les routes qui ont besoin du store attendent la promesse si
+// nécessaire, les autres (health, static) répondent immédiatement.
 const serverInitialization = process.env.NODE_ENV === 'production' && !isSupabaseServerConfigured()
   ? Promise.resolve()
   : serverDb.initialize([]).then(() => {
@@ -2629,7 +2630,11 @@ function warnIfPaymentUnavailable(): void {
 
 async function startServer() {
   assertProductionConfiguration();
-  await serverInitialization;
+  // Le listener monte SANS attendre Supabase — TTFB divisé par ~3 au cold start.
+  // L'init continue en tâche de fond ; on log simplement son issue.
+  serverInitialization
+    .then(() => console.log('[KURLA] Store prêt.'))
+    .catch(err => console.error('[KURLA] Init store échouée (routes en repli) :', err instanceof Error ? err.message : err));
 
   if (process.env.NODE_ENV !== 'production') {
     // The specifier is kept in a variable on purpose: bundlers must not be able
@@ -2644,9 +2649,18 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    // CHANTIER 13 — la coquille n'est plus servie aveuglément : 404 franc sur un
-    // chemin inconnu, canonique propre sur une fiche produit ou ingrédient.
+    // Assets hashés → 1 an en cache immutable ; index.html → toujours revalidé
+    // (évite de servir une vieille coquille après un déploiement).
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      etag: true,
+      setHeaders(res, filePath) {
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        }
+      },
+    }));
     mountSpaFallback(app, distPath);
   }
 

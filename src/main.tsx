@@ -7,20 +7,22 @@ import {initAnalytics} from './lib/analytics';
 import {captureAttribution} from './lib/attribution';
 import {captureReferralCode} from './lib/referralCapture';
 
-// Charge les fournisseurs d'analytics UNIQUEMENT si un identifiant est
-// configuré (VITE_GA_MEASUREMENT_ID / VITE_PLAUSIBLE_DOMAIN). Sans variable,
-// aucun script tiers n'est téléchargé.
-initAnalytics();
-
-// Capture de l'origine d'acquisition (UTM/référent) pour l'attribution des ventes.
-captureAttribution();
-
-// Capture d'un éventuel code de parrainage dans l'URL (?ref=KURLA-XXXXXXXX).
-captureReferralCode();
-
-// Installe le diagnostic d'erreur API avant le premier rendu : un déploiement
-// sans backend doit être nommé comme tel, pas affiché comme un NOT_FOUND brut.
+// Le diagnostic d'erreur API reste synchrone : un déploiement sans backend
+// doit être nommé comme tel, pas affiché comme un NOT_FOUND brut.
 installApiFailureInterceptor();
+
+// Le reste (analytics, attribution, parrainage) est différé après le premier
+// paint — 3 scripts tiers au démarrage = LCP pénalisé pour zéro valeur perçue.
+const defer = (fn: () => void) => {
+  if ('requestIdleCallback' in window) (window as any).requestIdleCallback(fn, { timeout: 2000 });
+  else setTimeout(fn, 1);
+};
+defer(() => {
+  // Charge les fournisseurs d'analytics UNIQUEMENT si un identifiant est configuré
+  try { initAnalytics(); } catch {}
+  try { captureAttribution(); } catch {}
+  try { captureReferralCode(); } catch {}
+});
 
 // CHANTIER 8.7 — application mobile installable. Le service worker n'est
 // enregistré qu'en production : en développement il servirait un cache périmé
