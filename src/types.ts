@@ -4,7 +4,7 @@ export type HairPriority = 'hydratation' | 'casse' | 'definition' | 'pousse' | '
 export type Porosity = 'faible' | 'moyenne' | 'forte' | 'inconnue';
 export type ScalpCondition = 'normal' | 'sec' | 'sensible' | 'demangeaisons' | 'pellicules' | 'irritation';
 
-export type SkinType = 'seche' | 'mixte' | 'grasse' | 'sensible' | 'inconnue';
+export type SkinType = 'normale' | 'seche' | 'tres_seche' | 'grasse' | 'mixte' | 'sensible' | 'deshydratee' | 'mature' | 'inconnue';
 export type SkinPriority = 'taches' | 'teint_irregulier' | 'hydratation' | 'spf' | 'acne_legere' | 'sensibilite';
 
 export interface HairDiagnosticAnswers {
@@ -19,15 +19,31 @@ export interface HairDiagnosticAnswers {
 }
 
 export interface SkinDiagnosticAnswers {
-  skinType: SkinType;
-  priority: SkinPriority;
-  spfUsage: 'quotidien' | 'parfois' | 'jamais' | 'recherche';
-  sensitivity: 'faible' | 'moyenne' | 'elevee';
-  routine: 'aucune' | 'simple' | 'complete' | 'inconnue';
-  budget: 'moins_40' | '40_70' | '70_100' | 'premium';
+  skinType: SkinType | string;
+  priority: SkinPriority | string;
+  spfUsage: 'quotidien' | 'parfois' | 'jamais' | 'recherche' | string;
+  sensitivity: 'faible' | 'moyenne' | 'elevee' | string;
+  routine: 'aucune' | 'simple' | 'complete' | 'inconnue' | string;
+  budget: 'moins_40' | '40_70' | '70_100' | 'premium' | string;
   email: string;
+  // KURLA SKIN — diagnostic 12 étapes (Phase 3)
+  hydrationLevel?: string;
+  toneDepth?: string;
+  undertone?: string;
+  hyperpigmentationTendency?: string;
+  acne?: string;
+  skinConcerns?: string[];
+  skinObjectives?: string[];
+  sensitivities?: string[];
+  sunExposure?: string;
+  currentRoutine?: string;
+  texturePreference?: string;
+  finishPreference?: string;
+  ageRange?: string;
+  climate?: string;
+  reactionHistory?: string;
+  preferences?: string[];
 }
-
 export interface ProductGalleryImage {
   url: string;
   label: string;
