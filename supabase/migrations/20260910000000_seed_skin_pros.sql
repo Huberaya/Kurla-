@@ -5,18 +5,9 @@
 -- /pros-verifies?cat=peau · Trust Score publiable 70-90/100
 -- ============================================================
 
--- 1. Profil vérificateur admin (si absent) — satisfait la FK
---    identity_verified_by. La contrainte CHECK autorise NULL<>value
---    mais la FK exige une ligne existante.
-INSERT INTO public.profiles (id, email, role, created_at, updated_at)
-VALUES (
-  '00000000-0000-0000-0000-000000000001',
-  'admin-seed@kurla.beauty',
-  'admin',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (id) DO NOTHING;
+-- 1. Vérificateur = superadmin existant hubertbay@gmail.com
+--    (00c987c2-b224-4b33-a43f-bd80ece98cb0). Pas d'insertion
+--    d'un profil fictif : profiles.id FK → auth.users.id.
 
 -- 2. 6 profils pros peau — IDs stables pour idempotence
 -- Usage ON CONFLICT (id) pour rejouer la migration sans doublon.
@@ -36,7 +27,7 @@ INSERT INTO public.professional_profiles (
   'Paris',
   'Dermatologue',
   'HPI & phototypes IV–VI — taches post-inflammatoires',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'Doctorat médecine — dermatologie (Paris Cité) · DIU dermatologie esthétique', NOW(),
   TRUE, NOW(),
   12, TRUE, NOW(), NOW()
@@ -49,7 +40,7 @@ INSERT INTO public.professional_profiles (
   'Lyon',
   'Esthéticienne',
   'Barrière & SPF invisible sans trace blanche',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'BP esthétique — cosmétologie (Lyon) · cert. peaux pigmentées', NOW(),
   TRUE, NOW(),
   9, TRUE, NOW(), NOW()
@@ -62,7 +53,7 @@ INSERT INTO public.professional_profiles (
   'Nantes',
   'Experte peau',
   'Routines & céramides — peaux mixtes à foncées',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'Cert. dermo-conseil — Nantes Université · form. HPI', NOW(),
   TRUE, NOW(),
   8, TRUE, NOW(), NOW()
@@ -75,7 +66,7 @@ INSERT INTO public.professional_profiles (
   'Marseille',
   'Dermatologue',
   'Hyperpigmentation & peaux matures foncées',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'DES dermatologie — Marseille · DU lasers & peaux foncées', NOW(),
   TRUE, NOW(),
   15, TRUE, NOW(), NOW()
@@ -88,7 +79,7 @@ INSERT INTO public.professional_profiles (
   'Bordeaux',
   'Esthéticienne',
   'Peau sensible — sans parfum, atopique',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'BTS esthétique — Bordeaux · cert. peau sensible & allergologie', NOW(),
   TRUE, NOW(),
   6, TRUE, NOW(), NOW()
@@ -101,7 +92,7 @@ INSERT INTO public.professional_profiles (
   'Bruxelles',
   'Experte peau',
   'Corps & texture — hydratation intense phototypes V–VI',
-  TRUE, NOW(), '00000000-0000-0000-0000-000000000001',
+  TRUE, NOW(), '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   TRUE, 'Bachelor esthétique — Bruxelles · form. corps & barrière', NOW(),
   TRUE, NOW(),
   10, TRUE, NOW(), NOW()
@@ -113,7 +104,7 @@ ON CONFLICT (id) DO UPDATE SET
   specialty = EXCLUDED.specialty,
   identity_verified = TRUE,
   identity_verified_at = NOW(),
-  identity_verified_by = '00000000-0000-0000-0000-000000000001',
+  identity_verified_by = '00c987c2-b224-4b33-a43f-bd80ece98cb0',
   qualification_on_file = TRUE,
   qualification_label = EXCLUDED.qualification_label,
   qualification_verified_at = NOW(),

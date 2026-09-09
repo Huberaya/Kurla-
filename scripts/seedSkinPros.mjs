@@ -11,13 +11,15 @@
  * Sinon : la migration supabase/migrations/20260910000000_seed_skin_pros.sql
  *         sera appliquée au prochain `supabase db push` / deploy.
  */
+import WebSocket from 'ws';
+globalThis.WebSocket = WebSocket;
 import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://qzwgsarfdegqtfdnqiql.supabase.co';
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const APPLY = process.argv.includes('--apply');
 
-const verifierId = '00000000-0000-0000-0000-000000000001';
+const verifierId = '00c987c2-b224-4b33-a43f-bd80ece98cb0'; // superadmin hubertbay@gmail.com
 
 const PROS = [
   { id: 'a1111111-aaaa-aaaa-aaaa-aaaaaaaaaaa1', name: 'Dr. Aïssatou Diop', city: 'Paris', profession: 'Dermatologue', specialty: 'HPI & phototypes IV–VI — taches post-inflammatoires', exp: 12, label: 'Doctorat médecine — dermatologie (Paris Cité) · DIU dermatologie esthétique' },
@@ -69,16 +71,9 @@ if (!key) {
 
 const supa = createClient(url, key, { auth: { persistSession: false } });
 
-// 1. vérificateur admin
+// 1. vérificateur admin — on utilise le superadmin existant, pas de création
 console.log('1/4 — vérificateur admin ...');
-const { error: profErr } = await supa.from('profiles').upsert({
-  id: verifierId,
-  email: 'admin-seed@kurla.beauty',
-  role: 'admin',
-  updated_at: new Date().toISOString(),
-}, { onConflict: 'id' });
-if (profErr) console.warn('  warning profiles upsert :', profErr.message);
-else console.log('  ✓ admin-seed');
+console.log(`  ✓ superadmin ${verifierId} (hubertbay@gmail.com)`);
 
 // 2. pros
 console.log('2/4 — pros ...');
