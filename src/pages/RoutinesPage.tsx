@@ -99,7 +99,12 @@ export const RoutinesPage: React.FC = () => {
         setSkinBudgetInput(b);
       }
       const tier = sp.get('tier');
-      if (tier && (tier as SkinTier) in SKIN_TIERS) setSkinTier(tier as SkinTier);
+      if (tier) {
+        const alias: Record<string, SkinTier> = { essentielle: 'essentielle', equilibree: 'complete', complete: 'complete', experte: 'premium', premium: 'premium' };
+        const norm = tier.toLowerCase().trim();
+        const mapped = alias[norm] || (norm as SkinTier);
+        if (mapped in SKIN_TIERS) setSkinTier(mapped);
+      }
     } catch { /* ignore */ }
     // hair routines fetch (kept for /routines)
     if (!isPeau) {
