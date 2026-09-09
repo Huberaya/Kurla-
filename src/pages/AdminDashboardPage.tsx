@@ -21,6 +21,7 @@ import { PeauGatesCockpitPanel } from '../components/PeauGatesCockpitPanel';
 import { PeauCatalogPublishPanel } from '../components/PeauCatalogPublishPanel';
 import { PeauQAFatouC21Panel } from '../components/PeauQAFatouC21Panel';
 import { PeauJ0MailTrackingPanel } from '../components/PeauJ0MailTrackingPanel';
+import { PeauJ3J7WhitecastLotPanel } from '../components/PeauJ3J7WhitecastLotPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1298,11 +1299,12 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — C16 peau V-VI safe + C22 P1 J0 5 mails + 16B + A3 tampon + B2 kitting + matrice pays */}
+        {/* TAB 5B: APPROVISIONNEMENT — C16 cahier + C22 P1 J0 5 mails + C22 P2 J+3/J+7 + 16B + A3 tampon + B2 kitting + matrice pays */}
         {activeTab === 'suppliers' && (
           <div className="space-y-10">
             <PeauSourcingCahierPanel />
             <PeauJ0MailTrackingPanel headers={adminHeaders} />
+            <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <TamponOrderPanel />
             <FulfillmentContactPanel />
