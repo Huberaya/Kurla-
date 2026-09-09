@@ -27,6 +27,7 @@ import { PeauGoLiveC24Panel } from '../components/PeauGoLiveC24Panel';
 import { PeauC25ToutPanel } from '../components/PeauC25ToutPanel';
 import { PeauC26FinalPanel } from '../components/PeauC26FinalPanel';
 import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
+import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -1306,6 +1307,7 @@ export const AdminDashboardPage: React.FC = () => {
             <PeauC25ToutPanel headers={adminHeaders} />
             <PeauC26FinalPanel headers={adminHeaders} />
             <PeauC27ScalePanel headers={adminHeaders} />
+            <PeauC28ToutPanel headers={adminHeaders} />
           </div>
         )}
 
