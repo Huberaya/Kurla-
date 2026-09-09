@@ -3,7 +3,7 @@ import {
   AlertCircle, ArrowLeft, Check, CheckCircle2, Clock, Globe2,
   Image as ImageIcon, Info, Loader2, Mail, PackageCheck, RefreshCw,
   Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle, AlertTriangle,
-  Truck, CreditCard, RotateCcw, BadgeCheck, Lock
+  Truck, CreditCard, RotateCcw, BadgeCheck, Lock, Sun, Droplets, Layers, Heart, Shield, Zap, Eye, FlaskConical, Sparkles
 } from 'lucide-react';
 import { Product, ProductQuestion, ProductReview, ProductVariant } from '../types';
 import { getEnrichedProductGallery } from '../services/productImageService';
@@ -183,6 +183,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
   const targetTypes = [...(product.targetHairTypes || []), ...(product.targetSkinTypes || [])];
   const certifications = product.certifications || [];
+  // KURLA SKIN — helpers peau
+  const isSkinProduct = product.category === 'peau';
+  const haySkin = `${product.name} ${product.description} ${(product.badges||[]).join(' ')} ${(product.keyIngredients||[]).join(' ')} ${product.inci||''}`.toLowerCase();
+  const isSPFProduct = isSkinProduct && (/spf|solair|uv|protection/i.test(haySkin) || (product.needs||[]).some(n=>/protection_solaire|spf/i.test(n)));
+  const hasFragrance = product.containsFragrance === true || /parfum|fragrance/i.test(haySkin) || (product.allergens||[]).some(a=>/parfum/i.test(a));
+  const isMineralSPF = isSPFProduct && /titanium.*dioxide|zinc.*oxide|minéral|mineral/i.test(haySkin);
+  const whitecastRisk: 'faible'|'modere'|'eleve' = !isSPFProduct ? 'faible' : isMineralSPF && !/invisible|hybride|organique|fluide.*invisible/i.test(haySkin) ? 'eleve' : /invisible|hybride|organique/i.test(haySkin) ? 'faible' : 'modere';
+  const skinRoutineStep = (product.routineStep || '').toLowerCase();
+  const routineBadge = skinRoutineStep.includes('spf') ? 'Matin · dernière étape' : skinRoutineStep.includes('nettoy') ? 'Matin & soir · étape 1' : skinRoutineStep.includes('serum') || skinRoutineStep.includes('sérum') ? 'Sérum · matin ou soir' : skinRoutineStep.includes('crème') || skinRoutineStep.includes('creme') ? 'Hydratant · matin & soir' : product.category === 'peau' ? 'Routine peau' : undefined;
+  let skinGuided: any = null;
+  try { const raw = localStorage.getItem('kurla_skin_answers') || sessionStorage.getItem('kurla_diagnostic_answers_skin'); if (raw) skinGuided = JSON.parse(raw); } catch { /* ignore */ }
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#050403] text-[#FFF7EF]">
@@ -236,6 +247,58 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
             <TrustGuarantees isPreorder={product.isPreorder === true} />
+
+            {isSkinProduct && (
+              <section className="rounded-3xl border border-[#C8753D]/30 bg-gradient-to-br from-[#1A0F0A] to-[#050403] p-5 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold tracking-widest uppercase">KURLA SKIN · fiche experte peau</span>
+                  {routineBadge && <span className="px-3 py-1 rounded-full bg-[#FFF7EF]/10 border border-[#FFF7EF]/10 text-[#D49A63] text-[10px] font-bold">{routineBadge}</span>}
+                  {hasFragrance ? <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 text-[10px] font-bold">Contient parfum</span> : <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-[10px] font-bold">Sans parfum ajouté</span>}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Sun className="w-4 h-4" /> Pour peaux riches en mélanine</p>
+                    <ul className="mt-2 space-y-1 text-[#FFF7EF]/75 leading-relaxed">
+                      <li>• <strong className="text-[#FFF7EF]">Uniformiser ≠ éclaircir.</strong> Ce soin vise à atténuer l’irrégulier (HPI), pas la carnation.</li>
+                      <li>• HPI : marques sombres post-bouton plus visibles phototypes IV–VI — SPF quotidien clé.</li>
+                      <li>• Filtres invisibles privilégiés sur peaux foncées.</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Shield className="w-4 h-4" /> Barrière & tolérance</p>
+                    <ul className="mt-2 space-y-1 text-[#FFF7EF]/75 leading-relaxed">
+                      <li>• Parfum : <strong className={hasFragrance ? 'text-amber-200' : 'text-emerald-200'}>{hasFragrance ? 'présent — éviter si sensible' : 'sans parfum ajouté — adapté peaux sensibles'}</strong></li>
+                      <li>• Céramides / squalane renforcent la barrière.</li>
+                      <li>• Éviter AHA + rétinol le même soir sans avis.</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Droplets className="w-4 h-4" /> Placement routine</p>
+                    <p className="text-[#FFF7EF]/75 leading-relaxed mt-2">
+                      {routineBadge || 'À intégrer selon texture et objectif.'} <br />
+                      Matin : protéger (SPF dernier). Soir : réparer. Hebdo : exfoliant 1–2×/sem max.
+                    </p>
+                    {skinGuided && <p className="text-[11px] text-[#FFF7EF]/50 mt-2">Votre profil : {skinGuided.skinType || '—'} · budget {skinGuided.budget || '—'}{skinGuided.sensitivities?.includes('parfum') && hasFragrance ? ' → alternative sans parfum recommandée' : ''}</p>}
+                  </div>
+                </div>
+                {isSPFProduct && (
+                  <div className={`p-4 rounded-2xl border flex gap-3 ${whitecastRisk === 'eleve' ? 'bg-amber-500/10 border-amber-500/30 text-amber-100' : whitecastRisk === 'modere' ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/80' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'}`}>
+                    <Sun className={`w-5 h-5 shrink-0 ${whitecastRisk === 'eleve' ? 'text-amber-400' : whitecastRisk === 'faible' ? 'text-emerald-400' : 'text-[#D49A63]'}`} />
+                    <div className="text-xs leading-relaxed">
+                      <p className="font-bold">{whitecastRisk === 'eleve' ? 'Risque de trace blanche élevé' : whitecastRisk === 'modere' ? 'Trace blanche : modérée' : 'SPF invisible — adapté peaux foncées'}</p>
+                      <p className="opacity-80 mt-1">
+                        {whitecastRisk === 'eleve' ? 'SPF 100% minéral sans mention “invisible” — voile gris probable sur phototypes foncés. Préférer filtres organiques/hybrides invisibles.' : whitecastRisk === 'faible' ? 'Formulé pour rester invisible, même sur peaux mates à foncées. Toujours appliquer 2 doigts et réappliquer si exposition prolongée.' : 'Texture à tester : appliquez sur mâchoire à la lumière du jour pour vérifier l’absence de voile.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-[#FFF7EF] text-[#111111] text-xs font-bold hover:bg-white">Vérifier ma compatibilité peau →</a>
+                  <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Comparer en boutique peau</a>
+                  <a href="/peau/routine" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Voir la routine complète</a>
+                </div>
+              </section>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoCard title="Bénéfice & cible" icon={<CheckCircle2 className="w-4 h-4 text-emerald-300" />}><p>{valueOrMissing(product.benefitPrimary)}</p><p className="mt-2">{targetTypes.length ? targetTypes.join(' · ') : valueOrMissing(product.forWho)}</p></InfoCard>
