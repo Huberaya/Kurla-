@@ -115,10 +115,26 @@ export const CORRECTED_PRODUCT_NEEDS: Record<string, string[]> = {
 // Alias boutique → taxonomy — garde-fou si un produit n'a qu'un des deux synonymes proches.
 // La plupart des produits portent déjà les deux tags, l'alias ne sert qu'en fallback.
 export const BOUTIQUE_NEED_ALIAS: Record<string, string[]> = {
-  'demeler_cheveux': ['demeler_cheveux'], // strict : seuls les outils démêlage
-  'prendre_soin_barbe': ['barbe'], // strict : grooming homme
+  'demeler_cheveux': ['demeler_cheveux'],
+  'prendre_soin_barbe': ['barbe'],
   'cuir_chevelu': ['cuir_chevelu', 'apaiser_cuir_chevelu'],
   'proteger_nuit': ['proteger_nuit'],
+  // KURLA SKIN — 15 familles peau
+  'hydrater': ['hydrater_peau', 'hydrater', 'hydrater_cheveux'],
+  'eclat': ['eclat', 'teint_terne', 'hydrater_peau'],
+  'taches': ['taches_hyperpigmentation', 'taches', 'attenuer_taches', 'teint_non_uniforme'],
+  'seche': ['secheresse', 'peau_seche', 'deshydratation'],
+  'grasse': ['peau_grasse', 'imperfections_acne', 'points_noirs'],
+  'imperfections': ['imperfections_acne', 'imperfections', 'points_noirs'],
+  'sensible': ['peau_sensible', 'sensibilite', 'rougeurs'],
+  'protection_solaire': ['protection_solaire', 'proteger_spf', 'spf'],
+  'anti_age': ['rides', 'fermete', 'prevenir_age', 'anti_age'],
+  'contour_yeux': ['cernes', 'contour_yeux', 'poches'],
+  'levres': ['levres_seches', 'levres'],
+  'corps': ['peau_corps', 'soin_corps', 'corps'],
+  'cicatrices': ['cicatrices', 'grain_irregulier'],
+  'barriere': ['barriere', 'renforcer_barriere', 'hydrater_peau'],
+  'par_ingredient': ['par_ingredient', 'ingredient'],
 };
 
 export function getCorrectedNeeds(productId: string, fallback: string[]): string[] {

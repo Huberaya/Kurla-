@@ -4,7 +4,7 @@ import {
   Sparkles, ShoppingBag, Star, Filter, CheckCircle2, Award, X,
   ChevronRight, Globe, Tag, Droplets, Sun, Moon, Shield, Heart,
   Layers, Zap, Search, RefreshCw, ArrowRight, Loader2, AlertTriangle, Clock,
-  Baby, UserCheck, Feather, Wind, Crown, Smile, Palette, Package, Scissors, BookOpen
+  Baby, UserCheck, Feather, Wind, Crown, Smile, Palette, Package, Scissors, BookOpen, Eye, FlaskConical, Info
 } from 'lucide-react';
 import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { Product } from '../types';
@@ -44,14 +44,21 @@ const HAIR_NEEDS: NeedOption[] = [
 ];
 
 const SKIN_NEEDS: NeedOption[] = [
-  { id: 'hydrater_peau', label: 'Hydrater ma peau', domain: 'peau', icon: Droplets, description: 'Restaurer la barrière cutanée, sans fini gras.' },
-  { id: 'peau_sensible', label: 'Apaiser une peau sensible', domain: 'peau', icon: Heart, description: 'Formules haute tolérance, anti-rougeurs et sans parfum agressif.' },
-  { id: 'taches_hyperpigmentation', label: 'Réduire les taches', domain: 'peau', icon: Sun, description: 'Soins unifiants doux et protection solaire quotidienne.' },
-  { id: 'imperfections_acne', label: 'Imperfections & acné', domain: 'peau', icon: Smile, description: 'Actifs purifiants doux, non asséchants pour peaux mélaninées.' },
-  { id: 'poils_incarnes', label: 'Poils incarnés / rasage', domain: 'peau', icon: UserCheck, description: 'Prévenir les boutons de rasage et exfolier en douceur.' },
-  { id: 'protection_solaire', label: 'Protection solaire invisible', domain: 'peau', icon: Sun, description: 'Un SPF sans trace blanche ni fini gris sur peaux foncées.' },
-  { id: 'soin_corps', label: 'Prendre soin de mon corps', domain: 'peau', icon: Package, description: 'Beurres et baumes nourrissants pour peaux très sèches.' },
-  { id: 'teinte_maquillage', label: 'Trouver sa nuance', domain: 'peau', icon: Palette, description: 'Conseils maquillage et soins préparateurs pour carnations mates à foncées.' },
+  { id: 'hydrater', label: 'Hydrater', domain: 'peau', icon: Droplets, description: 'Repulper, confort · même peau grasse peut être déshydratée.' },
+  { id: 'eclat', label: 'Éclat', domain: 'peau', icon: Sparkles, description: 'Teint lumineux, sans effet gras.' },
+  { id: 'taches', label: 'Taches & teint', domain: 'peau', icon: Sun, description: 'HPI, taches post-acné — uniformiser, jamais éclaircir.' },
+  { id: 'seche', label: 'Peau sèche', domain: 'peau', icon: Heart, description: 'Nourrir, apaiser tiraillements.' },
+  { id: 'grasse', label: 'Peau grasse', domain: 'peau', icon: Wind, description: 'Matifier, réguler sans assécher.' },
+  { id: 'imperfections', label: 'Imperfections', domain: 'peau', icon: Smile, description: 'Boutons, pores — doux pour peaux mélaninées.' },
+  { id: 'sensible', label: 'Peau sensible', domain: 'peau', icon: Shield, description: 'Apaiser, haute tolérance.' },
+  { id: 'protection_solaire', label: 'Protection solaire', domain: 'peau', icon: Sun, description: 'SPF 50+ sans trace blanche (white cast).' },
+  { id: 'anti_age', label: 'Anti-âge', domain: 'peau', icon: Clock, description: 'Prévenir, raffermir.' },
+  { id: 'contour_yeux', label: 'Contour des yeux', domain: 'peau', icon: Eye, description: 'Cernes, poches.' },
+  { id: 'levres', label: 'Lèvres', domain: 'peau', icon: Heart, description: 'Hydrater, réparer.' },
+  { id: 'corps', label: 'Corps', domain: 'peau', icon: Package, description: 'Hydratation, texture.' },
+  { id: 'cicatrices', label: 'Cicatrices', domain: 'peau', icon: Layers, description: 'Atténuer, lisser.' },
+  { id: 'barriere', label: 'Barrière cutanée', domain: 'peau', icon: Shield, description: 'Réparer, renforcer.' },
+  { id: 'par_ingredient', label: 'Par ingrédient', domain: 'peau', icon: FlaskConical, description: 'Niacinamide, rétinol, AHA/BHA, vitamine C.' },
 ];
 
 // Catégories dont les produits arrivent plus tard : on oriente vers l'espace
@@ -59,11 +66,11 @@ const SKIN_NEEDS: NeedOption[] = [
 const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: string; text: string; href: string; cta: string; waitlistLabel: string }> = {
   peau: {
     icon: Sun,
-    title: 'Les soins visage arrivent bientôt',
+    title: 'La gamme peau s’étoffe',
     waitlistLabel: 'soins visage',
-    text: 'En attendant la gamme peau (solaire invisible, anti-taches…), découvrez nos conseils et faites votre diagnostic gratuit adapté à votre carnation.',
-    href: '/melanin-skin',
-    cta: 'Découvrir l’espace peau',
+    text: '15 besoins peau, filtre budget et SPF sans trace blanche sont prêts. La gamme s’enrichit chaque semaine — en attendant, votre diagnostic peau reste gratuit et vos filtres peau sont mémorisés.',
+    href: '/peau',
+    cta: 'Explorer le pôle peau',
   },
   hommes: {
     icon: UserCheck,
@@ -108,7 +115,24 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   // `?category=` reste accepté pour les liens déjà partagés — mais plus aucun
   // lien interne ne l'emploie (verrouillé par le banc `kurla_shop_categories`).
   useEffect(() => {
-    setActiveCategory(readShopCategory(new URLSearchParams(window.location.search)));
+    const sp = new URLSearchParams(window.location.search);
+    const cat = readShopCategory(sp);
+    setActiveCategory(cat);
+    if (cat === 'peau') setNeedsDomainTab('peau');
+    // double entrée : /boutique?cat=peau&need=taches  +  /boutique?cat=peau&q=niacinamide
+    const need = sp.get('need') || sp.get('besoin') || sp.get('q_need');
+    if (need) {
+      const normalized = need.toLowerCase().trim();
+      const allIds = [...HAIR_NEEDS, ...SKIN_NEEDS].map(n => n.id);
+      const found = allIds.find(id => id === normalized || normalized.includes(id) || id.includes(normalized));
+      if (found) { setSelectedNeedId(found); setNeedsDomainTab(SKIN_NEEDS.some(n => n.id === found) ? 'peau' : 'cheveux'); }
+    }
+    const q = sp.get('q');
+    if (q) setSearchQuery(q);
+    const budget = sp.get('budget');
+    if (budget) setSkinBudget(budget);
+    const spf = sp.get('spf');
+    if (spf === 'invisible') setSkinSansTrace(true);
   }, []);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
   const [needsDomainTab, setNeedsDomainTab] = useState<'cheveux' | 'peau'>('cheveux');
@@ -119,6 +143,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'fit' | 'price-asc' | 'price-desc' | 'rating'>('fit');
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  // KURLA SKIN — filtres dédiés peau (page 4)
+  const [skinSansParfum, setSkinSansParfum] = useState(false);
+  const [skinSansTrace, setSkinSansTrace] = useState(false);
+  const [skinBudget, setSkinBudget] = useState<string>('tous'); // moins_40 / 40_70 / 70_100 / premium
+  const [guidedSkin, setGuidedSkin] = useState<any | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('kurla_skin_answers') || sessionStorage.getItem('kurla_diagnostic_answers_skin');
+      if (raw) setGuidedSkin(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
 
   const mainCategories = [
     { id: 'tous', name: 'Tout le catalogue', icon: ShoppingBag, badge: null },
@@ -188,7 +224,32 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       if (selectedNeedId) {
         const aliases = BOUTIQUE_NEED_ALIAS[selectedNeedId] || [selectedNeedId];
         const pNeeds = p.needs || [];
-        if (!aliases.some(a => pNeeds.includes(a))) return false;
+        // Peau : tolérance — si le catalogue n'a pas encore de needs peau, on ne bloque pas tout (affiche les peaux en fallback)
+        const isSkinNeed = SKIN_NEEDS.some(n => n.id === selectedNeedId);
+        if (isSkinNeed && (p.category !== 'peau' && pNeeds.length === 0)) {
+          // pas de needs peau sur ce produit cheveux → ne pas exclure quand la catégorie est mixte, mais exclure si on est en vue peau stricte
+          if (activeCategory === 'peau') return false;
+        } else if (!aliases.some(a => pNeeds.includes(a))) return false;
+      }
+
+      // KURLA SKIN — filtres dédiés (budget, sans parfum, SPF invisible)
+      const skinContextActive = activeCategory === 'peau' || needsDomainTab === 'peau' || selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId);
+      if (skinContextActive) {
+        if (skinSansParfum) {
+          if ((p as any).containsFragrance) return false;
+          if ((p.allergens || []).some(a => /parfum|fragrance/i.test(a))) return false;
+          if (/parfum|fragrance/i.test(p.inci || '')) return false;
+        }
+        if (skinSansTrace) {
+          const hay = `${p.name} ${p.description} ${(p.badges || []).join(' ')} ${(p.keyIngredients || []).join(' ')}`.toLowerCase();
+          // On ne garde côté peau que les SPF si le filtre invisible est actif
+          if (!/spf|solair|protection/i.test(hay)) return false;
+          if (/minéral|mineral|titanium.*dioxide|zinc.*oxide/i.test(hay) && !/invisible|sans.*trace|organique|hybride|fluide.*invisible/i.test(hay)) return false;
+        }
+        if (skinBudget !== 'tous') {
+          const cap: Record<string, number> = { moins_40: 14, '40_70': 28, '70_100': 45, premium: 9999 };
+          if (p.price > (cap[skinBudget] ?? 9999)) return false;
+        }
       }
 
       // Brand Filter
@@ -224,7 +285,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   }, [
     products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand, 
     onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
-    profile, hasKurlaProfile
+    profile, hasKurlaProfile, skinSansParfum, skinSansTrace, skinBudget
   ]);
 
   // Mesure de la page catalogue : sans elle, on sait qu'une commande est
@@ -265,15 +326,44 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* En-tête boutique — épuré : le détail 3–5j / 24–48h est sur chaque fiche + panier */}
-        <div className="text-center max-w-3xl mx-auto mb-8">
-          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
-            La boutique des cheveux texturés.
-          </h1>
-          <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
-            Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer. Annulation et remboursement à tout moment avant expédition.
-          </p>
+        {/* En-tête boutique — bi-pôle Cheveux | Peau */}
+        <div className="text-center max-w-3xl mx-auto mb-6">
+          <div className="inline-flex items-center bg-[#F8F2EC] p-1 rounded-full border border-[#E8E1DA] mb-4">
+            <button onClick={() => { setActiveCategory('cheveux'); setNeedsDomainTab('cheveux'); window.history.replaceState({}, '', '/boutique?cat=cheveux'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'cheveux' ? 'bg-[#111111] text-white' : 'text-[#111111]/70 hover:text-[#111111]'}`}>Cheveux</button>
+            <button onClick={() => { setActiveCategory('peau'); setNeedsDomainTab('peau'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'peau' ? 'bg-[#111111] text-white' : 'text-[#111111]/70 hover:text-[#111111]'}`}>Peau</button>
+          </div>
+          {activeCategory === 'peau' ? (
+            <>
+              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
+                La boutique peau — filtrée pour votre carnation
+              </h1>
+              <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
+                15 besoins peau, filtre budget, <strong className="font-semibold text-[#111111]">sans parfum</strong> et <strong className="font-semibold text-[#111111]">SPF sans trace blanche</strong>. Taches = HPI, jamais “éclaircir”.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-bold">Passer le diagnostic peau →</a>
+                {guidedSkin && <span className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-[#111111]/70">Votre profil : {guidedSkin.skinType || 'mixte'} · {guidedSkin.toneDepth || ''} · budget {guidedSkin.budget || ''}</span>}
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
+                La boutique des cheveux texturés.
+              </h1>
+              <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
+                Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer. Annulation et remboursement à tout moment avant expédition.
+              </p>
+            </>
+          )}
         </div>
+
+        {/* Banner guidé peau : applique vos préférences diagnostic en 1 clic */}
+        {activeCategory === 'peau' && guidedSkin && (guidedSkin.budget || (guidedSkin.sensitivities || []).includes('parfum')) && (
+          <div className="mb-6 p-4 rounded-2xl bg-[#111111] text-white flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <p className="text-xs font-light">Basé sur votre diagnostic peau : budget <strong className="text-[#D49A63]">{guidedSkin.budget}</strong>{(guidedSkin.sensitivities || []).includes('parfum') ? ' · sans parfum' : ''} — appliquer ces filtres ?</p>
+            <button onClick={() => { if (guidedSkin.budget) setSkinBudget(guidedSkin.budget); if ((guidedSkin.sensitivities || []).includes('parfum')) setSkinSansParfum(true); }} className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold shrink-0">Appliquer mes préférences peau</button>
+          </div>
+        )}
 
         {/* Tous les outils en stock partenaire — 24–48h · 0 carton Paris */}
         <div className="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -526,6 +616,32 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <option value="price-desc">€ Prix décroissant</option>
             </select>
           </div>
+
+          {/* KURLA SKIN — filtres peau rapides (budget + sans parfum + SPF invisible) */}
+          {(activeCategory === 'peau' || needsDomainTab === 'peau') && (
+            <div className="pt-3 border-t border-[#E8E1DA] flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-[#111111]">Filtres peau :</span>
+              {[
+                { id: 'tous', label: 'Tous budgets' },
+                { id: 'moins_40', label: '≤14 €' },
+                { id: '40_70', label: '≤28 €' },
+                { id: '70_100', label: '≤45 €' },
+              ].map(o => (
+                <button key={o.id} onClick={() => setSkinBudget(o.id)} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${skinBudget === o.id ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] text-[#111111]/70 border-[#E8E1DA] hover:border-[#C8753D]'}`}>{o.label}</button>
+              ))}
+              <label className="flex items-center gap-1.5 ml-2 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
+                <input type="checkbox" checked={skinSansParfum} onChange={e => setSkinSansParfum(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
+                <span className="font-semibold text-[#111111]">Sans parfum</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
+                <input type="checkbox" checked={skinSansTrace} onChange={e => setSkinSansTrace(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
+                <span className="font-semibold text-[#111111]">SPF sans trace blanche</span>
+              </label>
+              {(skinSansParfum || skinSansTrace || skinBudget !== 'tous') && (
+                <button onClick={() => { setSkinSansParfum(false); setSkinSansTrace(false); setSkinBudget('tous'); }} className="text-[#C8753D] font-bold hover:underline ml-1">Effacer filtres peau</button>
+              )}
+            </div>
+          )}
 
           {/* Afro Community Brand & KURLA ID Toggles */}
           <div className="pt-3 border-t border-[#E8E1DA] flex items-center justify-between flex-wrap gap-3 text-xs">
