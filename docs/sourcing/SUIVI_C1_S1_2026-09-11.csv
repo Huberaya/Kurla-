@@ -1,0 +1,17 @@
+prospect_id,nom,pays,canal,email,contact_type,wave,status,first_contacted_on,follow_up_on,wholesale_pricing,moq,lead_time_fr,eu_compliance_cpnprp,inci_visuels,samples_received,decision,note
+c01,Nappy Queen,FR,site,via nappyboucles.fr,distributor,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c02,Activilong Actiforce/Actikids,FR,email,,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c03,Les Secrets de Loly,FR,email,,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c04,Soarn,FR,email,,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c05,Kalia Nature,FR,email,,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c06,Carolina B,FR,email,,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09
+c07,Musoya,FR,europages,,distributor,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 à envoyer 11/09 — marque+distrib
+c12,IN'OYA SUN'OYA,FR,site,via inoya-laboratoire.com,brand,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 SPF ISO24444+UVA
+c22,Afro Wholesale (B&F),NL,email,support@afrowholesale.eu,distributor,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 EN à envoyer 11/09
+c23,AfricanFabs B.V.,NL,email,info@africanfabs.com,distributor,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 EN satin
+c15,Dina Afro Shop,FR,form,dinafroshop.com,distributor,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,S1 demi-gros US via FR
+c18,Noesis (BG façonnage),BG,site,via noesiscosmetics.com,contract_manufacturer,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,RFQ héros 250ml
+c16,Lessonia,FR,site,,contract_manufacturer,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,RFQ héros 250ml
+c19,Carmel Cosmetic Labs,FR,site,,contract_manufacturer,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,RFQ héros 250ml
+c20,Hair Liss / Liss Creation,FR,site,,contract_manufacturer,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,RFQ héros 250ml
+c21,CAPIBEAUTY,FR,europages,,contract_manufacturer,1,to_contact,2026-09-11,2026-09-16,pending,pending,pending,pending,pending,pending,,RFQ héros 250ml
