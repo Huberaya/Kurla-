@@ -162,6 +162,13 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: '/peau/diagnostic/resultats',
+    title: 'Votre diagnostic peau — résultat | KURLA SKIN',
+    description:
+      'Votre profil peau personnalisé : type, phototype, préoccupations HPI, routine matin/soir et produits filtrés sans trace blanche. Enregistré dans Ma peau.',
+    indexable: false,
+  },
+  {
     path: '/hommes',
     title: 'Barbe, cuir chevelu et soins pour hommes | KURLA',
     description:

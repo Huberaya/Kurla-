@@ -158,10 +158,10 @@ export const DiagnosticSkinPage: React.FC = () => {
           }).catch(() => { });
         } catch { /* non bloquant */ }
       }
-      navigate('/diagnostic/resultat/skin-latest');
+      navigate('/peau/diagnostic/resultats');
     } catch (e) {
       console.error(e);
-      navigate('/diagnostic/resultat/skin-latest');
+      navigate('/peau/diagnostic/resultats');
     } finally { setLoading(false); }
   };
 

@@ -122,6 +122,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/melanin-skin', render: () => <MelaninSkinPage /> },
   { path: '/peau', render: () => <SkinLandingPage /> },
   { path: '/peau/diagnostic', render: () => <DiagnosticSkinPage /> },
+  { path: '/peau/diagnostic/resultats', render: () => <DiagnosticResultPage /> },
   { path: '/peau/routine', render: () => <RoutinesPage /> },
   { path: '/hommes', render: () => <MenGroomingPage /> },
   { path: '/outils', render: () => <ToolsPage /> },
