@@ -27,9 +27,9 @@ const SKIN_NEEDS = [
 ];
 
 const ROUTINE_TIERS = [
-  { name: 'Essentielle', price: '32 €', products: 3, steps: 'Nettoyant → Hydratant → SPF', desc: 'Débutants, petits budgets, 2 min', badge: 'Dès 32 €' },
-  { name: 'Complète', price: '68 €', products: 6, steps: 'Nettoyant → Tonique → Sérum → Crème → SPF (+ exfoliant 2x/sem)', desc: 'Équilibrée, 5 min', badge: 'Recommandée' },
-  { name: 'Premium', price: '124 €', products: 9, steps: 'Double nettoyage → Essence → 2 Sérums → Contour yeux → 2 Crèmes → SPF + masques', desc: 'Passionnés, résultats optimaux', badge: 'Premium' },
+  { name: 'Essentielle', price: '49,70 €', products: 3, steps: 'Nettoyant → Crème céramides → SPF invisible · Matin 3 → Soir 2', desc: 'Débutants, petits budgets, 2 min · −5% vs à l’unité', badge: 'Essentielle' },
+  { name: 'Équilibrée', price: '62 €', products: 5, steps: 'Essentielle + Sérum niacinamide 5% + Gel HA · Matin 4 → Soir 4', desc: 'Recommandée · HPI + hydratation · −13%', badge: 'Recommandée · −13%' },
+  { name: 'Experte', price: '84,90 €', products: 7, steps: 'Équilibrée + Exfoliant AHA/BHA 1×/sem + Baume lèvres · Matin 4 → Soir 5 → Hebdo 1', desc: 'Complète, grain & taches · −15% · livraison gratuite', badge: 'Experte · −15%' },
 ];
 
 const GUIDE_ARTICLES = [

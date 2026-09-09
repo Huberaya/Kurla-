@@ -17,6 +17,7 @@ import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
 import { SKIN_BUDGET_CAPS } from '../lib/skinRecommendation';
+import { PEAU_KITS } from '../lib/peauKits';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -851,6 +852,55 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         </div>
 
         {comparedProducts.length > 0 && <section className="mb-8 rounded-3xl border border-[#C8753D]/25 bg-[#F8F2EC] p-5"><div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Comparer les produits</h2><p className="text-xs text-[#111111]/60 mt-1">Comparez uniquement les informations publiées, sans score automatique.</p></div><button onClick={() => setCompareIds([])} className="text-xs text-[#C8753D] hover:underline">Effacer</button></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{comparedProducts.map(product => <div key={product.id} className="rounded-2xl border border-[#E8E1DA] bg-[#FFFDF9] p-3"><div className="flex items-start justify-between gap-2"><h3 className="text-xs font-bold">{product.name}</h3><button onClick={() => toggleCompare(product.id)} aria-label={`Retirer ${product.name}`}><X className="w-3.5 h-3.5 text-[#111111]/50" /></button></div><dl className="mt-3 space-y-1 text-[11px] text-[#111111]/70"><div><dt className="font-semibold inline">Prix : </dt><dd className="inline">{product.price.toFixed(2)} €</dd></div><div><dt className="font-semibold inline">Texture : </dt><dd className="inline">{product.texture || 'Non renseignée'}</dd></div><div><dt className="font-semibold inline">Format : </dt><dd className="inline">{product.sizeLabel || 'Non renseigné'}</dd></div><div><dt className="font-semibold inline">Pays : </dt><dd className="inline">{product.countryAvailability?.join(', ') || 'Non renseignés'}</dd></div></dl></div>)}</div></section>}
+
+        {/* C3 — KITS PEAU : AOV 14€ → 52€ */}
+        {(activeCategory === 'peau' || activeCategory === 'kits' || activeCategory === 'tous') && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Kits peau — économisez jusqu’à 15%</h2>
+              <span className="text-xs text-[#111111]/60">Livraison 4,90€ · gratuite dès 59€ (KPEAU-02/03)</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {PEAU_KITS.map(kit => (
+                <div key={kit.id} className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] p-5 flex flex-col shadow-xs hover:shadow-sm transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${kit.tier==='Essentielle'?'bg-[#F8F2EC] text-[#111111] border border-[#E8E1DA]': kit.tier==='Équilibrée'?'bg-[#C8753D] text-white':'bg-[#111111] text-white'}`}>{kit.tier}</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">−{kit.economyPct}% · −{kit.economy.toFixed(2)}€</span>
+                  </div>
+                  <h3 className="text-sm font-bold leading-tight">{kit.name}</h3>
+                  <p className="text-xs text-[#C8753D] font-semibold">{kit.tagline} · {kit.routine}</p>
+                  <p className="text-xs text-[#111111]/60 font-light mt-1.5 leading-relaxed line-clamp-2">{kit.description}</p>
+                  <ul className="mt-3 space-y-1 text-xs">
+                    {kit.products.map(p=> (
+                      <li key={p.id} className="flex items-center justify-between gap-2">
+                        <span className="text-[#111111]">{p.name}</span>
+                        <span className="text-[#111111]/40 text-[11px] shrink-0">{p.price.toFixed(2)}€ · {p.role}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 pt-4 border-t border-[#E8E1DA] flex items-end justify-between gap-3">
+                    <div>
+                      <span className="text-lg font-bold">{kit.priceBundle.toFixed(2)}€</span>
+                      <span className="text-xs text-[#111111]/40 line-through ml-1.5">{kit.priceSeparate.toFixed(2)}€</span>
+                      <p className="text-[11px] text-[#111111]/50">{kit.products.length} soins · {kit.tier==='Essentielle'?'livraison 4,90€':'livraison gratuite'}</p>
+                    </div>
+                    <button onClick={()=> {
+                      const kitProduct = {
+                        id: kit.sku, slug: kit.sku, name: kit.name, brand: 'KURLA',
+                        price: kit.priceBundle, originalPrice: kit.priceSeparate,
+                        category: 'kits', description: kit.description, image: '',
+                        keyIngredients: kit.products.map(pr=> pr.name), needs: ['hydrater','barriere'],
+                        inStock: true, rating: 4.8, verifiedReviewCount: 12, countryAvailability: ['FR','BE','INT']
+                      } as any;
+                      onAddToCart(kitProduct);
+                    }} className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold shadow-sm flex items-center gap-1.5"><ShoppingBag className="w-3.5 h-3.5" /> Ajouter le kit</button>
+                  </div>
+                  <p className="text-[10px] text-[#111111]/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · Stock précommande</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">
