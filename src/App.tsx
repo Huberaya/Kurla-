@@ -1,7 +1,6 @@
 import React, { Suspense, useRef, useState, useEffect, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { I18nProvider } from './lib/I18nProvider';
-import { isSupabaseConfigured } from './lib/supabaseClient';
 import { installClientSideRouting, onRouteChange } from './lib/router';
 import { API_UNAVAILABLE_EVENT, ApiFailureDetail } from './lib/apiDiagnostics';
 import { resolveRoute } from './lib/routeTable';
@@ -13,6 +12,31 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Footer } from './components/Footer';
+
+// Panier & bannière démo différés : aucun réseau avant le paint
+const deferIdle = (cb: () => void) => {
+  if ('requestIdleCallback' in window) (window as any).requestIdleCallback(cb, { timeout: 2000 });
+  else setTimeout(cb, 800);
+};
+
+const DevDemoBanner: React.FC = () => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    deferIdle(async () => {
+      try {
+        const mod = await import('./lib/supabaseClient');
+        if (!mod.isSupabaseConfigured()) setShow(true);
+      } catch {}
+    });
+  }, []);
+  if (!show) return null;
+  return (
+    <div role="status" className="fixed top-[72px] left-0 right-0 z-40 px-4 py-2 bg-amber-100 border-b border-amber-200 text-amber-950 text-center text-[11px] font-semibold">
+      Mode démonstration : les données catalogue sont illustratives et le paiement réel n’est pas activé.
+    </div>
+  );
+};
 
 // Modals & Widgets — différés (hors chemin critique). Le hero doit peindre
 // avant que le JS du panier ou de l'assistant IA ne soit téléchargé.
@@ -62,75 +86,58 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
+  // Panier : réseau différé après le paint (rIC), jamais bloquant le hero
   useEffect(() => {
     let cancelled = false;
-
-    const authHeaders: HeadersInit = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : {};
-
+    const authHeaders: HeadersInit = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
     const loadCart = async () => {
       setCartHydrated(false);
       try {
-        // Read the guest cart without auth and the account cart with the
-        // verified session in parallel. This lets a login merge both carts.
-        const guestResponse = await fetch('/api/cart', {
-          headers: { 'x-anonymous-id': anonId }
-        });
+        const guestResponse = await fetch('/api/cart', { headers: { 'x-anonymous-id': anonId } });
         const guestData = await guestResponse.json().catch(() => ({}));
         const guestItems: CartItem[] = Array.isArray(guestData?.items) ? guestData.items : [];
-
         let accountItems: CartItem[] = [];
         if (session?.access_token) {
           const accountResponse = await fetch('/api/cart', { headers: authHeaders });
           const accountData = await accountResponse.json().catch(() => ({}));
           accountItems = Array.isArray(accountData?.items) ? accountData.items : [];
         }
-
         if (cancelled) return;
         const baseItems = guestItems.length > 0 ? guestItems : initialCartRef.current;
         const merged = new Map<string, CartItem>();
         [...baseItems, ...accountItems].forEach(item => {
           const key = `${item.product.id}:${item.variantId || ''}`;
           const previous = merged.get(key);
-          merged.set(key, {
-            ...item,
-            quantity: Math.min(99, (previous?.quantity || 0) + item.quantity)
-          });
+          merged.set(key, { ...item, quantity: Math.min(99, (previous?.quantity || 0) + item.quantity) });
         });
         setCartItems(Array.from(merged.values()));
-      } catch {
-        // Keep the local cart available if the API is temporarily offline.
-      } finally {
-        if (!cancelled) setCartHydrated(true);
-      }
+      } catch {}
+      finally { if (!cancelled) setCartHydrated(true); }
     };
-
-    loadCart();
+    // Pas de fetch synchrone au mount : on attend le idle
+    let idleId: any;
+    if ('requestIdleCallback' in window) idleId = (window as any).requestIdleCallback(() => loadCart(), { timeout: 2000 });
+    else idleId = setTimeout(() => loadCart(), 700);
     return () => {
       cancelled = true;
+      if ('cancelIdleCallback' in window && idleId) try { (window as any).cancelIdleCallback(idleId); } catch {}
+      else clearTimeout(idleId);
     };
   }, [anonId, user?.id]);
 
-  // Persist the active cart only after the initial guest/account merge. When a
-  // session exists, the server associates the cart with the verified user.
+  // Persistance panier différée (idle) : le POST ne concurrence pas le hero
   useEffect(() => {
     if (!cartHydrated) return;
-    try {
-      localStorage.setItem('kurla_cart_items', JSON.stringify(cartItems));
-    } catch (e) {}
-
-    fetch('/api/cart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(session?.access_token ? { Authorization: 'Bearer ' + session.access_token } : {})
-      },
-      body: JSON.stringify({
-        anonymousId: anonId,
-        items: cartItems.map(i => ({ productId: i.product.id, variantId: i.variantId, quantity: i.quantity }))
-      })
-    }).catch(() => {});
+    try { localStorage.setItem('kurla_cart_items', JSON.stringify(cartItems)); } catch {}
+    const doPersist = () => {
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: 'Bearer ' + session.access_token } : {}) },
+        body: JSON.stringify({ anonymousId: anonId, items: cartItems.map(i => ({ productId: i.product.id, variantId: i.variantId, quantity: i.quantity })) })
+      }).catch(() => {});
+    };
+    if ('requestIdleCallback' in window) (window as any).requestIdleCallback(doPersist, { timeout: 2000 });
+    else setTimeout(doPersist, 400);
   }, [cartItems, anonId, session?.access_token, cartHydrated]);
 
   const handleAddToCart = (product: Product, variant?: ProductVariant) => {
@@ -230,11 +237,7 @@ function AppContent() {
           currentPath={pathname}
         />
 
-        {import.meta.env.DEV && !isSupabaseConfigured() && (
-          <div role="status" className="fixed top-[72px] left-0 right-0 z-40 px-4 py-2 bg-amber-100 border-b border-amber-200 text-amber-950 text-center text-[11px] font-semibold">
-            Mode démonstration : les données catalogue sont illustratives et le paiement réel n’est pas activé.
-          </div>
-        )}
+        <DevDemoBanner />
 
         {apiFailure && (
           <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(680px,92vw)] rounded-2xl border border-red-200 bg-white px-4 py-3 shadow-xl">
