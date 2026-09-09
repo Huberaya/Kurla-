@@ -16,6 +16,7 @@ import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
 import { PeauSourcingCahierPanel } from '../components/PeauSourcingCahierPanel';
 import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
+import { PeauDemandStockGapPanel } from '../components/PeauDemandStockGapPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
   <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
@@ -951,6 +952,8 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB DEMANDE PRÉCOMMANDES (sourcing premier lot) */}
         {activeTab === 'demand' && (
+          <div className="space-y-10">
+            <PeauDemandStockGapPanel headers={adminHeaders} />
           <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
@@ -1058,6 +1061,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </p>
               </>
             )}
+          </div>
           </div>
         )}
 
