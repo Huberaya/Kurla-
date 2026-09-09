@@ -106,6 +106,7 @@ import * as catalogStore from './db/catalogStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as prospectStore from './db/prospectStore';
+import * as sourcingStrategyStore from './db/sourcingStrategyStore';
 import * as operationsCockpit from './db/operationsCockpit';
 import * as batchStore from './db/batchStore';
 import * as contentStore from './db/contentStore';
@@ -466,6 +467,9 @@ bindDomain(storeInstance, {
   upsertCandidate: prospectStore.upsertCandidate
 });
 bindDomain(storeInstance, {
+  listSourcingStrategy: sourcingStrategyStore.listSourcingStrategy
+});
+bindDomain(storeInstance, {
   createBatch: batchStore.createBatch,
   listBatches: batchStore.listBatches,
   getBatch: batchStore.getBatch,
@@ -514,4 +518,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof communityStore>
   & Curried<typeof brandContractStore>
   & Curried<typeof brandInvoiceStore>
-  & Curried<typeof prospectStore>;
+  & Curried<typeof prospectStore>
+  & Curried<typeof sourcingStrategyStore>;

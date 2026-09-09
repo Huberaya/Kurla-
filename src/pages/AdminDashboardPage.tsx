@@ -6,6 +6,7 @@ import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
+import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
@@ -1279,9 +1280,10 @@ export const AdminDashboardPage: React.FC = () => {
           />
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B + fulfillment sans stock (A3 tampon) + B2 kitting */}
+        {/* TAB 5B: APPROVISIONNEMENT — chantier 16B + fulfillment sans stock (A3 tampon) + B2 kitting + matrice pays segmentée */}
         {activeTab === 'suppliers' && (
           <div className="space-y-10">
+            <SourcingCountryStrategyPanel headers={adminHeaders} />
             <TamponOrderPanel />
             <FulfillmentContactPanel />
             <KittingAdminPanel />

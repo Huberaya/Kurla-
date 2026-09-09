@@ -84,6 +84,7 @@ import { registerCatalogGovernanceRoutes } from './src/server/routes/catalogGove
 import { registerSupplierRoutes } from './src/server/routes/suppliers';
 import { registerSourcingRoutes } from './src/server/routes/sourcing';
 import { registerProspectRoutes } from './src/server/routes/prospects';
+import { registerSourcingStrategyRoutes } from './src/server/routes/sourcingStrategy';
 import { registerRetentionNudgeRoutes } from './src/server/routes/retentionNudges';
 import { registerOperationsCockpitRoutes } from './src/server/routes/operationsCockpit';
 import { registerBatchRoutes } from './src/server/routes/batches';
@@ -1465,6 +1466,7 @@ registerCatalogGovernanceRoutes(app);
 registerSupplierRoutes(app);
 registerSourcingRoutes(app);
 registerProspectRoutes(app);
+registerSourcingStrategyRoutes(app);
 registerRetentionNudgeRoutes(app);
 registerOperationsCockpitRoutes(app);
 registerBatchRoutes(app);
