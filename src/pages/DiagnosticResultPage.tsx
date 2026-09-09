@@ -188,9 +188,9 @@ export const DiagnosticResultPage: React.FC = () => {
           {/* Routines tiers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {[
-              { name: 'Essentielle', price: '32 €', t: '3 produits', desc: 'Nettoyant → Hydratant → SPF. 2 min.', steps: fallbackSteps.matin.slice(0, 3) },
-              { name: 'Complète', price: '68 €', t: '6 produits', desc: 'Équilibrée, 5 min.', steps: fallbackSteps.matin },
-              { name: 'Premium', price: '124 €', t: '9 produits', desc: 'Résultats optimaux.', steps: [...fallbackSteps.matin, ...fallbackSteps.soir.slice(0, 3)] },
+              { name: 'Essentielle', price: '49,70 €', t: '3 soins · −5%', desc: 'Barrière + SPF invisible · 2 min', steps: fallbackSteps.matin.slice(0, 3) },
+              { name: 'Équilibrée', price: '62 €', t: '5 soins · −13%', desc: 'HPI + hydratation · Recommandée', steps: fallbackSteps.matin },
+              { name: 'Experte', price: '84,90 €', t: '7 soins · −15% · liv. gratuite', desc: 'Grain & taches · complète', steps: [...fallbackSteps.matin, ...fallbackSteps.soir.slice(0, 3)] },
             ].map(tier => (
               <div key={tier.name} className={`rounded-3xl border p-6 flex flex-col ${tier.name === 'Complète' ? 'bg-[#FFF7EF] text-[#111111] border-[#C8753D] shadow-xl scale-[1.02]' : 'bg-[#1A0F0A] border-[#FFF7EF]/10 text-[#FFF7EF]'}`}>
                 <div className="flex items-center justify-between mb-2"><h4 className="text-sm font-bold">{tier.name}</h4><span className={`text-[10px] px-2 py-1 rounded-full font-bold ${tier.name === 'Complète' ? 'bg-[#C8753D] text-white' : 'bg-[#FFF7EF]/10 text-[#D49A63] border border-[#FFF7EF]/10'}`}>{tier.price}</span></div>

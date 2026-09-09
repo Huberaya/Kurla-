@@ -340,11 +340,11 @@ export const RoutinesPage: React.FC = () => {
               <section className="p-6 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA]">
                 <h3 className="text-sm font-bold">Comparer les tiers</h3>
                 <div className="mt-3 space-y-2 text-xs">
-                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Essentielle (3)</span><strong>{priceEss.toFixed(2)} €</strong></div>
-                  <div className="flex justify-between p-2 rounded-xl bg-[#C8753D]/10 border border-[#C8753D]/30"><span>Complète (6) — recommandée</span><strong>{priceComp.toFixed(2)} €</strong></div>
-                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Premium (9)</span><strong>{pricePrem.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Essentielle (3 soins) · −5%</span><strong>{priceEss.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#C8753D]/10 border border-[#C8753D]/30"><span>Équilibrée (5 soins) — recommandée · −13%</span><strong>{priceComp.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Experte (7 soins) · −15% · liv. gratuite</span><strong>{pricePrem.toFixed(2)} €</strong></div>
                 </div>
-                <p className="text-[11px] text-[#111111]/50 mt-2">Prix calculés sur le catalogue peau réel quand disponible, sinon prix repères 32/68/124 €.</p>
+                <p className="text-[11px] text-[#111111]/50 mt-2">Prix kits peau précommande : 49,70€ / 62€ / 84,90€ · alternatives à chaque étape, budget Fatou 40_70 → Équilibrée.</p>
               </section>
               <a href="/peau/diagnostic/resultats" className="w-full py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold flex items-center justify-center gap-1">Voir mon résultat peau →</a>
             </div>
