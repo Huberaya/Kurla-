@@ -263,7 +263,7 @@ export const SkinJournalPage: React.FC = () => {
         <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#F8F2EC] via-[#FFFDF9] to-[#FCEFE8] border border-[#E8E1DA] shadow-sm">
           <div className="flex flex-col lg:flex-row gap-6 justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D] flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> KURLA SKIN · Journal peau V1</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D] flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> KURLA SKIN · Journal peau — P2 slider + synthèse IA</p>
               <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mt-1">Votre peau, jour après jour.</h1>
               <p className="text-sm text-[#111111]/70 font-light mt-2 max-w-2xl leading-relaxed">
                 Notez votre <strong className="font-semibold text-[#111111]">ressenti (1–5)</strong>, vos préoccupations du jour et, si vous le souhaitez, une photo (1 max, &lt;2 Mo). KURLA repère les motifs sans poser de diagnostic médical.
@@ -526,13 +526,11 @@ export const SkinJournalPage: React.FC = () => {
               </div>
               <div className="relative w-full max-w-xl mx-auto aspect-[4/3] rounded-2xl overflow-hidden border border-[#E8E1DA] bg-[#F8F2EC] select-none">
                 <img src={b.photoDataUrl!} alt="Après" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-                  <img src={a.photoDataUrl!} alt="Avant" className="w-full h-full object-cover" style={{ width: `${100/(sliderPos/100)}%`, maxWidth: 'none' }} />
-                </div>
-                <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)]" style={{ left: `${sliderPos}%` }} />
+                <img src={a.photoDataUrl!} alt="Avant" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }} />
+                <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)] pointer-events-none" style={{ left: `${sliderPos}%` }} />
                 <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-[#111111]/80 text-white text-[10px] font-bold">{a.milestone||'Avant'} {a.date}</div>
                 <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold">{b.milestone||'Après'} {b.date}</div>
-                <input type="range" min={0} max={100} value={sliderPos} onChange={e=>setSliderPos(parseInt(e.target.value))} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[80%] accent-[#C8753D]" />
+                <input type="range" min={0} max={100} value={sliderPos} onChange={e=>setSliderPos(parseInt(e.target.value))} aria-label="Comparer avant après" className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[80%] accent-[#C8753D] cursor-pointer" />
               </div>
               <p className="text-[11px] text-[#111111]/50 text-center">Glissez le curseur · photos prises à la fenêtre, visage neutre, pas de filtre — on compare confort/marks, pas carnation. Uniformiser≠éclaircir.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
