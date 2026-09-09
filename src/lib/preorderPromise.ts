@@ -2,8 +2,9 @@
  * Promesse d'expédition en précommande — source unique.
  *
  * A4 — Année 1 sans stock : la promesse légale à 30j est remplacée par le
- * modèle flux tendu 3–5j (batch lun+jeu + tampon 75u chez 3PL). Les 12 outils
- * best-sellers sont en dropship 24–48h depuis partenaire UE (sans CPNP).
+ * modèle flux tendu 3–5j (batch lun+jeu + tampon 75u chez 3PL). Tous les
+ * outils / accessoires (catégorie `accessoires`) sont en dropship 24–48h
+ * depuis partenaire UE (sans CPNP) — 0 carton à Paris.
  *
  * Ce module reste la source unique affichée en 12+ endroits — fiche produit,
  * panier, boutique, suivi, emails, CGV. Une seule modif ici met à jour tout.
@@ -55,15 +56,18 @@ export function isValidDispatchDate(iso: unknown): iso is string {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso;
 }
 
-// ── Promesse 24–48h pour les 12 outils dropship (A4) ──
+// ── Promesse 24–48h pour tous les outils / accessoires en dropship (A4) ──
 export const TOOL_DISPATCH_SHORT = 'En stock partenaire — expédié en 24–48h';
 export const TOOL_DISPATCH_SENTENCE =
   'Outils et accessoires expédiés en 24–48h depuis notre partenaire UE. Si votre panier contient aussi des soins, tout est regroupé en un seul colis via notre 3PL (délai global 3–5 jours).';
 
-export function isDropshipProduct(product: { id: string; badges?: string[] } | null | undefined): boolean {
+export function isDropshipProduct(product: { id: string; badges?: string[]; category?: string } | null | undefined): boolean {
   if (!product) return false;
   const b = (product as any).badges as string[] | undefined;
   if (Array.isArray(b) && (b.includes('dropship') || b.includes('dropship_24_48h') || b.includes('dropship_24-48h'))) return true;
+  // Tous les accessoires sont en dropship (0 carton Paris), quelle que soit la liste codée des 12 héros
+  const cat = (product as any).category as string | undefined;
+  if (typeof cat === 'string' && ['accessoire', 'accessoires'].includes(cat.toLowerCase())) return true;
   return isDropshipToolId(product?.id || '');
 }
 
@@ -163,8 +167,8 @@ export function getCartDispatchSummary(items: Array<{ product: { id: string } }>
 
 export function preorderCgvNotice(): string {
   return (
-    `• Les produits en précommande sont signalés par un badge « Précommande — 3–5 jours » sur leur fiche, ` +
-    `dans le panier et sur le récapitulatif avant paiement, acompte compris. Les 12 outils et accessoires (peigne afro, bonnet satin, etc.) sont signalés « En stock partenaire — 24–48h » et expédiés depuis notre partenaire UE.`
+    `• Les produits en précommande (soins & kits) sont signalés par un badge « Précommande — 3–5 jours » sur leur fiche, ` +
+    `dans le panier et sur le récapitulatif avant paiement. Tous les outils et accessoires sont signalés « En stock partenaire — 24–48h » et expédiés depuis notre partenaire UE (0 carton à Paris).`
   );
 }
 
@@ -174,7 +178,7 @@ export function preorderCgvDelay(): string {
     promise.kind === 'dated'
       ? `• Délai de précommande : ${promise.sentence}`
       : promise.kind === 'delayed'
-        ? `• Délai soins & kits : ${promise.sentence} Les outils/accessoires (liste des 12) sont expédiés sous 24–48h ; panier mixte = 1 colis, délai global 3–5 jours.`
+        ? `• Délai soins & kits : ${promise.sentence} Tous les outils/accessoires sont expédiés sous 24–48h ; panier mixte = 1 colis, délai global 3–5 jours.`
         : `• Délai de précommande : ${promise.sentence} Aucun délai indicatif n'est affiché sur les ` +
           `fiches produit tant que la date de réception du lot n'est pas connue : plutôt que d'avancer ` +
           `un ordre de grandeur qui n'engagerait à rien et ne protégerait personne, le délai légal ` +

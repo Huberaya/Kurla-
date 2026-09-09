@@ -101,8 +101,10 @@ export const THREE_PL_SHORTLIST: ThreePLQuote[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. SPLIT IMMÉDIAT OUTILS (dropship UE, 24h) — A4
 // ─────────────────────────────────────────────────────────────────────────────
-// 12 outils best-sellers à 56-66% HT, déjà chez AfricanFabs/Afro Wholesale (NL)
-// Expédiés en direct en 2-3j pendant que le kit arrive en 3-5j
+// Tous les outils / accessoires (catégorie `accessoires`) en dropship 24–48h
+// depuis AfricanFabs/Afro Wholesale (NL) — 0 carton à Paris.
+// Historique : les 12 best-sellers listés ci-dessous restent la compatibilité
+// minimale, mais tout `category === accessoires` est maintenant dropship.
 // IDs = pXX dans launchCatalog.ts ; en base ils sont `launch-pXX`
 export const DROPSHIP_TOOLS_IMMEDIATE = [
   'p35', // peigne afro métal 4,90€
@@ -135,16 +137,22 @@ export function isDropshipToolId(id: string | null | undefined): boolean {
   return (DROPSHIP_TOOLS_IMMEDIATE as readonly string[]).includes(n);
 }
 
-export function isDropshipToolProduct(product: { id: string; slug?: string; badges?: string[]; isPreorder?: boolean } | null | undefined): boolean {
+export function isDropshipToolProduct(product: { id: string; slug?: string; badges?: string[]; isPreorder?: boolean; category?: string } | null | undefined): boolean {
   if (!product) return false;
   // 1) Badge explicite (autonomie admin sans code) : 'dropship' ou 'dropship_24_48h'
   const b = (product as any).badges as string[] | undefined;
   if (Array.isArray(b) && (b.includes('dropship') || b.includes('dropship_24_48h') || b.includes('dropship_24-48h'))) return true;
-  // 2) Liste codée des 12 héros (compatibilité)
+  // 2) Toute la catégorie accessoires est en dropship (0 carton Paris)
+  const cat = (product as any).category as string | undefined;
+  if (typeof cat === 'string' && ['accessoire', 'accessoires'].includes(cat.toLowerCase())) return true;
+  // 3) Liste codée des 12 héros (compatibilité / anciens ids launch-pXX)
   return isDropshipToolId(product.id);
 }
 
-export function getProductFulfillmentMode(product: { id: string } | null | undefined): 'dropship_24_48h' | 'preorder_3_5j' {
+export function getProductFulfillmentMode(product: { id: string; category?: string } | null | undefined): 'dropship_24_48h' | 'preorder_3_5j' {
+  if (!product) return 'preorder_3_5j';
+  const cat = (product as any).category as string | undefined;
+  if (typeof cat === 'string' && ['accessoire', 'accessoires'].includes(cat.toLowerCase())) return 'dropship_24_48h';
   return isDropshipToolId(product?.id || '') ? 'dropship_24_48h' : 'preorder_3_5j';
 }
 

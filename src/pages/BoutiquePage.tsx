@@ -260,49 +260,30 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* En-tête boutique — C1 : mode précommande 3–5j assumé */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex flex-wrap justify-center items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-bold uppercase tracking-widest border border-emerald-500/20">
-              <Clock className="w-3.5 h-3.5" /> Précommande — expédié sous 3–5 jours
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-[11px] font-bold uppercase tracking-wider border border-amber-500/20">
-              Petite production hebdomadaire (lun & jeu 18h)
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 tracking-tight">
+        {/* En-tête boutique — épuré : le détail 3–5j / 24–48h est sur chaque fiche + panier */}
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
             La boutique des cheveux texturés.
           </h1>
           <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
-            Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer.
-            <span className="font-semibold text-[#111111]"> Réservez en précommande</span> : annulation et remboursement à tout moment avant l’envoi.
-            <span className="block mt-2 text-xs text-[#111111]/60">Lot hebdomadaire : commandes groupées <strong>lundi & jeudi 18h</strong> → expédition via 3PL IDF (mardi/vendredi). 60% expédiés en 24–48h via tampon.</span>
+            Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer. Annulation et remboursement à tout moment avant expédition.
           </p>
-
-          <div className="mt-4 inline-flex flex-wrap justify-center items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#E8E1DA] bg-[#F8F2EC] text-[#111111]/80">
-            <CheckCircle2 className="w-4 h-4 text-[#C8753D]" />
-            <span>{count} références — soins {DISPATCH_SHORT.toLowerCase()} · outils {TOOL_DISPATCH_SHORT.toLowerCase()}.</span>
-            <span className="hidden sm:inline text-[#111111]/30">·</span>
-            <span className="inline-flex items-center gap-1 text-amber-700"><Clock className="w-3 h-3" /> Petite production lun & jeu 18h</span>
-          </div>
-          <p className="mt-2 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl inline-block px-3 py-1.5">📦 {getNextBatchShortLabel(new Date())} — suivi par email dès remise transporteur. Si délai &gt;5j → info + remboursement immédiat.</p>
-          <p className="mt-2 text-[11px] text-[#111111]/50">Paiement Stripe sécurisé — précommande sans risque (CGV : remboursement avant expédition, 14j après réception).</p>
         </div>
 
-        {/* A4 — 12 outils à 24–48h (sans stock Paris, marge 56–66%) */}
+        {/* Tous les outils en stock partenaire — 24–48h · 0 carton Paris */}
         <div className="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">A4 — 12 outils en stock partenaire</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Tous les outils en stock partenaire — 24–48h</p>
               <p className="text-sm font-semibold text-[#111111] leading-tight">Expédiés en 24–48h depuis notre partenaire UE — 0 carton à Paris</p>
-              <p className="text-xs text-[#111111]/60 font-light mt-0.5">Peigne afro · bonnet satin · éponge twist · scalp massager · Denman · pinces croco + 6 autres. Panier mixte (outils + soins) = 1 seul colis, délai global 3–5j.</p>
+              <p className="text-xs text-[#111111]/60 font-light mt-0.5">Peigne afro · bonnet satin · éponge twist · scalp massager · Denman · pinces croco · diffuseur · steamer · tous les accessoires. Panier mixte (outils + soins) = 1 seul colis, délai global 3–5j.</p>
             </div>
           </div>
           <a href="/boutique?cat=accessoires" onClick={(e)=>{e.preventDefault(); setActiveCategory('accessoires'); window.scrollTo({top: 0, behavior: 'smooth'});}} className="shrink-0 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5">
-            Voir les 12 outils <ArrowRight className="w-3.5 h-3.5" />
+            Voir tous les outils <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
 

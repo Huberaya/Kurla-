@@ -91,7 +91,7 @@ export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ on
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/20">
-            <p className="text-[11px] font-bold text-emerald-300">3 qui cochent tout (tes 12)</p>
+            <p className="text-[11px] font-bold text-emerald-300">Exemples — tous les accessoires en 24–48h</p>
             <ul className="text-[11px] text-[#FFF7EF]/70 mt-1.5 space-y-1">
               <li><code className="text-emerald-300">p35</code> Afro pick métal 4,90€ → 65%</li>
               <li><code className="text-emerald-300">p17</code> Bonnet satin + taie 12,90€ → 63%</li>
@@ -158,8 +158,8 @@ export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ on
               <li>Passe à <code className="text-emerald-300">published</code> → boutique affiche instantanément badge vert <code className="text-emerald-300">24–48h</code> (fiche + panier + guide), sans redéploiement Vercel.</li>
             </ol>
             <div className="p-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/55">
-              <p><strong className="text-[#FFF7EF]">Technique :</strong> coché = <code className="text-emerald-300">badges:['dropship_24_48h']</code> → <code className="font-mono">isDropshipProduct()</code> = true → <code className="font-mono">TOOL_DISPATCH_SHORT</code>. Décoché = retire le badge → repasse en <code>Précommande 3–5j</code>.</p>
-              <p className="mt-1"><strong className="text-[#FFF7EF]">Historique :</strong> les 12 de base (<code>p35, p36, p41…</code>) restent codés dur dans <code className="font-mono">fulfillment.ts → DROPSHIP_TOOLS_IMMEDIATE</code>. Nouvel outil avec ID <code>a1b2…</code> = seule la case suffit.</p>
+              <p><strong className="text-[#FFF7EF]">Technique :</strong> <code className="text-emerald-300">category === 'accessoires'</code> → automatiquement <code className="font-mono">TOOL_DISPATCH_SHORT</code> (0 carton Paris) sans cocher la case. Badge coché = fallback pour outils créés hors catégorie.</p>
+              <p className="mt-1"><strong className="text-[#FFF7EF]">Historique :</strong> les 12 de base (<code>p35, p36, p41…</code>) restent codés dur dans <code className="font-mono">fulfillment.ts → DROPSHIP_TOOLS_IMMEDIATE</code> pour compatibilité. Nouveaux accessoires : rien à cocher, badge vert automatique.</p>
             </div>
             <p className="text-[11px] text-emerald-300 font-semibold">Vérif : <code className="text-[#FFF7EF]">Admin → Fiches produits</code> affiche un tag vert <code>24–48h dropship</code> à côté du nom.</p>
           </div>
