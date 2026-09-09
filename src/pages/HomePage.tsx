@@ -37,6 +37,7 @@ export function HomePage() {
   return (
     <main className="w-full overflow-hidden">
       <HeroSection />
+      <div className="cv-auto">
       <Suspense fallback={<SectionFallback />}>
         <BenefitStrip />
         <HairSkinSection />
@@ -54,6 +55,7 @@ export function HomePage() {
         <JournalSection />
         <WaitlistSection />
       </Suspense>
+      </div>
     </main>
   );
 }

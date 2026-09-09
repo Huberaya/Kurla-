@@ -82,6 +82,7 @@
   0%   { transform: scale(1.06) translate3d(0, 0, 0); }
   100% { transform: scale(1.16) translate3d(-1.5%, -1.5%, 0); }
 }
+.cv-auto { content-visibility: auto; contain-intrinsic-size: 800px; }
 
 .kurla-kenburns {
   animation: kurlaKenBurns 26s ease-out forwards;

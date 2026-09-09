@@ -13,6 +13,7 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
+      target: 'esnext',
       chunkSizeWarningLimit: 600,
       cssCodeSplit: true,
       sourcemap: false,
@@ -22,10 +23,9 @@ export default defineConfig(() => {
             if (id.includes('node_modules')) {
               if (id.includes('@supabase')) return 'supabase';
               if (id.includes('three')) return 'three';
-              if (id.includes('@google/genai') || id.includes('stripe')) return 'vendor-server';
+              if (id.includes('@google/genai') || id.includes('stripe')) return 'ai-vendor';
               return 'vendor';
             }
-            // Admin is lourd (522 kB) → isolé, ne charge jamais sur la home
             if (id.includes('src/pages/AdminDashboardPage') || id.includes('src/components/Admin')) return 'admin';
           },
         },
