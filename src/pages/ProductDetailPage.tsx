@@ -3,7 +3,7 @@ import {
   AlertCircle, ArrowLeft, Check, CheckCircle2, Clock, Globe2,
   Image as ImageIcon, Info, Loader2, Mail, PackageCheck, RefreshCw,
   Send, ShieldCheck, ShoppingBag, Star, UserRound, XCircle, AlertTriangle,
-  Truck, CreditCard, RotateCcw, BadgeCheck, Lock, Sun, Droplets, Layers, Heart, Shield, Zap, Eye, FlaskConical, Sparkles
+  Truck, CreditCard, RotateCcw, BadgeCheck, Lock, Sun, Droplets, Layers, Heart, Shield, Zap, Eye, FlaskConical, Sparkles, Scale, ArrowRightCircle
 } from 'lucide-react';
 import { Product, ProductQuestion, ProductReview, ProductVariant } from '../types';
 import { getEnrichedProductGallery } from '../services/productImageService';
@@ -11,6 +11,8 @@ import { fetchProductIngredients, type ProductIngredientEntry } from '../service
 import { useProduct } from '../services/productService';
 import { analytics } from '../lib/analytics';
 import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
+import { findAlternatives, whitecastRisk as altWhitecastRisk, isSPFProduct as altIsSPF } from '../lib/skinAlternatives';
+import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import {
   askProductQuestion,
@@ -93,6 +95,7 @@ function ReviewCard({ review }: { review: ProductReview }) {
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAddToCart }) => {
   const { product, loading, error } = useProduct(slug);
   const { user, session } = useAuth();
+  const { products } = useProducts();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState<string>();
   const [trust, setTrust] = useState<{ reviews: ProductReview[]; questions: ProductQuestion[]; verifiedReviewCount: number; questionsCount: number }>({ reviews: [], questions: [], verifiedReviewCount: 0, questionsCount: 0 });
@@ -194,6 +197,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const routineBadge = skinRoutineStep.includes('spf') ? 'Matin · dernière étape' : skinRoutineStep.includes('nettoy') ? 'Matin & soir · étape 1' : skinRoutineStep.includes('serum') || skinRoutineStep.includes('sérum') ? 'Sérum · matin ou soir' : skinRoutineStep.includes('crème') || skinRoutineStep.includes('creme') ? 'Hydratant · matin & soir' : product.category === 'peau' ? 'Routine peau' : undefined;
   let skinGuided: any = null;
   try { const raw = localStorage.getItem('kurla_skin_answers') || sessionStorage.getItem('kurla_diagnostic_answers_skin'); if (raw) skinGuided = JSON.parse(raw); } catch { /* ignore */ }
+
+  const skinAlternatives = useMemo(() => {
+    if (!isSkinProduct || !product) return [] as Product[];
+    const preferSans = !!skinGuided?.sensitivities?.includes('parfum') || hasFragrance || skinGuided?.sensitivity === 'elevee';
+    const budgetMap: Record<string, number> = { moins_40: 18, '40_70': 32, '70_100': 50, premium: 999 };
+    const budgetMax = skinGuided?.budget ? budgetMap[skinGuided.budget] : undefined;
+    try { return findAlternatives(product, products, { max: 3, preferSansParfum: preferSans, preferInvisible: true, budgetMax }); } catch { return []; }
+  }, [product?.id, products.length, hasFragrance]);
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#050403] text-[#FFF7EF]">
@@ -297,6 +308,45 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                   <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Comparer en boutique peau</a>
                   <a href="/peau/routine" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Voir la routine complète</a>
                 </div>
+              </section>
+            )}
+
+            {isSkinProduct && (
+              <section className="rounded-3xl border border-[#E8E1DA] bg-[#FFFDF9] p-5 text-[#111111]">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <h3 className="text-sm font-bold flex items-center gap-2"><Scale className="w-4 h-4 text-[#C8753D]" /> Alternatives — même étape, autre budget/texture</h3>
+                  <a href="/peau/comparer" className="text-[11px] font-bold text-[#C8753D] hover:underline flex items-center gap-1">Ouvrir le comparateur <ArrowRightCircle className="w-3.5 h-3.5" /></a>
+                </div>
+                {skinAlternatives.length === 0 ? (
+                  <div className="mt-4 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-xs text-[#111111]/70">
+                    <p className="font-bold">Pas encore d’alternative publiée pour cette étape.</p>
+                    <p className="font-light mt-1">Le catalogue peau s’enrichit progressivement · filtrez par <a href="/boutique?cat=peau&need=taches" className="text-[#C8753D] underline">besoin taches</a> ou <a href="/boutique?cat=peau&budget=moins_40" className="text-[#C8753D] underline">budget &lt; 18€</a>. · Uniformiser ≠ éclaircir.</p>
+                  </div>
+                ) : (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {skinAlternatives.map(alt => {
+                      const wc = altWhitecastRisk(alt);
+                      const isSPF = altIsSPF(alt);
+                      return (
+                        <div key={alt.id} className="p-3 rounded-2xl bg-white border border-[#E8E1DA] text-xs">
+                          <img src={alt.image} alt="" className="w-full h-28 object-cover rounded-xl mb-2" />
+                          <p className="font-bold leading-tight line-clamp-2">{alt.name}</p>
+                          <p className="text-[11px] text-[#111111]/60">{alt.brand} · {alt.price.toFixed(2)} € · {alt.sizeLabel || ''}</p>
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${alt.containsFragrance ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>{alt.containsFragrance ? 'Parfum' : 'Sans parfum ✓'}</span>
+                            {isSPF && <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${wc==='faible'?'bg-emerald-50 border-emerald-200 text-emerald-700': wc==='eleve'?'bg-amber-50 border-amber-200 text-amber-700':'bg-[#F8F2EC] border-[#E8E1DA] text-[#111111]/70'}`}>{wc==='faible'?'Invisible': wc==='eleve'?'Trace probable':'Modéré'}</span>}
+                          </div>
+                          <p className="text-[11px] text-[#C8753D] font-semibold mt-1.5">{alt.routineStep || alt.needs?.[0] || 'Soins peau'}</p>
+                          <div className="mt-2 flex gap-1.5">
+                            <a href={`/produit/${alt.slug}`} className="flex-1 py-1.5 rounded-full bg-[#111111] text-white text-center font-bold hover:bg-black">Voir</a>
+                            <a href={`/peau/comparer?ids=${product.id},${alt.id}`} className="flex-1 py-1.5 rounded-full bg-white border border-[#E8E1DA] text-center font-bold hover:border-[#C8753D]">Comparer</a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[11px] text-[#111111]/45 mt-3">Moteur d’alternatives : même famille routine + même besoin + sans parfum si sensible + whitecast invisible si SPF + prix ±30%. Aucun conseil médical.</p>
               </section>
             )}
 

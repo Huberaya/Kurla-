@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle2, X, Sun, Droplets, Layers, Heart, Shield, Clock, FlaskConical, Info, ShoppingBag, ArrowLeft, Scale, Star, AlertTriangle } from 'lucide-react';
 import { useProducts } from '../services/productService';
 import { Product } from '../types';
+import { findAlternatives } from '../lib/skinAlternatives';
 
 function whitecastLabel(p: Product) {
   const hay = `${p.name} ${p.description} ${(p.badges||[]).join(' ')} ${(p.keyIngredients||[]).join(' ')}`.toLowerCase();
@@ -44,6 +45,14 @@ export const SkinComparePage: React.FC = () => {
   const total = compared.reduce((s,p)=>s+p.price,0);
   const cheapest = compared.length ? Math.min(...compared.map(p=>p.price)) : 0;
 
+  // Alternatives dynamiques par produit comparé (même famille, sans parfum si sensible)
+  const guidedSansParfum = (()=>{ try{ const raw=localStorage.getItem('kurla_skin_answers')||sessionStorage.getItem('kurla_diagnostic_answers_skin'); if(!raw) return false; const j=JSON.parse(raw); return !!j?.sensitivities?.includes('parfum')|| j?.sensitivity==='elevee'; }catch{return false;} })();
+  const altsById = useMemo(()=>{
+    const m: Record<string, Product[]> = {};
+    compared.forEach(p=>{ try{ m[p.id]=findAlternatives(p, products, { max:2, preferSansParfum: guidedSansParfum || !!p.containsFragrance, preferInvisible:true }); }catch{ m[p.id]=[]; } });
+    return m;
+  }, [compared.map(p=>p.id).join(','), products.length, guidedSansParfum]);
+
   const filteredPicker = skinProducts.filter(p=>{
     if (!search.trim()) return true;
     const q=search.toLowerCase();
@@ -83,6 +92,7 @@ export const SkinComparePage: React.FC = () => {
               );
             })}
           </div>
+          {skinProducts.length===0 && <div className="mt-4 p-4 rounded-xl bg-white border border-[#E8E1DA] text-xs text-center text-[#111111]/60">Aucun soin peau publié pour l’instant — le catalogue peau est en cours d’enrichissement (précommandes). Dès que les premiers soins passent “publié”, ils apparaîtront ici.</div>}
           {selected.length>0 && <div className="mt-4 flex gap-2"><button onClick={()=>setSelected([])} className="text-xs font-bold text-[#C8753D] hover:underline">Effacer</button><a href={`/peau/comparer?ids=${selected.join(',')}`} className="text-xs font-bold text-[#111111]/50">Lien partageable</a></div>}
         </div>
 
@@ -127,12 +137,29 @@ export const SkinComparePage: React.FC = () => {
                 ))}
                 <tr>
                   <td className="p-3 bg-[#F8F2EC] border border-[#E8E1DA] font-bold">Alternatives</td>
-                  {compared.map(p=> (
-                    <td key={p.id} className="p-3 border border-[#E8E1DA] text-center">
-                      <a href={`/boutique?cat=peau&q=${encodeURIComponent((p.keyIngredients||['hydratant'])[0])}`} className="text-xs font-bold text-[#C8753D] hover:underline">Voir alternatives</a>
-                      <p className="text-[11px] text-[#111111]/50 mt-1">{p.containsFragrance?'Proposer sans parfum':''}</p>
-                    </td>
-                  ))}
+                  {compared.map(p=> {
+                    const alts = altsById[p.id]||[];
+                    return (
+                      <td key={p.id} className="p-3 border border-[#E8E1DA] text-center align-top">
+                        {alts.length===0 ? (
+                          <>
+                            <a href={`/boutique?cat=peau&q=${encodeURIComponent((p.keyIngredients||['hydratant'])[0])}`} className="text-xs font-bold text-[#C8753D] hover:underline">Voir alternatives</a>
+                            <p className="text-[11px] text-[#111111]/50 mt-1">{p.containsFragrance?'Proposer sans parfum':''}</p>
+                          </>
+                        ) : (
+                          <div className="space-y-2">
+                            {alts.map(a=> (
+                              <a key={a.id} href={`/produit/${a.slug}`} className="block p-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] text-left">
+                                <p className="text-xs font-bold leading-tight line-clamp-1">{a.name}</p>
+                                <p className="text-[11px] text-[#111111]/60">{a.brand} · {a.price.toFixed(2)} € {a.containsFragrance?'· parfum':'· sans parfum ✓'}</p>
+                              </a>
+                            ))}
+                            <a href={`/peau/comparer?ids=${p.id},${alts.map(a=>a.id).join(',')}`} className="text-[11px] font-bold text-[#111111]/60 hover:text-[#C8753D]">Comparer ces alternatives →</a>
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               </tbody>
             </table>

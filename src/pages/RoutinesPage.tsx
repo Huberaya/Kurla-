@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { ArrowRight, CheckCircle2, Clock, Loader2, PackageOpen, RefreshCw, Sun, Moon, Sparkles, Droplets, Shield, Heart, AlertTriangle, Info, ShoppingBag, Layers, Zap, ArrowLeft } from 'lucide-react';
 import { RoutineBundle } from '../types';
 import { useProducts } from '../services/productService';
+import { findForStep } from '../lib/skinAlternatives';
 
 type SkinTier = 'essentielle' | 'complete' | 'premium';
 
@@ -183,7 +184,10 @@ export const RoutinesPage: React.FC = () => {
                 <p className="text-xs text-[#111111]/60 font-light mt-1">Ordre d’application : du plus léger au plus riche, SPF toujours en dernier.</p>
                 <ol className="mt-4 space-y-3">
                   {matin.map(s => {
-                    const alts = ALT_MATIN[s.n];
+                    const staticAlts = ALT_MATIN[s.n];
+                    const keywordMap: Record<number, { kw: string; fam: string }> = { 1: { kw: 'nettoyant', fam: 'nettoyant' }, 2: { kw: 'tonique', fam: 'tonique' }, 3: { kw: 'sérum', fam: 'serum' }, 4: { kw: 'yeux', fam: 'yeux' }, 5: { kw: 'hydratant', fam: 'hydratant' }, 6: { kw: 'spf', fam: 'spf' } };
+                    const dyn = (()=>{ if(skinProducts.length < 2) return null; try{ const pref = !!guided?.sensitivities?.includes('parfum'); const km = keywordMap[s.n] || { kw: s.title.split(' ')[0].toLowerCase(), fam: '' }; const found = findForStep(km.kw, skinProducts, { max: 2, preferSansParfum: pref, stepFamily: km.fam }); return found.length? found : null; }catch{return null;} })();
+                    const alts = dyn ? dyn.map(pr=> ({ label: `${pr.name} — ${pr.sizeLabel||''}`.trim(), price: `${pr.price.toFixed(2)} €`, note: `${pr.keyIngredients?.[0]||pr.routineStep||pr.brand||''} · ${pr.containsFragrance?'parfum':'sans parfum ✓'}`, sansParfum: !pr.containsFragrance, whitecast: pr.category==='peau' && /spf/i.test(pr.routineStep||pr.name) ? '—' : undefined, _product: pr } as any)) : staticAlts;
                     const isOpen = openAlt === `matin-${s.n}`;
                     return (
                       <li key={s.n} className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
@@ -205,7 +209,7 @@ export const RoutinesPage: React.FC = () => {
                                     <p className="font-bold leading-tight">{a.label}</p>
                                     <p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
                                     <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'} {a.whitecast?`· ${a.whitecast}`:''}</p>
-                                    <a href={`/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
+                                    <a href={(a as any)._product ? `/produit/${(a as any)._product.slug}` : `/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
                                   </div>
                                 ))}
                               </div>
@@ -222,7 +226,10 @@ export const RoutinesPage: React.FC = () => {
                 <p className="text-xs text-[#111111]/60 font-light mt-1">Soir : on répare la barrière, on traite les taches (sans “éclaircir”).</p>
                 <ol className="mt-4 space-y-3">
                   {soir.map(s => {
-                    const alts = ALT_SOIR[s.n];
+                    const staticAlts = ALT_SOIR[s.n];
+                    const keywordMapSoir: Record<number, { kw: string; fam: string }> = { 1: { kw: 'huile', fam: 'huile' }, 2: { kw: 'nettoyant', fam: 'nettoyant' }, 3: { kw: 'tonique', fam: 'tonique' }, 4: { kw: 'exfoliant', fam: 'exfoliant' }, 5: { kw: 'taches', fam: 'serum' }, 6: { kw: 'hyaluronique', fam: 'serum' }, 7: { kw: 'hydratant', fam: 'hydratant' }, 8: { kw: 'baume', fam: 'huile' } };
+                    const dyn = (()=>{ if(skinProducts.length < 2) return null; try{ const pref = !!guided?.sensitivities?.includes('parfum'); const km = keywordMapSoir[s.n] || { kw: s.title.split(' ')[0].toLowerCase(), fam: '' }; const found = findForStep(km.kw, skinProducts, { max: 2, preferSansParfum: pref, stepFamily: km.fam }); return found.length? found : null; }catch{return null;} })();
+                    const alts = dyn ? dyn.map(pr=> ({ label: `${pr.name} — ${pr.sizeLabel||''}`.trim(), price: `${pr.price.toFixed(2)} €`, note: `${pr.keyIngredients?.[0]||pr.routineStep||pr.brand||''} · ${pr.containsFragrance?'parfum':'sans parfum ✓'}`, sansParfum: !pr.containsFragrance, _product: pr } as any)) : staticAlts;
                     const isOpen = openAlt === `soir-${s.n}`;
                     return (
                       <li key={s.n} className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
@@ -241,7 +248,7 @@ export const RoutinesPage: React.FC = () => {
                                   <div key={i} className="p-3 rounded-xl bg-white border border-[#E8E1DA] text-xs">
                                     <p className="font-bold leading-tight">{a.label}</p><p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
                                     <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'}</p>
-                                    <a href={`/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
+                                    <a href={(a as any)._product ? `/produit/${(a as any)._product.slug}` : `/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
                                   </div>
                                 ))}
                               </div>
