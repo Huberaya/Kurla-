@@ -22,6 +22,8 @@ import {
   ShelfVerdictResponse,
   updateShelfItem
 } from '../services/intelligenceService';
+import { isSkinShelfItem, estimateDaysLeft, isRestockAlert, progressColor, openedLabel } from '../lib/skinShelf';
+import { PEAU_KITS } from '../lib/peauKits';
 
 const STATUS_LABELS: Record<ShelfItem['status'], string> = {
   owned: 'Non ouvert',
@@ -79,6 +81,15 @@ export const ShelfPage: React.FC = () => {
   const [scanNote, setScanNote] = useState('');
   const [scannedProduct, setScannedProduct] = useState<BarcodeProduct | null>(null);
 
+  // C4.1 — filtre étagère peau vs cheveux (?cat=peau)
+  const [shelfCat, setShelfCat] = useState<'tous' | 'peau' | 'cheveux'>('tous');
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const cat = sp.get('cat');
+    if (cat === 'peau' || cat === 'cheveux') setShelfCat(cat);
+    if (cat === 'peau') setRoutineStep('skin_cleanser');
+  }, []);
+
   const load = useCallback(async () => {
     if (!token) {
       setLoading(false);
@@ -103,8 +114,9 @@ export const ShelfPage: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const grouped = useMemo(() => {
+    const source = shelfCat === 'peau' ? items.filter(isSkinShelfItem) : shelfCat === 'cheveux' ? items.filter(i => !isSkinShelfItem(i)) : items;
     const map = new Map<RoutineStep, ShelfItem[]>();
-    for (const item of items) {
+    for (const item of source) {
       const step = (ROUTINE_STEPS as string[]).includes(item.routineStep || '')
         ? item.routineStep as RoutineStep
         : 'other';
@@ -113,7 +125,10 @@ export const ShelfPage: React.FC = () => {
       map.set(step, list);
     }
     return map;
-  }, [items]);
+  }, [items, shelfCat]);
+
+  const skinItems = useMemo(() => items.filter(isSkinShelfItem), [items]);
+  const restockAlerts = useMemo(() => skinItems.filter(isRestockAlert), [skinItems]);
 
   const handleScan = async (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -263,6 +278,65 @@ export const ShelfPage: React.FC = () => {
 
         <WhyItMatters featureId="shelf" variant="card" />
 
+        {/* C4.1 — Tabs étagère Cheveux | Peau */}
+        <div className="mb-6 flex items-center gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/50 mr-1">Voir :</span>
+          <button onClick={() => { setShelfCat('tous'); window.history.replaceState({}, '', '/account/shelf'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold ${shelfCat==='tous' ? 'bg-[#111111] text-white' : 'bg-white border border-[#E8E1DA]'}`}>Tous ({items.length})</button>
+          <button onClick={() => { setShelfCat('peau'); window.history.replaceState({}, '', '/account/shelf?cat=peau'); setRoutineStep('skin_cleanser'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='peau' ? 'bg-[#C8753D] text-white' : 'bg-white border border-[#E8E1DA]'}`}><span>Peau</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='peau'?'bg-white/20':'bg-[#F8F2EC]'}`}>{skinItems.length}</span></button>
+          <button onClick={() => { setShelfCat('cheveux'); window.history.replaceState({}, '', '/account/shelf?cat=cheveux'); setRoutineStep('leave_in'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='cheveux' ? 'bg-[#111111] text-white' : 'bg-white border border-[#E8E1DA]'}`}><span>Cheveux</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='cheveux'?'bg-white/20':'bg-[#F8F2EC]'}`}>{items.length - skinItems.length}</span></button>
+          <a href="/peau/journal" className="ml-auto text-xs font-bold text-[#C8753D] hover:underline hidden sm:inline">Journal peau →</a>
+        </div>
+
+        {/* C4.1 — Shelf peau : % restant, jauge, alerte J-7 */}
+        {(shelfCat === 'peau' || skinItems.length > 0) && restockAlerts.length > 0 && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="text-xs leading-relaxed">
+              <p className="font-bold">Réassort à prévoir (≤7 jours)</p>
+              <ul className="mt-1 list-disc pl-4">
+                {restockAlerts.slice(0, 3).map(it => {
+                  const days = estimateDaysLeft(it);
+                  return <li key={it.id}>{it.freeLabel || it.productId} · {days}j restant(s){it.estimatedRemainingPercent != null ? ` · ${it.estimatedRemainingPercent}%` : ''} · ouvert le {openedLabel(it)}</li>;
+                })}
+              </ul>
+              <a href="/boutique?cat=peau" className="inline-block mt-2 text-[11px] font-bold text-[#C8753D] hover:underline">Voir la boutique peau →</a>
+            </div>
+          </div>
+        )}
+
+        {/* C4.1 — Kits peau : ajout rapide à l'étagère quand vide peau */}
+        {shelfCat === 'peau' && skinItems.length === 0 && (
+          <div className="mb-6 p-5 rounded-3xl bg-gradient-to-br from-[#FFFDF9] to-[#F8F2EC] border border-[#E8E1DA]">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D] mb-2">Gagnez du temps — KPEAU</p>
+            <p className="text-sm font-semibold">Vous utilisez un kit KURLA SKIN ? Ajoutez-le à votre étagère en 1 clic.</p>
+            <p className="text-xs text-[#111111]/60 mt-1">Fatou · peau mixte · HPI · sans parfum → <strong className="text-[#111111]">KPEAU-01 Essentielle (3 soins · 49,70€)</strong> : nettoyant + crème céramides + SPF invisible.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {PEAU_KITS.slice(0, 3).map(kit => (
+                <button
+                  key={kit.id}
+                  onClick={async () => {
+                    if (!token) return;
+                    setBusy(true);
+                    try {
+                      for (const p of kit.products.slice(0, 3)) {
+                        const step = p.role.toLowerCase().includes('nettoyant') ? 'skin_cleanser' : p.role.toLowerCase().includes('spf') ? 'skin_spf' : 'skin_moisturizer';
+                        await addShelfItem(token, { freeLabel: p.name, routineStep: step as RoutineStep, status: 'in_use', estimatedRemainingPercent: 80 });
+                      }
+                      setNotice(`${kit.name} ajouté à ton étagère peau (3 soins · 80% restant chacun).`);
+                      await load();
+                    } catch (e) { setError(e instanceof Error ? e.message : 'Ajout kit impossible.'); }
+                    finally { setBusy(false); }
+                  }}
+                  className={`px-3 py-2 rounded-full text-xs font-bold border ${kit.id==='KPEAU-01' ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}
+                >
+                  + {kit.id} · {kit.products.length} soins · {kit.priceBundle.toFixed(2)}€
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-[#111111]/40 mt-2">Crée 3 entrées “En cours” à 80% — ajustez le % restant ensuite. Kit précommande 3–5j.</p>
+          </div>
+        )}
+
         {error && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900"><AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{error}</div>}
         {notice && <div className="mb-6 flex items-start gap-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900"><Check className="w-4 h-4 shrink-0 mt-0.5" />{notice}</div>}
 
@@ -399,15 +473,32 @@ export const ShelfPage: React.FC = () => {
                 <div key={step}>
                   <h3 className="text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-2">{ROUTINE_STEP_LABELS[step]}</h3>
                   <div className="space-y-2">
-                    {stepItems.map(item => (
-                      <div key={item.id} className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex flex-col sm:flex-row sm:items-center gap-3">
+                    {stepItems.map(item => {
+                      const isSkin = isSkinShelfItem(item);
+                      const daysLeft = estimateDaysLeft(item);
+                      const alertRestock = isRestockAlert(item);
+                      return (
+                      <div key={item.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 ${alertRestock ? 'bg-amber-50/70 border-amber-200' : 'bg-[#FFFDF9] border-[#E8E1DA]'}`}>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold">{item.freeLabel || item.productId}</p>
+                          <p className="text-sm font-semibold flex items-center gap-2">
+                            {item.freeLabel || item.productId}
+                            {isSkin && item.estimatedRemainingPercent != null && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full text-white font-bold ${progressColor(item.estimatedRemainingPercent)}`}>{item.estimatedRemainingPercent}%</span>
+                            )}
+                            {alertRestock && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">J-7 réassort</span>}
+                          </p>
                           <p className="text-[11px] text-[#111111]/55">
                             {STATUS_LABELS[item.status]}
                             {item.estimatedRemainingPercent !== null && item.estimatedRemainingPercent !== undefined && ` · ${item.estimatedRemainingPercent} % restant`}
+                            {isSkin && daysLeft != null && ` · ~${daysLeft}j restants`}
+                            {isSkin && item.openedAt && ` · ouvert le ${openedLabel(item)}`}
                             {item.abandonmentReason && ` · ${ABANDONMENT_LABELS[item.abandonmentReason]}`}
                           </p>
+                          {isSkin && item.estimatedRemainingPercent != null && (
+                            <div className="mt-1.5 h-1.5 rounded-full bg-[#111111]/10 overflow-hidden w-full max-w-[220px]">
+                              <div className={`h-full ${progressColor(item.estimatedRemainingPercent)}`} style={{ width: `${Math.max(0, Math.min(100, item.estimatedRemainingPercent))}%` }} />
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <select
@@ -434,7 +525,8 @@ export const ShelfPage: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               ))}

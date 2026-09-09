@@ -57,8 +57,8 @@ export interface SkinBeautyProfile {
   sensitivities: string[]; // parfum, alcool…
   preferences: string[]; // sans parfum, vegan…
   ageRange: string;
-  // Journal peau V1
-  journal: Array<{ date: string; feeling: string; concerns: string[]; notes?: string }>;
+  // Journal peau V1 (C4) — photo optionnelle 1 max <2Mo, feeling 1–5, milestone J+0/J+7/J+30
+  journal: Array<{ date: string; feeling: string; concerns: string[]; notes?: string; feelingScore?: number; photoDataUrl?: string; milestone?: string; createdAt?: string }>;
 }
 
 export interface BeautyEnvironmentProfile {

@@ -16,7 +16,7 @@ import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT,
 import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
-import { SKIN_BUDGET_CAPS } from '../lib/skinRecommendation';
+import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
 import { PEAU_KITS } from '../lib/peauKits';
 
 interface BoutiquePageProps {
@@ -176,6 +176,25 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     } catch { /* ignore */ }
   }, []);
 
+  // C2 peaufine — URL shareable : filtres peau → ?actif=&phototype=&texture=&fini=&sensibilite=&budget=&sansParfum=&spf=
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const hasPeauCtx = skinBudget !== 'tous' || skinActif !== 'tous' || skinPhototype !== 'tous' || skinTexture !== 'tous' || skinFini !== 'tous' || skinSensibilite !== 'tous' || skinSansParfum || skinSansTrace;
+    if (!hasPeauCtx) return;
+    const setOrDel = (k: string, v: string) => { if (v && v !== 'tous' && v !== 'false') sp.set(k, v); else sp.delete(k); };
+    setOrDel('actif', skinActif);
+    setOrDel('phototype', skinPhototype);
+    setOrDel('texture', skinTexture);
+    setOrDel('fini', skinFini);
+    setOrDel('sensibilite', skinSensibilite);
+    setOrDel('budget', skinBudget);
+    if (skinSansParfum) sp.set('sansParfum', 'true'); else sp.delete('sansParfum');
+    if (skinSansTrace) sp.set('spf', 'invisible'); else if (sp.get('spf') === 'invisible') sp.delete('spf');
+    const next = window.location.pathname + (sp.toString() ? `?${sp.toString()}` : '');
+    const curr = window.location.pathname + window.location.search;
+    if (next !== curr) window.history.replaceState({}, '', next);
+  }, [skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite, skinBudget, skinSansParfum, skinSansTrace]);
+
   const mainCategories = [
     { id: 'tous', name: 'Tout le catalogue', icon: ShoppingBag, badge: null },
     { id: 'besoins', name: 'Trouver par besoin', icon: Sparkles, badge: 'Recommandé' },
@@ -285,15 +304,17 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           if (metaPhoto && metaPhoto.length && !metaPhoto.includes(skinPhototype)) return false;
           // SPF invisible boost is scoring, not filtering — phototype VI + minéral pur visible will be déclassé en scoring, pas bloqué
         }
-        // C2 — Texture
+        // C2 — Texture (peaufine: lotion + huile ajoutés, fallback hay plus tolérant)
         if (skinTexture !== 'tous') {
           const metaTex = (p as any).metadata?.texture as string | undefined;
           if (metaTex && metaTex !== skinTexture) return false;
           if (!metaTex) {
             const hay = `${p.name} ${p.description}`.toLowerCase();
             if (skinTexture === 'gel' && !/gel/.test(hay)) return false;
+            if (skinTexture === 'lotion' && !/lotion|fluide/.test(hay)) return false;
             if (skinTexture === 'creme' && !/crème|creme/.test(hay)) return false;
             if (skinTexture === 'baume' && !/baume/.test(hay)) return false;
+            if (skinTexture === 'huile' && !/huile|sérum huileux|oil/.test(hay)) return false;
           }
         }
         // C2 — Fini
@@ -336,37 +357,26 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       if (sortBy === 'price-asc') return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
-      // C2 — tri peau HPI/whitecast/sensibilité quand « fit » en contexte peau
+      // C2 peaufine — tri peau via scoreSkinProduct (incompat + whitecast + HPI + sansParfum)
       const isPeauContext = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
       if (isPeauContext && sortBy === 'fit') {
-        // ranking peau — on construit un ctx minimal depuis les filtres actifs (sans bloquer si pas de BeautyProfile)
-        const cap = SKIN_BUDGET_CAPS[skinBudget] ?? 9999;
-        // score via skinRecommendation (sans profile complet = filtres seuls, sinon guidedSkin hydrate)
-        // on calcule à la volée pour garder le tri stable sans re-render coûteux
-        const scoreA = (() => {
-          let sa = 50;
-          if (skinActif !== 'tous') {
-            const hayA = `${(a.keyIngredients||[]).join(' ')} ${a.inci||''} ${((a as any).metadata?.actifs||[]).join(' ')}`.toLowerCase();
-            if (new RegExp(skinActif === 'niacinamide' ? 'niacinamide' : skinActif === 'acide_azelaic' ? 'azelaic' : skinActif === 'vitamine_c' ? 'ascorbic' : skinActif, 'i').test(hayA)) sa += 8;
-            else sa -= 8;
-          }
-          if (skinBudget !== 'tous' && a.price <= cap) sa += 2;
-          if (a.rating) sa += Math.min(2, a.rating * 0.3);
-          return sa;
-        })();
-        const scoreB = (() => {
-          let sb = 50;
-          if (skinActif !== 'tous') {
-            const hayB = `${(b.keyIngredients||[]).join(' ')} ${b.inci||''} ${((b as any).metadata?.actifs||[]).join(' ')}`.toLowerCase();
-            if (new RegExp(skinActif === 'niacinamide' ? 'niacinamide' : skinActif === 'acide_azelaic' ? 'azelaic' : skinActif === 'vitamine_c' ? 'ascorbic' : skinActif, 'i').test(hayB)) sb += 8;
-            else sb -= 8;
-          }
-          if (skinBudget !== 'tous' && b.price <= cap) sb += 2;
-          if (b.rating) sb += Math.min(2, b.rating * 0.3);
-          return sb;
-        })();
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        // fallback phototype V–VI : SPF invisible d'abord
+        const cap = skinBudget !== 'tous' ? (SKIN_BUDGET_CAPS[skinBudget] ?? 9999) : undefined;
+        const ctx = {
+          activeFilters: {
+            actif: skinActif !== 'tous' ? skinActif : undefined,
+            phototype: skinPhototype !== 'tous' ? skinPhototype : undefined,
+            texture: skinTexture !== 'tous' ? skinTexture : undefined,
+            finish: skinFini !== 'tous' ? skinFini : undefined,
+            sansParfum: skinSansParfum || skinSensibilite !== 'tous',
+            spfInvisible: skinSansTrace,
+            budgetMax: cap,
+          },
+          hyperpigmentationBoost: Boolean(guidedSkin?.hyperpigmentationTendency === 'frequente' || (guidedSkin?.skinConcerns||[]).some((c:string)=>/taches|hyperpigmentation|teint_terne/i.test(c))),
+        } as any;
+        const sa = scoreSkinProduct(a as any, ctx).score;
+        const sb = scoreSkinProduct(b as any, ctx).score;
+        if (sb !== sa) return sb - sa;
+        // fallback phototype V–VI : SPF invisible d'abord (si scores égaux)
         const isSPFA = /spf|solair/i.test(`${a.name} ${a.description}`);
         const isSPFB = /spf|solair/i.test(`${b.name} ${b.description}`);
         if (skinPhototype === 'V' || skinPhototype === 'VI') {

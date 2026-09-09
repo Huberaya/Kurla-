@@ -187,6 +187,13 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: '/peau/journal',
+    title: 'Journal peau — suivi J+0/J+7/J+30 | KURLA SKIN',
+    description:
+      'Suivez votre peau jour après jour : ressenti 1–5, préoccupations, photo optionnelle <2 Mo et jalons J+0/J+7/J+30. Stockage local + synchronisation KURLA ID, aucun diagnostic médical.',
+    indexable: false,
+  },
+  {
     path: '/hommes',
     title: 'Barbe, cuir chevelu et soins pour hommes | KURLA',
     description:

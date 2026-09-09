@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ArrowRight, CheckCircle2, Clock, Loader2, PackageOpen, RefreshCw, Sun, Moon, Sparkles, Droplets, Shield, Heart, AlertTriangle, Info, ShoppingBag, Layers, Zap, ArrowLeft } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Loader2, PackageOpen, RefreshCw, Sun, Moon, Sparkles, Droplets, Shield, Heart, AlertTriangle, Info, ShoppingBag, Layers, Zap, ArrowLeft, Award } from 'lucide-react';
 import { RoutineBundle } from '../types';
 import { useProducts } from '../services/productService';
 import { findForStep } from '../lib/skinAlternatives';
+import { getTodayState, toggleToday, getStreak, getWeekHistory } from '../lib/skinObservance';
 
 type SkinTier = 'essentielle' | 'complete' | 'premium';
 
@@ -64,6 +65,24 @@ export const RoutinesPage: React.FC = () => {
   const [openAlt, setOpenAlt] = useState<string | null>(null);
 
   const skinProducts = useMemo(() => products.filter(p => p.category === 'peau'), [products]);
+  // C4.3 — observance matin/soir → streak 7j
+  const [observance, setObservance] = useState<{ matin: boolean; soir: boolean }>(() => { try { return getTodayState(); } catch { return { matin: false, soir: false }; } });
+  const [streakMatin, setStreakMatin] = useState(() => { try { return getStreak('matin'); } catch { return 0; } });
+  const [streakSoir, setStreakSoir] = useState(() => { try { return getStreak('soir'); } catch { return 0; } });
+  const weekHistory = useMemo(() => { try { return getWeekHistory(); } catch { return []; } }, [observance]);
+
+  const handleToggleObservance = (moment: 'matin' | 'soir') => {
+    try {
+      const next = toggleToday(moment);
+      setObservance({ matin: !!next[new Date().toISOString().slice(0, 10)]?.matin, soir: !!next[new Date().toISOString().slice(0, 10)]?.soir });
+      // fallback to direct map
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const m = next[todayKey] || { matin: false, soir: false };
+      setObservance(m);
+      setStreakMatin(getStreak('matin'));
+      setStreakSoir(getStreak('soir'));
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -173,6 +192,45 @@ export const RoutinesPage: React.FC = () => {
             <div className="flex gap-2 shrink-0">
               <a href={`/boutique?cat=peau&budget=${skinTier==='essentielle'?'moins_40':skinTier==='complete'?'40_70':'70_100'}`} className="px-5 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold">Voir la sélection peau {tier.label.toLowerCase()}</a>
               <a href="/peau/diagnostic" className="px-5 py-2.5 rounded-full bg-white text-[#111111] text-xs font-bold">Modifier mon diagnostic</a>
+            </div>
+          </div>
+
+          {/* C4.3 — Observance matin / soir + streak 7j */}
+          <div className="mb-8 p-5 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] flex flex-col lg:flex-row gap-5 items-start lg:items-center justify-between">
+            <div className="flex-1">
+              <p className="text-[11px] uppercase tracking-widest font-bold text-[#C8753D] flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Observance quotidienne — cochez matin & soir</p>
+              <h3 className="text-base font-bold mt-1">Je tiens ma routine {streakMatin >=7 || streakSoir >=7 ? '· 🔥 streak en cours !' : ''}</h3>
+              <p className="text-xs text-[#111111]/60 mt-1 leading-relaxed">Toucher matin = SPF + hydratant · Soir = nettoyant + crème barrière. 7 matins d’affilée → badge “Régulière”.</p>
+              <div className="mt-3 flex gap-1.5">
+                {weekHistory.map(d => (
+                  <div key={d.date} className="text-center">
+                    <span className="text-[10px] text-[#111111]/50 block">{d.dayLabel.slice(0,2)}</span>
+                    <div className="mt-1 flex flex-col gap-1">
+                      <span className={`w-2 h-2 rounded-full ${d.matin ? 'bg-[#C8753D]' : 'bg-[#111111]/15'}`} title={`matin ${d.date}`} />
+                      <span className={`w-2 h-2 rounded-full ${d.soir ? 'bg-[#111111]' : 'bg-[#111111]/15'}`} title={`soir ${d.date}`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 shrink-0">
+              <button onClick={() => handleToggleObservance('matin')} className={`px-5 py-3 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 min-w-[110px] ${observance.matin ? 'bg-[#C8753D] text-white border-[#C8753D] shadow-md' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                <Sun className={`w-5 h-5 ${observance.matin ? 'text-white' : 'text-[#C8753D]'}`} />
+                <span>Matin {observance.matin ? '✓' : ''}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${streakMatin >=7 ? 'bg-emerald-500 text-white' : observance.matin ? 'bg-white/20 text-white' : 'bg-[#F8F2EC] text-[#111111]/60'}`}>{streakMatin}j streak</span>
+              </button>
+              <button onClick={() => handleToggleObservance('soir')} className={`px-5 py-3 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 min-w-[110px] ${observance.soir ? 'bg-[#111111] text-white border-[#111111] shadow-md' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                <Moon className={`w-5 h-5 ${observance.soir ? 'text-white' : 'text-[#111111]'}`} />
+                <span>Soir {observance.soir ? '✓' : ''}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${streakSoir >=7 ? 'bg-emerald-500 text-white' : observance.soir ? 'bg-white/20 text-white' : 'bg-[#F8F2EC] text-[#111111]/60'}`}>{streakSoir}j streak</span>
+              </button>
+            </div>
+            <div className="hidden lg:block text-xs text-[#111111]/60 max-w-[180px] leading-relaxed">
+              {(streakMatin >=7 || streakSoir >=7) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs"><Award className="w-3.5 h-3.5" /> 7 matins d’affilée — bravo Fatou !</span>
+              )}
+              {streakMatin <7 && streakSoir <7 && <span>{7 - Math.max(streakMatin, streakSoir)} jour{7 - Math.max(streakMatin, streakSoir)>1?'s':''} avant le badge “7 matins d’affilée”.</span>}
+              <a href="/peau/journal" className="block mt-2 text-[#C8753D] font-bold hover:underline">Aller au journal peau →</a>
             </div>
           </div>
 

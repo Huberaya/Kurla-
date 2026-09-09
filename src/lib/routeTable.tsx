@@ -49,6 +49,7 @@ const MelaninSkinPage = lazy(() => import('../pages/MelaninSkinPage').then(m => 
 const SkinLandingPage = lazy(() => import('../pages/SkinLandingPage').then(m => ({ default: m.SkinLandingPage })));
 const SkinComparePage = lazy(() => import('../pages/SkinComparePage').then(m => ({ default: m.SkinComparePage })));
 const SkinGuidePage = lazy(() => import('../pages/SkinGuidePage').then(m => ({ default: m.SkinGuidePage })));
+const SkinJournalPage = lazy(() => import('../pages/SkinJournalPage').then(m => ({ default: m.SkinJournalPage })));
 const MenGroomingPage = lazy(() => import('../pages/MenGroomingPage').then(m => ({ default: m.MenGroomingPage })));
 const ToolsPage = lazy(() => import('../pages/ToolsPage').then(m => ({ default: m.ToolsPage })));
 const InspirationsPage = lazy(() => import('../pages/InspirationsPage').then(m => ({ default: m.InspirationsPage })));
@@ -127,6 +128,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/peau/diagnostic/resultats', render: () => <DiagnosticResultPage /> },
   { path: '/peau/comparer', render: () => <SkinComparePage /> },
   { path: '/peau/guide', render: () => <SkinGuidePage /> },
+  { path: '/peau/journal', render: () => <SkinJournalPage /> },
   { path: '/peau/routine', render: () => <RoutinesPage /> },
   { path: '/hommes', render: () => <MenGroomingPage /> },
   { path: '/outils', render: () => <ToolsPage /> },
