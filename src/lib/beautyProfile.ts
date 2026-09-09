@@ -1,5 +1,7 @@
 export const UNKNOWN = 'inconnu';
 
+import { normalizePhototype, type Fitzpatrick } from './skinPhototype';
+
 export type HairZoneKey = 'scalp' | 'lengths' | 'ends';
 
 export interface HairZoneProfile {
@@ -34,6 +36,25 @@ export interface HairBeautyProfile {
 
 export interface SkinBeautyProfile {
   toneDepth: string;
+  /**
+   * Phototype de Fitzpatrick (1 à 6).
+   *
+   * C'est la donnée qui manquait : sans elle, le positionnement « peaux
+   * riches en mélanine » n'existait nulle part dans le système. `toneDepth`
+   * restait une chaîne libre que rien ne lisait.
+   *
+   * Optionnel et jamais déduit : on ne classe personne d'office.
+   */
+  phototype?: Fitzpatrick;
+  /**
+   * Consentement explicite à l'enregistrement du phototype.
+   *
+   * Donnée sensible au sens du RGPD (elle renseigne sur l'origine ethnique) :
+   * distinct du consentement général du profil, révocable, effaçable.
+   * Sans lui, le phototype n'est tout simplement pas conservé — même si
+   * l'utilisatrice l'a renseigné.
+   */
+  phototypeConsent?: boolean;
   undertone: string;
   sensitivity: string;
   hyperpigmentationTendency: string;
@@ -515,7 +536,9 @@ export function createEmptyBeautyProfile(): BeautyProfile {
       sensitivities: [UNKNOWN],
       preferences: [UNKNOWN],
       ageRange: UNKNOWN,
-      journal: []
+      journal: [],
+      phototype: undefined,
+      phototypeConsent: false
     },
     environment: {
       climate: UNKNOWN,
@@ -525,6 +548,66 @@ export function createEmptyBeautyProfile(): BeautyProfile {
     },
     photoConsent: false
   };
+}
+
+/**
+ * Le phototype n'est retenu que s'il est valide **et** consent.
+ *
+ * Deux gardes, volontairement séparées : une valeur invalide est écartée, et
+ * une valeur valide mais non consentie l'est tout autant. Le consentement
+ * n'est pas une case décorative — sans lui, la donnée sensible n'existe pas.
+ */
+/**
+ * Fusionne un profil entrant avec le profil existant.
+ *
+ * Pourquoi cette fonction existe : le diagnostic peau n'écrit que la peau.
+ * Sans fusion, `PUT /api/beauty-profile` remplaçait **le profil entier** — et
+ * une utilisatrice qui faisait le diagnostic peau perdait son profil cheveux
+ * et son environnement. Vérifié dans le gestionnaire avant correction :
+ * `normalizeBeautyProfile(req.body.profile)` remplaçait tout.
+ *
+ * La fusion est donc serveur, pas cliente : elle protège n'importe quel
+ * appelant partiel, présent ou futur, et pas seulement le diagnostic.
+ *
+ * Règle : une clé présente dans l'entrant remplace ; une clé absente est
+ * conservée. `undefined` est ignoré (un client qui envoie `undefined` ne veut
+ * pas effacer). Les objets imbriqués sont fusionnés niveau par niveau.
+ */
+export function mergeBeautyProfile(current: BeautyProfile, incoming: unknown): BeautyProfile {
+  const base = normalizeBeautyProfile(current);
+  const patch = incoming && typeof incoming === 'object' ? incoming as Record<string, any> : {};
+
+  const mergeSection = <T extends Record<string, any>>(existing: T, patchValue: unknown): T => {
+    if (!patchValue || typeof patchValue !== 'object') return existing;
+    const result: Record<string, any> = { ...existing };
+    for (const [key, value] of Object.entries(patchValue as Record<string, any>)) {
+      if (value === undefined) continue;
+      const currentValue = result[key];
+      if (
+        currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue) &&
+        value && typeof value === 'object' && !Array.isArray(value)
+      ) {
+        result[key] = { ...currentValue, ...value };
+        continue;
+      }
+      result[key] = value;
+    }
+    return result as T;
+  };
+
+  return normalizeBeautyProfile({
+    ...base,
+    ...(patch.version !== undefined ? { version: patch.version } : {}),
+    hair: mergeSection(base.hair, patch.hair),
+    skin: mergeSection(base.skin, patch.skin),
+    environment: mergeSection(base.environment, patch.environment),
+    ...(patch.photoConsent !== undefined ? { photoConsent: patch.photoConsent === true } : {})
+  });
+}
+
+function normalizeProfilePhototype(value: unknown, consent: unknown): Fitzpatrick | undefined {
+  if (consent !== true) return undefined;
+  return normalizePhototype(value) ?? undefined;
 }
 
 function safeString(value: unknown, fallback = UNKNOWN): string {
@@ -586,6 +669,8 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
     skin: {
       toneDepth: safeString(skin.toneDepth),
       undertone: safeString(skin.undertone),
+      phototype: normalizeProfilePhototype(skin.phototype, skin.phototypeConsent),
+      phototypeConsent: skin.phototypeConsent === true,
       sensitivity: safeString(skin.sensitivity),
       hyperpigmentationTendency: safeString(skin.hyperpigmentationTendency),
       acne: safeString(skin.acne),

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-05T11:32:35.927Z",
+  "generatedAt": "2026-09-09T22:31:56.023Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -187,6 +187,7 @@
     "listProspects/0",
     "listRfqs/1",
     "listSourcingItems/1",
+    "listSourcingStrategy/0",
     "listSupplierDocuments/1",
     "listSuppliers/0",
     "logNotificationDelivery/1",

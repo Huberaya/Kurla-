@@ -25,7 +25,7 @@ export const ANNOUNCED_AT: string | null = null;
  * A4 : 5 = "Expédié sous 3–5 jours — petite production hebdomadaire"
  * (batch lun+jeu 18h, tampon 3PL). `null` retombe sur le délai légal 30j.
  */
-export const ANNOUNCED_MAX_DAYS: number | null = 5;
+export const ANNOUNCED_MAX_DAYS: number | null = null;
 
 /**
  * Délai légal de livraison à défaut de date convenue (jours).
@@ -114,7 +114,9 @@ export function preorderDispatchPromise(): DispatchPromise {
         kind: 'delayed',
         short: 'Expédié sous 3–5 jours — petite production hebdomadaire',
         sentence:
-          'Vos soins sont réservés et expédiés sous 3 à 5 jours (petite production hebdomadaire : batch lundi & jeudi 18h, via 3PL IDF). Vous recevez un e-mail avec le numéro de suivi dès la remise au transporteur.',
+          `Vos soins sont réservés et expédiés au plus tard 5 jours après votre commande ` +
+          `(petite production hebdomadaire : batch lundi & jeudi 18h). Vous recevez un e-mail avec le ` +
+          `numéro de suivi dès la remise au transporteur.`,
         legal
       };
     }
@@ -122,7 +124,12 @@ export function preorderDispatchPromise(): DispatchPromise {
       kind: 'delayed',
       short: `Expédié sous ${ANNOUNCED_MAX_DAYS} jours`,
       sentence:
-        `Vos soins sont réservés et expédiés dans les ${ANNOUNCED_MAX_DAYS} jours suivant votre ` +
+        /**
+         * « Dans les X jours » n'est pas opposable : une fourchette sans borne
+         * ne dit pas à partir de quand la cliente peut exiger. On énonce le
+         * maximum — c'est lui qui est opposable.
+         */
+        `Vos soins sont réservés et expédiés au plus tard ${ANNOUNCED_MAX_DAYS} jours après votre ` +
         `commande. Vous recevez un e-mail avec le numéro de suivi dès la remise au transporteur.`,
       legal
     };

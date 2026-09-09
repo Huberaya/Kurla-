@@ -109,7 +109,18 @@ export function isPublishableProduct(product: any): boolean {
     // d'écriture (`updateCatalogStatus`) fait la vérification fournie avec preuve.
     if (cpnpReady === false) return false;
   }
-  return product?.is_active === true
+  /**
+   * Lecture tolérante : camelCase d'abord, snake_case en repli.
+   *
+   * Un produit mappé par les getters porte les deux clés, et l'ancienne clé
+   * snake_case peut contredire la valeur réellement enregistrée — mesuré :
+   * `is_active = false` alors que `isActive = true` venait d'être écrit. Le
+   * produit était publié, vérifié, et pourtant servi nulle part.
+   *
+   * Le repli reste nécessaire : certaines lignes brutes n'ont que du snake_case.
+   */
+  const isActive = product?.isActive !== undefined ? product?.isActive : product?.is_active;
+  return isActive === true
     && product?.catalog_status === 'published'
     && product?.ingredient_verification_status === 'verified'
     && product?.claims_validation_status === 'verified'

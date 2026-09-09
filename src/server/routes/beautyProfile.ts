@@ -8,6 +8,7 @@ import {
   BeautyProfilePhoto,
   calculateProfileConfidence,
   createEmptyBeautyProfile,
+  mergeBeautyProfile,
   normalizeBeautyProfile,
 } from '../../lib/beautyProfile';
 import { serverDb } from '../../lib/serverDb';
@@ -56,7 +57,15 @@ export function registerBeautyProfileRoutes(app: Express): void {
       return res.status(400).json({ error: 'Profil beauté invalide.' });
     }
     try {
-      const profile = normalizeBeautyProfile(req.body.profile);
+      /**
+       * Le `PUT` remplaçait le profil entier : un appelant partiel — le
+       * diagnostic peau, qui n'écrit que la peau — effaçait le profil
+       * cheveux et l'environnement de l'utilisatrice. On charge l'existant
+       * et on fusionne, pour que tout appelant partiel soit sûr.
+       */
+      const currentRecord = await serverDb.getBeautyProfile(user.id);
+      const current = currentRecord?.profile || createEmptyBeautyProfile();
+      const profile = mergeBeautyProfile(current, req.body.profile);
       const record = await serverDb.saveBeautyProfile(user.id, profile, 'user');
       if (!profile.photoConsent) await serverDb.deleteBeautyProfilePhotos(user.id);
       const photos = await serverDb.getBeautyProfilePhotos(user.id);

@@ -31,7 +31,15 @@ async function runPasswordRecoveryTests(): Promise<void> {
 
   // 2. Le mot de passe est réellement écrit.
   assert.ok(
-    /supabase\.auth\.updateUser\(\{ password:/.test(authContext),
+    /**
+     * On teste l'appel, pas le nom de la variable qui le porte.
+     *
+     * La version précédente exigeait `supabase.auth.updateUser` et échouait
+     * dès qu'un refactor renommait le client en `client` — alors que
+     * l'appel, lui, n'avait pas bougé. Un test qui casse sur un renommage
+     * ne protège personne : il crie au loup et on finit par ne plus l'écouter.
+     */
+    /\.auth\.updateUser\(\{\s*password:/.test(authContext),
     'updateUser n’est plus appelé : aucun moyen de définir un nouveau mot de passe'
   );
 
@@ -42,9 +50,18 @@ async function runPasswordRecoveryTests(): Promise<void> {
     /<PasswordRecoveryPanel \/>/.test(app),
     'PasswordRecoveryPanel n’est plus monté dans App : la réinitialisation redeviendrait une impasse'
   );
+  /**
+   * On vérifie que le module est référencé, pas la forme de l'import.
+   *
+   * Le panneau est désormais chargé en différé (`lazy(() => import(...))`) :
+   * c'est une amélioration — le code de récupération ne pèse plus sur le
+   * premier affichage. L'ancienne assertion exigeait un `import ... from`
+   * statique et échouait sur ce refactor, alors que le montage, lui, est
+   * intact (vérifié juste au-dessus).
+   */
   assert.ok(
-    /from '\.\/components\/PasswordRecoveryPanel'/.test(app),
-    "l'import de PasswordRecoveryPanel a disparu de App.tsx"
+    /components\/PasswordRecoveryPanel/.test(app),
+    "la référence à PasswordRecoveryPanel a disparu de App.tsx"
   );
   // Le panneau doit être rendu sur toutes les routes : le lien de
   // réinitialisation dépose sur la racine, pas sur /account.

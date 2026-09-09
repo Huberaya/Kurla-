@@ -4,6 +4,12 @@ import { SkinDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
 import { analytics } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
+import {
+  PHOTOTYPE_CONSENT_TEXT,
+  PHOTOTYPE_OPTIONS,
+  PHOTOTYPE_QUESTION,
+  type Fitzpatrick
+} from '../lib/skinPhototype';
 
 /**
  * DIAGNOSTIC PEAU — KURLA SKIN · 12 étapes (complet 5 min) / 5 étapes (express 2 min)
@@ -29,9 +35,11 @@ export const DiagnosticSkinPage: React.FC = () => {
     try { analytics.diagnosticStart('skin'); } catch { /* noop */ }
   }, []);
 
-  const totalSteps = isExpress ? 5 : 12;
+  const totalSteps = (isExpress ? 5 : 12) + 1; // +1 : le phototype, en dernière étape
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [phototype, setPhototype] = useState<Fitzpatrick | null>(null);
+  const [phototypeConsent, setPhototypeConsent] = useState(false);
 
   const [answers, setAnswers] = useState<SkinDiagnosticAnswers>({
     skinType: 'mixte',
@@ -102,10 +110,47 @@ export const DiagnosticSkinPage: React.FC = () => {
     setAnswers({ ...answers, sensitivities: next });
   };
 
+  /**
+   * Le diagnostic peau n'écrivait rien nulle part.
+   *
+   * Vérifié : `SkinBeautyProfile` existe, il est typé, il est servi par
+   * `PUT /api/beauty-profile` — et aucun code ne l'alimentait depuis la peau.
+   * Seul l'éditeur de profil le touchait. Résultat : une utilisatrice pouvait
+   * faire le diagnostic, obtenir un résultat, et le système ne retenait rien.
+   *
+   * On écrit maintenant le phototype et les réponses exploitables. Sans
+   * session, on n'écrit rien plutôt que de stocker une donnée sensible à
+   * l'aveugle : le diagnostic reste utilisable, il n'est simplement pas mémorisé.
+   */
+  const persistSkinProfile = async () => {
+    const token = session?.access_token;
+    if (!token) return;
+    try {
+      await fetch('/api/beauty-profile', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: {
+            skin: {
+              sensitivity: answers.sensitivity,
+              spfUsage: answers.spfUsage,
+              phototype: phototypeConsent ? phototype : undefined,
+              phototypeConsent
+            }
+          }
+        }),
+        keepalive: true
+      });
+    } catch {
+      /* Le résultat du diagnostic ne doit jamais dépendre de la sauvegarde. */
+    }
+  };
+
   const submitDiagnostic = async () => {
     try { analytics.diagnosticComplete('skin'); } catch { /* noop */ }
     setLoading(true);
     try {
+      await persistSkinProfile();
       // enrichit routine legacy from currentRoutine
       const payload: SkinDiagnosticAnswers = {
         ...answers,
@@ -646,6 +691,48 @@ export const DiagnosticSkinPage: React.FC = () => {
                 </div>
               )}
             </>
+          )}
+
+          {step === totalSteps && (
+            <div className="space-y-6">
+              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">{totalSteps} · Votre peau</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">{PHOTOTYPE_QUESTION}</h2>
+              <p className="text-sm text-[#FFF7EF]/70">
+                C’est la seule question qui change réellement nos conseils sur les taches et les marques :
+                la réaction au soleil dit comment votre peau se défend, et donc comment elle risque de marquer.
+              </p>
+
+              <div className="space-y-2 pt-2">
+                {PHOTOTYPE_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setPhototype(option.value)}
+                    className={`w-full p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
+                      phototype === option.value
+                        ? 'bg-[#C8753D]/20 border-[#C8753D]'
+                        : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-start gap-3 p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={phototypeConsent}
+                  onChange={event => setPhototypeConsent(event.target.checked)}
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-[#C8753D]"
+                />
+                <span className="text-xs text-[#FFF7EF]/70 leading-relaxed">{PHOTOTYPE_CONSENT_TEXT}</span>
+              </label>
+
+              <p className="text-xs text-[#FFF7EF]/50">
+                Vous pouvez passer cette question : la routine fonctionne sans elle, elle sera simplement
+                moins précise sur les marques et le choix de la protection solaire.
+              </p>
+            </div>
           )}
 
           <div className="flex items-center justify-between pt-8 border-t border-[#FFF7EF]/10 mt-8">

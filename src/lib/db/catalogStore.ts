@@ -23,6 +23,25 @@ import type {
   SupabaseServerStore,
 } from '../serverDb';
 
+/**
+ * Un produit peut déclarer ses besoins dans `needs`, dans `concerns`, ou dans
+ * les deux. Le mapping public ne lisait que `concerns` et écrasait `needs` :
+ * un produit qui déclarait deux besoins n'en gardait qu'un.
+ *
+ * Mesuré sur /api/v1/scoring/fit : un produit `needs: [hydrater_cheveux,
+ * reduire_casse]` était servi avec un seul besoin. Le score restait à 100 —
+ * parce qu'il ne portait plus que sur un besoin au lieu de deux — et
+ * l'explication passait de deux raisons à une. Le chiffre avait l'air juste et
+ * ne l'était plus.
+ *
+ * L'union préserve l'ordre de priorité : la liste passée en premier mène.
+ */
+function uniqueNeeds(primary: unknown, secondary: unknown): string[] {
+  const a = Array.isArray(primary) ? primary.filter((v): v is string => typeof v === 'string' && v.trim() !== '') : [];
+  const b = Array.isArray(secondary) ? secondary.filter((v): v is string => typeof v === 'string' && v.trim() !== '') : [];
+  return Array.from(new Set([...a, ...b]));
+}
+
 function correctedNeeds(productId: string, fallback: string[]): string[] {
   const fixed = CORRECTED_PRODUCT_NEEDS[productId];
   return Array.isArray(fixed) && fixed.length > 0 ? fixed : fallback;
@@ -116,8 +135,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         targetHairTypes: p.hair_types || [],
         skinTypes: p.skin_types || [],
         targetSkinTypes: p.skin_types || [],
-        concerns: correctedNeeds(p.id, p.concerns || []),
-        needs: correctedNeeds(p.id, p.concerns || []),
+        concerns: correctedNeeds(p.id, uniqueNeeds(p.concerns, p.needs)),
+        needs: correctedNeeds(p.id, uniqueNeeds(p.needs, p.concerns)),
         countryAvailability: p.country_availability || [],
         isActive: p.is_active === true,
         createdAt: p.created_at,
@@ -216,8 +235,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
       galleryImages: product.galleryImages ?? product.images
     })).map(p => ({
       ...p,
-      concerns: correctedNeeds(p.id, (p as any).concerns || (p as any).needs || []),
-      needs: correctedNeeds(p.id, (p as any).concerns || (p as any).needs || []),
+      concerns: correctedNeeds(p.id, uniqueNeeds((p as any).concerns, (p as any).needs)),
+      needs: correctedNeeds(p.id, uniqueNeeds((p as any).needs, (p as any).concerns)),
     }));
     return options.publishedOnly
       ? memoryMapped.filter(product => isPublishableProduct(product))
@@ -1133,10 +1152,23 @@ export function evaluateCatalogPublicationReadiness(product: any, productId?: st
    * même question, et c'est la seconde qu'un opérateur consulte avant de
    * publier.
    */
+  /**
+   * Ordre de lecture : camelCase d'abord, snake_case en repli.
+   *
+   * L'ordre inverse — snake d'abord — produisait une valeur périmée : un
+   * objet mappé par `getProducts` porte les deux clés, et l'ancienne clé
+   * snake_case (`is_active: false`, héritée de l'import) l'emportait sur la
+   * valeur réellement enregistrée (`isActive: true`). Le produit était
+   * déclaré désactivé alors qu'il venait d'être activé. Vérifié : le banc
+   * `kurla_sitemap_products` échouait sur « produit désactivé ».
+   *
+   * Le repli reste nécessaire : le rapport global lit des lignes brutes qui
+   * n'ont que du snake_case, et n'ont donc aucune clé camelCase.
+   */
   const read = (snakeKey: string): unknown => {
-    if (product[snakeKey] !== undefined) return product[snakeKey];
     const camelKey = snakeKey.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-    return product[camelKey];
+    if (product[camelKey] !== undefined) return product[camelKey];
+    return product[snakeKey];
   };
   const requireVerified = (field: string, label: string) => {
     if (read(field) !== 'verified') missing.push({ field, label: `${label} non vérifié(e)` });

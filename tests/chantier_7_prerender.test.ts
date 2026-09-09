@@ -85,8 +85,12 @@ function runPrerenderTests(): void {
   // indexable — c'est une porte d'entrée SEO vers la boutique et les pros.
   // 28 : `/application`, la page d'installation PWA — la plateforme était
   // installable depuis le chantier 8.7 mais aucun écran ne le disait.
+  // 33 : le pôle peau. `/peau`, `/peau/diagnostic`, `/peau/routine`,
+  // `/peau/guide` et `/peau/comparer` deviennent indexables — `/peau/journal`
+  // et `/peau/diagnostic/resultats` ne le sont pas, à juste titre : ce sont
+  // des écrans privés.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 28, `Attendu 28 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 33, `Attendu 33 routes statiques, obtenu ${staticPublic.length}.`);
   assert.ok(
     staticPublic.some(route => route.path === '/ingredients'),
     'La recherche d’ingrédients doit être prérendue : c’est un pilier SEO.'

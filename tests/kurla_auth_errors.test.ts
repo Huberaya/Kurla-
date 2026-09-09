@@ -53,7 +53,15 @@ async function runAuthErrorTests(): Promise<void> {
   // 5. Le repli simulé de connexion a disparu.
   assert.ok(!/role: 'customer',\s*\n\s*country: 'FR'/.test(authContext),
     'le faux profil `role: customer` du repli simulé est revenu');
-  assert.ok(/if \(!supabase\) \{\s*\n(?:.*\n)*?\s*return \{ success: false/.test(authContext),
+  /**
+   * Indifférent au nom du client.
+   *
+   * L'invariant protégé est celui-ci : sans client Supabase, l'opération
+   * échoue au lieu de réussir silencieusement. Il est respecté — la garde
+   * est en place et rend `{ success: false }`. Ce que l'ancienne expression
+   * testait, en réalité, c'est que la variable s'appelle `supabase`.
+   */
+  assert.ok(/if \(!(?:supabase|client)\)[\s\S]{0,400}?return \{ success: false/.test(authContext),
     'une authentification non vérifiable doit échouer, pas réussir');
 
   console.log(

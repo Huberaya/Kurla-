@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-05T11:31:45.059Z",
+  "generatedAt": "2026-09-09T22:23:15.889Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -44,6 +44,7 @@
     "GET /api/admin/sourcing/items",
     "GET /api/admin/sourcing/items/:itemId",
     "GET /api/admin/sourcing/prospects",
+    "GET /api/admin/sourcing/strategy",
     "GET /api/admin/strategy/cockpit",
     "GET /api/admin/suppliers",
     "GET /api/admin/suppliers/:supplierId",
@@ -121,6 +122,7 @@
     "GET /api/professionals/:professionalId/trust",
     "GET /api/professionals/verified",
     "GET /api/protective-styles",
+    "GET /api/referral",
     "GET /api/returns",
     "GET /api/returns/:id/history",
     "GET /api/returns/insight-prompt",
@@ -186,6 +188,7 @@
     "POST /api/admin/professionals/:professionalId/verify",
     "POST /api/admin/reconcile-payments",
     "POST /api/admin/refunds",
+    "POST /api/admin/retention/recover-abandoned",
     "POST /api/admin/retention/run",
     "POST /api/admin/returns/:id/status",
     "POST /api/admin/reviews/:id/status",
@@ -250,6 +253,7 @@
     "POST /api/protective-styles/:episodeId/close",
     "POST /api/protective-styles/:episodeId/signals",
     "POST /api/recommendations",
+    "POST /api/referral/activate",
     "POST /api/returns",
     "POST /api/returns/:returnId/insight",
     "POST /api/routine-builder",
