@@ -8,9 +8,9 @@ import { getTodayState, toggleToday, getStreak, getWeekHistory } from '../lib/sk
 type SkinTier = 'essentielle' | 'complete' | 'premium';
 
 const SKIN_TIERS: Record<SkinTier, { label: string; price: string; products: number; desc: string; badge: string; color: string }> = {
-  essentielle: { label: 'Essentielle', price: '32 €', products: 3, desc: 'Débutants, petits budgets, 2 min', badge: 'Dès 32 €', color: 'bg-[#FFFDF9]' },
-  complete: { label: 'Complète', price: '68 €', products: 6, desc: 'Recommandée · 5 min · équilibre HPI/barrière', badge: 'Recommandée', color: 'bg-[#FFFDF9]' },
-  premium: { label: 'Premium', price: '124 €', products: 9, desc: 'Passionnés · résultats optimaux', badge: 'Premium', color: 'bg-[#FFFDF9]' },
+  essentielle: { label: 'Essentielle', price: '49,70 €', products: 3, desc: 'Barrière + SPF invisible · 2 min · budget serré', badge: 'Essentielle · −5%', color: 'bg-[#FFFDF9]' },
+  complete: { label: 'Équilibrée', price: '62 €', products: 5, desc: 'Recommandée · HPI + hydratation · −13%', badge: 'Recommandée · −13%', color: 'bg-[#FFFDF9]' },
+  premium: { label: 'Experte', price: '84,90 €', products: 7, desc: 'Complète · grain & taches · −15% · liv. gratuite', badge: 'Experte · −15%', color: 'bg-[#FFFDF9]' },
 };
 
 const MATIN_STEPS = [
@@ -128,15 +128,10 @@ export const RoutinesPage: React.FC = () => {
     const soir = skinTier === 'essentielle' ? SOIR_STEPS.filter(s => [2,5,7].includes(s.n)) : skinTier === 'complete' ? SOIR_STEPS.filter(s => ![1,4].includes(s.n)) : SOIR_STEPS;
     const hebdo = skinTier === 'essentielle' ? [] : HEBDO_STEPS;
 
-    // Prix calculé depuis le catalogue peau réel si disponible, sinon prix tiers fixe
-    const calcPrice = (count: number) => {
-      if (skinProducts.length < count) return count === 3 ? 32 : count === 6 ? 68 : 124;
-      const sorted = [...skinProducts].sort((a,b)=>a.price-b.price);
-      return sorted.slice(0,count).reduce((s,p)=>s+p.price,0);
-    };
-    const priceEss = calcPrice(3);
-    const priceComp = calcPrice(6);
-    const pricePrem = calcPrice(9);
+    // C9 — Prix kits peau chiffrés (alignés peauKits.ts : 49,70/62/84,90) — pas de calcul catalogue tant que gamme en précommande
+    const priceEss = 49.70;
+    const priceComp = 62.00;
+    const pricePrem = 84.90;
     const priceMap: Record<SkinTier, number> = { essentielle: priceEss, complete: priceComp, premium: pricePrem };
     const currentPrice = priceMap[skinTier];
 

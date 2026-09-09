@@ -12,6 +12,7 @@ import { useProduct } from '../services/productService';
 import { analytics } from '../lib/analytics';
 import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { findAlternatives, whitecastRisk as altWhitecastRisk, isSPFProduct as altIsSPF } from '../lib/skinAlternatives';
+import { SKIN_INGREDIENTS_15 } from '../lib/skinIngredients15';
 import { useProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -206,6 +207,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
     try { return findAlternatives(product, products, { max: 3, preferSansParfum: preferSans, preferInvisible: true, budgetMax }); } catch { return []; }
   }, [product?.id, products.length, hasFragrance]);
 
+  // C9 — fiche peau : ingrédients matched depuis SKIN_INGREDIENTS_15 (INCI + preuve A/B + V-VI safe)
+  const matchedSkinIngredients = useMemo(() => {
+    if (!isSkinProduct || !product) return [];
+    const hay = `${product.name} ${product.description} ${product.inci || ''} ${(product.keyIngredients||[]).join(' ')}`.toLowerCase();
+    return SKIN_INGREDIENTS_15.filter(ing => hay.includes(ing.inciNormalized) || hay.includes(ing.id.toLowerCase()) || ing.commonNames.some(n => hay.includes(n.toLowerCase())) || hay.includes(ing.boutiqueActif.toLowerCase()));
+  }, [product?.id, isSkinProduct]);
+
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#050403] text-[#FFF7EF]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -308,6 +316,32 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                   <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Comparer en boutique peau</a>
                   <a href="/peau/routine" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Voir la routine complète</a>
                 </div>
+                {/* C9 — fiche peau INCI + preuve A/B + V-VI safe (15 fiches) */}
+                {matchedSkinIngredients.length > 0 && (
+                  <div className="mt-4 p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                    <p className="text-xs font-bold flex items-center gap-1.5 text-[#D49A63]"><FlaskConical className="w-3.5 h-3.5" /> Actifs documentés — 15 fiches peau</p>
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {matchedSkinIngredients.slice(0,4).map(ing => (
+                        <a key={ing.id} href={`/ingredient/${ing.id}`} className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 hover:border-[#C8753D]/40 block">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-[#FFF7EF]">{ing.commonNames[0] || ing.id}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold border ${ing.evidenceLevel==='A' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-amber-500/15 border-amber-500/30 text-amber-200'}`}>Niveau {ing.evidenceLevel}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#FFF7EF]/10 border border-[#FFF7EF]/10 text-[#FFF7EF]/70">V-VI safe</span>
+                          </div>
+                          <p className="text-[11px] font-mono text-[#FFF7EF]/60 mt-1">INCI: {ing.inci} {ing.maxEuPercent ? `· UE max ${ing.maxEuPercent}%` : ''}</p>
+                          <p className="text-[11px] text-[#FFF7EF]/70 mt-1 line-clamp-2">{ing.evidenceClaim}</p>
+                          <span className="text-[11px] font-bold text-[#D49A63] mt-1 inline-block">Fiche CosIng →</span>
+                        </a>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {matchedSkinIngredients.slice(0,2).map(ing => (
+                        <a key={`b-${ing.id}`} href={`/boutique?cat=peau&actif=${ing.boutiqueActif}`} className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFF7EF] text-[#111111] font-bold hover:bg-white">Boutique ?actif={ing.boutiqueActif} →</a>
+                      ))}
+                      <a href="/guides/ingredients" className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] font-bold hover:border-[#C8753D]">15 fiches →</a>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
