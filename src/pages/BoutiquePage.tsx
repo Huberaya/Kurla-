@@ -18,6 +18,7 @@ import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
 import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
 import { PEAU_KITS } from '../lib/peauKits';
+import { getCountryConfig, getStripeModeForCountry, COUNTRY_SCORES_SORTED } from '../lib/countryFulfillment';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -478,6 +479,16 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <a href="#trouver-par-besoin" className="px-4 py-2 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Filtres directs ↓</a>
               <a href="/peau/diagnostic?mode=express" className="px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-bold">Guidée 2 min →</a>
             </div>
+          </div>
+        )}
+
+        {/* C14 — Logistique pays + Stripe par pays (scoré, pas bloc) */}
+        {activeCategory === 'peau' && (
+          <div className="mb-6 p-3 rounded-2xl bg-[#111111] text-white flex flex-wrap gap-2 items-center justify-between text-xs">
+            <span className="font-bold flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-[#D49A63]" /> Livraison & Stripe par pays</span>
+            <span className="text-white/70 hidden sm:inline">{getCountryConfig(selectedCountry !== 'tous' ? selectedCountry : 'FR').dispatch} · {getStripeModeForCountry(selectedCountry !== 'tous' ? selectedCountry : 'FR') === 'live' ? 'Stripe LIVE' : 'Stripe TEST'}</span>
+            <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/15">FR 82 · BE 76 · SN 71 → BE J+30 / SN J+60 sur preuves</span>
+            <a href="/peau" className="text-[#D49A63] font-bold hover:underline">Pôle peau →</a>
           </div>
         )}
 
