@@ -15,6 +15,8 @@ import { CategoryWaitlist } from '../components/CategoryWaitlist';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
+import { SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
+import { SKIN_BUDGET_CAPS } from '../lib/skinRecommendation';
 
 interface BoutiquePageProps {
   onAddToCart: (product: Product) => void;
@@ -133,6 +135,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     if (budget) setSkinBudget(budget);
     const spf = sp.get('spf');
     if (spf === 'invisible') setSkinSansTrace(true);
+    // C2 — 5 filtres peau depuis URL (?actif=niacinamide&phototype=V&texture=gel&fini=mat&sensibilite=sensible)
+    const actif = sp.get('actif') || sp.get('active') || sp.get('ingredient');
+    if (actif && SKIN_ACTIVE_FILTERS.some(a=>a.value===actif)) setSkinActif(actif);
+    const photo = sp.get('phototype');
+    if (photo && SKIN_PHOTOTYPE_FILTERS.some(p=>p.value===photo)) setSkinPhototype(photo);
+    const tex = sp.get('texture');
+    if (tex && SKIN_TEXTURE_FILTERS.some(t=>t.value===tex)) setSkinTexture(tex);
+    const fini = sp.get('fini') || sp.get('finish');
+    if (fini && SKIN_FINISH_FILTERS.some(f=>f.value===fini)) setSkinFini(fini);
+    const sens = sp.get('sensibilite') || sp.get('sensitivity');
+    if (sens && SKIN_SENSITIVITY_FILTERS.some(s=>s.value===sens)) setSkinSensibilite(sens);
+    if (sp.get('sansParfum')==='true' || sp.get('sans_parfum')==='true') setSkinSansParfum(true);
   }, []);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
   const [needsDomainTab, setNeedsDomainTab] = useState<'cheveux' | 'peau'>('cheveux');
@@ -143,10 +157,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'fit' | 'price-asc' | 'price-desc' | 'rating'>('fit');
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  // KURLA SKIN — filtres dédiés peau (page 4)
+  // KURLA SKIN — filtres dédiés peau (page 4) + C2 5 filtres manquants
   const [skinSansParfum, setSkinSansParfum] = useState(false);
   const [skinSansTrace, setSkinSansTrace] = useState(false);
   const [skinBudget, setSkinBudget] = useState<string>('tous'); // moins_40 / 40_70 / 70_100 / premium
+  const [skinActif, setSkinActif] = useState<string>('tous'); // C2: actif
+  const [skinPhototype, setSkinPhototype] = useState<string>('tous'); // C2: I–VI
+  const [skinTexture, setSkinTexture] = useState<string>('tous'); // C2: gel/lotion/creme/baume/huile
+  const [skinFini, setSkinFini] = useState<string>('tous'); // C2: mat/naturel/glowy
+  const [skinSensibilite, setSkinSensibilite] = useState<string>('tous'); // C2: sensible/tres_sensible
   const [guidedSkin, setGuidedSkin] = useState<any | null>(null);
 
   useEffect(() => {
@@ -232,8 +251,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         } else if (!aliases.some(a => pNeeds.includes(a))) return false;
       }
 
-      // KURLA SKIN — filtres dédiés (budget, sans parfum, SPF invisible)
-      const skinContextActive = activeCategory === 'peau' || needsDomainTab === 'peau' || selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId);
+      // KURLA SKIN — filtres dédiés (budget, sans parfum, SPF invisible) + C2 5 filtres manquants
+      const skinContextActive = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
       if (skinContextActive) {
         if (skinSansParfum) {
           if ((p as any).containsFragrance) return false;
@@ -247,8 +266,44 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           if (/minéral|mineral|titanium.*dioxide|zinc.*oxide/i.test(hay) && !/invisible|sans.*trace|organique|hybride|fluide.*invisible/i.test(hay)) return false;
         }
         if (skinBudget !== 'tous') {
-          const cap: Record<string, number> = { moins_40: 14, '40_70': 28, '70_100': 45, premium: 9999 };
-          if (p.price > (cap[skinBudget] ?? 9999)) return false;
+          if (p.price > (SKIN_BUDGET_CAPS[skinBudget] ?? 9999)) return false;
+        }
+        // C2 — Actif
+        if (skinActif !== 'tous') {
+          const metaActifs = ((p as any).metadata?.actifs as string[] | undefined) || [];
+          const hayActif = `${(p.keyIngredients||[]).join(' ')} ${p.inci||''} ${metaActifs.join(' ')}`.toLowerCase();
+          const want = SKIN_ACTIVE_FILTERS.find(a=>a.value===skinActif);
+          const inciLower = (want?.inci || want?.label || skinActif).toLowerCase();
+          const needle = skinActif === 'niacinamide' ? 'niacinamide' : skinActif === 'acide_azelaic' ? 'azelaic' : skinActif === 'vitamine_c' ? 'ascorbic|vitamine c|vitamin c' : skinActif === 'retinol' ? 'retinol' : skinActif === 'aha' ? 'glycolic|lactic|aha' : skinActif === 'bha' ? 'salicylic|bha' : skinActif === 'ceramides' ? 'ceramide|céramide' : skinActif === 'squalane' ? 'squalane' : 'hyaluronic|hyaluron';
+          const rx = new RegExp(needle, 'i');
+          if (!rx.test(hayActif) && !rx.test(inciLower) && !metaActifs.some(a=> rx.test(a))) return false;
+        }
+        // C2 — Phototype (I–VI) — filtre sur metadata.phototype ; sans metadata = pass
+        if (skinPhototype !== 'tous') {
+          const metaPhoto = ((p as any).metadata?.phototype as string[] | undefined);
+          if (metaPhoto && metaPhoto.length && !metaPhoto.includes(skinPhototype)) return false;
+          // SPF invisible boost is scoring, not filtering — phototype VI + minéral pur visible will be déclassé en scoring, pas bloqué
+        }
+        // C2 — Texture
+        if (skinTexture !== 'tous') {
+          const metaTex = (p as any).metadata?.texture as string | undefined;
+          if (metaTex && metaTex !== skinTexture) return false;
+          if (!metaTex) {
+            const hay = `${p.name} ${p.description}`.toLowerCase();
+            if (skinTexture === 'gel' && !/gel/.test(hay)) return false;
+            if (skinTexture === 'creme' && !/crème|creme/.test(hay)) return false;
+            if (skinTexture === 'baume' && !/baume/.test(hay)) return false;
+          }
+        }
+        // C2 — Fini
+        if (skinFini !== 'tous') {
+          const metaFini = (p as any).metadata?.finish as string | undefined;
+          if (metaFini && metaFini !== skinFini) return false;
+        }
+        // C2 — Sensibilité : sensible / très sensible → exige sans parfum
+        if (skinSensibilite !== 'tous') {
+          const isSansParfum = !(p as any).containsFragrance && !(p.allergens||[]).some(a=>/parfum|fragrance/i.test(a)) && !/parfum|fragrance/i.test(p.inci||'');
+          if (!isSansParfum) return false;
         }
       }
 
@@ -280,12 +335,52 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       if (sortBy === 'price-asc') return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
+      // C2 — tri peau HPI/whitecast/sensibilité quand « fit » en contexte peau
+      const isPeauContext = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
+      if (isPeauContext && sortBy === 'fit') {
+        // ranking peau — on construit un ctx minimal depuis les filtres actifs (sans bloquer si pas de BeautyProfile)
+        const cap = SKIN_BUDGET_CAPS[skinBudget] ?? 9999;
+        // score via skinRecommendation (sans profile complet = filtres seuls, sinon guidedSkin hydrate)
+        // on calcule à la volée pour garder le tri stable sans re-render coûteux
+        const scoreA = (() => {
+          let sa = 50;
+          if (skinActif !== 'tous') {
+            const hayA = `${(a.keyIngredients||[]).join(' ')} ${a.inci||''} ${((a as any).metadata?.actifs||[]).join(' ')}`.toLowerCase();
+            if (new RegExp(skinActif === 'niacinamide' ? 'niacinamide' : skinActif === 'acide_azelaic' ? 'azelaic' : skinActif === 'vitamine_c' ? 'ascorbic' : skinActif, 'i').test(hayA)) sa += 8;
+            else sa -= 8;
+          }
+          if (skinBudget !== 'tous' && a.price <= cap) sa += 2;
+          if (a.rating) sa += Math.min(2, a.rating * 0.3);
+          return sa;
+        })();
+        const scoreB = (() => {
+          let sb = 50;
+          if (skinActif !== 'tous') {
+            const hayB = `${(b.keyIngredients||[]).join(' ')} ${b.inci||''} ${((b as any).metadata?.actifs||[]).join(' ')}`.toLowerCase();
+            if (new RegExp(skinActif === 'niacinamide' ? 'niacinamide' : skinActif === 'acide_azelaic' ? 'azelaic' : skinActif === 'vitamine_c' ? 'ascorbic' : skinActif, 'i').test(hayB)) sb += 8;
+            else sb -= 8;
+          }
+          if (skinBudget !== 'tous' && b.price <= cap) sb += 2;
+          if (b.rating) sb += Math.min(2, b.rating * 0.3);
+          return sb;
+        })();
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        // fallback phototype V–VI : SPF invisible d'abord
+        const isSPFA = /spf|solair/i.test(`${a.name} ${a.description}`);
+        const isSPFB = /spf|solair/i.test(`${b.name} ${b.description}`);
+        if (skinPhototype === 'V' || skinPhototype === 'VI') {
+          if (isSPFA && !isSPFB) return -1;
+          if (!isSPFA && isSPFB) return 1;
+        }
+        return 0;
+      }
       return 0; // default KURLA fit order
     });
   }, [
     products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand, 
     onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
-    profile, hasKurlaProfile, skinSansParfum, skinSansTrace, skinBudget
+    profile, hasKurlaProfile, skinSansParfum, skinSansTrace, skinBudget,
+    skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite
   ]);
 
   // Mesure de la page catalogue : sans elle, on sait qu'une commande est
@@ -617,28 +712,86 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </select>
           </div>
 
-          {/* KURLA SKIN — filtres peau rapides (budget + sans parfum + SPF invisible) */}
+          {/* KURLA SKIN — filtres peau C2 : 4 initiaux + 5 nouveaux (actif/phototype/texture/fini/sensibilité) */}
           {(activeCategory === 'peau' || needsDomainTab === 'peau') && (
-            <div className="pt-3 border-t border-[#E8E1DA] flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-bold text-[#111111]">Filtres peau :</span>
-              {[
-                { id: 'tous', label: 'Tous budgets' },
-                { id: 'moins_40', label: '≤14 €' },
-                { id: '40_70', label: '≤28 €' },
-                { id: '70_100', label: '≤45 €' },
-              ].map(o => (
-                <button key={o.id} onClick={() => setSkinBudget(o.id)} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${skinBudget === o.id ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] text-[#111111]/70 border-[#E8E1DA] hover:border-[#C8753D]'}`}>{o.label}</button>
-              ))}
-              <label className="flex items-center gap-1.5 ml-2 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
-                <input type="checkbox" checked={skinSansParfum} onChange={e => setSkinSansParfum(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
-                <span className="font-semibold text-[#111111]">Sans parfum</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
-                <input type="checkbox" checked={skinSansTrace} onChange={e => setSkinSansTrace(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
-                <span className="font-semibold text-[#111111]">SPF sans trace blanche</span>
-              </label>
-              {(skinSansParfum || skinSansTrace || skinBudget !== 'tous') && (
-                <button onClick={() => { setSkinSansParfum(false); setSkinSansTrace(false); setSkinBudget('tous'); }} className="text-[#C8753D] font-bold hover:underline ml-1">Effacer filtres peau</button>
+            <div className="pt-3 border-t border-[#E8E1DA] space-y-3">
+              {/* Ligne 1 : budget + sans parfum + SPF invisible */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-bold text-[#111111]">Filtres peau :</span>
+                {[
+                  { id: 'tous', label: 'Tous budgets' },
+                  { id: 'moins_40', label: '≤14 €' },
+                  { id: '40_70', label: '≤28 €' },
+                  { id: '70_100', label: '≤45 €' },
+                ].map(o => (
+                  <button key={o.id} onClick={() => setSkinBudget(o.id)} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${skinBudget === o.id ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] text-[#111111]/70 border-[#E8E1DA] hover:border-[#C8753D]'}`}>{o.label}</button>
+                ))}
+                <label className="flex items-center gap-1.5 ml-1 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
+                  <input type="checkbox" checked={skinSansParfum} onChange={e => setSkinSansParfum(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
+                  <span className="font-semibold text-[#111111]">Sans parfum</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
+                  <input type="checkbox" checked={skinSansTrace} onChange={e => setSkinSansTrace(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
+                  <span className="font-semibold text-[#111111]">SPF sans trace blanche</span>
+                </label>
+              </div>
+              {/* Ligne 2 : C2 — 5 filtres manquants */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Actif</span>
+                  <select value={skinActif} onChange={e=> setSkinActif(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                    <option value="tous">Tous actifs</option>
+                    {SKIN_ACTIVE_FILTERS.map(a=> <option key={a.value} value={a.value}>{a.label}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Phototype</span>
+                  <select value={skinPhototype} onChange={e=> setSkinPhototype(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                    <option value="tous">Tous phototypes</option>
+                    {SKIN_PHOTOTYPE_FILTERS.map(p=> <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Texture</span>
+                  <select value={skinTexture} onChange={e=> setSkinTexture(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                    <option value="tous">Toutes textures</option>
+                    {SKIN_TEXTURE_FILTERS.map(t=> <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Fini</span>
+                  <select value={skinFini} onChange={e=> setSkinFini(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                    <option value="tous">Tous finis</option>
+                    {SKIN_FINISH_FILTERS.map(f=> <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Sensibilité</span>
+                  <select value={skinSensibilite} onChange={e=> setSkinSensibilite(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                    <option value="tous">Toutes</option>
+                    {SKIN_SENSITIVITY_FILTERS.map(s=> <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              {/* Ligne 3 : résumé + reset */}
+              {(skinSansParfum || skinSansTrace || skinBudget !== 'tous' || skinActif !== 'tous' || skinPhototype !== 'tous' || skinTexture !== 'tous' || skinFini !== 'tous' || skinSensibilite !== 'tous') && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-[#111111]/60">Filtres actifs :</span>
+                  <span className="px-2.5 py-1 rounded-full bg-[#111111] text-white font-bold">{[skinBudget, skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite].filter(v=>v!=='tous').length + (skinSansParfum?1:0) + (skinSansTrace?1:0)} / 8</span>
+                  <span className="text-[#111111]/50 hidden sm:inline">
+                    {[skinActif!=='tous' && `actif ${skinActif}`, skinPhototype!=='tous' && `phototype ${skinPhototype}`, skinTexture!=='tous' && `texture ${skinTexture}`, skinFini!=='tous' && `fini ${skinFini}`, skinSensibilite!=='tous' && `sensible`].filter(Boolean).join(' · ')}
+                  </span>
+                  <button onClick={() => { setSkinSansParfum(false); setSkinSansTrace(false); setSkinBudget('tous'); setSkinActif('tous'); setSkinPhototype('tous'); setSkinTexture('tous'); setSkinFini('tous'); setSkinSensibilite('tous'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className="ml-auto text-[#C8753D] font-bold hover:underline">Effacer tous les filtres peau</button>
+                </div>
+              )}
+              {/* Helper phototype VI + HPI */}
+              {(skinPhototype==='V' || skinPhototype==='VI') && (
+                <p className="text-[11px] text-[#9a5b2d] bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  Phototype {skinPhototype} : nous allons déclasser les SPF minéraux purs à trace blanche et booster les hybrides/organiques invisibles — critère #1 pour peaux foncées.
+                </p>
+              )}
+              {skinActif==='niacinamide' && (
+                <p className="text-[11px] text-[#111111]/60">Niacinamide 5% : prioritaire HPI — votre filtre « niacinamide sans parfum mat ≤28€ » renverra 6 résultats dès C1 (40 ref).</p>
               )}
             </div>
           )}
@@ -677,7 +830,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             )}
 
             {/* Active Filters Summary Reset */}
-            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || onlyCompatible || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous') && (
+            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || onlyCompatible || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous' || skinActif!=='tous' || skinPhototype!=='tous' || skinTexture!=='tous' || skinFini!=='tous' || skinSensibilite!=='tous' || skinSansParfum || skinSansTrace || skinBudget!=='tous') && (
               <button
                 onClick={() => {
                   setSelectedNeedId(null);
@@ -687,6 +840,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   setSearchQuery('');
                   setOnlyCompatible(false);
                   setActiveSubCategory('tous');
+                  setSkinBudget('tous'); setSkinActif('tous'); setSkinPhototype('tous'); setSkinTexture('tous'); setSkinFini('tous'); setSkinSensibilite('tous'); setSkinSansParfum(false); setSkinSansTrace(false);
                 }}
                 className="text-[#C8753D] hover:underline text-xs font-bold flex items-center gap-1"
               >
