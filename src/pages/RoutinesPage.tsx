@@ -37,6 +37,20 @@ const HEBDO_STEPS = [
   { n: 3, title: 'Auto-massage / Gua sha', desc: '2 min · améliore micro-circulation · toujours avec huile.' },
 ];
 
+const ALT_MATIN: Record<number, Array<{ label: string; price: string; note: string; sansParfum: boolean; whitecast?: string }>> = {
+  1: [{ label: 'Gel nettoyant sans parfum — 150ml', price: '12,90 €', note: 'Mixte/grasse · squalane', sansParfum: true }, { label: 'Lait dermo-apaisant — 200ml', price: '15,50 €', note: 'Sèche/sensible · parfum léger', sansParfum: false }],
+  2: [{ label: 'Tonique niacinamide 5% — 120ml', price: '18 €', note: 'HPI · taches', sansParfum: true }, { label: 'Eau florale bleuet — 200ml', price: '11 €', note: 'Sensibles', sansParfum: true }],
+  3: [{ label: 'Sérum vitamine C 10% — 30ml', price: '22 €', note: 'Éclat · matin', sansParfum: true }, { label: 'Sérum niacinamide 5% — 30ml', price: '19 €', note: 'Alternative taches', sansParfum: true }],
+  5: [{ label: 'Gel céramides léger — 50ml', price: '16 €', note: 'Mixte · fini naturel', sansParfum: true }, { label: 'Crème riche squalane — 50ml', price: '21 €', note: 'Sèche · baume', sansParfum: false }],
+  6: [{ label: 'SPF 50 invisible fluide — 40ml', price: '19 €', note: 'Filtres organiques · sans trace blanche', sansParfum: true, whitecast: 'Invisible' }, { label: 'SPF 50 minéral teinté — 40ml', price: '18 €', note: 'Risque trace si non invisible', sansParfum: false, whitecast: 'Modéré' }],
+};
+
+const ALT_SOIR: Record<number, Array<{ label: string; price: string; note: string; sansParfum: boolean }>> = {
+  4: [{ label: 'Exfoliant AHA 5% doux — 100ml', price: '17 €', note: '1–2×/sem', sansParfum: true }, { label: 'Gommage enzymatique — 75ml', price: '15 €', note: 'Sensibles', sansParfum: true }],
+  5: [{ label: 'Sérum azélaïque 10% — 30ml', price: '20 €', note: 'Taches · soir', sansParfum: true }, { label: 'Sérum tranexamique — 30ml', price: '24 €', note: 'HPI marquée', sansParfum: true }],
+  7: [{ label: 'Baume céramides intense — 50ml', price: '23 €', note: 'Barrière', sansParfum: true }, { label: 'Crème légère — 50ml', price: '18 €', note: 'Mixte', sansParfum: false }],
+};
+
 export const RoutinesPage: React.FC = () => {
   const [routines, setRoutines] = useState<RoutineBundle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +60,7 @@ export const RoutinesPage: React.FC = () => {
   const [skinBudgetInput, setSkinBudgetInput] = useState<string>('');
   const { products } = useProducts();
   const [guided, setGuided] = useState<any | null>(null);
+  const [openAlt, setOpenAlt] = useState<string | null>(null);
 
   const skinProducts = useMemo(() => products.filter(p => p.category === 'peau'), [products]);
 
@@ -167,32 +182,75 @@ export const RoutinesPage: React.FC = () => {
                 <h2 className="text-lg font-bold flex items-center gap-2"><Sun className="w-5 h-5 text-[#C8753D]" /> Matin · protéger — {matin.length} étapes</h2>
                 <p className="text-xs text-[#111111]/60 font-light mt-1">Ordre d’application : du plus léger au plus riche, SPF toujours en dernier.</p>
                 <ol className="mt-4 space-y-3">
-                  {matin.map(s => (
-                    <li key={s.n} className="flex gap-3 p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
-                      <span className="w-7 h-7 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center shrink-0">{s.n}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold leading-tight">{s.title}</p>
-                        <p className="text-xs text-[#111111]/65 font-light leading-relaxed mt-1">{s.desc}</p>
-                        <p className="text-[11px] text-[#C8753D] font-semibold mt-1">{s.inci}</p>
-                        <div className="mt-2 flex gap-1.5">
-                          <a href={`/boutique?cat=peau&q=${encodeURIComponent(s.title.split(' ')[0])}`} className="text-[11px] px-2 py-1 rounded-full bg-white border border-[#E8E1DA] font-semibold hover:border-[#C8753D]">Choisir</a>
-                          <span className="text-[11px] px-2 py-1 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111]/50">Alternative sans parfum</span>
+                  {matin.map(s => {
+                    const alts = ALT_MATIN[s.n];
+                    const isOpen = openAlt === `matin-${s.n}`;
+                    return (
+                      <li key={s.n} className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center shrink-0">{s.n}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold leading-tight">{s.title}</p>
+                            <p className="text-xs text-[#111111]/65 font-light leading-relaxed mt-1">{s.desc}</p>
+                            <p className="text-[11px] text-[#C8753D] font-semibold mt-1">{s.inci}</p>
+                            <div className="mt-2 flex gap-1.5 flex-wrap">
+                              <a href={`/boutique?cat=peau&q=${encodeURIComponent(s.title.split(' ')[0])}`} className="text-[11px] px-2 py-1 rounded-full bg-white border border-[#E8E1DA] font-semibold hover:border-[#C8753D]">Choisir</a>
+                              {alts && <button onClick={()=>setOpenAlt(isOpen?null:`matin-${s.n}`)} className="text-[11px] px-2 py-1 rounded-full bg-[#111111] text-white font-semibold hover:bg-black">{isOpen?'Masquer':'Alternatives (2)'} {alts && alts.some(a=>a.sansParfum)&& <span className="opacity-70">· sans parfum</span>}</button>}
+                              <a href="/peau/comparer" className="text-[11px] px-2 py-1 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111]/60 hover:border-[#C8753D]">Comparer</a>
+                            </div>
+                            {isOpen && alts && (
+                              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {alts.map((a,i)=> (
+                                  <div key={i} className="p-3 rounded-xl bg-white border border-[#E8E1DA] text-xs">
+                                    <p className="font-bold leading-tight">{a.label}</p>
+                                    <p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
+                                    <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'} {a.whitecast?`· ${a.whitecast}`:''}</p>
+                                    <a href={`/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ol>
               </section>
               <section className="p-6 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA]">
                 <h2 className="text-lg font-bold flex items-center gap-2"><Moon className="w-5 h-5 text-[#C8753D]" /> Soir · réparer — {soir.length} étapes</h2>
                 <p className="text-xs text-[#111111]/60 font-light mt-1">Soir : on répare la barrière, on traite les taches (sans “éclaircir”).</p>
                 <ol className="mt-4 space-y-3">
-                  {soir.map(s => (
-                    <li key={s.n} className="flex gap-3 p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
-                      <span className="w-7 h-7 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center shrink-0">{s.n}</span>
-                      <div><p className="text-sm font-bold">{s.title}</p><p className="text-xs text-[#111111]/65 font-light mt-1">{s.desc}</p></div>
-                    </li>
-                  ))}
+                  {soir.map(s => {
+                    const alts = ALT_SOIR[s.n];
+                    const isOpen = openAlt === `soir-${s.n}`;
+                    return (
+                      <li key={s.n} className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center shrink-0">{s.n}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold">{s.title}</p><p className="text-xs text-[#111111]/65 font-light mt-1">{s.desc}</p>
+                            <div className="mt-2 flex gap-1.5 flex-wrap">
+                              <a href={`/boutique?cat=peau&q=${encodeURIComponent(s.title.split(' ')[0])}`} className="text-[11px] px-2 py-1 rounded-full bg-white border border-[#E8E1DA] font-semibold hover:border-[#C8753D]">Choisir</a>
+                              {alts && <button onClick={()=>setOpenAlt(isOpen?null:`soir-${s.n}`)} className="text-[11px] px-2 py-1 rounded-full bg-[#111111] text-white font-semibold hover:bg-black">{isOpen?'Masquer':'Alternatives (2)'}</button>}
+                              <a href="/peau/comparer" className="text-[11px] px-2 py-1 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111]/60">Comparer</a>
+                            </div>
+                            {isOpen && alts && (
+                              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {alts.map((a,i)=> (
+                                  <div key={i} className="p-3 rounded-xl bg-white border border-[#E8E1DA] text-xs">
+                                    <p className="font-bold leading-tight">{a.label}</p><p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
+                                    <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'}</p>
+                                    <a href={`/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
               </section>
             </div>

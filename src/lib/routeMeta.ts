@@ -169,6 +169,15 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/peau/comparer',
+    title: 'Comparateur soins peau — 2 à 4 produits | KURLA SKIN',
+    description:
+      'Comparez texture, fini, SPF sans trace blanche, sans parfum, prix et étape routine. Table claire pour choisir sans promesse médicale.',
+    indexable: true,
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
     path: '/hommes',
     title: 'Barbe, cuir chevelu et soins pour hommes | KURLA',
     description:
