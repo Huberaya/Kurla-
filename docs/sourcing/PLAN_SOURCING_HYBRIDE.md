@@ -1,11 +1,12 @@
 # PLAN DE SOURCING — ROUTE HYBRIDE (revente rapide + marque propre différée)
 
-> Décision du 30/08/2026 : **hybride**, on part de zéro.
+> Décision du 30/08/2026 : **hybride**, on part de zéro. **Mise à jour 2026-09-10 : segmentation par pays (voir `STRATEGIE_SOURCING_SEGMENTEE_PAYS_2026-09-10.md` + `MATRICE_PAYS_SOURCING.csv` + `src/lib/sourcingCountryScore.ts`).**
 > Objectif : un catalogue **réel et achetable en semaines** via la revente de
 > marques déjà conformes, tout en lançant en parallèle le façonnage de 2-3
 > produits héros KURLA (délai long). Aucun nom de contact ni chiffre n'est
 > inventé : les cibles ci-dessous sont publiques et vérifiables ; les tarifs,
 > MOQ et conditions s'obtiennent via les emails fournis.
+> **Règle pays :** l’Europe et l’Afrique ne sont pas des blocs — chaque pays est scoré /40, chaque modèle d’entrée est décidé, aucune ouverture sans **8 gates fichier+date**.
 
 ---
 
@@ -138,6 +139,11 @@ arrivent ensuite, sans avoir bloqué le lancement.
 - `email-faconnier-rfq.md` — email d'accompagnement de l'appel d'offres.
 - `vague-1-apres-shampoing-rince.md` — RFQ **spécification remplie**.
 - `vague-1-shampoing-clarifiant.md` — RFQ **spécification remplie**.
+
+## 6. Annexe 2026-09-10 — Segmentation par pays (décidé, pas proposé)
+
+**Nous allons commencer par FR (34/40) + NL (30/40) — vague 1.** UK (28/40) uniquement en vague 2 via importateur UE avec RP attestée ; US (18/40) refusé en direct sans RP. Façonnage : **Noesis BG (32/40) prioritaire** puis FR fa fourn. Gates chiffrées : tarif écrit + MOQ ≤12 + délai FR ≤5j (NL 72h) + marge HT ≥34% + CPNP/RP + INCI/visuels + échantillon 4C/SPF 0 trace + franco — **fichier+date sinon bloqué**.
+Voir `STRATEGIE_SOURCING_SEGMENTEE_PAYS_2026-09-10.md` (matrice complète /40 + séquence 10 semaines pays par pays), `EMAILS_SEGMENTES_PAR_PAYS.md` (6 templates), `MATRICE_PAYS_SOURCING.csv` et `src/lib/sourcingCountryScore.ts` (scores exécutables).
 
 > À compléter dans chaque email : [VOTRE NOM], [EMAIL], [TÉL], et le site
 > KURLA. Ne rien inventer sur les tarifs ou la taille de KURLA : on assume un
