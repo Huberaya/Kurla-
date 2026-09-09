@@ -78,6 +78,10 @@ export const SkinJournalPage: React.FC = () => {
   const [aiSynthesis, setAiSynthesis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  // C13 — Slider avant/après P2 + analyse teint
+  const [sliderPos, setSliderPos] = useState(50);
+  const [compareIdxA, setCompareIdxA] = useState(0);
+  const [compareIdxB, setCompareIdxB] = useState(1);
   // C7 — Observance peau (C4.3) intégrée au journal
   const [observance, setObservance] = useState(() => { try { return loadObservance(); } catch { return {}; } });
 
@@ -483,11 +487,63 @@ export const SkinJournalPage: React.FC = () => {
             </div>
           )}
           {entries.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs leading-relaxed text-amber-900">
-              <strong>Astuce :</strong> Revenez à J+7 et J+30 avec la même lumière (fenêtre, visage neutre) pour comparer. V1 affiche la photo brute — slider avant/après et analyse teint arriveront en P2.
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs leading-relaxed text-emerald-900">
+              <strong>Astuce P2 :</strong> Revenez à J+7 et J+30 avec la même lumière (fenêtre, visage neutre) — le <strong>slider ci-dessous</strong> compare avant/après, et l’<strong>analyse</strong> donne ressenti moyen / préoccupation récurrente / observance 7j (cosmétique, pas médical).
             </div>
           )}
         </section>
+
+        {/* C13 — Slider avant/après P2 + analyse teint (cosmétique, même lumière, visage neutre) */}
+        {(() => {
+          const withPhoto = entries.filter(e => !!e.photoDataUrl);
+          if (withPhoto.length < 2) return (
+            <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA]">
+              <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — avant/après</h3>
+              <p className="text-xs text-[#111111]/60 mt-1">Ajoutez 2 photos (J+0 + J+7) avec <strong>même lumière</strong> (fenêtre, visage neutre, pas de filtre) pour activer le slider. Uniformiser≠éclaircir — on compare le confort et les marques, pas la carnation.</p>
+              <div className="mt-3 p-4 rounded-2xl bg-[#F8F2EC] border border-dashed border-[#E8E1DA] text-center text-xs text-[#111111]/50">Exemple Fatou : J+0 → J+7 (7 jours d’Équilibrée 62€ sans parfum) · ressenti 3→4/5</div>
+            </section>
+          );
+          const idxA = Math.min(compareIdxA, withPhoto.length-1);
+          const idxB = Math.min(compareIdxB, withPhoto.length-1);
+          const a = withPhoto[idxA];
+          const b = withPhoto[idxB === idxA ? (idxB+1)%withPhoto.length : idxB];
+          // Analyse teint cosmétique chiffrée (pas de diagnostic)
+          const avg = (entries.reduce((s,e)=>s+e.feelingScore,0)/entries.length).toFixed(1);
+          const concernCounts: Record<string,number> = {};
+          entries.forEach(e=>e.concerns.forEach(c=>{ if(c!==UNKNOWN) concernCounts[c]=(concernCounts[c]||0)+1; }));
+          const topConcern = Object.entries(concernCounts).sort((x,y)=>y[1]-x[1])[0];
+          const topLabel = topConcern ? (CONCERNS.find(o=>o.value===topConcern[0])?.label?.split(' ·')[0] || topConcern[0].replaceAll('_',' ')) + ` ×${topConcern[1]}` : '—';
+          const obsRate = (()=>{ try{ const h=getWeekHistory(7); const total=h.length*2; const done=h.reduce((s,d)=>s+(d.matin?1:0)+(d.soir?1:0),0); return total? Math.round(done/total*100):0; }catch{return 0;}})();
+          return (
+            <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA] space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — glissez pour comparer</h3>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-[#F8F2EC] border border-[#E8E1DA]">{withPhoto.length} photos · même lumière conseillée</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs font-semibold">Avant <select value={idxA} onChange={e=>setCompareIdxA(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-xs">{withPhoto.map((e,i)=><option key={e.createdAt} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
+                <label className="text-xs font-semibold">Après <select value={idxB} onChange={e=>setCompareIdxB(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-xs">{withPhoto.map((e,i)=><option key={e.createdAt+i} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
+              </div>
+              <div className="relative w-full max-w-xl mx-auto aspect-[4/3] rounded-2xl overflow-hidden border border-[#E8E1DA] bg-[#F8F2EC] select-none">
+                <img src={b.photoDataUrl!} alt="Après" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
+                  <img src={a.photoDataUrl!} alt="Avant" className="w-full h-full object-cover" style={{ width: `${100/(sliderPos/100)}%`, maxWidth: 'none' }} />
+                </div>
+                <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)]" style={{ left: `${sliderPos}%` }} />
+                <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-[#111111]/80 text-white text-[10px] font-bold">{a.milestone||'Avant'} {a.date}</div>
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold">{b.milestone||'Après'} {b.date}</div>
+                <input type="range" min={0} max={100} value={sliderPos} onChange={e=>setSliderPos(parseInt(e.target.value))} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[80%] accent-[#C8753D]" />
+              </div>
+              <p className="text-[11px] text-[#111111]/50 text-center">Glissez le curseur · photos prises à la fenêtre, visage neutre, pas de filtre — on compare confort/marks, pas carnation. Uniformiser≠éclaircir.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Ressenti moyen</p><p className="text-lg font-bold text-[#C8753D]">{avg}/5</p><p className="text-[#111111]/60">{entries.length} entrées · J+0→J+30</p></div>
+                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Préoccupation récurrente</p><p className="font-semibold">{topLabel}</p><p className="text-[#111111]/60">La plus citée — HPI/SPF si taches</p></div>
+                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Observance 7j</p><p className="text-lg font-bold">{obsRate}%</p><p className="text-[#111111]/60">Matin + soir cochés · streak {streakMatin}/{streakSoir}j</p></div>
+              </div>
+              <p className="text-[11px] text-[#111111]/50">Analyse cosmétique chiffrée, pas de diagnostic médical. Si lésion qui persiste/s'aggrave → pro peau visio.</p>
+            </section>
+          );
+        })()}
 
         {/* C11 — Synthèse IA journal (cosmétique, chiffrée, sans diag médical) */}
         <section className="p-6 rounded-3xl bg-[#111111] text-white border border-[#FFF7EF]/10">
