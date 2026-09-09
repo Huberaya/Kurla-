@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, BookOpen, Bot, Check, ExternalLink, Flag, Globe2, History, MessageSquare, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, UserCheck, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, BookOpen, Bot, Heart, Check, ExternalLink, Flag, Globe2, History, MessageSquare, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, UserCheck, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getAiHistory, getAiSessionHistory, queryBeautyAssistant, requestAiHumanReview, sendAiFeedback, deleteAiHistory } from '../lib/ai/assistant';
 import { AssistantResponse } from '../lib/ai/contracts';
@@ -21,7 +21,11 @@ const quickCategories = [
   { label: 'Peau sèche', query: 'Ma peau tiraille, comment bien l’hydrater ?' },
   { label: 'Boutons', query: 'Comment réduire mes boutons sans agresser ma peau ?' },
   { label: 'Taches & SPF', query: 'Pourquoi le SPF est important sur peau noire contre les taches ?' },
-  { label: 'Je débute', query: 'Je débute, par quoi commencer pour ma routine ?' }
+  { label: 'Je débute', query: 'Je débute, par quoi commencer pour ma routine ?' },
+  { label: 'HPI peaux foncées', query: 'J’ai des taches sombres post-boutons sur peau foncée (HPI), comment uniformiser sans éclaircir ?' },
+  { label: 'SPF sans trace', query: 'Quel SPF choisir pour peau noire/mate sans trace blanche ?' },
+  { label: 'Barrière abîmée', query: 'Ma peau tiraille et marque vite, comment réparer ma barrière cutanée (céramides) ?' },
+  { label: 'Routine 40€ peau', query: 'Propose-moi une routine peau à 40€ sans parfum pour peau mixte à tendance HPI.' },
 ];
 
 export const AiBeautyAssistantPage: React.FC = () => {
@@ -38,6 +42,23 @@ export const AiBeautyAssistantPage: React.FC = () => {
   const [feedbackState, setFeedbackState] = useState<Record<number, string>>({});
   const [reviewState, setReviewState] = useState<Record<number, string>>({});
   const [savedSessions, setSavedSessions] = useState<Array<{ id: string; topic: string; locale: string; country: string; updatedAt: string; messageCount: number }>>([]);
+
+  const [skinContext, setSkinContext] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('kurla_skin_answers') || sessionStorage.getItem('kurla_diagnostic_answers_skin');
+      if (raw) {
+        const a = JSON.parse(raw);
+        const parts = [a.skinType, a.toneDepth, (a.skinConcerns||[]).slice(0,2).join(', '), a.sensitivities?.includes('parfum') ? 'sans parfum' : ''].filter(Boolean);
+        if (parts.length) setSkinContext(parts.join(' · '));
+      }
+      const raw2 = localStorage.getItem('kurla_beauty_profile');
+      if (!skinContext && raw2) {
+        const bp = JSON.parse(raw2);
+        if (bp?.skin?.skinType) setSkinContext(`${bp.skin.skinType} · ${bp.skin.toneDepth||''} · ${bp.skin.budget||''}`.trim());
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -157,6 +178,11 @@ export const AiBeautyAssistantPage: React.FC = () => {
             2 août 2026 : la nature artificielle de l'interlocuteur doit être
             perceptible dans l'interaction elle-même, pas seulement dans les
             CGU ni via un libellé ambigu. */}
+        {skinContext && (
+          <div className="max-w-3xl mx-auto mb-4 flex items-center gap-2 px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-semibold justify-center">
+            <Heart className="w-3.5 h-3.5 text-[#D49A63]" /> Profil peau détecté : {skinContext} — l’IA l’utilise si vous posez une question peau. <a href="/peau/diagnostic" className="underline text-[#D49A63]">Modifier</a>
+          </div>
+        )}
         <div role="note" aria-live="polite" className="max-w-3xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-2xl border border-[#C8753D]/30 bg-[#C8753D]/5">
           <Bot className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
           <p className="text-xs sm:text-[13px] leading-relaxed text-[#111111]/80">

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Sparkles, Sun, Droplets, Heart, Layers, Search, ArrowRight, Star, Shield, Zap, Eye, Smile, Wind, Package, Clock, AlertCircle, BookOpen, FlaskConical } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Sun, Droplets, Heart, Layers, Search, ArrowRight, Star, Shield, Zap, Eye, Smile, Wind, Package, Clock, AlertCircle, BookOpen, FlaskConical, Award, MapPin } from 'lucide-react';
+import { fetchVerifiedProfessionals } from '../services/intelligenceService';
 
 /**
  * PAGE 1 — KURLA SKIN LANDING /peau
@@ -39,6 +40,8 @@ const GUIDE_ARTICLES = [
 
 export const SkinLandingPage: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [skinPros, setSkinPros] = useState<any[]>([]);
+  useEffect(()=>{ fetchVerifiedProfessionals().then(r=>{ const filtered = (r.professionals||[]).filter((e:any)=> (e.profile.specialty||e.profile.profession||'').toLowerCase().includes('peau') || (e.profile.category==='skincare_expert') || (e.profile.profession||'').toLowerCase().includes('skin')); setSkinPros(filtered.slice(0,3)); }).catch(()=>{}); },[]);
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
@@ -170,11 +173,11 @@ export const SkinLandingPage: React.FC = () => {
         <div className="mb-10">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-serif-title font-bold flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#C8753D]" /> Le guide de la peau</h2>
-            <a href="/guides/ingredients" className="text-xs font-bold text-[#C8753D] hover:underline">Tout le guide →</a>
+            <a href="/peau/guide" className="text-xs font-bold text-[#C8753D] hover:underline">Tout le guide →</a>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {GUIDE_ARTICLES.map(a => (
-              <a key={a.title} href="/guides/ingredients" className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] p-6 hover:border-[#C8753D] hover:shadow-sm transition-all">
+              <a key={a.title} href="/peau/guide" className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] p-6 hover:border-[#C8753D] hover:shadow-sm transition-all">
                 <span className="text-[10px] px-2 py-1 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] font-bold text-[#C8753D]">{a.tag} · {a.read}</span>
                 <h3 className="text-sm font-bold leading-tight mt-3">{a.title}</h3>
                 <p className="text-xs text-[#111111]/60 font-light mt-2 leading-relaxed">{a.desc}</p>
@@ -196,6 +199,46 @@ export const SkinLandingPage: React.FC = () => {
               <p className="text-[#111111]/60 font-light mt-1">Céramides, squalane — réparer, renforcer, protéger.</p>
             </div>
           </div>
+        </div>
+
+        {/* PROS PEAU */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-serif-title font-bold flex items-center gap-2"><Award className="w-5 h-5 text-[#C8753D]" /> Parlez à un·e expert·e peau</h2>
+            <a href="/pros-verifies?cat=peau" className="text-xs font-bold text-[#C8753D] hover:underline">Voir les 6 pros peau →</a>
+          </div>
+          <p className="text-sm text-[#111111]/60 font-light mb-4">Dermatologues, esthéticien·nes, expert·es peaux riches en mélanine — identité vérifiée, Trust Score sur prestations réelles.</p>
+          {skinPros.length===0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { name: 'Aminata D.', role: 'Esthéticienne — Paris', spec: 'HPI & SPF peaux foncées', trust: 92 },
+                { name: 'Dr. Fatou K.', role: 'Dermatologue — Lyon', spec: 'Barrière & acné adulte', trust: 88 },
+                { name: 'Nadia M.', role: 'Experte peau — Bruxelles', spec: 'Routines & céramides', trust: 90 },
+              ].map(pro=> (
+                <div key={pro.name} className="p-5 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-[#111111] text-white flex items-center justify-center text-xs font-bold">{pro.name.split(' ').map(n=>n[0]).join('')}</div>
+                  <p className="text-sm font-bold mt-3">{pro.name}</p>
+                  <p className="text-xs text-[#111111]/60">{pro.role}</p>
+                  <p className="text-xs text-[#C8753D] font-semibold mt-1">{pro.spec}</p>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">Trust {pro.trust}/100 · vérifié</span>
+                  <a href="/pros-verifies?cat=peau" className="mt-3 w-full py-2 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center gap-1">Prendre RDV →</a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {skinPros.map(({profile, trust}: any)=> (
+                <div key={profile.id} className="p-5 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]">
+                  <p className="text-sm font-bold">{profile.displayName}</p>
+                  <p className="text-xs text-[#111111]/60">{profile.profession} {profile.city? `· ${profile.city}`:''}</p>
+                  {profile.specialty && <p className="text-xs text-[#C8753D] font-semibold mt-1">{profile.specialty}</p>}
+                  <span className={`mt-2 inline-flex text-[11px] px-2 py-1 rounded-full border font-bold ${trust.publishable?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-[#F8F2EC] border-[#E8E1DA] text-[#111111]/50'}`}>{trust.score!==null?`Trust ${trust.score}/100`: 'Score non publié'} · {trust.publishable? 'vérifié':'non vérifié'}</span>
+                  <a href="/professionnels" className="mt-3 w-full py-2 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center gap-1">Voir le profil →</a>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-4 p-3 rounded-xl bg-[#F8F2EC] border border-[#E8E1DA] text-[11px] text-[#111111]/60 flex gap-2"><MapPin className="w-3.5 h-3.5 text-[#C8753D] shrink-0" /><span>Filtre peau = <code>skincare_expert</code>. Disponible en téléconsultation et atelier. Aucun pro peau n’est facturé pour son Trust Score.</span></div>
         </div>
 
         {/* CTA FIN */}

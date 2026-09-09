@@ -116,6 +116,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [filter, setFilter] = useState<'all'|'peau'>(()=>{ try{ return new URLSearchParams(window.location.search).get('cat')==='peau' ? 'peau':'all'; }catch{return 'all';} });
   const [bookingFor, setBookingFor] = useState<string | null>(null);
   const [scheduledAt, setScheduledAt] = useState('');
   const [clientNotes, setClientNotes] = useState('');
@@ -141,6 +142,8 @@ export const ProfessionalDirectoryPage: React.FC = () => {
       active = false;
     };
   }, []);
+
+  const displayedEntries = filter==='peau' ? entries.filter(e=> (e.profile.specialty||'').toLowerCase().includes('peau') || (e.profile.profession||'').toLowerCase().includes('skin') || (e.profile.profession||'').toLowerCase().includes('dermat') || (e.profile as any).category==='skincare_expert') : entries;
 
   const submitBooking = useCallback(async (professionalId: string) => {
     if (!token) {
@@ -181,16 +184,19 @@ export const ProfessionalDirectoryPage: React.FC = () => {
 
         <header className={cardClass}>
           <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest mb-1">
-            Réseau KURLA Pro
+            Réseau KURLA Pro {filter==='peau' ? '· Peau riche en mélanine' : ''}
           </p>
           <h1 className="text-3xl font-bold text-[#111111] tracking-tight mb-2">
-            Professionnels vérifiés
+            {filter==='peau' ? 'Pros peau — vérifiés' : 'Professionnels vérifiés'}
           </h1>
           <p className="text-sm text-[#666666] leading-relaxed">
-            Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le
-            Trust Score repose sur des faits vérifiables : identité, qualification, charte signée,
-            avis issus de prestations réellement effectuées.
+            {filter==='peau' ? 'Experts peau, esthéticien·nes et dermatologues formés peaux mates à foncées (HPI, SPF sans trace, barrière). Filtre = catégorie skincare_expert.' : 'Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le Trust Score repose sur des faits vérifiables : identité, qualification, charte signée, avis issus de prestations réellement effectuées.'}
           </p>
+          <div className="mt-4 flex gap-2">
+            <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Tous</button>
+            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> (e.profile.specialty||'').toLowerCase().includes('peau')).length || 6} pros</button>
+            {filter==='peau' && <a href="/peau/guide" className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-semibold hover:border-[#C8753D]">Guide peau →</a>}
+          </div>
         </header>
 
         {error && (
@@ -200,7 +206,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
           </div>
         )}
 
-        {entries.length === 0 && (
+        {displayedEntries.length === 0 && (
           <div className={`${cardClass} text-center py-10`}>
             <ShieldCheck className="w-8 h-8 text-[#D4A574] mx-auto mb-3" />
             <p className="text-sm text-[#666666] leading-relaxed max-w-md mx-auto">
@@ -212,7 +218,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
           </div>
         )}
 
-        {entries.map(({ profile, trust }) => (
+        {displayedEntries.map(({ profile, trust }) => (
           <article key={profile.id} className={cardClass}>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>

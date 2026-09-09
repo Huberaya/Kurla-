@@ -85,6 +85,22 @@ export const SkinIdPage: React.FC = () => {
   const hasLocalJournal = (() => { try { return JSON.parse(localStorage.getItem('kurla_skin_journal') || '[]'); } catch { return []; } })();
   const journal = (skin.journal && skin.journal.length ? skin.journal : hasLocalJournal) as Array<{ date: string; feeling: string; concerns: string[]; notes?: string }>;
 
+  const insights = (() => {
+    if (!journal || journal.length < 3) return null;
+    const last7 = journal.slice(0, 7);
+    const inconfortCount = last7.filter(j => j.feeling === 'inconfort').length;
+    const mitigeCount = last7.filter(j => j.feeling === 'mitige').length;
+    const counts: Record<string, number> = {};
+    last7.forEach(j => (j.concerns||[]).forEach(c=> { if(c!=='inconnue') counts[c]=(counts[c]||0)+1; }));
+    const topConcern = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    const spfLow = (skin.spfUsage==='jamais' || skin.spfUsage==='parfois') && (topConcern && /taches|hpi|teint/i.test(topConcern[0]));
+    if (inconfortCount >= 3) return { type: 'alert', title: 'Inconfort récurrent (≥3 / 7 derniers jours)', body: `${inconfortCount} entrées “inconfort” récemment${topConcern? `, souvent avec ${label(topConcern[0])}`:''}. Vérifiez barrière (céramides/squalane) et pause exfoliant/rétinol. Si douleur ou lésion, consultez.`, cta: '/peau/guide#barriere' };
+    if (mitigeCount >= 3 && topConcern) return { type: 'info', title: `Motif : ${label(topConcern[0])} revient`, body: `“${label(topConcern[0])}” présent ${topConcern[1]}× sur les 7 derniers jours. Votre routine actuelle (${label(skin.currentRoutine)}) est-elle adaptée ? Revoyez l’étape concernée.`, cta: '/peau/routine' };
+    if (spfLow) return { type: 'spf', title: 'HPI + SPF faible = piste d’amélioration', body: `Vous notez ${topConcern? label(topConcern[0]):'des taches'} et votre SPF est “${label(skin.spfUsage)}”. Le guide SPF explique le choix sans trace blanche.`, cta: '/peau/guide#spf' };
+    if (topConcern && topConcern[1] >=3) return { type: 'info', title: `Focus : ${label(topConcern[0])}`, body: `Cette préoccupation revient ${topConcern[1]}×. Explorez la fiche guide et l’alternative sans parfum si sensible.`, cta: `/boutique?cat=peau&q=${topConcern[0].split('_')[0]}` };
+    return null;
+  })();
+
   const saveProfile = async () => {
     if (!token) {
       // sauvegarde locale
@@ -219,8 +235,19 @@ export const SkinIdPage: React.FC = () => {
 
         {/* Journal V1 */}
         <div className="p-6 sm:p-8 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] space-y-6">
+          {insights && (
+            <div className={`p-4 rounded-2xl border flex gap-3 text-xs leading-relaxed ${insights.type==='alert'?'bg-amber-50 border-amber-200 text-amber-900': insights.type==='spf'?'bg-sky-50 border-sky-200 text-sky-900':'bg-emerald-50 border-emerald-200 text-emerald-900'}`}>
+              <Info className={`w-4 h-4 shrink-0 mt-0.5 ${insights.type==='alert'?'text-amber-600': insights.type==='spf'?'text-sky-600':'text-emerald-600'}`} />
+              <div className="flex-1">
+                <p className="font-bold">{insights.title}</p>
+                <p className="mt-1 opacity-80">{insights.body}</p>
+              </div>
+              <a href={insights.cta} className="shrink-0 px-3 py-1.5 rounded-full bg-[#111111] text-white text-[11px] font-bold hover:bg-black">Voir →</a>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2"><Calendar className="w-5 h-5 text-[#C8753D]" /> Journal peau V1</h2>
+            <h2 className="text-lg font-bold flex items-center gap-2"><Calendar className="w-5 h-5 text-[#C8753D]" /> Journal peau V2 — suivi + motifs</h2>
             <span className="text-xs text-[#111111]/50">{journal.length} entrée{journal.length > 1 ? 's' : ''}</span>
           </div>
           <p className="text-xs text-[#111111]/60 leading-relaxed">Notez votre ressenti du jour. KURLA repère les motifs (ex: HPI qui revient, sécheresse hivernale) sans poser de diagnostic médical. Max 50 entrées — les plus anciennes s’effacent.</p>

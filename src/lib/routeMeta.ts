@@ -178,6 +178,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.7,
   },
   {
+    path: '/peau/guide',
+    title: 'Guide peau — HPI, SPF sans trace, niacinamide, barrière | KURLA SKIN',
+    description:
+      '7 fiches de 3–6 min : HPI peaux foncées, SPF invisible, niacinamide 5%, céramides, rétinol/AHA gardes, textures et routine par budget. Uniformiser ≠ éclaircir.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
     path: '/hommes',
     title: 'Barbe, cuir chevelu et soins pour hommes | KURLA',
     description:
