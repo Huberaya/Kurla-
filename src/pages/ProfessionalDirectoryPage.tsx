@@ -192,10 +192,11 @@ export const ProfessionalDirectoryPage: React.FC = () => {
           <p className="text-sm text-[#666666] leading-relaxed">
             {filter==='peau' ? 'Experts peau, esthéticien·nes et dermatologues formés peaux mates à foncées (HPI, SPF sans trace, barrière). Filtre = catégorie skincare_expert.' : 'Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le Trust Score repose sur des faits vérifiables : identité, qualification, charte signée, avis issus de prestations réellement effectuées.'}
           </p>
-          <div className="mt-4 flex gap-2">
-            <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Tous</button>
-            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> (e.profile.specialty||'').toLowerCase().includes('peau')).length || 6} pros</button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Tous · {entries.length}</button>
+            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> ((e.profile.specialty||e.profile.profession||'') + ' ' + (e.profile.category||'')).toLowerCase().includes('peau') || (e.profile.category==='skincare_expert')).length} pros</button>
             {filter==='peau' && <a href="/peau/guide" className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-semibold hover:border-[#C8753D]">Guide peau →</a>}
+            {filter==='peau' && <a href="/pro/candidature" className="px-3 py-1.5 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Pro peau → candidater</a>}
           </div>
         </header>
 
@@ -210,11 +211,13 @@ export const ProfessionalDirectoryPage: React.FC = () => {
           <div className={`${cardClass} text-center py-10`}>
             <ShieldCheck className="w-8 h-8 text-[#D4A574] mx-auto mb-3" />
             <p className="text-sm text-[#666666] leading-relaxed max-w-md mx-auto">
-              {note || 'Aucun professionnel vérifié n’est encore listé.'}
+              {note || (filter==='peau' ? 'Aucun pro peau vérifié n’est encore listé — le pôle peau vient d’ouvrir (15 besoins + 15 fiches). L’annuaire n’affiche que des pros au Trust Score vérifié (identité + qualification + avis sur prestation réelle).' : 'Aucun professionnel vérifié n’est encore listé.')}
             </p>
-            <p className="text-xs text-[#999999] mt-3">
-              KURLA préfère un annuaire vide à un annuaire non vérifié.
+            <p className="text-xs text-[#999999] mt-3 max-w-md mx-auto">
+              {filter==='peau' ? 'Vous êtes pro peau (dermato, esthéticienne, expert·e HPI/SPF sans trace) ? Candidatez — la vérification est gratuite et le score n’est jamais facturé.' : 'KURLA préfère un annuaire vide à un annuaire non vérifié.'}
             </p>
+            {filter==='peau' && <a href="/pro/candidature" className="mt-4 inline-flex px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-bold">Devenir pro peau →</a>}
+            {filter==='peau' && <div className="mt-4 p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-left max-w-md mx-auto"><p className="text-xs font-bold">En attendant</p><p className="text-xs text-[#666666] leading-relaxed">Diagnostic peau gratuit 2 min + 15 fiches ingrédient documentées V-VI safe + kits peau précommande. Réunion pro peau mensuelle (visio) — s’inscrire sur la page candidature.</p><a href="/peau" className="text-xs font-bold text-[#C8753D] hover:underline">Pôle peau →</a></div>}
           </div>
         )}
 

@@ -215,13 +215,17 @@ export const SkinLandingPage: React.FC = () => {
                 { name: 'Dr. Fatou K.', role: 'Dermatologue — Lyon', spec: 'Barrière & acné adulte', trust: 88 },
                 { name: 'Nadia M.', role: 'Experte peau — Bruxelles', spec: 'Routines & céramides', trust: 90 },
               ].map(pro=> (
-                <div key={pro.name} className="p-5 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-[#111111] text-white flex items-center justify-center text-xs font-bold">{pro.name.split(' ').map(n=>n[0]).join('')}</div>
+                <div key={pro.name} className="p-5 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] transition-colors opacity-95">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-full bg-[#111111] text-white flex items-center justify-center text-xs font-bold">{pro.name.split(' ').map(n=>n[0]).join('')}</div>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] font-bold text-[#111111]/60">EXEMPLE · non réservable</span>
+                  </div>
                   <p className="text-sm font-bold mt-3">{pro.name}</p>
                   <p className="text-xs text-[#111111]/60">{pro.role}</p>
                   <p className="text-xs text-[#C8753D] font-semibold mt-1">{pro.spec}</p>
-                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">Trust {pro.trust}/100 · vérifié</span>
-                  <a href="/pros-verifies?cat=peau" className="mt-3 w-full py-2 rounded-full bg-[#111111] text-white text-xs font-bold flex items-center justify-center gap-1">Prendre RDV →</a>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 font-bold">Aperçu Trust {pro.trust}/100 · exemple</span>
+                  <p className="text-[11px] text-[#111111]/50 mt-2">Fiche illustrative du rendu vérifié. Aucune réservation sur ce profil.</p>
+                  <a href="/pro/candidature" className="mt-3 w-full py-2 rounded-full bg-white border border-[#E8E1DA] hover:border-[#C8753D] text-[#111111] text-xs font-bold flex items-center justify-center gap-1">Devenir pro peau →</a>
                 </div>
               ))}
             </div>

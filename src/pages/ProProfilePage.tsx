@@ -121,25 +121,43 @@ export const ProProfilePage: React.FC<ProProfilePageProps> = ({ slug }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
           <div className="lg:col-span-7 space-y-6">
-            {/* Prestations : aucune donnée réelle n'existe encore.
-                Plutôt que d'inventer des tarifs, on déclare l'absence. */}
-            <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10">
-              <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] mb-3">Prestations &amp; tarifs</h2>
-              <p className="text-sm text-[#FFF7EF]/70 font-light leading-relaxed">
-                Ce professionnel n&apos;a pas encore publié de prestations sur KURLA. Nous n&apos;affichons
-                ni tarif ni durée inventés : contactez-le directement pour connaître ses disponibilités.
-              </p>
-              {pro.portfolioUrl && (
-                <a
-                  href={pro.portfolioUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-4 text-xs font-semibold text-[#D49A63] hover:text-[#FFF7EF] underline"
-                >
-                  Voir son portfolio
-                </a>
-              )}
-            </div>
+            {/* C7 — Prestations peau : jamais inventer, mais préciser le champ peau si pro peau */}
+            {(() => {
+              const isPeauPro = /peau|dermato|esthét|skin|scalp/i.test(`${pro.profession} ${(pro as any).specialty || ''}`);
+              return (
+                <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10">
+                  <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] mb-3">{isPeauPro ? 'Prestations peau & conseils' : 'Prestations & tarifs'}</h2>
+                  {isPeauPro ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-[#FFF7EF]/70 font-light leading-relaxed">
+                        Expert·e peau riche en mélanine : conseils routine, HPI/taches, barrière (céramides), SPF sans trace blanche. Aucun tarif affiché tant que le pro ne l’a pas renseigné — KURLA n’invente ni prix ni durée.
+                      </p>
+                      <ul className="text-xs text-[#FFF7EF]/70 space-y-1.5 list-disc list-inside">
+                        <li>Consultation peau 30 min (visio ou présentiel)</li>
+                        <li>Suivi journal peau J+7 / J+30 + ajustement routine</li>
+                        <li>Atelier SPF invisible · démo texture sur phototype V–VI</li>
+                      </ul>
+                      <p className="text-[11px] text-[#FFF7EF]/50">Uniformiser ≠ éclaircir · garde : avis non médical, orientation seulement.</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#FFF7EF]/70 font-light leading-relaxed">
+                      Ce professionnel n&apos;a pas encore publié de prestations sur KURLA. Nous n&apos;affichons
+                      ni tarif ni durée inventés : contactez-le directement pour connaître ses disponibilités.
+                    </p>
+                  )}
+                  {pro.portfolioUrl && (
+                    <a
+                      href={pro.portfolioUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-4 text-xs font-semibold text-[#D49A63] hover:text-[#FFF7EF] underline"
+                    >
+                      Voir son portfolio
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="lg:col-span-5 space-y-6">

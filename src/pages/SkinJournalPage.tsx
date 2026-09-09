@@ -4,6 +4,7 @@ import { UNKNOWN, SKIN_CONCERN_OPTIONS } from '../lib/beautyProfile';
 import type { BeautyProfile } from '../lib/beautyProfile';
 import { createEmptyBeautyProfile } from '../lib/beautyProfile';
 import { useAuth } from '../context/AuthContext';
+import { loadObservance, toggleToday, getStreak, getWeekHistory } from '../lib/skinObservance';
 
 type JournalEntry = {
   date: string; // YYYY-MM-DD
@@ -72,6 +73,24 @@ export const SkinJournalPage: React.FC = () => {
   const [photoDataUrl, setPhotoDataUrl] = useState<string | undefined>(undefined);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  // C7 — Observance peau (C4.3) intégrée au journal
+  const [observance, setObservance] = useState(() => { try { return loadObservance(); } catch { return {}; } });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayObs = observance[todayStr] || { matin: false, soir: false };
+  const streakMatin = (() => { try { return getStreak('matin'); } catch { return 0; } })();
+  const streakSoir = (() => { try { return getStreak('soir'); } catch { return 0; } })();
+  const weekHist = (() => { try { return getWeekHistory(7); } catch { return []; } })();
+
+  const handleToggleObs = (moment: 'matin' | 'soir') => {
+    try {
+      const next = toggleToday(moment);
+      setObservance(next);
+      const done = next[todayStr]?.[moment];
+      setObservanceMsg(done ? `${moment === 'matin' ? 'Matin' : 'Soir'} coché — streak ${moment === 'matin' ? getStreak('matin') : getStreak('soir')}j` : `${moment === 'matin' ? 'Matin' : 'Soir'} décoché`);
+      setTimeout(() => setObservanceMsg(''), 2500);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     const loaded = loadJournal();
@@ -239,6 +258,56 @@ export const SkinJournalPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* C7 — Observance peau + phototype (intégré au journal, pas séparé) */}
+        <section className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E1DA] shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1">
+              <h2 className="text-sm font-bold flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8753D]" /> Observance aujourd’hui — {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+              <p className="text-xs text-[#111111]/60 mt-1">Cochez matin / soir. KURLA compte le streak sans juger. Journal ≠ diagnostic médical.</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button onClick={() => handleToggleObs('matin')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.matin ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                  <span className="text-lg">☀️</span>
+                  <span className="text-xs font-bold">Matin : protéger</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.matin ? 'bg-white text-[#111111]' : 'bg-[#F8F2EC] border border-[#E8E1DA]'}`}>{todayObs.matin ? 'Fait ✓' : 'À faire'}</span>
+                  <span className="text-[11px] opacity-70">Streak {streakMatin}j</span>
+                </button>
+                <button onClick={() => handleToggleObs('soir')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.soir ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                  <span className="text-lg">🌙</span>
+                  <span className="text-xs font-bold">Soir : réparer</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.soir ? 'bg-white text-[#C8753D]' : 'bg-[#F8F2EC] border border-[#E8E1DA]'}`}>{todayObs.soir ? 'Fait ✓' : 'À faire'}</span>
+                  <span className="text-[11px] opacity-80">Streak {streakSoir}j</span>
+                </button>
+              </div>
+              {observanceMsg && <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-3">{observanceMsg}</p>}
+              <div className="mt-4 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] font-bold text-[#111111]/60 mr-1">7 derniers jours :</span>
+                {weekHist.map(d => (
+                  <span key={d.date} title={`${d.date} · matin ${d.matin ? '✓' : '—'} · soir ${d.soir ? '✓' : '—'}`} className={`w-8 h-8 rounded-xl border flex flex-col items-center justify-center text-[10px] font-bold leading-none ${d.matin && d.soir ? 'bg-[#111111] text-white border-[#111111]' : d.matin || d.soir ? 'bg-[#F8F2EC] border-[#E8E1DA] text-[#111111]' : 'bg-white border-dashed border-[#E8E1DA] text-[#111111]/40'}`}>
+                    <span>{new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'narrow' }).toUpperCase()}</span>
+                    <span className="text-[11px]">{d.matin ? '☀' : '·'}{d.soir ? '☾' : '·'}</span>
+                  </span>
+                ))}
+                <a href="/peau/routine" className="ml-2 text-[11px] font-bold text-[#C8753D] hover:underline">Ma routine →</a>
+              </div>
+            </div>
+            <div className="lg:w-[300px] shrink-0 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
+              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Votre profil peau</p>
+              <div className="mt-3 space-y-1.5 text-xs">
+                <div className="flex justify-between"><span className="text-[#111111]/60">Type</span><span className="font-semibold">{profile.skin?.skinType && profile.skin.skinType !== UNKNOWN ? profile.skin.skinType : 'non renseigné'}</span></div>
+                <div className="flex justify-between"><span className="text-[#111111]/60">Carnation</span><span className="font-semibold">{profile.skin?.toneDepth && profile.skin.toneDepth !== UNKNOWN ? profile.skin.toneDepth : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-[#111111]/60">Sensibilité</span><span className="font-semibold">{profile.skin?.sensitivity && profile.skin.sensitivity !== UNKNOWN ? profile.skin.sensitivity : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-[#111111]/60">HPI</span><span className="font-semibold">{profile.skin?.hyperpigmentationTendency && profile.skin.hyperpigmentationTendency !== UNKNOWN ? profile.skin.hyperpigmentationTendency : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-[#111111]/60">Budget</span><span className="font-semibold">{profile.skin?.budget || '—'}</span></div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <a href="/peau/diagnostic" className="flex-1 py-2 rounded-full bg-[#111111] text-white text-xs font-bold text-center">Diagnostic</a>
+                <a href="/account/beauty-profile" className="flex-1 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold text-center">Éditer profil</a>
+              </div>
+              <p className="text-[11px] text-[#111111]/50 mt-2">Le journal lit votre profil peau pour pré-remplir les suggestions. Modifiable à tout moment.</p>
+            </div>
+          </div>
+        </section>
 
         {(message || error) && (
           <div className={`p-4 rounded-2xl text-sm flex items-start gap-2 ${error ? 'bg-rose-50 border border-rose-200 text-rose-900' : 'bg-emerald-50 border border-emerald-200 text-emerald-900'}`}>
