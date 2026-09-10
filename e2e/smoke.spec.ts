@@ -228,3 +228,66 @@ test.describe('visuels de marque', () => {
     expect(alt!.length).toBeGreaterThan(20);
   });
 });
+
+/**
+ * C-02 — le résultat du diagnostic peau affiche le bon profil.
+ *
+ * Ces deux tests n'existaient pas, et c'était un angle mort : la base de
+ * connaissance peau était importée sans jamais être lue, donc aucun écran ne
+ * la montrait et aucune panne n'était visible. Le banc de parcours vérifie
+ * maintenant les deux sens — le profil attendu s'affiche, et aucun profil
+ * n'est inventé quand les réponses ne disent rien.
+ */
+test.describe('résultat du diagnostic peau', () => {
+  /** Dépose les réponses en session, comme le fait le questionnaire. */
+  async function deposerReponses(page: import('@playwright/test').Page, answers: Record<string, unknown>) {
+    await page.goto('/peau', { waitUntil: 'domcontentloaded' });
+    await page.evaluate((data) => {
+      sessionStorage.setItem('kurla_diagnostic_answers_skin', JSON.stringify(data));
+    }, answers);
+    await page.goto('/peau/diagnostic/resultats', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(
+      () => (document.getElementById('root')?.innerText || '').trim().length > 40,
+      undefined,
+      { timeout: 15_000 },
+    );
+  }
+
+  test('une peau à imperfections affiche le profil imperfections, pas celui des taches', async ({ page }) => {
+    await deposerReponses(page, {
+      skinType: 'mixte',
+      acne: 'reguliere',
+      skinConcerns: ['imperfections', 'taches'],
+      skinObjectives: ['reduire_imperfections'],
+      toneDepth: 'fonce',
+      sensitivity: 'moyenne',
+      spfUsage: 'parfois',
+      currentRoutine: 'simple',
+      budget: '40_70',
+      ageRange: '25_34'
+    });
+
+    await expect(page.getByText('Ce que ta peau mélaninée exige')).toBeVisible();
+    // La cause avant la conséquence : l'imperfection gagne sur les taches.
+    await expect(page.getByText('Peau à Imperfections — sans laisser de marques')).toBeVisible();
+    await expect(page.getByText(/Ne jamais percer ni triturer/)).toBeVisible();
+  });
+
+  test('sans signal dans les réponses, aucun profil n’est affiché', async ({ page }) => {
+    await deposerReponses(page, {
+      skinType: 'mixte',
+      acne: 'aucune',
+      skinConcerns: ['grain_irregulier'],
+      skinObjectives: [],
+      toneDepth: 'intermediaire',
+      sensitivity: 'faible',
+      spfUsage: 'quotidien',
+      currentRoutine: 'simple',
+      budget: '40_70',
+      ageRange: '25_34'
+    });
+
+    // Un profil « par défaut » serait une invention : la page doit se taire.
+    await expect(page.getByText('Ce que ta peau mélaninée exige')).toHaveCount(0);
+  });
+});

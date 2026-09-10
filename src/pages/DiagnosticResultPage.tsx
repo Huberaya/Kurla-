@@ -3,6 +3,7 @@ import { Sparkles, ShieldCheck, CheckCircle2, ArrowRight, ShoppingBag, AlertTria
 import { AIRecommendationResult, Product, SkinDiagnosticAnswers } from '../types';
 import { useProducts } from '../services/productService';
 import { recommendKit } from '../lib/launchCatalog';
+import { pickSkinKnowledgeProfile } from '../lib/knowledge/skin';
 
 type SkinRecap = SkinDiagnosticAnswers & { diagnosticType?: string };
 
@@ -84,6 +85,10 @@ export const DiagnosticResultPage: React.FC = () => {
     const budget = sa.budget || '40_70';
     const sansParfum = (sa.sensitivities || []).includes('parfum');
     const hpiLevel = sa.hyperpigmentationTendency || 'inconnue';
+    // C-02 — la base de connaissance peau était écrite, sourcée… et lue par
+    // personne. Elle est affichée ici, au moment où le diagnostic vient
+    // d'être posé. Sans signal dans les réponses, elle ne s'affiche pas.
+    const skinProfile = pickSkinKnowledgeProfile(sa);
 
     // Routine par défaut si l'API n'a rien renvoyé de spécifique peau
     const fallbackSteps = {
@@ -187,6 +192,49 @@ export const DiagnosticResultPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* C-02 — le profil de connaissance peau. Choisi à partir des réponses :
+              sans signal, aucun bloc, plutôt qu'un profil inventé par défaut. */}
+          {skinProfile && (
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 mb-8 shadow-xl">
+              <p className="text-[11px] uppercase tracking-widest font-bold text-[#C8753D] mb-1.5">Ce que ta peau mélaninée exige</p>
+              <h3 className="text-xl font-serif-title font-bold text-[#FFF7EF] mb-2">{skinProfile.name}</h3>
+              <p className="text-sm text-[#FFF7EF]/70 leading-relaxed mb-5 max-w-3xl">{skinProfile.description}</p>
+              <div className="grid md:grid-cols-3 gap-5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mb-2">Les règles qui comptent</p>
+                  <ul className="space-y-2 text-xs text-[#FFF7EF]/85 leading-relaxed">
+                    {skinProfile.melaninKeyPoints.map((point, i) => (
+                      <li key={i} className="flex gap-2"><span className="text-[#C8753D] shrink-0">•</span><span>{point}</span></li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mb-2">Actifs utiles</p>
+                  <ul className="space-y-1.5 text-xs text-emerald-200/90 leading-relaxed">
+                    {skinProfile.recommendedIngredients.map((ing, i) => (
+                      <li key={i} className="flex gap-2"><span className="text-emerald-400 shrink-0">+</span><span>{ing}</span></li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mt-4 mb-2">À éviter</p>
+                  <ul className="space-y-1.5 text-xs text-rose-200/90 leading-relaxed">
+                    {skinProfile.ingredientsToAvoid.map((ing, i) => (
+                      <li key={i} className="flex gap-2"><span className="text-rose-400 shrink-0">−</span><span>{ing}</span></li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mb-2">Dans le catalogue KURLA</p>
+                  <ul className="space-y-1.5 text-xs text-[#FFF7EF]/85 leading-relaxed">
+                    {skinProfile.keyProducts.map((produit, i) => (
+                      <li key={i} className="flex gap-2"><span className="text-[#D49A63] shrink-0">·</span><span>{produit}</span></li>
+                    ))}
+                  </ul>
+                  <a href="/boutique?cat=peau" className="inline-flex items-center gap-1 mt-4 text-xs font-semibold text-[#D49A63] hover:underline">Voir les produits peau <ArrowRight className="w-3.5 h-3.5" /></a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Routines tiers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

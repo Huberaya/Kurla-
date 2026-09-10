@@ -14,8 +14,6 @@ import {
   ArrowUpRight,
   Info
 } from 'lucide-react';
-import { HAIR_KNOWLEDGE } from '../lib/knowledge/hair';
-import { SKIN_KNOWLEDGE } from '../lib/knowledge/skin';
 
 export interface RoutineTask {
   id: number;
