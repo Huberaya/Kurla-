@@ -176,3 +176,43 @@ export function cpnpStatusLabel(product: any, compliance: ReturnType<typeof eval
   if (compliance.compliant) return 'CPNP+RP+CPSR vérifiés — vendable UE';
   return `Non vendable UE — ${compliance.missing.map(m => m.label).join(' ; ')}`;
 }
+
+// ---------------------------------------------------------------------------
+// Nature de la composition affichée
+// ---------------------------------------------------------------------------
+// Le champ `inci` ne contient pas toujours une liste d'ingrédients. Deux cas
+// s'en écartent volontairement, et un affichage qui les ignorerait
+// présenterait une note ou une intention comme une composition :
+//   · un accessoire n'a pas de composition cosmétique : le champ porte une
+//     mention qui le dit, pas une liste ;
+//   · un produit en précommande n'est pas encore fabriqué : la liste affichée
+//     est celle que KURLA a spécifiée au laboratoire. C'est une cible, pas un
+//     fait, et rien ne garantit que le produit livré y soit conforme.
+
+export const MARQUEUR_CIBLE = '[Formulation cible]';
+export const MARQUEUR_ACCESSOIRE = '[Accessoire]';
+
+export type CompositionKind = 'absente' | 'cible' | 'accessoire' | 'liste';
+
+export function compositionKind(product: any): CompositionKind {
+  const inci = typeof product?.inci === 'string' ? product.inci.trim() : '';
+  if (!inci) return 'absente';
+  if (inci.startsWith(MARQUEUR_CIBLE)) return 'cible';
+  if (inci.startsWith(MARQUEUR_ACCESSOIRE)) return 'accessoire';
+  return 'liste';
+}
+
+/** La liste d'ingrédients seule, sans le marqueur de nature. */
+export function inciListe(product: any): string {
+  const inci = typeof product?.inci === 'string' ? product.inci.trim() : '';
+  return inci.replace(/^\[(Formulation cible|Accessoire)\]\s*/, '');
+}
+
+/**
+ * Vrai seulement si la composition affichée est celle d'un produit existant.
+ * Une formulation cible ou la mention d'un accessoire ne sont pas une
+ * composition : les compter comme telles ferait croire à un fait établi.
+ */
+export function hasConfirmedComposition(product: any): boolean {
+  return compositionKind(product) === 'liste';
+}
