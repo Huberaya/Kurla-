@@ -5,6 +5,7 @@ import { useProducts } from '../services/productService';
 import { recommendKit } from '../lib/launchCatalog';
 import { pickSkinKnowledgeProfile } from '../lib/knowledge/skin';
 import { resolveRecommendedProducts } from '../lib/catalogueMatch';
+import { estimerUsage } from '../lib/usageDosage';
 
 type SkinRecap = SkinDiagnosticAnswers & { diagnosticType?: string };
 
@@ -108,6 +109,23 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
     const recommendedProducts = skinProfile
       ? resolveRecommendedProducts(skinProfile.keyProducts, products)
       : [];
+
+    // Le prix en rayon n'est pas un coût : une routine à 60 € peut coûter plus
+    // cher par mois qu'une routine à 90 €, selon la contenance et la dose
+    // d'usage. Le total est assumé partiel : les catégories qu'aucune valeur
+    // de référence ne couvre ne sont pas comptées, et jamais estimées au jugé.
+    const coutRoutine = (() => {
+      const lignes = recommendedProducts
+        .map(({ product }) => (product ? estimerUsage(product) : null))
+        .filter((e): e is NonNullable<typeof e> => e !== null);
+      const calculees = lignes.filter(e => e.monthlyCost !== null);
+      const total = calculees.reduce((somme, e) => somme + (e.monthlyCost ?? 0), 0);
+      return {
+        mensuel: calculees.length > 0 ? Math.round(total * 100) / 100 : null,
+        estimees: calculees.length,
+        totalProduits: lignes.length,
+      };
+    })();
 
     // Routine par défaut si l'API n'a rien renvoyé de spécifique peau
     const fallbackSteps = {
@@ -245,7 +263,9 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
                 <div>
                   <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mb-2">Dans le catalogue KURLA</p>
                   <ul className="space-y-2">
-                    {recommendedProducts.map(({ name, product }) => (
+                    {recommendedProducts.map(({ name, product }) => {
+                      const usage = product ? estimerUsage(product) : null;
+                      return (
                       <li key={name}>
                         {product ? (
                           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/10">
@@ -257,6 +277,14 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
                               <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">
                                 {product.sizeLabel ? `${product.sizeLabel} · ` : ''}{Number(product.price).toFixed(2).replace('.', ',')} €
                               </p>
+                              {usage && usage.costPerUse !== null ? (
+                                <p className="text-[10px] text-[#D49A63]/85 mt-0.5" title={usage.assumption}>
+                                  ≈ {usage.costPerUse.toFixed(2).replace('.', ',')} € / utilisation{usage.monthlyCost !== null ? ` · ${usage.monthlyCost.toFixed(2).replace('.', ',')} € / mois` : ''}
+                                  <span className="text-[#FFF7EF]/35"> estimés</span>
+                                </p>
+                              ) : usage ? (
+                                <p className="text-[10px] text-[#FFF7EF]/30 mt-0.5" title={usage.limitation}>coût d’usage non estimable</p>
+                              ) : null}
                             </div>
                             {onAddToCart && (
                               <button
@@ -276,8 +304,18 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
                           </div>
                         )}
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
+                  {coutRoutine.mensuel !== null && (
+                    <p className="mt-3 text-[11px] text-[#FFF7EF]/75">
+                      <span className="font-semibold text-[#D49A63]">≈ {coutRoutine.mensuel.toFixed(2).replace('.', ',')} € / mois</span> pour cette routine
+                      {coutRoutine.estimees < coutRoutine.totalProduits && (
+                        <span className="text-[#FFF7EF]/40"> · {coutRoutine.estimees} produit{coutRoutine.estimees > 1 ? 's' : ''} sur {coutRoutine.totalProduits} estimés</span>
+                      )}
+                      {' '}<a href="/cout-routine" className="text-[#D49A63] hover:underline">ajuster →</a>
+                    </p>
+                  )}
                   <a href="/boutique?cat=peau" className="inline-flex items-center gap-1 mt-4 text-xs font-semibold text-[#D49A63] hover:underline">Voir les produits peau <ArrowRight className="w-3.5 h-3.5" /></a>
                 </div>
               </div>
