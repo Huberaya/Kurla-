@@ -78,7 +78,9 @@ function values(p: (typeof KURLA_SKIN_RANGE)[number]): string {
     'FALSE',
     '20.00',
     'TRUE',
-    s(p.warnings ?? null),
+    // `warnings` est un TEXT[] NOT NULL DEFAULT '{}' : une chaîne y serait
+    // rejetée (« malformed array literal »), NULL aussi (NOT NULL).
+    arr(p.warnings ? [p.warnings] : []),
     s('verified'),
     // Illustration, pas packshot : le produit n'est pas encore fabriqué.
     s('illustrative'),
