@@ -39,6 +39,7 @@ import type {
 } from '../lib/professionalStore';
 import type { ContradictionAction, ProfessionalEndorsement } from '../lib/proEndorsement';
 import type { IngredientEvidence } from '../lib/ingredientGraph';
+import type { DeferredStep } from '../lib/routineBuilder';
 
 export type {
   ProfessionalTrustAssessment,
@@ -513,6 +514,8 @@ export interface BuiltRoutineResponse {
   alreadyCovered: string[];
   conflicts: RoutineConflict[];
   unfulfilled: { routineStep: string; label: string; reason: string }[];
+  /** C-05 — étapes écartées par le plafond du niveau, dites avec leur justification. */
+  deferred: DeferredStep[];
   cartItems: { productId: string; slug: string; name: string; price: number; quantity: number }[];
   overBudget: boolean;
   overTime: boolean;

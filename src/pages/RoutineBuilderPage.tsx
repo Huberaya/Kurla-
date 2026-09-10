@@ -233,6 +233,35 @@ export const RoutineBuilderPage: React.FC = () => {
               </div>
             </div>
 
+            {/* C-05 — une routine courte n'est pas une routine tronquée, à
+                condition de dire ce qui a été écarté et pourquoi. */}
+            {routine.deferred.length > 0 && (
+              <div className={cardClass}>
+                <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-1">
+                  Étapes écartées ({routine.deferred.length})
+                </h2>
+                <p className="text-xs text-[#111111]/55 mb-3">
+                  Elles existent et vous sont décrites : votre niveau limite la routine à {routine.slots.length} étapes.
+                  Rien n’a été retiré faute de produit.
+                </p>
+                <div className="space-y-2.5">
+                  {routine.deferred.map(step => (
+                    <div key={step.routineStep} className="p-3 rounded-xl bg-[#111111]/[0.03] border border-[#111111]/10">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-semibold">{step.label}</span>
+                        <span className="text-[11px] text-[#111111]/45 shrink-0">{step.durationMinutes} min</span>
+                      </div>
+                      {step.apporte && <p className="text-xs text-[#111111]/65 mt-1">{step.apporte}</p>}
+                      {step.quand && (
+                        <p className="text-xs text-[#C8753D] mt-1">{step.quand}</p>
+                      )}
+                      <p className="text-[11px] text-[#111111]/40 mt-1.5">{step.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {routine.unfulfilled.length > 0 && (
               <div className={cardClass}>
                 <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-3">

@@ -37,9 +37,23 @@ export interface RoutineSlot {
   durationMinutes: number;
 }
 
+export interface DeferredStep {
+  routineStep: RoutineStep;
+  label: string;
+  /** Pourquoi l'étape n'est pas dans la routine maintenant. */
+  reason: string;
+  /** Ce qu'elle apporterait, pour décider en connaissance de cause. */
+  apporte: string;
+  /** Quand elle cesse d'être superflue. */
+  quand: string;
+  durationMinutes: number;
+}
+
 export interface BuiltRoutine {
   request: RoutineBuilderRequest;
   slots: RoutineSlot[];
+  /** Étapes écartées par le plafond du niveau, dites une à une. */
+  deferred: DeferredStep[];
   totalPrice: number;
   totalItems: number;
   /** Étapes déjà couvertes par l'étagère : aucun achat nécessaire. */
@@ -57,6 +71,64 @@ export interface BuiltRoutine {
 export const ESSENTIAL_STEPS: RoutineStep[] = ['cleanse', 'condition', 'leave_in'];
 
 const OPTIONAL_STEPS: RoutineStep[] = ['deep_condition', 'seal_oil', 'styling_definer', 'scalp_treatment', 'protein_treatment'];
+
+/**
+ * C-05 — ce que chaque étape repoussée apporte, et quand elle cesse d'être
+ * superflue.
+ *
+ * Une routine courte n'est pas une routine tronquée : c'est une routine tenable.
+ * Encore faut-il dire ce qui a été écarté et pourquoi, sinon la cliente croit
+ * que KURLA ignore l'existence du soin profond — ou pire, qu'elle a reçu une
+ * recommandation complète alors qu'elle a reçu un extrait.
+ *
+ * Ces textes sont volontairement contre-commerciaux : quatre des cinq étapes
+ * disent « n'ajoutez ceci que si… ». C'est le prix de la confiance, et c'est
+ * aussi ce qui fait qu'une routine à trois étapes est suivie — donc rachetée.
+ */
+export const JUSTIFICATIONS_ETAPES: Record<string, { apporte: string; quand: string }> = {
+  deep_condition: {
+    apporte: 'Un masque nourrit en profondeur et assouplit la fibre.',
+    quand:
+      'À ajouter quand les trois étapes de base sont installées, une fois par semaine. Vingt-cinq '
+      + 'minutes de plus : c’est l’étape la plus longue de la routine, et la plus souvent abandonnée.',
+  },
+  seal_oil: {
+    apporte: 'Une huile ou un beurre scelle l’hydratation apportée par le leave-in.',
+    quand:
+      'Utile surtout sur cheveux très poreux (4B/4C). Si le leave-in seul garde l’hydratation jusqu’au '
+      + 'lendemain, cette étape est superflue : ne l’ajoutez pas par principe.',
+  },
+  styling_definer: {
+    apporte: 'Un gel ou une crème coiffante dessine la boucle et la fixe.',
+    quand:
+      'C’est une étape de coiffage, pas de soin : elle ne change pas l’état du cheveu. À ajouter '
+      + 'seulement si la définition est votre objectif. Sinon, elle n’apporte rien que le leave-in ne fasse.',
+  },
+  scalp_treatment: {
+    apporte: 'Un soin du cuir chevelu traite un besoin localisé : démangeaisons, pellicules, chute.',
+    quand:
+      'À n’ajouter que sur un besoin identifié. En prévention systématique, il n’a pas d’effet démontré '
+      + 'et il ajoute un produit à rincer.',
+  },
+  protein_treatment: {
+    apporte: 'Un soin protéiné consolide la fibre abîmée par la décoloration ou le lissage.',
+    quand:
+      'À réserver à un cheveu cassant et traité chimiquement. Sur un cheveu sain, un apport de '
+      + 'protéines le rend rigide et casse davantage — c’est l’étape la plus souvent ajoutée à tort.',
+  },
+  skin_treatment: {
+    apporte: 'Un actif ciblé (niacinamide, acides, rétinol) traite une préoccupation précise.',
+    quand:
+      'À introduire après quatre semaines de routine de base, un actif à la fois : c’est le seul moyen '
+      + 'de savoir ce qui vous convient et ce qui vous irrite.',
+  },
+  skin_spf: {
+    apporte: 'La protection solaire prévient les taches et l’hyperpigmentation post-inflammatoire.',
+    quand: 'Ne se repousse pas : sur peau riche en mélanine, c’est l’étape qui prévient les marques durables.',
+  },
+  skin_cleanser: { apporte: 'Nettoyer sans décaper.', quand: 'Étape de base : elle ne se repousse pas.' },
+  skin_moisturizer: { apporte: 'Hydrater et soutenir la barrière cutanée.', quand: 'Étape de base : elle ne se repousse pas.' },
+};
 
 const STEP_DURATIONS: Record<RoutineStep, number> = {
   cleanse: 8,
@@ -111,6 +183,24 @@ export function buildRoutine(
   const wantedSteps = requested.length > 0
     ? requested
     : [...ESSENTIAL_STEPS, ...OPTIONAL_STEPS].slice(0, maxStepsForLevel(level));
+
+  // C-05 — le plafond du niveau écarte des étapes. Les taire laisserait croire
+  // à une recommandation complète : elles sont listées, avec la raison et le
+  // moment où elles deviennent utiles.
+  const etapesPossibles = [...ESSENTIAL_STEPS, ...OPTIONAL_STEPS];
+  const deferred: DeferredStep[] = requested.length === 0
+    ? etapesPossibles.slice(maxStepsForLevel(level)).map(step => {
+        const justification = JUSTIFICATIONS_ETAPES[step];
+        return {
+          routineStep: step,
+          label: ROUTINE_STEP_LABELS[step],
+          reason: `Écartée : votre niveau limite la routine à ${maxStepsForLevel(level)} étapes.`,
+          apporte: justification?.apporte ?? '',
+          quand: justification?.quand ?? '',
+          durationMinutes: STEP_DURATIONS[step],
+        };
+      })
+    : [];
 
   const notes: string[] = [];
   const slots: RoutineSlot[] = [];
@@ -228,6 +318,7 @@ export function buildRoutine(
   return {
     request,
     slots,
+    deferred,
     totalPrice,
     totalItems,
     alreadyCovered,
