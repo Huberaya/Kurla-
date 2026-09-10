@@ -554,8 +554,14 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
 
     const stockQuantity = number(source.stockQuantity ?? source.stock_quantity ?? source.stock, 0);
     if (stockQuantity === undefined || !Number.isSafeInteger(stockQuantity) || stockQuantity < 0) throw new Error(`Stock invalide pour « ${name} ».`);
-    const vatRate = number(source.vatRate ?? source.vat_rate ?? source.tva, 20);
-    if (vatRate === undefined || vatRate < 0 || vatRate > 100) throw new Error(`TVA invalide pour « ${name} ».`);
+    // La colonne `vat_rate` est un POURCENTAGE : NUMERIC(5,2), DEFAULT 20.00,
+    // CHECK (0..100). Un taux strictement compris entre 0 et 1 est donc une
+    // fraction recopiée par erreur — 0,2 voulait dire 20 %. Aucun pays
+    // n'applique un taux inférieur à 1 % hors exonération à 0 %, qu'on laisse
+    // passer. Sans cette reprise, 63 fiches du catalogue déclaraient 0,2 %.
+    const vatRateLu = number(source.vatRate ?? source.vat_rate ?? source.tva, 20);
+    if (vatRateLu === undefined || vatRateLu < 0 || vatRateLu > 100) throw new Error(`TVA invalide pour « ${name} ».`);
+    const vatRate = vatRateLu > 0 && vatRateLu < 1 ? vatRateLu * 100 : vatRateLu;
     const promotionPrice = number(source.promotionPrice ?? source.promotion_price);
     if (promotionPrice !== undefined && (promotionPrice < 0 || promotionPrice > price)) throw new Error(`Prix promotionnel invalide pour « ${name} ».`);
     const isPromo = source.isPromo === undefined && source.is_promo === undefined ? promotionPrice !== undefined : parseBoolean(source.isPromo ?? source.is_promo, false);
