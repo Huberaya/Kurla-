@@ -537,7 +537,7 @@ export async function buildRoutinePlan(
  */
 export type PublicProfessionalSummary = Pick<
   ProfessionalProfile,
-  'id' | 'displayName' | 'city' | 'profession' | 'specialty' | 'qualificationLabel' | 'verifiedExperienceYears'
+  'id' | 'displayName' | 'city' | 'profession' | 'specialty' | 'category' | 'qualificationLabel' | 'verifiedExperienceYears'
 >;
 
 export type AppointmentStatusValue = Appointment['status'];

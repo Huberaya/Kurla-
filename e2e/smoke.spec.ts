@@ -107,15 +107,37 @@ test.describe('visuels de marque', () => {
       await page.waitForTimeout(1200);
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(1500);
+      // Un cadre d'image peut rester à 0 px le temps qu'une animation de
+      // révélation finisse sa mise en page — mesurer à ce moment-là crie au
+      // cadre effondré sur une image parfaitement saine. On attend donc que
+      // toute image chargée et réellement rendue ait un cadre non nul. Si le
+      // cadre reste à 0, l'attente échoue avec un message explicite : elle ne
+      // masque rien.
+      await page.waitForFunction(
+        () => Array.from(document.images).every((i) => {
+          if (!i.complete || i.naturalWidth === 0) return true;  // jugée plus bas
+          if (i.getBoundingClientRect().height > 0) return true;
+          return i.getClientRects().length === 0;  // non rendue : aucun impact
+        }),
+        undefined,
+        { timeout: 15_000 },
+      ).catch(async () => {
+        const stuck = await page.evaluate(() => Array.from(document.images)
+          .filter((i) => i.complete && i.naturalWidth > 0 && i.getBoundingClientRect().height === 0 && i.getClientRects().length > 0)
+          .map((i) => (i.currentSrc || i.src || i.alt || '').slice(-70)));
+        throw new Error(`cadre d'image resté à 0 px sur ${path} : ${stuck.join(' | ') || 'image jamais chargée'}`);
+      });
 
       const report = await page.evaluate(() => {
-        const out = { total: 0, broken: [] as string[], collapsed: [] as string[] };
+        const out = { total: 0, skipped: 0, broken: [] as string[], collapsed: [] as string[] };
         for (const img of Array.from(document.images)) {
-          // Les images hors écran et non encore déclenchées ne comptent pas.
-          if (img.loading === 'lazy' && !img.complete) continue;
+          // Images différées hors écran, ou chargement encore en cours : on ne
+          // peut rien en conclure. Elles sont comptées à part pour que le
+          // contrôle ne puisse pas passer à vide.
+          if (!img.complete) { out.skipped += 1; continue; }
           out.total += 1;
           const label = (img.currentSrc || img.src || '').slice(-70) || img.alt;
-          if (img.complete && img.naturalWidth === 0) {
+          if (img.naturalWidth === 0) {
             out.broken.push(label);
             continue;
           }
@@ -138,6 +160,13 @@ test.describe('visuels de marque', () => {
         return out;
       });
 
+      // Le catalogue du banc est en mémoire et vide : plusieurs pages n'ont
+      // alors aucune image à contrôler. Affirmer « au moins une image » ferait
+      // échouer la suite pour une limite de banc, et se taire laisserait
+      // croire que ces pages sont vérifiées. On le dit.
+      if (report.total === 0) {
+        console.warn(`  ⚠ ${path} : aucune image chargée (${report.skipped} non chargée(s)) — contrôle non significatif, catalogue mémoire vide`);
+      }
       expect(report.broken, `images cassées sur ${path} : ${report.broken.join(' | ')}`).toEqual([]);
       expect(report.collapsed, `cadres d'image effondrés sur ${path} : ${report.collapsed.join(' | ')}`).toEqual([]);
     });

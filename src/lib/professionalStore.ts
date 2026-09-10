@@ -51,6 +51,12 @@ export interface ProfessionalProfile {
   city: string;
   profession: string;
   specialty?: string;
+  /**
+   * Catégorie métier KURLA — `skincare_expert` pour les pros peau.
+   * Absente de la table avant la migration 20260911000000 : le filtre public
+   * doit donc continuer à fonctionner sans elle.
+   */
+  category?: string;
   identityVerified: boolean;
   identityVerifiedAt?: string;
   identityVerifiedBy?: string;
@@ -159,6 +165,7 @@ function mapProfileRow(row: any): ProfessionalProfile {
     city: row.city,
     profession: row.profession,
     specialty: row.specialty || undefined,
+    category: row.category || undefined,
     identityVerified: row.identity_verified === true,
     identityVerifiedAt: row.identity_verified_at || undefined,
     identityVerifiedBy: row.identity_verified_by || undefined,

@@ -11,6 +11,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { isSkinProfessional } from '../lib/professionalCategory';
 import {
   fetchVerifiedProfessionals,
   ProfessionalTrustAssessment,
@@ -143,7 +144,10 @@ export const ProfessionalDirectoryPage: React.FC = () => {
     };
   }, []);
 
-  const displayedEntries = filter==='peau' ? entries.filter(e=> (e.profile.specialty||'').toLowerCase().includes('peau') || (e.profile.profession||'').toLowerCase().includes('skin') || (e.profile.profession||'').toLowerCase().includes('dermat') || (e.profile as any).category==='skincare_expert') : entries;
+  // Un seul prédicat pour le compteur du bouton et pour la liste affichée :
+  // ils divergeaient, le bouton pouvait annoncer « Peau · 3 pros » au-dessus
+  // d'une liste de 5 noms. Détail dans src/lib/professionalCategory.ts.
+  const displayedEntries = filter==='peau' ? entries.filter(e=> isSkinProfessional(e.profile)) : entries;
 
   const submitBooking = useCallback(async (professionalId: string) => {
     if (!token) {
@@ -190,11 +194,11 @@ export const ProfessionalDirectoryPage: React.FC = () => {
             {filter==='peau' ? 'Pros peau — vérifiés' : 'Professionnels vérifiés'}
           </h1>
           <p className="text-sm text-[#666666] leading-relaxed">
-            {filter==='peau' ? 'Experts peau, esthéticien·nes et dermatologues formés peaux mates à foncées (HPI, SPF sans trace, barrière). Filtre = catégorie skincare_expert.' : 'Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le Trust Score repose sur des faits vérifiables : identité, qualification, charte signée, avis issus de prestations réellement effectuées.'}
+            {filter==='peau' ? 'Experts peau, esthéticien·nes et dermatologues formés peaux mates à foncées (HPI, SPF sans trace, barrière). Filtre = catégorie skincare_expert, à défaut profession ou spécialité liées à la peau.' : 'Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le Trust Score repose sur des faits vérifiables : identité, qualification, charte signée, avis issus de prestations réellement effectuées.'}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Tous · {entries.length}</button>
-            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> ((e.profile.specialty||e.profile.profession||'') + ' ' + (e.profile.category||'')).toLowerCase().includes('peau') || (e.profile.category==='skincare_expert')).length} pros</button>
+            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> isSkinProfessional(e.profile)).length} pros</button>
             {filter==='peau' && <a href="/peau/guide" className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-semibold hover:border-[#C8753D]">Guide peau →</a>}
             {filter==='peau' && <a href="/pro/candidature" className="px-3 py-1.5 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Pro peau → candidater</a>}
           </div>

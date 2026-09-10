@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Sun, Droplets, Heart, Layers, Search, ArrowRight, Star, Shield, Zap, Eye, Smile, Wind, Package, Clock, AlertCircle, BookOpen, FlaskConical, Award, MapPin } from 'lucide-react';
+import { isSkinProfessional } from '../lib/professionalCategory';
 import { fetchVerifiedProfessionals } from '../services/intelligenceService';
 
 /**
@@ -41,7 +42,7 @@ const GUIDE_ARTICLES = [
 export const SkinLandingPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [skinPros, setSkinPros] = useState<any[]>([]);
-  useEffect(()=>{ fetchVerifiedProfessionals().then(r=>{ const filtered = (r.professionals||[]).filter((e:any)=> (e.profile.specialty||e.profile.profession||'').toLowerCase().includes('peau') || (e.profile.category==='skincare_expert') || (e.profile.profession||'').toLowerCase().includes('skin')); setSkinPros(filtered.slice(0,3)); }).catch(()=>{}); },[]);
+  useEffect(()=>{ fetchVerifiedProfessionals().then(r=>{ const filtered = (r.professionals||[]).filter((e:any)=> isSkinProfessional(e.profile)); setSkinPros(filtered.slice(0,3)); }).catch(()=>{}); },[]);
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">

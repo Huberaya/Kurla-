@@ -13,7 +13,10 @@ const SKIN_LABELS: Record<string, string> = {
   clair: 'Clair', intermediaire: 'Intermédiaire', fonce: 'Foncé', tres_fonce: 'Très foncé', inconnue: 'Non classée', inconnu: '—',
   chaud: 'Chaud · doré', froid: 'Froid · rosé', neutre: 'Neutre', olive: 'Olive',
   rare: 'Rare', occasionnelle: 'Parfois', frequente: 'Fréquente',
-  aucune: 'Aucune', basique: 'Basique', intermediaire: 'Intermédiaire', complete: 'Complète',
+  // `intermediaire` sert deux axes (profondeur de teint et niveau de routine) :
+  // les deux donnent 'Intermédiaire', une seule entrée suffit — la clé était
+  // dupliquée, ce qui est une erreur TypeScript (TS1117).
+  aucune: 'Aucune', basique: 'Basique', complete: 'Complète',
   gel: 'Gel', lotion: 'Lotion', creme: 'Crème', baume: 'Baume',
   mat: 'Mat', naturel: 'Naturel', glowy: 'Glowy',
   moins_40: 'Moins de 40 €', '40_70': '40–70 €', '70_100': '70–100 €', premium: 'Premium',

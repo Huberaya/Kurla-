@@ -57,6 +57,7 @@ export function registerProfessionalRoutes(app: Express): void {
         city: profile.city,
         profession: profile.profession,
         specialty: profile.specialty,
+        category: profile.category ?? null,
         qualificationLabel: profile.qualificationLabel,
         verifiedExperienceYears: profile.verifiedExperienceYears
       },

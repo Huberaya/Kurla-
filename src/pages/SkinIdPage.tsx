@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Sparkles, Droplets, Sun, Heart, Shield, Clock, Edit3, Save, Trash2, Plus, Calendar, AlertCircle, CheckCircle2, BookOpen, FlaskConical, Zap } from 'lucide-react';
+import { ArrowLeft, Sparkles, Droplets, Sun, Heart, Shield, Clock, Edit3, Save, Trash2, Plus, Calendar, AlertCircle, CheckCircle2, BookOpen, FlaskConical, Zap, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { createEmptyBeautyProfile, calculateProfileConfidence, UNKNOWN, SKIN_TYPE_OPTIONS, SKIN_CONCERN_OPTIONS } from '../lib/beautyProfile';
 import type { BeautyProfile } from '../lib/beautyProfile';

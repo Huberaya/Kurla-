@@ -84,6 +84,7 @@ export const SkinJournalPage: React.FC = () => {
   const [compareIdxB, setCompareIdxB] = useState(1);
   // C7 — Observance peau (C4.3) intégrée au journal
   const [observance, setObservance] = useState(() => { try { return loadObservance(); } catch { return {}; } });
+  const [observanceMsg, setObservanceMsg] = useState('');
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayObs = observance[todayStr] || { matin: false, soir: false };

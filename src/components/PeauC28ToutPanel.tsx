@@ -58,7 +58,11 @@ export const PeauC28ToutPanel: React.FC<{ headers: HeadersInit }> = ({ headers }
   const verts = checks.filter(c=>c.ok===true).length;
   const rouges = checks.filter(c=>c.ok===false).length;
 
-  const finance = FINANCE_PROJECTION[0] as any; // M1
+  // `FinanceHorizon` n'a pas de champ `revenue` : le chiffre d'affaires est
+  // `totalRevenue` (produits + abonnement). Lire `revenue` donnait « — » à
+  // l'écran sans jamais rien signaler.
+  const finance = FINANCE_PROJECTION[0] as any;
+  const financeLast = FINANCE_PROJECTION[FINANCE_PROJECTION.length - 1];
   const be = BREAKEVEN as any;
   const copy28 = `C28 tout 4 chantiers — ${new Date().toISOString().slice(0,10)} — CI/MA/CH/CM ${verts}/4 verts · HPI photo V1 · SOP 3-5j · Finance AOV ${aov} LTV ${ltv} · gates ${peauGatesOk}/${gatesTotal} · Stripe ${String(stripeMode).toUpperCase()}`;
 
@@ -187,7 +191,7 @@ export const PeauC28ToutPanel: React.FC<{ headers: HeadersInit }> = ({ headers }
             <div className="p-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">BE point</p><p className="text-lg font-bold text-[#FFF7EF]">{be?.orders ?? 120}<span className="text-xs font-normal opacity-60"> cmd</span></p><p className="text-[10px] text-[#FFF7EF]/35">ou {be?.revenue ?? 6.2}k€</p></div>
           </div>
           <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-xs leading-relaxed">
-            <p className="font-bold text-[#FFF7EF] flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> FINANCE_PROJECTION (M1 {finance?.revenue ?? '—'}€ → M12 {FINANCE_PROJECTION[FINANCE_PROJECTION.length-1]?.revenue ?? '—'}€)</p>
+            <p className="font-bold text-[#FFF7EF] flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> FINANCE_PROJECTION (M{finance?.month ?? '—'} {finance?.totalRevenue?.toLocaleString('fr-FR') ?? '—'}€ → M{financeLast?.month ?? '—'} {financeLast?.totalRevenue?.toLocaleString('fr-FR') ?? '—'}€)</p>
             <p className="text-[#FFF7EF]/60 mt-1">Objectif C27 : <strong className="text-[#FFF7EF]">LTV {ltv}€ &gt; CAC</strong> (adSpend / uniqueCustomers). Tant que CAC non saisi (localStorage kurla_admin_ad_spend), métrique = null — honnête, pas 0.</p>
             <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
               <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60">KPEAU-02 62€ -13% moteur</span>
@@ -211,7 +215,7 @@ export const PeauC28ToutPanel: React.FC<{ headers: HeadersInit }> = ({ headers }
         <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
         <span><strong>C28 — règle d'or P1 :</strong> on ne traite ni l'Europe ni l'Afrique en bloc — <strong>1 pays = 1 score + 1 modèle + 1 condition</strong>. CI68 n'ouvre que si SN71 {'>'}30 kits/mois, MA64 que si FR95% 3–5j J+30, CH58 que si BE50 cmd/mois — sinon veille chiffrée, pas d'échec.</span>
       </div>
-      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C28 — sources : <span className="text-[#D49A63]">countryFulfillment.ts</span> (CI68/MA64/CH58/CM52) + <span className="text-[#D49A63]">businessStrategy.ts</span> (FINANCE_PROJECTION/BREAKEVEN) + <span className="text-[#D49A63]">/api/admin/*</span> (metrics, prospects {prospects.length}, demand {demandUnits}, ops gates {peauGatesOk}/{gatesTotal}).</p>
+      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C28 — sources : <span className="text-[#D49A63]">countryFulfillment.ts</span> (CI68/MA64/CH58/CM52) + <span className="text-[#D49A63]">businessStrategy.ts</span> (FINANCE_PROJECTION/BREAKEVEN) + <span className="text-[#D49A63]">/api/admin/*</span> (metrics, waitlist {waitlist}, demand {demandUnits}, ops gates {peauGatesOk}/{gatesTotal}).</p>
     </div>
   );
 };
