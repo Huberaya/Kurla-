@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, ShieldCheck, CheckCircle2, ArrowRight, ShoppingBag, AlertTriangle, Loader2, Boxes, Clock, Percent, Sun, Droplets, Layers, Heart, Shield, Zap, ArrowLeft, BookOpen, FlaskConical, Info } from 'lucide-react';
 import { AIRecommendationResult, Product, SkinDiagnosticAnswers } from '../types';
 import { useProducts } from '../services/productService';
 import { recommendKit } from '../lib/launchCatalog';
 import { pickSkinKnowledgeProfile } from '../lib/knowledge/skin';
+import { resolveRecommendedProducts } from '../lib/catalogueMatch';
 
 type SkinRecap = SkinDiagnosticAnswers & { diagnosticType?: string };
 
@@ -27,7 +28,16 @@ const SKIN_LABELS: Record<string, string> = {
 
 function label(v: string | undefined) { if (!v || v === 'inconnu' || v === 'inconnue') return '—'; return SKIN_LABELS[v] || v.replaceAll('_', ' '); }
 
-export const DiagnosticResultPage: React.FC = () => {
+interface DiagnosticResultPageProps {
+  /**
+   * Passé par la table de routage. Sans lui, les produits recommandés
+   * s'affichent en simple texte : la page reste utilisable, mais la
+   * recommandation n'est pas actionnable.
+   */
+  onAddToCart?: (product: Product) => void;
+}
+
+export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAddToCart }) => {
   const { products, loading } = useProducts();
   const [result, setResult] = useState<AIRecommendationResult | null>(null);
   const [diagContext, setDiagContext] = useState<any | null>(null);
@@ -89,6 +99,15 @@ export const DiagnosticResultPage: React.FC = () => {
     // personne. Elle est affichée ici, au moment où le diagnostic vient
     // d'être posé. Sans signal dans les réponses, elle ne s'affiche pas.
     const skinProfile = pickSkinKnowledgeProfile(sa);
+
+    // B-01 — les produits conseillés sont enfin confrontés au catalogue.
+    // Avant, `keyProducts` s'affichait en texte : un nom sans prix, sans lien,
+    // sans panier. Un nom qui ne correspond à aucune fiche reste en texte —
+    // c'est un choix, pas un oubli : mieux vaut un nom sans lien qu'un lien
+    // vers un produit qui n'est pas celui conseillé.
+    const recommendedProducts = skinProfile
+      ? resolveRecommendedProducts(skinProfile.keyProducts, products)
+      : [];
 
     // Routine par défaut si l'API n'a rien renvoyé de spécifique peau
     const fallbackSteps = {
@@ -225,9 +244,38 @@ export const DiagnosticResultPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider font-bold text-[#FFF7EF]/50 mb-2">Dans le catalogue KURLA</p>
-                  <ul className="space-y-1.5 text-xs text-[#FFF7EF]/85 leading-relaxed">
-                    {skinProfile.keyProducts.map((produit, i) => (
-                      <li key={i} className="flex gap-2"><span className="text-[#D49A63] shrink-0">·</span><span>{produit}</span></li>
+                  <ul className="space-y-2">
+                    {recommendedProducts.map(({ name, product }) => (
+                      <li key={name}>
+                        {product ? (
+                          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/10">
+                            <a href={`/produit/${product.slug}`} className="shrink-0" aria-label={`Voir ${product.name}`}>
+                              <img src={product.image} alt="" loading="lazy" className="w-10 h-10 rounded-lg object-cover" />
+                            </a>
+                            <div className="min-w-0 flex-1">
+                              <a href={`/produit/${product.slug}`} className="block text-xs font-semibold text-[#FFF7EF] hover:text-[#D49A63] leading-tight">{product.name}</a>
+                              <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">
+                                {product.sizeLabel ? `${product.sizeLabel} · ` : ''}{Number(product.price).toFixed(2).replace('.', ',')} €
+                              </p>
+                            </div>
+                            {onAddToCart && (
+                              <button
+                                type="button"
+                                onClick={() => onAddToCart(product)}
+                                className="shrink-0 px-2.5 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-[10px] font-bold"
+                              >
+                                {(product.badges || []).includes('preorder') ? 'Précommander' : 'Ajouter'}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          /* Aucune fiche correspondante : le nom reste
+                             affiché, on n'invente pas de lien. */
+                          <div className="flex gap-2 text-xs text-[#FFF7EF]/85 leading-relaxed">
+                            <span className="text-[#D49A63] shrink-0">·</span><span>{name}</span>
+                          </div>
+                        )}
+                      </li>
                     ))}
                   </ul>
                   <a href="/boutique?cat=peau" className="inline-flex items-center gap-1 mt-4 text-xs font-semibold text-[#D49A63] hover:underline">Voir les produits peau <ArrowRight className="w-3.5 h-3.5" /></a>

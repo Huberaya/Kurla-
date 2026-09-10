@@ -117,7 +117,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/diagnostic/peau', render: () => <DiagnosticSkinPage /> },
   { path: '/diagnostic/enfant', render: () => <DiagnosticKidsPage /> },
   { path: '/diagnostic/protective-style', render: () => <DiagnosticProtectivePage /> },
-  { path: '/diagnostic/resultat/:resultId', render: () => <DiagnosticResultPage /> },
+  { path: '/diagnostic/resultat/:resultId', render: ({ onAddToCart }) => <DiagnosticResultPage onAddToCart={onAddToCart} /> },
 
   // Modules de contenu
   { path: '/kids', render: () => <KidsModulePage /> },
@@ -125,7 +125,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/melanin-skin', render: () => <MelaninSkinPage /> },
   { path: '/peau', render: () => <SkinLandingPage /> },
   { path: '/peau/diagnostic', render: () => <DiagnosticSkinPage /> },
-  { path: '/peau/diagnostic/resultats', render: () => <DiagnosticResultPage /> },
+  { path: '/peau/diagnostic/resultats', render: ({ onAddToCart }) => <DiagnosticResultPage onAddToCart={onAddToCart} /> },
   { path: '/peau/comparer', render: () => <SkinComparePage /> },
   { path: '/peau/guide', render: () => <SkinGuidePage /> },
   { path: '/peau/journal', render: () => <SkinJournalPage /> },

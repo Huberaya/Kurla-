@@ -47,7 +47,15 @@ export const RECOGNIZED_NEED_CODES = [
   'taches_hyperpigmentation',
   'imperfections_acne',
   'peau_sensible',
-  'hydrater_peau'
+  'hydrater_peau',
+  // Trois codes ajoutés avec le chantier B-01. Ils étaient employés par des
+  // fiches produit (barriere_cutanee) ou nécessaires à la couverture de la
+  // gamme (éclat, maturité) sans exister ici : un code absent de cette liste
+  // ne rencontre aucune branche et compte donc comme besoin non couvert, ce
+  // qui abaissait le score des produits qui le portent.
+  'barriere_cutanee',
+  'eclat_teint_terne',
+  'maturite_rides'
 ] as const;
 
 export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> & { concerns?: string[] }, profile: BeautyProfile): KurlaFitResult {
@@ -175,6 +183,55 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
         if (match) {
           addEvidence('skin.hydration', 'Hydratation cutanée', skin.hydration, 'elle guide le besoin de confort');
           reasons.push('Hydratation reliée à l’état de déshydratation ou de sécheresse déclaré.');
+        }
+        return match;
+      }
+      case 'barriere_cutanee': {
+        // La barrière se dégrade avant la sécheresse : tiraillements,
+        // réactivité au parfum, intolérance aux actifs. On la relie donc à
+        // trois signaux distincts plutôt qu'au seul niveau d'hydratation.
+        const concerns = skin.skinConcerns || [];
+        const match =
+          concerns.includes('secheresse') ||
+          concerns.includes('deshydratation') ||
+          concerns.includes('sensibilite') ||
+          concerns.includes('rougeurs') ||
+          skin.hydration === 'seche' ||
+          skin.activeTolerance === 'faible';
+        if (match) {
+          addEvidence('skin.skinConcerns', 'Préoccupations', (skin.skinConcerns || []).join(', '), 'elles signalent une barrière fragilisée');
+          addEvidence('skin.activeTolerance', 'Tolérance aux actifs', skin.activeTolerance, 'une tolérance faible traduit une barrière perméable');
+          reasons.push('Barrière reliée aux tiraillements, à la réactivité et à la tolérance aux actifs déclarées.');
+        }
+        return match;
+      }
+      case 'eclat_teint_terne': {
+        const concerns = skin.skinConcerns || [];
+        // Une peau qui marque beaucoup n'a pas un teint uniforme : l'éclat est
+        // demandé même quand la personne n'a pas coché « teint terne ».
+        const match =
+          concerns.includes('teint_terne') ||
+          concerns.includes('grain_irregulier') ||
+          concerns.includes('teint_non_uniforme') ||
+          skin.hyperpigmentationTendency === 'frequente' ||
+          skin.postInflammatoryMarks === 'frequentes';
+        if (match) {
+          addEvidence('skin.skinConcerns', 'Préoccupations', (skin.skinConcerns || []).join(', '), 'elles portent la demande d’éclat');
+          addEvidence('skin.hyperpigmentationTendency', 'Tendance à l’hyperpigmentation', skin.hyperpigmentationTendency, 'un teint qui marque n’est pas uniforme');
+          reasons.push('Éclat relié au teint terne, au grain irrégulier ou aux marques pigmentaires déclarées.');
+        }
+        return match;
+      }
+      case 'maturite_rides': {
+        const concerns = skin.skinConcerns || [];
+        const match =
+          concerns.includes('rides') ||
+          concerns.includes('fermete') ||
+          skin.skinType === 'mature';
+        if (match) {
+          addEvidence('skin.skinConcerns', 'Préoccupations', (skin.skinConcerns || []).join(', '), 'elles portent la demande de fermeté');
+          addEvidence('skin.skinType', 'Type de peau', skin.skinType, 'il indique une peau mature');
+          reasons.push('Maturité reliée aux rides, à la perte de fermeté ou au type de peau déclaré.');
         }
         return match;
       }

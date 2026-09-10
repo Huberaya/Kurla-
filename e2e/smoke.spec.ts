@@ -273,6 +273,51 @@ test.describe('résultat du diagnostic peau', () => {
     await expect(page.getByText(/Ne jamais percer ni triturer/)).toBeVisible();
   });
 
+  test('les produits conseillés sont affichés en fiches achetables dès qu’ils existent au catalogue', async ({ page, request, baseURL }) => {
+    // B-01 : la recommandation ne valait rien tant qu'elle restait du texte.
+    // Ce test vaut dans les deux mondes : en mode mémoire, les fiches de la
+    // nouvelle gamme ne sont pas semées, le nom s'affiche donc en texte ; en
+    // production, une fois la migration appliquée, il doit devenir une fiche
+    // avec prix, lien et bouton. On interroge donc l'API avant d'assertionner,
+    // plutôt que de figer un état qui dépend de la base.
+    const response = await request.get('/api/products');
+    expect(response.ok()).toBeTruthy();
+    const body = await response.json() as { products?: Array<{ name: string; slug: string; price: number }> };
+    const catalogue = body.products || [];
+    const niacinamide = catalogue.find(p => /niacinamide/i.test(p.name));
+
+    await deposerReponses(page, {
+      skinType: 'mixte',
+      acne: 'reguliere',
+      skinConcerns: ['imperfections', 'taches'],
+      skinObjectives: ['reduire_imperfections'],
+      toneDepth: 'fonce',
+      sensitivity: 'moyenne',
+      spfUsage: 'parfois',
+      currentRoutine: 'simple',
+      budget: '40_70',
+      ageRange: '25_34'
+    });
+
+    await expect(page.getByText('Dans le catalogue KURLA')).toBeVisible();
+
+    const bloc = page.locator('div').filter({ hasText: 'Dans le catalogue KURLA' }).last();
+
+    if (niacinamide) {
+      // La fiche existe : elle doit être montrée, pas seulement nommée.
+      const lien = bloc.locator(`a[href="/produit/${niacinamide.slug}"]`).first();
+      await expect(lien).toBeVisible();
+      await expect(bloc.getByText(`${niacinamide.price.toFixed(2).replace('.', ',')} €`).first()).toBeVisible();
+      await expect(bloc.getByRole('button', { name: /Précommander|Ajouter/ }).first()).toBeVisible();
+    } else {
+      // Elle n'existe pas encore : le nom s'affiche quand même, en texte brut.
+      // C'est le comportement voulu — on n'invente pas de lien.
+      await expect(bloc.getByText('Sérum niacinamide 5%', { exact: true })).toBeVisible();
+    }
+
+    if (baseURL) await page.waitForLoadState('networkidle').catch(() => {});
+  });
+
   test('sans signal dans les réponses, aucun profil n’est affiché', async ({ page }) => {
     await deposerReponses(page, {
       skinType: 'mixte',

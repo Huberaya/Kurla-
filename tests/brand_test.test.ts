@@ -89,7 +89,16 @@ const maximalProfile = normalizeBeautyProfile({
     acne: 'reguliere',
     sensitivity: 'elevee',
     activeTolerance: 'faible',
-    hydration: 'seche'
+    hydration: 'seche',
+    // Le profil « maximal » doit être maximal des deux côtés. Il l'était côté
+    // cheveux, pas côté peau : depuis B-01, trois besoins (barrière, éclat,
+    // maturité) se lisent aussi dans les préoccupations déclarées et le type
+    // de peau. Sans ces champs, le profil ne serait pas maximal — il serait
+    // muet, et le test perdrait son objet, qui est de vérifier que chaque code
+    // reconnu rencontre bien une branche.
+    skinConcerns: ['rides', 'fermete', 'teint_terne', 'grain_irregulier', 'secheresse', 'sensibilite'],
+    skinType: 'mature',
+    ageRange: '45_54'
   }
 });
 const emptyProfile = normalizeBeautyProfile({});
