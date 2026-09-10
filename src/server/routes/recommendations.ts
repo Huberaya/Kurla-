@@ -3,9 +3,9 @@ import type { Express } from 'express';
 import { Type } from '@google/genai';
 
 import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from '../../lib/ai/systemPrompt';
-import { deriveAvoidedIngredients } from '../../lib/shelf';
+import { activeItems, deriveAvoidedIngredients } from '../../lib/shelf';
 import { intelligenceStore } from '../../lib/intelligenceStore';
-import { buildRecommendations, explainLearning } from '../../lib/recommendationEngine';
+import { buildRecommendations, explainLearning, productIngredientIds } from '../../lib/recommendationEngine';
 import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/semanticSearch';
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
@@ -21,6 +21,7 @@ import {
   normalizeAiLocale,
   queryNeeds,
 } from '../ai/assistant';
+import { conflictsBetween, shelfItemCarrier } from '../../lib/routineConflicts';
 import { jurisdictionForCountry } from '../../lib/jurisdiction';
 import { loadJurisdictionGraph, resolveDeclaredIngredients, type JurisdictionGraph } from '../compliance';
 import { getGeminiClient, GEMINI_MODEL } from '../ai/client';
@@ -173,6 +174,38 @@ export function registerRecommendationRoutes(app: Express): void {
       ? req.body.requestedSteps.filter((step: unknown): step is RoutineStep => isRequestedRoutineStep(step))
       : [];
 
+    // D-03 — les conflits du moteur ne couvrent que les produits proposés. Une
+    // routine se construit aussi avec ce que la personne possède déjà, et c'est
+    // précisément là que l'avertissement sert : proposer un BHA à quelqu'un qui
+    // applique déjà du rétinol sans rien dire est le pire service à rendre.
+    const rules = context.incompatibilityRules || [];
+    const owned = activeItems(context.shelf);
+    // Une étape déjà couverte par l'étagère n'entre pas dans le panier : la
+    // signaler produirait un conflit pour un produit qui ne sera pas acheté.
+    const coveredSteps = new Set<string>(
+      owned.map(item => item.routineStep).filter((step): step is RoutineStep => step !== undefined)
+    );
+    const crossConflicts = engine.recommendations
+      .filter(recommendation => !recommendation.excluded && recommendation.rank !== null && recommendation.rank <= 5)
+      .filter(recommendation => !recommendation.product.routineStep || !coveredSteps.has(recommendation.product.routineStep))
+      .flatMap(recommendation => owned.flatMap(item => conflictsBetween(
+        shelfItemCarrier(item),
+        {
+          id: String(recommendation.product.id),
+          label: recommendation.product.name || String(recommendation.product.id),
+          ingredientIds: productIngredientIds(recommendation.product),
+          routineStep: recommendation.product.routineStep
+        },
+        rules
+      )))
+      .map(conflict => ({
+        ingredientA: conflict.ingredientA,
+        ingredientB: conflict.ingredientB,
+        severity: conflict.severity,
+        explanation: `Avec « ${conflict.products[0].label} » que vous avez déjà : ${conflict.explanation} ${conflict.advice}`,
+        evidenceLevel: conflict.evidenceLevel
+      }));
+
     const routine = buildRoutine(
       engine.recommendations,
       context.shelf,
@@ -183,7 +216,7 @@ export function registerRecommendationRoutes(app: Express): void {
         experienceLevel: isExperienceLevel(req.body?.experienceLevel) ? req.body.experienceLevel : undefined,
         requestedSteps
       },
-      engine.conflicts
+      [...engine.conflicts, ...crossConflicts]
     );
 
     res.json({ routine, summary: engine.summary });

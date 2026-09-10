@@ -74,6 +74,7 @@ import {
   TensionLevel
 } from './protectiveStyle';
 import { BeautyProfile } from './beautyProfile';
+import { INGREDIENT_INCOMPATIBILITIES } from './ingredientIncompatibilities';
 
 export interface WashDayCyclePrefs {
   intervalDays: number;
@@ -177,7 +178,14 @@ class KurlaIntelligenceStore {
   // Replis mémoire explicites (chantier A). Jamais un mode à moitié autorisé.
   private reviews = new Map<string, { userId: string; rating: number; status: string }[]>();
   private jurisdictionRestrictions: JurisdictionRestriction[] = [];
-  private incompatibilityRules: IncompatibilityRule[] = [];
+  /**
+   * Source de vérité : `src/lib/ingredientIncompatibilities.ts`, dont la
+   * migration SQL est générée. En mode mémoire — celui des bancs de test —
+   * la base n'existe pas ; laisser ce tableau vide ferait répondre « aucun
+   * conflit » à un jeu de données qui en contient, sans jamais le signaler.
+   * On l'amorce donc avec la même source que la migration.
+   */
+  private incompatibilityRules: IncompatibilityRule[] = [...INGREDIENT_INCOMPATIBILITIES];
   private returnInsights: ReturnInsightRecord[] = [];
   private endorsements: ProfessionalEndorsement[] = [];
 

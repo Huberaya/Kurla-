@@ -206,7 +206,12 @@ const AVOIDED_PENALTY = 30;
 const NEGATIVE_OUTCOME_PENALTY = 20;
 const POSITIVE_OUTCOME_BONUS = 15;
 
-function productIngredientIds(product: EngineProduct): string[] {
+/**
+ * Identifiants d'actifs d'un produit. Exporté : le générateur de routine et
+ * l'analyse d'étagère doivent résoudre les actifs exactement de la même façon,
+ * sinon ils ne détectent pas les mêmes conflits.
+ */
+export function productIngredientIds(product: EngineProduct): string[] {
   if (product.ingredientIds && product.ingredientIds.length > 0) return product.ingredientIds;
   // Repli sur les libellés déclarés, normalisés : mieux que rien, mais ce ne
   // sont pas des entités résolues.

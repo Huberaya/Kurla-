@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { lookupProductByBarcode, normalizeBarcode, type BarcodeProduct } from '../lib/barcodeLookup';
 import { useAuth } from '../context/AuthContext';
 import { WhyItMatters } from '../components/account/WhyItMatters';
@@ -31,6 +31,16 @@ const STATUS_LABELS: Record<ShelfItem['status'], string> = {
   paused: 'En pause',
   finished: 'Terminé',
   abandoned: 'Abandonné'
+};
+
+/**
+ * D-03 — présentation d'un conflit d'actifs. Le libellé dit ce qu'il faut
+ * faire ; la sévérité n'est jamais un simple code couleur sans texte.
+ */
+const CONFLICT_SEVERITY: Record<string, { label: string; className: string }> = {
+  avoid: { label: 'À ne pas associer', className: 'bg-rose-50 border-rose-200 text-rose-900' },
+  space_out: { label: 'À espacer', className: 'bg-amber-50 border-amber-200 text-amber-900' },
+  caution: { label: 'Sous surveillance', className: 'bg-sky-50 border-sky-200 text-sky-900' }
 };
 
 const HAIR_STEPS: RoutineStep[] = ['cleanse', 'condition', 'deep_condition', 'leave_in', 'seal_oil', 'styling_definer', 'scalp_treatment', 'protein_treatment'];
@@ -373,6 +383,48 @@ export const ShelfPage: React.FC = () => {
                   ))}
                 </ul>
               </div>
+            )}
+          </section>
+        )}
+
+        {/* D-03 — Conflits d'actifs. Affiché avant l'ajout : avant de proposer
+            d'acheter, on dit ce qui, dans l'étagère, ne va pas ensemble. */}
+        {verdict?.conflicts && verdict.conflicts.analysedCount > 0 && (
+          <section className="mb-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+            <h2 className="font-bold text-sm mb-1 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-[#C8753D]" />
+              Conflits d’actifs dans ton étagère
+              {verdict.conflicts.conflicts.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-[10px] font-bold">
+                  {verdict.conflicts.conflicts.length}
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-[#111111]/60 mb-4 leading-relaxed">{verdict.conflicts.message}</p>
+
+            {verdict.conflicts.conflicts.map((conflict, index) => {
+              const style = CONFLICT_SEVERITY[conflict.severity] || CONFLICT_SEVERITY.caution;
+              return (
+                <div key={`${conflict.ingredientA}-${conflict.ingredientB}-${index}`} className={`p-4 rounded-2xl border mb-3 ${style.className}`}>
+                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1">{style.label}</p>
+                  <p className="text-sm font-semibold mb-1">
+                    {conflict.withinSameProduct
+                      ? conflict.products[0].label
+                      : `${conflict.products[0].label} × ${conflict.products[1].label}`}
+                  </p>
+                  <p className="text-xs opacity-80 leading-relaxed">{conflict.explanation}</p>
+                  <p className="text-xs font-bold mt-2">À faire — {conflict.advice}</p>
+                  <p className="text-[10px] opacity-60 mt-1.5">
+                    {conflict.ingredientA} × {conflict.ingredientB} · niveau de preuve {conflict.evidenceLevel}
+                  </p>
+                </div>
+              );
+            })}
+
+            {verdict.conflicts.unanalysed.length > 0 && (
+              <p className="text-[11px] text-[#111111]/50 mt-2 leading-relaxed">
+                Non évalué{verdict.conflicts.unanalysed.length > 1 ? 's' : ''} — composition non rattachée : {verdict.conflicts.unanalysed.map(u => u.label).join(', ')}.
+              </p>
             )}
           </section>
         )}

@@ -9,6 +9,7 @@ import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { OutcomeObservation } from '../lib/outcomeEvidence';
 import { ProtectiveStyleEpisode } from '../lib/protectiveStyle';
 import { TractionRiskAssessment } from '../lib/protectiveStyle';
+import type { ShelfConflictAnalysis } from '../lib/routineConflicts';
 import { ShelfItem } from '../lib/shelf';
 import { DailyTask, WashDayPlan, WashDayTask } from '../lib/washDay';
 
@@ -66,6 +67,8 @@ export interface ShelfVerdictResponse {
   message: string;
   avoidedIngredients: { ingredientId: string; occurrences: number; reasons: string[] }[];
   abandonmentPatterns: { reason: string; label: string; count: number; share: number }[];
+  /** D-03 — conflits d'actifs entre les produits réellement appliqués. */
+  conflicts: ShelfConflictAnalysis;
 }
 
 export interface CohortResponse {

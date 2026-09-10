@@ -16,6 +16,7 @@ import {
   buildRecoveryProtocol,
   summarizeTractionHistory,
 } from '../../lib/protectiveStyle';
+import { analyseShelfConflicts } from '../../lib/routineConflicts';
 import { buildDailyTasks, buildWashDayPlan, WashDayEvent } from '../../lib/washDay';
 import { normalizeWeatherContext } from '../../lib/adaptiveRoutine';
 import { asyncRoute, rateLimit } from '../http';
@@ -87,10 +88,16 @@ export function registerIntelligenceRoutes(app: Express): void {
     const requiredSteps = (requested && requested.length > 0
       ? requested.filter((step: unknown): step is RoutineStep => isRoutineStep(step))
       : ['cleanse', 'condition', 'leave_in', 'seal_oil']) as RoutineStep[];
+    // D-03 — l'étagère savait dire ce qui manque, ce qui est en surplus, ce qui
+    // a été abandonné. Elle ne savait pas dire : ces deux produits que vous
+    // appliquez ensemble se neutralisent. Les produits dont la composition
+    // n'est pas rattachée sont déclarés non évalués, jamais comptés comme sains.
+    const conflicts = analyseShelfConflicts(items, await intelligenceStore.getIncompatibilityRules());
     res.json({
       ...buildShelfVerdict(items, requiredSteps),
       avoidedIngredients: deriveAvoidedIngredients(items),
-      abandonmentPatterns: summarizeAbandonments(items)
+      abandonmentPatterns: summarizeAbandonments(items),
+      conflicts
     });
   }));
 
