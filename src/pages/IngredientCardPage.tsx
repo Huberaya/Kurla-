@@ -21,6 +21,12 @@ const SOURCE_LABELS: Record<string, string> = {
   not_provided: 'Source non fournie'
 };
 
+const VERIFICATION_LABELS: Record<string, string> = {
+  verified: 'Référentiel vérifié',
+  pending: 'Vérification en cours',
+  not_provided: 'Statut non renseigné'
+};
+
 /**
  * FICHE INGRÉDIENT PUBLIQUE — « transparence par ingrédient × archétype ».
  *
@@ -100,9 +106,14 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
       <div className="max-w-3xl mx-auto space-y-5">
 
         <header className={cardClass}>
-          <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest mb-1">
-            Fiche ingrédient
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest">
+              Fiche ingrédient
+            </p>
+            <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${card.verificationStatus === 'verified' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              {VERIFICATION_LABELS[card.verificationStatus] || 'Statut de vérification inconnu'}
+            </span>
+          </div>
           <h1 className="text-3xl font-bold text-[#111111] tracking-tight">
             {ingredient.display_name_fr || ingredient.inci_name}
           </h1>
@@ -200,6 +211,34 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
             </div>
           )}
         </section>
+
+        {/* Provenance du référentiel : la source est distincte du niveau de preuve. */}
+        {card.provenance.length > 0 && (
+          <section className={cardClass}>
+            <h2 className="text-xs font-semibold text-[#999999] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" /> Sources du référentiel
+            </h2>
+            <div className="space-y-3">
+              {card.provenance.map((source, index) => (
+                <div key={`${source.sourceUrl || source.sourceLabel || 'source'}-${index}`} className="rounded-xl border border-[#E8E1DA] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-[#111111]">{source.sourceLabel || 'Source non nommée'}</p>
+                    {source.evidenceTier && <span className="text-[10px] text-[#666666]">Tier {source.evidenceTier}</span>}
+                  </div>
+                  {source.sourceUrl ? (
+                    <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] hover:underline mt-2">
+                      Consulter la source <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <p className="text-xs text-[#999999] mt-2">URL non fournie</p>
+                  )}
+                  {source.retrievedAt && <p className="text-[11px] text-[#999999] mt-2">Retrait : {new Date(source.retrievedAt).toLocaleDateString('fr-FR')}</p>}
+                  {source.note && <p className="text-xs text-[#666666] leading-relaxed mt-2">{source.note}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Restrictions réglementaires */}
         {card.restrictions.length > 0 && (

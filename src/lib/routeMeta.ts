@@ -294,6 +294,15 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: '/besoin/:need/:texture',
+    title: 'Votre besoin et votre texture, expliqués | KURLA',
+    description:
+      'Page croisée générée depuis les taxonomies KURLA : conseils, limites et produits uniquement quand le besoin et la texture sont réellement reliés.',
+    indexable: true,
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
     path: '/besoin/:need',
     title: 'Votre besoin, expliqué et conseillé | KURLA',
     description:

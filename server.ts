@@ -19,6 +19,12 @@ import {
 import { isReverseChargeEligible, vatRateForCountry } from './src/lib/vat';
 import { priceCheckoutWithVat } from './src/lib/checkoutVat';
 import { validateAndApplyCoupon } from './src/lib/db/couponStore';
+import { isCheckoutEligibleProduct } from './src/lib/catalogTruth';
+import {
+  CATALOG_TRUST_CHECKS,
+  computeCatalogTrustScore,
+  readCatalogTrustStatus,
+} from './src/lib/catalogTrustScore';
 import { verifyVatNumber } from './src/lib/viesVerification';
 import { fromCents, toCents } from './src/lib/currency';
 import {
@@ -621,6 +627,13 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
         console.error(`[Stripe Checkout Error] Produit introuvable ou non publié ID: ${pId}`);
         return res.status(400).json({ error: 'Ce produit n’est pas disponible à la vente.' });
       }
+      // Même porte de vérité que boutique/IA : un produit publié mais encore
+      // en formulation cible, placeholder, rupture ou précommande non
+      // documentée ne peut pas être encaissé comme un article disponible.
+      if (!isCheckoutEligibleProduct(dbProduct)) {
+        console.error(`[Stripe Checkout Error] Produit non achetable selon la truth layer: ${pId}`);
+        return res.status(400).json({ error: 'Ce produit n’est pas disponible à la vente.' });
+      }
       const deliveredCountries = Array.isArray(dbProduct.countryAvailability) ? dbProduct.countryAvailability : [];
       if (!deliveredCountries.includes(normalizedShippingAddress.country) && !deliveredCountries.includes('INT')) {
         return res.status(400).json({ error: 'Ce produit n’est pas livré dans le pays indiqué.' });
@@ -1134,25 +1147,12 @@ app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRe
  * Tension assumée et documentée : le code porte la règle « les décisions de
  * gouvernance ne sont jamais renvoyées comme métadonnées client ». Cette route
  * la respecte — elle ne publie ni statut brut, ni note interne, ni URL de
- * preuve, ni identifiant de validateur. Elle ne publie qu'un fait binaire par
- * contrôle : cette vérification a-t-elle abouti, oui ou non. C'est l'information
- * qui intéresse l'acheteur ; le reste reste côté admin.
+ * preuve, ni identifiant de validateur. Elle publie un fait binaire par
+ * contrôle, ainsi qu’un décompte transparent des sept validations : le Trust
+ * Score n’est jamais une note d’efficacité, de sécurité ou de résultat ; le
+ * reste demeure côté admin.
  */
-const PUBLIC_VERIFICATION_CHECKS: { id: string; label: string; decisive: boolean; column: string }[] = [
-  { id: 'ingredients', label: 'Composition vérifiée', decisive: true, column: 'ingredient_verification_status' },
-  { id: 'claims', label: 'Allégations contrôlées', decisive: true, column: 'claims_validation_status' },
-  { id: 'certifications', label: 'Certifications vérifiées', decisive: false, column: 'certifications_validation_status' },
-  { id: 'images', label: 'Visuels conformes', decisive: false, column: 'images_validation_status' },
-  { id: 'brand', label: 'Marque vérifiée', decisive: false, column: 'brand_verification_status' },
-  { id: 'translations', label: 'Traductions relues', decisive: false, column: 'translations_validation_status' },
-  { id: 'stock', label: 'Disponibilité confirmée', decisive: false, column: 'stock_validation_status' }
-];
-
-/** Lit un statut de contrôle sur une fiche, quel que soit le format du store. */
-function readCheckStatus(product: any, column: string): string {
-  const camel = column.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase());
-  return String(product?.[camel] ?? product?.[column] ?? '');
-}
+const PUBLIC_VERIFICATION_CHECKS = CATALOG_TRUST_CHECKS;
 
 app.get('/api/products/:productId/verification', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const product = (await serverDb.getProducts({ publishedOnly: true }))
@@ -1166,8 +1166,9 @@ app.get('/api/products/:productId/verification', asyncRoute(async (req: Authenti
   const checks = PUBLIC_VERIFICATION_CHECKS.map(check => ({
     id: check.id,
     label: check.label,
-    passed: readCheckStatus(product, check.column) === 'verified'
+    passed: readCatalogTrustStatus(product, check.column) === 'verified'
   }));
+  const trustScore = computeCatalogTrustScore(product, PUBLIC_VERIFICATION_CHECKS);
 
   const events = await serverDb.getCatalogValidationEvents(product.id);
 
@@ -1188,6 +1189,7 @@ app.get('/api/products/:productId/verification', asyncRoute(async (req: Authenti
     verified,
     verifiedAt: verifiedAt || null,
     checks,
+    trustScore,
     note: verified
       ? 'Contrôles décisifs aboutis. Les preuves détaillées restent internes.'
       : 'Cette fiche n’a pas encore passé tous les contrôles décisifs. L’absence de validation n’est pas un jugement sur le produit.'

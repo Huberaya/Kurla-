@@ -58,12 +58,14 @@ function values(p: (typeof KURLA_SKIN_RANGE)[number]): string {
     arr(p.skinTypes),
     arr(p.concerns),
     arr(['FR', 'BE', 'DOM', 'INT']),
+    // Formulation cible : inactive et hors publication tant que les preuves
+    // réelles (fabrication, INCI contrôlée, visuels et stock) n'existent pas.
+    'FALSE',
+    s('draft'),
     'TRUE',
-    s('published'),
-    'TRUE',
-    arr(p.badges),
+    arr([...p.badges, 'formulation-target']),
     '0',
-    'TRUE',
+    'FALSE',
     s('KURLA Skincare — formulation interne (précommande)'),
     s('sup-brands-wholesale'),
     s(p.routineStep),
@@ -133,8 +135,9 @@ const out = `-- ============================================================
 --     visuel officiel n'existe. 'brand_provided' aurait été un mensonge.
 --   · *_validation_status = 'pending' : rien n'a été vérifié. Une formule
 --     cible n'est pas une formule contrôlée.
---   · stock_quantity = 0 et in_stock = TRUE, badges = ['preorder'] : même
---     régime que les 67 autres produits publiés, en attente du premier lot.
+--   · is_active = FALSE et catalog_status = 'draft' : ces fiches ne sont
+--     ni publiées ni achetables. Le badge de précommande décrit une intention
+--     commerciale, pas une disponibilité ; le lancement exige des preuves.
 --
 -- Idempotent : ON CONFLICT (id) DO UPDATE. Rejouable sans dommage.
 -- ============================================================

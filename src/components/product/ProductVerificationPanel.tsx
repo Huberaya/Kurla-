@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BadgeCheck, Check, Loader2, Minus } from 'lucide-react';
+import { BadgeCheck, Check, Loader2, Minus, ShieldCheck } from 'lucide-react';
 import { fetchProductVerification, ProductVerificationResponse } from '../../services/marketplaceService';
 
 /**
@@ -40,18 +40,41 @@ export function ProductVerificationPanel({ productIdOrSlug }: ProductVerificatio
 
   if (!verification) return null;
 
-  const passedCount = verification.checks.filter(check => check.passed).length;
+  const { trustScore } = verification;
+  const summary = trustScore.status === 'insufficient_data'
+    ? 'Données insuffisantes'
+    : `${trustScore.verifiedCount}/${trustScore.max} validations`;
 
   return (
     <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6">
       <div className="flex items-start justify-between gap-3 mb-4">
         <h2 className="text-xl font-serif-title font-bold flex items-center gap-2">
-          <BadgeCheck className={`w-5 h-5 ${verification.verified ? 'text-emerald-300' : 'text-[#FFF7EF]/40'}`} />
-          <span>Fiche vérifiée par KURLA</span>
+          {trustScore.status === 'verified' ? (
+            <BadgeCheck className="w-5 h-5 text-emerald-300" />
+          ) : (
+            <ShieldCheck className="w-5 h-5 text-[#FFF7EF]/55" />
+          )}
+          <span>Trust Score public</span>
         </h2>
-        <span className="text-[11px] text-[#FFF7EF]/50 shrink-0">
-          {passedCount}/{verification.checks.length} contrôles
-        </span>
+        <span className="text-[11px] text-[#FFF7EF]/50 shrink-0">{summary}</span>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-[#FFF7EF]/10 bg-white/[0.03] px-4 py-3">
+        {trustScore.status === 'insufficient_data' ? (
+          <p className="text-sm text-[#FFF7EF]/75">
+            Aucun score affiché : KURLA ne dispose pas encore d’une validation exploitable pour cette fiche.
+          </p>
+        ) : (
+          <p className="text-2xl font-bold text-[#FFF7EF]">
+            {trustScore.value}/{trustScore.max}
+            <span className="ml-2 text-xs font-normal text-[#FFF7EF]/55">
+              validations publiées · {trustScore.status === 'verified' ? 'vérifié' : 'partiel'}
+            </span>
+          </p>
+        )}
+        <p className="mt-1 text-[11px] leading-relaxed text-[#FFF7EF]/45">
+          Ce score mesure uniquement les contrôles documentaires de la fiche. Il ne mesure ni l’efficacité cosmétique ni un résultat médical.
+        </p>
       </div>
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">

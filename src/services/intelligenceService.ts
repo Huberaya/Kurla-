@@ -616,6 +616,15 @@ export async function fetchIngredientCard(ingredientId: string): Promise<{
   ingredient: Record<string, unknown> | null;
   evidence: IngredientEvidence[];
   restrictions: Record<string, unknown>[];
+  provenance: Array<{
+    sourceLabel?: string;
+    sourceUrl?: string;
+    retrievedAt?: string;
+    casNumber?: string | null;
+    evidenceTier?: number;
+    note?: string;
+  }>;
+  verificationStatus: 'verified' | 'pending' | 'not_provided' | string;
   bestEvidence: { evidence: IngredientEvidence | null; transposable: boolean; caveat?: string };
   note?: string;
   error?: string;

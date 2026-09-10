@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T22:31:56.023Z",
+  "generatedAt": "2026-09-10T17:21:03.243Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -86,6 +86,7 @@
     "getCatalogImports/0",
     "getCatalogPublicationReadiness/1",
     "getCatalogPublicationReadinessReport/0",
+    "getCatalogSourcingReadinessReport/0",
     "getCatalogTaxonomy/0",
     "getCatalogValidationEvents/1",
     "getCommunityOverview/0",

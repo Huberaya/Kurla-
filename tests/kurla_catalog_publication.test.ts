@@ -104,8 +104,12 @@ async function runCatalogPublicationTests(): Promise<void> {
   assert.equal(report.publishedStatus, 2, 'COMPLETE et LYING portent le statut published');
   assert.equal(report.readyToPublish, 1, 'seul COMPLETE satisfait les exigences');
   assert.equal(report.publishedButNotListable, 1, 'LYING est publié sans être listable');
+  assert.equal(report.publishedButNotListableProducts.length, 1, 'le rapport doit lister le produit publié non listable');
+  assert.equal(report.publishedButNotListableProducts[0].productId, LYING);
   const lying = report.perProduct.find(entry => entry.productId === LYING);
   assert.ok(lying && lying.missing.length > 0);
+  assert.equal(lying?.publiclyListable, false);
+  assert.equal(lying?.commercialState, 'formulation_target');
 
   // ---------------------------------------------------------------------
   // 5. Les routes d'état restent fermées au public.

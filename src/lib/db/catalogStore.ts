@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
 import { checkProductVocabulary } from './taxonomyStore';
-import { getSupplierById, getSupplierCompliance, registerSupplierByName } from './supplierStore';
+import { getSupplierById, getSupplierCompliance, listSupplierDocuments, listSuppliers, registerSupplierByName } from './supplierStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   effectiveCatalogPrice,
@@ -14,6 +14,8 @@ import {
   toPublicProduct,
 } from './internal';
 import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
+import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
+import { getCatalogTruth } from '../catalogTruth';
 import { CORRECTED_PRODUCT_NEEDS } from '../productNeedsCorrection';
 
 import type {
@@ -116,7 +118,11 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         originalPrice: p.original_price == null ? (isPromotionActive(p) ? Number(p.price) : undefined) : Number(p.original_price),
         rating: p.rating == null ? 0 : Number(p.rating),
         reviewsCount: Number(p.reviews_count || 0),
-        inStock: ((p.is_preorder === true) || (Array.isArray(p.badges) && p.badges.includes('preorder'))) ? p.in_stock === true : p.in_stock === true && (productVariants.length > 0 ? variantAvailable : baseAvailable > 0),
+        // Une précommande n'est pas du stock disponible : elle reste une
+        // fiche vendable uniquement si la truth layer l'autorise comme telle.
+        inStock: ((p.is_preorder === true) || (Array.isArray(p.badges) && p.badges.includes('preorder')))
+          ? false
+          : p.in_stock === true && (productVariants.length > 0 ? variantAvailable : baseAvailable > 0),
         stockQuantity: ((p.is_preorder === true) || (Array.isArray(p.badges) && p.badges.includes('preorder'))) ? 0 : (baseStock ? Number(baseStock.quantity) : Number(p.stock_quantity || 0)),
         category: p.category,
         subCategory: p.subcategory,
@@ -1132,6 +1138,58 @@ export async function createProductQuestion(store: SupabaseServerStore, userId: 
  * L'évaluation prend donc la ligne en paramètre ; le getter ne fait plus que la
  * charger.
  */
+function isSourcingGovernedProduct(product: any): boolean {
+  // Les lignes sans catégorie sont des fixtures/éléments techniques historiques,
+  // pas des références commerciales identifiables. Les produits réels importés
+  // portent une catégorie ; c'est sur eux que la porte sourcing se raccorde à
+  // la publication sans changer le sens d'un brouillon technique.
+  const category = product?.category ?? product?.department;
+  return typeof category === 'string' && category.trim() !== '';
+}
+
+type CatalogSourcingLookup = {
+  suppliersById: Map<string, any>;
+  documentsBySupplierId: Map<string, any[]>;
+};
+
+async function buildCatalogSourcingLookup(store: SupabaseServerStore): Promise<CatalogSourcingLookup> {
+  const suppliers = await listSuppliers(store);
+  const suppliersById = new Map(suppliers.map(supplier => [supplier.id, supplier]));
+  const documentsBySupplierId = new Map<string, any[]>();
+  await Promise.all(suppliers.map(async supplier => {
+    documentsBySupplierId.set(supplier.id, await listSupplierDocuments(store, supplier.id));
+  }));
+  return { suppliersById, documentsBySupplierId };
+}
+
+async function getCatalogSourcingReadinessForProduct(
+  store: SupabaseServerStore,
+  product: any,
+  lookup?: CatalogSourcingLookup
+): Promise<CatalogSourcingReadiness> {
+  const supplierId = product?.supplierId || product?.supplier_id;
+  let supplier: any | null | undefined;
+  let documents: any[] = [];
+  if (supplierId) {
+    if (lookup) {
+      supplier = lookup.suppliersById.get(String(supplierId)) || null;
+      documents = lookup.documentsBySupplierId.get(String(supplierId)) || [];
+    } else {
+      supplier = await getSupplierById(store, String(supplierId));
+      if (supplier) {
+        const compliance = await getSupplierCompliance(store, supplier.id);
+        documents = compliance.documents;
+      } else {
+        supplier = null;
+      }
+    }
+    // Une preuve fournisseur générique s'applique à ses produits ; une preuve
+    // produit-spécifique ne s'applique qu'à la référence concernée.
+    documents = documents.filter(document => !document.productId || document.productId === String(product?.id));
+  }
+  return evaluateCatalogSourcingReadiness(product, { supplier, documents });
+}
+
 export function evaluateCatalogPublicationReadiness(product: any, productId?: string): {
   productId: string;
   checkedAt: string;
@@ -1208,6 +1266,21 @@ export function evaluateCatalogPublicationReadiness(product: any, productId?: st
   const isPromo = Boolean(product.isPromo ?? product.is_promo);
   if (isPromo && !isPromotionActive(product)) missing.push({ field: 'promotion', label: 'promotion annoncée mais inactive ou expirée' });
 
+  // La readiness d'écriture doit rester alignée sur la truth layer. On sonde
+  // le produit comme s'il allait être publié, sans modifier son statut actuel.
+  // Cela couvre notamment les formulations cibles, les placeholders et un
+  // objet camelCase qui aurait échappé aux contrôles historiques.
+  const truthProbe = getCatalogTruth({ ...product, catalog_status: 'published', catalogStatus: 'published' });
+  if (!truthProbe.isPubliclyListable && missing.length === 0) {
+    // Les manques historiques restent nominatifs lorsqu'ils existent déjà ;
+    // ce filet n'ajoute un blocage générique que pour une incohérence nouvelle
+    // (par ex. un marqueur de formulation cible sans validation manquante).
+    missing.push({
+      field: 'catalog_truth',
+      label: `truth layer : ${truthProbe.blockers.join(' ; ') || 'preuves commerciales incohérentes'}`
+    });
+  }
+
   return {
     productId: productId || String(product.id || ''),
     checkedAt: new Date().toISOString(),
@@ -1249,6 +1322,17 @@ export async function getCatalogPublicationReadiness(store: SupabaseServerStore,
     }
     base.ready = base.missing.length === 0;
   }
+  // Raccord explicite : une fiche commerciale réelle ne devient pas publiée
+  // tant que sa provenance, son SKU ou ses preuves d'achat ne sont pas établis.
+  // Les formulations cibles/précommandes restent ainsi dans leur workflow
+  // propre au lieu d'être comptées comme références achetables.
+  if (isSourcingGovernedProduct(product)) {
+    const sourcing = await getCatalogSourcingReadinessForProduct(store, product);
+    for (const item of sourcing.missing) {
+      if (!base.missing.some(existing => existing.field === item.field)) base.missing.push(item);
+    }
+    base.ready = base.missing.length === 0;
+  }
   return base;
 }
 
@@ -1263,7 +1347,25 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
   readyToPublish: number;
   publishedStatus: number;
   publishedButNotListable: number;
-  perProduct: Array<{ productId: string; title: string; catalogStatus: string; ready: boolean; missing: string[] }>;
+  /** Liste exploitable directement par le cockpit admin, pas seulement un compteur. */
+  publishedButNotListableProducts: Array<{
+    productId: string;
+    title: string;
+    catalogStatus: string;
+    proofState: string;
+    commercialState: string;
+    missing: string[];
+  }>;
+  perProduct: Array<{
+    productId: string;
+    title: string;
+    catalogStatus: string;
+    commercialState: string;
+    publiclyListable: boolean;
+    checkoutEligible: boolean;
+    ready: boolean;
+    missing: string[];
+  }>;
 }> {
   const supabase = getSupabaseServerClient();
   let rows: any[] = [];
@@ -1275,10 +1377,29 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
     rows = store.inMemoryProducts;
   }
 
-  const perProduct: Array<{ productId: string; title: string; catalogStatus: string; ready: boolean; missing: string[] }> = [];
+  const perProduct: Array<{
+    productId: string;
+    title: string;
+    catalogStatus: string;
+    proofState: string;
+    commercialState: string;
+    publiclyListable: boolean;
+    checkoutEligible: boolean;
+    ready: boolean;
+    missing: string[];
+  }> = [];
+  const publishedButNotListableProducts: Array<{
+    productId: string;
+    title: string;
+    catalogStatus: string;
+    proofState: string;
+    commercialState: string;
+    missing: string[];
+  }> = [];
   let readyToPublish = 0;
   let publishedStatus = 0;
   let publishedButNotListable = 0;
+  const sourcingLookup = await buildCatalogSourcingLookup(store);
 
   for (const row of rows) {
     const product = row;
@@ -1300,24 +1421,49 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
           } else {
             const compliance = await getSupplierCompliance(store, supplier.id);
             const evalCpnp = evaluateCosmeticCompliance(product, compliance.heldTypes, compliance.expiredTypes, supplier.verificationStatus);
-            evalCpnp.missing.forEach(m => missing.push({ field: m.field, label: m.label }));
+            evalCpnp.missing.forEach(m => {
+              if (!missing.some(existing => existing.field === m.field)) missing.push({ field: m.field, label: m.label });
+            });
           }
         }
       } catch {
         // Ne masque pas les autres manques.
       }
     }
+    if (isSourcingGovernedProduct(product)) {
+      const sourcing = await getCatalogSourcingReadinessForProduct(store, product, sourcingLookup);
+      for (const item of sourcing.missing) {
+        if (!missing.some(existing => existing.field === item.field)) missing.push(item);
+      }
+    }
     const ready = missing.length === 0;
-    const status = String(product.catalog_status || product.catalogStatus || 'draft');
+    const truth = getCatalogTruth(product);
+    const status = truth.administrativeStatus;
+    const missingLabels = missing.map(item => item.label);
+    const title = String(product.title || product.name || productId);
     if (status === 'published') publishedStatus += 1;
     if (ready) readyToPublish += 1;
-    if (status === 'published' && !isPublishableProduct(product)) publishedButNotListable += 1;
+    if (status === 'published' && !truth.isPubliclyListable) {
+      publishedButNotListable += 1;
+      publishedButNotListableProducts.push({
+        productId,
+        title,
+        catalogStatus: status,
+        proofState: truth.proofState,
+        commercialState: truth.commercialState,
+        missing: Array.from(new Set([...missingLabels, ...truth.blockers]))
+      });
+    }
     perProduct.push({
       productId,
-      title: String(product.title || product.name || productId),
+      title,
       catalogStatus: status,
+      proofState: truth.proofState,
+      commercialState: truth.commercialState,
+      publiclyListable: truth.isPubliclyListable,
+      checkoutEligible: truth.isCheckoutEligible,
       ready,
-      missing: missing.map(item => item.label)
+      missing: missingLabels
     });
   }
 
@@ -1327,6 +1473,104 @@ export async function getCatalogPublicationReadinessReport(store: SupabaseServer
     readyToPublish,
     publishedStatus,
     publishedButNotListable,
+    publishedButNotListableProducts,
+    perProduct
+  };
+}
+
+/**
+ * CHANTIER 2 — rapport admin sourcing → catalogue.
+ *
+ * Ce rapport reste distinct du tableau « publication » : une formulation cible
+ * ou une précommande peut être utile à l'équipe sans être comptée comme une
+ * référence achetable. Il expose uniquement les faits présents dans le
+ * catalogue et le référentiel fournisseurs.
+ */
+export async function getCatalogSourcingReadinessReport(store: SupabaseServerStore): Promise<{
+  generatedAt: string;
+  products: number;
+  readyToBuy: number;
+  byState: Record<string, number>;
+  perProduct: Array<{
+    productId: string;
+    title: string;
+    slug?: string;
+    catalogStatus?: string;
+    commercialState: string;
+    state: CatalogSourcingReadiness['state'];
+    ready: boolean;
+    sourceSupplier?: string;
+    supplierId?: string;
+    supplierName?: string;
+    supplierVerificationStatus?: string;
+    supplierSku?: string;
+    requiredDocuments: string[];
+    recommendedDocuments: string[];
+    missingRecommendedDocuments: string[];
+    heldDocuments: string[];
+    expiredDocuments: string[];
+    missing: Array<{ field: string; label: string }>;
+  }>;
+}> {
+  const products = await getAdminCatalogProducts(store);
+  const perProduct = [] as Array<{
+    productId: string;
+    title: string;
+    slug?: string;
+    catalogStatus?: string;
+    commercialState: string;
+    state: CatalogSourcingReadiness['state'];
+    ready: boolean;
+    sourceSupplier?: string;
+    supplierId?: string;
+    supplierName?: string;
+    supplierVerificationStatus?: string;
+    supplierSku?: string;
+    requiredDocuments: string[];
+    recommendedDocuments: string[];
+    missingRecommendedDocuments: string[];
+    heldDocuments: string[];
+    expiredDocuments: string[];
+    missing: Array<{ field: string; label: string }>;
+  }>;
+  const byState: Record<string, number> = {};
+  const sourcingLookup = await buildCatalogSourcingLookup(store);
+
+  for (const product of products) {
+    const sourcing = await getCatalogSourcingReadinessForProduct(store, product, sourcingLookup);
+    const truth = getCatalogTruth(product);
+    const supplierId = product.supplierId || product.supplier_id;
+    const supplierVerificationStatus = supplierId
+      ? sourcingLookup.suppliersById.get(String(supplierId))?.verificationStatus
+      : undefined;
+    byState[sourcing.state] = (byState[sourcing.state] || 0) + 1;
+    perProduct.push({
+      productId: String(product.id),
+      title: String(product.title || product.name || product.id),
+      slug: product.slug,
+      catalogStatus: product.catalogStatus || product.catalog_status,
+      commercialState: truth.commercialState,
+      state: sourcing.state,
+      ready: sourcing.ready && truth.commercialState === 'available',
+      sourceSupplier: product.sourceSupplier || product.source_supplier,
+      supplierId: sourcing.supplierId,
+      supplierName: sourcing.supplierName,
+      supplierVerificationStatus,
+      supplierSku: product.supplierSku || product.supplier_sku,
+      requiredDocuments: sourcing.requiredDocuments,
+      recommendedDocuments: sourcing.recommendedDocuments,
+      missingRecommendedDocuments: sourcing.missingRecommendedDocuments,
+      heldDocuments: sourcing.heldDocuments,
+      expiredDocuments: sourcing.expiredDocuments,
+      missing: sourcing.missing
+    });
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    products: perProduct.length,
+    readyToBuy: perProduct.filter(product => product.ready).length,
+    byState,
     perProduct
   };
 }

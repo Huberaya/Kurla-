@@ -169,6 +169,17 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   }));
 
   /**
+   * CHANTIER 2 — sourcing réel → catalogue.
+   * Nommé par produit : aucun fournisseur, SKU ou document n'est déduit.
+   */
+  app.get('/api/admin/catalog/sourcing-readiness', rateLimit('admin-catalog-sourcing-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const report = await serverDb.getCatalogSourcingReadinessReport();
+    res.json(report);
+  }));
+
+  /**
    * CHANTIER 10 (bloc B3) — vocabulaires contrôlés, publics.
    *
    * Une liste fermée que le client ne peut pas lire est une liste que personne

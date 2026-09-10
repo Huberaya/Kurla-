@@ -9,7 +9,8 @@ import { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { isDropshipProduct } from '../lib/preorderPromise';
 import { PEAU_KITS } from '../lib/peauKits';
-import { NeedContent, NEEDS_HUB } from '../lib/needsHub';
+import { NEEDS_HUB } from '../lib/needsHub';
+import { getHairTextureTerm, isTextureAwareNeed, productMatchesHairTexture } from '../lib/needTexturePages';
 
 const ICONS: Record<string, React.ElementType> = {
   droplet: Droplets, feather: Feather, sparkles: Sparkles, scissors: Scissors,
@@ -19,24 +20,37 @@ const ICONS: Record<string, React.ElementType> = {
 
 interface NeedHubPageProps {
   need: string;
+  texture?: string;
   onAddToCart: (product: Product) => void;
 }
 
-export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) => {
+export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, texture, onAddToCart }) => {
   const { products, loading } = useProducts();
+  const textureTerm = useMemo(() => getHairTextureTerm(texture), [texture]);
   const content = useMemo(
-    () => NEEDS_HUB.find((n) => n.homeSlug === need || n.id === need),
-    [need]
+    () => {
+      const candidate = NEEDS_HUB.find((n) => n.homeSlug === need || n.id === need);
+      // Une URL texture n'est valide que pour une texture de la taxonomie et un
+      // besoin explicitement capillaire. Cela évite de fabriquer, par exemple,
+      // une page « SPF × 4C » à partir d'un simple slug.
+      return texture && (!textureTerm || !candidate || !isTextureAwareNeed(candidate))
+        ? undefined
+        : candidate;
+    },
+    [need, texture, textureTerm]
   );
 
   // Produits recommandés : on résout les ids `launch-pXX` du catalogue réel.
   const recommended = useMemo(() => {
     if (!content) return [];
     const byId = new Map(products.map((p) => [p.id, p]));
-    return content.productIds
+    const candidates = content.productIds
       .map((pid) => byId.get(`launch-${pid}`))
       .filter((p): p is Product => Boolean(p));
-  }, [content, products]);
+    return textureTerm
+      ? candidates.filter(product => productMatchesHairTexture(product, textureTerm.code))
+      : candidates;
+  }, [content, products, textureTerm]);
 
   if (!content) {
     return (
@@ -71,8 +85,15 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[#D49A63] text-[11px] font-semibold uppercase tracking-wider mb-5">
               <Icon className="w-4 h-4" /> {content.badge}
             </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold mb-4 leading-tight">{content.title}</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold mb-4 leading-tight">
+              {content.title}{textureTerm ? ` — ${textureTerm.code}` : ''}
+            </h1>
             <p className="text-base sm:text-lg text-[#FFF7EF]/90 font-light max-w-2xl leading-relaxed">{content.headline}</p>
+            {textureTerm && (
+              <p className="mt-3 text-xs text-[#FFF7EF]/65">
+                Page croisée avec la taxonomie texture « {textureTerm.labelFr} ». Les produits affichés sont ceux dont la fiche catalogue porte explicitement ce code ou une plage qui l’inclut.
+              </p>
+            )}
 
             <div className="mt-7 flex flex-wrap gap-3">
               {content.comingSoon ? (
@@ -166,10 +187,10 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                 </div>
               )}
 
-              {/* C6 — NeedHub peau : kits peau quand catalogue peau = précommande */}
+              {/* C6 — NeedHub peau : plans de kits tant que la gamme n'est pas prouvée */}
               {content.domain === 'peau' && (
                 <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D]">Kits peau — précommande 3–5j</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D]">Kits peau — formulation cible, non disponibles</p>
                   {PEAU_KITS.map(kit => (
                     <a key={kit.id} href={`/boutique?cat=kits`} className="block p-4 rounded-2xl bg-white border border-[#E8E1DA] hover:border-[#C8753D] transition-colors">
                       <p className="text-sm font-bold">{kit.name} · {kit.priceBundle.toFixed(2)}€ <span className="text-xs font-normal text-[#111111]/40 line-through ml-1">{kit.priceSeparate.toFixed(2)}€</span></p>
@@ -186,11 +207,16 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                 <div className="py-10 text-center"><Loader2 className="w-6 h-6 text-[#C8753D] animate-spin mx-auto" /></div>
               ) : recommended.length === 0 && !content.comingSoon ? (
                 <div className="rounded-2xl border border-[#E8E1DA] bg-white p-5 text-xs text-[#111111]/60">
-                  Les références arrivent dans la boutique.
+                  {textureTerm
+                    ? 'Aucune référence publiée ne porte actuellement cette texture dans sa fiche catalogue. Nous n’élargissons pas la recommandation sans donnée correspondante.'
+                    : 'Les références arrivent dans la boutique.'}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {recommended.map((p, i) => (
+                  {recommended.map((p, i) => {
+                    const isPreorderProduct = p.isPreorder === true || (p as any).availabilityState === 'preorder';
+                    const canOrderProduct = p.inStock === true || isPreorderProduct;
+                    return (
                     <motion.article
                       key={p.id}
                       initial={{ opacity: 0, y: 12 }}
@@ -206,14 +232,17 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-[#111111]/40">Image bientôt</div>
                           )}
-                          {!isDropshipProduct(p as any) && (
-                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-700/95 text-white text-[9px] font-bold">
-                              <Clock className="w-2.5 h-2.5" /> Précommande — 3–5j
-                            </span>
-                          )}
-                          {isDropshipProduct(p as any) && (
+                          {isDropshipProduct(p as any) ? (
                             <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold">
                               <Clock className="w-2.5 h-2.5" /> 24–48h
+                            </span>
+                          ) : isPreorderProduct ? (
+                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-700/95 text-white text-[9px] font-bold">
+                              <Clock className="w-2.5 h-2.5" /> Précommande
+                            </span>
+                          ) : (
+                            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#111111]/80 text-white text-[9px] font-bold">
+                              Stock disponible
                             </span>
                           )}
                         </div>
@@ -226,15 +255,16 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, onAddToCart }) =
                           <span className="text-base font-bold">{p.price.toFixed(2)} €</span>
                           <button
                             onClick={() => onAddToCart(p)}
-                            disabled={!p.inStock}
+                            disabled={!canOrderProduct}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-40 text-white text-[11px] font-semibold"
                           >
-                            <ShoppingBag className="w-3.5 h-3.5" /> {isDropshipProduct(p as any) ? 'Ajouter' : 'Précommander'}
+                            <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? 'Indisponible' : isPreorderProduct ? 'Précommander' : 'Ajouter'}
                           </button>
                         </div>
                       </div>
                     </motion.article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

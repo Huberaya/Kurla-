@@ -226,6 +226,7 @@ export class SupabaseServerStore {
   public syncInventoryToSupabase!: Curried<typeof inventoryStore>['syncInventoryToSupabase'];
   public syncVariantInventoryToSupabase!: Curried<typeof inventoryStore>['syncVariantInventoryToSupabase'];
   public getAdminCatalogProducts!: Curried<typeof catalogStore>['getAdminCatalogProducts'];
+  public getCatalogSourcingReadinessReport!: Curried<typeof catalogStore>['getCatalogSourcingReadinessReport'];
   // CHANTIER 16A — fournisseurs. Les helpers purs (normalizeSupplierName,
   // supplierIdFromName) ne sont volontairement **pas** liés : bindDomain
   // curryfie le premier argument, une fonction pure liée deviendrait une

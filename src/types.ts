@@ -172,6 +172,8 @@ export interface Product {
   isNew?: boolean;
   isPromo?: boolean;
   isPreorder?: boolean; // Article en précommande (lot non encore réceptionné)
+  /** Etat commercial dérivé par la truth layer, distinct du statut admin. */
+  availabilityState?: 'draft' | 'formulation_target' | 'placeholder' | 'preorder' | 'available' | 'unavailable';
   subCategoryTag?: string; // Fine-grained subcategory tag
   galleryImages?: ProductGalleryImage[];
   isIllustrativeVisual?: boolean;

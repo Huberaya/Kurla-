@@ -32,6 +32,7 @@ import { ROUTE_META } from '../src/lib/routeMeta';
 import type { RouteMeta } from '../src/lib/routeMeta';
 import { EN_ROUTE_CONTENT, englishBasePaths, localizeRouteMeta } from '../src/lib/routeTranslations';
 import { localizedPath, splitLocale, type Locale } from '../src/lib/i18n';
+import { buildNeedTexturePages } from '../src/lib/needTexturePages';
 import { fetchIngredientPages, fetchProductPages } from './seoEntities';
 import { applyContentSeed, applySeoHead } from '../src/lib/seoHead';
 
@@ -197,7 +198,17 @@ async function main(): Promise<void> {
 
   // Pages d'entités : les fiches ingrédient vérifiées, lues dans la base. Sans
   // base disponible, la liste est vide et rien n'est écrit (dégradation douce).
-  const entities = [...(await fetchIngredientPages()), ...(await fetchProductPages())];
+  const needTextureEntities = buildNeedTexturePages().map(page => ({
+    path: page.path,
+    title: page.title,
+    description: page.description,
+    ogType: 'article' as const
+  }));
+  const entities = [
+    ...needTextureEntities,
+    ...(await fetchIngredientPages()),
+    ...(await fetchProductPages())
+  ];
   for (const page of entities) {
     const meta: RouteMeta = {
       path: page.path,
@@ -239,7 +250,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${english} anglaises + ${entities.length} ingrédients) ` +
+    `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${english} anglaises + ${needTextureEntities.length} besoin×texture + ${entities.length - needTextureEntities.length} ingrédients/produits) ` +
     `avec <head> et amorce de contenu. Base : ${SITE_URL}.`
   );
 }

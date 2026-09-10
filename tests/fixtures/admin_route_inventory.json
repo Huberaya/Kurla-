@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T22:23:52.270Z",
+  "generatedAt": "2026-09-10T17:21:02.630Z",
   "routes": [
     {
       "method": "GET",
@@ -114,7 +114,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/:productId/readiness",
-      "file": "src/server/routes/catalogGovernance.ts:194",
+      "file": "src/server/routes/catalogGovernance.ts:205",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -211,6 +211,13 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/catalog/sourcing-readiness",
+      "file": "src/server/routes/catalogGovernance.ts:175",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/catalog/taxonomy",
       "file": "src/server/routes/catalogGovernance.ts:41",
       "guard": "requireAdmin(",
@@ -221,7 +228,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/vocabulary-audit",
-      "file": "src/server/routes/catalogGovernance.ts:187",
+      "file": "src/server/routes/catalogGovernance.ts:198",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -329,7 +336,7 @@
     {
       "method": "POST",
       "path": "/api/admin/professionals/:professionalId/verify",
-      "file": "src/server/routes/professionals.ts:284",
+      "file": "src/server/routes/professionals.ts:285",
       "guard": "requireAdmin(",
       "callers": []
     },

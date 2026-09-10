@@ -1,5 +1,6 @@
 import { ProductQuestion, ProductReview } from '../types';
 import { apiErrorMessage } from '../lib/apiDiagnostics';
+import type { CatalogTrustScore } from '../lib/catalogTrustScore';
 
 export interface ProductTrustResponse {
   reviews: ProductReview[];
@@ -107,6 +108,7 @@ export interface ProductVerificationResponse {
   verified: boolean;
   verifiedAt: string | null;
   checks: ProductVerificationCheck[];
+  trustScore: CatalogTrustScore;
   note: string;
 }
 

@@ -17,7 +17,7 @@ async function main(): Promise<void> {
 
   const pages = await fetchIngredientPages();
 
-  assert.ok(pages.length >= 12, `Attendu au moins 12 ingrédients seedés, obtenu ${pages.length}.`);
+  assert.ok(pages.length >= 50, `Attendu au moins 50 ingrédients vérifiés et indexables, obtenu ${pages.length}.`);
 
   const paths = pages.map(page => page.path);
   for (const expected of ['/ingredient/glycerin', '/ingredient/shea-butter', '/ingredient/salicylic-acid']) {

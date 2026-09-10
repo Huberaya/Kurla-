@@ -1,6 +1,7 @@
 import { serverDb } from '../../lib/serverDb';
 import { selectKnowledgeCards } from '../../lib/ai/knowledgeBase';
 import { normalizeInciName } from '../../lib/ingredientGraph';
+import { isCheckoutEligibleProduct } from '../../lib/catalogTruth';
 
 /**
  * CHANTIER 8.1 — catalogue exposé à l'assistant, extrait de `server.ts`.
@@ -29,7 +30,11 @@ export async function getAvailableCatalog(country = 'FR'): Promise<AvailableCata
   const normalizedCountry = country.trim().toUpperCase();
   const products = await serverDb.getProducts({ publishedOnly: true });
   return products
-    .filter(product => product.inStock)
+    // L'IA ne reçoit que des produits achetables maintenant. Une précommande
+    // peut exister dans la boutique, mais ne doit pas être décrite comme
+    // disponible ; une formulation cible/placeholder est refusée par la même
+    // porte que le checkout.
+    .filter(product => isCheckoutEligibleProduct(product) && product.inStock && product.isPreorder !== true)
     // Les produits de démonstration / de test ne sont jamais exposés à l'IA :
     // elle ne doit pas recommander un article factice (ex. « Kit Démo »).
     .filter(product => {

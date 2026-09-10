@@ -152,6 +152,12 @@ export const ROUTES: RouteEntry[] = [
     render: ({ params, onAddToCart }) => <ProductDetailPage slug={params.slug} onAddToCart={onAddToCart} />,
   },
   {
+    path: '/besoin/:need/:texture',
+    render: ({ params, onAddToCart }) => (
+      <NeedHubPage need={params.need} texture={params.texture} onAddToCart={onAddToCart} />
+    ),
+  },
+  {
     path: '/besoin/:need',
     render: ({ params, onAddToCart }) => <NeedHubPage need={params.need} onAddToCart={onAddToCart} />,
   },

@@ -16,6 +16,7 @@ export function ensureDatabaseSuccess(operation: string, error: { message?: stri
 import type { EmailMessage } from '../emailService';
 
 import type { OrderStatus, ServerOrder } from './types';
+import { getCatalogTruth, isCatalogPubliclyListable } from '../catalogTruth';
 
 /** Colonnes TVA d'une commande, absentes des lignes antérieures à la migration 7.6. */
 export function mapOrderVatFields(row: any): Partial<ServerOrder> {
@@ -74,72 +75,18 @@ export function effectiveCatalogPrice(product: any): number {
 }
 
 export function isPublishableProduct(product: any): boolean {
-  const ingredients = product?.ingredients || product?.keyIngredients || [];
-  const inci = typeof product?.inci === 'string' ? product.inci.trim() : '';
-  const images = product?.galleryImages || [];
-  const imageUrl = product?.image || product?.image_url;
-  const countries = product?.countryAvailability || product?.country_availability || [];
-  const hasPromotionFacts = !product?.isPromo && !product?.is_promo
-    ? true
-    : isPromotionActive(product);
-  // B1 — la publiabilité cosmétique est porteuse d'une 8ᵉ exigence : sans CPNP/RP/CPSR,
-  // le produit est cosmétique mais non vendable UE. Le flag est porté par la
-  // colonne `cpnp_ready` (ou `cpnpReady`) si elle existe : un produit cosmétique
-  // sans fournisseur vérifié ne passe pas, même si les 7 vérifications sont au vert.
-  // Les outils / accessoires ne sont jamais bloqués par cette porte.
-  const requiresCpnp = (() => {
-    const cat = String(product?.category || product?.department || '').toLowerCase();
-    const sub = String(product?.subCategory || product?.subcategory || product?.sub_category_tag || '').toLowerCase();
-    const isAccessory =
-      cat.includes('accessoir') || cat.includes('outil') || cat.includes('device') ||
-      ['accessoire', 'accessoires', 'kits', 'kit'].includes(cat);
-    if (isAccessory) return false;
-    if (!cat && !sub) return false;
-    if (['cheveux', 'peau'].includes(cat)) return true;
-    if (['shampoing', 'apres-shampoing', 'masque', 'leave-in', 'huile/beurre', 'gel/coiffant', 'co-wash'].includes(cat)) return true;
-    if (['shampoing', 'masque', 'leave-in', 'huile', 'gel', 'co-wash'].some(k => cat.includes(k) || sub.includes(k))) return true;
-    const hasIngr = Array.isArray(ingredients) && ingredients.length > 0;
-    if ((hasIngr || inci !== '') && (cat || sub)) return true;
-    return false;
-  })();
-  if (requiresCpnp) {
-    const cpnpReady = product?.cpnpReady ?? product?.cpnp_ready;
-    // Si la colonne existe et vaut false, le produit est cosmétique non conforme.
-    // Si elle n'existe pas, on ne bloque pas en lecture (compatibilité) : la porte
-    // d'écriture (`updateCatalogStatus`) fait la vérification fournie avec preuve.
-    if (cpnpReady === false) return false;
-  }
-  /**
-   * Lecture tolérante : camelCase d'abord, snake_case en repli.
-   *
-   * Un produit mappé par les getters porte les deux clés, et l'ancienne clé
-   * snake_case peut contredire la valeur réellement enregistrée — mesuré :
-   * `is_active = false` alors que `isActive = true` venait d'être écrit. Le
-   * produit était publié, vérifié, et pourtant servi nulle part.
-   *
-   * Le repli reste nécessaire : certaines lignes brutes n'ont que du snake_case.
-   */
-  const isActive = product?.isActive !== undefined ? product?.isActive : product?.is_active;
-  return isActive === true
-    && product?.catalog_status === 'published'
-    && product?.ingredient_verification_status === 'verified'
-    && product?.claims_validation_status === 'verified'
-    && product?.images_validation_status === 'verified'
-    && product?.stock_validation_status === 'verified'
-    && product?.certifications_validation_status === 'verified'
-    && product?.translations_validation_status === 'verified'
-    && product?.brand_verification_status === 'verified'
-    && ['brand_provided', 'licensed'].includes(product?.image_ownership_status)
-    && typeof product?.brand === 'string' && product.brand.trim() !== ''
-    && ((Array.isArray(ingredients) && ingredients.length > 0) || inci !== '')
-    && ((Array.isArray(images) && images.length > 0) || typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl))
-    && Array.isArray(countries) && countries.length > 0
-    && hasPromotionFacts;
+  // The truth layer owns the shared publication gate. Keeping this adapter here
+  // preserves the existing import surface for stores and tests.
+  return isCatalogPubliclyListable(product);
 }
 
 /** Strip catalog governance and operational fields before data reaches a
  * browser. Admin evidence remains available through admin-only endpoints. */
 export function toPublicProduct(product: any): any {
+  const truth = getCatalogTruth(product);
+  const productIsPreorder = product.isPreorder === true
+    || product.is_preorder === true
+    || (Array.isArray(product.badges) && product.badges.includes('preorder'));
   const verifiedGalleryImages = Array.isArray(product.galleryImages)
     ? product.galleryImages.filter((image: any) =>
       (!image.validationStatus || image.validationStatus === 'verified')
@@ -210,7 +157,12 @@ export function toPublicProduct(product: any): any {
     variants,
     verifiedReviewCount: 0,
     questionsCount: 0,
-    inStock: product.inStock === true || variants.some((variant: any) => variant.inStock),
+    // Une précommande est publiable seulement comme précommande, jamais comme
+    // stock disponible. Les formulations cibles ne franchissent pas la porte
+    // publique ; cette branche protège aussi les données historiques.
+    inStock: truth.commercialState === 'available'
+      && (product.inStock === true || variants.some((variant: any) => variant.inStock)),
+    availabilityState: truth.commercialState,
     needs: product.needs || product.concerns || [],
     countryAvailability: product.countryAvailability || [],
     catalogCategoryTags: product.catalogCategoryTags || [],
@@ -220,7 +172,7 @@ export function toPublicProduct(product: any): any {
     communityBrand: product.communityBrand === true,
     isNew: product.isNew === true,
     isPromo: isPromotionActive(product),
-    isPreorder: product.isPreorder === true || (Array.isArray(product.badges) && product.badges.includes('preorder')),
+    isPreorder: productIsPreorder,
     // Référencement fournisseur : non sensible, utile à l'admin et au suivi
     // de sourcing (le prix d'achat reste côté serveur, jamais exposé).
     supplierId: (product as any).supplier_id ?? (product as any).supplierId ?? null,

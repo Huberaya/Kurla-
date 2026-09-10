@@ -114,6 +114,8 @@ export type PeauKitProduct = {
   price: number; originalPrice: number; category: 'kits'; subCategory: string;
   description: string; image: string; inStock: boolean; isPreorder: boolean;
   kitId: PeauKitId; kit: PeauKit; badges: string[];
+  /** Etat explicite : ces kits sont des plans de gamme, pas des SKU vendables. */
+  availabilityState: 'formulation_target';
 };
 
 export function peauKitsAsProducts(): PeauKitProduct[] {
@@ -128,12 +130,13 @@ export function peauKitsAsProducts(): PeauKitProduct[] {
     category: 'kits' as const,
     subCategory: 'peau',
     description: `${k.tagline} · ${k.products.map(p=>p.name).join(' + ')} · ${k.routine} · Économie ${k.economy.toFixed(2)}€ (−${k.economyPct}%)`,
-    image: '', // placeholder — photo kit à shooter S5
-    inStock: true,
+    image: '', // aucun packshot : kit non fabriqué
+    inStock: false,
     isPreorder: false,
     kitId: k.id,
     kit: k,
-    badges: [k.tier, `−${k.economyPct}%`, k.products.length + ' soins'],
+    availabilityState: 'formulation_target' as const,
+    badges: [k.tier, `−${k.economyPct}%`, k.products.length + ' soins', 'formulation-target'],
   }));
 }
 

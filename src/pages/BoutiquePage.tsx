@@ -896,7 +896,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         {(activeCategory === 'peau' || activeCategory === 'kits' || activeCategory === 'tous') && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Kits peau — économisez jusqu’à 15%</h2>
+              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Kits peau — formulation cible</h2>
               <span className="text-xs text-[#111111]/60">Livraison 4,90€ · gratuite dès 59€ (KPEAU-02/03)</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -923,18 +923,16 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <span className="text-xs text-[#111111]/40 line-through ml-1.5">{kit.priceSeparate.toFixed(2)}€</span>
                       <p className="text-[11px] text-[#111111]/50">{kit.products.length} soins · {kit.tier==='Essentielle'?'livraison 4,90€':'livraison gratuite'}</p>
                     </div>
-                    <button onClick={()=> {
-                      const kitProduct = {
-                        id: kit.sku, slug: kit.sku, name: kit.name, brand: 'KURLA',
-                        price: kit.priceBundle, originalPrice: kit.priceSeparate,
-                        category: 'kits', description: kit.description, image: '',
-                        keyIngredients: kit.products.map(pr=> pr.name), needs: ['hydrater','barriere'],
-                        inStock: true, rating: 4.8, verifiedReviewCount: 12, countryAvailability: ['FR','BE','INT']
-                      } as any;
-                      onAddToCart(kitProduct);
-                    }} className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold shadow-sm flex items-center gap-1.5"><ShoppingBag className="w-3.5 h-3.5" /> Ajouter le kit</button>
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="px-4 py-2.5 rounded-full bg-[#111111]/10 text-[#111111]/55 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
+                    >
+                      <Clock className="w-3.5 h-3.5" /> Formulation cible — bientôt disponible
+                    </button>
                   </div>
-                  <p className="text-[10px] text-[#111111]/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · Stock précommande</p>
+                  <p className="text-[10px] text-[#111111]/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · fiche cible, non disponible</p>
                 </div>
               ))}
             </div>
@@ -1072,6 +1070,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
               const compatibleWithProfile = hasKurlaProfile && isProductCompatible(product);
+              const isPreorderProduct = product.isPreorder === true || (product as any).availabilityState === 'preorder';
+              const canOrderProduct = product.inStock === true || isPreorderProduct;
 
               return (
                 <div
@@ -1108,9 +1108,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> 24–48h
                         </span>
-                      ) : (
+                      ) : isPreorderProduct ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#2E7D5B] backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> Précommande
+                        </span>
+                      ) : (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/80 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          <CheckCircle2 className="w-3 h-3" /> Disponible
                         </span>
                       )}
                       {/* C8 — Peau V-VI safe + SPF sans trace blanche (mélanine, HPI) */}
@@ -1158,9 +1162,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <p className="text-[10px] text-emerald-600 font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {TOOL_DISPATCH_SHORT}
                       </p>
-                    ) : (
+                    ) : isPreorderProduct ? (
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT} <span className="text-[#111111]/40 font-normal">· Petite production lun & jeu 18h</span>
+                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT} <span className="text-[#111111]/40 font-normal">· production sur commande</span>
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-[#111111]/65 font-semibold mb-3 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Stock disponible
                       </p>
                     )}
 
@@ -1199,10 +1207,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       </button>
                       <button
                         onClick={() => onAddToCart(product)}
-                        disabled={!product.inStock}
+                        disabled={!canOrderProduct}
                         className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" /> {!product.inStock ? 'Indisponible' : isDropshipProduct(product as any) ? 'Ajouter' : 'Précommander'}
+                        <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? 'Indisponible' : isPreorderProduct ? 'Précommander' : 'Ajouter'}
                       </button>
                     </div>
                   </div>

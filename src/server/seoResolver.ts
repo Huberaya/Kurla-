@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { serverDb } from '../lib/serverDb';
 import { applyContentSeed, applySeoHead, matchKnownRoute } from '../lib/seoHead';
+import { getNeedTexturePageDescriptor } from '../lib/needTexturePages';
 import type { SeoHeadInput } from '../lib/seoHead';
 
 /**
@@ -96,6 +97,25 @@ async function resolveEntity(
         description: product.description || undefined,
         sku: product.id,
         brand: { '@type': 'Brand', name: product.brand || 'KURLA Beauty' }
+      }
+    };
+  }
+
+  if (routePath === '/besoin/:need/:texture') {
+    const page = getNeedTexturePageDescriptor(params.need, params.texture);
+    if (!page) return null;
+    return {
+      title: page.title,
+      description: page.description,
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: page.title,
+        description: page.description,
+        about: [
+          { '@type': 'DefinedTerm', name: page.need.title },
+          { '@type': 'DefinedTerm', name: page.textureLabel, termCode: page.textureCode }
+        ]
       }
     };
   }
