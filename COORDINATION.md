@@ -64,6 +64,46 @@ traité comme vide et régénéré depuis le code, avec un avertissement.
 Si un inventaire devient illisible : `KURLA_UPDATE_FIXTURE=1 npx tsx
 tests/<banc>.test.ts`, ou supprimez le fichier — il sera recréé.
 
+### La gamme peau est redevenue invisible en production (11/09/2026)
+
+`/api/peau/gamme` répond **200 avec `count: 0`** sur `kurlabeauty.vercel.app`.
+Vérifié : la production sert 63 produits, exactement les 63 publiés de la
+base — c'est donc bien la même instance que celle que nous lisons.
+
+En base, les 16 fiches `peau-ess-*` existent toujours, avec leur marqueur de
+formulation (`source_supplier = « KURLA Skincare — formulation interne »`),
+mais elles sont toutes passées à `catalog_status = 'draft'` et
+`is_active = false`. Or la route ne sert que les fiches **publiées et
+actives** : les 16 sont donc filtrées, et la page est vide.
+
+Ce n'est pas un défaut de code : la route et ses filtres sont corrects
+(vérifiés dans `src/lib/db/catalogStore.ts`, fonction
+`getSkinRangeTargets`). C'est un état de données, dans le territoire
+« catalogue peau ». Deux lectures sont possibles : une régression, ou une
+mise en attente délibérée pendant la suspension de C1 — je n'ai pas
+d'éléments pour trancher, je ne touche donc pas aux données.
+
+Si c'est une régression, une seule requête la corrige — et elle ne rend
+**pas** les fiches achetables (le marqueur de formulation les exclut du
+catalogue public par `isCatalogPubliclyListable`, qui refuse
+`hasFormulationTargetMarker`) ; elle les rend simplement visibles, ce qui
+est précisément le contrat C-06 :
+
+```sql
+UPDATE public.products
+   SET catalog_status = 'published', is_active = true
+ WHERE category = 'peau'
+   AND source_supplier ILIKE '%formulation%';
+```
+
+À noter, dans le même registre : les 4 autres produits « peau » (`p6`,
+`p10`, `p14`, `p15`) sont des fiches de démonstration sans sourcing réel,
+en `unavailable`. C'est correct ainsi — ne pas les republier.
+
+Le banc `kurla_gamme_peau_cible` ne peut pas voir cette régression : il
+tourne en mémoire, sans la base. Seul un contrôle contre la production la
+détecte — c'est l'objet de la proposition « silences » ci-dessous.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`
@@ -124,9 +164,11 @@ trois réglages (8 contrôles).
 ## Propositions pour la suite (robustesse)
 
 1. **Silences** — plusieurs endpoints répondent 200 avec un tableau vide
-   au lieu de signaler l'anomalie (mesuré sur `/api/peau/gamme` : un filtre
-   trop strict ramenait 0 fiche sans erreur). Passer les endpoints publics
-   au crible.
+   au lieu de signaler l'anomalie. Relevé deux fois sur `/api/peau/gamme` :
+   d'abord un filtre trop strict, aujourd'hui 16 fiches repassées en brouillon
+   (voir ci-dessus). Une sonde de production, activée à la demande par
+   `KURLA_PROD_URL`, détecterait ce que les bancs en mémoire ne voient pas.
+   Passer les endpoints publics au crible.
 2. **Durée de la suite** — réglé : 1 min 52 au lieu de 25 min. Reste à
    décider si l'on veut une suite « rapide » pour la boucle courte.
 3. **Coordination** — un conflit sur `package.json` à chaque chantier,
