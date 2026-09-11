@@ -1744,6 +1744,53 @@ banc sert. Son profil maximal a été complété (`frizz: 'frequents'`,
 
 `npm run build` **exit 0** · `npm test` **exit 0, 116 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · 16/16 besoins reconnus, 0 orphelin.
 
+## CHANTIER B — LE RISQUE DE TRACTION BRANCHÉ AU MOTEUR
+
+### Le constat
+
+`assessTractionRisk` était **entièrement écrit** : durée de port pondérée par la tension, quatre niveaux de risque, signaux d'escalade, protocole de récupération, limites explicites. La table `public.protective_style_episodes` existait, avec RLS, et `intelligenceStore` l'écrivait et la lisait (`insert` l.537, `update` l.571/594, `select` l.608).
+
+Vérifié par grep : le modèle n'était importé par **aucun** moteur de recommandation. La donnée était collectée, stockée, évaluée — et n'influençait jamais un conseil.
+
+### Réponse à la question SQL
+
+**Aucune migration n'était nécessaire**, ni pour A ni pour B :
+
+| | |
+| --- | --- |
+| `beauty_profiles.profile` | colonne **JSONB** → `hair.frizz` n'est qu'une clé. `normalizeBeautyProfile` s'applique **à la lecture** (`beautyProfileStore.ts` l.20, 84), donc un ancien profil sans `frizz` reçoit `inconnu` |
+| Les 16 besoins | déjà en base (`20260847000000_kurla_taxonomy_terms.sql`, `reduire_frisottis` inclus). Les 3 orphelins étaient un défaut **de code seul** |
+| `protective_style_episodes` | déjà créée, déjà peuplée |
+
+Le défaut n'était pas un manque de schéma mais un **défaut de branchement**. À noter séparément : `20260875000000_ingredient_tocopherol.sql` reste écrite et non jouée, et le DDL est impossible depuis ce bac.
+
+### Ce qui a été ajouté
+
+`styleFit.ts` — `assessOpenEpisode`, `assessTractionFit`, `styleContextOf`, `isOpenEpisode` :
+
+- le risque déplace la priorité vers le **cuir chevelu** (+0 / +10 / +20 / +30 selon le niveau) ;
+- les étapes qui ajoutent du poids aux racines ou imposent une manipulation sont pénalisées (0 / 0 / −10 / −22) ;
+- un signal d'escalade (douleur, croûtes, casse aux racines, lisière qui s'éclaircit) force le niveau `high` et **appelle à consulter un professionnel** ;
+- un épisode **clos** est ignoré : le passé ne dit rien du présent ;
+- `tractionLimitations` remonte « Aucun ressenti renseigné » plutôt que de laisser croire à une évaluation complète.
+
+`EngineContext.protectiveEpisode`, `AdjustmentKind: 'traction'`, `EngineResult.tractionRecommendation` + `tractionLimitations`. La recommandation de traction figure dans le résumé : **aucun produit ne compense une coiffure trop serrée**, et le laisser croire serait une promesse de santé indue.
+
+### Vérification
+
+Banc comportemental `tests/kurla_traction_fit.test.ts` — exécute `buildRecommendations` :
+- épisode bénin (5/56 jours, tension `loose`) → risque `low`, **aucun** écart, conseil sans appel à consulter ;
+- épisode dépassé (70/56 jours, tension `tight`) → l'apaisant est **mieux classé**, le gel définition **pénalisé** ;
+- signaux `pain` + `hairline_thinning` → `high`, `escalationRequired`, `/consultez un professionnel/` ;
+- épisode clos et absence d'épisode → **0** écart de traction ;
+- mapping style → contexte vérifié (locs, braids, knotless, wig, buns).
+
+**Une assertion du banc était fausse, pas le code** : je supposais qu'un épisode bénin ne produisait aucun conseil. Le modèle conseille toujours (« Début de port (5/56 jours)… »). Banc corrigé, code inchangé.
+
+Contrôle négatif vérifié par le code de sortie et le message lu : branchement retiré → `exit=1`, `un épisode ouvert doit produire un conseil, même bénin`. Fichier restauré (`diff -q` identique).
+
+`npm run build` **exit 0** · `npm test` **exit 0, 117 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

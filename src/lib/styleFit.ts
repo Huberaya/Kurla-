@@ -213,3 +213,114 @@ export function signalWeight(signal: OutcomeSignal, context: StyleContext): numb
   if (context === 'locks' && (signal === 'buildup' || signal === 'product_heavy')) return 2;
   return 1;
 }
+
+// ---------------------------------------------------------------------------
+// CHANTIER B — risque de traction
+// ---------------------------------------------------------------------------
+
+import type { ProtectiveStyle, ProtectiveStyleEpisode, TractionRiskAssessment } from './protectiveStyle';
+import { assessTractionRisk } from './protectiveStyle';
+
+/**
+ * `assessTractionRisk` existait, entièrement écrit — durée pondérée par la
+ * tension, signaux d'escalade, protocole de récupération, limites explicites —
+ * et n'était importé par **aucun** moteur de recommandation. Vérifié par grep
+ * avant ce chantier. La donnée, elle, est déjà persistée :
+ * `public.protective_style_episodes` est écrite et lue par `intelligenceStore`.
+ * Il ne manquait que le branchement.
+ */
+
+const STYLE_TO_CONTEXT: Record<ProtectiveStyle, StyleContext> = {
+  locs: 'locks',
+  braids: 'tresses',
+  knotless_braids: 'tresses',
+  twists: 'tresses',
+  cornrows: 'tresses',
+  wig: 'perruque',
+  weave: 'autre_protege',
+  buns: 'autre_protege',
+  other: 'autre_protege'
+};
+
+export function styleContextOf(style: ProtectiveStyle): StyleContext {
+  return STYLE_TO_CONTEXT[style] ?? 'autre_protege';
+}
+
+/** Un épisode clos ne dit rien du présent. */
+export function isOpenEpisode(episode: ProtectiveStyleEpisode): boolean {
+  return !episode.removedAt;
+}
+
+/**
+ * Sous risque de traction, la priorité se déplace : ce qui compte n'est plus
+ * la fibre mais le cuir chevelu et la réduction de toute manipulation.
+ *
+ * Ces écarts ne remplacent jamais la recommandation du modèle de traction —
+ * ils la secondent. Un produit ne peut pas compenser une coiffure trop serrée,
+ * et le dire serait une promesse de santé que KURLA ne peut pas tenir.
+ */
+export const TRACTION_SCALP_BONUS: Record<TractionRiskAssessment['riskLevel'], number> = {
+  low: 0,
+  moderate: 10,
+  elevated: 20,
+  high: 30
+};
+export const TRACTION_MANIPULATION_PENALTY: Record<TractionRiskAssessment['riskLevel'], number> = {
+  low: 0,
+  moderate: 0,
+  elevated: -10,
+  high: -22
+};
+
+/** Étapes qui ajoutent du poids aux racines ou imposent une manipulation. */
+const MANIPULATION_STEPS = ['styling_definer', 'seal_oil', 'deep_condition', 'protein_treatment'];
+
+export interface TractionFitResult {
+  adjustments: StyleAdjustment[];
+  /** La recommandation du modèle, reprise telle quelle : elle prime sur tout. */
+  recommendation: string;
+  limitations: string[];
+}
+
+export function assessTractionFit(
+  product: { needs?: string[]; concerns?: string[]; routineStep?: string },
+  assessment: TractionRiskAssessment
+): TractionFitResult {
+  const adjustments: StyleAdjustment[] = [];
+  const needs = Array.from(new Set([...(product.needs || []), ...(product.concerns || [])]));
+  const step = product.routineStep || '';
+
+  const scalpBonus = TRACTION_SCALP_BONUS[assessment.riskLevel];
+  if (scalpBonus > 0 && (needs.includes('apaiser_cuir_chevelu') || needs.includes('cuir_chevelu') || step === 'scalp_treatment')) {
+    adjustments.push({
+      delta: scalpBonus,
+      reason:
+        `Risque de traction ${assessment.riskLevel} (${assessment.wearDays}/${assessment.maxWearDays} jours, tension ${assessment.tensionFactor}). ` +
+        'Le cuir chevelu devient la priorité devant la fibre.',
+      evidence: `episode ${assessment.episodeId}`
+    });
+  }
+
+  const manipulation = TRACTION_MANIPULATION_PENALTY[assessment.riskLevel];
+  if (manipulation < 0 && MANIPULATION_STEPS.includes(step)) {
+    adjustments.push({
+      delta: manipulation,
+      reason:
+        `Cette étape (${step.replaceAll('_', ' ')}) ajoute du poids aux racines ou impose une manipulation. ` +
+        `Avec un risque de traction ${assessment.riskLevel}, ce n'est pas le moment.`,
+      evidence: `episode ${assessment.episodeId}`
+    });
+  }
+
+  return { adjustments, recommendation: assessment.recommendation, limitations: assessment.limitations };
+}
+
+/** Évalue un épisode ouvert s'il existe. Retourne null si aucun épisode actif. */
+export function assessOpenEpisode(
+  product: { needs?: string[]; concerns?: string[]; routineStep?: string },
+  episode: ProtectiveStyleEpisode | undefined,
+  now = new Date()
+): TractionFitResult | null {
+  if (!episode || !isOpenEpisode(episode)) return null;
+  return assessTractionFit(product, assessTractionRisk(episode, now));
+}

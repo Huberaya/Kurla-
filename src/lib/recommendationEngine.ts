@@ -15,7 +15,8 @@
  */
 
 import { calculateKurlaFit, KurlaFitResult } from './kurlaFit';
-import { assessStyleFit, detectStyleContext, signalWeight, StyleContext } from './styleFit';
+import { assessStyleFit, assessOpenEpisode, detectStyleContext, signalWeight, StyleContext } from './styleFit';
+import { ProtectiveStyleEpisode } from './protectiveStyle';
 import { BeautyProfile } from './beautyProfile';
 import { findConflicts, ConflictFinding, IncompatibilityRule, JurisdictionRestriction } from './ingredientGraph';
 import { assessProductCompliance } from './jurisdiction';
@@ -57,6 +58,13 @@ export interface EngineContext {
    */
   jurisdiction?: string;
   jurisdictionRestrictions?: JurisdictionRestriction[];
+  /**
+   * CHANTIER B — épisode de style protecteur en cours. La donnée est déjà
+   * persistée (`public.protective_style_episodes`) et le modèle
+   * `assessTractionRisk` était déjà écrit : il n'était importé par aucun
+   * moteur. Un épisode clos est ignoré.
+   */
+  protectiveEpisode?: ProtectiveStyleEpisode;
 }
 
 export type AdjustmentKind =
@@ -69,7 +77,8 @@ export type AdjustmentKind =
   | 'out_of_stock'
   | 'conflict'
   | 'jurisdiction'
-  | 'style';
+  | 'style'
+  | 'traction';
 
 export interface Adjustment {
   kind: AdjustmentKind;
@@ -111,6 +120,13 @@ export interface EngineResult {
   recommendations: Recommendation[];
   /** Style porté ayant influencé le classement. `aucun` si non déclaré. */
   styleContext: StyleContext;
+  /**
+   * Recommandation du modèle de traction, s'il y a un épisode ouvert. Elle
+   * prime sur le classement : aucun produit ne compense une coiffure trop
+   * serrée, et le laisser croire serait une promesse de santé indue.
+   */
+  tractionRecommendation?: string;
+  tractionLimitations: string[];
   /** Conflits détectés dans le panier recommandé. */
   conflicts: ConflictFinding[];
   /** Étapes de routine non couvertes par le Shelf ni par la recommandation. */
@@ -277,6 +293,8 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
   const weights = learnIngredientWeights(context.observations, styleContext);
   const avoided = new Set(context.avoidedIngredientIds || []);
   const recommendations: Recommendation[] = [];
+  let tractionRecommendation: string | undefined;
+  let tractionLimitations: string[] = [];
 
   for (const product of catalog) {
     const fit: KurlaFitResult | null = context.profile
@@ -337,6 +355,24 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
         evidenceId: adjustment.evidence,
         limitation: adjustment.limitation
       });
+    }
+
+    // --- Risque de traction (chantier B) --------------------------------
+    const tractionFit = assessOpenEpisode(product, context.protectiveEpisode);
+    if (tractionFit) {
+      for (const adjustment of tractionFit.adjustments) {
+        adjustments.push({
+          kind: 'traction',
+          delta: adjustment.delta,
+          reason: adjustment.reason,
+          evidenceId: adjustment.evidence,
+          limitation: adjustment.limitation
+        });
+      }
+      if (!tractionRecommendation) {
+        tractionRecommendation = tractionFit.recommendation;
+        tractionLimitations = tractionFit.limitations;
+      }
     }
 
     // --- Ingrédients écartés par l'utilisateur ---------------------------
@@ -492,7 +528,19 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
     }
   }
 
-  return { recommendations: ranked, conflicts, uncoveredSteps, summary, styleContext };
+  if (tractionRecommendation) {
+    summary += ` ${tractionRecommendation}`;
+  }
+
+  return {
+    recommendations: ranked,
+    conflicts,
+    uncoveredSteps,
+    summary,
+    styleContext,
+    tractionRecommendation,
+    tractionLimitations
+  };
 }
 
 /**
