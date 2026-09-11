@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T22:07:50.756Z",
+  "generatedAt": "2026-09-11T14:26:28.235Z",
   "routes": [
     {
       "method": "GET",
@@ -114,7 +114,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/:productId/readiness",
-      "file": "src/server/routes/catalogGovernance.ts:216",
+      "file": "src/server/routes/catalogGovernance.ts:239",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -168,7 +168,7 @@
         "src/components/BatchAdminPanel.tsx:108",
         "src/components/CatalogAdminPanel.tsx:152",
         "src/components/CatalogAdminPanel.tsx:238",
-        "src/components/PeauCatalogPublishPanel.tsx:26",
+        "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27"
       ]
@@ -182,7 +182,7 @@
         "src/components/BatchAdminPanel.tsx:108",
         "src/components/CatalogAdminPanel.tsx:152",
         "src/components/CatalogAdminPanel.tsx:238",
-        "src/components/PeauCatalogPublishPanel.tsx:26",
+        "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27"
       ]
@@ -203,11 +203,25 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:169",
-        "src/components/PeauCatalogPublishPanel.tsx:25",
+        "src/components/PeauCatalogPublishPanel.tsx:29",
         "src/components/PeauGoLiveC24Panel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:54",
         "src/components/PeauQAFatouC21Panel.tsx:34"
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/catalog/skin-evidence",
+      "file": "src/server/routes/catalogGovernance.ts:197",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/catalog/skin-evidence",
+      "file": "src/server/routes/catalogGovernance.ts:205",
+      "guard": "requireAdmin(",
+      "callers": []
     },
     {
       "method": "GET",
@@ -235,7 +249,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/vocabulary-audit",
-      "file": "src/server/routes/catalogGovernance.ts:209",
+      "file": "src/server/routes/catalogGovernance.ts:232",
       "guard": "requireAdmin(",
       "callers": []
     },
