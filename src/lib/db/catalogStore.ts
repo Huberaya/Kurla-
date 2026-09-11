@@ -290,10 +290,19 @@ export async function getPublicProducts(store: SupabaseServerStore): Promise<any
    * stock, avec l'INCI étiqueté « formule cible ».
    */
   export async function getSkinRangeTargets(store: SupabaseServerStore): Promise<FicheCiblePeau[]> {
-    const produits = await getProducts(store, { publishedOnly: true });
+    // Pas `publishedOnly` : cette option applique `isPublishableProduct`, qui
+    // exclut précisément les fiches que cette fonction doit servir. Mesuré :
+    // 63 produits au lieu de 96, et donc zéro cible — l'endpoint répondait
+    // correctement mais à vide, sans qu'aucune erreur ne le signale.
+    //
+    // L'absence de ce filtre n'est pas une brèche : ce qui sort est filtré
+    // deux fois (statut publié et marqueur de formulation) puis reprojeté
+    // sans visuel ni disponibilité par `projeterFicheCiblePeau`.
+    const produits = await getProducts(store, { includeInactive: true });
     return trierFichesCibles(
       produits
-        .filter(produit => produit.catalog_status === 'published' || produit.catalogStatus === 'published')
+        .filter(produit => (produit.catalogStatus ?? produit.catalog_status) === 'published')
+        .filter(produit => produit.isActive !== false)
         .filter(estFicheCiblePeau)
         .map(projeterFicheCiblePeau)
     );
