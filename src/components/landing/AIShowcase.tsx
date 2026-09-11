@@ -58,7 +58,7 @@ export const AIShowcase: React.FC = () => {
   };
 
   return (
-    <section className="py-24 bg-[#050403] text-white relative overflow-hidden">
+    <section className="py-24 bg-kurla-ink text-white relative overflow-hidden">
       {/* Glow */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.22, 0.12] }}
@@ -71,14 +71,14 @@ export const AIShowcase: React.FC = () => {
         {/* En-tête */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <Reveal>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1A0F0A] border border-[#C8753D]/40 text-[#D49A63] text-xs font-semibold tracking-wider uppercase mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-[#D49A63] animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-kurla-espresso border border-kurla-copper/40 text-kurla-amber text-xs font-semibold tracking-wider uppercase mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-kurla-amber animate-pulse" />
               Assistant beauté IA
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-white leading-tight mb-4">
-              Des réponses <em className="not-italic bg-gradient-to-r from-[#FFF7EF] via-[#D49A63] to-[#C8753D] bg-clip-text text-transparent">vraies</em>, pas des slogans.
+              Des réponses <em className="not-italic bg-gradient-to-r from-kurla-cream via-kurla-amber to-kurla-copper bg-clip-text text-transparent">vraies</em>, pas des slogans.
             </h2>
-            <p className="text-base text-[#FFF7EF]/80 font-light leading-relaxed max-w-[600px] mx-auto">
+            <p className="text-base text-kurla-cream/80 font-light leading-relaxed max-w-[600px] mx-auto">
               Posez votre question : l’assistant explique le mécanisme, déroule une routine chiffrée, signale les erreurs à éviter — et ne recommande jamais un produit qu’on ne vend pas. Gratuit, sans abonnement.
             </p>
           </Reveal>
@@ -89,7 +89,7 @@ export const AIShowcase: React.FC = () => {
 
           {/* Colonne questions */}
           <div className="lg:col-span-5 space-y-3">
-            <span className="text-xs uppercase font-bold tracking-wider text-[#D49A63] block mb-3">
+            <span className="text-xs uppercase font-bold tracking-wider text-kurla-amber block mb-3">
               Essayez une question :
             </span>
 
@@ -103,19 +103,19 @@ export const AIShowcase: React.FC = () => {
                   onClick={() => setSelectedIndex(idx)}
                   className={`w-full p-4 rounded-2xl text-left transition-all border flex items-start justify-between gap-3 ${
                     isSelected
-                      ? 'bg-[#1A0F0A] border-[#C8753D] shadow-lg shadow-[#C8753D]/20 text-white ring-1 ring-[#C8753D]/50'
-                      : 'bg-[#111111]/80 border-white/10 hover:border-white/20 text-[#FFF7EF]/80 hover:text-white'
+                      ? 'bg-kurla-espresso border-kurla-copper shadow-lg shadow-kurla-copper/20 text-white ring-1 ring-kurla-copper/50'
+                      : 'bg-kurla-carbon/80 border-white/10 hover:border-white/20 text-kurla-cream/80 hover:text-white'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
-                      isSelected ? 'bg-[#C8753D] text-white' : 'bg-white/10 text-[#D49A63]'
+                      isSelected ? 'bg-kurla-copper text-white' : 'bg-white/10 text-kurla-amber'
                     }`}>
                       {idx + 1}
                     </div>
                     <span className="text-xs sm:text-sm font-medium leading-snug">{q.label}</span>
                   </div>
-                  <MessageSquare className={`w-4 h-4 shrink-0 ${isSelected ? 'text-[#D49A63]' : 'text-white/40'}`} />
+                  <MessageSquare className={`w-4 h-4 shrink-0 ${isSelected ? 'text-kurla-amber' : 'text-white/40'}`} />
                 </motion.button>
               );
             })}
@@ -125,7 +125,7 @@ export const AIShowcase: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 href="/assistant-beaute"
-                className="w-full py-3.5 rounded-2xl bg-[#1A0F0A] border border-[#C8753D]/40 text-[#D49A63] hover:bg-[#C8753D] hover:text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md"
+                className="w-full py-3.5 rounded-2xl bg-kurla-espresso border border-kurla-copper/40 text-kurla-amber hover:bg-kurla-copper hover:text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md"
               >
                 <Bot className="w-4 h-4" /> Ouvrir l’assistant IA complet
               </motion.a>
@@ -133,19 +133,19 @@ export const AIShowcase: React.FC = () => {
           </div>
 
           {/* Fenêtre de chat */}
-          <div className="lg:col-span-7 rounded-3xl bg-[#111111] border border-white/15 overflow-hidden shadow-2xl flex flex-col h-[560px]">
+          <div className="lg:col-span-7 rounded-3xl bg-kurla-carbon border border-white/15 overflow-hidden shadow-2xl flex flex-col h-[560px]">
 
             {/* Barre haute */}
-            <div className="p-4 bg-[#1A0F0A] border-b border-white/10 flex items-center justify-between">
+            <div className="p-4 bg-kurla-espresso border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-kurla-bark via-kurla-copper to-kurla-amber flex items-center justify-center text-white font-bold text-sm shadow-md">
                   <Bot className="w-5 h-5 text-white" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#1A0F0A] animate-ping" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#1A0F0A]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-kurla-espresso animate-ping" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-kurla-espresso" />
                 </div>
                 <div>
                   <h4 className="text-sm font-serif-title font-bold text-white flex items-center gap-2">
-                    Assistant KURLA <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8753D]/30 text-[#D49A63] border border-[#C8753D]/40">En ligne</span>
+                    Assistant KURLA <span className="text-[10px] px-2 py-0.5 rounded-full bg-kurla-copper/30 text-kurla-amber border border-kurla-copper/40">En ligne</span>
                   </h4>
                   <p className="text-[11px] text-white/60 font-light">Réponses détaillées, bienveillantes &amp; honnêtes</p>
                 </div>
@@ -159,7 +159,7 @@ export const AIShowcase: React.FC = () => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-gradient-to-b from-[#111111] to-[#0A0705]">
+            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-gradient-to-b from-kurla-carbon to-[#0A0705]">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={selectedIndex}
@@ -175,7 +175,7 @@ export const AIShowcase: React.FC = () => {
                       initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ duration: 0.2 }}
-                      className="max-w-[80%] p-4 rounded-2xl rounded-tr-none bg-[#C8753D] text-white text-xs sm:text-sm font-medium shadow-md"
+                      className="max-w-[80%] p-4 rounded-2xl rounded-tr-none bg-kurla-copper text-white text-xs sm:text-sm font-medium shadow-md"
                     >
                       <div className="flex items-center gap-2 mb-1 text-[10px] text-white/80 font-semibold">
                         <User className="w-3 h-3" /> Vous
@@ -190,17 +190,17 @@ export const AIShowcase: React.FC = () => {
                       initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ duration: 0.25, delay: 0.1 }}
-                      className="max-w-[90%] p-4 rounded-2xl rounded-tl-none bg-[#1A0F0A] border border-white/10 text-white text-xs sm:text-sm leading-relaxed space-y-3 shadow-md"
+                      className="max-w-[90%] p-4 rounded-2xl rounded-tl-none bg-kurla-espresso border border-white/10 text-white text-xs sm:text-sm leading-relaxed space-y-3 shadow-md"
                     >
-                      <div className="flex items-center gap-2 text-[10px] text-[#D49A63] font-semibold">
+                      <div className="flex items-center gap-2 text-[10px] text-kurla-amber font-semibold">
                         <Bot className="w-3.5 h-3.5" /> Réponse de l’assistant
                       </div>
-                      <p className="text-[#FFF7EF]/90 font-light">{currentQ.response}</p>
+                      <p className="text-kurla-cream/90 font-light">{currentQ.response}</p>
 
                       {/* Produits réels recommandés */}
                       {currentQ.products.length > 0 && (
                         <div className="pt-2 border-t border-white/10">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#D49A63] block mb-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-amber block mb-1.5">
                             Disponible en précommande :
                           </span>
                           <div className="flex flex-wrap gap-2">
@@ -208,9 +208,9 @@ export const AIShowcase: React.FC = () => {
                               <a
                                 key={p}
                                 href="/boutique"
-                                className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#C8753D]/30 text-[11px] text-white hover:border-[#C8753D] transition-colors flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-copper/30 text-[11px] text-white hover:border-kurla-copper transition-colors flex items-center gap-1"
                               >
-                                <CheckCircle2 className="w-3 h-3 text-[#D49A63]" /> {p}
+                                <CheckCircle2 className="w-3 h-3 text-kurla-amber" /> {p}
                               </a>
                             ))}
                           </div>
@@ -222,7 +222,7 @@ export const AIShowcase: React.FC = () => {
                         <div className="pt-2 border-t border-white/10">
                           <a
                             href={currentQ.diag.href}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#C8753D]/15 border border-[#C8753D]/40 text-[11px] font-semibold text-[#D49A63] hover:bg-[#C8753D] hover:text-white transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-kurla-copper/15 border border-kurla-copper/40 text-[11px] font-semibold text-kurla-amber hover:bg-kurla-copper hover:text-white transition-colors"
                           >
                             <Stethoscope className="w-3.5 h-3.5" /> {currentQ.diag.label}
                             <ArrowRight className="w-3 h-3" />
@@ -236,7 +236,7 @@ export const AIShowcase: React.FC = () => {
             </div>
 
             {/* Saisie */}
-            <div className="p-4 bg-[#1A0F0A] border-t border-white/10 flex items-center gap-2">
+            <div className="p-4 bg-kurla-espresso border-t border-white/10 flex items-center gap-2">
               <input
                 type="text"
                 value={customInput}
@@ -245,11 +245,11 @@ export const AIShowcase: React.FC = () => {
                   if (e.key === 'Enter' && customInput.trim()) handleAsk(customInput);
                 }}
                 placeholder="Posez votre question (ex : mes cheveux 4C sont très secs…)"
-                className="flex-1 px-4 py-2.5 rounded-full bg-[#050403] border border-white/15 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#C8753D]"
+                className="flex-1 px-4 py-2.5 rounded-full bg-kurla-ink border border-white/15 text-xs text-white placeholder-white/40 focus:outline-none focus:border-kurla-copper"
               />
               <button
                 onClick={() => handleAsk(customInput.trim() || currentQ.label)}
-                className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shrink-0 transition-transform active:scale-95"
+                className="px-4 py-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shrink-0 transition-transform active:scale-95"
               >
                 <span>Envoyer</span>
                 <Send className="w-3.5 h-3.5" />
@@ -261,8 +261,8 @@ export const AIShowcase: React.FC = () => {
 
         {/* Avertissement */}
         <div className="mt-8 text-center max-w-xl mx-auto">
-          <p className="text-[11px] text-[#FFF7EF]/60 font-light flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#D49A63] shrink-0" />
+          <p className="text-[11px] text-kurla-cream/60 font-light flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-kurla-amber shrink-0" />
             L’assistant donne des conseils de soin bienveillants et personnalisés ; il ne remplace pas un avis médical ou dermatologique.
           </p>
         </div>

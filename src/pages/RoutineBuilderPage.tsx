@@ -21,10 +21,10 @@ import {
 } from '../services/intelligenceService';
 import { ENDORSEMENT_STANCE_LABELS, EndorsementStance } from '../lib/proEndorsement';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
-const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-1.5';
-const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
+const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-1.5';
+const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-5 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
 
 const SEVERITY_STYLES: Record<RoutineConflict['severity'], { label: string; className: string }> = {
   avoid: { label: 'À éviter ensemble', className: 'bg-red-50 border-red-200 text-red-900' },
@@ -78,14 +78,14 @@ export const RoutineBuilderPage: React.FC = () => {
   }, [token, goal, budgetLimit, minutes, experienceLevel]);
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] text-[#111111]">
+    <div className="min-h-screen bg-kurla-ivory text-kurla-carbon">
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-[#C8753D]" />
+            <Sparkles className="w-5 h-5 text-kurla-copper" />
             <h1 className="text-2xl font-bold">Construire ma routine</h1>
           </div>
-          <p className="text-sm text-[#111111]/60 max-w-2xl">
+          <p className="text-sm text-kurla-carbon/60 max-w-2xl">
             KURLA tient compte de ce que vous possédez déjà. Une étape couverte par votre
             étagère ne vous sera pas revendue.
           </p>
@@ -151,7 +151,7 @@ export const RoutineBuilderPage: React.FC = () => {
                 faire renoncer, pas celle qu'on découvre après l'achat. */}
             {routine.conflicts.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50">
+                <h2 className="text-xs uppercase tracking-wider font-bold text-kurla-carbon/50">
                   Conflits détectés dans cette routine
                 </h2>
                 {routine.conflicts.map((conflict, index) => <ConflictCard key={index} conflict={conflict} />)}
@@ -163,7 +163,7 @@ export const RoutineBuilderPage: React.FC = () => {
                 <h2 className="text-lg font-bold">{routine.slots.length} étapes</h2>
                 <div className="text-sm">
                   <span className="font-bold">{routine.totalPrice.toFixed(2)} €</span>
-                  <span className="text-[#111111]/50"> · {routine.totalItems} article{routine.totalItems > 1 ? 's' : ''} à acheter</span>
+                  <span className="text-kurla-carbon/50"> · {routine.totalItems} article{routine.totalItems > 1 ? 's' : ''} à acheter</span>
                 </div>
               </div>
 
@@ -185,15 +185,15 @@ export const RoutineBuilderPage: React.FC = () => {
 
               <div className="space-y-3 mt-4">
                 {routine.slots.map(slot => (
-                  <div key={slot.routineStep} className="p-4 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA]">
+                  <div key={slot.routineStep} className="p-4 rounded-xl bg-kurla-ivory border border-kurla-stone">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="font-semibold text-sm">{slot.label}</h3>
-                        <p className="text-xs text-[#111111]/60 mt-1">{slot.reason}</p>
+                        <p className="text-xs text-kurla-carbon/60 mt-1">{slot.reason}</p>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="text-[10px] text-[#111111]/50">{slot.durationMinutes} min</div>
-                        {slot.optional && <div className="text-[10px] text-[#111111]/40">Optionnel</div>}
+                        <div className="text-[10px] text-kurla-carbon/50">{slot.durationMinutes} min</div>
+                        {slot.optional && <div className="text-[10px] text-kurla-carbon/40">Optionnel</div>}
                       </div>
                     </div>
 
@@ -209,10 +209,10 @@ export const RoutineBuilderPage: React.FC = () => {
                         <div className="min-w-0">
                           <div className="text-sm font-medium">{slot.recommendation.product.name}</div>
                           {slot.recommendation.baseReasons.slice(0, 2).map((reason, index) => (
-                            <div key={index} className="text-xs text-[#111111]/55">{reason}</div>
+                            <div key={index} className="text-xs text-kurla-carbon/55">{reason}</div>
                           ))}
                           {slot.recommendation.usageCost?.monthlyCost !== null && slot.recommendation.usageCost?.monthlyCost !== undefined && (
-                            <div className="text-[11px] text-[#C8753D] mt-0.5">
+                            <div className="text-[11px] text-kurla-copper mt-0.5">
                               ≈ {slot.recommendation.usageCost.monthlyCost.toFixed(2)} €/mois
                               {slot.recommendation.usageCost.monthsOfUse ? ` · ${slot.recommendation.usageCost.monthsOfUse} mois d’usage` : ''}
                             </div>
@@ -223,7 +223,7 @@ export const RoutineBuilderPage: React.FC = () => {
                     )}
 
                     {!slot.recommendation && !slot.alreadyOwned && (
-                      <div className="mt-2.5 flex items-start gap-1.5 text-xs text-[#111111]/55">
+                      <div className="mt-2.5 flex items-start gap-1.5 text-xs text-kurla-carbon/55">
                         <X className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                         <span>Aucun produit assez vérifiable pour cette étape. KURLA ne remplit pas un trou avec un produit approximatif.</span>
                       </div>
@@ -237,25 +237,25 @@ export const RoutineBuilderPage: React.FC = () => {
                 condition de dire ce qui a été écarté et pourquoi. */}
             {routine.deferred.length > 0 && (
               <div className={cardClass}>
-                <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-1">
+                <h2 className="text-xs uppercase tracking-wider font-bold text-kurla-carbon/50 mb-1">
                   Étapes écartées ({routine.deferred.length})
                 </h2>
-                <p className="text-xs text-[#111111]/55 mb-3">
+                <p className="text-xs text-kurla-carbon/55 mb-3">
                   Elles existent et vous sont décrites : votre niveau limite la routine à {routine.slots.length} étapes.
                   Rien n’a été retiré faute de produit.
                 </p>
                 <div className="space-y-2.5">
                   {routine.deferred.map(step => (
-                    <div key={step.routineStep} className="p-3 rounded-xl bg-[#111111]/[0.03] border border-[#111111]/10">
+                    <div key={step.routineStep} className="p-3 rounded-xl bg-kurla-carbon/[0.03] border border-kurla-carbon/10">
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="text-sm font-semibold">{step.label}</span>
-                        <span className="text-[11px] text-[#111111]/45 shrink-0">{step.durationMinutes} min</span>
+                        <span className="text-[11px] text-kurla-carbon/45 shrink-0">{step.durationMinutes} min</span>
                       </div>
-                      {step.apporte && <p className="text-xs text-[#111111]/65 mt-1">{step.apporte}</p>}
+                      {step.apporte && <p className="text-xs text-kurla-carbon/65 mt-1">{step.apporte}</p>}
                       {step.quand && (
-                        <p className="text-xs text-[#C8753D] mt-1">{step.quand}</p>
+                        <p className="text-xs text-kurla-copper mt-1">{step.quand}</p>
                       )}
-                      <p className="text-[11px] text-[#111111]/40 mt-1.5">{step.reason}</p>
+                      <p className="text-[11px] text-kurla-carbon/40 mt-1.5">{step.reason}</p>
                     </div>
                   ))}
                 </div>
@@ -264,16 +264,16 @@ export const RoutineBuilderPage: React.FC = () => {
 
             {routine.unfulfilled.length > 0 && (
               <div className={cardClass}>
-                <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-3">
+                <h2 className="text-xs uppercase tracking-wider font-bold text-kurla-carbon/50 mb-3">
                   Étapes non pourvues
                 </h2>
                 <div className="space-y-2">
                   {routine.unfulfilled.map(item => (
                     <div key={item.routineStep} className="flex items-start gap-2 text-sm">
-                      <X className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#111111]/40" />
+                      <X className="w-3.5 h-3.5 mt-0.5 shrink-0 text-kurla-carbon/40" />
                       <span>
                         <span className="font-medium">{item.label}</span>
-                        <span className="text-[#111111]/60"> — {item.reason}</span>
+                        <span className="text-kurla-carbon/60"> — {item.reason}</span>
                       </span>
                     </div>
                   ))}
@@ -283,10 +283,10 @@ export const RoutineBuilderPage: React.FC = () => {
 
             {routine.notes.length > 0 && (
               <div className={cardClass}>
-                <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-3">À savoir</h2>
+                <h2 className="text-xs uppercase tracking-wider font-bold text-kurla-carbon/50 mb-3">À savoir</h2>
                 <ul className="space-y-1.5">
                   {routine.notes.map((note, index) => (
-                    <li key={index} className="text-sm text-[#111111]/70">{note}</li>
+                    <li key={index} className="text-sm text-kurla-carbon/70">{note}</li>
                   ))}
                 </ul>
               </div>
@@ -295,7 +295,7 @@ export const RoutineBuilderPage: React.FC = () => {
             {routine.cartItems.length > 0 && (
               <div className={cardClass}>
                 <div className="flex items-center gap-2 mb-3">
-                  <ShoppingCart className="w-4 h-4 text-[#C8753D]" />
+                  <ShoppingCart className="w-4 h-4 text-kurla-copper" />
                   <h2 className="text-lg font-bold">Panier proposé</h2>
                 </div>
                 <div className="space-y-2">
@@ -306,13 +306,13 @@ export const RoutineBuilderPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E8E1DA]">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-kurla-stone">
                   <span className="font-semibold">Total</span>
                   <span className="font-bold text-lg">{routine.totalPrice.toFixed(2)} €</span>
                 </div>
                 <a
                   href="/checkout"
-                  className="mt-4 w-full px-5 py-3 rounded-xl bg-[#111111] hover:bg-black text-white text-sm font-semibold flex items-center justify-center gap-2"
+                  className="mt-4 w-full px-5 py-3 rounded-xl bg-kurla-carbon hover:bg-black text-white text-sm font-semibold flex items-center justify-center gap-2"
                 >
                   <Package className="w-4 h-4" />
                   Passer au paiement
@@ -377,14 +377,14 @@ const EndorsementPanel: React.FC<{ token?: string }> = ({ token }) => {
   if (loading) {
     return (
       <div className={`${cardClass} flex items-center gap-2 text-sm text-[#666666]`}>
-        <Loader2 className="w-4 h-4 animate-spin text-[#C8753D]" /> Chargement des co-signatures…
+        <Loader2 className="w-4 h-4 animate-spin text-kurla-copper" /> Chargement des co-signatures…
       </div>
     );
   }
   if (error) {
     return (
       <div className={`${cardClass} flex items-start gap-2 text-sm text-[#666666]`}>
-        <AlertTriangle className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" /> {error}
+        <AlertTriangle className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" /> {error}
       </div>
     );
   }
@@ -392,7 +392,7 @@ const EndorsementPanel: React.FC<{ token?: string }> = ({ token }) => {
   return (
     <div className={cardClass}>
       <div className="flex items-center gap-2 mb-3">
-        <MessageSquareQuote className="w-4 h-4 text-[#C8753D]" />
+        <MessageSquareQuote className="w-4 h-4 text-kurla-copper" />
         <h2 className="text-lg font-bold">Avis d’un professionnel sur ma routine</h2>
       </div>
 

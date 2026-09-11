@@ -19,9 +19,9 @@ import {
   requestAppointment
 } from '../services/intelligenceService';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
-const inputClass = 'w-full px-4 py-3 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
+const inputClass = 'w-full px-4 py-3 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-5 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
 
 /**
  * Affichage du Trust Score.
@@ -48,7 +48,7 @@ const TrustBadge: React.FC<{ trust: ProfessionalTrustAssessment }> = ({ trust })
       {trust.score === null ? (
         <span className="text-xs text-[#666666]">Score non publié</span>
       ) : (
-        <span className="text-sm font-semibold text-[#111111]">
+        <span className="text-sm font-semibold text-kurla-carbon">
           Trust Score {trust.score}
           <span className="text-[#999999] font-normal">/100</span>
         </span>
@@ -69,7 +69,7 @@ const TrustBadge: React.FC<{ trust: ProfessionalTrustAssessment }> = ({ trust })
     )}
 
     <details className="text-xs">
-      <summary className="cursor-pointer text-[#C8753D] hover:underline font-medium">
+      <summary className="cursor-pointer text-kurla-copper hover:underline font-medium">
         Voir le détail du score
       </summary>
       <ul className="mt-3 space-y-2">
@@ -81,14 +81,14 @@ const TrustBadge: React.FC<{ trust: ProfessionalTrustAssessment }> = ({ trust })
               <XCircle className="w-3.5 h-3.5 text-[#D4A574] shrink-0 mt-0.5" />
             )}
             <span className="text-[#666666] leading-relaxed">
-              <span className="font-medium text-[#111111]">{component.label}</span> — {component.detail}
+              <span className="font-medium text-kurla-carbon">{component.label}</span> — {component.detail}
               <span className="text-[#999999]"> ({component.weight} points)</span>
             </span>
           </li>
         ))}
       </ul>
       {trust.limitations.length > 0 && (
-        <ul className="mt-3 space-y-1.5 border-t border-[#E8E1DA] pt-3">
+        <ul className="mt-3 space-y-1.5 border-t border-kurla-stone pt-3">
           {trust.limitations.map((limitation, index) => (
             <li key={index} className="text-[11px] text-[#999999] leading-relaxed">
               {limitation}
@@ -176,37 +176,37 @@ export const ProfessionalDirectoryPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDF9] px-4 py-16 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C8753D]" />
+      <div className="min-h-screen bg-kurla-ivory px-4 py-16 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-kurla-copper" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] px-4 py-10">
+    <div className="min-h-screen bg-kurla-ivory px-4 py-10">
       <div className="max-w-3xl mx-auto space-y-5">
 
         <header className={cardClass}>
-          <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest mb-1">
+          <p className="text-[11px] font-semibold text-kurla-copper uppercase tracking-widest mb-1">
             Réseau KURLA Pro {filter==='peau' ? '· Peau riche en mélanine' : ''}
           </p>
-          <h1 className="text-3xl font-bold text-[#111111] tracking-tight mb-2">
+          <h1 className="text-3xl font-bold text-kurla-carbon tracking-tight mb-2">
             {filter==='peau' ? 'Pros peau — vérifiés' : 'Professionnels vérifiés'}
           </h1>
           <p className="text-sm text-[#666666] leading-relaxed">
             {filter==='peau' ? 'Experts peau, esthéticien·nes et dermatologues formés peaux mates à foncées (HPI, SPF sans trace, barrière). Filtre = catégorie skincare_expert, à défaut profession ou spécialité liées à la peau.' : 'Chaque professionnel listé a fait vérifier son identité auprès de l’équipe KURLA. Le Trust Score repose sur des faits vérifiables : identité, qualification, charte signée, avis issus de prestations réellement effectuées.'}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Tous · {entries.length}</button>
-            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-[#111111] text-white border-[#111111]':'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>Peau · {entries.filter(e=> isSkinProfessional(e.profile)).length} pros</button>
-            {filter==='peau' && <a href="/peau/guide" className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-semibold hover:border-[#C8753D]">Guide peau →</a>}
-            {filter==='peau' && <a href="/pro/candidature" className="px-3 py-1.5 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Pro peau → candidater</a>}
+            <button onClick={()=>{ setFilter('all'); try{ history.replaceState({},'', window.location.pathname);}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='all'?'bg-kurla-carbon text-white border-kurla-carbon':'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper'}`}>Tous · {entries.length}</button>
+            <button onClick={()=>{ setFilter('peau'); try{ history.replaceState({},'', window.location.pathname+'?cat=peau');}catch{} }} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${filter==='peau'?'bg-kurla-carbon text-white border-kurla-carbon':'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper'}`}>Peau · {entries.filter(e=> isSkinProfessional(e.profile)).length} pros</button>
+            {filter==='peau' && <a href="/peau/guide" className="px-3 py-1.5 rounded-full bg-kurla-sand border border-kurla-stone text-xs font-semibold hover:border-kurla-copper">Guide peau →</a>}
+            {filter==='peau' && <a href="/pro/candidature" className="px-3 py-1.5 rounded-full bg-white border border-kurla-stone text-xs font-bold hover:border-kurla-copper">Pro peau → candidater</a>}
           </div>
         </header>
 
         {error && (
           <div className={`${cardClass} flex items-start gap-3`}>
-            <AlertCircle className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             <p className="text-sm text-[#666666]">{error}</p>
           </div>
         )}
@@ -220,8 +220,8 @@ export const ProfessionalDirectoryPage: React.FC = () => {
             <p className="text-xs text-[#999999] mt-3 max-w-md mx-auto">
               {filter==='peau' ? 'Vous êtes pro peau (dermato, esthéticienne, expert·e HPI/SPF sans trace) ? Candidatez — la vérification est gratuite et le score n’est jamais facturé.' : 'KURLA préfère un annuaire vide à un annuaire non vérifié.'}
             </p>
-            {filter==='peau' && <a href="/pro/candidature" className="mt-4 inline-flex px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-bold">Devenir pro peau →</a>}
-            {filter==='peau' && <div className="mt-4 p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-left max-w-md mx-auto"><p className="text-xs font-bold">En attendant</p><p className="text-xs text-[#666666] leading-relaxed">Diagnostic peau gratuit 2 min + 15 fiches ingrédient documentées V-VI safe + kits peau précommande. Réunion pro peau mensuelle (visio) — s’inscrire sur la page candidature.</p><a href="/peau" className="text-xs font-bold text-[#C8753D] hover:underline">Pôle peau →</a></div>}
+            {filter==='peau' && <a href="/pro/candidature" className="mt-4 inline-flex px-5 py-3 rounded-full bg-kurla-carbon text-white text-xs font-bold">Devenir pro peau →</a>}
+            {filter==='peau' && <div className="mt-4 p-3 rounded-2xl bg-kurla-sand border border-kurla-stone text-left max-w-md mx-auto"><p className="text-xs font-bold">En attendant</p><p className="text-xs text-[#666666] leading-relaxed">Diagnostic peau gratuit 2 min + 15 fiches ingrédient documentées V-VI safe + kits peau précommande. Réunion pro peau mensuelle (visio) — s’inscrire sur la page candidature.</p><a href="/peau" className="text-xs font-bold text-kurla-copper hover:underline">Pôle peau →</a></div>}
           </div>
         )}
 
@@ -229,7 +229,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
           <article key={profile.id} className={cardClass}>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-lg font-bold text-[#111111]">{profile.displayName}</h2>
+                <h2 className="text-lg font-bold text-kurla-carbon">{profile.displayName}</h2>
                 <p className="text-sm text-[#666666]">
                   {profile.profession}
                   {profile.specialty ? ` · ${profile.specialty}` : ''}
@@ -245,14 +245,14 @@ export const ProfessionalDirectoryPage: React.FC = () => {
                 )}
               </div>
               {trust.publishable && (
-                <Award className="w-6 h-6 text-[#C8753D] shrink-0" />
+                <Award className="w-6 h-6 text-kurla-copper shrink-0" />
               )}
             </div>
 
             <TrustBadge trust={trust} />
 
             {trust.publishable && (
-              <div className="mt-5 pt-5 border-t border-[#E8E1DA]">
+              <div className="mt-5 pt-5 border-t border-kurla-stone">
                 {bookingFor === profile.id ? (
                   <div className="space-y-3">
                     <label className="block">
@@ -282,7 +282,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
                     <label className="flex items-start gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
-                        className="mt-0.5 accent-[#C8753D]"
+                        className="mt-0.5 accent-kurla-copper"
                         checked={shareConsent}
                         onChange={event => setShareConsent(event.target.checked)}
                       />
@@ -303,7 +303,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
                         Envoyer la demande
                       </button>
                       <button
-                        className="px-4 py-3 rounded-xl border border-[#E8E1DA] text-sm text-[#666666] hover:bg-[#FFFDF9] cursor-pointer"
+                        className="px-4 py-3 rounded-xl border border-kurla-stone text-sm text-[#666666] hover:bg-kurla-ivory cursor-pointer"
                         onClick={() => {
                           setBookingFor(null);
                           setBookingResult(null);
@@ -331,7 +331,7 @@ export const ProfessionalDirectoryPage: React.FC = () => {
 
         {bookingResult && (
           <div className={`${cardClass} flex items-start gap-3`}>
-            <MessageSquareQuote className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+            <MessageSquareQuote className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             <p className="text-sm text-[#666666] leading-relaxed">{bookingResult}</p>
           </div>
         )}

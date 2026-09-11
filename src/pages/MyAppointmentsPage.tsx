@@ -22,8 +22,8 @@ import {
   ServicePayment
 } from '../services/intelligenceService';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
-const primaryButton = 'px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
+const primaryButton = 'px-5 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
 
 const STATUS_LABELS: Record<Appointment['status'], { label: string; className: string }> = {
   requested: { label: 'Demande envoyée', className: 'bg-amber-50 border-amber-200 text-amber-900' },
@@ -164,7 +164,7 @@ export const MyAppointmentsPage: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#FFFDF9] px-4 py-16">
+      <div className="min-h-screen bg-kurla-ivory px-4 py-16">
         <p className="text-sm text-[#666666] text-center">Connexion requise.</p>
       </div>
     );
@@ -172,8 +172,8 @@ export const MyAppointmentsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDF9] px-4 py-16 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C8753D]" />
+      <div className="min-h-screen bg-kurla-ivory px-4 py-16 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-kurla-copper" />
       </div>
     );
   }
@@ -181,14 +181,14 @@ export const MyAppointmentsPage: React.FC = () => {
   const activeShares = shares.filter(share => !share.revokedAt);
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] px-4 py-10">
+    <div className="min-h-screen bg-kurla-ivory px-4 py-10">
       <div className="max-w-3xl mx-auto space-y-5">
 
         <header className={cardClass}>
-          <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest mb-1">
+          <p className="text-[11px] font-semibold text-kurla-copper uppercase tracking-widest mb-1">
             Espace client
           </p>
-          <h1 className="text-3xl font-bold text-[#111111] tracking-tight mb-2">Mes réservations</h1>
+          <h1 className="text-3xl font-bold text-kurla-carbon tracking-tight mb-2">Mes réservations</h1>
           <p className="text-sm text-[#666666] leading-relaxed">
             Le paiement n’est proposé qu’après confirmation du professionnel. Les consentements de
             partage de votre dossier sont listés plus bas et révocables à tout moment.
@@ -197,7 +197,7 @@ export const MyAppointmentsPage: React.FC = () => {
 
         {error && (
           <div className={`${cardClass} flex items-start gap-3`}>
-            <AlertCircle className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             <p className="text-sm text-[#666666]">{error}</p>
           </div>
         )}
@@ -213,7 +213,7 @@ export const MyAppointmentsPage: React.FC = () => {
           <div className={`${cardClass} text-center py-10`}>
             <Calendar className="w-8 h-8 text-[#D4A574] mx-auto mb-3" />
             <p className="text-sm text-[#666666]">Aucune réservation pour le moment.</p>
-            <a href="/pros-verifies" className="text-sm text-[#C8753D] hover:underline mt-2 inline-block">
+            <a href="/pros-verifies" className="text-sm text-kurla-copper hover:underline mt-2 inline-block">
               Voir les professionnels vérifiés
             </a>
           </div>
@@ -228,7 +228,7 @@ export const MyAppointmentsPage: React.FC = () => {
               <article key={appointment.id} className={cardClass}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
-                    <h2 className="text-lg font-bold text-[#111111]">
+                    <h2 className="text-lg font-bold text-kurla-carbon">
                       {formatDate(appointment.scheduledAt)}
                     </h2>
                     <p className="text-xs text-[#999999] mt-0.5">
@@ -251,7 +251,7 @@ export const MyAppointmentsPage: React.FC = () => {
 
                 {/* Paiement : uniquement si confirmée, non réglée, et tarifée */}
                 {appointment.status === 'confirmed' && !isPaid && appointment.serviceId && (
-                  <div className="pt-3 border-t border-[#E8E1DA]">
+                  <div className="pt-3 border-t border-kurla-stone">
                     {latest && latest.status === 'pending' ? (
                       <div className="space-y-2">
                         <p className="text-xs text-[#666666]">
@@ -269,7 +269,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             Reprendre le paiement
                           </button>
                           <button
-                            className="px-4 py-3 rounded-xl border border-[#E8E1DA] text-sm text-[#666666] hover:bg-[#FFFDF9] cursor-pointer"
+                            className="px-4 py-3 rounded-xl border border-kurla-stone text-sm text-[#666666] hover:bg-kurla-ivory cursor-pointer"
                             onClick={() => confirm(appointment, latest)}
                             disabled={busyId === latest.id}
                           >
@@ -293,7 +293,7 @@ export const MyAppointmentsPage: React.FC = () => {
                 )}
 
                 {appointmentPayments.length > 0 && (
-                  <div className="pt-3 mt-3 border-t border-[#E8E1DA] space-y-1.5">
+                  <div className="pt-3 mt-3 border-t border-kurla-stone space-y-1.5">
                     <p className="text-[11px] font-semibold text-[#999999] uppercase tracking-wider">
                       Paiements
                     </p>
@@ -336,10 +336,10 @@ export const MyAppointmentsPage: React.FC = () => {
                 ].filter(Boolean);
 
                 return (
-                  <div key={share.id} className="rounded-xl border border-[#E8E1DA] p-4">
+                  <div key={share.id} className="rounded-xl border border-kurla-stone p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-[#111111]">
+                        <p className="text-sm font-semibold text-kurla-carbon">
                           Périmètre : {scope.length > 0 ? scope.join(', ') : 'aucun'}
                         </p>
                         <p className="text-xs text-[#999999] mt-1">
@@ -348,7 +348,7 @@ export const MyAppointmentsPage: React.FC = () => {
                         </p>
                       </div>
                       <button
-                        className="px-3 py-2 rounded-xl border border-[#E8E1DA] text-xs text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer shrink-0"
+                        className="px-3 py-2 rounded-xl border border-kurla-stone text-xs text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer shrink-0"
                         onClick={() => revoke(share)}
                         disabled={busyId === share.id}
                       >

@@ -1,8 +1,43 @@
 @import "tailwindcss";
 
+/*
+ * DESIGN SYSTEM KURLA — tokens de marque (v1, 2026-09-11)
+ *
+ * Source de vérité : docs/CHARTE_VISUELLE.md (palette) + docs/ARCHITECTURE/11-design-system.md.
+ * Toute nouvelle classe de couleur doit utiliser un token kurla-* de ce bloc,
+ * jamais une valeur hexadécimale en dur. Les anciens hex des 12 couleurs cœur
+ * ont été migrés mécaniquement (valeurs inchangées, noms normalisés).
+ *
+ * Usage : bg-kurla-copper, text-kurla-cream, border-kurla-ink/20, from-kurla-copper…
+ */
+@theme {
+  /* Palette KURLA (charte visuelle) */
+  --color-kurla-ink: #050403;        /* Encre — fonds, texte sur clair */
+  --color-kurla-espresso: #1A0F0A;   /* Brun chaud — surfaces, cartes */
+  --color-kurla-copper: #C8753D;     /* Cuivre — accent principal, CTA */
+  --color-kurla-amber: #D49A63;      /* Ambre — accent secondaire, surlignages */
+  --color-kurla-cream: #FFF7EF;      /* Crème — texte principal */
+  --color-kurla-ivory: #FFFDF9;      /*Ivoire — fonds de page clairs */
+  --color-kurla-sand: #F8F2EC;       /* Sable — surfaces secondaires claires */
+  --color-kurla-stone: #E8E1DA;      /* Pierre — bordures claires, séparateurs */
+  --color-kurla-cocoa: #B06330;      /* Cacao — cuivre foncé (hover/actif) */
+  --color-kurla-carbon: #111111;     /* Carbone — neutre quasi-noir (sections) */
+  --color-kurla-bark: #3A2218;       /* Écorce — bruns profonds (surfaces) */
+  --color-kurla-umber: #241C16;      /* Terre — bruns intermédiaires (cartes) */
+
+  /* Sémantique (statuts, alerts) */
+  --color-kurla-danger: #B91C1C;
+  --color-kurla-success: #2E7D5B;
+  --color-kurla-warning: #D49A63;
+
+  /* Typographie : Inter (corps) + Playfair Display (titres) */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+}
+
 @layer utilities {
   .font-serif-title {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-serif);
   }
 }
 
@@ -55,14 +90,14 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F8F2EC;
+  background: var(--color-kurla-sand);
 }
 ::-webkit-scrollbar-thumb {
-  background: #D49A63;
+  background: var(--color-kurla-amber);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #C8753D;
+  background: var(--color-kurla-copper);
 }
 
 @media (prefers-reduced-motion: reduce) {

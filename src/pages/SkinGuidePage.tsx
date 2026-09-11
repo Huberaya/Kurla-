@@ -123,20 +123,20 @@ export const SkinGuidePage: React.FC = () => {
   const filtered = GUIDES.filter(g => !q.trim() || `${g.title} ${g.desc} ${g.tag}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
+    <div className="min-h-screen pt-28 pb-24 bg-kurla-ivory text-kurla-carbon">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/peau" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] font-semibold mb-4 hover:underline"><ArrowLeft className="w-4 h-4" /> Retour pôle peau</a>
+        <a href="/peau" className="inline-flex items-center gap-1.5 text-xs text-kurla-copper font-semibold mb-4 hover:underline"><ArrowLeft className="w-4 h-4" /> Retour pôle peau</a>
 
         <div className="text-center max-w-3xl mx-auto mb-8">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] text-[#D9A8A4] text-[10px] font-bold tracking-widest uppercase"><BookOpen className="w-3.5 h-3.5" /> KURLA SKIN · guide peau</span>
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-kurla-carbon text-[#D9A8A4] text-[10px] font-bold tracking-widest uppercase"><BookOpen className="w-3.5 h-3.5" /> KURLA SKIN · guide peau</span>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold mt-3">Le guide peau — 7 essentiels</h1>
-          <p className="text-sm text-[#111111]/70 font-light mt-3 leading-relaxed">HPI, SPF sans trace blanche, niacinamide, barrière : 7 fiches de 3–6 min, vocabulaire <strong className="font-semibold text-[#111111]">uniformiser ≠ éclaircir</strong>, routines chiffrées, gardes actifs. Aucun diagnostic médical.</p>
+          <p className="text-sm text-kurla-carbon/70 font-light mt-3 leading-relaxed">HPI, SPF sans trace blanche, niacinamide, barrière : 7 fiches de 3–6 min, vocabulaire <strong className="font-semibold text-kurla-carbon">uniformiser ≠ éclaircir</strong>, routines chiffrées, gardes actifs. Aucun diagnostic médical.</p>
           <div className="mt-5 flex gap-2 max-w-xl mx-auto">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#111111]/40" />
-              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher hpi, spf, niacinamide, barrière..." className="w-full pl-9 pr-3 py-3 rounded-full bg-white border border-[#E8E1DA] text-xs focus:outline-none focus:border-[#C8753D]" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-kurla-carbon/40" />
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher hpi, spf, niacinamide, barrière..." className="w-full pl-9 pr-3 py-3 rounded-full bg-white border border-kurla-stone text-xs focus:outline-none focus:border-kurla-copper" />
             </div>
-            <a href="/peau/diagnostic" className="px-5 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold shrink-0">Diagnostic →</a>
+            <a href="/peau/diagnostic" className="px-5 py-3 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-bold shrink-0">Diagnostic →</a>
           </div>
         </div>
 
@@ -145,45 +145,45 @@ export const SkinGuidePage: React.FC = () => {
             {filtered.map(g => {
               const isOpen = open===g.id;
               return (
-                <article key={g.id} className={`rounded-3xl border p-6 text-left transition-all ${isOpen? 'bg-[#FFFDF9] border-[#C8753D] shadow-sm' : 'bg-[#F8F2EC] border-[#E8E1DA] hover:border-[#C8753D]/40'}`}>
+                <article key={g.id} className={`rounded-3xl border p-6 text-left transition-all ${isOpen? 'bg-kurla-ivory border-kurla-copper shadow-sm' : 'bg-kurla-sand border-kurla-stone hover:border-kurla-copper/40'}`}>
                   <button onClick={()=>setOpen(isOpen?null:g.id)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-[#E8E1DA] font-bold text-[#C8753D]">{g.tag} · {g.read}</span>
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-kurla-stone font-bold text-kurla-copper">{g.tag} · {g.read}</span>
                         <h2 className="text-sm sm:text-base font-bold leading-tight mt-2">{g.title}</h2>
-                        <p className="text-xs text-[#111111]/60 font-light mt-1 leading-relaxed">{g.desc}</p>
+                        <p className="text-xs text-kurla-carbon/60 font-light mt-1 leading-relaxed">{g.desc}</p>
                       </div>
-                      <span className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${isOpen?'bg-[#111111] border-[#111111] text-white':'bg-white border-[#E8E1DA] text-[#111111]/40'}`}>{isOpen?'−':'+'}</span>
+                      <span className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${isOpen?'bg-kurla-carbon border-kurla-carbon text-white':'bg-white border-kurla-stone text-kurla-carbon/40'}`}>{isOpen?'−':'+'}</span>
                     </div>
                   </button>
                   {isOpen && (
                     <div className="mt-4 space-y-4 animate-in fade-in">
-                      <div className="p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-xs leading-relaxed">
-                        <p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> En bref</p>
-                        <p className="mt-1 text-[#111111]/75">{g.hero}</p>
+                      <div className="p-4 rounded-2xl bg-kurla-sand border border-kurla-stone text-xs leading-relaxed">
+                        <p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-kurla-copper" /> En bref</p>
+                        <p className="mt-1 text-kurla-carbon/75">{g.hero}</p>
                       </div>
                       <ul className="space-y-2 text-xs leading-relaxed">
-                        {g.points.map((pt,i)=> <li key={i} className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" /><span>{pt}</span></li>)}
+                        {g.points.map((pt,i)=> <li key={i} className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" /><span>{pt}</span></li>)}
                       </ul>
-                      <div className="p-3 rounded-xl bg-[#111111] text-white text-xs flex gap-2">
-                        <Clock className="w-4 h-4 text-[#D49A63] shrink-0" />
+                      <div className="p-3 rounded-xl bg-kurla-carbon text-white text-xs flex gap-2">
+                        <Clock className="w-4 h-4 text-kurla-amber shrink-0" />
                         <span><strong>Routine associée :</strong> {g.routine}</span>
                       </div>
                       <div className="flex gap-2">
-                        <a href={g.cta} className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold">Appliquer →</a>
-                        <a href="/peau/routine" className="px-4 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Voir ma routine</a>
+                        <a href={g.cta} className="px-4 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-bold">Appliquer →</a>
+                        <a href="/peau/routine" className="px-4 py-2 rounded-full bg-white border border-kurla-stone text-xs font-bold hover:border-kurla-copper">Voir ma routine</a>
                       </div>
                     </div>
                   )}
                 </article>
               );
             })}
-            {filtered.length===0 && <div className="p-10 rounded-3xl bg-white border border-[#E8E1DA] text-center text-xs text-[#111111]/60">Aucun guide ne correspond à “{q}”. <button onClick={()=>setQ('')} className="text-[#C8753D] underline">Effacer</button></div>}
+            {filtered.length===0 && <div className="p-10 rounded-3xl bg-white border border-kurla-stone text-center text-xs text-kurla-carbon/60">Aucun guide ne correspond à “{q}”. <button onClick={()=>setQ('')} className="text-kurla-copper underline">Effacer</button></div>}
           </div>
 
           <div className="space-y-4">
-            <div className="p-6 rounded-3xl bg-[#111111] text-white">
-              <h3 className="text-sm font-bold flex items-center gap-1.5"><Shield className="w-4 h-4 text-[#D49A63]" /> Gardes mélanine KURLA</h3>
+            <div className="p-6 rounded-3xl bg-kurla-carbon text-white">
+              <h3 className="text-sm font-bold flex items-center gap-1.5"><Shield className="w-4 h-4 text-kurla-amber" /> Gardes mélanine KURLA</h3>
               <ul className="mt-3 space-y-2 text-xs leading-relaxed text-white/80">
                 <li>• <strong className="text-white">Uniformiser ≠ éclaircir.</strong> Aucune promesse d’éclaircissement de carnation.</li>
                 <li>• HPI = tache post-inflammation. SPF quotidien = 1re prévention, même phototype foncé.</li>
@@ -192,18 +192,18 @@ export const SkinGuidePage: React.FC = () => {
               </ul>
               <p className="text-[11px] text-white/50 mt-3 leading-relaxed">Guides cosmétiques, pas médicaux. Si lésion qui saigne, douleur ou HPI qui s’étend, consultez un dermato.</p>
             </div>
-            <div className="p-6 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA]">
-              <h3 className="text-sm font-bold flex items-center gap-1.5"><Layers className="w-4 h-4 text-[#C8753D]" /> Besoin d’un pro peau ?</h3>
-              <p className="text-xs text-[#111111]/65 font-light mt-2 leading-relaxed">6 experts peaux riches en mélanine vérifier leur identité. Prenez un créneau vidéo ou atelier.</p>
-              <a href="/pros-verifies?cat=peau" className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-bold">Voir les pros peau →</a>
-              <p className="text-[11px] text-[#111111]/45 mt-2">Catégorie <code>skincare_expert</code> — Trust Score vérifié, avis issus de prestations.</p>
+            <div className="p-6 rounded-3xl bg-kurla-ivory border border-kurla-stone">
+              <h3 className="text-sm font-bold flex items-center gap-1.5"><Layers className="w-4 h-4 text-kurla-copper" /> Besoin d’un pro peau ?</h3>
+              <p className="text-xs text-kurla-carbon/65 font-light mt-2 leading-relaxed">6 experts peaux riches en mélanine vérifier leur identité. Prenez un créneau vidéo ou atelier.</p>
+              <a href="/pros-verifies?cat=peau" className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-kurla-carbon text-white text-xs font-bold">Voir les pros peau →</a>
+              <p className="text-[11px] text-kurla-carbon/45 mt-2">Catégorie <code>skincare_expert</code> — Trust Score vérifié, avis issus de prestations.</p>
             </div>
-            <div className="p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
-              <h3 className="text-sm font-bold flex items-center gap-1.5"><FlaskConical className="w-4 h-4 text-[#C8753D]" /> Par ingrédient</h3>
+            <div className="p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
+              <h3 className="text-sm font-bold flex items-center gap-1.5"><FlaskConical className="w-4 h-4 text-kurla-copper" /> Par ingrédient</h3>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {['Niacinamide 5%', 'Acide azélaïque', 'Céramides', 'Squalane', 'Vitamine C 10%', 'AHA 5%', 'Rétinol 0,3%'].map(k=> <a key={k} href={`/boutique?cat=peau&q=${encodeURIComponent(k.split(' ')[0])}`} className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-[#E8E1DA] font-semibold hover:border-[#C8753D]">{k}</a>)}
+                {['Niacinamide 5%', 'Acide azélaïque', 'Céramides', 'Squalane', 'Vitamine C 10%', 'AHA 5%', 'Rétinol 0,3%'].map(k=> <a key={k} href={`/boutique?cat=peau&q=${encodeURIComponent(k.split(' ')[0])}`} className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-kurla-stone font-semibold hover:border-kurla-copper">{k}</a>)}
               </div>
-              <a href="/guides/ingredients" className="mt-3 inline-block text-xs font-bold text-[#C8753D] hover:underline">Fiches INCI →</a>
+              <a href="/guides/ingredients" className="mt-3 inline-block text-xs font-bold text-kurla-copper hover:underline">Fiches INCI →</a>
             </div>
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -212,9 +212,9 @@ export const SkinGuidePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <p className="text-xs text-[#111111]/70"><strong className="text-[#111111]">Fatou 28 ans mixte V HPI sans parfum</strong> a commencé par HPI → SPF invisible : Équilibrée, prix indicatif 62€ (5 soins · −13%), 2 alternatives sans parfum par étape.</p>
-          <a href="/peau/guide#hpi" className="px-5 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-bold">Commencer par HPI →</a>
+        <div className="mt-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <p className="text-xs text-kurla-carbon/70"><strong className="text-kurla-carbon">Fatou 28 ans mixte V HPI sans parfum</strong> a commencé par HPI → SPF invisible : Équilibrée, prix indicatif 62€ (5 soins · −13%), 2 alternatives sans parfum par étape.</p>
+          <a href="/peau/guide#hpi" className="px-5 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-bold">Commencer par HPI →</a>
         </div>
       </div>
     </div>

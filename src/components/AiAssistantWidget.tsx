@@ -70,7 +70,7 @@ export const AiAssistantWidget: React.FC = () => {
       {/* Floating Action Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-[#C8753D] to-[#D49A63] text-white shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-[#FFF7EF]/20"
+        className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-kurla-copper to-kurla-amber text-white shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 group border border-kurla-cream/20"
         aria-label="Discuter avec l'assistant KURLA"
       >
         <Sparkles className="w-5 h-5 text-white animate-pulse" />
@@ -79,22 +79,22 @@ export const AiAssistantWidget: React.FC = () => {
 
       {/* Assistant Modal Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[420px] max-h-[600px] h-[80vh] bg-[#1A0F0A] border border-[#FFF7EF]/20 rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[420px] max-h-[600px] h-[80vh] bg-kurla-espresso border border-kurla-cream/20 rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
 
           {/* Header */}
-          <div className="p-4 bg-[#050403] border-b border-[#FFF7EF]/10 flex items-center justify-between">
+          <div className="p-4 bg-kurla-ink border-b border-kurla-cream/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#C8753D]/20 text-[#C8753D] flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-full bg-kurla-copper/20 text-kurla-copper flex items-center justify-center font-bold">
                 <Bot className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">Assistant Conseil KURLA</h3>
+                <h3 className="text-sm font-serif-title font-bold text-kurla-cream">Assistant Conseil KURLA</h3>
                 <AiDisclosureBadge compact className="mt-1" />
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded-full text-[#FFF7EF]/60 hover:text-[#FFF7EF]"
+              className="p-1 rounded-full text-kurla-cream/60 hover:text-kurla-cream"
             >
               <X className="w-5 h-5" />
             </button>
@@ -110,8 +110,8 @@ export const AiAssistantWidget: React.FC = () => {
                 <div
                   className={`p-3.5 rounded-2xl max-w-[85%] leading-relaxed ${
                     m.sender === 'user'
-                      ? 'bg-[#C8753D] text-white font-medium rounded-br-none'
-                      : 'bg-[#050403] text-[#FFF7EF]/90 border border-[#FFF7EF]/10 font-light rounded-bl-none space-y-2'
+                      ? 'bg-kurla-copper text-white font-medium rounded-br-none'
+                      : 'bg-kurla-ink text-kurla-cream/90 border border-kurla-cream/10 font-light rounded-bl-none space-y-2'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{m.text}</p>
@@ -120,21 +120,21 @@ export const AiAssistantWidget: React.FC = () => {
             ))}
 
             {loading && (
-              <div className="flex items-center gap-2 text-xs text-[#D49A63] italic p-2">
-                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#C8753D]" /> Génération KURLA en cours…
+              <div className="flex items-center gap-2 text-xs text-kurla-amber italic p-2">
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-kurla-copper" /> Génération KURLA en cours…
               </div>
             )}
           </div>
 
           {/* Suggested Prompts */}
-          <div className="p-3 bg-[#050403]/80 border-t border-[#FFF7EF]/10 space-y-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-[#D49A63] font-semibold block px-1">Questions rapides :</span>
+          <div className="p-3 bg-kurla-ink/80 border-t border-kurla-cream/10 space-y-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-kurla-amber font-semibold block px-1">Questions rapides :</span>
             <div className="flex flex-col gap-1">
               {suggestedQuestions.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(q)}
-                  className="text-left text-[11px] px-2.5 py-1.5 rounded-lg bg-[#1A0F0A] hover:bg-[#3A2218] text-[#FFF7EF]/80 border border-[#FFF7EF]/10 truncate transition-colors"
+                  className="text-left text-[11px] px-2.5 py-1.5 rounded-lg bg-kurla-espresso hover:bg-kurla-bark text-kurla-cream/80 border border-kurla-cream/10 truncate transition-colors"
                 >
                   💡 {q}
                 </button>
@@ -143,7 +143,7 @@ export const AiAssistantWidget: React.FC = () => {
           </div>
 
           {/* Input Bar */}
-          <div className="p-3 bg-[#050403] border-t border-[#FFF7EF]/10">
+          <div className="p-3 bg-kurla-ink border-t border-kurla-cream/10">
             <form
               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
               className="flex items-center gap-2"
@@ -153,23 +153,23 @@ export const AiAssistantWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Pose ta question (ex: démangeaisons braids)..."
-                className="flex-1 px-4 py-2.5 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-xs focus:outline-none focus:border-[#C8753D]"
+                className="flex-1 px-4 py-2.5 rounded-full bg-kurla-espresso border border-kurla-cream/15 text-kurla-cream placeholder-kurla-cream/40 text-xs focus:outline-none focus:border-kurla-copper"
               />
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="p-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white disabled:opacity-40 transition-all shrink-0"
+                className="p-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white disabled:opacity-40 transition-all shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
             </form>
 
-            <div className="pt-2 flex flex-col items-center gap-1 text-[9px] text-[#FFF7EF]/40">
-              <span className="font-semibold uppercase tracking-wider text-[#D49A63]">
+            <div className="pt-2 flex flex-col items-center gap-1 text-[9px] text-kurla-cream/40">
+              <span className="font-semibold uppercase tracking-wider text-kurla-amber">
                 Vous échangez avec une intelligence artificielle, pas avec un humain.
               </span>
               <span className="flex items-center gap-1.5">
-                <ShieldAlert className="w-3 h-3 text-[#D49A63]" />
+                <ShieldAlert className="w-3 h-3 text-kurla-amber" />
                 <span>Conseils beauté non médicaux. En cas de symptôme, consultez un professionnel de santé.</span>
               </span>
             </div>

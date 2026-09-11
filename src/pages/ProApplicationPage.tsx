@@ -46,35 +46,35 @@ export const ProApplicationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center max-w-[520px] mx-auto mb-12">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block mb-2">
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block mb-2">
             Réseau d'Excellence KURLA Pro
           </span>
-          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#FFF7EF] mb-3">
+          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-kurla-cream mb-3">
             Rejoins le réseau KURLA Pro Europe.
           </h1>
-          <p className="text-sm sm:text-base text-[#FFF7EF]/70 font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-kurla-cream/70 font-light leading-relaxed">
             Valorise ton savoir-faire auprès d’une clientèle qualifiée qui cherche un soin respectueux de leur fibre texturée ou de leur peau.
           </p>
         </div>
 
         {submitted ? (
-          <div className="p-10 rounded-3xl bg-[#1A0F0A] border border-emerald-500/40 text-center space-y-4" role="status" aria-live="polite">
+          <div className="p-10 rounded-3xl bg-kurla-espresso border border-emerald-500/40 text-center space-y-4" role="status" aria-live="polite">
             <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-            <h2 className="text-2xl font-serif-title font-bold text-[#FFF7EF]">Candidature reçue</h2>
-            <p className="text-sm text-[#FFF7EF]/80 max-w-md mx-auto font-light">
+            <h2 className="text-2xl font-serif-title font-bold text-kurla-cream">Candidature reçue</h2>
+            <p className="text-sm text-kurla-cream/80 max-w-md mx-auto font-light">
               Ta candidature a bien été enregistrée. L’équipe KURLA pourra la consulter et te recontacter avec la suite du processus.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-8 sm:p-12 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/15 space-y-6 shadow-2xl">
+          <form onSubmit={handleSubmit} className="p-8 sm:p-12 rounded-3xl bg-kurla-espresso border border-kurla-cream/15 space-y-6 shadow-2xl">
             <div className="flex items-start gap-3">
-              <ShieldCheck className="w-6 h-6 text-[#D49A63] shrink-0" />
+              <ShieldCheck className="w-6 h-6 text-kurla-amber shrink-0" />
               <div>
-                <h3 className="text-xl font-serif-title font-bold text-[#FFF7EF]">Formulaire de candidature</h3>
-                <p className="text-xs text-[#FFF7EF]/55 mt-1">Les informations sont transmises à l’équipe KURLA pour examen.</p>
+                <h3 className="text-xl font-serif-title font-bold text-kurla-cream">Formulaire de candidature</h3>
+                <p className="text-xs text-kurla-cream/55 mt-1">Les informations sont transmises à l’équipe KURLA pour examen.</p>
               </div>
             </div>
 
@@ -86,30 +86,30 @@ export const ProApplicationPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-name">Nom complet / Nom du salon</label>
-                <input id="pro-name" type="text" required maxLength={200} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="ex: Kadiatou Diallo Studio" className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]" />
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-name">Nom complet / Nom du salon</label>
+                <input id="pro-name" type="text" required maxLength={200} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="ex: Kadiatou Diallo Studio" className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-email">Email professionnel</label>
-                <input id="pro-email" type="email" required maxLength={200} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="kadiatou@studio.fr" className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-phone">Téléphone</label>
-                <input id="pro-phone" type="tel" required maxLength={50} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+33 6 12 34 56 78" className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-city">Ville d'exercice</label>
-                <input id="pro-city" type="text" required maxLength={200} value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} placeholder="Paris, Lyon, Bruxelles..." className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]" />
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-email">Email professionnel</label>
+                <input id="pro-email" type="email" required maxLength={200} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="kadiatou@studio.fr" className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-profession">Spécialité principale</label>
-                <select id="pro-profession" value={formData.profession} onChange={e => setFormData({ ...formData, profession: e.target.value })} className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]">
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-phone">Téléphone</label>
+                <input id="pro-phone" type="tel" required maxLength={50} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="+33 6 12 34 56 78" className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-city">Ville d'exercice</label>
+                <input id="pro-city" type="text" required maxLength={200} value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} placeholder="Paris, Lyon, Bruxelles..." className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-profession">Spécialité principale</label>
+                <select id="pro-profession" value={formData.profession} onChange={e => setFormData({ ...formData, profession: e.target.value })} className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper">
                   <option value="Coiffeur Afro / Styliste">Coiffeur Afro / Styliste</option>
                   <option value="Braider / Expert Tresses">Braider / Expert Tresses Knotless</option>
                   <option value="Loctician / Microlocks">Loctician / Expert Microlocks</option>
@@ -118,8 +118,8 @@ export const ProApplicationPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-experience">Expérience</label>
-                <select id="pro-experience" value={formData.experience} onChange={e => setFormData({ ...formData, experience: e.target.value })} className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]">
+                <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-experience">Expérience</label>
+                <select id="pro-experience" value={formData.experience} onChange={e => setFormData({ ...formData, experience: e.target.value })} className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper">
                   <option value="Moins d'un an">Moins d'un an</option>
                   <option value="1-2 ans">1-2 ans</option>
                   <option value="3-5 ans">3-5 ans</option>
@@ -130,20 +130,20 @@ export const ProApplicationPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-[#D49A63] block mb-1" htmlFor="pro-portfolio">Lien Instagram / Portfolio / Planity</label>
-              <input id="pro-portfolio" type="url" maxLength={500} value={formData.portfolioUrl} onChange={e => setFormData({ ...formData, portfolioUrl: e.target.value })} placeholder="https://instagram.com/mon_studio" className="w-full p-3.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-sm focus:outline-none focus:border-[#C8753D]" />
+              <label className="text-xs font-semibold text-kurla-amber block mb-1" htmlFor="pro-portfolio">Lien Instagram / Portfolio / Planity</label>
+              <input id="pro-portfolio" type="url" maxLength={500} value={formData.portfolioUrl} onChange={e => setFormData({ ...formData, portfolioUrl: e.target.value })} placeholder="https://instagram.com/mon_studio" className="w-full p-3.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-sm focus:outline-none focus:border-kurla-copper" />
             </div>
 
-            <div className="p-4 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 space-y-2">
+            <div className="p-4 rounded-xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" required checked={formData.acceptsCharter} onChange={e => setFormData({ ...formData, acceptsCharter: e.target.checked })} className="mt-1 rounded accent-[#C8753D]" />
-                <span className="text-xs text-[#FFF7EF]/80 font-light leading-relaxed">
+                <input type="checkbox" required checked={formData.acceptsCharter} onChange={e => setFormData({ ...formData, acceptsCharter: e.target.checked })} className="mt-1 rounded accent-kurla-copper" />
+                <span className="text-xs text-kurla-cream/80 font-light leading-relaxed">
                   J'adhère à la <strong>Charte Qualité KURLA Pro</strong> : respect des rendez-vous, hygiène du matériel, écoute sans moquerie ni jugement des cheveux texturés, et utilisation de produits adaptés.
                 </span>
               </label>
             </div>
 
-            <button type="submit" disabled={submitting} className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold tracking-wide shadow-xl flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+            <button type="submit" disabled={submitting} className="w-full py-4 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold tracking-wide shadow-xl flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
               {submitting ? 'Enregistrement en cours…' : 'Soumettre ma candidature'}
               {!submitting && <ArrowRight className="w-4 h-4" />}
             </button>

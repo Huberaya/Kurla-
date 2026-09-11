@@ -39,19 +39,19 @@ export const KurlaProSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-24 bg-[#FFFDF9] text-[#111111] relative border-t border-[#E8E1DA] overflow-hidden">
+    <section className="py-24 bg-kurla-ivory text-kurla-carbon relative border-t border-kurla-stone overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Section Header */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center mb-16">
           <div className="lg:col-span-7 space-y-4">
-            <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#C8753D]" /> Réseau de professionnels vérifiés
+            <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-kurla-copper" /> Réseau de professionnels vérifiés
             </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-[#111111] leading-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-kurla-carbon leading-tight">
               Des pros qui comprennent vraiment votre texture.
             </h2>
-            <p className="text-base text-[#111111]/75 font-light max-w-[520px] leading-relaxed">
+            <p className="text-base text-kurla-carbon/75 font-light max-w-[520px] leading-relaxed">
               Braiders, locticians, coiffeurs afro et spécialistes de la peau mélaninée, référencés selon une charte d’hygiène, d’écoute et de maîtrise de la fibre texturée. Chaque profil est vérifié avant d’apparaître — jamais de fiche inventée.
             </p>
           </div>
@@ -59,13 +59,13 @@ export const KurlaProSection: React.FC = () => {
           <div className="lg:col-span-5 flex flex-wrap gap-4 lg:justify-end">
             <a
               href="/professionnels"
-              className="px-6 py-3.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm transition-all shadow-md shadow-[#C8753D]/20 flex items-center gap-2"
+              className="px-6 py-3.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm transition-all shadow-md shadow-kurla-copper/20 flex items-center gap-2"
             >
               Trouver un pro <ArrowRight className="w-4 h-4" />
             </a>
             <a
               href="/professionnels/rejoindre"
-              className="px-6 py-3.5 rounded-full bg-[#F8F2EC] hover:bg-[#E8E1DA] border border-[#E8E1DA] text-[#111111] font-medium text-sm transition-all"
+              className="px-6 py-3.5 rounded-full bg-kurla-sand hover:bg-kurla-stone border border-kurla-stone text-kurla-carbon font-medium text-sm transition-all"
             >
               Devenir pro KURLA
             </a>
@@ -83,35 +83,35 @@ export const KurlaProSection: React.FC = () => {
             {professionals.map((pro) => (
               <div
                 key={pro.id}
-                className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] transition-all p-6 flex flex-col justify-between shadow-xs hover:shadow-xl group"
+                className="rounded-3xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper transition-all p-6 flex flex-col justify-between shadow-xs hover:shadow-xl group"
               >
                 <div>
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-[#F8F2EC] border-2 border-[#C8753D]/40 flex items-center justify-center text-lg font-bold text-[#C8753D]">
+                    <div className="w-16 h-16 rounded-full bg-kurla-sand border-2 border-kurla-copper/40 flex items-center justify-center text-lg font-bold text-kurla-copper">
                       {pro.name.trim().charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-lg font-serif-title font-bold text-[#111111] flex items-center gap-1.5">
+                      <h3 className="text-lg font-serif-title font-bold text-kurla-carbon flex items-center gap-1.5">
                         {pro.name}
                         {pro.verified && (
                           <span title="Identité vérifiée" aria-label="Identité vérifiée" className="inline-flex">
-                            <CheckCircle2 className="w-4 h-4 text-[#C8753D]" aria-hidden="true" />
+                            <CheckCircle2 className="w-4 h-4 text-kurla-copper" aria-hidden="true" />
                           </span>
                         )}
                       </h3>
-                      <p className="text-xs text-[#C8753D] font-medium flex items-center gap-1">
+                      <p className="text-xs text-kurla-copper font-medium flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" /> {pro.city}
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-xs text-[#111111]/75 font-light line-clamp-3 mb-4">
+                  <p className="text-xs text-kurla-carbon/75 font-light line-clamp-3 mb-4">
                     {pro.profession}
                   </p>
 
                   {pro.experience && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#F8F2EC] text-[#111111]/80 border border-[#E8E1DA]">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-kurla-sand text-kurla-carbon/80 border border-kurla-stone">
                         {pro.experience}
                       </span>
                     </div>
@@ -120,7 +120,7 @@ export const KurlaProSection: React.FC = () => {
 
                 <a
                   href={`/professionnels/profil/${pro.id}`}
-                  className="w-full py-2.5 rounded-xl bg-[#F8F2EC] hover:bg-[#C8753D] text-[#111111] hover:text-white border border-[#E8E1DA] text-xs font-semibold text-center transition-all"
+                  className="w-full py-2.5 rounded-xl bg-kurla-sand hover:bg-kurla-copper text-kurla-carbon hover:text-white border border-kurla-stone text-xs font-semibold text-center transition-all"
                 >
                   Voir le profil
                 </a>
@@ -128,12 +128,12 @@ export const KurlaProSection: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] p-10 text-center">
-            <Info className="w-6 h-6 text-[#C8753D] mx-auto mb-3" />
-            <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">
+          <div className="rounded-3xl bg-kurla-ivory border border-kurla-stone p-10 text-center">
+            <Info className="w-6 h-6 text-kurla-copper mx-auto mb-3" />
+            <h3 className="text-lg font-serif-title font-bold text-kurla-carbon mb-2">
               Aucun professionnel vérifié pour l&apos;instant
             </h3>
-            <p className="text-sm text-[#111111]/70 font-light max-w-md mx-auto leading-relaxed">
+            <p className="text-sm text-kurla-carbon/70 font-light max-w-md mx-auto leading-relaxed">
               {loaded
                 ? 'KURLA n’affiche que des professionnels dont l’identité et les qualifications ont été vérifiées par un administrateur. L’annuaire est vide aujourd’hui : nous préférons cela à une liste de profils inventés.'
                 : 'Chargement de l’annuaire…'}
@@ -141,13 +141,13 @@ export const KurlaProSection: React.FC = () => {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
                 href="/professionnels"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold transition-all"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold transition-all"
               >
                 Voir l’annuaire <ArrowRight className="w-3.5 h-3.5" />
               </a>
               <a
                 href="/professionnels/rejoindre"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#F8F2EC] hover:bg-[#E8E1DA] border border-[#E8E1DA] text-[#111111] text-xs font-semibold transition-all"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-kurla-sand hover:bg-kurla-stone border border-kurla-stone text-kurla-carbon text-xs font-semibold transition-all"
               >
                 Vous êtes pro ? Rejoignez KURLA
               </a>

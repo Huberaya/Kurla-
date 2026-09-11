@@ -113,43 +113,43 @@ function Comparateur({ produits, onRetirer }: { produits: Product[]; onRetirer: 
   const hypotheses = comparaison.hypotheses.filter(Boolean);
 
   return (
-    <section className="mb-8 rounded-3xl border border-[#C8753D]/25 bg-[#F8F2EC] p-5">
+    <section className="mb-8 rounded-3xl border border-kurla-copper/25 bg-kurla-sand p-5">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-serif-title font-bold flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[#C8753D]" /> Comparer les produits
+            <Layers className="w-4 h-4 text-kurla-copper" /> Comparer les produits
           </h2>
-          <p className="text-xs text-[#111111]/60 mt-1">
+          <p className="text-xs text-kurla-carbon/60 mt-1">
             {divergences.length > 0
               ? `Ces produits diffèrent sur ${divergences.length} point${divergences.length > 1 ? 's' : ''} : ${divergences.join(', ').toLowerCase()}.`
               : 'Ces produits se valent sur tous les critères affichés.'}
           </p>
         </div>
-        <button onClick={() => produits.forEach(p => onRetirer(p.id))} className="text-xs text-[#C8753D] hover:underline shrink-0">Effacer</button>
+        <button onClick={() => produits.forEach(p => onRetirer(p.id))} className="text-xs text-kurla-copper hover:underline shrink-0">Effacer</button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[520px]">
           <thead>
             <tr>
-              <th scope="col" className="w-40 align-bottom pb-2 text-[10px] uppercase tracking-widest text-[#111111]/45 font-bold">Critère</th>
+              <th scope="col" className="w-40 align-bottom pb-2 text-[10px] uppercase tracking-widest text-kurla-carbon/45 font-bold">Critère</th>
               {produits.map(produit => (
                 <th key={produit.id} scope="col" className="align-bottom pb-2 pl-3 text-xs font-bold">
                   <span className="block leading-tight">{produit.name}</span>
-                  <button onClick={() => onRetirer(produit.id)} aria-label={`Retirer ${produit.name}`} className="mt-1 text-[10px] font-normal text-[#111111]/45 hover:text-[#C8753D]">retirer</button>
+                  <button onClick={() => onRetirer(produit.id)} aria-label={`Retirer ${produit.name}`} className="mt-1 text-[10px] font-normal text-kurla-carbon/45 hover:text-kurla-copper">retirer</button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {comparaison.lignes.map(ligne => (
-              <tr key={ligne.champ} className={`border-t border-[#E8E1DA] ${ligne.divergent ? 'bg-[#C8753D]/[0.06]' : ''}`}>
+              <tr key={ligne.champ} className={`border-t border-kurla-stone ${ligne.divergent ? 'bg-kurla-copper/[0.06]' : ''}`}>
                 <th scope="row" className="py-2 pr-3 text-[11px] font-semibold align-top">
                   {ligne.champ}
-                  {ligne.divergent && <span className="ml-1 text-[9px] font-bold text-[#C8753D]">diffère</span>}
+                  {ligne.divergent && <span className="ml-1 text-[9px] font-bold text-kurla-copper">diffère</span>}
                 </th>
                 {ligne.valeurs.map((valeur, index) => (
-                  <td key={`${ligne.champ}-${produits[index]?.id ?? index}`} className={`py-2 pl-3 text-[11px] align-top ${ligne.estimation ? 'text-[#111111]' : 'text-[#111111]/70'}`}>
+                  <td key={`${ligne.champ}-${produits[index]?.id ?? index}`} className={`py-2 pl-3 text-[11px] align-top ${ligne.estimation ? 'text-kurla-carbon' : 'text-kurla-carbon/70'}`}>
                     {valeur}
                   </td>
                 ))}
@@ -160,11 +160,11 @@ function Comparateur({ produits, onRetirer }: { produits: Product[]; onRetirer: 
       </div>
 
       {hypotheses.length > 0 && (
-        <p className="mt-3 text-[10px] text-[#111111]/50 leading-relaxed">
+        <p className="mt-3 text-[10px] text-kurla-carbon/50 leading-relaxed">
           Estimations : {hypotheses.join(' · ')}
         </p>
       )}
-      <p className="mt-1.5 text-[10px] text-[#111111]/45 leading-relaxed">
+      <p className="mt-1.5 text-[10px] text-kurla-carbon/45 leading-relaxed">
         Uniquement les informations publiées, sans score automatique : deux produits ne se départagent pas seuls.
       </p>
     </section>
@@ -495,34 +495,34 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   };
 
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-[#FFFDF9] text-[#111111]">
+    <div className="min-h-screen pt-28 pb-24 bg-kurla-ivory text-kurla-carbon">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* En-tête boutique — bi-pôle Cheveux | Peau */}
         <div className="text-center max-w-3xl mx-auto mb-6">
-          <div className="inline-flex items-center bg-[#F8F2EC] p-1 rounded-full border border-[#E8E1DA] mb-4">
-            <button onClick={() => { setActiveCategory('cheveux'); setNeedsDomainTab('cheveux'); window.history.replaceState({}, '', '/boutique?cat=cheveux'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'cheveux' ? 'bg-[#111111] text-white' : 'text-[#111111]/70 hover:text-[#111111]'}`}>Cheveux</button>
-            <button onClick={() => { setActiveCategory('peau'); setNeedsDomainTab('peau'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'peau' ? 'bg-[#111111] text-white' : 'text-[#111111]/70 hover:text-[#111111]'}`}>Peau</button>
+          <div className="inline-flex items-center bg-kurla-sand p-1 rounded-full border border-kurla-stone mb-4">
+            <button onClick={() => { setActiveCategory('cheveux'); setNeedsDomainTab('cheveux'); window.history.replaceState({}, '', '/boutique?cat=cheveux'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'cheveux' ? 'bg-kurla-carbon text-white' : 'text-kurla-carbon/70 hover:text-kurla-carbon'}`}>Cheveux</button>
+            <button onClick={() => { setActiveCategory('peau'); setNeedsDomainTab('peau'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className={`px-5 py-1.5 rounded-full text-xs font-bold ${activeCategory === 'peau' ? 'bg-kurla-carbon text-white' : 'text-kurla-carbon/70 hover:text-kurla-carbon'}`}>Peau</button>
           </div>
           {activeCategory === 'peau' ? (
             <>
-              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
+              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-kurla-carbon mb-3 tracking-tight">
                 La boutique peau — filtrée pour votre carnation
               </h1>
-              <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
-                15 besoins peau, filtre budget, <strong className="font-semibold text-[#111111]">sans parfum</strong> et <strong className="font-semibold text-[#111111]">SPF sans trace blanche</strong>. Taches = HPI, jamais “éclaircir”.
+              <p className="text-sm sm:text-base text-kurla-carbon/75 font-light leading-relaxed max-w-2xl mx-auto">
+                15 besoins peau, filtre budget, <strong className="font-semibold text-kurla-carbon">sans parfum</strong> et <strong className="font-semibold text-kurla-carbon">SPF sans trace blanche</strong>. Taches = HPI, jamais “éclaircir”.
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
-                <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-bold">Passer le diagnostic peau →</a>
-                {guidedSkin && <span className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-[#111111]/70">Votre profil : {guidedSkin.skinType || 'mixte'} · {guidedSkin.toneDepth || ''} · budget {guidedSkin.budget || ''}</span>}
+                <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-bold">Passer le diagnostic peau →</a>
+                {guidedSkin && <span className="px-3 py-1.5 rounded-full bg-kurla-sand border border-kurla-stone text-kurla-carbon/70">Votre profil : {guidedSkin.skinType || 'mixte'} · {guidedSkin.toneDepth || ''} · budget {guidedSkin.budget || ''}</span>}
               </div>
             </>
           ) : (
             <>
-              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-3 tracking-tight">
+              <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-kurla-carbon mb-3 tracking-tight">
                 La boutique des cheveux texturés.
               </h1>
-              <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base text-kurla-carbon/75 font-light leading-relaxed max-w-2xl mx-auto">
                 Soins, outils et innovations pour les textures 3A à 4C — du peigne afro au steamer. Annulation et remboursement à tout moment avant expédition.
               </p>
             </>
@@ -531,34 +531,34 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
         {/* C8 — Double entrée peau : directe (15 besoins + 5 filtres) vs guidée (diagnostic 2 min → filtres) */}
         {activeCategory === 'peau' && (
-          <div className="mb-6 p-4 rounded-2xl bg-white border border-[#E8E1DA] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="mb-6 p-4 rounded-2xl bg-white border border-kurla-stone flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
             <div>
-              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Double entrée — à vous de choisir</p>
-              <p className="text-xs text-[#111111]/60 leading-relaxed">Directe : 15 besoins, 5 filtres (actif/phototype/texture/fini/sensibilité) + budget/sans parfum/SPF. Guidée : diagnostic 2 min → filtres pré-remplis + routine chiffrée (40/62/84€).</p>
-              <p className="text-[11px] text-[#111111]/50 mt-1">Hybride possible : lancez le diagnostic, puis affinez avec les filtres directs.</p>
+              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-kurla-copper" /> Double entrée — à vous de choisir</p>
+              <p className="text-xs text-kurla-carbon/60 leading-relaxed">Directe : 15 besoins, 5 filtres (actif/phototype/texture/fini/sensibilité) + budget/sans parfum/SPF. Guidée : diagnostic 2 min → filtres pré-remplis + routine chiffrée (40/62/84€).</p>
+              <p className="text-[11px] text-kurla-carbon/50 mt-1">Hybride possible : lancez le diagnostic, puis affinez avec les filtres directs.</p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <a href="#trouver-par-besoin" className="px-4 py-2 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-xs font-bold hover:border-[#C8753D]">Filtres directs ↓</a>
-              <a href="/peau/diagnostic?mode=express" className="px-4 py-2 rounded-full bg-[#111111] text-white text-xs font-bold">Guidée 2 min →</a>
+              <a href="#trouver-par-besoin" className="px-4 py-2 rounded-full bg-kurla-sand border border-kurla-stone text-xs font-bold hover:border-kurla-copper">Filtres directs ↓</a>
+              <a href="/peau/diagnostic?mode=express" className="px-4 py-2 rounded-full bg-kurla-carbon text-white text-xs font-bold">Guidée 2 min →</a>
             </div>
           </div>
         )}
 
         {/* C14 — Logistique pays + Stripe par pays (scoré, pas bloc) */}
         {activeCategory === 'peau' && (
-          <div className="mb-6 p-3 rounded-2xl bg-[#111111] text-white flex flex-wrap gap-2 items-center justify-between text-xs">
-            <span className="font-bold flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-[#D49A63]" /> Livraison & Stripe par pays</span>
+          <div className="mb-6 p-3 rounded-2xl bg-kurla-carbon text-white flex flex-wrap gap-2 items-center justify-between text-xs">
+            <span className="font-bold flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-kurla-amber" /> Livraison & Stripe par pays</span>
             <span className="text-white/70 hidden sm:inline">{getCountryConfig(selectedCountry !== 'tous' ? selectedCountry : 'FR').dispatch} · {getStripeModeForCountry(selectedCountry !== 'tous' ? selectedCountry : 'FR') === 'live' ? 'Stripe LIVE' : 'Stripe TEST'}</span>
             <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/15">FR 82 · BE 76 · SN 71 → BE J+30 / SN J+60 sur preuves</span>
-            <a href="/peau" className="text-[#D49A63] font-bold hover:underline">Pôle peau →</a>
+            <a href="/peau" className="text-kurla-amber font-bold hover:underline">Pôle peau →</a>
           </div>
         )}
 
         {/* Banner guidé peau : applique vos préférences diagnostic en 1 clic */}
         {activeCategory === 'peau' && guidedSkin && (guidedSkin.budget || (guidedSkin.sensitivities || []).includes('parfum')) && (
-          <div className="mb-6 p-4 rounded-2xl bg-[#111111] text-white flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <p className="text-xs font-light">Basé sur votre diagnostic peau : budget <strong className="text-[#D49A63]">{guidedSkin.budget}</strong>{(guidedSkin.sensitivities || []).includes('parfum') ? ' · sans parfum' : ''} — appliquer ces filtres ?</p>
-            <button onClick={() => { if (guidedSkin.budget) setSkinBudget(guidedSkin.budget); if ((guidedSkin.sensitivities || []).includes('parfum')) setSkinSansParfum(true); }} className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold shrink-0">Appliquer mes préférences peau</button>
+          <div className="mb-6 p-4 rounded-2xl bg-kurla-carbon text-white flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <p className="text-xs font-light">Basé sur votre diagnostic peau : budget <strong className="text-kurla-amber">{guidedSkin.budget}</strong>{(guidedSkin.sensitivities || []).includes('parfum') ? ' · sans parfum' : ''} — appliquer ces filtres ?</p>
+            <button onClick={() => { if (guidedSkin.budget) setSkinBudget(guidedSkin.budget); if ((guidedSkin.sensitivities || []).includes('parfum')) setSkinSansParfum(true); }} className="px-4 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-bold shrink-0">Appliquer mes préférences peau</button>
           </div>
         )}
 
@@ -570,8 +570,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Tous les outils en stock partenaire — 24–48h</p>
-              <p className="text-sm font-semibold text-[#111111] leading-tight">Expédiés en 24–48h depuis notre partenaire UE — 0 carton à Paris</p>
-              <p className="text-xs text-[#111111]/60 font-light mt-0.5">Peigne afro · bonnet satin · éponge twist · scalp massager · Denman · pinces croco · diffuseur · steamer · tous les accessoires. Panier mixte (outils + soins) = 1 seul colis, délai global 3–5j.</p>
+              <p className="text-sm font-semibold text-kurla-carbon leading-tight">Expédiés en 24–48h depuis notre partenaire UE — 0 carton à Paris</p>
+              <p className="text-xs text-kurla-carbon/60 font-light mt-0.5">Peigne afro · bonnet satin · éponge twist · scalp massager · Denman · pinces croco · diffuseur · steamer · tous les accessoires. Panier mixte (outils + soins) = 1 seul colis, délai global 3–5j.</p>
             </div>
           </div>
           <a href="/boutique?cat=accessoires" onClick={(e)=>{e.preventDefault(); setActiveCategory('accessoires'); window.scrollTo({top: 0, behavior: 'smooth'});}} className="shrink-0 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5">
@@ -580,28 +580,28 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         </div>
 
         {/* SECTION 1: QUE RECHERCHEZ-VOUS ? / TROUVER PAR BESOIN */}
-        <div id="trouver-par-besoin" className="mb-12 bg-gradient-to-br from-[#F8F2EC] via-[#FFFDF9] to-[#F3EBE3] p-6 sm:p-8 rounded-3xl border border-[#E8E1DA] shadow-sm">
+        <div id="trouver-par-besoin" className="mb-12 bg-gradient-to-br from-kurla-sand via-kurla-ivory to-[#F3EBE3] p-6 sm:p-8 rounded-3xl border border-kurla-stone shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-              <span className="text-xs uppercase tracking-widest font-bold text-[#C8753D] block mb-1">
+              <span className="text-xs uppercase tracking-widest font-bold text-kurla-copper block mb-1">
                 Trouver par besoin
               </span>
-              <h2 className="text-2xl font-serif-title font-bold text-[#111111] flex items-center gap-2">
+              <h2 className="text-2xl font-serif-title font-bold text-kurla-carbon flex items-center gap-2">
                 Que recherchez-vous ?
               </h2>
-              <p className="text-xs text-[#111111]/70 font-light mt-1">
+              <p className="text-xs text-kurla-carbon/70 font-light mt-1">
                 Choisissez votre objectif pour voir les produits et outils conseillés.
               </p>
             </div>
 
             {/* Need Domain Switcher */}
-            <div className="flex items-center bg-[#FFFDF9] p-1 rounded-2xl border border-[#E8E1DA] shrink-0">
+            <div className="flex items-center bg-kurla-ivory p-1 rounded-2xl border border-kurla-stone shrink-0">
               <button
                 onClick={() => setNeedsDomainTab('cheveux')}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
                   needsDomainTab === 'cheveux'
-                    ? 'bg-[#C8753D] text-white shadow-xs'
-                    : 'text-[#111111]/70 hover:text-[#111111]'
+                    ? 'bg-kurla-copper text-white shadow-xs'
+                    : 'text-kurla-carbon/70 hover:text-kurla-carbon'
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5" /> Pour les cheveux</span>
@@ -610,8 +610,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 onClick={() => setNeedsDomainTab('peau')}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
                   needsDomainTab === 'peau'
-                    ? 'bg-[#C8753D] text-white shadow-xs'
-                    : 'text-[#111111]/70 hover:text-[#111111]'
+                    ? 'bg-kurla-copper text-white shadow-xs'
+                    : 'text-kurla-carbon/70 hover:text-kurla-carbon'
                 }`}
               >
                 <span className="inline-flex items-center gap-1.5"><Sun className="w-3.5 h-3.5" /> Pour la peau</span>
@@ -637,22 +637,22 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   }}
                   className={`p-4 rounded-2xl text-left border transition-all group relative h-full ${
                     isSelected
-                      ? 'bg-[#111111] border-[#111111] text-white shadow-md'
-                      : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D] text-[#111111] hover:shadow-sm'
+                      ? 'bg-kurla-carbon border-kurla-carbon text-white shadow-md'
+                      : 'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper text-kurla-carbon hover:shadow-sm'
                   }`}
                 >
                   {isSelected && (
-                    <CheckCircle2 className="w-4 h-4 text-[#D49A63] absolute top-3 right-3" />
+                    <CheckCircle2 className="w-4 h-4 text-kurla-amber absolute top-3 right-3" />
                   )}
                   <span className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                    isSelected ? 'bg-[#C8753D] text-white' : 'bg-[#C8753D]/10 text-[#C8753D] group-hover:bg-[#C8753D] group-hover:text-white'
+                    isSelected ? 'bg-kurla-copper text-white' : 'bg-kurla-copper/10 text-kurla-copper group-hover:bg-kurla-copper group-hover:text-white'
                   }`}>
                     <NeedIcon className="w-5 h-5" />
                   </span>
-                  <span className={`text-xs font-bold leading-snug block mb-1 ${isSelected ? 'text-white' : 'text-[#111111]'}`}>
+                  <span className={`text-xs font-bold leading-snug block mb-1 ${isSelected ? 'text-white' : 'text-kurla-carbon'}`}>
                     {need.label}
                   </span>
-                  <span className={`text-[11px] leading-snug block font-light ${isSelected ? 'text-white/70' : 'text-[#111111]/60'}`}>
+                  <span className={`text-[11px] leading-snug block font-light ${isSelected ? 'text-white/70' : 'text-kurla-carbon/60'}`}>
                     {need.description}
                   </span>
                 </button>
@@ -662,11 +662,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           {/* Note soin visage : pas encore en boutique, diagnostic disponible */}
           {needsDomainTab === 'peau' && !activeNeedObj && (
-            <div className="mt-6 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-xs text-[#111111]/75 font-light leading-relaxed">
-                <strong className="font-semibold text-[#111111]">Les soins visage arrivent bientôt.</strong> En attendant, le diagnostic peau vous donne gratuitement votre routine adaptée à votre carnation.
+            <div className="mt-6 p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <p className="text-xs text-kurla-carbon/75 font-light leading-relaxed">
+                <strong className="font-semibold text-kurla-carbon">Les soins visage arrivent bientôt.</strong> En attendant, le diagnostic peau vous donne gratuitement votre routine adaptée à votre carnation.
               </p>
-              <a href="/diagnostic/peau" className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold">
+              <a href="/diagnostic/peau" className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold">
                 Faire le diagnostic peau <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -674,18 +674,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           {/* Active Need Explanation Banner */}
           {activeNeedObj && (
-            <div className="mt-6 p-4 rounded-2xl bg-[#111111] text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
+            <div className="mt-6 p-4 rounded-2xl bg-kurla-carbon text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#C8753D] text-white flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-kurla-copper text-white flex items-center justify-center shrink-0">
                   {React.createElement(activeNeedObj.icon, { className: 'w-5 h-5' })}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase font-bold text-[#D49A63] tracking-wider">Besoin actif :</span>
+                    <span className="text-xs uppercase font-bold text-kurla-amber tracking-wider">Besoin actif :</span>
                     <h3 className="text-sm font-bold text-white">{activeNeedObj.label}</h3>
                   </div>
                   <p className="text-xs text-white/80 font-light mt-0.5">
-                    {activeNeedObj.description} — <strong className="text-[#D49A63]">{filteredProducts.length} produit(s) sélectionné(s)</strong>
+                    {activeNeedObj.description} — <strong className="text-kurla-amber">{filteredProducts.length} produit(s) sélectionné(s)</strong>
                   </p>
                 </div>
               </div>
@@ -701,7 +701,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         </div>
 
         {/* MAIN CATEGORIES NAVIGATION BAR */}
-        <div className="bg-[#F8F2EC] p-4 sm:p-6 rounded-3xl border border-[#E8E1DA] mb-8 shadow-xs space-y-4">
+        <div className="bg-kurla-sand p-4 sm:p-6 rounded-3xl border border-kurla-stone mb-8 shadow-xs space-y-4">
           
           {/* Top Row: Categories Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -717,15 +717,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   }}
                   className={`px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
                     isActive
-                      ? 'bg-[#C8753D] text-white shadow-sm'
-                      : 'bg-[#FFFDF9] text-[#111111] hover:bg-[#E8E1DA] border border-[#E8E1DA]'
+                      ? 'bg-kurla-copper text-white shadow-sm'
+                      : 'bg-kurla-ivory text-kurla-carbon hover:bg-kurla-stone border border-kurla-stone'
                   }`}
                 >
                   {cat.icon && (() => { const CI = cat.icon; return <CI className="w-3.5 h-3.5" />; })()}
                   <span>{cat.name}</span>
                   {cat.badge && (
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                      isActive ? 'bg-white text-[#C8753D]' : 'bg-[#C8753D]/15 text-[#C8753D]'
+                      isActive ? 'bg-white text-kurla-copper' : 'bg-kurla-copper/15 text-kurla-copper'
                     }`}>
                       {cat.badge}
                     </span>
@@ -737,16 +737,16 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           {/* Subcategory Pills Row (if present for category) */}
           {subCategoriesMap[activeCategory] && (
-            <div className="pt-3 border-t border-[#E8E1DA] flex items-center gap-2 overflow-x-auto text-xs scrollbar-none">
-              <span className="font-bold text-[#111111] shrink-0 text-xs">Sous-catégories :</span>
+            <div className="pt-3 border-t border-kurla-stone flex items-center gap-2 overflow-x-auto text-xs scrollbar-none">
+              <span className="font-bold text-kurla-carbon shrink-0 text-xs">Sous-catégories :</span>
               {subCategoriesMap[activeCategory].map(sub => (
                 <button
                   key={sub.id}
                   onClick={() => setActiveSubCategory(sub.id)}
                   className={`px-3 py-1.5 rounded-xl font-medium shrink-0 transition-colors ${
                     activeSubCategory === sub.id
-                      ? 'bg-[#111111] text-white font-bold'
-                      : 'bg-[#FFFDF9] text-[#111111]/80 hover:bg-[#E8E1DA] border border-[#E8E1DA]'
+                      ? 'bg-kurla-carbon text-white font-bold'
+                      : 'bg-kurla-ivory text-kurla-carbon/80 hover:bg-kurla-stone border border-kurla-stone'
                   }`}
                 >
                   {sub.name}
@@ -756,20 +756,20 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           )}
 
           {/* Filters Bar: Search, Brand, Afro Community, Country & Diagnostic */}
-          <div className="pt-3 border-t border-[#E8E1DA] grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="pt-3 border-t border-kurla-stone grid grid-cols-1 md:grid-cols-4 gap-3">
             
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#111111]/40" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-kurla-carbon/40" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher un produit ou un outil (steamer, karité, peigne…)…"
-                className="w-full pl-9 pr-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs focus:outline-none focus:border-[#C8753D]"
+                className="w-full pl-9 pr-3 py-2 bg-kurla-ivory border border-kurla-stone rounded-xl text-xs focus:outline-none focus:border-kurla-copper"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#111111]/40 hover:text-[#111111]">
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-kurla-carbon/40 hover:text-kurla-carbon">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -779,7 +779,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             <select
               value={selectedBrand}
               onChange={(e) => setSelectedBrand(e.target.value)}
-              className="px-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]"
+              className="px-3 py-2 bg-kurla-ivory border border-kurla-stone rounded-xl text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper"
             >
               <option value="tous">Toutes les marques ({availableBrands.length})</option>
               {availableBrands.map(b => (
@@ -791,7 +791,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             <select
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
-              className="px-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]"
+              className="px-3 py-2 bg-kurla-ivory border border-kurla-stone rounded-xl text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper"
             >
               <option value="tous">🌍 Livraison : Tous pays</option>
               <option value="FR">🇫🇷 France Métropolitaine</option>
@@ -805,7 +805,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 bg-[#FFFDF9] border border-[#E8E1DA] rounded-xl text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]"
+              className="px-3 py-2 bg-kurla-ivory border border-kurla-stone rounded-xl text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper"
             >
               <option value="fit">Ordre du catalogue</option>
               <option value="rating">⭐ Meilleurs avis</option>
@@ -816,60 +816,60 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
           {/* KURLA SKIN — filtres peau C2 : 4 initiaux + 5 nouveaux (actif/phototype/texture/fini/sensibilité) */}
           {(activeCategory === 'peau' || needsDomainTab === 'peau') && (
-            <div className="pt-3 border-t border-[#E8E1DA] space-y-3">
+            <div className="pt-3 border-t border-kurla-stone space-y-3">
               {/* Ligne 1 : budget + sans parfum + SPF invisible */}
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold text-[#111111]">Filtres peau :</span>
+                <span className="font-bold text-kurla-carbon">Filtres peau :</span>
                 {[
                   { id: 'tous', label: 'Tous budgets' },
                   { id: 'moins_40', label: '≤14 €' },
                   { id: '40_70', label: '≤28 €' },
                   { id: '70_100', label: '≤45 €' },
                 ].map(o => (
-                  <button key={o.id} onClick={() => setSkinBudget(o.id)} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${skinBudget === o.id ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] text-[#111111]/70 border-[#E8E1DA] hover:border-[#C8753D]'}`}>{o.label}</button>
+                  <button key={o.id} onClick={() => setSkinBudget(o.id)} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${skinBudget === o.id ? 'bg-kurla-carbon text-white border-kurla-carbon' : 'bg-kurla-ivory text-kurla-carbon/70 border-kurla-stone hover:border-kurla-copper'}`}>{o.label}</button>
                 ))}
-                <label className="flex items-center gap-1.5 ml-1 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
-                  <input type="checkbox" checked={skinSansParfum} onChange={e => setSkinSansParfum(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
-                  <span className="font-semibold text-[#111111]">Sans parfum</span>
+                <label className="flex items-center gap-1.5 ml-1 cursor-pointer select-none bg-kurla-ivory border border-kurla-stone px-3 py-1.5 rounded-full">
+                  <input type="checkbox" checked={skinSansParfum} onChange={e => setSkinSansParfum(e.target.checked)} className="rounded text-kurla-copper w-3.5 h-3.5" />
+                  <span className="font-semibold text-kurla-carbon">Sans parfum</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-[#FFFDF9] border border-[#E8E1DA] px-3 py-1.5 rounded-full">
-                  <input type="checkbox" checked={skinSansTrace} onChange={e => setSkinSansTrace(e.target.checked)} className="rounded text-[#C8753D] w-3.5 h-3.5" />
-                  <span className="font-semibold text-[#111111]">SPF sans trace blanche</span>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-kurla-ivory border border-kurla-stone px-3 py-1.5 rounded-full">
+                  <input type="checkbox" checked={skinSansTrace} onChange={e => setSkinSansTrace(e.target.checked)} className="rounded text-kurla-copper w-3.5 h-3.5" />
+                  <span className="font-semibold text-kurla-carbon">SPF sans trace blanche</span>
                 </label>
               </div>
               {/* Ligne 2 : C2 — 5 filtres manquants */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Actif</span>
-                  <select value={skinActif} onChange={e=> setSkinActif(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-carbon/60">Actif</span>
+                  <select value={skinActif} onChange={e=> setSkinActif(e.target.value)} className="px-2.5 py-2 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper">
                     <option value="tous">Tous actifs</option>
                     {SKIN_ACTIVE_FILTERS.map(a=> <option key={a.value} value={a.value}>{a.label}</option>)}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Phototype</span>
-                  <select value={skinPhototype} onChange={e=> setSkinPhototype(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-carbon/60">Phototype</span>
+                  <select value={skinPhototype} onChange={e=> setSkinPhototype(e.target.value)} className="px-2.5 py-2 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper">
                     <option value="tous">Tous phototypes</option>
                     {SKIN_PHOTOTYPE_FILTERS.map(p=> <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Texture</span>
-                  <select value={skinTexture} onChange={e=> setSkinTexture(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-carbon/60">Texture</span>
+                  <select value={skinTexture} onChange={e=> setSkinTexture(e.target.value)} className="px-2.5 py-2 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper">
                     <option value="tous">Toutes textures</option>
                     {SKIN_TEXTURE_FILTERS.map(t=> <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Fini</span>
-                  <select value={skinFini} onChange={e=> setSkinFini(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-carbon/60">Fini</span>
+                  <select value={skinFini} onChange={e=> setSkinFini(e.target.value)} className="px-2.5 py-2 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper">
                     <option value="tous">Tous finis</option>
                     {SKIN_FINISH_FILTERS.map(f=> <option key={f.value} value={f.value}>{f.label}</option>)}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]/60">Sensibilité</span>
-                  <select value={skinSensibilite} onChange={e=> setSkinSensibilite(e.target.value)} className="px-2.5 py-2 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs font-medium text-[#111111] focus:outline-none focus:border-[#C8753D]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-kurla-carbon/60">Sensibilité</span>
+                  <select value={skinSensibilite} onChange={e=> setSkinSensibilite(e.target.value)} className="px-2.5 py-2 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper">
                     <option value="tous">Toutes</option>
                     {SKIN_SENSITIVITY_FILTERS.map(s=> <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
@@ -878,12 +878,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               {/* Ligne 3 : résumé + reset */}
               {(skinSansParfum || skinSansTrace || skinBudget !== 'tous' || skinActif !== 'tous' || skinPhototype !== 'tous' || skinTexture !== 'tous' || skinFini !== 'tous' || skinSensibilite !== 'tous') && (
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-[#111111]/60">Filtres actifs :</span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#111111] text-white font-bold">{[skinBudget, skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite].filter(v=>v!=='tous').length + (skinSansParfum?1:0) + (skinSansTrace?1:0)} / 8</span>
-                  <span className="text-[#111111]/50 hidden sm:inline">
+                  <span className="text-kurla-carbon/60">Filtres actifs :</span>
+                  <span className="px-2.5 py-1 rounded-full bg-kurla-carbon text-white font-bold">{[skinBudget, skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite].filter(v=>v!=='tous').length + (skinSansParfum?1:0) + (skinSansTrace?1:0)} / 8</span>
+                  <span className="text-kurla-carbon/50 hidden sm:inline">
                     {[skinActif!=='tous' && `actif ${skinActif}`, skinPhototype!=='tous' && `phototype ${skinPhototype}`, skinTexture!=='tous' && `texture ${skinTexture}`, skinFini!=='tous' && `fini ${skinFini}`, skinSensibilite!=='tous' && `sensible`].filter(Boolean).join(' · ')}
                   </span>
-                  <button onClick={() => { setSkinSansParfum(false); setSkinSansTrace(false); setSkinBudget('tous'); setSkinActif('tous'); setSkinPhototype('tous'); setSkinTexture('tous'); setSkinFini('tous'); setSkinSensibilite('tous'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className="ml-auto text-[#C8753D] font-bold hover:underline">Effacer tous les filtres peau</button>
+                  <button onClick={() => { setSkinSansParfum(false); setSkinSansTrace(false); setSkinBudget('tous'); setSkinActif('tous'); setSkinPhototype('tous'); setSkinTexture('tous'); setSkinFini('tous'); setSkinSensibilite('tous'); window.history.replaceState({}, '', '/boutique?cat=peau'); }} className="ml-auto text-kurla-copper font-bold hover:underline">Effacer tous les filtres peau</button>
                 </div>
               )}
               {/* Helper phototype VI + HPI */}
@@ -893,23 +893,23 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 </p>
               )}
               {skinActif==='niacinamide' && (
-                <p className="text-[11px] text-[#111111]/60">Niacinamide 5% : prioritaire HPI — votre filtre « niacinamide sans parfum mat ≤28€ » renverra 6 résultats dès C1 (40 ref).</p>
+                <p className="text-[11px] text-kurla-carbon/60">Niacinamide 5% : prioritaire HPI — votre filtre « niacinamide sans parfum mat ≤28€ » renverra 6 résultats dès C1 (40 ref).</p>
               )}
             </div>
           )}
 
           {/* Afro Community Brand & KURLA ID Toggles */}
-          <div className="pt-3 border-t border-[#E8E1DA] flex items-center justify-between flex-wrap gap-3 text-xs">
+          <div className="pt-3 border-t border-kurla-stone flex items-center justify-between flex-wrap gap-3 text-xs">
             <div className="flex items-center gap-4 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={onlyAfroCommunity}
                   onChange={(e) => setOnlyAfroCommunity(e.target.checked)}
-                  className="rounded text-[#C8753D] focus:ring-[#C8753D] w-4 h-4"
+                  className="rounded text-kurla-copper focus:ring-kurla-copper w-4 h-4"
                 />
-                <span className="font-semibold text-[#111111] inline-flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-[#C8753D]" /> Marques afro-descendantes uniquement
+                <span className="font-semibold text-kurla-carbon inline-flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-kurla-copper" /> Marques afro-descendantes uniquement
                 </span>
               </label>
 
@@ -918,10 +918,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   type="checkbox"
                   checked={onlyCompatible}
                   onChange={(e) => setOnlyCompatible(e.target.checked)}
-                  className="rounded text-[#C8753D] focus:ring-[#C8753D] w-4 h-4"
+                  className="rounded text-kurla-copper focus:ring-kurla-copper w-4 h-4"
                 />
-                <span className="font-semibold text-[#111111] flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Compatible avec mon KURLA ID
+                <span className="font-semibold text-kurla-carbon flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-kurla-copper" /> Compatible avec mon KURLA ID
                 </span>
               </label>
             </div>
@@ -944,7 +944,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   setActiveSubCategory('tous');
                   setSkinBudget('tous'); setSkinActif('tous'); setSkinPhototype('tous'); setSkinTexture('tous'); setSkinFini('tous'); setSkinSensibilite('tous'); setSkinSansParfum(false); setSkinSansTrace(false);
                 }}
-                className="text-[#C8753D] hover:underline text-xs font-bold flex items-center gap-1"
+                className="text-kurla-copper hover:underline text-xs font-bold flex items-center gap-1"
               >
                 <RefreshCw className="w-3 h-3" /> Réinitialiser tous les filtres
               </button>
@@ -958,8 +958,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         {(activeCategory === 'peau' || activeCategory === 'kits' || activeCategory === 'tous') && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Kits peau — formulation cible</h2>
-              <span className="text-xs text-[#111111]/60">Livraison 4,90€ · gratuite dès 59€ (KPEAU-02/03)</span>
+              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-kurla-copper" /> Kits peau — formulation cible</h2>
+              <span className="text-xs text-kurla-carbon/60">Livraison 4,90€ · gratuite dès 59€ (KPEAU-02/03)</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {PEAU_KITS.map(kit => {
@@ -971,39 +971,39 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                   : quote.shippingCents === 0 ? 'livraison gratuite' : `livraison ${(quote.shippingCents / 100).toFixed(2)}€`;
                 const priceIsIndicative = quote?.priceSource !== 'server_reconciled';
                 return (
-                <div key={kit.id} className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] p-5 flex flex-col shadow-xs hover:shadow-sm transition-all">
+                <div key={kit.id} className="rounded-3xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper p-5 flex flex-col shadow-xs hover:shadow-sm transition-all">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${kit.tier==='Essentielle'?'bg-[#F8F2EC] text-[#111111] border border-[#E8E1DA]': kit.tier==='Équilibrée'?'bg-[#C8753D] text-white':'bg-[#111111] text-white'}`}>{kit.tier}</span>
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${kit.tier==='Essentielle'?'bg-kurla-sand text-kurla-carbon border border-kurla-stone': kit.tier==='Équilibrée'?'bg-kurla-copper text-white':'bg-kurla-carbon text-white'}`}>{kit.tier}</span>
                     <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">{priceIsIndicative ? 'Cible ' : ''}−{quote?.economyPct ?? kit.economyPct}% · −{(quote?.economy ?? kit.economy).toFixed(2)}€</span>
                   </div>
                   <h3 className="text-sm font-bold leading-tight">{kit.name}</h3>
-                  <p className="text-xs text-[#C8753D] font-semibold">{kit.tagline} · {kit.routine}</p>
-                  <p className="text-xs text-[#111111]/60 font-light mt-1.5 leading-relaxed line-clamp-2">{kit.description}</p>
+                  <p className="text-xs text-kurla-copper font-semibold">{kit.tagline} · {kit.routine}</p>
+                  <p className="text-xs text-kurla-carbon/60 font-light mt-1.5 leading-relaxed line-clamp-2">{kit.description}</p>
                   <ul className="mt-3 space-y-1 text-xs">
                     {kit.products.map(p=> (
                       <li key={p.id} className="flex items-center justify-between gap-2">
-                        <span className="text-[#111111]">{p.name}</span>
-                        <span className="text-[#111111]/40 text-[11px] shrink-0">{(() => { const component = quote?.components.find(item => item.id === p.id); const price = component?.serverUnitPrice ?? p.price; return `${priceIsIndicative && !component?.serverUnitPrice ? 'cible ' : ''}${price.toFixed(2)}€ · ${p.role}`; })()}</span>
+                        <span className="text-kurla-carbon">{p.name}</span>
+                        <span className="text-kurla-carbon/40 text-[11px] shrink-0">{(() => { const component = quote?.components.find(item => item.id === p.id); const price = component?.serverUnitPrice ?? p.price; return `${priceIsIndicative && !component?.serverUnitPrice ? 'cible ' : ''}${price.toFixed(2)}€ · ${p.role}`; })()}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-4 pt-4 border-t border-[#E8E1DA] flex items-end justify-between gap-3">
+                  <div className="mt-4 pt-4 border-t border-kurla-stone flex items-end justify-between gap-3">
                     <div>
                       <span className="text-lg font-bold">{priceIsIndicative ? 'Indicatif · ' : ''}{bundlePrice.toFixed(2)}€</span>
-                      <span className="text-xs text-[#111111]/40 line-through ml-1.5">{separatePrice.toFixed(2)}€</span>
-                      <p className="text-[11px] text-[#111111]/50">{kit.products.length} soins · {shippingLabel}</p>
+                      <span className="text-xs text-kurla-carbon/40 line-through ml-1.5">{separatePrice.toFixed(2)}€</span>
+                      <p className="text-[11px] text-kurla-carbon/50">{kit.products.length} soins · {shippingLabel}</p>
                     </div>
                     <button
                       type="button"
                       disabled
                       aria-disabled="true"
-                      className="px-4 py-2.5 rounded-full bg-[#111111]/10 text-[#111111]/55 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
+                      className="px-4 py-2.5 rounded-full bg-kurla-carbon/10 text-kurla-carbon/55 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
                     >
                       <Clock className="w-3.5 h-3.5" /> {quote?.purchaseState === 'c1_suspended' ? 'C1 suspendu — non achetable' : 'Formulation cible — bientôt disponible'}
                     </button>
                   </div>
-                  <p className="text-[10px] text-[#111111]/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · fiche cible, non disponible</p>
-                  {quote?.reason && <p className="text-[10px] text-[#111111]/50 mt-1 text-center">{quote.reason}</p>}
+                  <p className="text-[10px] text-kurla-carbon/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · fiche cible, non disponible</p>
+                  {quote?.reason && <p className="text-[10px] text-kurla-carbon/50 mt-1 text-center">{quote.reason}</p>}
                 </div>
                 );
               })}
@@ -1013,19 +1013,19 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-xs text-[#111111]/70 font-medium">
-            <strong className="text-[#111111]">{filteredProducts.length}</strong> référence{filteredProducts.length > 1 ? 's' : ''}
+          <p className="text-xs text-kurla-carbon/70 font-medium">
+            <strong className="text-kurla-carbon">{filteredProducts.length}</strong> référence{filteredProducts.length > 1 ? 's' : ''}
           </p>
         </div>
 
         {(activeCategory === 'kits' || activeCategory === 'tous') && !selectedNeedId && searchQuery === '' && (
-          <div className="mb-12 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mb-12 rounded-3xl bg-kurla-sand border border-kurla-stone p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-bold text-[#C8753D] uppercase tracking-wider block mb-1">Routines & bundles</span>
-              <h2 className="text-xl font-serif-title font-bold text-[#111111]">Construire une routine adaptée</h2>
-              <p className="text-xs text-[#111111]/70 mt-1">Les routines ne sont proposées qu’avec des produits publiés et une composition connue.</p>
+              <span className="text-xs font-bold text-kurla-copper uppercase tracking-wider block mb-1">Routines & bundles</span>
+              <h2 className="text-xl font-serif-title font-bold text-kurla-carbon">Construire une routine adaptée</h2>
+              <p className="text-xs text-kurla-carbon/70 mt-1">Les routines ne sont proposées qu’avec des produits publiés et une composition connue.</p>
             </div>
-            <a href="/routines" className="text-xs font-bold text-[#C8753D] hover:underline flex items-center gap-1 shrink-0">
+            <a href="/routines" className="text-xs font-bold text-kurla-copper hover:underline flex items-center gap-1 shrink-0">
               Explorer les routines <ChevronRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -1033,10 +1033,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
         {/* PRODUCTS GRID STATE HANDLING */}
         {loading ? (
-          <div className="text-center py-24 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
-            <Loader2 className="w-10 h-10 text-[#C8753D] mx-auto mb-4 animate-spin" />
-            <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Chargement des produits publiés…</h3>
-            <p className="text-xs text-[#111111]/70 max-w-md mx-auto">
+          <div className="text-center py-24 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
+            <Loader2 className="w-10 h-10 text-kurla-copper mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-serif-title font-bold text-kurla-carbon mb-2">Chargement des produits publiés…</h3>
+            <p className="text-xs text-kurla-carbon/70 max-w-md mx-auto">
               Nous vérifions les informations disponibles avant de les afficher.
             </p>
           </div>
@@ -1059,19 +1059,19 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             const hub = EMPTY_CATEGORY_HUB[activeCategory];
             const HubIcon = hub.icon;
             return (
-              <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
-                <div className="w-14 h-14 rounded-2xl bg-[#C8753D]/10 text-[#C8753D] flex items-center justify-center mx-auto mb-4">
+              <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
+                <div className="w-14 h-14 rounded-2xl bg-kurla-copper/10 text-kurla-copper flex items-center justify-center mx-auto mb-4">
                   <HubIcon className="w-7 h-7" />
                 </div>
-                <h3 className="text-xl font-serif-title font-bold text-[#111111] mb-2">{hub.title}</h3>
-                <p className="text-sm text-[#111111]/70 max-w-md mx-auto mb-6 font-light leading-relaxed">{hub.text}</p>
+                <h3 className="text-xl font-serif-title font-bold text-kurla-carbon mb-2">{hub.title}</h3>
+                <p className="text-sm text-kurla-carbon/70 max-w-md mx-auto mb-6 font-light leading-relaxed">{hub.text}</p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <a href={hub.href} className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
+                  <a href={hub.href} className="px-6 py-3 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
                     {hub.cta} <ArrowRight className="w-4 h-4" />
                   </a>
                   <button
                     onClick={() => { setSelectedNeedId(null); setSelectedBrand('tous'); setOnlyAfroCommunity(false); setSelectedCountry('tous'); setSearchQuery(''); setOnlyCompatible(false); setActiveCategory('tous'); setActiveSubCategory('tous'); }}
-                    className="px-6 py-3 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111] text-xs font-semibold hover:border-[#C8753D]"
+                    className="px-6 py-3 rounded-full bg-kurla-ivory border border-kurla-stone text-kurla-carbon text-xs font-semibold hover:border-kurla-copper"
                   >
                     Voir tout le catalogue ({count})
                   </button>
@@ -1081,7 +1081,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     renvoyer la visiteuse vers une page qui n'a rien à vendre. */}
                 {waitlistSourceForCategory(activeCategory) && (
                   <div className="mt-8 max-w-md mx-auto">
-                    <p className="text-[11px] uppercase tracking-widest font-bold text-[#C8753D] mb-3">
+                    <p className="text-[11px] uppercase tracking-widest font-bold text-kurla-copper mb-3">
                       Être prévenue à l’ouverture
                     </p>
                     <CategoryWaitlist
@@ -1098,28 +1098,28 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
              afficher un « Voir tout le catalogue (0) » en cul-de-sac. On
              oriente vers le diagnostic (valeur immédiate) et la liste de
              lancement (capture d'email). */
-          <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
-            <Sparkles className="w-10 h-10 text-[#C8753D] mx-auto mb-3" />
-            <h3 className="text-xl font-serif-title font-bold text-[#111111] mb-2">La boutique ouvre très bientôt</h3>
-            <p className="text-sm text-[#111111]/70 max-w-md mx-auto mb-6 font-light leading-relaxed">
+          <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
+            <Sparkles className="w-10 h-10 text-kurla-copper mx-auto mb-3" />
+            <h3 className="text-xl font-serif-title font-bold text-kurla-carbon mb-2">La boutique ouvre très bientôt</h3>
+            <p className="text-sm text-kurla-carbon/70 max-w-md mx-auto mb-6 font-light leading-relaxed">
               Les premières références (kits, soins et outils pour cheveux texturés) sont en cours de publication.
               En attendant, faites votre diagnostic gratuit : votre routine personnalisée sera prête dès l’ouverture,
               et la liste de lancement donne accès à l’offre de bienvenue.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <a href="/diagnostic/cheveux" className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
+              <a href="/diagnostic/cheveux" className="px-6 py-3 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold shadow-sm inline-flex items-center gap-2">
                 Faire mon diagnostic gratuit <ArrowRight className="w-4 h-4" />
               </a>
-              <a href="/#waitlist" className="px-6 py-3 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#111111] text-xs font-semibold hover:border-[#C8753D]">
+              <a href="/#waitlist" className="px-6 py-3 rounded-full bg-kurla-ivory border border-kurla-stone text-kurla-carbon text-xs font-semibold hover:border-kurla-copper">
                 Rejoindre la liste de lancement
               </a>
             </div>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16 bg-[#F8F2EC] rounded-3xl border border-[#E8E1DA] p-8">
-            <Filter className="w-10 h-10 text-[#C8753D] mx-auto mb-3 opacity-60" />
-            <h3 className="text-lg font-serif-title font-bold text-[#111111] mb-2">Aucun produit trouvé</h3>
-            <p className="text-xs text-[#111111]/70 max-w-md mx-auto mb-6">
+          <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
+            <Filter className="w-10 h-10 text-kurla-copper mx-auto mb-3 opacity-60" />
+            <h3 className="text-lg font-serif-title font-bold text-kurla-carbon mb-2">Aucun produit trouvé</h3>
+            <p className="text-xs text-kurla-carbon/70 max-w-md mx-auto mb-6">
               Aucune référence ne correspond à vos filtres. Essayez d’élargir votre recherche.
             </p>
             <button
@@ -1133,7 +1133,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 setActiveCategory('tous');
                 setActiveSubCategory('tous');
               }}
-              className="px-5 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold shadow-xs hover:bg-[#b06330]"
+              className="px-5 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-semibold shadow-xs hover:bg-kurla-cocoa"
             >
               Voir tout le catalogue ({count})
             </button>
@@ -1148,10 +1148,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               return (
                 <div
                   key={product.id}
-                  className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] transition-all p-5 flex flex-col justify-between shadow-xs hover:shadow-md group relative"
+                  className="rounded-3xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper transition-all p-5 flex flex-col justify-between shadow-xs hover:shadow-md group relative"
                 >
                   <div>
-                    <div className="relative h-56 rounded-2xl overflow-hidden mb-4 bg-[#F8F2EC]">
+                    <div className="relative h-56 rounded-2xl overflow-hidden mb-4 bg-kurla-sand">
                       {product.image ? (
                         <img loading="lazy" decoding="async"
                           src={product.image}
@@ -1159,12 +1159,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-[#111111]/50">Image en attente de validation</div>
+                        <div className="w-full h-full flex items-center justify-center text-xs text-kurla-carbon/50">Image en attente de validation</div>
                       )}
                       
                       {compatibleWithProfile && (
-                        <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
-                          <Award className="w-3 h-3 text-[#D49A63]" /> Vous correspond
+                        <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-kurla-carbon/85 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm">
+                          <Award className="w-3 h-3 text-kurla-amber" /> Vous correspond
                         </div>
                       )}
 
@@ -1185,34 +1185,34 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                           <Clock className="w-3 h-3" /> Précommande
                         </span>
                       ) : (
-                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#111111]/80 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-kurla-carbon/80 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <CheckCircle2 className="w-3 h-3" /> Disponible
                         </span>
                       )}
                       {/* C8 — Peau V-VI safe + SPF sans trace blanche (mélanine, HPI) */}
                       {(() => {
                         const isSPF = /spf|solaire|protection.*soleil/i.test(`${product.name} ${product.description} ${(product.keyIngredients||[]).join(' ')}`);
-                        if ((product as any).category === 'peau' && isSPF) return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[#111111] text-[9px] font-bold border border-[#E8E1DA] shadow-sm">SPF sans trace blanche</span>;
-                        if ((product as any).category === 'peau') return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-[#111111]/85 backdrop-blur-md text-white text-[9px] font-bold border border-white/15 shadow-sm">V-VI safe · HPI</span>;
+                        if ((product as any).category === 'peau' && isSPF) return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-kurla-carbon text-[9px] font-bold border border-kurla-stone shadow-sm">SPF sans trace blanche</span>;
+                        if ((product as any).category === 'peau') return <span className="absolute top-10 left-3 px-2 py-0.5 rounded-full bg-kurla-carbon/85 backdrop-blur-md text-white text-[9px] font-bold border border-white/15 shadow-sm">V-VI safe · HPI</span>;
                         return null;
                       })()}
                       {false && product.badges[0] ? (
-                        <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-semibold">
+                        <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-kurla-copper text-white text-[10px] font-semibold">
                           {product.badges[0]}
                         </span>
                       ) : null}
                     </div>
 
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] uppercase tracking-wider text-[#C8753D] font-bold">
+                      <span className="text-[10px] uppercase tracking-wider text-kurla-copper font-bold">
                         {product.brand}
                       </span>
-                      <span className="text-[10px] text-[#111111]/50 font-medium text-right">
+                      <span className="text-[10px] text-kurla-carbon/50 font-medium text-right">
                         {product.countryAvailability?.length ? `Livraison : ${product.countryAvailability.join(', ')}` : 'Livraison France & UE'}
                       </span>                    </div>
 
                     <a href={`/produit/${product.slug}`} className="hover:underline">
-                      <h3 className="text-base font-serif-title font-bold text-[#111111] mb-2 line-clamp-2">
+                      <h3 className="text-base font-serif-title font-bold text-kurla-carbon mb-2 line-clamp-2">
                         {product.name}
                       </h3>
                     </a>
@@ -1220,14 +1220,14 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     {product.verifiedReviewCount && product.rating > 0 ? (
                       <div className="flex items-center gap-1.5 text-xs text-amber-500 mb-2">
                         <Star className="w-3.5 h-3.5 fill-current" />
-                        <span className="font-bold text-[#111111]">{product.rating.toFixed(1)}</span>
-                        <span className="text-[#111111]/40">({product.verifiedReviewCount} avis vérifiés)</span>
+                        <span className="font-bold text-kurla-carbon">{product.rating.toFixed(1)}</span>
+                        <span className="text-kurla-carbon/40">({product.verifiedReviewCount} avis vérifiés)</span>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-[#111111]/40 mb-2">Nouveau — soyez parmi les premiers à donner votre avis</p>
+                      <p className="text-[11px] text-kurla-carbon/40 mb-2">Nouveau — soyez parmi les premiers à donner votre avis</p>
                     )}
 
-                    <p className="text-xs text-[#111111]/70 font-light line-clamp-2 mb-2">
+                    <p className="text-xs text-kurla-carbon/70 font-light line-clamp-2 mb-2">
                       {product.description}
                     </p>
                     {isDropshipProduct(product as any) ? (
@@ -1236,10 +1236,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       </p>
                     ) : isPreorderProduct ? (
                       <p className="text-[10px] text-[#2E7D5B] font-semibold mb-3 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT} <span className="text-[#111111]/40 font-normal">· production sur commande</span>
+                        <Clock className="w-3 h-3" /> {DISPATCH_SHORT} <span className="text-kurla-carbon/40 font-normal">· production sur commande</span>
                       </p>
                     ) : (
-                      <p className="text-[10px] text-[#111111]/65 font-semibold mb-3 flex items-center gap-1">
+                      <p className="text-[10px] text-kurla-carbon/65 font-semibold mb-3 flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" /> Stock disponible
                       </p>
                     )}
@@ -1249,7 +1249,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     {TOOL_BY_PRODUCT_SLUG.has(product.slug) && (
                       <a
                         href={`/outils#${TOOL_BY_PRODUCT_SLUG.get(product.slug)!.id}`}
-                        className="text-[10px] font-semibold text-[#C8753D] hover:underline mb-3 inline-flex items-center gap-1"
+                        className="text-[10px] font-semibold text-kurla-copper hover:underline mb-3 inline-flex items-center gap-1"
                       >
                         <BookOpen className="w-3 h-3" /> Guide d’utilisation : quand et comment s’en servir
                       </a>
@@ -1258,29 +1258,29 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     {/* Key Ingredients tags */}
                     <div className="flex flex-wrap gap-1 mb-4">
                       {product.keyIngredients.slice(0, 2).map((ing, i) => (
-                        <span key={i} className="text-[9px] px-2 py-0.5 rounded-md bg-[#F8F2EC] text-[#111111]/80 font-medium border border-[#E8E1DA]">
+                        <span key={i} className="text-[9px] px-2 py-0.5 rounded-md bg-kurla-sand text-kurla-carbon/80 font-medium border border-kurla-stone">
                           {ing}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-[#E8E1DA] flex items-center justify-between gap-2">
+                  <div className="pt-4 border-t border-kurla-stone flex items-center justify-between gap-2">
                     <div>
-                      <span className="text-lg font-bold text-[#111111]">{product.price.toFixed(2)} €</span>
+                      <span className="text-lg font-bold text-kurla-carbon">{product.price.toFixed(2)} €</span>
                       {product.originalPrice && (
-                        <span className="text-xs text-[#111111]/40 line-through block">{product.originalPrice.toFixed(2)} €</span>
+                        <span className="text-xs text-kurla-carbon/40 line-through block">{product.originalPrice.toFixed(2)} €</span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button onClick={() => toggleCompare(product.id)} className={`px-3 py-2 rounded-full border text-[11px] font-semibold transition-colors ${compareIds.includes(product.id) ? 'border-[#C8753D] text-[#C8753D] bg-[#C8753D]/10' : 'border-[#E8E1DA] text-[#111111]/60 hover:border-[#C8753D]'}`}>
+                      <button onClick={() => toggleCompare(product.id)} className={`px-3 py-2 rounded-full border text-[11px] font-semibold transition-colors ${compareIds.includes(product.id) ? 'border-kurla-copper text-kurla-copper bg-kurla-copper/10' : 'border-kurla-stone text-kurla-carbon/60 hover:border-kurla-copper'}`}>
                         {compareIds.includes(product.id) ? 'Comparé' : 'Comparer'}
                       </button>
                       <button
                         onClick={() => onAddToCart(product)}
                         disabled={!canOrderProduct}
-                        className="px-4 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
+                        className="px-4 py-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? 'Indisponible' : isPreorderProduct ? 'Précommander' : 'Ajouter'}
                       </button>

@@ -57,8 +57,8 @@ export function ProductComplianceBanner({ productId, country, onVerdictChange }:
 
   if (failure) {
     return (
-      <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/70 p-4 text-xs text-[#FFF7EF]/60 flex gap-2 items-start">
-        <Info className="w-4 h-4 text-[#D49A63] shrink-0" />
+      <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/70 p-4 text-xs text-kurla-cream/60 flex gap-2 items-start">
+        <Info className="w-4 h-4 text-kurla-amber shrink-0" />
         <span>
           Statut réglementaire non vérifié pour {countryLabel} : {failure} KURLA n’affiche pas de
           verdict qu’elle ne peut pas justifier.
@@ -69,7 +69,7 @@ export function ProductComplianceBanner({ productId, country, onVerdictChange }:
 
   if (loading || !compliance) {
     return (
-      <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/40 p-4 text-xs text-[#FFF7EF]/40">
+      <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/40 p-4 text-xs text-kurla-cream/40">
         Vérification du statut réglementaire pour {selectedCountry}…
       </div>
     );
@@ -87,9 +87,9 @@ export function ProductComplianceBanner({ productId, country, onVerdictChange }:
   // Aucune donnée exploitable : on le dit, on ne fabrique pas un feu vert.
   if (verdict === 'no_data' && compliance.resolvedIngredientCount === 0) {
     return (
-      <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/70 p-4 text-xs text-[#FFF7EF]/55">
-        <div className="flex items-center gap-2 text-[#FFF7EF]/80 font-semibold mb-1">
-          <Info className="w-4 h-4 text-[#D49A63]" /> Statut réglementaire non évalué pour {countryLabel}
+      <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/70 p-4 text-xs text-kurla-cream/55">
+        <div className="flex items-center gap-2 text-kurla-cream/80 font-semibold mb-1">
+          <Info className="w-4 h-4 text-kurla-amber" /> Statut réglementaire non évalué pour {countryLabel}
         </div>
         Aucun ingrédient de cette fiche n’est encore relié au graphe d’ingrédients KURLA
         ({compliance.declaredIngredientCount} déclaré(s), 0 résolu(s)). Cela ne signifie pas que le
@@ -114,22 +114,22 @@ export function ProductComplianceBanner({ productId, country, onVerdictChange }:
                   : `Statut réglementaire vérifié pour ${countryLabel}`}
           </p>
           {blocking && (
-            <p className="mt-1 text-[#FFF7EF]/85">
+            <p className="mt-1 text-kurla-cream/85">
               Ce produit ne peut pas être vendu dans ce pays. Le panier le refusera également.
             </p>
           )}
-          <ul className="mt-2 space-y-1 text-[#FFF7EF]/85">
+          <ul className="mt-2 space-y-1 text-kurla-cream/85">
             {compliance.findings.slice(0, 6).map(finding => (
               <li key={`${finding.ingredientId}-${finding.jurisdiction}`}>
                 <span className="font-medium">{finding.ingredientId}</span> — {finding.message}
-                {finding.reference ? <span className="text-[#FFF7EF]/55"> ({finding.reference})</span> : null}
+                {finding.reference ? <span className="text-kurla-cream/55"> ({finding.reference})</span> : null}
               </li>
             ))}
           </ul>
           {compliance.limitations.length > 0 && (
-            <p className="mt-2 text-[#FFF7EF]/60">{compliance.limitations.join(' ')}</p>
+            <p className="mt-2 text-kurla-cream/60">{compliance.limitations.join(' ')}</p>
           )}
-          <p className="mt-2 text-[#FFF7EF]/45">
+          <p className="mt-2 text-kurla-cream/45">
             {compliance.resolvedIngredientCount} ingrédient(s) résolu(s) sur{' '}
             {compliance.declaredIngredientCount} déclaré(s).
           </p>
@@ -142,12 +142,12 @@ export function ProductComplianceBanner({ productId, country, onVerdictChange }:
 
 function ComplianceCountrySelect({ value, onChange }: { value: string; onChange: (country: string) => void }) {
   return (
-    <label className="mt-3 flex items-center gap-2 text-[11px] text-[#FFF7EF]/55">
+    <label className="mt-3 flex items-center gap-2 text-[11px] text-kurla-cream/55">
       Vérifier pour
       <select
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="rounded-lg border border-[#FFF7EF]/15 bg-black/25 px-2 py-1 text-[11px] text-[#FFF7EF] focus:border-[#C8753D] focus:outline-none"
+        className="rounded-lg border border-kurla-cream/15 bg-black/25 px-2 py-1 text-[11px] text-kurla-cream focus:border-kurla-copper focus:outline-none"
       >
         {SERVED_COUNTRIES.map(code => <option key={code} value={code}>{code}</option>)}
       </select>

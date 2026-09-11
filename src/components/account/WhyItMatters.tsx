@@ -31,8 +31,8 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
 
   const shell =
     variant === 'banner'
-      ? 'rounded-3xl border border-[#C8753D]/35 bg-gradient-to-br from-[#1A0F0A] to-[#050403] p-6 sm:p-7'
-      : 'rounded-2xl border border-[#E8E1DA] bg-[#FFFDF9] p-5';
+      ? 'rounded-3xl border border-kurla-copper/35 bg-gradient-to-br from-kurla-espresso to-kurla-ink p-6 sm:p-7'
+      : 'rounded-2xl border border-kurla-stone bg-kurla-ivory p-5';
   const onDark = variant === 'banner';
 
   return (
@@ -43,20 +43,20 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
         aria-expanded={open}
         className="w-full flex items-start gap-3 text-left"
       >
-        <span className={onDark ? 'text-[#C8753D] mt-0.5' : 'text-[#C8753D] mt-0.5'}>
+        <span className={onDark ? 'text-kurla-copper mt-0.5' : 'text-kurla-copper mt-0.5'}>
           <Info className="w-4 h-4" />
         </span>
         <span className="flex-1">
           <span
             className={`block text-[10px] uppercase tracking-[0.18em] font-bold ${
-              onDark ? 'text-[#D49A63]' : 'text-[#C8753D]'
+              onDark ? 'text-kurla-amber' : 'text-kurla-copper'
             }`}
           >
             Pourquoi c’est important
           </span>
           <span
             className={`block text-base font-semibold mt-1 leading-snug ${
-              onDark ? 'text-[#FFF7EF]' : 'text-[#111111]'
+              onDark ? 'text-kurla-cream' : 'text-kurla-carbon'
             }`}
           >
             {feature.promesse}
@@ -65,7 +65,7 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
         <ChevronDown
           className={`w-4 h-4 shrink-0 mt-1 transition-transform ${
             open ? 'rotate-180' : ''
-          } ${onDark ? 'text-[#D49A63]' : 'text-[#C8753D]'}`}
+          } ${onDark ? 'text-kurla-amber' : 'text-kurla-copper'}`}
         />
       </button>
 
@@ -73,7 +73,7 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
         <div className="mt-4 space-y-4">
           <p
             className={`text-sm leading-relaxed ${
-              onDark ? 'text-[#FFF7EF]/75' : 'text-[#111111]/75'
+              onDark ? 'text-kurla-cream/75' : 'text-kurla-carbon/75'
             }`}
           >
             {feature.pourquoi}
@@ -82,7 +82,7 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
           <div>
             <p
               className={`text-[10px] uppercase tracking-[0.16em] font-bold mb-2 ${
-                onDark ? 'text-[#D49A63]' : 'text-[#C8753D]'
+                onDark ? 'text-kurla-amber' : 'text-kurla-copper'
               }`}
             >
               Ce que tu gagnes
@@ -92,12 +92,12 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
                 <li
                   key={gain}
                   className={`text-[13px] leading-relaxed flex gap-2 ${
-                    onDark ? 'text-[#FFF7EF]/85' : 'text-[#111111]/85'
+                    onDark ? 'text-kurla-cream/85' : 'text-kurla-carbon/85'
                   }`}
                 >
                   <span
                     className={`shrink-0 mt-[7px] w-1.5 h-1.5 rounded-full ${
-                      onDark ? 'bg-[#C8753D]' : 'bg-[#C8753D]'
+                      onDark ? 'bg-kurla-copper' : 'bg-kurla-copper'
                     }`}
                   />
                   {gain}
@@ -109,8 +109,8 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
           <p
             className={`text-[11.5px] leading-relaxed border-t pt-3 ${
               onDark
-                ? 'text-[#FFF7EF]/55 border-[#FFF7EF]/10'
-                : 'text-[#111111]/55 border-[#E8E1DA]'
+                ? 'text-kurla-cream/55 border-kurla-cream/10'
+                : 'text-kurla-carbon/55 border-kurla-stone'
             }`}
           >
             <span className="font-semibold">Comment ça marche : </span>
@@ -119,7 +119,7 @@ export const WhyItMatters: React.FC<WhyItMattersProps> = ({
 
           <p
             className={`text-[11px] flex items-center gap-1.5 ${
-              onDark ? 'text-[#D49A63]' : 'text-[#8b4b24]'
+              onDark ? 'text-kurla-amber' : 'text-[#8b4b24]'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />

@@ -9,9 +9,9 @@ import {
   simulateRoutineCost
 } from '../services/intelligenceService';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
-const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
+const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-5 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
 
 interface ItemRow {
   label: string;
@@ -42,7 +42,7 @@ const formatEuro = (value: number | null) =>
 const SimulationResult: React.FC<{ simulation: AnnualCostSimulation }> = ({ simulation }) => (
   <div className="space-y-4">
     <div className={`rounded-xl p-4 ${simulation.partial ? 'bg-[#FFF7ED] border border-[#FED7AA]' : 'bg-[#F5F1EB]'}`}>
-      <p className="text-2xl font-bold text-[#111111]">{formatEuro(simulation.annualTotalKnown)}</p>
+      <p className="text-2xl font-bold text-kurla-carbon">{formatEuro(simulation.annualTotalKnown)}</p>
       <p className="text-xs text-[#666666] mt-1 leading-relaxed">{simulation.statement}</p>
     </div>
 
@@ -55,17 +55,17 @@ const SimulationResult: React.FC<{ simulation: AnnualCostSimulation }> = ({ simu
           <th className="pb-2 text-right">Coût / an</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-[#E8E1DA]">
+      <tbody className="divide-y divide-kurla-stone">
         {simulation.lines.map(line => (
           <tr key={line.id}>
-            <td className="py-2.5 text-[#111111]">{line.label}</td>
+            <td className="py-2.5 text-kurla-carbon">{line.label}</td>
             <td className="py-2.5 text-right text-[#666666]">{line.price.toLocaleString('fr-FR')} €</td>
             <td className="py-2.5 text-right text-[#666666]">
               {line.monthsOfUse === null
                 ? <span className="text-[#999999]">non déclaré</span>
                 : `${line.monthsOfUse.toLocaleString('fr-FR')} mois`}
             </td>
-            <td className={`py-2.5 text-right font-semibold ${line.annualCost === null ? 'text-[#999999]' : 'text-[#111111]'}`}>
+            <td className={`py-2.5 text-right font-semibold ${line.annualCost === null ? 'text-[#999999]' : 'text-kurla-carbon'}`}>
               {formatEuro(line.annualCost)}
             </td>
           </tr>
@@ -74,7 +74,7 @@ const SimulationResult: React.FC<{ simulation: AnnualCostSimulation }> = ({ simu
     </table>
 
     {simulation.limitations.length > 0 && (
-      <ul className="space-y-1.5 border-t border-[#E8E1DA] pt-3">
+      <ul className="space-y-1.5 border-t border-kurla-stone pt-3">
         {simulation.limitations.map((limitation, index) => (
           <li key={index} className="text-[11px] text-[#999999] leading-relaxed flex gap-2">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -136,7 +136,7 @@ const ItemEditor: React.FC<{
       </div>
     ))}
     <button
-      className="text-xs text-[#C8753D] hover:underline flex items-center gap-1.5 cursor-pointer pt-1"
+      className="text-xs text-kurla-copper hover:underline flex items-center gap-1.5 cursor-pointer pt-1"
       onClick={() => onChange([...rows, emptyRow()])}
     >
       <Plus className="w-3.5 h-3.5" /> Ajouter un article
@@ -228,14 +228,14 @@ export const CostSimulatorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] px-4 py-10">
+    <div className="min-h-screen bg-kurla-ivory px-4 py-10">
       <div className="max-w-4xl mx-auto space-y-5">
 
         <header className={cardClass}>
-          <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest mb-1">
+          <p className="text-[11px] font-semibold text-kurla-copper uppercase tracking-widest mb-1">
             Économie de routine
           </p>
-          <h1 className="text-3xl font-bold text-[#111111] tracking-tight mb-2">
+          <h1 className="text-3xl font-bold text-kurla-carbon tracking-tight mb-2">
             Ce que votre routine coûte vraiment
           </h1>
           <p className="text-sm text-[#666666] leading-relaxed">
@@ -247,7 +247,7 @@ export const CostSimulatorPage: React.FC = () => {
 
         {error && (
           <div className={`${cardClass} flex items-start gap-3`}>
-            <AlertCircle className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             <p className="text-sm text-[#666666]">{error}</p>
           </div>
         )}
@@ -298,7 +298,7 @@ export const CostSimulatorPage: React.FC = () => {
             Calculer le coût annuel de la routine A
           </button>
           <button
-            className="px-5 py-3 rounded-xl border border-[#C8753D] text-[#C8753D] text-sm font-semibold flex items-center gap-2 cursor-pointer hover:bg-[#FFF7F1] disabled:opacity-50"
+            className="px-5 py-3 rounded-xl border border-kurla-copper text-kurla-copper text-sm font-semibold flex items-center gap-2 cursor-pointer hover:bg-[#FFF7F1] disabled:opacity-50"
             onClick={runComparison}
             disabled={loading}
           >
@@ -323,7 +323,7 @@ export const CostSimulatorPage: React.FC = () => {
             </h2>
 
             <div className="rounded-xl bg-[#F5F1EB] p-4 mb-5">
-              <p className="text-sm text-[#111111] leading-relaxed">{comparison.verdict}</p>
+              <p className="text-sm text-kurla-carbon leading-relaxed">{comparison.verdict}</p>
             </div>
 
             <table className="w-full text-sm">
@@ -335,17 +335,17 @@ export const CostSimulatorPage: React.FC = () => {
                   <th className="pb-2 text-right">Avantage</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E8E1DA]">
+              <tbody className="divide-y divide-kurla-stone">
                 {comparison.rows.map(row => (
                   <tr key={row.label}>
-                    <td className="py-2.5 text-[#111111]">{row.label}</td>
+                    <td className="py-2.5 text-kurla-carbon">{row.label}</td>
                     <td className="py-2.5 text-right text-[#666666]">
                       {row.a === null ? '—' : `${row.a.toLocaleString('fr-FR')} ${row.unit}`}
                     </td>
                     <td className="py-2.5 text-right text-[#666666]">
                       {row.b === null ? '—' : `${row.b.toLocaleString('fr-FR')} ${row.unit}`}
                     </td>
-                    <td className="py-2.5 text-right text-[#111111] font-medium">
+                    <td className="py-2.5 text-right text-kurla-carbon font-medium">
                       {row.better === 'incomparable'
                         ? <span className="text-[#999999]">Non comparable</span>
                         : betterLabel(row.better)}

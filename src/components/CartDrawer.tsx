@@ -288,7 +288,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-[#050403]/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-kurla-ink/80 backdrop-blur-sm"
       />
 
       {/* Drawer */}
@@ -296,21 +296,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="relative w-full max-w-md bg-[#1A0F0A] border-l border-[#FFF7EF]/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl overflow-y-auto"
+        className="relative w-full max-w-md bg-kurla-espresso border-l border-kurla-cream/10 h-full flex flex-col justify-between p-6 z-10 shadow-2xl overflow-y-auto"
       >
 
         {/* Header */}
         <div>
-          <div className="flex items-center justify-between pb-4 border-b border-[#FFF7EF]/10 mb-6">
-            <div className="flex items-center gap-2 text-[#FFF7EF]">
-              <ShoppingBag className="w-5 h-5 text-[#C8753D]" />
+          <div className="flex items-center justify-between pb-4 border-b border-kurla-cream/10 mb-6">
+            <div className="flex items-center gap-2 text-kurla-cream">
+              <ShoppingBag className="w-5 h-5 text-kurla-copper" />
               <h3 id="cart-drawer-title" className="text-lg font-serif-title font-bold">Ton Panier KURLA</h3>
-              <span className="text-xs text-[#D49A63]">({items.reduce((acc, i) => acc + i.quantity, 0)})</span>
+              <span className="text-xs text-kurla-amber">({items.reduce((acc, i) => acc + i.quantity, 0)})</span>
             </div>
             <button
               onClick={onClose}
               aria-label="Fermer le panier"
-              className="p-2 rounded-full text-[#FFF7EF]/60 hover:text-[#FFF7EF] hover:bg-[#FFF7EF]/10 transition-colors"
+              className="p-2 rounded-full text-kurla-cream/60 hover:text-kurla-cream hover:bg-kurla-cream/10 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -335,12 +335,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
           {/* Stripe Backup Direct Link Button */}
           {stripeUrl && (
-            <div className="mb-4 p-4 rounded-2xl bg-[#1D170E] border border-[#C8753D]/50 text-center space-y-3 shadow-xl">
-              <div className="flex items-center justify-center gap-2 text-[#D49A63] font-semibold text-xs">
-                <ExternalLink className="w-4 h-4 text-[#C8753D]" />
+            <div className="mb-4 p-4 rounded-2xl bg-[#1D170E] border border-kurla-copper/50 text-center space-y-3 shadow-xl">
+              <div className="flex items-center justify-center gap-2 text-kurla-amber font-semibold text-xs">
+                <ExternalLink className="w-4 h-4 text-kurla-copper" />
                 <span>Session Stripe prête</span>
               </div>
-              <p className="text-xs text-[#FFF7EF]/80 font-light">
+              <p className="text-xs text-kurla-cream/80 font-light">
                 Si la redirection vers Stripe ne s'ouvre pas automatiquement, cliquez ci-dessous :
               </p>
               <a
@@ -360,14 +360,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {/* Items List */}
           {items.length === 0 ? (
             <div className="py-16 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-[#050403] text-[#C8753D] flex items-center justify-center mx-auto text-2xl border border-[#FFF7EF]/10">
+              <div className="w-16 h-16 rounded-full bg-kurla-ink text-kurla-copper flex items-center justify-center mx-auto text-2xl border border-kurla-cream/10">
                 🛍️
               </div>
-              <p className="text-sm text-[#FFF7EF]/70 font-light">Ton panier est vide pour le moment.</p>
+              <p className="text-sm text-kurla-cream/70 font-light">Ton panier est vide pour le moment.</p>
               <a
                 href="/boutique"
                 onClick={onClose}
-                className="inline-block px-6 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold"
+                className="inline-block px-6 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-semibold"
               >
                 Explorer la boutique
               </a>
@@ -377,7 +377,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               {items.map((item) => (
                 <div
                   key={`${item.product.id}:${item.variantId || ''}`}
-                  className="flex items-center gap-4 p-3 rounded-2xl bg-[#050403]/80 border border-[#FFF7EF]/10"
+                  className="flex items-center gap-4 p-3 rounded-2xl bg-kurla-ink/80 border border-kurla-cream/10"
                 >
                   <img loading="lazy" decoding="async"
                     src={item.product.image}
@@ -385,7 +385,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     className="w-16 h-16 rounded-xl object-cover shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-serif-title font-bold text-[#FFF7EF] truncate">
+                    <h4 className="text-xs font-serif-title font-bold text-kurla-cream truncate">
                       {item.product.name}
                     </h4>
                     {isDropshipProduct(item.product as any) ? (
@@ -393,21 +393,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     ) : (
                       <p className="text-[10px] text-amber-300 font-semibold">Précommande · {DISPATCH_SHORT}</p>
                     )}
-                    <p className="text-[11px] text-[#D49A63] font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
+                    <p className="text-[11px] text-kurla-amber font-medium">{unitPrice(item).toFixed(2)} €{item.variantLabel ? ` · ${item.variantLabel}` : ''}</p>
                     <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center border border-[#FFF7EF]/20 rounded-lg bg-[#1A0F0A]">
+                      <div className="flex items-center border border-kurla-cream/20 rounded-lg bg-kurla-espresso">
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1, item.variantId)}
                           disabled={isCheckoutLoading}
-                          className="px-2 py-0.5 text-xs text-[#FFF7EF]/70 hover:text-[#FFF7EF] disabled:opacity-50"
+                          className="px-2 py-0.5 text-xs text-kurla-cream/70 hover:text-kurla-cream disabled:opacity-50"
                         >
                           -
                         </button>
-                        <span className="px-2 text-xs font-bold text-[#FFF7EF]">{item.quantity}</span>
+                        <span className="px-2 text-xs font-bold text-kurla-cream">{item.quantity}</span>
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1, item.variantId)}
                           disabled={isCheckoutLoading}
-                          className="px-2 py-0.5 text-xs text-[#FFF7EF]/70 hover:text-[#FFF7EF] disabled:opacity-50"
+                          className="px-2 py-0.5 text-xs text-kurla-cream/70 hover:text-kurla-cream disabled:opacity-50"
                         >
                           +
                         </button>
@@ -429,7 +429,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* ── ADD-ONS : jauge livraison offerte + outils à forte marge ── */}
         {addOnData && addOnData.addOns.length > 0 && (
-          <div className="px-6 py-5 border-t border-[#FFF7EF]/10 bg-[#0A0705]/60">
+          <div className="px-6 py-5 border-t border-kurla-cream/10 bg-[#0A0705]/60">
             {/* Jauge de livraison offerte */}
             {shippingOption?.freeFromCents && (
               <div className="mb-4">
@@ -439,13 +439,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   </p>
                 ) : (
                   <>
-                    <p className="text-xs text-[#FFF7EF]/75 mb-2 flex items-center gap-1.5">
-                      <Truck className="w-4 h-4 text-[#D49A63]" />
-                      Plus que <b className="text-[#FFF7EF]">{formatMoney(addOnData.gapCents)}</b> pour la <b className="text-[#D49A63]">livraison offerte</b>
+                    <p className="text-xs text-kurla-cream/75 mb-2 flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-kurla-amber" />
+                      Plus que <b className="text-kurla-cream">{formatMoney(addOnData.gapCents)}</b> pour la <b className="text-kurla-amber">livraison offerte</b>
                     </p>
-                    <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-kurla-cream/10 overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] transition-all"
+                        className="h-full bg-gradient-to-r from-kurla-copper to-kurla-amber transition-all"
                         style={{ width: `${Math.min(100, Math.round((subtotalCents / shippingOption.freeFromCents) * 100))}%` }}
                       />
                     </div>
@@ -454,7 +454,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             )}
 
-            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-[#D49A63] font-bold mb-3">
+            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-kurla-amber font-bold mb-3">
               <Sparkles className="w-3.5 h-3.5" /> Complétez votre routine
             </p>
             <div className="space-y-2.5">
@@ -462,16 +462,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div
                   key={p.id}
                   className={`flex items-center gap-3 p-2.5 rounded-2xl border transition ${
-                    crossesThreshold ? 'border-[#C8753D]/50 bg-[#3A2218]/50' : 'border-[#FFF7EF]/10 bg-[#1A0F0A]/60'
+                    crossesThreshold ? 'border-kurla-copper/50 bg-kurla-bark/50' : 'border-kurla-cream/10 bg-kurla-espresso/60'
                   }`}
                 >
                   <img loading="lazy" src={p.image} alt={p.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#FFF7EF] leading-tight line-clamp-2">{p.name}</p>
+                    <p className="text-xs font-semibold text-kurla-cream leading-tight line-clamp-2">{p.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-sm font-bold text-[#D49A63]">{p.price.toFixed(2)} €</span>
+                      <span className="text-sm font-bold text-kurla-amber">{p.price.toFixed(2)} €</span>
                       {crossesThreshold && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#C8753D]/20 text-[#D49A63] whitespace-nowrap">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-kurla-copper/20 text-kurla-amber whitespace-nowrap">
                           Débloque la livraison offerte
                         </span>
                       )}
@@ -480,7 +480,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <button
                     type="button"
                     onClick={() => { onAddItem?.(p); try { analytics.addToCart(p.id, p.name, p.price, 1, 'cart_addon'); } catch { /* noop */ } }}
-                    className="shrink-0 w-8 h-8 rounded-full bg-[#C8753D] text-white flex items-center justify-center hover:bg-[#b06330] transition"
+                    className="shrink-0 w-8 h-8 rounded-full bg-kurla-copper text-white flex items-center justify-center hover:bg-kurla-cocoa transition"
                     aria-label={`Ajouter ${p.name}`}
                   >
                     <Plus className="w-4 h-4" />
@@ -493,10 +493,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Footer Checkout Summary */}
         {items.length > 0 && (
-          <div className="pt-6 border-t border-[#FFF7EF]/10 space-y-4">
+          <div className="pt-6 border-t border-kurla-cream/10 space-y-4">
             {!user && (
               <div>
-                <label htmlFor="guest-checkout-email" className="block text-xs font-semibold text-[#FFF7EF] mb-1.5">
+                <label htmlFor="guest-checkout-email" className="block text-xs font-semibold text-kurla-cream mb-1.5">
                   Email de confirmation
                 </label>
                 <input
@@ -506,16 +506,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setGuestEmail(event.target.value)}
                   placeholder="vous@exemple.com"
                   autoComplete="email"
-                  className="w-full px-4 py-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-4 py-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
-                <p className="mt-1.5 text-[11px] text-[#FFF7EF]/60">Votre reçu et le suivi de commande seront envoyés à cette adresse.</p>
+                <p className="mt-1.5 text-[11px] text-kurla-cream/60">Votre reçu et le suivi de commande seront envoyés à cette adresse.</p>
               </div>
             )}
 
-            <div className="pt-2 border-t border-[#FFF7EF]/10 space-y-3">
+            <div className="pt-2 border-t border-kurla-cream/10 space-y-3">
               <div>
-                <h4 className="text-sm font-semibold text-[#FFF7EF]">Adresse de livraison</h4>
-                <p className="mt-1 text-[11px] text-[#FFF7EF]/60">Livraison disponible pour le moment en France et dans plusieurs pays de l’Union européenne.</p>
+                <h4 className="text-sm font-semibold text-kurla-cream">Adresse de livraison</h4>
+                <p className="mt-1 text-[11px] text-kurla-cream/60">Livraison disponible pour le moment en France et dans plusieurs pays de l’Union européenne.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
@@ -524,7 +524,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setShippingAddress(prev => ({ ...prev, fullName: event.target.value }))}
                   placeholder="Nom complet"
                   autoComplete="name"
-                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
                 <input
                   aria-label="Adresse"
@@ -532,7 +532,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setShippingAddress(prev => ({ ...prev, street: event.target.value }))}
                   placeholder="Adresse et numéro"
                   autoComplete="street-address"
-                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="sm:col-span-2 w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
                 <input
                   aria-label="Ville"
@@ -540,7 +540,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setShippingAddress(prev => ({ ...prev, city: event.target.value }))}
                   placeholder="Ville"
                   autoComplete="address-level2"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
                 <input
                   aria-label="Code postal"
@@ -548,14 +548,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setShippingAddress(prev => ({ ...prev, postalCode: event.target.value }))}
                   placeholder="Code postal"
                   autoComplete="postal-code"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
                 <select
                   aria-label="Pays de livraison"
                   value={shippingAddress.country}
                   onChange={event => setShippingAddress(prev => ({ ...prev, country: event.target.value }))}
                   autoComplete="country"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream focus:outline-none focus:border-kurla-copper"
                 >
                   {SHIPPING_OPTIONS.map(option => <option key={option.country} value={option.country}>{option.label}</option>)}
                 </select>
@@ -565,15 +565,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   onChange={event => setShippingAddress(prev => ({ ...prev, phone: event.target.value }))}
                   placeholder="Téléphone (facultatif)"
                   autoComplete="tel"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder-[#FFF7EF]/40 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder-kurla-cream/40 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
-              <label className="block text-xs text-[#FFF7EF]/80">
+              <label className="block text-xs text-kurla-cream/80">
                 Mode de livraison
                 <select
                   value={shippingMethod}
                   onChange={event => setShippingMethod(event.target.value as ShippingMethod)}
-                  className="mt-1 w-full px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                  className="mt-1 w-full px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream focus:outline-none focus:border-kurla-copper"
                 >
                   <option value="standard">Standard — {shippingOption?.freeFromCents && subtotalCents >= shippingOption.freeFromCents ? 'offerte' : `${(shippingOption?.standardCents || 0) / 100} €`} — {shippingOption?.estimatedStandardDays}</option>
                   <option value="express">Express — {((shippingOption?.expressCents || 0) / 100).toFixed(2)} € — {shippingOption?.estimatedExpressDays}</option>
@@ -588,12 +588,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="flex items-center gap-2 text-xs">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span className="font-semibold text-emerald-300">{appliedCoupon.code}</span>
-                    <span className="text-[#FFF7EF]/60">−{formatMoney(discountCents, locale)}</span>
+                    <span className="text-kurla-cream/60">−{formatMoney(discountCents, locale)}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setAppliedCoupon(null); setCouponInput(''); }}
-                    className="text-[#FFF7EF]/50 hover:text-[#FFF7EF]"
+                    className="text-kurla-cream/50 hover:text-kurla-cream"
                     aria-label="Retirer le code promo"
                   >
                     <X className="w-4 h-4" />
@@ -608,13 +608,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       onChange={event => setCouponInput(event.target.value.toUpperCase())}
                       onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); applyCoupon(); } }}
                       placeholder="Code promo (ex : BIENVENUE15)"
-                      className="flex-1 px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs uppercase tracking-wide text-[#FFF7EF] placeholder-[#FFF7EF]/40 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-[#C8753D]"
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs uppercase tracking-wide text-kurla-cream placeholder-kurla-cream/40 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-kurla-copper"
                     />
                     <button
                       type="button"
                       onClick={applyCoupon}
                       disabled={isCouponLoading || !couponInput.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap"
+                      className="px-4 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap"
                     >
                       {isCouponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Appliquer'}
                     </button>
@@ -624,12 +624,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               )}
             </div>
 
-            <div className="flex justify-between text-sm text-[#FFF7EF]">
-              <span className="text-[#FFF7EF]/70">Sous-total :</span>
+            <div className="flex justify-between text-sm text-kurla-cream">
+              <span className="text-kurla-cream/70">Sous-total :</span>
               <span>{formatMoney(subtotalCents, locale)}</span>
             </div>
-            <div className="flex justify-between text-sm text-[#FFF7EF]">
-              <span className="text-[#FFF7EF]/70">Livraison :</span>
+            <div className="flex justify-between text-sm text-kurla-cream">
+              <span className="text-kurla-cream/70">Livraison :</span>
               <span>{formatMoney(shippingCents, locale)}</span>
             </div>
             {discountCents > 0 && (
@@ -638,12 +638,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <span>−{formatMoney(discountCents, locale)}</span>
               </div>
             )}
-            <div className="flex justify-between text-base text-[#FFF7EF] border-t border-[#FFF7EF]/10 pt-3">
+            <div className="flex justify-between text-base text-kurla-cream border-t border-kurla-cream/10 pt-3">
               <span className="font-semibold">Total estimé :</span>
               <span className="font-bold">{formatMoney(finalTotalCents, locale)}</span>
             </div>
             {vatPreview && (
-              <div className="flex justify-between text-[11px] text-[#FFF7EF]/60">
+              <div className="flex justify-between text-[11px] text-kurla-cream/60">
                 <span>dont TVA ({formatVatRate(vatPreview.ratePercent ?? 0)} · {vatPreview.country}) :</span>
                 <span>{formatMoney(vatPreview.totalVatCents, locale)}</span>
               </div>
@@ -651,18 +651,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
               <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
-            <p className="text-[10px] leading-relaxed text-[#FFF7EF]/50">
+            <p className="text-[10px] leading-relaxed text-kurla-cream/50">
               Aperçu catalogue indicatif : le serveur revalide les lignes, les prix, le stock et l’éligibilité avant de créer le paiement.
             </p>
 
             {/* Informations précontractuelles précommande + CGV — C1 : petite production hebdomadaire explicite */}
-            <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1.5">
+            <div className="rounded-2xl bg-kurla-ink/60 border border-kurla-cream/10 p-3 text-[10.5px] leading-relaxed text-kurla-cream/65 space-y-1.5">
               {items.length > 0 && (
                 <p>
                   <span className="text-emerald-300 font-semibold">{hasDropshipItems && !hasPreorderItems ? 'Stock partenaire :' : isMixedCart ? 'Panier mixte :' : 'Précommande :'}</span> {cartDispatchSummary} Vous
                   pouvez annuler et être remboursé·e à tout moment avant expédition, et vous disposez de 14 jours
                   après réception pour vous rétracter.{' '}
-                  <span className="text-[#FFF7EF]/55">{DISPATCH_LEGAL}</span>
+                  <span className="text-kurla-cream/55">{DISPATCH_LEGAL}</span>
                 </p>
               )}
               {items.length > 0 && (hasPreorderItems || isMixedCart) && (
@@ -671,12 +671,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <span className="mt-0.5">⏱</span>
                     <span><strong>Commande groupée</strong> — expédition au <strong>prochain batch</strong> : {nextBatchLabel}. Via 3PL IDF, suivi par email dès remise transporteur.</span>
                   </p>
-                  <p className="text-[11px] text-[#FFF7EF]/50 pl-1">Petite production hebdomadaire (lun & jeu 18h). 60% expédiés en 24–48h via tampon si disponible. Si délai &gt;5j → info + remboursement immédiat sur demande.</p>
+                  <p className="text-[11px] text-kurla-cream/50 pl-1">Petite production hebdomadaire (lun & jeu 18h). 60% expédiés en 24–48h via tampon si disponible. Si délai &gt;5j → info + remboursement immédiat sur demande.</p>
                 </div>
               )}
               <p>
                 En validant, vous acceptez nos{' '}
-                <a href="/cgv" target="_blank" rel="noopener noreferrer" className="text-[#D49A63] underline hover:text-[#F3C9A4]">
+                <a href="/cgv" target="_blank" rel="noopener noreferrer" className="text-kurla-amber underline hover:text-[#F3C9A4]">
                   conditions générales de vente
                 </a>{' '}
                 (prix TTC, frais de livraison et délais affichés avant paiement).
@@ -684,12 +684,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
 
             {(hasPreorderItems || isMixedCart) && (
-              <p className="text-[11px] text-[#FFF7EF]/60 text-center -mb-1">En validant, ta commande est <strong className="text-[#FFF7EF]">réservée</strong> et part au <strong className="text-amber-300">{nextBatch.closeDay} 18h → expédition {nextBatch.shipDay}</strong> (batch {nextBatch.batchId === 'batch-lun' ? 'lundi' : 'jeudi'}).</p>
+              <p className="text-[11px] text-kurla-cream/60 text-center -mb-1">En validant, ta commande est <strong className="text-kurla-cream">réservée</strong> et part au <strong className="text-amber-300">{nextBatch.closeDay} 18h → expédition {nextBatch.shipDay}</strong> (batch {nextBatch.batchId === 'batch-lun' ? 'lundi' : 'jeudi'}).</p>
             )}
             <button
               onClick={handleStartCheckout}
               disabled={isCheckoutLoading}
-              className="w-full py-4 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] hover:from-[#b06330] hover:to-[#c8753d] text-white text-sm font-semibold tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-4 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber hover:from-kurla-cocoa hover:to-kurla-copper text-white text-sm font-semibold tracking-wide shadow-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isCheckoutLoading ? (
                 <>

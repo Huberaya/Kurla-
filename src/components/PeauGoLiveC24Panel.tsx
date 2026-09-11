@@ -154,18 +154,18 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
   `\nGates: ${live?.gatesOk}/${live?.gatesTotal} — Published: ${live?.published}/${live?.readiness} — Lots peau: ${live?.batches} (cout connu ${live?.batchServedKnown}) — Pros peau approuves: ${live?.prosPeau} — Stripe: ${live?.stripeMode} — Demande unites: ${live?.demandUnits}`;
 
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6 sm:p-8 space-y-7 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-7 shadow-xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-[#C8753D]" /> C24 — GO prod 65/100 · tout-en-un (lot 50 + pro peau + whitecast + checklist)
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-kurla-copper" /> C24 — GO prod 65/100 · tout-en-un (lot 50 + pro peau + whitecast + checklist)
             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${go?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30': scoreActuel>=60?'bg-amber-500/15 text-amber-300 border-amber-500/30':'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>{go?'GO':'NOGO'} {scoreActuel}/65</span>
           </h3>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1 max-w-3xl leading-relaxed">
-            Dernier cockpit avant prod : agrège <strong className="text-[#FFF7EF]">16 checks P0 (C0→C24)</strong> — infra, catalogue, filtres, kits, sourcing, gates, facturation FR82/BE76, lot 50, pro peau, shoot. Un check n'est vert que sur <strong className="text-[#FFF7EF]">preuve fichier+date + API live</strong>. Tant qu'un rouge persiste, la mise en prod est bloquée — voulu.
+          <p className="text-xs text-kurla-cream/60 mt-1 max-w-3xl leading-relaxed">
+            Dernier cockpit avant prod : agrège <strong className="text-kurla-cream">16 checks P0 (C0→C24)</strong> — infra, catalogue, filtres, kits, sourcing, gates, facturation FR82/BE76, lot 50, pro peau, shoot. Un check n'est vert que sur <strong className="text-kurla-cream">preuve fichier+date + API live</strong>. Tant qu'un rouge persiste, la mise en prod est bloquée — voulu.
           </p>
         </div>
-        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]">
+        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper">
           <RefreshCw className={`w-3.5 h-3.5 ${loading?'animate-spin':''}`} /> Re-auditer live
         </button>
       </div>
@@ -173,54 +173,54 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
       {error && <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {error}</div>}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className={`p-3 rounded-2xl border text-center ${go?'bg-emerald-500/10 border-emerald-500/20':'bg-[#050403] border-[#FFF7EF]/10'}`}>
-          <p className={`text-xl font-bold flex items-center justify-center gap-1.5 ${go?'text-emerald-300':'text-[#FFF7EF]'}`}><Gauge className="w-4 h-4" /> {scoreActuel}<span className="text-sm font-normal opacity-60">/65</span></p>
+        <div className={`p-3 rounded-2xl border text-center ${go?'bg-emerald-500/10 border-emerald-500/20':'bg-kurla-ink border-kurla-cream/10'}`}>
+          <p className={`text-xl font-bold flex items-center justify-center gap-1.5 ${go?'text-emerald-300':'text-kurla-cream'}`}><Gauge className="w-4 h-4" /> {scoreActuel}<span className="text-sm font-normal opacity-60">/65</span></p>
           <p className="text-[10px] uppercase tracking-wider opacity-70">Score peau estime</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">42 → 65 P0 (8 sem)</p>
+          <p className="text-[10px] text-kurla-cream/40">42 → 65 P0 (8 sem)</p>
         </div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-center">
-          <p className="text-xl font-bold text-[#FFF7EF] flex items-center justify-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> {live? `${live.gatesOk}/${live.gatesTotal}` : '—'}</p>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-center">
+          <p className="text-xl font-bold text-kurla-cream flex items-center justify-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> {live? `${live.gatesOk}/${live.gatesTotal}` : '—'}</p>
           <p className="text-[10px] uppercase tracking-wider text-emerald-200/70">Gates verts</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">{live? `${live.readiness} SKU peau` : '8×7 produits'}</p>
+          <p className="text-[10px] text-kurla-cream/40">{live? `${live.readiness} SKU peau` : '8×7 produits'}</p>
         </div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-center">
-          <p className="text-xl font-bold text-[#FFF7EF] flex items-center justify-center gap-1.5"><Package className="w-4 h-4" /> {live? `${live.batches}` : '—'} <span className="text-[11px] font-normal opacity-60">lots peau</span></p>
-          <p className="text-[10px] uppercase tracking-wider text-[#D49A63]">Lot 50 + coût servi</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">{live?.batchServedKnown ? `${live.batchServedKnown} avec cout` : '0 connu'}</p>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-center">
+          <p className="text-xl font-bold text-kurla-cream flex items-center justify-center gap-1.5"><Package className="w-4 h-4" /> {live? `${live.batches}` : '—'} <span className="text-[11px] font-normal opacity-60">lots peau</span></p>
+          <p className="text-[10px] uppercase tracking-wider text-kurla-amber">Lot 50 + coût servi</p>
+          <p className="text-[10px] text-kurla-cream/40">{live?.batchServedKnown ? `${live.batchServedKnown} avec cout` : '0 connu'}</p>
         </div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-sky-500/20 text-center">
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-sky-500/20 text-center">
           <p className="text-xl font-bold text-sky-300 flex items-center justify-center gap-1.5"><Users className="w-4 h-4" /> {live? `${live.prosPeau}` : '—'} <span className="text-[11px] font-normal opacity-60">pros peau</span></p>
           <p className="text-[10px] uppercase tracking-wider text-sky-200/70">Annuaire V-VI live</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">{live? `${live.pros} total` : '0 approuvé'}</p>
+          <p className="text-[10px] text-kurla-cream/40">{live? `${live.pros} total` : '0 approuvé'}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 text-[10px]">
-        <span className={`px-2.5 py-1 rounded-full border font-bold flex items-center gap-1 ${verts>=10?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30':'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/60'}`}><CheckCircle2 className="w-3 h-3" /> {verts} verts</span>
+        <span className={`px-2.5 py-1 rounded-full border font-bold flex items-center gap-1 ${verts>=10?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30':'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/60'}`}><CheckCircle2 className="w-3 h-3" /> {verts} verts</span>
         <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-1"><Clock className="w-3 h-3" /> {ambres} ambres</span>
         <span className="px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-1"><XCircle className="w-3 h-3" /> {rouges} rouges</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Stripe {live?.stripeMode?.toUpperCase() || 'TEST'}</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Truck className="w-3 h-3" /> FR82/BE76</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Beaker className="w-3 h-3" /> CPNP/CPSR/PIF fichier+date</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Stripe {live?.stripeMode?.toUpperCase() || 'TEST'}</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><Truck className="w-3 h-3" /> FR82/BE76</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><Beaker className="w-3 h-3" /> CPNP/CPSR/PIF fichier+date</span>
       </div>
 
       {/* Checklist tout */}
       <div className="space-y-2">
-        <h4 className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#C8753D]" /> Checklist P0 16 checks — C0 → C24 (tout)</h4>
+        <h4 className="text-sm font-bold text-kurla-cream flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-kurla-copper" /> Checklist P0 16 checks — C0 → C24 (tout)</h4>
         <div className="space-y-1.5">
           {checklistRows.map(row=>{
-            const tone = row.ok===true ? 'border-emerald-500/25 bg-emerald-950/15' : row.ok===null ? 'border-amber-500/20 bg-amber-950/10' : 'border-rose-500/20 bg-[#050403]';
+            const tone = row.ok===true ? 'border-emerald-500/25 bg-emerald-950/15' : row.ok===null ? 'border-amber-500/20 bg-amber-950/10' : 'border-rose-500/20 bg-kurla-ink';
             return (
               <div key={row.id} className={`p-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${tone}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-[#FFF7EF]">{row.id} — {row.label}</span>
+                    <span className="text-xs font-bold text-kurla-cream">{row.id} — {row.label}</span>
                     <StatusBadge ok={row.ok} />
-                    <span className="text-[10px] text-[#FFF7EF]/40 hidden sm:inline">{row.api}</span>
+                    <span className="text-[10px] text-kurla-cream/40 hidden sm:inline">{row.api}</span>
                   </div>
-                  <p className="text-[11px] text-[#FFF7EF]/60 mt-0.5 leading-snug">{row.gate} · <span className="text-[#FFF7EF]/80">{row.detail}</span> · cible: <span className="text-[#D49A63]">{row.target}</span></p>
+                  <p className="text-[11px] text-kurla-cream/60 mt-0.5 leading-snug">{row.gate} · <span className="text-kurla-cream/80">{row.detail}</span> · cible: <span className="text-kurla-amber">{row.target}</span></p>
                 </div>
-                <span className="text-[10px] text-[#FFF7EF]/35 shrink-0">{row.ok===true ? 'OK preuve live' : row.ok===null ? 'Preuve partielle' : 'Bloqué — action requise'}</span>
+                <span className="text-[10px] text-kurla-cream/35 shrink-0">{row.ok===true ? 'OK preuve live' : row.ok===null ? 'Preuve partielle' : 'Bloqué — action requise'}</span>
               </div>
             );
           })}
@@ -229,28 +229,28 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
 
       {/* 3 lots/pros/shoot actions */}
       <div className="grid sm:grid-cols-3 gap-3 text-xs">
-        <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-2">
-          <p className="font-bold text-[#FFF7EF] flex items-center gap-1.5"><Package className="w-4 h-4 text-[#C8753D]" /> C24 Lot 50</p>
-          <p className="text-[#FFF7EF]/60 leading-relaxed">Saisir 1 lot <code className="px-1 py-0.5 rounded bg-[#1A0F0A] border border-[#FFF7EF]/10">peau-ess-001</code> qty 50 + <code>servedCostCents</code> → cockpit C17 calcule marge réelle → gate <code>marge</code> passe au vert.</p>
+        <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
+          <p className="font-bold text-kurla-cream flex items-center gap-1.5"><Package className="w-4 h-4 text-kurla-copper" /> C24 Lot 50</p>
+          <p className="text-kurla-cream/60 leading-relaxed">Saisir 1 lot <code className="px-1 py-0.5 rounded bg-kurla-espresso border border-kurla-cream/10">peau-ess-001</code> qty 50 + <code>servedCostCents</code> → cockpit C17 calcule marge réelle → gate <code>marge</code> passe au vert.</p>
           <div className="flex gap-1.5 flex-wrap">
-            <a href="#batches" onClick={(e)=>{ e.preventDefault(); document.querySelector('[data-tab=\"batches\"]')?.dispatchEvent(new MouseEvent('click',{bubbles:true})); const el=document.querySelector('[data-tab=\"batches\"]'); if(el) (el as HTMLElement).click(); else window.location.hash='#batches'; }} className="px-2.5 py-1 rounded-full bg-[#C8753D] text-white text-[11px] font-bold">Ouvrir Lots & traçabilité</a>
-            <span className="text-[10px] text-[#FFF7EF]/35 self-center">{live?.batches ? `${live.batches} lot(s) déjà` : '0 lot — 1er lot = 420€ test (3×40€ + ports)'}</span>
+            <a href="#batches" onClick={(e)=>{ e.preventDefault(); document.querySelector('[data-tab=\"batches\"]')?.dispatchEvent(new MouseEvent('click',{bubbles:true})); const el=document.querySelector('[data-tab=\"batches\"]'); if(el) (el as HTMLElement).click(); else window.location.hash='#batches'; }} className="px-2.5 py-1 rounded-full bg-kurla-copper text-white text-[11px] font-bold">Ouvrir Lots & traçabilité</a>
+            <span className="text-[10px] text-kurla-cream/35 self-center">{live?.batches ? `${live.batches} lot(s) déjà` : '0 lot — 1er lot = 420€ test (3×40€ + ports)'}</span>
           </div>
         </div>
-        <div className="p-4 rounded-2xl bg-[#050403] border border-emerald-500/20 space-y-2">
+        <div className="p-4 rounded-2xl bg-kurla-ink border border-emerald-500/20 space-y-2">
           <p className="font-bold text-emerald-300 flex items-center gap-1.5"><Users className="w-4 h-4" /> C24 Pro peau</p>
-          <p className="text-[#FFF7EF]/60 leading-relaxed">Approuver 1 candidature <code>skincare_expert</code> avec diplôme + cas HPI + SPF V-VI → Trust Score → <code>/professionnels?cat=peau</code> sort de l'état vide honnête.</p>
+          <p className="text-kurla-cream/60 leading-relaxed">Approuver 1 candidature <code>skincare_expert</code> avec diplôme + cas HPI + SPF V-VI → Trust Score → <code>/professionnels?cat=peau</code> sort de l'état vide honnête.</p>
           <div className="flex gap-1.5 flex-wrap">
             <a href="#pros" className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">Ouvrir Certifications Pro</a>
-            <span className="text-[10px] text-[#FFF7EF]/35 self-center">{live?.prosPeau ? `${live.prosPeau} approuvé(s)` : '0 — badge Peau vide voulu tant que 0'}</span>
+            <span className="text-[10px] text-kurla-cream/35 self-center">{live?.prosPeau ? `${live.prosPeau} approuvé(s)` : '0 — badge Peau vide voulu tant que 0'}</span>
           </div>
         </div>
-        <div className="p-4 rounded-2xl bg-[#050403] border border-sky-500/20 space-y-2">
+        <div className="p-4 rounded-2xl bg-kurla-ink border border-sky-500/20 space-y-2">
           <p className="font-bold text-sky-300 flex items-center gap-1.5"><Camera className="w-4 h-4" /> C24 Shoot whitecast</p>
-          <p className="text-[#FFF7EF]/60 leading-relaxed">10 SPF ×3 niveaux (faible/modéré/élevé) sur IV–VI lumière du jour — studio Nantes 450€. Actuellement <strong className="text-[#FFF7EF]">0/10</strong> photos → gate <code>échantillon</code> rouge.</p>
+          <p className="text-kurla-cream/60 leading-relaxed">10 SPF ×3 niveaux (faible/modéré/élevé) sur IV–VI lumière du jour — studio Nantes 450€. Actuellement <strong className="text-kurla-cream">0/10</strong> photos → gate <code>échantillon</code> rouge.</p>
           <div className="flex gap-1.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/60">Budget 450€ · 1j shoot</span>
-            <span className="text-[10px] text-[#FFF7EF]/35 self-center">Après shoot → fiches SPF avec galerie V-VI</span>
+            <span className="px-2.5 py-1 rounded-full bg-kurla-espresso border border-kurla-cream/10 text-[11px] text-kurla-cream/60">Budget 450€ · 1j shoot</span>
+            <span className="text-[10px] text-kurla-cream/35 self-center">Après shoot → fiches SPF avec galerie V-VI</span>
           </div>
         </div>
       </div>
@@ -260,7 +260,7 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
         {go ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />}
         <div className="space-y-1">
           <p className={`text-sm font-bold ${go?'text-emerald-300':'text-amber-300'}`}>{go ? 'GO prod — 65/100 atteint (preuves complètes)' : `NOGO — ${rouges} blocage(s) + ${ambres} vérif(s) en cours — reste ${65-scoreActuel} pts pour 65/100`}</p>
-          <p className="text-xs leading-relaxed text-[#FFF7EF]/70">
+          <p className="text-xs leading-relaxed text-kurla-cream/70">
             {go
               ? 'Tous les gates verts + 1 lot avec coût servi + 1 pro peau + Stripe LIVE FR82. Prérendu 64 pages OK, sitemap 36 URLs, build 708kB. Déployer preprod.kurla → parcours Fatou vert → prod 1/11.'
               : `Actions pour passer GO : ${[
@@ -275,14 +275,14 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={()=>copy(goChecklist,'go')} className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-bold flex items-center gap-1.5">
+        <button onClick={()=>copy(goChecklist,'go')} className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-bold flex items-center gap-1.5">
           {copyOk==='go' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copyOk==='go'?'Copié':'Copier checklist GO (16 checks)'}
         </button>
-        <a href="https://dashboard.stripe.com/test/payments" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]"><ExternalLink className="w-3 h-3" /> Stripe dashboard</a>
-        <span className="text-[11px] text-[#FFF7EF]/35 self-center">Honnête : un NOGO n'est pas un échec — c'est la preuve que la prod ne partira pas sans dossier complet.</span>
+        <a href="https://dashboard.stripe.com/test/payments" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper"><ExternalLink className="w-3 h-3" /> Stripe dashboard</a>
+        <span className="text-[11px] text-kurla-cream/35 self-center">Honnête : un NOGO n'est pas un échec — c'est la preuve que la prod ne partira pas sans dossier complet.</span>
       </div>
 
-      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C24 — sources : <span className="text-[#D49A63]">/api/admin/operations/cockpit</span> (gates) + <span className="text-[#D49A63]">/api/admin/catalog/publication-readiness</span> (publish) + <span className="text-[#D49A63]">/api/admin/batches</span> (lots) + <span className="text-[#D49A63]">/api/admin/preorder-demand</span> (demande) + <span className="text-[#D49A63]">/api/admin/professional-applications</span> (pros peau) + <span className="text-[#D49A63]">/api/admin/metrics</span> (stripeMode) + <span className="text-[#D49A63]">peauKits.ts</span> (kits). Score 42→65 = barème P0 (doc PLAN_P0).</p>
+      <p className="text-[10px] text-kurla-cream/35 text-center leading-relaxed">C24 — sources : <span className="text-kurla-amber">/api/admin/operations/cockpit</span> (gates) + <span className="text-kurla-amber">/api/admin/catalog/publication-readiness</span> (publish) + <span className="text-kurla-amber">/api/admin/batches</span> (lots) + <span className="text-kurla-amber">/api/admin/preorder-demand</span> (demande) + <span className="text-kurla-amber">/api/admin/professional-applications</span> (pros peau) + <span className="text-kurla-amber">/api/admin/metrics</span> (stripeMode) + <span className="text-kurla-amber">peauKits.ts</span> (kits). Score 42→65 = barème P0 (doc PLAN_P0).</p>
     </div>
   );
 };

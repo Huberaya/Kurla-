@@ -85,37 +85,37 @@ export const PeauJ0MailTrackingPanel: React.FC<{ headers: HeadersInit }> = ({ he
   };
 
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-emerald-500/20 p-6 sm:p-8 space-y-6 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-emerald-500/20 p-6 sm:p-8 space-y-6 shadow-xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
             <Send className="w-5 h-5 text-emerald-400" /> C22 P1 — 5 mails J0 + échantillons + 1er lot peau
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">J0 : 5 mails pas 20</span>
           </h3>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1 max-w-3xl leading-relaxed">
-            <strong className="text-[#FFF7EF]">Nous allons commencer par 5 mails J0</strong> (3 UE peau + 1 hub log + 1 SN prio), pas 20 d’un coup. <strong className="text-emerald-300">J+3 relance</strong> si silence, <strong className="text-sky-300">J+7 KPI &gt;30% réponse (2/5)</strong>, 1 whitecast V–VI validé lumière du jour. Prospect créé = <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10">to_contact → emailed</code> dans le suivi sourcing — un gate ne passe au vert que sur <strong>réponse fichier+date</strong>.
+          <p className="text-xs text-kurla-cream/60 mt-1 max-w-3xl leading-relaxed">
+            <strong className="text-kurla-cream">Nous allons commencer par 5 mails J0</strong> (3 UE peau + 1 hub log + 1 SN prio), pas 20 d’un coup. <strong className="text-emerald-300">J+3 relance</strong> si silence, <strong className="text-sky-300">J+7 KPI &gt;30% réponse (2/5)</strong>, 1 whitecast V–VI validé lumière du jour. Prospect créé = <code className="px-1 py-0.5 rounded bg-kurla-ink border border-kurla-cream/10">to_contact → emailed</code> dans le suivi sourcing — un gate ne passe au vert que sur <strong>réponse fichier+date</strong>.
           </p>
         </div>
-        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]">
+        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper">
           <RefreshCw className={`w-3.5 h-3.5 ${loading?'animate-spin':''}`} /> Actualiser
         </button>
       </div>
 
-      {error && <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {error} · <span className="text-[#FFF7EF]/60">Le panel reste utilisable en mode doc (5 fiches statiques, mail type copiable) même si l’API prospects est vide.</span></div>}
+      {error && <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {error} · <span className="text-kurla-cream/60">Le panel reste utilisable en mode doc (5 fiches statiques, mail type copiable) même si l’API prospects est vide.</span></div>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 rounded-2xl bg-[#050403] border border-amber-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-amber-300">À contacter</p><p className="text-xl font-bold text-[#FFF7EF]">{counts.toContact}/5</p></div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-sky-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-sky-300">Emailed</p><p className="text-xl font-bold text-sky-300">{counts.emailed}/5 <span className="text-[11px] font-normal text-[#FFF7EF]/40">{j0Progress}%</span></p></div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-cyan-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-cyan-300">Réponses</p><p className="text-xl font-bold text-cyan-300">{counts.replied}/5</p><p className="text-[10px] text-[#FFF7EF]/40">cible J+7 ≥2</p></div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-emerald-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-emerald-300">Accords</p><p className="text-xl font-bold text-emerald-300">{counts.agreed}/5</p><p className="text-[10px] text-[#FFF7EF]/40">fichier+date</p></div>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-amber-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-amber-300">À contacter</p><p className="text-xl font-bold text-kurla-cream">{counts.toContact}/5</p></div>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-sky-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-sky-300">Emailed</p><p className="text-xl font-bold text-sky-300">{counts.emailed}/5 <span className="text-[11px] font-normal text-kurla-cream/40">{j0Progress}%</span></p></div>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-cyan-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-cyan-300">Réponses</p><p className="text-xl font-bold text-cyan-300">{counts.replied}/5</p><p className="text-[10px] text-kurla-cream/40">cible J+7 ≥2</p></div>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-emerald-500/20 text-center"><p className="text-[10px] uppercase tracking-wider font-bold text-emerald-300">Accords</p><p className="text-xl font-bold text-emerald-300">{counts.agreed}/5</p><p className="text-[10px] text-kurla-cream/40">fichier+date</p></div>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 rounded-full bg-[#050403] border border-[#FFF7EF]/10 overflow-hidden">
+        <div className="flex-1 h-2 rounded-full bg-kurla-ink border border-kurla-cream/10 overflow-hidden">
           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${j0Progress}%` }} />
         </div>
         <span className="text-xs font-bold text-emerald-300">{j0Progress}% J0 envoyés</span>
-        <span className="hidden sm:inline text-[11px] text-[#FFF7EF]/45">J0 5 mails → J+3 relance → J+7 bilan → J+10 échantillons → J+14 lot 50–100</span>
+        <span className="hidden sm:inline text-[11px] text-kurla-cream/45">J0 5 mails → J+3 relance → J+7 bilan → J+10 échantillons → J+14 lot 50–100</span>
       </div>
 
       <div className="space-y-3">
@@ -124,22 +124,22 @@ export const PeauJ0MailTrackingPanel: React.FC<{ headers: HeadersInit }> = ({ he
           const tone = STATUS_LABEL[status] || STATUS_LABEL.to_contact;
           const isEmailed = status!=='to_contact';
           return (
-            <div key={j.id} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isEmailed ? 'bg-emerald-950/15 border-emerald-500/20' : 'bg-[#050403] border-[#FFF7EF]/10'}`}>
+            <div key={j.id} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isEmailed ? 'bg-emerald-950/15 border-emerald-500/20' : 'bg-kurla-ink border-kurla-cream/10'}`}>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-sm text-[#FFF7EF]">{j.name}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[10px] text-[#FFF7EF]/60">{j.pays} · {j.group}</span>
+                  <span className="font-bold text-sm text-kurla-cream">{j.name}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-kurla-espresso border border-kurla-cream/10 text-[10px] text-kurla-cream/60">{j.pays} · {j.group}</span>
                   <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold flex items-center gap-1 ${tone.cls}`}>{tone.label}</span>
                 </div>
-                <p className="text-xs text-[#FFF7EF]/70 mt-1">{j.spe}</p>
-                <p className="text-[11px] text-[#FFF7EF]/45 mt-0.5">MOQ {j.moq} · {j.cibleHT} · {j.delai} · {j.doc} · <span className="font-mono text-sky-300">{j.contact}</span></p>
+                <p className="text-xs text-kurla-cream/70 mt-1">{j.spe}</p>
+                <p className="text-[11px] text-kurla-cream/45 mt-0.5">MOQ {j.moq} · {j.cibleHT} · {j.delai} · {j.doc} · <span className="font-mono text-sky-300">{j.contact}</span></p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                <button onClick={()=>copy(j.id, mailFor(j))} className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-bold flex items-center gap-1.5">
+                <button onClick={()=>copy(j.id, mailFor(j))} className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-bold flex items-center gap-1.5">
                   {copiedId===j.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copiedId===j.id?'Copié':'Copier mail J0'}
                 </button>
-                <a href={`mailto:?subject=${encodeURIComponent(`KURLA — kits peau V-VI safe 49,70/62/84,90€ (MOQ 50, précommande) — ${j.name}`)}&body=${encodeURIComponent(mailFor(j))}`} className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs font-semibold flex items-center gap-1 hover:border-[#C8753D]"><Mail className="w-3.5 h-3.5" /> Ouvrir mail</a>
-                <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[10px] text-[#FFF7EF]/50 flex items-center gap-1"><Clock className="w-3 h-3" /> {isEmailed?'Suivi dans prospects':'À créer dans prospects = to_contact'}</span>
+                <a href={`mailto:?subject=${encodeURIComponent(`KURLA — kits peau V-VI safe 49,70/62/84,90€ (MOQ 50, précommande) — ${j.name}`)}&body=${encodeURIComponent(mailFor(j))}`} className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs font-semibold flex items-center gap-1 hover:border-kurla-copper"><Mail className="w-3.5 h-3.5" /> Ouvrir mail</a>
+                <span className="px-2 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-[10px] text-kurla-cream/50 flex items-center gap-1"><Clock className="w-3 h-3" /> {isEmailed?'Suivi dans prospects':'À créer dans prospects = to_contact'}</span>
               </div>
             </div>
           );
@@ -153,12 +153,12 @@ export const PeauJ0MailTrackingPanel: React.FC<{ headers: HeadersInit }> = ({ he
       </div>
 
       <div className="flex flex-wrap gap-2 text-[11px]">
-        <span className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> Préco 3–5j lun/jeu 18h · FR82/BE76 LIVE si sk_live</span>
+        <span className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> Préco 3–5j lun/jeu 18h · FR82/BE76 LIVE si sk_live</span>
         <span className="px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Cible J+7 : 2 réponses / 5 mails + 1 accord fichier+date</span>
         <a href="/admin" onClick={e=>{e.preventDefault(); const el=document.querySelector('[data-tab=prospects]'); el?.scrollIntoView();}} className="px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1"><Send className="w-3.5 h-3.5" /> Suivi prospects →</a>
       </div>
 
-      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C22 P1 — source statique <span className="text-[#D49A63]">fournisseurs_20.md</span> (J0 5 mails : 1 Naturcos +2 Cosmetic Factory/BioSphère +8 Atelier +13 Dakar SN prio) + live <span className="text-[#D49A63]">/api/admin/sourcing/prospects</span> (to_contact→emailed→replied→agreed). Mail type copiable avec cahier 15 actifs + kits 49,70/62/84,90€ + MOQ 50 + whitecast V-VI + PIF/CPSR/CPNP/ISO. Aucun fournisseur inventé : statut réel depuis prospects, 0 = à créer.</p>
+      <p className="text-[10px] text-kurla-cream/35 text-center leading-relaxed">C22 P1 — source statique <span className="text-kurla-amber">fournisseurs_20.md</span> (J0 5 mails : 1 Naturcos +2 Cosmetic Factory/BioSphère +8 Atelier +13 Dakar SN prio) + live <span className="text-kurla-amber">/api/admin/sourcing/prospects</span> (to_contact→emailed→replied→agreed). Mail type copiable avec cahier 15 actifs + kits 49,70/62/84,90€ + MOQ 50 + whitecast V-VI + PIF/CPSR/CPNP/ISO. Aucun fournisseur inventé : statut réel depuis prospects, 0 = à créer.</p>
     </div>
   );
 };

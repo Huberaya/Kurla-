@@ -68,39 +68,39 @@ export const DiagnosticHairPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-gradient-to-b from-[#050403] via-[#1A0F0A] to-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-gradient-to-b from-kurla-ink via-kurla-espresso to-kurla-ink text-kurla-cream">
       <div className="max-w-3xl mx-auto px-4">
 
         {/* En-tête */}
         <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#C8753D]/15 border border-[#C8753D]/30 text-[#D49A63] text-xs font-semibold tracking-wider uppercase mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-amber text-xs font-semibold tracking-wider uppercase mb-4">
             <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3 minutes · sans abonnement
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Trouvez votre routine cheveux</h1>
-          <p className="text-sm text-[#FFF7EF]/70 font-light max-w-md mx-auto">Répondez à 8 questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
+          <p className="text-sm text-kurla-cream/70 font-light max-w-md mx-auto">Répondez à 8 questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-10 space-y-2">
-          <div className="flex justify-between text-xs text-[#D49A63] font-semibold uppercase tracking-wider">
+          <div className="flex justify-between text-xs text-kurla-amber font-semibold uppercase tracking-wider">
             <span>Question {step} / 8</span>
             <span>{Math.round((step / 8) * 100)}% complété</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/10 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-kurla-espresso border border-kurla-cream/10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] transition-all duration-300"
+              className="h-full bg-gradient-to-r from-kurla-copper to-kurla-amber transition-all duration-300"
               style={{ width: `${(step / 8) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Diagnostic Form Container */}
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/15 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#C8753D]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="p-8 sm:p-12 rounded-3xl bg-kurla-espresso border border-kurla-cream/15 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-kurla-copper/10 rounded-full blur-3xl pointer-events-none" />
 
           {step === 1 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">1. Texture Principale</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">1. Texture Principale</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est la texture dominante de vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -116,14 +116,14 @@ export const DiagnosticHairPage: React.FC = () => {
                     onClick={() => { setAnswers({ ...answers, texture: opt.id as any }); handleNext(); }}
                     className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                       answers.texture === opt.id
-                        ? 'bg-[#C8753D]/20 border-[#C8753D] ring-1 ring-[#C8753D]'
-                        : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                        ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper'
+                        : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     <div className="w-24 shrink-0"><DiagnosticVisual step={1} optionId={opt.id} /></div>
                     <div className="min-w-0">
-                      <div className="font-serif-title font-bold text-base text-[#FFF7EF] mb-1">{opt.title}</div>
-                      <div className="text-xs text-[#FFF7EF]/60 font-light">{opt.desc}</div>
+                      <div className="font-serif-title font-bold text-base text-kurla-cream mb-1">{opt.title}</div>
+                      <div className="text-xs text-kurla-cream/60 font-light">{opt.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -133,7 +133,7 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 2 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2. Coiffage Actuel</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">2. Coiffage Actuel</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment portez-vous vos cheveux en ce moment ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -148,7 +148,7 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, style: opt.id as any }); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
-                      answers.style === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.style === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {opt.title}
@@ -160,7 +160,7 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 3 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">3. Priorité Beauté</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">3. Priorité Beauté</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est votre priorité ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -175,7 +175,7 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, priority: opt.id as any }); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
-                      answers.priority === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.priority === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {opt.title}
@@ -187,19 +187,19 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 4 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4. Niveau de Porosité</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">4. Niveau de Porosité</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment vos cheveux réagissent-ils à l’eau ?</h2>
 
               {/* Aide : test du verre d'eau */}
-              <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-4 flex gap-3">
-                <Info className="w-5 h-5 text-[#D49A63] shrink-0 mt-0.5" />
-                <div className="text-xs text-[#FFF7EF]/75 leading-relaxed">
-                  <strong className="text-[#FFF7EF] block mb-1">Le test du verre d’eau (30 secondes)</strong>
+              <div className="rounded-2xl bg-kurla-ink border border-kurla-amber/30 p-4 flex gap-3">
+                <Info className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
+                <div className="text-xs text-kurla-cream/75 leading-relaxed">
+                  <strong className="text-kurla-cream block mb-1">Le test du verre d’eau (30 secondes)</strong>
                   Déposez un cheveu propre et sec dans un verre d’eau claire.
                   <span className="block mt-1">• Il <strong>coule au fond</strong> → porosité <strong>forte</strong> (écailles ouvertes, boit l’eau puis la perd vite).</span>
                   <span className="block">• Il <strong>flotte en surface</strong> → porosité <strong>faible</strong> (écailles serrées, l’eau peine à entrer).</span>
                   <span className="block">• Il <strong>reste au milieu</strong> → porosité <strong>moyenne</strong>, l’idéal équilibré.</span>
-                  <span className="block mt-1 text-[#FFF7EF]/50">Pas le temps ? Choisissez « Je ne sais pas », KURLA s’adapte.</span>
+                  <span className="block mt-1 text-kurla-cream/50">Pas le temps ? Choisissez « Je ne sais pas », KURLA s’adapte.</span>
                 </div>
               </div>
 
@@ -214,13 +214,13 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, porosity: opt.id as any }); handleNext(); }}
                     className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-4 ${
-                      answers.porosity === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.porosity === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     <div className="w-28 shrink-0"><DiagnosticVisual step={4} optionId={opt.id} /></div>
                     <div className="min-w-0">
                       <div className="font-bold text-sm mb-1">{opt.title}</div>
-                      <div className="text-xs text-[#FFF7EF]/60">{opt.desc}</div>
+                      <div className="text-xs text-kurla-cream/60">{opt.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -230,7 +230,7 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 5 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">5. Cuir Chevelu</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">5. Cuir Chevelu</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est l’état de votre cuir chevelu ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -244,7 +244,7 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, scalp: opt.id as any }); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
-                      answers.scalp === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.scalp === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {opt.title}
@@ -256,7 +256,7 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 6 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">6. Fréquence Routine</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">6. Fréquence Routine</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">À quelle fréquence lavez-vous vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -269,7 +269,7 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, frequency: opt.id as any }); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
-                      answers.frequency === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.frequency === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {opt.title}
@@ -281,7 +281,7 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 7 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">7. Budget Routine</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">7. Budget Routine</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel budget souhaitez-vous pour votre routine ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -294,7 +294,7 @@ export const DiagnosticHairPage: React.FC = () => {
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, budget: opt.id as any }); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
-                      answers.budget === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                      answers.budget === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {opt.title}
@@ -306,9 +306,9 @@ export const DiagnosticHairPage: React.FC = () => {
 
           {step === 8 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">8. Finalisation</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">8. Finalisation</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Voulez-vous recevoir votre routine par e-mail ?</h2>
-              <p className="text-sm text-[#FFF7EF]/70 font-light">
+              <p className="text-sm text-kurla-cream/70 font-light">
                 Votre routine s’affiche immédiatement à l’écran. L’e-mail est facultatif : il sert uniquement à vous la renvoyer et à la sauvegarder.
               </p>
               <input
@@ -316,11 +316,11 @@ export const DiagnosticHairPage: React.FC = () => {
                 value={answers.email}
                 onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
                 placeholder="Votre adresse e-mail (facultatif)"
-                className="w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-base focus:outline-none focus:border-[#C8753D]"
+                className="w-full p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream placeholder-kurla-cream/40 text-base focus:outline-none focus:border-kurla-copper"
               />
 
-              <div className="p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 flex items-start gap-3 text-xs text-[#FFF7EF]/60">
-                <ShieldAlert className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
+              <div className="p-4 rounded-xl bg-kurla-ink/80 border border-kurla-cream/10 flex items-start gap-3 text-xs text-kurla-cream/60">
+                <ShieldAlert className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" />
                 <span>
                   <strong>Bon à savoir :</strong> Ces conseils beauté sont personnalisés et ne remplacent pas un avis médical. En cas de problème persistant du cuir chevelu, consultez un professionnel de santé.
                 </span>
@@ -329,12 +329,12 @@ export const DiagnosticHairPage: React.FC = () => {
           )}
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between pt-8 border-t border-[#FFF7EF]/10 mt-8">
+          <div className="flex items-center justify-between pt-8 border-t border-kurla-cream/10 mt-8">
             <button
               onClick={handlePrev}
               disabled={step === 1}
-              className={`px-5 py-2.5 rounded-full border border-[#FFF7EF]/20 text-xs font-semibold flex items-center gap-2 ${
-                step === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#FFF7EF]/10'
+              className={`px-5 py-2.5 rounded-full border border-kurla-cream/20 text-xs font-semibold flex items-center gap-2 ${
+                step === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-kurla-cream/10'
               }`}
             >
               <ArrowLeft className="w-4 h-4" /> Retour
@@ -343,7 +343,7 @@ export const DiagnosticHairPage: React.FC = () => {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+              className="px-8 py-3.5 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
             >
               {loading ? (
                 <span>Génération KURLA en cours…</span>

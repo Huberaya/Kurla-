@@ -45,13 +45,13 @@ const formatNps = (value: number | null, available: boolean) => !available ? 'No
 function MetricCard({ label, metric, suffix }: { label: string; metric: Metric; suffix?: string }) {
   const progress = metric.progressPct == null ? null : Math.min(100, Math.max(0, metric.progressPct));
   return (
-    <div className="rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 p-4">
-      <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">{label}</p>
-      <p className={`text-xl font-bold mt-1 ${metric.available ? 'text-[#FFF7EF]' : 'text-[#FFF7EF]/45'}`}>
+    <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4">
+      <p className="text-[10px] uppercase tracking-wider text-kurla-cream/50">{label}</p>
+      <p className={`text-xl font-bold mt-1 ${metric.available ? 'text-kurla-cream' : 'text-kurla-cream/45'}`}>
         {formatValue(metric)}{suffix || ''}
       </p>
-      {metric.target !== undefined && <p className="text-[10px] text-[#FFF7EF]/45 mt-1">objectif {metric.target.toLocaleString('fr-FR')}{suffix || ''}</p>}
-      {progress !== null && <div className="h-1.5 rounded-full bg-[#FFF7EF]/10 mt-3 overflow-hidden"><div className="h-full rounded-full bg-[#C8753D]" style={{ width: `${progress}%` }} /></div>}
+      {metric.target !== undefined && <p className="text-[10px] text-kurla-cream/45 mt-1">objectif {metric.target.toLocaleString('fr-FR')}{suffix || ''}</p>}
+      {progress !== null && <div className="h-1.5 rounded-full bg-kurla-cream/10 mt-3 overflow-hidden"><div className="h-full rounded-full bg-kurla-copper" style={{ width: `${progress}%` }} /></div>}
     </div>
   );
 }
@@ -105,7 +105,7 @@ export function LaunchTractionPanel({ headers }: Props) {
     await load();
   };
 
-  if (loading && !data) return <div className="flex items-center justify-center py-12 text-[#FFF7EF]/60"><Loader2 className="w-5 h-5 animate-spin mr-2 text-[#C8753D]" /> Chargement de la traction…</div>;
+  if (loading && !data) return <div className="flex items-center justify-center py-12 text-kurla-cream/60"><Loader2 className="w-5 h-5 animate-spin mr-2 text-kurla-copper" /> Chargement de la traction…</div>;
   if (!data) return <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm text-rose-200">{message || 'Données de lancement indisponibles.'}<button onClick={load} className="ml-3 underline">Réessayer</button></div>;
 
   const m = data.metrics;
@@ -174,92 +174,92 @@ export function LaunchTractionPanel({ headers }: Props) {
   };
 
   return (
-    <section className="rounded-3xl bg-[#1A0F0A] border border-[#C8753D]/30 p-6 space-y-6">
+    <section className="rounded-3xl bg-kurla-espresso border border-kurla-copper/30 p-6 space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-serif-title font-bold flex items-center gap-2"><Target className="w-5 h-5 text-[#C8753D]" /> Chantier 6 · Traction France</h2>
-          <p className="text-xs text-[#FFF7EF]/55 mt-1">Mesures persistées, objectifs explicites et inconnus affichés comme non mesurés.</p>
+          <h2 className="text-xl font-serif-title font-bold flex items-center gap-2"><Target className="w-5 h-5 text-kurla-copper" /> Chantier 6 · Traction France</h2>
+          <p className="text-xs text-kurla-cream/55 mt-1">Mesures persistées, objectifs explicites et inconnus affichés comme non mesurés.</p>
         </div>
-        <button onClick={load} className="inline-flex items-center gap-2 rounded-full border border-[#FFF7EF]/15 px-3 py-1.5 text-xs text-[#FFF7EF]/70"><RefreshCw className="w-3.5 h-3.5" /> Actualiser</button>
+        <button onClick={load} className="inline-flex items-center gap-2 rounded-full border border-kurla-cream/15 px-3 py-1.5 text-xs text-kurla-cream/70"><RefreshCw className="w-3.5 h-3.5" /> Actualiser</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard label="Inscrits liste" metric={m.waitlistTesters} />
         <MetricCard label="Testeurs cohorte" metric={m.closedTesters} />
-        <div className="rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 p-4"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">Activation testeurs</p><p className="text-xl font-bold mt-1">{formatPct(m.testerActivationRatePct.value, m.testerActivationRatePct.available)}</p><p className="text-[10px] text-[#FFF7EF]/45 mt-1">Activés parmi la cohorte fermée</p></div>
+        <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4"><p className="text-[10px] uppercase tracking-wider text-kurla-cream/50">Activation testeurs</p><p className="text-xl font-bold mt-1">{formatPct(m.testerActivationRatePct.value, m.testerActivationRatePct.available)}</p><p className="text-[10px] text-kurla-cream/45 mt-1">Activés parmi la cohorte fermée</p></div>
         <MetricCard label="Entretiens cette semaine" metric={m.interviewsThisWeek} />
         <MetricCard label="Partenaires actifs" metric={m.activePartners} />
         <MetricCard label="Partenaires activés" metric={m.enabledPartners} />
         <MetricCard label="MAU proxy" metric={m.monthlyActiveUsers} />
         <MetricCard label="Shelf remplis" metric={m.shelfUsers} />
         <MetricCard label="Observations résultat" metric={m.observations} />
-        <div className="rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 p-4"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">Rétention D30</p><p className="text-xl font-bold text-[#FFF7EF] mt-1">{formatPct(m.d30Retention.ratePct, m.d30Retention.available)}</p><p className="text-[10px] text-[#FFF7EF]/45 mt-1">{m.d30Retention.retained}/{m.d30Retention.eligible} · objectif 25 %</p></div>
-        <div className="rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 p-4"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">NPS</p><p className="text-xl font-bold text-[#FFF7EF] mt-1">{formatNps(m.nps.value, m.nps.available)}</p><p className="text-[10px] text-[#FFF7EF]/45 mt-1">score −100 à 100 · {m.nps.responses} réponse(s)</p></div>
+        <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4"><p className="text-[10px] uppercase tracking-wider text-kurla-cream/50">Rétention D30</p><p className="text-xl font-bold text-kurla-cream mt-1">{formatPct(m.d30Retention.ratePct, m.d30Retention.available)}</p><p className="text-[10px] text-kurla-cream/45 mt-1">{m.d30Retention.retained}/{m.d30Retention.eligible} · objectif 25 %</p></div>
+        <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4"><p className="text-[10px] uppercase tracking-wider text-kurla-cream/50">NPS</p><p className="text-xl font-bold text-kurla-cream mt-1">{formatNps(m.nps.value, m.nps.available)}</p><p className="text-[10px] text-kurla-cream/45 mt-1">score −100 à 100 · {m.nps.responses} réponse(s)</p></div>
       </div>
 
-      <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4">
-        <p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50">Funnel d’onboarding testeurs</p>
-        {!data.testerFunnel.available ? <p className="text-sm text-[#FFF7EF]/45 mt-2">Non mesuré</p> : <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-xs"><div><p className="text-[#FFF7EF]/45">En attente</p><p className="text-lg font-bold">{data.testerFunnel.waitlisted}</p></div><div><p className="text-[#FFF7EF]/45">Invités</p><p className="text-lg font-bold">{data.testerFunnel.invited}</p></div><div><p className="text-[#FFF7EF]/45">Acceptés</p><p className="text-lg font-bold">{data.testerFunnel.accepted}</p></div><div><p className="text-[#FFF7EF]/45">Activés</p><p className="text-lg font-bold">{data.testerFunnel.activated}</p></div></div>}
+      <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+        <p className="text-[10px] uppercase tracking-wider text-kurla-cream/50">Funnel d’onboarding testeurs</p>
+        {!data.testerFunnel.available ? <p className="text-sm text-kurla-cream/45 mt-2">Non mesuré</p> : <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-xs"><div><p className="text-kurla-cream/45">En attente</p><p className="text-lg font-bold">{data.testerFunnel.waitlisted}</p></div><div><p className="text-kurla-cream/45">Invités</p><p className="text-lg font-bold">{data.testerFunnel.invited}</p></div><div><p className="text-kurla-cream/45">Acceptés</p><p className="text-lg font-bold">{data.testerFunnel.accepted}</p></div><div><p className="text-kurla-cream/45">Activés</p><p className="text-lg font-bold">{data.testerFunnel.activated}</p></div></div>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
-        <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4"><p className="font-semibold flex items-center gap-2"><TrendingIcon /> Diagnostic → achat</p><p className="text-lg font-bold mt-2">{formatPct(m.diagnosticToPurchasePct.value, m.diagnosticToPurchasePct.available)}</p><p className="text-[10px] text-[#FFF7EF]/45">Profils beauté ayant une commande payée</p></div>
-        <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4"><p className="font-semibold">Taux de retour</p><p className="text-lg font-bold mt-2">{formatPct(m.returnRatePct.value, m.returnRatePct.available)}</p><p className="text-[10px] text-[#FFF7EF]/45">Commandes payées avec retour non rejeté</p></div>
-        <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4"><p className="font-semibold">Avis vérifiés</p><p className="text-lg font-bold mt-2">{m.verifiedReviews.available ? (m.verifiedReviews.value ?? 0) : 'Non mesuré'}</p><p className="text-[10px] text-[#FFF7EF]/45">Après achat vérifié et modération</p></div>
-        <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4"><p className="font-semibold">k archétype</p><p className="text-lg font-bold mt-2">{!m.archetypeEvidenceK.available ? 'Non mesuré' : m.archetypeEvidenceK.value == null ? '—' : m.archetypeEvidenceK.value}</p><p className="text-[10px] text-[#FFF7EF]/45">Minimum publié · objectif ≥ 30 · {m.archetypeEvidenceK.qualifyingBuckets} segment(s)</p></div>
+        <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="font-semibold flex items-center gap-2"><TrendingIcon /> Diagnostic → achat</p><p className="text-lg font-bold mt-2">{formatPct(m.diagnosticToPurchasePct.value, m.diagnosticToPurchasePct.available)}</p><p className="text-[10px] text-kurla-cream/45">Profils beauté ayant une commande payée</p></div>
+        <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="font-semibold">Taux de retour</p><p className="text-lg font-bold mt-2">{formatPct(m.returnRatePct.value, m.returnRatePct.available)}</p><p className="text-[10px] text-kurla-cream/45">Commandes payées avec retour non rejeté</p></div>
+        <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="font-semibold">Avis vérifiés</p><p className="text-lg font-bold mt-2">{m.verifiedReviews.available ? (m.verifiedReviews.value ?? 0) : 'Non mesuré'}</p><p className="text-[10px] text-kurla-cream/45">Après achat vérifié et modération</p></div>
+        <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="font-semibold">k archétype</p><p className="text-lg font-bold mt-2">{!m.archetypeEvidenceK.available ? 'Non mesuré' : m.archetypeEvidenceK.value == null ? '—' : m.archetypeEvidenceK.value}</p><p className="text-[10px] text-kurla-cream/45">Minimum publié · objectif ≥ 30 · {m.archetypeEvidenceK.qualifyingBuckets} segment(s)</p></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
-        <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4 overflow-x-auto">
+        <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 overflow-x-auto">
           <h3 className="text-xs font-bold mb-3">Cadence des 8 dernières semaines</h3>
-          <table className="w-full text-[10px] text-left"><thead className="text-[#FFF7EF]/45"><tr><th className="pb-2">Semaine</th><th className="pb-2">Entretiens</th><th className="pb-2">Nouveaux inscrits</th><th className="pb-2">Pros</th><th className="pb-2">NPS</th></tr></thead><tbody>{data.weekly.map(week => <tr key={week.weekStart} className="border-t border-[#FFF7EF]/5"><td className="py-2">{week.weekStart}</td><td>{week.interviewsCompleted ?? '—'}</td><td>{week.newWaitlist ?? '—'}</td><td>{week.newPartners ?? '—'}</td><td>{week.npsResponses ?? '—'}</td></tr>)}</tbody></table>
+          <table className="w-full text-[10px] text-left"><thead className="text-kurla-cream/45"><tr><th className="pb-2">Semaine</th><th className="pb-2">Entretiens</th><th className="pb-2">Nouveaux inscrits</th><th className="pb-2">Pros</th><th className="pb-2">NPS</th></tr></thead><tbody>{data.weekly.map(week => <tr key={week.weekStart} className="border-t border-kurla-cream/5"><td className="py-2">{week.weekStart}</td><td>{week.interviewsCompleted ?? '—'}</td><td>{week.newWaitlist ?? '—'}</td><td>{week.newPartners ?? '—'}</td><td>{week.npsResponses ?? '—'}</td></tr>)}</tbody></table>
         </div>
-        <form onSubmit={submitTester} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4 space-y-3">
+        <form onSubmit={submitTester} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 space-y-3">
           <h3 className="text-xs font-bold">Faire avancer un testeur</h3>
-          <select required value={selectedTesterId} onChange={e => setSelectedTesterId(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="">Choisir une inscription client FR</option>{data.testerQueue.map(tester => <option key={tester.id} value={tester.id}>{tester.email} · {tester.testerStatus}</option>)}</select>
-          <select value={testerStatus} onChange={e => setTesterStatus(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="waitlisted">En attente</option><option value="invited">Invité</option><option value="accepted">Accepté</option><option value="activated">Activé</option><option value="inactive">Inactif</option><option value="declined">Refusé</option></select>
-          <button className="w-full rounded-full bg-[#C8753D] py-2 text-xs font-bold text-white">Mettre à jour</button>
+          <select required value={selectedTesterId} onChange={e => setSelectedTesterId(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="">Choisir une inscription client FR</option>{data.testerQueue.map(tester => <option key={tester.id} value={tester.id}>{tester.email} · {tester.testerStatus}</option>)}</select>
+          <select value={testerStatus} onChange={e => setTesterStatus(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="waitlisted">En attente</option><option value="invited">Invité</option><option value="accepted">Accepté</option><option value="activated">Activé</option><option value="inactive">Inactif</option><option value="declined">Refusé</option></select>
+          <button className="w-full rounded-full bg-kurla-copper py-2 text-xs font-bold text-white">Mettre à jour</button>
           {(() => {
             const selected = data.testerQueue.find(item => item.id === selectedTesterId);
             const canInvite = selected && ['waitlisted', 'invited'].includes(selected.testerStatus);
-            return <button type="button" disabled={!canInvite || invitingTester} onClick={inviteTester} className="w-full rounded-full border border-[#C8753D]/60 py-2 text-xs font-bold text-[#D49A63] disabled:opacity-35 disabled:cursor-not-allowed">{invitingTester ? 'Envoi…' : selected?.testerStatus === 'invited' ? 'Renvoyer l’invitation' : 'Envoyer l’invitation'}</button>;
+            return <button type="button" disabled={!canInvite || invitingTester} onClick={inviteTester} className="w-full rounded-full border border-kurla-copper/60 py-2 text-xs font-bold text-kurla-amber disabled:opacity-35 disabled:cursor-not-allowed">{invitingTester ? 'Envoi…' : selected?.testerStatus === 'invited' ? 'Renvoyer l’invitation' : 'Envoyer l’invitation'}</button>;
           })()}
-          {!data.testerQueue.length && <p className="text-[10px] text-[#FFF7EF]/45">Aucune inscription client FR disponible, ou migration de cohorte non appliquée.</p>}
-          <p className="text-[10px] text-[#FFF7EF]/45">Un envoi réel requiert un fournisseur email configuré ; le mode console reste une prévisualisation.</p>
+          {!data.testerQueue.length && <p className="text-[10px] text-kurla-cream/45">Aucune inscription client FR disponible, ou migration de cohorte non appliquée.</p>}
+          <p className="text-[10px] text-kurla-cream/45">Un envoi réel requiert un fournisseur email configuré ; le mode console reste une prévisualisation.</p>
         </form>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <form onSubmit={submitInterview} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4 space-y-3">
-          <h3 className="text-xs font-bold flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#C8753D]" /> Ajouter un entretien</h3>
-          <input required value={participantRef} onChange={e => setParticipantRef(e.target.value)} placeholder="Référence interne, pas d’email" className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs" />
-          <div className="flex gap-2"><select value={interviewSegment} onChange={e => setInterviewSegment(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-2 py-2 text-xs"><option value="client">Client</option><option value="pro">Pro</option><option value="other">Autre</option></select><select value={interviewStatus} onChange={e => setInterviewStatus(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-2 py-2 text-xs"><option value="completed">Réalisé</option><option value="planned">Planifié</option><option value="no_show">Absent</option></select></div>
-          <input type="datetime-local" value={interviewScheduledFor} onChange={e => setInterviewScheduledFor(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs" aria-label="Créneau de l’entretien" />
-          <button className="w-full rounded-full bg-[#C8753D] py-2 text-xs font-bold text-white">Enregistrer</button>
+        <form onSubmit={submitInterview} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 space-y-3">
+          <h3 className="text-xs font-bold flex items-center gap-2"><CalendarDays className="w-4 h-4 text-kurla-copper" /> Ajouter un entretien</h3>
+          <input required value={participantRef} onChange={e => setParticipantRef(e.target.value)} placeholder="Référence interne, pas d’email" className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs" />
+          <div className="flex gap-2"><select value={interviewSegment} onChange={e => setInterviewSegment(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-2 py-2 text-xs"><option value="client">Client</option><option value="pro">Pro</option><option value="other">Autre</option></select><select value={interviewStatus} onChange={e => setInterviewStatus(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-2 py-2 text-xs"><option value="completed">Réalisé</option><option value="planned">Planifié</option><option value="no_show">Absent</option></select></div>
+          <input type="datetime-local" value={interviewScheduledFor} onChange={e => setInterviewScheduledFor(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs" aria-label="Créneau de l’entretien" />
+          <button className="w-full rounded-full bg-kurla-copper py-2 text-xs font-bold text-white">Enregistrer</button>
         </form>
 
-        <form onSubmit={submitPartner} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4 space-y-3">
-          <h3 className="text-xs font-bold flex items-center gap-2"><Users className="w-4 h-4 text-[#C8753D]" /> Suivre un partenaire</h3>
-          <select required value={professionalId} onChange={e => setProfessionalId(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="">Choisir un profil vérifié</option>{professionals.map(item => <option key={item.profile.id} value={item.profile.id}>{item.profile.displayName} · {item.profile.city}</option>)}</select>
-          <select value={partnerStatus} onChange={e => setPartnerStatus(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="active">Partenaire actif</option><option value="prospect">Prospect</option><option value="contacted">Contacté</option><option value="paused">En pause</option></select>
-          <select value={salonOsStatus} onChange={e => setSalonOsStatus(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="not_offered">Salon OS · non proposé</option><option value="offered">Salon OS · proposé</option><option value="activated">Salon OS · activé gratuitement</option><option value="declined">Salon OS · refusé</option></select>
-          <label className="flex items-center gap-2 text-[11px] text-[#FFF7EF]/70"><input type="checkbox" checked={routineCosigned} onChange={e => setRoutineCosigned(e.target.checked)} /> Routine co-signée</label>
-          <button className="w-full rounded-full bg-[#C8753D] py-2 text-xs font-bold text-white">Enregistrer</button>
+        <form onSubmit={submitPartner} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 space-y-3">
+          <h3 className="text-xs font-bold flex items-center gap-2"><Users className="w-4 h-4 text-kurla-copper" /> Suivre un partenaire</h3>
+          <select required value={professionalId} onChange={e => setProfessionalId(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="">Choisir un profil vérifié</option>{professionals.map(item => <option key={item.profile.id} value={item.profile.id}>{item.profile.displayName} · {item.profile.city}</option>)}</select>
+          <select value={partnerStatus} onChange={e => setPartnerStatus(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="active">Partenaire actif</option><option value="prospect">Prospect</option><option value="contacted">Contacté</option><option value="paused">En pause</option></select>
+          <select value={salonOsStatus} onChange={e => setSalonOsStatus(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="not_offered">Salon OS · non proposé</option><option value="offered">Salon OS · proposé</option><option value="activated">Salon OS · activé gratuitement</option><option value="declined">Salon OS · refusé</option></select>
+          <label className="flex items-center gap-2 text-[11px] text-kurla-cream/70"><input type="checkbox" checked={routineCosigned} onChange={e => setRoutineCosigned(e.target.checked)} /> Routine co-signée</label>
+          <button className="w-full rounded-full bg-kurla-copper py-2 text-xs font-bold text-white">Enregistrer</button>
         </form>
 
-        <form onSubmit={submitNps} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#050403] p-4 space-y-3">
-          <h3 className="text-xs font-bold flex items-center gap-2"><MessageSquare className="w-4 h-4 text-[#C8753D]" /> Saisir un NPS</h3>
-          <select required value={npsScore} onChange={e => setNpsScore(e.target.value)} className="w-full rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 px-3 py-2 text-xs"><option value="">Score de 0 à 10</option>{Array.from({ length: 11 }, (_, score) => <option key={score} value={score}>{score}</option>)}</select>
-          <p className="text-[10px] text-[#FFF7EF]/45">Aucun commentaire libre ni donnée personnelle n’est stocké par ce formulaire.</p>
-          <button className="w-full rounded-full bg-[#C8753D] py-2 text-xs font-bold text-white">Enregistrer</button>
+        <form onSubmit={submitNps} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 space-y-3">
+          <h3 className="text-xs font-bold flex items-center gap-2"><MessageSquare className="w-4 h-4 text-kurla-copper" /> Saisir un NPS</h3>
+          <select required value={npsScore} onChange={e => setNpsScore(e.target.value)} className="w-full rounded-xl bg-kurla-espresso border border-kurla-cream/15 px-3 py-2 text-xs"><option value="">Score de 0 à 10</option>{Array.from({ length: 11 }, (_, score) => <option key={score} value={score}>{score}</option>)}</select>
+          <p className="text-[10px] text-kurla-cream/45">Aucun commentaire libre ni donnée personnelle n’est stocké par ce formulaire.</p>
+          <button className="w-full rounded-full bg-kurla-copper py-2 text-xs font-bold text-white">Enregistrer</button>
         </form>
       </div>
 
-      {message && <p className="text-xs text-[#D49A63] flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> {message}</p>}
+      {message && <p className="text-xs text-kurla-amber flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> {message}</p>}
     </section>
   );
 }
 
 function TrendingIcon() {
-  return <span className="text-[#C8753D]" aria-hidden="true">↗</span>;
+  return <span className="text-kurla-copper" aria-hidden="true">↗</span>;
 }

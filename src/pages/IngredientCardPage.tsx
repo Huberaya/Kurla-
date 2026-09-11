@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertCircle, BookOpen, CheckCircle2, ExternalLink, Loader2, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { fetchIngredientCard } from '../services/intelligenceService';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
 
 const EVIDENCE_LABELS: Record<string, string> = {
   A: 'Niveau A — preuve solide',
@@ -70,20 +70,20 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDF9] px-4 py-16 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C8753D]" />
+      <div className="min-h-screen bg-kurla-ivory px-4 py-16 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-kurla-copper" />
       </div>
     );
   }
 
   if (error || !card || !card.ingredient) {
     return (
-      <div className="min-h-screen bg-[#FFFDF9] px-4 py-16">
+      <div className="min-h-screen bg-kurla-ivory px-4 py-16">
         <div className="max-w-2xl mx-auto">
           <div className={`${cardClass} flex items-start gap-3`}>
-            <AlertCircle className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-[#111111] mb-1">Fiche indisponible</p>
+              <p className="font-semibold text-kurla-carbon mb-1">Fiche indisponible</p>
               <p className="text-sm text-[#666666]">
                 {error || 'Cet ingrédient n’est pas encore documenté dans le graphe KURLA.'}
               </p>
@@ -102,19 +102,19 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
   const best = card.bestEvidence;
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] px-4 py-10">
+    <div className="min-h-screen bg-kurla-ivory px-4 py-10">
       <div className="max-w-3xl mx-auto space-y-5">
 
         <header className={cardClass}>
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <p className="text-[11px] font-semibold text-[#C8753D] uppercase tracking-widest">
+            <p className="text-[11px] font-semibold text-kurla-copper uppercase tracking-widest">
               Fiche ingrédient
             </p>
             <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${card.verificationStatus === 'verified' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
               {VERIFICATION_LABELS[card.verificationStatus] || 'Statut de vérification inconnu'}
             </span>
           </div>
-          <h1 className="text-3xl font-bold text-[#111111] tracking-tight">
+          <h1 className="text-3xl font-bold text-kurla-carbon tracking-tight">
             {ingredient.display_name_fr || ingredient.inci_name}
           </h1>
           {ingredient.common_names_fr?.length > 0 && (
@@ -125,7 +125,7 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
           {ingredient.functions?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {ingredient.functions.map((fn: string) => (
-                <span key={fn} className="px-3 py-1 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-xs text-[#666666]">
+                <span key={fn} className="px-3 py-1 rounded-full bg-kurla-ivory border border-kurla-stone text-xs text-[#666666]">
                   {fn}
                 </span>
               ))}
@@ -155,19 +155,19 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
                 return (
                   <div
                     key={evidence.id}
-                    className={`rounded-xl border p-4 ${isBest ? 'border-[#C8753D]/40 bg-[#FBF7F0]' : 'border-[#E8E1DA]'}`}
+                    className={`rounded-xl border p-4 ${isBest ? 'border-kurla-copper/40 bg-[#FBF7F0]' : 'border-kurla-stone'}`}
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <span className="text-xs font-semibold text-[#111111]">
+                      <span className="text-xs font-semibold text-kurla-carbon">
                         {EVIDENCE_LABELS[level] || level}
                       </span>
                       {isBest && (
-                        <span className="text-[10px] font-semibold text-[#C8753D] uppercase tracking-wider">
+                        <span className="text-[10px] font-semibold text-kurla-copper uppercase tracking-wider">
                           Preuve retenue
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-[#111111] leading-relaxed">{evidence.claim}</p>
+                    <p className="text-sm text-kurla-carbon leading-relaxed">{evidence.claim}</p>
 
                     <p className="text-xs text-[#666666] mt-2">
                       {SOURCE_LABELS[evidence.sourceKind || evidence.source_kind] || 'Source inconnue'}
@@ -179,7 +179,7 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
                         href={evidence.sourceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] hover:underline mt-2"
+                        className="inline-flex items-center gap-1.5 text-xs text-kurla-copper hover:underline mt-2"
                       >
                         Consulter la source <ExternalLink className="w-3 h-3" />
                       </a>
@@ -196,9 +196,9 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
 
               {best && !best.transposable && (
                 <div className="rounded-xl bg-[#FFF7ED] border border-[#FED7AA] p-4 flex gap-3">
-                  <AlertCircle className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" />
+                  <AlertCircle className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-[#111111] mb-1">
+                    <p className="text-xs font-semibold text-kurla-carbon mb-1">
                       Preuve non transposable à votre profil
                     </p>
                     <p className="text-xs text-[#666666] leading-relaxed">
@@ -220,13 +220,13 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
             </h2>
             <div className="space-y-3">
               {card.provenance.map((source, index) => (
-                <div key={`${source.sourceUrl || source.sourceLabel || 'source'}-${index}`} className="rounded-xl border border-[#E8E1DA] p-4">
+                <div key={`${source.sourceUrl || source.sourceLabel || 'source'}-${index}`} className="rounded-xl border border-kurla-stone p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-[#111111]">{source.sourceLabel || 'Source non nommée'}</p>
+                    <p className="text-sm font-semibold text-kurla-carbon">{source.sourceLabel || 'Source non nommée'}</p>
                     {source.evidenceTier && <span className="text-[10px] text-[#666666]">Tier {source.evidenceTier}</span>}
                   </div>
                   {source.sourceUrl ? (
-                    <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] hover:underline mt-2">
+                    <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-kurla-copper hover:underline mt-2">
                       Consulter la source <ExternalLink className="w-3 h-3" />
                     </a>
                   ) : (
@@ -248,12 +248,12 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
             </h2>
             <div className="space-y-3">
               {card.restrictions.map((restriction: any) => (
-                <div key={restriction.id} className="rounded-xl border border-[#E8E1DA] p-4">
+                <div key={restriction.id} className="rounded-xl border border-kurla-stone p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="px-2 py-0.5 rounded-md bg-[#F5F1EB] text-[10px] font-semibold text-[#666666] uppercase tracking-wider">
                       {restriction.jurisdiction}
                     </span>
-                    <span className="text-xs font-semibold text-[#111111]">
+                    <span className="text-xs font-semibold text-kurla-carbon">
                       {restriction.max_concentration_pct != null
                         ? `Concentration maximale ${restriction.max_concentration_pct} %`
                         : 'Restriction'}
@@ -295,7 +295,7 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
                 <a
                   key={p.id}
                   href={`/produit/${p.slug}`}
-                  className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]/50 transition-colors"
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper/50 transition-colors"
                 >
                   {p.image ? (
                     <img loading="lazy" decoding="async" src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover shrink-0" referrerPolicy="no-referrer" />
@@ -303,9 +303,9 @@ export const IngredientCardPage: React.FC<{ ingredientId: string }> = ({ ingredi
                     <div className="w-12 h-12 rounded-lg bg-[#F5F1EB] shrink-0" />
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#111111] truncate">{p.name}</p>
+                    <p className="text-xs font-semibold text-kurla-carbon truncate">{p.name}</p>
                     {p.brand && <p className="text-[11px] text-[#999999] truncate">{p.brand}</p>}
-                    {p.price != null && <p className="text-[11px] text-[#C8753D] font-semibold mt-0.5">{Number(p.price).toFixed(2)} €</p>}
+                    {p.price != null && <p className="text-[11px] text-kurla-copper font-semibold mt-0.5">{Number(p.price).toFixed(2)} €</p>}
                   </div>
                 </a>
               ))}

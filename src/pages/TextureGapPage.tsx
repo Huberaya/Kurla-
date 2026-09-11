@@ -18,7 +18,7 @@ const VERDICT_LABEL: Record<string, { label: string; className: string }> = {
   angle_mort: { label: 'Angle mort', className: 'text-red-300 bg-red-500/10 border-red-500/30' },
   partiel: { label: 'Couverture partielle', className: 'text-amber-200 bg-amber-500/10 border-amber-500/30' },
   couvert: { label: 'Couvert', className: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/30' },
-  donnees_insuffisantes: { label: 'Données insuffisantes', className: 'text-[#FFF7EF]/60 bg-[#FFF7EF]/5 border-[#FFF7EF]/15' }
+  donnees_insuffisantes: { label: 'Données insuffisantes', className: 'text-kurla-cream/60 bg-kurla-cream/5 border-kurla-cream/15' }
 };
 
 export const TextureGapPage: React.FC = () => {
@@ -55,12 +55,12 @@ export const TextureGapPage: React.FC = () => {
   }, [load]);
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#C8753D]">KURLA Intelligence</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-kurla-copper">KURLA Intelligence</p>
           <h1 className="text-3xl sm:text-4xl font-semibold">Texture Gap Report</h1>
-          <p className="text-[#FFF7EF]/70 max-w-2xl">
+          <p className="text-kurla-cream/70 max-w-2xl">
             Besoins déclarés par les membres, par archétype, face à la couverture du catalogue publié.
             Agrégats uniquement : aucune donnée individuelle n’entre dans ce rapport ni n’en sort.
           </p>
@@ -71,38 +71,38 @@ export const TextureGapPage: React.FC = () => {
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}
           </p>
         )}
-        {loading && <p className="text-[#FFF7EF]/60">Génération KURLA de ton rapport…</p>}
+        {loading && <p className="text-kurla-cream/60">Génération KURLA de ton rapport…</p>}
 
         {availability && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">
-            <h2 className="flex items-center gap-2 text-lg font-medium"><Database className="w-4 h-4 text-[#C8753D]" /> Base du rapport</h2>
-            <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#FFF7EF]/75">
-              <div className="flex justify-between gap-4"><dt>Profils lus</dt><dd className="text-[#FFF7EF]">{availability.membersRead}</dd></div>
-              <div className="flex justify-between gap-4"><dt>dont archétype connu</dt><dd className="text-[#FFF7EF]">{availability.membersWithArchetype}</dd></div>
-              <div className="flex justify-between gap-4"><dt>Produits lus</dt><dd className="text-[#FFF7EF]">{availability.productsRead}</dd></div>
-              <div className="flex justify-between gap-4"><dt>dont publiés</dt><dd className="text-[#FFF7EF]">{availability.publishedProducts}</dd></div>
-              <div className="flex justify-between gap-4"><dt>Seuil de k-anonymité</dt><dd className="text-[#FFF7EF]">{report?.kThreshold ?? '—'}</dd></div>
-              <div className="flex justify-between gap-4"><dt>Origine des données</dt><dd className="text-[#FFF7EF]">{availability.persistence === 'supabase' ? 'Supabase' : 'repli mémoire'}</dd></div>
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-3">
+            <h2 className="flex items-center gap-2 text-lg font-medium"><Database className="w-4 h-4 text-kurla-copper" /> Base du rapport</h2>
+            <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-kurla-cream/75">
+              <div className="flex justify-between gap-4"><dt>Profils lus</dt><dd className="text-kurla-cream">{availability.membersRead}</dd></div>
+              <div className="flex justify-between gap-4"><dt>dont archétype connu</dt><dd className="text-kurla-cream">{availability.membersWithArchetype}</dd></div>
+              <div className="flex justify-between gap-4"><dt>Produits lus</dt><dd className="text-kurla-cream">{availability.productsRead}</dd></div>
+              <div className="flex justify-between gap-4"><dt>dont publiés</dt><dd className="text-kurla-cream">{availability.publishedProducts}</dd></div>
+              <div className="flex justify-between gap-4"><dt>Seuil de k-anonymité</dt><dd className="text-kurla-cream">{report?.kThreshold ?? '—'}</dd></div>
+              <div className="flex justify-between gap-4"><dt>Origine des données</dt><dd className="text-kurla-cream">{availability.persistence === 'supabase' ? 'Supabase' : 'repli mémoire'}</dd></div>
             </dl>
             {availability.membersTruncated && (
               <p className="text-xs text-amber-200">Lecture bornée : le rapport porte sur un échantillon, pas sur toute la base.</p>
             )}
-            <p className="flex items-start gap-2 text-sm text-[#FFF7EF]/60">
+            <p className="flex items-start gap-2 text-sm text-kurla-cream/60">
               <Info className="w-4 h-4 mt-0.5 shrink-0" /> {availability.coverageNote}
             </p>
           </section>
         )}
 
         {report && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-3">
             <h2 className="text-lg font-medium">Ce que le rapport peut dire</h2>
             <dl className="grid sm:grid-cols-3 gap-4 text-sm">
-              <div><dt className="text-[#FFF7EF]/60">Cellules publiées</dt><dd className="text-2xl text-[#FFF7EF]">{report.totals.publishedCells}</dd></div>
-              <div><dt className="text-[#FFF7EF]/60">Angles morts</dt><dd className="text-2xl text-red-300">{report.totals.blindSpots}</dd></div>
-              <div><dt className="text-[#FFF7EF]/60">Couverture partielle</dt><dd className="text-2xl text-amber-200">{report.totals.partial}</dd></div>
+              <div><dt className="text-kurla-cream/60">Cellules publiées</dt><dd className="text-2xl text-kurla-cream">{report.totals.publishedCells}</dd></div>
+              <div><dt className="text-kurla-cream/60">Angles morts</dt><dd className="text-2xl text-red-300">{report.totals.blindSpots}</dd></div>
+              <div><dt className="text-kurla-cream/60">Couverture partielle</dt><dd className="text-2xl text-amber-200">{report.totals.partial}</dd></div>
             </dl>
             {report.totals.suppressedCells > 0 && (
-              <p className="flex items-start gap-2 text-sm text-[#FFF7EF]/60">
+              <p className="flex items-start gap-2 text-sm text-kurla-cream/60">
                 <EyeOff className="w-4 h-4 mt-0.5 shrink-0" />
                 {report.totals.suppressedCells} cellule{report.totals.suppressedCells > 1 ? 's' : ''} supprimée{report.totals.suppressedCells > 1 ? 's' : ''}
                 {' '}(cohorte sous {report.kThreshold}, {report.totals.suppressedMembers} membre{report.totals.suppressedMembers > 1 ? 's' : ''}) :
@@ -113,16 +113,16 @@ export const TextureGapPage: React.FC = () => {
         )}
 
         {report && report.cells.length === 0 && (
-          <p className="flex items-start gap-2 text-sm text-[#FFF7EF]/60 bg-[#0B0806] border border-[#FFF7EF]/10 rounded-2xl px-4 py-3">
+          <p className="flex items-start gap-2 text-sm text-kurla-cream/60 bg-[#0B0806] border border-kurla-cream/10 rounded-2xl px-4 py-3">
             <SearchX className="w-4 h-4 mt-0.5 shrink-0" />
             Aucune cellule publiable : pas assez de profils déclarés pour atteindre le seuil de {report.kThreshold} membres par archétype et préoccupation.
           </p>
         )}
 
         {report && report.cells.length > 0 && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] overflow-hidden">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="text-left text-[#FFF7EF]/50 border-b border-[#FFF7EF]/10">
+              <thead className="text-left text-kurla-cream/50 border-b border-kurla-cream/10">
                 <tr>
                   <th className="px-4 py-3 font-normal">Archétype</th>
                   <th className="px-4 py-3 font-normal">Besoin déclaré</th>
@@ -135,14 +135,14 @@ export const TextureGapPage: React.FC = () => {
                 {report.cells.map(cell => {
                   const verdict = VERDICT_LABEL[cell.verdict] ?? VERDICT_LABEL.donnees_insuffisantes;
                   return (
-                    <tr key={`${cell.archetypeId}-${cell.concern}`} className="border-b border-[#FFF7EF]/5 align-top">
-                      <td className="px-4 py-3 text-[#FFF7EF]/80">{cell.archetypeLabel}</td>
-                      <td className="px-4 py-3 text-[#FFF7EF]/80">
+                    <tr key={`${cell.archetypeId}-${cell.concern}`} className="border-b border-kurla-cream/5 align-top">
+                      <td className="px-4 py-3 text-kurla-cream/80">{cell.archetypeLabel}</td>
+                      <td className="px-4 py-3 text-kurla-cream/80">
                         {cell.concern}
-                        <span className="block text-xs text-[#FFF7EF]/45">{cell.explanation}</span>
+                        <span className="block text-xs text-kurla-cream/45">{cell.explanation}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-[#FFF7EF]">{cell.memberCount}</td>
-                      <td className="px-4 py-3 text-right text-[#FFF7EF]/70">
+                      <td className="px-4 py-3 text-right text-kurla-cream">{cell.memberCount}</td>
+                      <td className="px-4 py-3 text-right text-kurla-cream/70">
                         {cell.coverage === null ? 'inconnue' : `${Math.round(cell.coverage * 100)} %`}
                       </td>
                       <td className="px-4 py-3">
@@ -157,9 +157,9 @@ export const TextureGapPage: React.FC = () => {
         )}
 
         {report && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-2">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-2">
             <h2 className="text-base font-medium">Réserves</h2>
-            <ul className="text-xs text-[#FFF7EF]/55 space-y-1">
+            <ul className="text-xs text-kurla-cream/55 space-y-1">
               {report.caveats.map(caveat => <li key={caveat}>• {caveat}</li>)}
             </ul>
           </section>

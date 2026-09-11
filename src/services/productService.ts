@@ -60,14 +60,28 @@ export async function getProductsFromSupabase(): Promise<FetchProductsResponse> 
   }
 }
 
+/**
+ * CHANTIER CONSOLIDATION — la fiche produit n'entraîne plus tout le catalogue.
+ *
+ * `GET /api/products/:slug` renvoie la même projection publique que la liste,
+ * limitée à un produit. Un 404 est un état métier (non publié / retiré), pas
+ * une panne : il est remonté sans essai de repli réseau.
+ */
+async function fetchPublicProduct(slugOrId: string): Promise<Product | null> {
+  const response = await fetch(`/api/products/${encodeURIComponent(slugOrId)}`);
+  if (response.status === 404) return null;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La fiche produit est indisponible.'));
+  return data.product ?? null;
+}
+
 export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promise<{
   product: Product | null;
   source: 'supabase' | 'fallback';
   error: Error | null;
 }> {
   try {
-    const result = await fetchPublicProducts();
-    const product = result.products.find(item => item.slug === slugOrId || item.id === slugOrId) || null;
+    const product = await fetchPublicProduct(slugOrId);
     return product
       ? { product, source: 'supabase', error: null }
       : { product: null, source: 'supabase', error: new Error('Ce produit n’est pas publié ou n’est plus disponible.') };

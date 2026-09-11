@@ -136,71 +136,71 @@ export function FulfillmentContactPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[#C8753D]/30 bg-[#C8753D]/10 p-4">
+      <div className="rounded-2xl border border-kurla-copper/30 bg-kurla-copper/10 p-4">
         <div className="flex items-center gap-2">
-          <Send className="w-4 h-4 text-[#C8753D]" />
-          <h3 className="text-sm font-bold text-[#FFF7EF]">Contacts fournisseurs & 3PL — messages prêts à envoyer</h3>
+          <Send className="w-4 h-4 text-kurla-copper" />
+          <h3 className="text-sm font-bold text-kurla-cream">Contacts fournisseurs & 3PL — messages prêts à envoyer</h3>
         </div>
-        <p className="text-[11px] text-[#FFF7EF]/70 mt-1.5 leading-relaxed">
-          Catalogue intact (aucune modification de <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10 text-[10px]">launchCatalog.ts</code>). Ces 3 messages portent le modèle <b className="text-[#D49A63]">précommande 3–5 jours en 2 batchs/semaine + tampon 75 unités chez 3PL</b>. Renseigne ton email/tél, copie ou ouvre directement dans ton client mail — puis marque comme envoyé.
+        <p className="text-[11px] text-kurla-cream/70 mt-1.5 leading-relaxed">
+          Catalogue intact (aucune modification de <code className="px-1 py-0.5 rounded bg-kurla-ink border border-kurla-cream/10 text-[10px]">launchCatalog.ts</code>). Ces 3 messages portent le modèle <b className="text-kurla-amber">précommande 3–5 jours en 2 batchs/semaine + tampon 75 unités chez 3PL</b>. Renseigne ton email/tél, copie ou ouvre directement dans ton client mail — puis marque comme envoyé.
         </p>
         <div className="grid sm:grid-cols-2 gap-3 mt-3">
           <label className="block">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-[#D49A63]">Ton email (signature)</span>
-            <input value={senderEmail} onChange={e => { setSenderEmail(e.target.value); persistSender(e.target.value, senderPhone); }} placeholder="ex: hello@kurla.eu" className="mt-1 w-full px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]" />
+            <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Ton email (signature)</span>
+            <input value={senderEmail} onChange={e => { setSenderEmail(e.target.value); persistSender(e.target.value, senderPhone); }} placeholder="ex: hello@kurla.eu" className="mt-1 w-full px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder:text-kurla-cream/30 focus:outline-none focus:border-kurla-copper" />
           </label>
           <label className="block">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-[#D49A63]">Ton téléphone (signature)</span>
-            <input value={senderPhone} onChange={e => { setSenderPhone(e.target.value); persistSender(senderEmail, e.target.value); }} placeholder="ex: 06 12 34 56 78" className="mt-1 w-full px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]" />
+            <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Ton téléphone (signature)</span>
+            <input value={senderPhone} onChange={e => { setSenderPhone(e.target.value); persistSender(senderEmail, e.target.value); }} placeholder="ex: 06 12 34 56 78" className="mt-1 w-full px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream placeholder:text-kurla-cream/30 focus:outline-none focus:border-kurla-copper" />
           </label>
         </div>
-        <p className="text-[10px] text-[#FFF7EF]/40 mt-2">Stocké en local sur ce navigateur uniquement. Pas d'envoi automatique : tu gardes le contrôle de l'envoi.</p>
+        <p className="text-[10px] text-kurla-cream/40 mt-2">Stocké en local sur ce navigateur uniquement. Pas d'envoi automatique : tu gardes le contrôle de l'envoi.</p>
       </div>
 
       <div className="grid gap-3">
         {messages.map(m => {
           const isSent = !!sent[m.id];
           return (
-            <div key={m.id} className={`rounded-2xl border p-4 space-y-3 ${isSent ? 'bg-[#050403] border-emerald-500/25' : 'bg-[#1A0F0A] border-[#FFF7EF]/10'}`}>
+            <div key={m.id} className={`rounded-2xl border p-4 space-y-3 ${isSent ? 'bg-kurla-ink border-emerald-500/25' : 'bg-kurla-espresso border-kurla-cream/10'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`w-2 h-2 rounded-full ${isSent ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                    <p className="text-xs font-bold text-[#FFF7EF] flex items-center gap-1.5">
-                      {m.id.startsWith('3pl') ? <Truck className="w-3.5 h-3.5 text-[#C8753D]" /> : m.id.includes('afro') || m.id.includes('african') ? <Building2 className="w-3.5 h-3.5 text-[#C8753D]" /> : <Mail className="w-3.5 h-3.5 text-[#C8753D]" />}
+                    <p className="text-xs font-bold text-kurla-cream flex items-center gap-1.5">
+                      {m.id.startsWith('3pl') ? <Truck className="w-3.5 h-3.5 text-kurla-copper" /> : m.id.includes('afro') || m.id.includes('african') ? <Building2 className="w-3.5 h-3.5 text-kurla-copper" /> : <Mail className="w-3.5 h-3.5 text-kurla-copper" />}
                       {m.toLabel}
                     </p>
                     {isSent && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">Envoyé</span>}
                   </div>
-                  <p className="text-[11px] text-[#D49A63] mt-0.5 font-mono">→ {m.to}</p>
-                  <p className="text-xs font-semibold text-[#FFF7EF] mt-2">Objet : {m.subject}</p>
+                  <p className="text-[11px] text-kurla-amber mt-0.5 font-mono">→ {m.to}</p>
+                  <p className="text-xs font-semibold text-kurla-cream mt-2">Objet : {m.subject}</p>
                 </div>
-                <button onClick={() => toggleSent(m.id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${isSent ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-[#050403] text-[#FFF7EF]/70 border-[#FFF7EF]/15 hover:border-emerald-500/30'}`}>
+                <button onClick={() => toggleSent(m.id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${isSent ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-kurla-ink text-kurla-cream/70 border-kurla-cream/15 hover:border-emerald-500/30'}`}>
                   <Check className="w-3.5 h-3.5" /> {isSent ? 'Marqué envoyé' : 'Marquer envoyé'}
                 </button>
               </div>
 
-              <div className="rounded-xl bg-[#050403] border border-[#FFF7EF]/10 p-3">
-                <pre className="text-[11px] text-[#FFF7EF]/80 whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[220px] overflow-auto">{m.body}</pre>
+              <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 p-3">
+                <pre className="text-[11px] text-kurla-cream/80 whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[220px] overflow-auto">{m.body}</pre>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => copy(m.subject, `${m.id}-subject`)} className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-[11px] text-[#FFF7EF]/80 hover:border-[#C8753D]/40 flex items-center gap-1.5">
+                <button onClick={() => copy(m.subject, `${m.id}-subject`)} className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-[11px] text-kurla-cream/80 hover:border-kurla-copper/40 flex items-center gap-1.5">
                   <Copy className="w-3.5 h-3.5" /> {copied === `${m.id}-subject` ? 'Copié !' : 'Copier l’objet'}
                 </button>
-                <button onClick={() => copy(m.body, `${m.id}-body`)} className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-[11px] text-[#FFF7EF]/80 hover:border-[#C8753D]/40 flex items-center gap-1.5">
+                <button onClick={() => copy(m.body, `${m.id}-body`)} className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-[11px] text-kurla-cream/80 hover:border-kurla-copper/40 flex items-center gap-1.5">
                   <Copy className="w-3.5 h-3.5" /> {copied === `${m.id}-body` ? 'Copié !' : 'Copier le corps'}
                 </button>
-                <a href={mailtoHref(m.to, m.subject, m.body)} className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#D49A63] text-white text-[11px] font-bold flex items-center gap-1.5">
+                <a href={mailtoHref(m.to, m.subject, m.body)} className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-kurla-amber text-white text-[11px] font-bold flex items-center gap-1.5">
                   <ExternalLink className="w-3.5 h-3.5" /> Ouvrir dans ton mail
                 </a>
-                <a href={mailtoHref(m.to, m.subject, m.body)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[11px] text-[#FFF7EF]/70 hover:text-[#FFF7EF] flex items-center gap-1.5">
+                <a href={mailtoHref(m.to, m.subject, m.body)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-kurla-espresso border border-kurla-cream/15 text-[11px] text-kurla-cream/70 hover:text-kurla-cream flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5" /> Envoyer via Gmail
                 </a>
               </div>
 
               {m.id === '3pl-etx' && (
-                <p className="text-[10px] text-[#FFF7EF]/45">
+                <p className="text-[10px] text-kurla-cream/45">
                   Adapte le destinataire : remplace <code>contact@etx-logistique.fr</code> par <code>hello@huboo.fr</code> ou <code>sales@cubyn.com</code> pour dupliquer. Tampon 75u = 15× p01/p04/p08/p09/p12 — catalogue intact.
                 </p>
               )}
@@ -209,11 +209,11 @@ export function FulfillmentContactPanel() {
         })}
       </div>
 
-      <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-4 flex items-start gap-2">
-        <Clock className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" />
-        <div className="text-[11px] text-[#FFF7EF]/65 leading-relaxed">
-          <p className="font-bold text-[#FFF7EF]">Après envoi : J+3 sans réponse → relance courte. Dès 1 réponse positive → on cale l'adresse 3PL et on commande le tampon 75.</p>
-          <p className="text-[#FFF7EF]/45 mt-1">Aucune modification de <code>launchCatalog.ts</code> — le fournisseur et le 3PL ne voient que le flux, pas le catalogue.</p>
+      <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-4 flex items-start gap-2">
+        <Clock className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" />
+        <div className="text-[11px] text-kurla-cream/65 leading-relaxed">
+          <p className="font-bold text-kurla-cream">Après envoi : J+3 sans réponse → relance courte. Dès 1 réponse positive → on cale l'adresse 3PL et on commande le tampon 75.</p>
+          <p className="text-kurla-cream/45 mt-1">Aucune modification de <code>launchCatalog.ts</code> — le fournisseur et le 3PL ne voient que le flux, pas le catalogue.</p>
         </div>
       </div>
     </div>

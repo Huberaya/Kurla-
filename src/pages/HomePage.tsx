@@ -20,7 +20,7 @@ const JournalSection = lazy(() => import('../components/JournalSection').then(m 
 const WaitlistSection = lazy(() => import('../components/WaitlistSection').then(m => ({ default: m.WaitlistSection })));
 
 /** Espace réservé léger pendant le chargement d'une section différée. */
-const SectionFallback = () => <div className="w-full h-[40vh] bg-[#050403]" aria-hidden="true" />;
+const SectionFallback = () => <div className="w-full h-[40vh] bg-kurla-ink" aria-hidden="true" />;
 
 /**
  * Page d'accueil.

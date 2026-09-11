@@ -83,10 +83,10 @@ export const ReferralPanel: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-12 text-[#FFF7EF]/60"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement du parrainage…</div>;
+    return <div className="flex items-center justify-center py-12 text-kurla-cream/60"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement du parrainage…</div>;
   }
   if (!session?.user) {
-    return <div className="p-6 rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-sm text-[#FFF7EF]/70">Connectez-vous à votre compte pour parrainer vos proches.</div>;
+    return <div className="p-6 rounded-2xl bg-kurla-espresso border border-kurla-cream/10 text-sm text-kurla-cream/70">Connectez-vous à votre compte pour parrainer vos proches.</div>;
   }
 
   const reward = status?.rewardEur ?? 10;
@@ -95,14 +95,14 @@ export const ReferralPanel: React.FC = () => {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
-        <Gift className="w-5 h-5 text-[#D49A63]" />
-        <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF]">Parrainage — {reward} € pour vous, {reward} € pour vos proches</h2>
+        <Gift className="w-5 h-5 text-kurla-amber" />
+        <h2 className="text-xl font-serif-title font-bold text-kurla-cream">Parrainage — {reward} € pour vous, {reward} € pour vos proches</h2>
       </div>
 
-      <div className="rounded-3xl border border-[#C8753D]/30 bg-gradient-to-br from-[#1A0F0A] to-[#050403] p-6 shadow-xl">
-        <p className="text-sm text-[#FFF7EF]/75 leading-relaxed">
-          Partagez votre code : vos proches reçoivent <b className="text-[#D49A63]">{reward} €</b> sur leur première commande
-          (dès {minOrder} € d’achat). Dès qu’elles paient, <b className="text-[#D49A63]">vous recevez {reward} €</b> de réduction
+      <div className="rounded-3xl border border-kurla-copper/30 bg-gradient-to-br from-kurla-espresso to-kurla-ink p-6 shadow-xl">
+        <p className="text-sm text-kurla-cream/75 leading-relaxed">
+          Partagez votre code : vos proches reçoivent <b className="text-kurla-amber">{reward} €</b> sur leur première commande
+          (dès {minOrder} € d’achat). Dès qu’elles paient, <b className="text-kurla-amber">vous recevez {reward} €</b> de réduction
           sur votre prochaine commande, sans minimum.
         </p>
 
@@ -110,7 +110,7 @@ export const ReferralPanel: React.FC = () => {
           <button
             onClick={activate}
             disabled={activating}
-            className="mt-5 px-6 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold shadow-lg flex items-center gap-2 disabled:opacity-60"
+            className="mt-5 px-6 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold shadow-lg flex items-center gap-2 disabled:opacity-60"
           >
             {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Activer mon parrainage
@@ -119,12 +119,12 @@ export const ReferralPanel: React.FC = () => {
           <div className="mt-5 space-y-4">
             {/* Code */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-[#FFF7EF]/50 font-bold mb-1.5">Votre code</p>
+              <p className="text-[11px] uppercase tracking-widest text-kurla-cream/50 font-bold mb-1.5">Votre code</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-3 rounded-xl bg-[#3A2218] border border-dashed border-[#C8753D]/60 text-center">
-                  <span className="text-lg font-bold tracking-[2px] text-[#FFF7EF]">{status.code}</span>
+                <div className="flex-1 px-4 py-3 rounded-xl bg-kurla-bark border border-dashed border-kurla-copper/60 text-center">
+                  <span className="text-lg font-bold tracking-[2px] text-kurla-cream">{status.code}</span>
                 </div>
-                <button onClick={() => copy('code')} className="px-4 py-3 rounded-xl bg-[#FFF7EF]/10 hover:bg-[#FFF7EF]/15 text-[#FFF7EF] flex items-center gap-1.5 text-sm font-semibold" aria-label="Copier le code">
+                <button onClick={() => copy('code')} className="px-4 py-3 rounded-xl bg-kurla-cream/10 hover:bg-kurla-cream/15 text-kurla-cream flex items-center gap-1.5 text-sm font-semibold" aria-label="Copier le code">
                   {copied === 'code' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   {copied === 'code' ? 'Copié' : 'Copier'}
                 </button>
@@ -133,24 +133,24 @@ export const ReferralPanel: React.FC = () => {
 
             {/* Lien */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-[#FFF7EF]/50 font-bold mb-1.5">Votre lien de parrainage</p>
+              <p className="text-[11px] uppercase tracking-widest text-kurla-cream/50 font-bold mb-1.5">Votre lien de parrainage</p>
               <div className="flex items-center gap-2">
                 <input readOnly value={status.link} onFocus={(e) => e.target.select()}
-                  className="flex-1 min-w-0 px-3 py-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/80" />
-                <button onClick={() => copy('link')} className="px-3 py-3 rounded-xl bg-[#FFF7EF]/10 hover:bg-[#FFF7EF]/15 text-[#FFF7EF] flex items-center gap-1.5 text-sm font-semibold shrink-0" aria-label="Copier le lien">
+                  className="flex-1 min-w-0 px-3 py-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/80" />
+                <button onClick={() => copy('link')} className="px-3 py-3 rounded-xl bg-kurla-cream/10 hover:bg-kurla-cream/15 text-kurla-cream flex items-center gap-1.5 text-sm font-semibold shrink-0" aria-label="Copier le lien">
                   {copied === 'link' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 </button>
-                <button onClick={share} className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white flex items-center gap-1.5 text-sm font-semibold shrink-0" aria-label="Partager">
+                <button onClick={share} className="px-4 py-3 rounded-xl bg-gradient-to-r from-kurla-copper to-kurla-amber text-white flex items-center gap-1.5 text-sm font-semibold shrink-0" aria-label="Partager">
                   <Share2 className="w-4 h-4" /> Partager
                 </button>
               </div>
             </div>
 
             {/* Compteur filleuls */}
-            <div className="flex items-center gap-2 pt-2 border-t border-[#FFF7EF]/10 text-sm">
-              <Users className="w-4 h-4 text-[#D49A63]" />
-              <span className="text-[#FFF7EF]/75">
-                <b className="text-[#FFF7EF]">{status.rewardedFriends}</b> filleul{status.rewardedFriends > 1 ? 's' : ''} récompensé{status.rewardedFriends > 1 ? 's' : ''}
+            <div className="flex items-center gap-2 pt-2 border-t border-kurla-cream/10 text-sm">
+              <Users className="w-4 h-4 text-kurla-amber" />
+              <span className="text-kurla-cream/75">
+                <b className="text-kurla-cream">{status.rewardedFriends}</b> filleul{status.rewardedFriends > 1 ? 's' : ''} récompensé{status.rewardedFriends > 1 ? 's' : ''}
                 {' '}— soit <b className="text-emerald-300">{status.rewardedFriends * reward} €</b> de réduction gagnés
               </span>
             </div>
@@ -159,7 +159,7 @@ export const ReferralPanel: React.FC = () => {
 
         {error && <p className="mt-4 text-xs text-rose-300">{error}</p>}
 
-        <p className="mt-4 text-[11px] text-[#FFF7EF]/45 leading-relaxed">
+        <p className="mt-4 text-[11px] text-kurla-cream/45 leading-relaxed">
           La récompense est déclenchée à la première commande payée d’un filleul (hors remboursement). Elle prend la forme
           d’un code de réduction unique envoyé par email, utilisable une fois. Le parrainage n’est pas cumulable avec un
           autre code promo sur une même commande.

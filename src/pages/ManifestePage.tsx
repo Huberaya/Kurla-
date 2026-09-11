@@ -19,31 +19,31 @@ export const ManifestePage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <div className="text-center max-w-[600px] mx-auto space-y-4">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">
             {t('pages.manifesto.eyebrow')}
           </span>
-          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#FFF7EF]">
+          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-kurla-cream">
             {t('pages.manifesto.title')}
           </h1>
-          <p className="text-base text-[#D49A63] font-serif-title italic">
+          <p className="text-base text-kurla-amber font-serif-title italic">
             {t('pages.manifesto.subtitle')}
           </p>
         </div>
 
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-8 shadow-2xl">
+        <div className="p-8 sm:p-12 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-8 shadow-2xl">
           {sections.map(({ title, body, Icon }, index) => (
             <div
               key={title}
-              className={`space-y-4 ${index > 0 ? 'pt-6 border-t border-[#FFF7EF]/10' : ''}`}
+              className={`space-y-4 ${index > 0 ? 'pt-6 border-t border-kurla-cream/10' : ''}`}
             >
-              <h2 className="text-2xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-                <Icon className="w-5 h-5 text-[#C8753D]" /> {title}
+              <h2 className="text-2xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+                <Icon className="w-5 h-5 text-kurla-copper" /> {title}
               </h2>
-              <p className="text-sm sm:text-base text-[#FFF7EF]/80 font-light leading-relaxed">
+              <p className="text-sm sm:text-base text-kurla-cream/80 font-light leading-relaxed">
                 {body}
               </p>
             </div>

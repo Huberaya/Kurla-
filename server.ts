@@ -1161,6 +1161,22 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
   });
 }));
 
+/**
+ * CHANTIER CONSOLIDATION — fiche produit unitaire.
+ *
+ * Avant cette route, ouvrir `/produit/:slug` chargeait le catalogue complet
+ * (tous les produits + variantes + images + devis kits) pour en extraire un.
+ * La réponse est la même projection publique que la liste (`toPublicProduct`
+ * + `isPublishableProduct`), limitée à un produit : même contrat, moins de
+ * réseau. Les sous-ressources (`/trust`, `/verification`, …) restent des
+ * routes séparées — elles ne servent que la fiche qui est déjà chargée.
+ */
+app.get('/api/products/:productId', rateLimit('product-single', 120, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const product = await serverDb.getPublicProductByIdOrSlug(req.params.productId);
+  if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
+  res.json({ product, count: 1 });
+}));
+
 // Gamme peau en cours de formulation (B-08 / C-06).
 //
 // Ces fiches sont écartées du catalogue achetable, et c'est volontaire : ce

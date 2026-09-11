@@ -29,7 +29,7 @@ interface Manifest {
 
 const METHOD_CLASS: Record<string, string> = {
   GET: 'text-emerald-200 bg-emerald-500/10 border-emerald-500/30',
-  POST: 'text-[#C8753D] bg-[#C8753D]/10 border-[#C8753D]/30'
+  POST: 'text-kurla-copper bg-kurla-copper/10 border-kurla-copper/30'
 };
 
 export const ApiDocsPage: React.FC = () => {
@@ -52,12 +52,12 @@ export const ApiDocsPage: React.FC = () => {
   }, [load]);
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-10">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#C8753D]">Développeurs</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-kurla-copper">Développeurs</p>
           <h1 className="text-3xl sm:text-4xl font-semibold">API publique KURLA</h1>
-          <p className="text-[#FFF7EF]/70 max-w-2xl">
+          <p className="text-kurla-cream/70 max-w-2xl">
             Le catalogue vérifié et le score d’adéquation KURLA Fit, en lecture seule. Sans compte, sans clé,
             sans état : vous envoyez un profil, vous recevez un classement, KURLA ne conserve rien.
           </p>
@@ -67,33 +67,33 @@ export const ApiDocsPage: React.FC = () => {
           <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{error}</p>
         )}
 
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">
-          <h2 className="flex items-center gap-2 text-lg font-medium"><Code2 className="w-4 h-4 text-[#C8753D]" /> Endpoints</h2>
-          {!manifest && !error && <p className="text-sm text-[#FFF7EF]/60">Chargement du manifeste…</p>}
+        <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-medium"><Code2 className="w-4 h-4 text-kurla-copper" /> Endpoints</h2>
+          {!manifest && !error && <p className="text-sm text-kurla-cream/60">Chargement du manifeste…</p>}
           {manifest && (
             <ul className="space-y-3">
               {manifest.endpoints.map(endpoint => (
                 <li key={`${endpoint.method} ${endpoint.path}`} className="space-y-1">
                   <p className="flex flex-wrap items-center gap-2 text-sm">
                     <span className={`px-2 py-0.5 rounded border text-xs ${METHOD_CLASS[endpoint.method] ?? ''}`}>{endpoint.method}</span>
-                    <code className="text-[#FFF7EF]">{endpoint.path}</code>
+                    <code className="text-kurla-cream">{endpoint.path}</code>
                   </p>
-                  <p className="text-sm text-[#FFF7EF]/60">{endpoint.description}</p>
+                  <p className="text-sm text-kurla-cream/60">{endpoint.description}</p>
                 </li>
               ))}
             </ul>
           )}
           {manifest && (
-            <p className="text-xs text-[#FFF7EF]/45">
+            <p className="text-xs text-kurla-cream/45">
               Version {manifest.version} · base {manifest.baseUrl} · manifeste machine :{' '}
               <code>/api/v1/manifest</code>
             </p>
           )}
         </section>
 
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-4">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-4">
           <h2 className="text-lg font-medium">Exemple — scorer un profil</h2>
-          <pre className="text-xs text-[#FFF7EF]/80 bg-black/40 rounded-xl p-4 overflow-x-auto">{`POST /api/v1/scoring/fit
+          <pre className="text-xs text-kurla-cream/80 bg-black/40 rounded-xl p-4 overflow-x-auto">{`POST /api/v1/scoring/fit
 Content-Type: application/json
 
 {
@@ -102,36 +102,36 @@ Content-Type: application/json
     "skin": { "sensitivity": "sensible" }
   }
 }`}</pre>
-          <p className="text-sm text-[#FFF7EF]/60">
+          <p className="text-sm text-kurla-cream/60">
             Les champs absents restent inconnus : rien n’est complété à votre place. Si aucun champ n’est
             renseigné, chaque score vaut <code>null</code> avec <code>evaluable: false</code> — jamais 0, car 0
             voudrait dire « mauvais produit » alors que cela veut dire « on ne sait rien ».
           </p>
         </section>
 
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-3">
           <h2 className="flex items-center gap-2 text-lg font-medium"><ShieldCheck className="w-4 h-4 text-emerald-300" /> Engagements</h2>
-          <ul className="text-sm text-[#FFF7EF]/70 space-y-1">
+          <ul className="text-sm text-kurla-cream/70 space-y-1">
             {(manifest?.engagements ?? []).map(item => <li key={item}>• {item}</li>)}
           </ul>
         </section>
 
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-3">
-          <h2 className="flex items-center gap-2 text-lg font-medium"><Lock className="w-4 h-4 text-[#FFF7EF]/60" /> Ce que cette API n’expose jamais</h2>
-          <ul className="text-sm text-[#FFF7EF]/60 space-y-1">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-medium"><Lock className="w-4 h-4 text-kurla-cream/60" /> Ce que cette API n’expose jamais</h2>
+          <ul className="text-sm text-kurla-cream/60 space-y-1">
             {(manifest?.neverExposed ?? []).map(item => <li key={item}>• {item}</li>)}
           </ul>
-          <p className="text-sm text-[#FFF7EF]/60">
+          <p className="text-sm text-kurla-cream/60">
             Les données des membres ne sont pas une marchandise. Les cohortes et agrégats communautaires ne
             sortent que dans le cadre d’un accord B2B, k-anonymisés, et jamais par cette API.
           </p>
         </section>
 
         {manifest && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-2">
-            <h2 className="flex items-center gap-2 text-base font-medium"><Info className="w-4 h-4 text-[#C8753D]" /> Réutilisation</h2>
-            <p className="text-sm text-[#FFF7EF]/70">{manifest.attribution}</p>
-            <ul className="text-xs text-[#FFF7EF]/50 space-y-1">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-2">
+            <h2 className="flex items-center gap-2 text-base font-medium"><Info className="w-4 h-4 text-kurla-copper" /> Réutilisation</h2>
+            <p className="text-sm text-kurla-cream/70">{manifest.attribution}</p>
+            <ul className="text-xs text-kurla-cream/50 space-y-1">
               {Object.entries(manifest.rateLimits).map(([key, value]) => <li key={key}>• {key} : {value}</li>)}
             </ul>
           </section>

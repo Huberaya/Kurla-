@@ -116,18 +116,18 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
     `\nRelease: build 8.20s 753kB · sitemap 36 · prerendu 64 · Stripe ${live?.stripeMode?.toUpperCase()} · Supabase ${release.supabase?.status||'fallback'} · gates ${live?.gatesOk}/${live?.gatesTotal}`;
 
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6 sm:p-8 space-y-7 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-7 shadow-xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <Crown className="w-5 h-5 text-[#C8753D]" /> C26 — Final 26 sections + release prod + docs + lot coût (tous les 4)
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <Crown className="w-5 h-5 text-kurla-copper" /> C26 — Final 26 sections + release prod + docs + lot coût (tous les 4)
             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${go?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30': scoreActuel>=60?'bg-amber-500/15 text-amber-300 border-amber-500/30':'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>{go?'GO':'NOGO'} {scoreActuel}/65 · {sectionsOk}/26</span>
           </h3>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1 max-w-3xl leading-relaxed">
-            Dernier panel P0 : <strong className="text-[#FFF7EF]">26 sections peau</strong> (diag 12 étapes, 15 familles filtres, fiches SPF whitecast, routines matin6/soir8/hebdo3, comparateur, budget, pros, guide, IA) + <strong className="text-[#FFF7EF]">release readiness</strong> (build/sitemap/prérendu/envs) + <strong className="text-[#FFF7EF]">handover docs</strong> + <strong className="text-[#FFF7EF]">lot 50 → coût servi → marge 52%</strong>. Un vert exige une preuve — sinon rouge honnête.
+          <p className="text-xs text-kurla-cream/60 mt-1 max-w-3xl leading-relaxed">
+            Dernier panel P0 : <strong className="text-kurla-cream">26 sections peau</strong> (diag 12 étapes, 15 familles filtres, fiches SPF whitecast, routines matin6/soir8/hebdo3, comparateur, budget, pros, guide, IA) + <strong className="text-kurla-cream">release readiness</strong> (build/sitemap/prérendu/envs) + <strong className="text-kurla-cream">handover docs</strong> + <strong className="text-kurla-cream">lot 50 → coût servi → marge 52%</strong>. Un vert exige une preuve — sinon rouge honnête.
           </p>
         </div>
-        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]">
+        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper">
           <RefreshCw className={`w-3.5 h-3.5 ${loading?'animate-spin':''}`} /> Re-auditer C26
         </button>
       </div>
@@ -138,36 +138,36 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
         <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
           <p className="text-xl font-bold text-emerald-300 flex items-center justify-center gap-1.5"><ClipboardCheck className="w-4 h-4" /> {sectionsOk}/26</p>
           <p className="text-[10px] uppercase tracking-wider text-emerald-200/70">Sections peau vertes</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">4 rouges ops (lot/pro/shoot/live)</p>
+          <p className="text-[10px] text-kurla-cream/40">4 rouges ops (lot/pro/shoot/live)</p>
         </div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-center">
-          <p className="text-xl font-bold text-[#FFF7EF] flex items-center justify-center gap-1.5"><Gauge className="w-4 h-4 text-[#C8753D]" /> {scoreActuel}<span className="text-sm font-normal opacity-60">/65</span></p>
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-center">
+          <p className="text-xl font-bold text-kurla-cream flex items-center justify-center gap-1.5"><Gauge className="w-4 h-4 text-kurla-copper" /> {scoreActuel}<span className="text-sm font-normal opacity-60">/65</span></p>
           <p className="text-[10px] uppercase tracking-wider opacity-70">Score P0 estime</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">42→65 (8 sem)</p>
+          <p className="text-[10px] text-kurla-cream/40">42→65 (8 sem)</p>
         </div>
-        <div className={`p-3 rounded-2xl border text-center ${live?.batches? 'bg-[#050403] border-[#FFF7EF]/10':'bg-amber-500/10 border-amber-500/20'}`}>
-          <p className="text-xl font-bold text-[#FFF7EF] flex items-center justify-center gap-1.5"><Boxes className="w-4 h-4" /> {live?.batches ?? 0} <span className="text-xs font-normal opacity-60">lots peau</span></p>
-          <p className="text-[10px] uppercase tracking-wider text-[#D49A63]">Cible HT 22/30/40</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">{PEAU_KITS[0].priceBundle} / {PEAU_KITS[1].priceBundle} / {PEAU_KITS[2].priceBundle} €</p>
+        <div className={`p-3 rounded-2xl border text-center ${live?.batches? 'bg-kurla-ink border-kurla-cream/10':'bg-amber-500/10 border-amber-500/20'}`}>
+          <p className="text-xl font-bold text-kurla-cream flex items-center justify-center gap-1.5"><Boxes className="w-4 h-4" /> {live?.batches ?? 0} <span className="text-xs font-normal opacity-60">lots peau</span></p>
+          <p className="text-[10px] uppercase tracking-wider text-kurla-amber">Cible HT 22/30/40</p>
+          <p className="text-[10px] text-kurla-cream/40">{PEAU_KITS[0].priceBundle} / {PEAU_KITS[1].priceBundle} / {PEAU_KITS[2].priceBundle} €</p>
         </div>
-        <div className="p-3 rounded-2xl bg-[#050403] border border-sky-500/20 text-center">
+        <div className="p-3 rounded-2xl bg-kurla-ink border border-sky-500/20 text-center">
           <p className="text-xl font-bold text-sky-300 flex items-center justify-center gap-1.5"><Users className="w-4 h-4" /> {live?.prosPeau ?? 0} pros peau</p>
           <p className="text-[10px] uppercase tracking-wider text-sky-200/70">Annuaire V-VI</p>
-          <p className="text-[10px] text-[#FFF7EF]/40">{live?.waitlist ?? 0} waitlist</p>
+          <p className="text-[10px] text-kurla-cream/40">{live?.waitlist ?? 0} waitlist</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> {sectionsOk} verts</span>
         <span className="px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-1"><XCircle className="w-3 h-3" /> {26-sectionsOk} rouges</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Globe className="w-3 h-3" /> FR82/BE76 SN71</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Stripe {String(live?.stripeMode||'TEST').toUpperCase()}</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Truck className="w-3 h-3" /> 3–5j IDF</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><Globe className="w-3 h-3" /> FR82/BE76 SN71</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Stripe {String(live?.stripeMode||'TEST').toUpperCase()}</span>
+        <span className="px-2.5 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1"><Truck className="w-3 h-3" /> 3–5j IDF</span>
       </div>
 
       {/* 26 sections */}
-      <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-3">
-        <h4 className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#C8753D]" /> Audit 26 sections peau (P0) — {sectionsOk}/26 verts honnêtes</h4>
+      <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-3">
+        <h4 className="text-sm font-bold text-kurla-cream flex items-center gap-2"><BookOpen className="w-4 h-4 text-kurla-copper" /> Audit 26 sections peau (P0) — {sectionsOk}/26 verts honnêtes</h4>
         <div className="grid sm:grid-cols-2 gap-1.5 max-h-[420px] overflow-auto pr-1">
           {SECTIONS26.map(s=>{
             const ok = Number(s.n) <= sectionsOk;
@@ -175,19 +175,19 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
               <div key={s.n} className={`p-2.5 rounded-xl border flex gap-2 ${ok?'bg-emerald-950/10 border-emerald-500/15':'bg-rose-950/10 border-rose-500/15'}`}>
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 border ${ok?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30':'bg-rose-500/10 text-rose-300 border-rose-500/20'}`}>{s.n}</span>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#FFF7EF] leading-tight">{s.label} {ok ? <CheckCircle2 className="w-3 h-3 inline text-emerald-400" /> : <Clock className="w-3 h-3 inline text-rose-400" />}</p>
-                  <p className="text-[11px] text-[#FFF7EF]/55 leading-snug">{s.gate}</p>
-                  <p className="text-[10px] text-[#D49A63] font-mono truncate">{s.url}</p>
+                  <p className="text-xs font-bold text-kurla-cream leading-tight">{s.label} {ok ? <CheckCircle2 className="w-3 h-3 inline text-emerald-400" /> : <Clock className="w-3 h-3 inline text-rose-400" />}</p>
+                  <p className="text-[11px] text-kurla-cream/55 leading-snug">{s.gate}</p>
+                  <p className="text-[10px] text-kurla-amber font-mono truncate">{s.url}</p>
                 </div>
               </div>
             );
           })}
         </div>
-        <p className="text-[11px] text-[#FFF7EF]/35 leading-relaxed">Source : QA_FATOU_C21.md 16 étapes + cockpit C16–C25 (gates/publish/demande/lots). Les 4 rouges restants = <strong className="text-rose-300">C24 lot 50, C24 pro peau approuvé, C24 shoot whitecast, C23 live Stripe FR82</strong> — ops terrain, pas du code.</p>
+        <p className="text-[11px] text-kurla-cream/35 leading-relaxed">Source : QA_FATOU_C21.md 16 étapes + cockpit C16–C25 (gates/publish/demande/lots). Les 4 rouges restants = <strong className="text-rose-300">C24 lot 50, C24 pro peau approuvé, C24 shoot whitecast, C23 live Stripe FR82</strong> — ops terrain, pas du code.</p>
       </div>
 
       {/* Release readiness */}
-      <div className="p-4 rounded-2xl bg-[#050403] border border-indigo-500/20 space-y-3">
+      <div className="p-4 rounded-2xl bg-kurla-ink border border-indigo-500/20 space-y-3">
         <h4 className="text-sm font-bold text-indigo-300 flex items-center gap-2"><Gauge className="w-4 h-4" /> Release readiness — build + envs + sitemap/prérendu</h4>
         <div className="space-y-1.5">
           {releaseChecklist.map((r,i)=>{
@@ -200,7 +200,7 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
                   <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${col}`} />
                   <div className="min-w-0">
                     <p className={`text-xs font-bold ${col}`}>{r.label}</p>
-                    <p className="text-[11px] text-[#FFF7EF]/55 leading-snug">{r.note}</p>
+                    <p className="text-[11px] text-kurla-cream/55 leading-snug">{r.note}</p>
                   </div>
                 </div>
                 <span className={`px-1.5 py-0.5 rounded-full border text-[10px] font-bold shrink-0 ${r.ok===true?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30': r.ok===null?'bg-amber-500/10 text-amber-300 border-amber-500/20':'bg-rose-500/10 text-rose-300 border-rose-500/20'}`}>{r.ok===true?'VERT': r.ok===null?'AMBRE':'ROUGE'}</span>
@@ -209,49 +209,49 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
           })}
         </div>
         <div className="grid sm:grid-cols-3 gap-2 text-xs">
-          <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10"><p className="font-bold text-[#FFF7EF] flex items-center gap-1"><Globe className="w-3 h-3" /> Pays</p><p className="text-[#FFF7EF]/60 mt-1 leading-relaxed">FR 82 pilote · BE 76 J+30 · SN 71 J+60 · CI 68 · MA 64 · CH 58 · CM 52 — LIVE seulement si score≥65 + MOQ&lt;100 + whitecast faible.</p></div>
-          <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10"><p className="font-bold text-[#FFF7EF] flex items-center gap-1"><Wallet className="w-3 h-3" /> Finance</p><p className="text-[#FFF7EF]/60 mt-1 leading-relaxed">AOV cible 52€ kit · Marge HT 52–55% · Livraison 4,90€ / gratuit 60/80€ · Stock TEST 0€ → 8 640€ HT M3 si GO.</p></div>
-          <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10"><p className="font-bold text-[#FFF7EF] flex items-center gap-1"><Target className="w-3 h-3" /> Cutover</p><p className="text-[#FFF7EF]/60 mt-1 leading-relaxed">FR82 LIVE = <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10">sk_live</code> + 8 gates verts + lot 50 + whitecast faible. Sinon TEST honnête.</p></div>
+          <div className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10"><p className="font-bold text-kurla-cream flex items-center gap-1"><Globe className="w-3 h-3" /> Pays</p><p className="text-kurla-cream/60 mt-1 leading-relaxed">FR 82 pilote · BE 76 J+30 · SN 71 J+60 · CI 68 · MA 64 · CH 58 · CM 52 — LIVE seulement si score≥65 + MOQ&lt;100 + whitecast faible.</p></div>
+          <div className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10"><p className="font-bold text-kurla-cream flex items-center gap-1"><Wallet className="w-3 h-3" /> Finance</p><p className="text-kurla-cream/60 mt-1 leading-relaxed">AOV cible 52€ kit · Marge HT 52–55% · Livraison 4,90€ / gratuit 60/80€ · Stock TEST 0€ → 8 640€ HT M3 si GO.</p></div>
+          <div className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10"><p className="font-bold text-kurla-cream flex items-center gap-1"><Target className="w-3 h-3" /> Cutover</p><p className="text-kurla-cream/60 mt-1 leading-relaxed">FR82 LIVE = <code className="px-1 py-0.5 rounded bg-kurla-ink border border-kurla-cream/10">sk_live</code> + 8 gates verts + lot 50 + whitecast faible. Sinon TEST honnête.</p></div>
         </div>
       </div>
 
       {/* Docs + Lot */}
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-3">
-          <h4 className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2"><FileCheck2 className="w-4 h-4 text-[#D49A63]" /> Handover docs (6) — preuves chiffrées</h4>
+        <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-3">
+          <h4 className="text-sm font-bold text-kurla-cream flex items-center gap-2"><FileCheck2 className="w-4 h-4 text-kurla-amber" /> Handover docs (6) — preuves chiffrées</h4>
           <div className="space-y-1.5">
             {DOCS.map(d=>(
-              <div key={d.file} className="p-2.5 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 flex gap-2">
-                <BookOpen className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
+              <div key={d.file} className="p-2.5 rounded-xl bg-kurla-espresso border border-kurla-cream/10 flex gap-2">
+                <BookOpen className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" />
                 <div className="min-w-0">
-                  <p className="text-xs font-mono font-bold text-[#FFF7EF] truncate">{d.file}</p>
-                  <p className="text-[11px] text-[#FFF7EF]/60 leading-snug">{d.desc}</p>
+                  <p className="text-xs font-mono font-bold text-kurla-cream truncate">{d.file}</p>
+                  <p className="text-[11px] text-kurla-cream/60 leading-snug">{d.desc}</p>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-[#FFF7EF]/35 leading-relaxed">Tous docs sous <code className="px-1 py-0.5 rounded bg-[#1A0F0A] border border-[#FFF7EF]/10">kurla/</code> · SOP préco lun/jeu 18h + retours/remboursements inclus admin.</p>
+          <p className="text-[11px] text-kurla-cream/35 leading-relaxed">Tous docs sous <code className="px-1 py-0.5 rounded bg-kurla-espresso border border-kurla-cream/10">kurla/</code> · SOP préco lun/jeu 18h + retours/remboursements inclus admin.</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#050403] border border-[#C8753D]/30 space-y-3">
-          <h4 className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2"><Boxes className="w-4 h-4 text-[#C8753D]" /> Lot 50 → coût servi → marge 52% (boucle ops close)</h4>
+        <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-copper/30 space-y-3">
+          <h4 className="text-sm font-bold text-kurla-cream flex items-center gap-2"><Boxes className="w-4 h-4 text-kurla-copper" /> Lot 50 → coût servi → marge 52% (boucle ops close)</h4>
           <div className="space-y-2 text-xs">
-            <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10">
-              <p className="font-bold text-[#FFF7EF]">Kits peaux : 49,70€ / 62€ / 84,90€</p>
+            <div className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10">
+              <p className="font-bold text-kurla-cream">Kits peaux : 49,70€ / 62€ / 84,90€</p>
               <div className="mt-1 space-y-1">
                 {PEAU_KITS.map(k=>(
-                  <div key={k.id} className="flex justify-between"><span className="text-[#FFF7EF]/70">{k.id} {k.tier}</span><span className="font-mono font-bold text-[#FFF7EF]">{k.priceBundle.toFixed(2)}€ <span className="font-normal text-[#FFF7EF]/40">cible HT &lt;{k.id==='KPEAU-01'?22:k.id==='KPEAU-02'?30:40}€</span></span></div>
+                  <div key={k.id} className="flex justify-between"><span className="text-kurla-cream/70">{k.id} {k.tier}</span><span className="font-mono font-bold text-kurla-cream">{k.priceBundle.toFixed(2)}€ <span className="font-normal text-kurla-cream/40">cible HT &lt;{k.id==='KPEAU-01'?22:k.id==='KPEAU-02'?30:40}€</span></span></div>
                 ))}
               </div>
             </div>
             <div className={`p-3 rounded-xl border ${live?.batchServed? 'bg-emerald-950/15 border-emerald-500/20':'bg-amber-950/15 border-amber-500/20'}`}>
               <p className={`font-bold flex items-center gap-1 ${live?.batchServed?'text-emerald-300':'text-amber-300'}`}>{live?.batchServed? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />} Coût servi : {live?.batchServed ? `${live.batchServed} lot(s) — marge calculable` : '0 lot — cibles HT affichées, marge non inventée'}</p>
-              <p className="text-[11px] text-[#FFF7EF]/60 mt-1 leading-relaxed">{live?.batches ? `${live.batches} lot(s) peau en base` : 'Aucun lot peau réceptionné — créer lot 50 via'} <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10">Lots & traçabilité</code> → moyenne pondérée <code>servedCostCents × qty</code></p>
+              <p className="text-[11px] text-kurla-cream/60 mt-1 leading-relaxed">{live?.batches ? `${live.batches} lot(s) peau en base` : 'Aucun lot peau réceptionné — créer lot 50 via'} <code className="px-1 py-0.5 rounded bg-kurla-ink border border-kurla-cream/10">Lots & traçabilité</code> → moyenne pondérée <code>servedCostCents × qty</code></p>
             </div>
             <div className="flex gap-1.5">
-              <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/60">MOQ 50–100</span>
-              <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/60">FR 3–5j IDF</span>
-              <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/60">BE 48–72h</span>
+              <span className="px-2 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-[11px] text-kurla-cream/60">MOQ 50–100</span>
+              <span className="px-2 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-[11px] text-kurla-cream/60">FR 3–5j IDF</span>
+              <span className="px-2 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-[11px] text-kurla-cream/60">BE 48–72h</span>
             </div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
         {go ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />}
         <div className="space-y-1">
           <p className={`text-sm font-bold ${go?'text-emerald-300':'text-amber-300'}`}>{go ? 'GO prod 65/100 — 26/26 verts — cutover LIVE' : `NOGO — ${26-sectionsOk} sections rouges + gates ${live?.gatesOk}/${live?.gatesTotal} + Stripe ${String(live?.stripeMode).toUpperCase()} — reste ${65-scoreActuel} pts`}</p>
-          <p className="text-xs leading-relaxed text-[#FFF7EF]/70">
+          <p className="text-xs leading-relaxed text-kurla-cream/70">
             {go
               ? 'Toutes preuves fichier+date réunies · sitemap 36 · prérendu 64 · siret + TVA intra renseignés · email prod SPF/DKIM OK · deploy preprod.kurla → parcours Fatou vert → prod 1/11.'
               : `Pour passer GO : ${[
@@ -276,15 +276,15 @@ export const PeauC26FinalPanel: React.FC<{ headers: HeadersInit }> = ({ headers 
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={()=>copy(copy26,'c26')} className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-bold flex items-center gap-1.5">
+        <button onClick={()=>copy(copy26,'c26')} className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-bold flex items-center gap-1.5">
           {copyOk==='c26' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copyOk==='c26'?'Copié':'Copier C26 final (26 checks)'}
         </button>
-        <a href="https://dashboard.stripe.com/test/dashboard" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]"><ExternalLink className="w-3 h-3" /> Stripe</a>
-        <a href="/peau" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70">Pôle peau</a>
-        <span className="text-[11px] text-[#FFF7EF]/35 self-center">C26 = P0 close — 42→65 en 8 sem · cash 450€ shoot · hors stock TEST tant que gate rouge.</span>
+        <a href="https://dashboard.stripe.com/test/dashboard" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper"><ExternalLink className="w-3 h-3" /> Stripe</a>
+        <a href="/peau" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70">Pôle peau</a>
+        <span className="text-[11px] text-kurla-cream/35 self-center">C26 = P0 close — 42→65 en 8 sem · cash 450€ shoot · hors stock TEST tant que gate rouge.</span>
       </div>
 
-      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C26 — sources : <span className="text-[#D49A63]">QA_FATOU_C21.md + cockpit C16–C25</span> (6 panels) + <span className="text-[#D49A63]">/api/admin/operations/cockpit + metrics + batches + professional-applications</span> + <span className="text-[#D49A63]">/api/health + /api/stripe/status + /api/supabase/status</span> + <span className="text-[#D49A63]">vite build 8.20s 753kB</span>.</p>
+      <p className="text-[10px] text-kurla-cream/35 text-center leading-relaxed">C26 — sources : <span className="text-kurla-amber">QA_FATOU_C21.md + cockpit C16–C25</span> (6 panels) + <span className="text-kurla-amber">/api/admin/operations/cockpit + metrics + batches + professional-applications</span> + <span className="text-kurla-amber">/api/health + /api/stripe/status + /api/supabase/status</span> + <span className="text-kurla-amber">vite build 8.20s 753kB</span>.</p>
     </div>
   );
 };

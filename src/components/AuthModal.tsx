@@ -207,13 +207,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const displayError = localError || error;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050403]/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#1A0F0A] rounded-3xl border border-[#C8753D]/30 shadow-2xl overflow-hidden p-6 sm:p-8 text-[#FFF7EF]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-kurla-ink/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-kurla-espresso rounded-3xl border border-kurla-copper/30 shadow-2xl overflow-hidden p-6 sm:p-8 text-kurla-cream">
         
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-[#FFF7EF]/60 hover:text-white hover:bg-[#FFF7EF]/10 transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-full text-kurla-cream/60 hover:text-white hover:bg-kurla-cream/10 transition-colors"
           aria-label="Fermer"
         >
           <X className="w-5 h-5" />
@@ -221,16 +221,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-serif-title font-bold text-xl mx-auto mb-3 shadow-lg shadow-[#C8753D]/30">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-kurla-bark via-kurla-copper to-kurla-amber flex items-center justify-center text-white font-serif-title font-bold text-xl mx-auto mb-3 shadow-lg shadow-kurla-copper/30">
             K
           </div>
-          <h2 className="text-2xl font-serif-title font-bold text-[#FFF7EF]">
+          <h2 className="text-2xl font-serif-title font-bold text-kurla-cream">
             {mode === 'login' && 'Connexion à votre espace'}
             {mode === 'signup' && 'Créer votre compte KURLA'}
             {mode === 'forgot' && 'Mot de passe oublié'}
             {mode === 'confirm' && 'Vérifie ta boîte mail'}
           </h2>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1">
+          <p className="text-xs text-kurla-cream/60 mt-1">
             {mode === 'login' && 'Accédez à vos diagnostics, routines et commandes.'}
             {mode === 'signup' && 'Rejoignez le premier univers Afro & Melanin Beauty-Tech.'}
             {mode === 'forgot' && 'Entrez votre email pour recevoir les instructions.'}
@@ -258,33 +258,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1.5">Adresse Email</label>
+              <label className="block text-xs font-semibold text-kurla-cream/80 mb-1.5">Adresse Email</label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-[#FFF7EF]/80">Mot de passe</label>
+                <label className="block text-xs font-semibold text-kurla-cream/80">Mot de passe</label>
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('forgot')}
-                  className="text-[11px] text-[#C8753D] hover:underline"
+                  className="text-[11px] text-kurla-copper hover:underline"
                 >
                   Mot de passe oublié ?
                 </button>
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -292,14 +292,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   aria-pressed={showPassword}
-                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                  className="absolute right-3 top-2.5 text-kurla-cream/40 hover:text-kurla-copper transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -309,7 +309,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm transition-all shadow-lg shadow-[#C8753D]/25 flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm transition-all shadow-lg shadow-kurla-copper/25 flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
@@ -322,12 +322,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
             </button>
 
-            <div className="text-center pt-3 border-t border-[#FFF7EF]/10">
-              <span className="text-xs text-[#FFF7EF]/60">Pas encore de compte ? </span>
+            <div className="text-center pt-3 border-t border-kurla-cream/10">
+              <span className="text-xs text-kurla-cream/60">Pas encore de compte ? </span>
               <button
                 type="button"
                 onClick={() => handleSwitchMode('signup')}
-                className="text-xs font-bold text-[#C8753D] hover:underline"
+                className="text-xs font-bold text-kurla-copper hover:underline"
               >
                 S’inscrire gratuitement
               </button>
@@ -339,48 +339,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleSignUpSubmit} className="space-y-3.5">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1">Prénom</label>
+                <label className="block text-xs font-semibold text-kurla-cream/80 mb-1">Prénom</label>
                 <input
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Aminata"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1">Nom</label>
+                <label className="block text-xs font-semibold text-kurla-cream/80 mb-1">Nom</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Traoré"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1">Adresse Email</label>
+              <label className="block text-xs font-semibold text-kurla-cream/80 mb-1">Adresse Email</label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="aminata@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1">Mot de passe (min. 6 caractères)</label>
+              <label className="block text-xs font-semibold text-kurla-cream/80 mb-1">Mot de passe (min. 6 caractères)</label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -388,14 +388,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   aria-pressed={showPassword}
-                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                  className="absolute right-3 top-2.5 text-kurla-cream/40 hover:text-kurla-copper transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -403,9 +403,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1">Confirmer le mot de passe</label>
+              <label className="block text-xs font-semibold text-kurla-cream/80 mb-1">Confirmer le mot de passe</label>
               <div className="relative">
-                <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
@@ -413,14 +413,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(v => !v)}
                   aria-label={showConfirmPassword ? 'Masquer la confirmation' : 'Afficher la confirmation'}
                   aria-pressed={showConfirmPassword}
-                  className="absolute right-3 top-2.5 text-[#FFF7EF]/40 hover:text-[#C8753D] transition-colors"
+                  className="absolute right-3 top-2.5 text-kurla-cream/40 hover:text-kurla-copper transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -433,17 +433,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 id="terms"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-1 rounded bg-[#050403] border-[#FFF7EF]/20 text-[#C8753D] focus:ring-[#C8753D]"
+                className="mt-1 rounded bg-kurla-ink border-kurla-cream/20 text-kurla-copper focus:ring-kurla-copper"
               />
-              <label htmlFor="terms" className="text-[11px] text-[#FFF7EF]/70 leading-tight cursor-pointer">
-                J’accepte les conditions générales et la politique de confidentialité KURLA. Rôle attribué : <strong className="text-[#C8753D]">Customer</strong>.
+              <label htmlFor="terms" className="text-[11px] text-kurla-cream/70 leading-tight cursor-pointer">
+                J’accepte les conditions générales et la politique de confidentialité KURLA. Rôle attribué : <strong className="text-kurla-copper">Customer</strong>.
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm transition-all shadow-lg shadow-[#C8753D]/25 flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm transition-all shadow-lg shadow-kurla-copper/25 flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
@@ -456,12 +456,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
             </button>
 
-            <div className="text-center pt-2 border-t border-[#FFF7EF]/10">
-              <span className="text-xs text-[#FFF7EF]/60">Déjà inscrit ? </span>
+            <div className="text-center pt-2 border-t border-kurla-cream/10">
+              <span className="text-xs text-kurla-cream/60">Déjà inscrit ? </span>
               <button
                 type="button"
                 onClick={() => handleSwitchMode('login')}
-                className="text-xs font-bold text-[#C8753D] hover:underline"
+                className="text-xs font-bold text-kurla-copper hover:underline"
               >
                 Se connecter
               </button>
@@ -472,12 +472,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode === 'confirm' && (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-3 py-2">
-              <div className="w-14 h-14 rounded-full bg-[#C8753D]/10 border border-[#C8753D]/30 flex items-center justify-center text-[#C8753D]">
+              <div className="w-14 h-14 rounded-full bg-kurla-copper/10 border border-kurla-copper/30 flex items-center justify-center text-kurla-copper">
                 <Mail className="w-7 h-7" />
               </div>
-              <p className="text-xs text-[#FFF7EF]/75 leading-relaxed">
+              <p className="text-xs text-kurla-cream/75 leading-relaxed">
                 Ton compte est presque prêt. Ouvre l’email envoyé à{' '}
-                <strong className="text-[#FFF7EF]">{pendingEmail || 'ton adresse'}</strong> et
+                <strong className="text-kurla-cream">{pendingEmail || 'ton adresse'}</strong> et
                 clique sur le lien de confirmation, puis reconnecte-toi. Pense à vérifier tes
                 <em> indésirables</em>.
               </p>
@@ -487,7 +487,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               type="button"
               onClick={handleResendConfirmation}
               disabled={loading || resendCooldown > 0}
-              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-[#C8753D]/25 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-kurla-copper/25 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Envoi en cours...</>
@@ -506,14 +506,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   setPassword('');
                   handleSwitchMode('login');
                 }}
-                className="font-bold text-[#C8753D] hover:underline"
+                className="font-bold text-kurla-copper hover:underline"
               >
                 J’ai confirmé → me connecter
               </button>
               <button
                 type="button"
                 onClick={() => handleSwitchMode('signup')}
-                className="text-[#FFF7EF]/60 hover:text-[#FFF7EF] hover:underline"
+                className="text-kurla-cream/60 hover:text-kurla-cream hover:underline"
               >
                 Modifier mon email
               </button>
@@ -524,16 +524,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode === 'forgot' && (
           <form onSubmit={handleForgotSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#FFF7EF]/80 mb-1.5">Adresse Email</label>
+              <label className="block text-xs font-semibold text-kurla-cream/80 mb-1.5">Adresse Email</label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-[#FFF7EF]/40" />
+                <Mail className="w-4 h-4 absolute left-3.5 top-3 text-kurla-cream/40" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] placeholder-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream placeholder-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
                 />
               </div>
             </div>
@@ -541,7 +541,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm transition-all shadow-lg shadow-[#C8753D]/25 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm transition-all shadow-lg shadow-kurla-copper/25 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -552,11 +552,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
             </button>
 
-            <div className="text-center pt-3 border-t border-[#FFF7EF]/10">
+            <div className="text-center pt-3 border-t border-kurla-cream/10">
               <button
                 type="button"
                 onClick={() => handleSwitchMode('login')}
-                className="text-xs font-bold text-[#C8753D] hover:underline"
+                className="text-xs font-bold text-kurla-copper hover:underline"
               >
                 ← Retour à la connexion
               </button>

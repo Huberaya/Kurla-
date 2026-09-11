@@ -171,7 +171,7 @@ export const DiagnosticVisual: React.FC<{ step: number; optionId: string }> = ({
   if (!art) return null;
 
   return (
-    <div className="rounded-xl bg-[#050403] border border-[#FFF7EF]/10 overflow-hidden shrink-0">
+    <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 overflow-hidden shrink-0">
       <svg viewBox="0 0 120 80" className="w-full h-20" role="img" aria-hidden="true">
         {art}
       </svg>

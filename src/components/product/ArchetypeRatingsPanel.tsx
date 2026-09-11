@@ -32,26 +32,26 @@ export function ArchetypeRatingsPanel({ productId }: ArchetypeRatingsPanelProps)
   const publishable = state?.ratings.filter(rating => rating.publishable) ?? [];
 
   return (
-    <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6">
+    <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6">
       <h2 className="text-xl font-serif-title font-bold flex items-center gap-2 mb-1">
-        <Sparkles className="w-5 h-5 text-[#D49A63]" />
+        <Sparkles className="w-5 h-5 text-kurla-amber" />
         <span>Ce que disent les cheveux comme les vôtres</span>
       </h2>
-      <p className="text-xs text-[#FFF7EF]/60 mb-4">
+      <p className="text-xs text-kurla-cream/60 mb-4">
         KURLA n’affiche pas de note globale : une moyenne mélange des cheveux qui ne se ressemblent pas.
         Chaque note est calculée sur une seule cohorte, et supprimée si la cohorte est trop petite.
       </p>
 
       {loading ? (
-        <p className="flex items-center gap-2 text-xs text-[#FFF7EF]/60">
+        <p className="flex items-center gap-2 text-xs text-kurla-cream/60">
           <Loader2 className="w-4 h-4 animate-spin" /> Chargement des cohortes…
         </p>
       ) : !state ? (
-        <p className="text-xs text-[#FFF7EF]/60">
+        <p className="text-xs text-kurla-cream/60">
           Les notes par archétype sont indisponibles pour le moment.
         </p>
       ) : publishable.length === 0 ? (
-        <p className="text-xs text-[#FFF7EF]/60">
+        <p className="text-xs text-kurla-cream/60">
           Pas encore assez de retours vérifiés pour publier une note par archétype sur ce produit.
           KURLA préfère ne rien afficher plutôt qu’afficher une tendance non fiable.
         </p>
@@ -63,24 +63,24 @@ export function ArchetypeRatingsPanel({ productId }: ArchetypeRatingsPanelProps)
               <li
                 key={rating.archetypeId}
                 className={`rounded-xl border p-3 flex items-center justify-between gap-3 ${
-                  isViewer ? 'border-[#C8753D] bg-[#C8753D]/10' : 'border-[#FFF7EF]/10'
+                  isViewer ? 'border-kurla-copper bg-kurla-copper/10' : 'border-kurla-cream/10'
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#FFF7EF]">
+                  <p className="text-sm font-semibold text-kurla-cream">
                     {rating.archetypeLabel}
-                    {isViewer && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#D49A63]">votre archétype</span>}
+                    {isViewer && <span className="ml-2 text-[10px] uppercase tracking-wider text-kurla-amber">votre archétype</span>}
                   </p>
-                  <p className="text-[11px] text-[#FFF7EF]/55 mt-0.5">
+                  <p className="text-[11px] text-kurla-cream/55 mt-0.5">
                     {rating.reviewCount} retour(s) vérifié(s)
                   </p>
                 </div>
                 {rating.rating === null ? (
-                  <span className="text-[11px] text-[#FFF7EF]/50 shrink-0">non publié</span>
+                  <span className="text-[11px] text-kurla-cream/50 shrink-0">non publié</span>
                 ) : (
-                  <span className="text-lg font-bold text-[#D49A63] shrink-0">
+                  <span className="text-lg font-bold text-kurla-amber shrink-0">
                     {rating.rating.toFixed(1)}
-                    <span className="text-[11px] text-[#FFF7EF]/50">/5</span>
+                    <span className="text-[11px] text-kurla-cream/50">/5</span>
                   </span>
                 )}
               </li>
@@ -90,7 +90,7 @@ export function ArchetypeRatingsPanel({ productId }: ArchetypeRatingsPanelProps)
       )}
 
       {state?.ratings.some(rating => !rating.publishable) && (
-        <p className="mt-4 flex items-start gap-2 text-[11px] text-[#FFF7EF]/50">
+        <p className="mt-4 flex items-start gap-2 text-[11px] text-kurla-cream/50">
           <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>
             {state.ratings.filter(rating => !rating.publishable).length} cohorte(s) masquée(s) : effectif

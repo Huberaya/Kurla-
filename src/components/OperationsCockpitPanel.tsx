@@ -79,10 +79,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function inputClass(): string {
-  return 'w-full px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]';
+  return 'w-full px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper';
 }
 function labelClass(): string {
-  return 'text-[10px] uppercase tracking-wider font-bold text-[#D49A63]';
+  return 'text-[10px] uppercase tracking-wider font-bold text-kurla-amber';
 }
 
 /** Un montant absent s'affiche absent. Jamais 0,00 : ce serait un prix inventé. */
@@ -200,25 +200,25 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
   };
 
   const kpis = cockpit ? [
-    { label: 'Produits au catalogue', value: cockpit.products, tone: 'text-[#FFF7EF]' },
+    { label: 'Produits au catalogue', value: cockpit.products, tone: 'text-kurla-cream' },
     { label: 'Publiables maintenant', value: cockpit.readyToPublish, tone: cockpit.readyToPublish > 0 ? 'text-emerald-300' : 'text-amber-300' },
-    { label: 'Statut « publié »', value: cockpit.publishedStatus, tone: 'text-[#FFF7EF]' },
-    { label: 'Publiés mais non listables', value: cockpit.publishedButNotListable, tone: cockpit.publishedButNotListable > 0 ? 'text-red-300' : 'text-[#FFF7EF]' },
+    { label: 'Statut « publié »', value: cockpit.publishedStatus, tone: 'text-kurla-cream' },
+    { label: 'Publiés mais non listables', value: cockpit.publishedButNotListable, tone: cockpit.publishedButNotListable > 0 ? 'text-red-300' : 'text-kurla-cream' },
     { label: 'Sans fournisseur rattaché', value: cockpit.productsWithoutSupplier, tone: cockpit.productsWithoutSupplier > 0 ? 'text-amber-300' : 'text-emerald-300' },
-    { label: 'Avec coût servi réel', value: cockpit.productsWithServedCost, tone: cockpit.productsWithServedCost > 0 ? 'text-emerald-300' : 'text-[#FFF7EF]/50' }
+    { label: 'Avec coût servi réel', value: cockpit.productsWithServedCost, tone: cockpit.productsWithServedCost > 0 ? 'text-emerald-300' : 'text-kurla-cream/50' }
   ] : [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-[#FFF7EF] flex items-center gap-2"><Gauge size={18} /> Pilotage catalogue</h2>
-          <p className="text-[11px] text-[#FFF7EF]/60 mt-1 max-w-3xl">
+          <h2 className="text-lg font-bold text-kurla-cream flex items-center gap-2"><Gauge size={18} /> Pilotage catalogue</h2>
+          <p className="text-[11px] text-kurla-cream/60 mt-1 max-w-3xl">
             Une seule question à pouvoir trancher ici : <strong>ce produit peut-il être vendu, et sinon qu'est-ce qui manque</strong>.
             {cockpit ? ` Généré le ${new Date(cockpit.generatedAt).toLocaleString('fr-FR')}.` : ''}
           </p>
         </div>
-        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-[#FFF7EF]/15 text-[#FFF7EF]/80 text-xs flex items-center gap-2 hover:border-[#C8753D]">
+        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-kurla-cream/15 text-kurla-cream/80 text-xs flex items-center gap-2 hover:border-kurla-copper">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Recharger
         </button>
       </div>
@@ -233,25 +233,25 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {kpis.map(kpi => (
-              <div key={kpi.label} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] px-4 py-3">
+              <div key={kpi.label} className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] px-4 py-3">
                 <div className={`text-2xl font-bold ${kpi.tone}`}>{kpi.value}</div>
-                <div className="text-[10px] uppercase tracking-wider text-[#D49A63] mt-1">{kpi.label}</div>
+                <div className="text-[10px] uppercase tracking-wider text-kurla-amber mt-1">{kpi.label}</div>
               </div>
             ))}
           </div>
 
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3 flex items-center gap-2">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
               <AlertTriangle size={13} /> Ce qui bloque, nommé ({cockpit.blockers.length})
             </h3>
             {cockpit.blockers.length === 0 ? (
-              <p className="text-xs text-[#FFF7EF]/60">Aucun blocage : tous les produits sont publiables.</p>
+              <p className="text-xs text-kurla-cream/60">Aucun blocage : tous les produits sont publiables.</p>
             ) : (
               <ul className="space-y-2">
                 {cockpit.blockers.map(blocker => (
-                  <li key={blocker.label} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                    <div className="text-xs text-[#FFF7EF]">{blocker.label} <span className="text-[#FFF7EF]/50">— {blocker.count} produit(s)</span></div>
-                    <div className="text-[10px] text-[#FFF7EF]/40 font-mono break-all">{blocker.productIds.join(', ')}</div>
+                  <li key={blocker.label} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                    <div className="text-xs text-kurla-cream">{blocker.label} <span className="text-kurla-cream/50">— {blocker.count} produit(s)</span></div>
+                    <div className="text-[10px] text-kurla-cream/40 font-mono break-all">{blocker.productIds.join(', ')}</div>
                   </li>
                 ))}
               </ul>
@@ -264,14 +264,14 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
             )}
           </section>
 
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3 flex items-center gap-2">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
               <Package size={13} /> Produit par produit
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-wider text-[#D49A63]">
+                  <tr className="text-[10px] uppercase tracking-wider text-kurla-amber">
                     <th className="py-2 pr-3">Produit</th>
                     <th className="py-2 pr-3">Statut</th>
                     <th className="py-2 pr-3">Vendable ?</th>
@@ -283,37 +283,37 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                 </thead>
                 <tbody>
                   {cockpit.rows.map(row => (
-                    <tr key={row.productId} className="border-t border-[#FFF7EF]/10 align-top">
-                      <td className="py-2 pr-3 text-[#FFF7EF]">{row.title}<div className="text-[10px] text-[#FFF7EF]/40 font-mono">{row.productId}</div></td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{row.catalogStatus}</td>
+                    <tr key={row.productId} className="border-t border-kurla-cream/10 align-top">
+                      <td className="py-2 pr-3 text-kurla-cream">{row.title}<div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div></td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">{row.catalogStatus}</td>
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${row.ready ? 'text-emerald-300 border-emerald-300/30 bg-emerald-300/10' : 'text-amber-300 border-amber-300/30 bg-amber-300/10'}`}>
                           {row.ready ? 'oui' : 'non'}
                         </span>
                       </td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{row.missing.length ? row.missing.join(' · ') : '—'}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">
+                      <td className="py-2 pr-3 text-kurla-cream/70">{row.missing.length ? row.missing.join(' · ') : '—'}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">
                         {row.supplierName || <span className="text-amber-300/90">aucune</span>}
                       </td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">
+                      <td className="py-2 pr-3 text-kurla-cream/70">
                         {row.documentsHeld.length ? (
                           <>
                             {row.documentsHeld.length} détenu(s)
                             {row.expiredDocuments.length > 0 && <span className="ml-1 text-amber-300">dont {row.expiredDocuments.length} périmé(s)</span>}
                           </>
-                        ) : <span className="text-[#FFF7EF]/40">aucun</span>}
+                        ) : <span className="text-kurla-cream/40">aucun</span>}
                       </td>
-                      <td className="py-2 text-[#FFF7EF]/70" title={row.servedCostReason}>
+                      <td className="py-2 text-kurla-cream/70" title={row.servedCostReason}>
                         {row.servedCostCents === null
-                          ? <span className="text-[#FFF7EF]/40">aucun lot reçu</span>
-                          : <>{(row.servedCostCents / 100).toFixed(2).replace('.', ',')} €<span className="text-[#FFF7EF]/40"> · {row.batchCount} lot(s)</span></>}
+                          ? <span className="text-kurla-cream/40">aucun lot reçu</span>
+                          : <>{(row.servedCostCents / 100).toFixed(2).replace('.', ',')} €<span className="text-kurla-cream/40"> · {row.batchCount} lot(s)</span></>}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-[10px] text-[#FFF7EF]/40 mt-3">
+            <p className="text-[10px] text-kurla-cream/40 mt-3">
               Le coût servi est une moyenne pondérée des lots reçus, calculée à partir des coûts d'achat,
               du fret, des droits de douane et des autres coûts saisis. Un produit sans lot n'affiche
               aucune valeur : rien n'est estimé à la place.
@@ -325,15 +325,15 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
         </>
       )}
 
-      <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3 flex items-center gap-2">
+      <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
           <ClipboardList size={13} /> Approvisionnement — {cockpit?.sourcing.itemCount ?? 0} besoin(s), {cockpit?.sourcing.rfqCount ?? 0} demande(s), {cockpit?.sourcing.responseCount ?? 0} réponse(s), {cockpit?.sourcing.awardedCount ?? 0} attribué(s)
         </h3>
 
         {cockpit && cockpit.sourcing.waves.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {cockpit.sourcing.waves.map(wave => (
-              <span key={wave.wave} className="px-3 py-1.5 rounded-xl border border-[#FFF7EF]/15 text-[10px] text-[#FFF7EF]/70">
+              <span key={wave.wave} className="px-3 py-1.5 rounded-xl border border-kurla-cream/15 text-[10px] text-kurla-cream/70">
                 {wave.wave} — {wave.items} besoin(s), {wave.toSource} à sourcer, {wave.inRfq} en consultation, {wave.awarded} attribué(s), {wave.responseCount} réponse(s)
               </span>
             ))}
@@ -341,12 +341,12 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
         )}
 
         {items.length === 0 ? (
-          <p className="text-xs text-[#FFF7EF]/50">Aucun besoin de sourcing enregistré.</p>
+          <p className="text-xs text-kurla-cream/50">Aucun besoin de sourcing enregistré.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-[#D49A63]">
+                <tr className="text-[10px] uppercase tracking-wider text-kurla-amber">
                   <th className="py-2 pr-3">Besoin</th>
                   <th className="py-2 pr-3">Vague</th>
                   <th className="py-2 pr-3">Statut</th>
@@ -358,15 +358,15 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
               </thead>
               <tbody>
                 {items.map(item => (
-                  <tr key={item.id} className="border-t border-[#FFF7EF]/10">
-                    <td className="py-2 pr-3 text-[#FFF7EF]">{item.title}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{item.wave}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{STATUS_LABELS[item.status] || item.status}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{item.requiredDocuments.length}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{item.rfqCount} ({item.sentCount} envoyée(s))</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{item.responseCount} ({item.selectableResponses} sélectionnable(s))</td>
+                  <tr key={item.id} className="border-t border-kurla-cream/10">
+                    <td className="py-2 pr-3 text-kurla-cream">{item.title}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{item.wave}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{STATUS_LABELS[item.status] || item.status}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{item.requiredDocuments.length}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{item.rfqCount} ({item.sentCount} envoyée(s))</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{item.responseCount} ({item.selectableResponses} sélectionnable(s))</td>
                     <td className="py-2 text-right">
-                      <button onClick={() => void openItem(item.id)} className="text-[#C8753D] hover:underline">Ouvrir</button>
+                      <button onClick={() => void openItem(item.id)} className="text-kurla-copper hover:underline">Ouvrir</button>
                     </td>
                   </tr>
                 ))}
@@ -376,10 +376,10 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
         )}
 
         {detail && (
-          <div className="mt-5 rounded-2xl border border-[#C8753D]/40 bg-[#C8753D]/[0.06] p-4 space-y-4">
+          <div className="mt-5 rounded-2xl border border-kurla-copper/40 bg-kurla-copper/[0.06] p-4 space-y-4">
             <div>
-              <h4 className="text-sm font-bold text-[#FFF7EF]">{detail.item.title}</h4>
-              <p className="text-[11px] text-[#FFF7EF]/60">
+              <h4 className="text-sm font-bold text-kurla-cream">{detail.item.title}</h4>
+              <p className="text-[11px] text-kurla-cream/60">
                 {detail.item.wave} · {STATUS_LABELS[detail.item.status] || detail.item.status} · {detail.item.requiredDocuments.length} document(s) exigé(s)
               </p>
             </div>
@@ -388,22 +388,22 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
               <h5 className={labelClass()}>Demandes de prix ({detail.rfqs.length})</h5>
               {detail.rfqs.length === 0 ? (
                 <button onClick={() => void createRfq(detail.item.id)} disabled={busy}
-                  className="mt-2 px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold disabled:opacity-40">
+                  className="mt-2 px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold disabled:opacity-40">
                   Générer une demande de prix
                 </button>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {detail.rfqs.map(rfq => (
-                    <li key={rfq.id} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                      <div className="text-xs text-[#FFF7EF]">
+                    <li key={rfq.id} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                      <div className="text-xs text-kurla-cream">
                         {rfq.status === 'draft' ? 'Brouillon' : `Envoyée le ${rfq.sentOn || '?'} à ${rfq.supplierId || '?'}`}
                       </div>
                       <button onClick={() => setShowContentFor(showContentFor === rfq.id ? null : rfq.id)}
-                        className="text-[10px] text-[#C8753D] hover:underline">
+                        className="text-[10px] text-kurla-copper hover:underline">
                         {showContentFor === rfq.id ? 'Masquer le contenu' : 'Voir le contenu'}
                       </button>
                       {showContentFor === rfq.id && (
-                        <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-[#050403] p-3 text-[10px] text-[#FFF7EF]/70">{rfq.content}</pre>
+                        <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-kurla-ink p-3 text-[10px] text-kurla-cream/70">{rfq.content}</pre>
                       )}
                       {rfq.status === 'draft' && (
                         <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -419,7 +419,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                               onChange={event => setSendDraft({ rfqId: rfq.id, supplierId: sendDraft.supplierId, sentOn: sendDraft.sentOn, channel: event.target.value })} /></label>
                           <div className="flex items-end">
                             <button onClick={() => void sendRfq()} disabled={busy || sendDraft.rfqId !== rfq.id || !sendDraft.supplierId}
-                              className="w-full px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-40">
+                              className="w-full px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-40">
                               <Send size={12} /> Enregistrer l’envoi
                             </button>
                           </div>
@@ -429,7 +429,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                   ))}
                 </ul>
               )}
-              <p className="text-[10px] text-[#FFF7EF]/40 mt-2">
+              <p className="text-[10px] text-kurla-cream/40 mt-2">
                 La plateforme n'envoie rien : elle enregistre le fait que vous avez envoyé, à qui et quand.
               </p>
             </div>
@@ -437,21 +437,21 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
             <div>
               <h5 className={labelClass()}>Réponses reçues ({detail.comparison.rows.length})</h5>
               {detail.comparison.rows.length === 0 ? (
-                <p className="text-[11px] text-[#FFF7EF]/50 mt-1">Aucune réponse enregistrée.</p>
+                <p className="text-[11px] text-kurla-cream/50 mt-1">Aucune réponse enregistrée.</p>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {detail.comparison.rows.map(row => (
-                    <li key={row.response.id} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                      <div className="text-xs text-[#FFF7EF]">
+                    <li key={row.response.id} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                      <div className="text-xs text-kurla-cream">
                         {row.supplierName || row.supplierId || 'fournisseur non identifié'} — reçu le {row.response.receivedOn}
                       </div>
-                      <div className="text-[10px] text-[#FFF7EF]/60 mt-1">
+                      <div className="text-[10px] text-kurla-cream/60 mt-1">
                         Prix : {money(row.response.unitPriceCents, row.response.currency)} ·
                         MOQ : {row.response.moqUnits === null ? 'non communiqué' : `${row.response.moqUnits} u.`} ·
                         Délai : {row.response.leadTimeDays === null ? 'non communiqué' : `${row.response.leadTimeDays} j`}
                         {row.response.quoteReference ? ` · réf. ${row.response.quoteReference}` : ''}
                       </div>
-                      {row.response.notes && <div className="text-[10px] text-[#FFF7EF]/50 mt-1">{row.response.notes}</div>}
+                      {row.response.notes && <div className="text-[10px] text-kurla-cream/50 mt-1">{row.response.notes}</div>}
                       <div className="text-[10px] mt-1">
                         {row.documentsMissing.length > 0
                           ? <span className="text-amber-300">Manque : {row.documentsMissing.join(', ')} — sélection impossible</span>
@@ -459,7 +459,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                       </div>
                       {row.selectable && detail.item.status !== 'awarded' && (
                         <button onClick={() => void award(row.response.id)} disabled={busy}
-                          className="mt-2 px-3 py-1.5 rounded-xl bg-[#C8753D] text-[#050403] text-[10px] font-bold flex items-center gap-1 disabled:opacity-40">
+                          className="mt-2 px-3 py-1.5 rounded-xl bg-kurla-copper text-kurla-ink text-[10px] font-bold flex items-center gap-1 disabled:opacity-40">
                           <Trophy size={11} /> Retenir ce fournisseur
                         </button>
                       )}
@@ -467,13 +467,13 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                   ))}
                 </ul>
               )}
-              <p className="text-[10px] text-[#FFF7EF]/40 mt-2">
+              <p className="text-[10px] text-kurla-cream/40 mt-2">
                 Aucun classement automatique : un devis moins cher mais incomplet sur les documents ne sera pas retenu.
               </p>
             </div>
 
             {detail.item.status !== 'awarded' && detail.rfqs.some(rfq => rfq.status !== 'draft') && (
-              <div className="rounded-xl border border-[#FFF7EF]/10 p-3 space-y-2">
+              <div className="rounded-xl border border-kurla-cream/10 p-3 space-y-2">
                 <h5 className={labelClass()}>Saisir une réponse reçue</h5>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   <label className="space-y-1"><span className={labelClass()}>Reçue le *</span>
@@ -499,10 +499,10 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                   <textarea className={inputClass()} rows={2} value={responseDraft.notes}
                     onChange={event => setResponseDraft({ ...responseDraft, notes: event.target.value })} /></label>
                 <button onClick={() => void recordResponse()} disabled={busy || !responseDraft.receivedOn}
-                  className="px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+                  className="px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center gap-2 disabled:opacity-40">
                   <FileCheck2 size={13} /> Enregistrer la réponse
                 </button>
-                <p className="text-[10px] text-[#FFF7EF]/40">
+                <p className="text-[10px] text-kurla-cream/40">
                   Laissez vide ce que le fournisseur n'a pas chiffré : la plateforme ne complète rien.
                 </p>
               </div>

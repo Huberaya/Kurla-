@@ -56,17 +56,17 @@ export const InspirationsPage: React.FC = () => {
   const chip = (active: boolean) =>
     `px-3.5 py-1.5 rounded-full text-xs font-semibold transition border ${
       active
-        ? 'bg-[#C8753D] text-white border-[#C8753D]'
-        : 'bg-white text-[#5A4638] border-[#E8E1DA] hover:border-[#C8753D]/50'
+        ? 'bg-kurla-copper text-white border-kurla-copper'
+        : 'bg-white text-[#5A4638] border-kurla-stone hover:border-kurla-copper/50'
     }`;
 
   return (
-    <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-28 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Hero */}
-        <div className="rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] p-8 sm:p-12 mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-semibold mb-4">
+        <div className="rounded-3xl bg-kurla-sand border border-kurla-stone p-8 sm:p-12 mb-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kurla-copper/10 text-kurla-copper text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" /> Galerie d’inspirations
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">Trouvez votre prochaine coiffure</h1>
@@ -108,7 +108,7 @@ export const InspirationsPage: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setSelected(item)}
-                className="group relative rounded-2xl overflow-hidden bg-[#F8F2EC] border border-[#E8E1DA] text-left focus:outline-none focus:ring-2 focus:ring-[#C8753D]"
+                className="group relative rounded-2xl overflow-hidden bg-kurla-sand border border-kurla-stone text-left focus:outline-none focus:ring-2 focus:ring-kurla-copper"
               >
                 <div className="aspect-[4/5] overflow-hidden">
                   <img
@@ -137,23 +137,23 @@ export const InspirationsPage: React.FC = () => {
         )}
 
         {/* Bandeau pro */}
-        <div className="mt-12 rounded-3xl bg-[#1A0F0A] text-[#FFF7EF] p-8 sm:p-10 flex flex-col md:flex-row md:items-center gap-6">
+        <div className="mt-12 rounded-3xl bg-kurla-espresso text-kurla-cream p-8 sm:p-10 flex flex-col md:flex-row md:items-center gap-6">
           <div className="flex-1">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <HeartHandshake className="w-5 h-5 text-[#D49A63]" /> Prête à passer chez le coiffeur ?
+              <HeartHandshake className="w-5 h-5 text-kurla-amber" /> Prête à passer chez le coiffeur ?
             </h2>
-            <p className="text-sm text-[#FFF7EF]/70 mt-2 max-w-xl">
+            <p className="text-sm text-kurla-cream/70 mt-2 max-w-xl">
               Nos coiffeuses, tresseuses et locticiennes partenaires signent une charte stricte :
               pas de traction excessive à la racine, pas de jugement de la texture naturelle.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/professionnels" className="px-5 py-3 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-sm font-bold flex items-center gap-2">
+            <a href="/professionnels" className="px-5 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-amber text-white text-sm font-bold flex items-center gap-2">
               Trouver un salon <ArrowRight className="w-4 h-4" />
             </a>
             <button
               onClick={() => askAssistant('Aide-moi à choisir ma prochaine coiffure protectrice selon mes cheveux et mon budget.')}
-              className="px-5 py-3 rounded-xl border border-[#FFF7EF]/25 hover:border-[#D49A63] text-sm font-bold flex items-center gap-2"
+              className="px-5 py-3 rounded-xl border border-kurla-cream/25 hover:border-kurla-amber text-sm font-bold flex items-center gap-2"
             >
               <MessageSquare className="w-4 h-4" /> Demander à l’assistante
             </button>
@@ -174,7 +174,7 @@ export const InspirationsPage: React.FC = () => {
           onClick={() => setSelected(null)}
         >
           <div
-            className="bg-[#FFFDF9] w-full sm:max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+            className="bg-kurla-ivory w-full sm:max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2">
@@ -186,15 +186,15 @@ export const InspirationsPage: React.FC = () => {
                   <div>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {selected.publics.map(p => (
-                        <span key={p} className="px-2 py-0.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-[10px] font-bold">{INSPIRATION_PUBLIC_LABELS[p]}</span>
+                        <span key={p} className="px-2 py-0.5 rounded-full bg-kurla-copper/10 text-kurla-copper text-[10px] font-bold">{INSPIRATION_PUBLIC_LABELS[p]}</span>
                       ))}
                       {selected.styles.map(s => (
-                        <span key={s} className="px-2 py-0.5 rounded-full bg-[#F8F2EC] text-[#5A4638] text-[10px] font-bold">{INSPIRATION_STYLE_LABELS[s]}</span>
+                        <span key={s} className="px-2 py-0.5 rounded-full bg-kurla-sand text-[#5A4638] text-[10px] font-bold">{INSPIRATION_STYLE_LABELS[s]}</span>
                       ))}
                     </div>
                     <h2 className="text-xl font-bold leading-tight">{selected.title}</h2>
                   </div>
-                  <button onClick={() => setSelected(null)} aria-label="Fermer" className="p-2 rounded-full hover:bg-[#F8F2EC] shrink-0">
+                  <button onClick={() => setSelected(null)} aria-label="Fermer" className="p-2 rounded-full hover:bg-kurla-sand shrink-0">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -202,22 +202,22 @@ export const InspirationsPage: React.FC = () => {
                 <p className="text-sm text-[#5A4638]">{selected.description}</p>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-[#F8F2EC] p-3">
+                  <div className="rounded-xl bg-kurla-sand p-3">
                     <p className="text-[10px] uppercase tracking-wider font-bold text-[#8A7364] flex items-center gap-1"><Clock className="w-3 h-3" /> Pose</p>
                     <p className="text-xs font-semibold mt-1">{selected.poseTime}</p>
                   </div>
-                  <div className="rounded-xl bg-[#F8F2EC] p-3">
+                  <div className="rounded-xl bg-kurla-sand p-3">
                     <p className="text-[10px] uppercase tracking-wider font-bold text-[#8A7364] flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Se porte</p>
                     <p className="text-xs font-semibold mt-1">{selected.wearTime}</p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider font-bold text-[#C8753D] mb-2">L’entretien qui compte</p>
+                  <p className="text-[11px] uppercase tracking-wider font-bold text-kurla-copper mb-2">L’entretien qui compte</p>
                   <ul className="space-y-1.5">
                     {selected.care.map((tip, index) => (
                       <li key={index} className="text-xs text-[#5A4638] flex gap-2">
-                        <span className="text-[#C8753D] font-bold shrink-0">•</span> {tip}
+                        <span className="text-kurla-copper font-bold shrink-0">•</span> {tip}
                       </li>
                     ))}
                   </ul>
@@ -225,7 +225,7 @@ export const InspirationsPage: React.FC = () => {
 
                 {selected.productSlugs.length > 0 && (
                   <div>
-                    <p className="text-[11px] uppercase tracking-wider font-bold text-[#C8753D] mb-2 flex items-center gap-1.5">
+                    <p className="text-[11px] uppercase tracking-wider font-bold text-kurla-copper mb-2 flex items-center gap-1.5">
                       <ShoppingBag className="w-3.5 h-3.5" /> Pour ce style, en boutique
                     </p>
                     <div className="space-y-2">
@@ -236,13 +236,13 @@ export const InspirationsPage: React.FC = () => {
                           <a
                             key={slug}
                             href={`/produit/${product.slug}`}
-                            className="flex items-center gap-3 p-2 rounded-xl border border-[#E8E1DA] hover:border-[#C8753D]/60 transition"
+                            className="flex items-center gap-3 p-2 rounded-xl border border-kurla-stone hover:border-kurla-copper/60 transition"
                           >
                             {product.image && (
                               <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                             )}
                             <span className="text-xs font-semibold flex-1 leading-tight">{product.name}</span>
-                            <span className="text-xs font-bold text-[#C8753D] shrink-0">
+                            <span className="text-xs font-bold text-kurla-copper shrink-0">
                               {Number(product.price || 0).toFixed(2)} €
                             </span>
                           </a>
@@ -254,7 +254,7 @@ export const InspirationsPage: React.FC = () => {
 
                 <button
                   onClick={() => { askAssistant(selected.aiQuestion); setSelected(null); }}
-                  className="w-full px-4 py-3 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-sm font-bold flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-amber text-white text-sm font-bold flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="w-4 h-4" /> Poser la question à l’assistante
                 </button>

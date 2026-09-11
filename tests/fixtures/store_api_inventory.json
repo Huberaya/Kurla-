@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T16:07:22.901Z",
+  "generatedAt": "2026-09-11T19:01:42.694Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -142,6 +142,7 @@
     "getProfessionalApplications/0",
     "getProspect/1",
     "getPublicCreatorDirectory/0",
+    "getPublicProductByIdOrSlug/1",
     "getPublicProducts/0",
     "getPublicProfessionalDirectory/0",
     "getPublishedArticle/1",

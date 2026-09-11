@@ -27,7 +27,7 @@ export const BenefitStrip: React.FC = () => {
   ];
 
   return (
-    <section className="bg-[#F8F2EC] border-y border-[#E8E1DA] py-10 relative z-20 text-[#111111]">
+    <section className="bg-kurla-sand border-y border-kurla-stone py-10 relative z-20 text-kurla-carbon">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial="hidden"
@@ -54,19 +54,19 @@ export const BenefitStrip: React.FC = () => {
                   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
                 }}
                 whileHover={{ y: -6, scale: 1.02 }}
-                className="flex items-start gap-4 p-5 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] shadow-xs hover:shadow-xl transition-all duration-300 group"
+                className="flex items-start gap-4 p-5 rounded-2xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper shadow-xs hover:shadow-xl transition-all duration-300 group"
               >
                 <motion.div
                   whileHover={{ rotate: 12, scale: 1.1 }}
-                  className="w-11 h-11 rounded-xl bg-[#C8753D]/10 text-[#C8753D] border border-[#C8753D]/20 flex items-center justify-center shrink-0 group-hover:bg-[#C8753D] group-hover:text-white transition-colors"
+                  className="w-11 h-11 rounded-xl bg-kurla-copper/10 text-kurla-copper border border-kurla-copper/20 flex items-center justify-center shrink-0 group-hover:bg-kurla-copper group-hover:text-white transition-colors"
                 >
                   <Icon className="w-5 h-5" />
                 </motion.div>
                 <div>
-                  <h3 className="text-base font-serif-title font-bold text-[#111111] mb-1 group-hover:text-[#C8753D] transition-colors">
+                  <h3 className="text-base font-serif-title font-bold text-kurla-carbon mb-1 group-hover:text-kurla-copper transition-colors">
                     {b.title}
                   </h3>
-                  <p className="text-xs text-[#111111]/75 leading-relaxed font-light">
+                  <p className="text-xs text-kurla-carbon/75 leading-relaxed font-light">
                     {b.text}
                   </p>
                 </div>
@@ -81,9 +81,9 @@ export const BenefitStrip: React.FC = () => {
             {[...ITEMS, ...ITEMS].map((it, i) => (
               <span
                 key={i}
-                className="shrink-0 inline-flex items-center gap-2 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] px-4 py-1.5 text-xs font-medium text-[#111111]/80"
+                className="shrink-0 inline-flex items-center gap-2 rounded-full bg-kurla-ivory border border-kurla-stone px-4 py-1.5 text-xs font-medium text-kurla-carbon/80"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C8753D]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-kurla-copper" />
                 {it}
               </span>
             ))}

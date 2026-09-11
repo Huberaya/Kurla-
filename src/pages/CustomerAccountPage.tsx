@@ -340,7 +340,7 @@ export const CustomerAccountPage: React.FC = () => {
   const unreadNotifsCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
         {/* Sécurité du compte : seul moyen pour l'utilisateur de remplacer un
@@ -362,16 +362,16 @@ export const CustomerAccountPage: React.FC = () => {
 
         {/* Payment Confirmation Status Banner */}
         {isOrderSuccess && (
-          <div className="p-6 rounded-3xl bg-[#1D170E] border border-[#C8753D]/40 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 text-[#D49A63]">
-              <Clock className="w-6 h-6 shrink-0 text-[#C8753D]" />
-              <h2 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Paiement transmis (Mode Test)</h2>
+          <div className="p-6 rounded-3xl bg-[#1D170E] border border-kurla-copper/40 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-kurla-amber">
+              <Clock className="w-6 h-6 shrink-0 text-kurla-copper" />
+              <h2 className="text-lg font-serif-title font-bold text-kurla-cream">Paiement transmis (Mode Test)</h2>
             </div>
-            <p className="text-sm text-[#FFF7EF]/90 leading-relaxed font-light">
+            <p className="text-sm text-kurla-cream/90 leading-relaxed font-light">
               « Votre paiement de test a été transmis. La confirmation définitive de la commande sera activée lorsque le webhook Stripe sera configuré. »
             </p>
             {sessionId && (
-              <p className="text-xs font-mono text-[#D49A63] bg-[#050403] px-3 py-1.5 rounded-lg inline-block border border-[#FFF7EF]/10">
+              <p className="text-xs font-mono text-kurla-amber bg-kurla-ink px-3 py-1.5 rounded-lg inline-block border border-kurla-cream/10">
                 Session Stripe: {sessionId}
               </p>
             )}
@@ -385,35 +385,35 @@ export const CustomerAccountPage: React.FC = () => {
         )}
 
         {/* Profile Card Header */}
-        <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#3A2218] via-[#C8753D] to-[#D49A63] flex items-center justify-center text-white font-serif-title font-bold text-2xl border-2 border-[#FFF7EF]/20 shadow-lg">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-kurla-bark via-kurla-copper to-kurla-amber flex items-center justify-center text-white font-serif-title font-bold text-2xl border-2 border-kurla-cream/20 shadow-lg">
               {userInitials}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-serif-title font-bold text-[#FFF7EF]">{displayName}</h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#C8753D]/20 text-[#D49A63] text-[10px] font-mono font-bold uppercase border border-[#C8753D]/30">
+                <h1 className="text-2xl font-serif-title font-bold text-kurla-cream">{displayName}</h1>
+                <span className="px-2.5 py-0.5 rounded-full bg-kurla-copper/20 text-kurla-amber text-[10px] font-mono font-bold uppercase border border-kurla-copper/30">
                   {profile?.role || 'customer'}
                 </span>
               </div>
-              <p className="text-xs text-[#D49A63] mt-1">
+              <p className="text-xs text-kurla-amber mt-1">
                 Diagnostic Capillaire ({formData.hair_type || '4C'}) • Peau ({formData.skin_type || 'mixte'})
               </p>
-              <p className="text-xs text-[#FFF7EF]/50 mt-0.5">{userEmail}</p>
+              <p className="text-xs text-kurla-cream/50 mt-0.5">{userEmail}</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <a
               href="/diagnostic/cheveux"
-              className="px-4 py-2.5 rounded-full bg-[#050403] hover:bg-[#C8753D] text-xs font-semibold text-[#FFF7EF] border border-[#FFF7EF]/15 transition-all flex items-center gap-2"
+              className="px-4 py-2.5 rounded-full bg-kurla-ink hover:bg-kurla-copper text-xs font-semibold text-kurla-cream border border-kurla-cream/15 transition-all flex items-center gap-2"
             >
-              <Sparkles className="w-4 h-4 text-[#C8753D]" /> Refaire Diagnostic
+              <Sparkles className="w-4 h-4 text-kurla-copper" /> Refaire Diagnostic
             </a>
             <a
               href="/account/donnees"
-              className="px-4 py-2.5 rounded-full bg-[#FFF7EF]/10 hover:bg-[#FFF7EF]/20 text-xs font-semibold text-[#FFF7EF] border border-[#FFF7EF]/20 transition-all flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-full bg-kurla-cream/10 hover:bg-kurla-cream/20 text-xs font-semibold text-kurla-cream border border-kurla-cream/20 transition-all flex items-center gap-1.5"
             >
               <ShieldCheck className="w-4 h-4" /> Vos données
             </a>
@@ -427,7 +427,7 @@ export const CustomerAccountPage: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#FFF7EF]/10 pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-kurla-cream/10 pb-3 overflow-x-auto">
           {[
             { id: 'beaute', label: 'Mon espace beauté', icon: Sparkles },
             { id: 'commandes', label: `Commandes (${serverOrders.length})`, icon: ShoppingBag },
@@ -445,8 +445,8 @@ export const CustomerAccountPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                   active
-                    ? 'bg-[#C8753D] text-white shadow-lg'
-                    : 'bg-[#1A0F0A] text-[#FFF7EF]/60 hover:text-white border border-[#FFF7EF]/5'
+                    ? 'bg-kurla-copper text-white shadow-lg'
+                    : 'bg-kurla-espresso text-kurla-cream/60 hover:text-white border border-kurla-cream/5'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -464,9 +464,9 @@ export const CustomerAccountPage: React.FC = () => {
         {/* TAB 1: COMMANDES WITH TRACKING & RETURN REQUESTS */}
         {activeTab === 'commandes' && (
           <div className="space-y-6">
-            <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-xs text-kurla-cream/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span>Une commande passée sans être connecté ? Retrouvez-la avec son numéro et votre email.</span>
-              <a href="/suivi-commande" className="px-4 py-2 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white font-bold whitespace-nowrap">Suivre une autre commande</a>
+              <a href="/suivi-commande" className="px-4 py-2 rounded-full bg-kurla-copper hover:bg-[#B3632F] text-white font-bold whitespace-nowrap">Suivre une autre commande</a>
             </div>
             {serverOrders.length > 0 ? (
               <div className="space-y-4">
@@ -475,15 +475,15 @@ export const CustomerAccountPage: React.FC = () => {
                   const returnReq = returnsList.find(r => r.orderId === order.id);
 
                   return (
-                    <div key={order.id} className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-4 shadow-xl">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#FFF7EF]/5 pb-3">
+                    <div key={order.id} className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4 shadow-xl">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-kurla-cream/5 pb-3">
                         <div>
-                          <span className="text-xs text-[#D49A63] font-semibold font-mono">{order.id}</span>
-                          <p className="text-xs text-[#FFF7EF]/50 mt-0.5">
+                          <span className="text-xs text-kurla-amber font-semibold font-mono">{order.id}</span>
+                          <p className="text-xs text-kurla-cream/50 mt-0.5">
                             Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} • {formatMoney(toCents(Number(order.total)))}
                           </p>
                           {order.vatAmount != null && (
-                            <p className="text-[11px] text-[#FFF7EF]/40 mt-0.5">
+                            <p className="text-[11px] text-kurla-cream/40 mt-0.5">
                               dont TVA{order.vatCountry ? ` (${order.vatCountry}${
                                 Array.isArray(order.vatBreakdown) && order.vatBreakdown.length === 1
                                   ? ` · ${formatVatRate(Number((order.vatBreakdown[0] as any).ratePercent))}`
@@ -508,26 +508,26 @@ export const CustomerAccountPage: React.FC = () => {
 
                       <div className="space-y-2">
                         {order.items?.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-xs text-[#FFF7EF]/90 py-1">
+                          <div key={idx} className="flex justify-between items-center text-xs text-kurla-cream/90 py-1">
                             <span>{item.quantity}x {item.name || 'Soin Capillaire KURLA'}</span>
-                            <span className="font-mono text-[#D49A63]">{item.price ? Number(item.price).toFixed(2) : '0.00'} €</span>
+                            <span className="font-mono text-kurla-amber">{item.price ? Number(item.price).toFixed(2) : '0.00'} €</span>
                           </div>
                         ))}
                       </div>
 
-                      {order.shippingAddress && <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs space-y-1"><p className="font-bold text-[#D49A63]">Adresse de livraison conservée</p><p className="text-[#FFF7EF]/75">{order.shippingAddress.fullName || 'Nom non renseigné'} · {order.shippingAddress.street || 'Adresse non renseignée'}, {order.shippingAddress.postalCode || 'CP non renseigné'} {order.shippingAddress.city || 'Ville non renseignée'} · {order.shippingAddress.country || 'Pays non renseigné'}</p><p className="text-[11px] text-[#FFF7EF]/50">Méthode : {order.shippingAddress.shippingMethod || 'non renseignée'} · Tarif : {order.shippingAddress.shippingCost != null ? `${Number(order.shippingAddress.shippingCost).toFixed(2)} €` : 'non renseigné'}</p></div>}
+                      {order.shippingAddress && <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-xs space-y-1"><p className="font-bold text-kurla-amber">Adresse de livraison conservée</p><p className="text-kurla-cream/75">{order.shippingAddress.fullName || 'Nom non renseigné'} · {order.shippingAddress.street || 'Adresse non renseignée'}, {order.shippingAddress.postalCode || 'CP non renseigné'} {order.shippingAddress.city || 'Ville non renseignée'} · {order.shippingAddress.country || 'Pays non renseigné'}</p><p className="text-[11px] text-kurla-cream/50">Méthode : {order.shippingAddress.shippingMethod || 'non renseignée'} · Tarif : {order.shippingAddress.shippingCost != null ? `${Number(order.shippingAddress.shippingCost).toFixed(2)} €` : 'non renseigné'}</p></div>}
 
                       {/* Shipment Tracking Info */}
                       {shipment && (
-                        <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-xs space-y-2">
+                        <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-xs space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-[#D49A63] flex items-center gap-1.5">
-                              <Truck className="w-4 h-4 text-[#C8753D]" /> Suivi Colis Transporteur ({shipment.carrier?.toUpperCase()})
+                            <span className="font-bold text-kurla-amber flex items-center gap-1.5">
+                              <Truck className="w-4 h-4 text-kurla-copper" /> Suivi Colis Transporteur ({shipment.carrier?.toUpperCase()})
                             </span>
                             <span className="font-mono text-emerald-400 font-bold">{shipment.status}</span>
                           </div>
                           {shipment.trackingNumber && (
-                            <p className="text-[11px] text-[#FFF7EF]/70 font-mono">
+                            <p className="text-[11px] text-kurla-cream/70 font-mono">
                               N° Suivi: {shipment.trackingNumber}
                             </p>
                           )}
@@ -536,28 +536,28 @@ export const CustomerAccountPage: React.FC = () => {
                               href={shipment.trackingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-[#C8753D] hover:underline inline-flex items-center gap-1 font-semibold"
+                              className="text-xs text-kurla-copper hover:underline inline-flex items-center gap-1 font-semibold"
                             >
                               Suivre mon colis sur le site du transporteur <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
-                          {Array.isArray(shipment.history) && shipment.history.length > 0 && <div className="pt-2 border-t border-[#FFF7EF]/10 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Historique de livraison</p>{shipment.history.map((event: any) => <p key={event.id} className="text-[11px] text-[#FFF7EF]/65"><span className="font-mono text-[#D49A63]">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.status}{event.location ? ` · ${event.location}` : ''}{event.description ? ` — ${event.description}` : ''}</p>)}</div>}
+                          {Array.isArray(shipment.history) && shipment.history.length > 0 && <div className="pt-2 border-t border-kurla-cream/10 space-y-1"><p className="text-[10px] text-kurla-cream/45 uppercase font-bold">Historique de livraison</p>{shipment.history.map((event: any) => <p key={event.id} className="text-[11px] text-kurla-cream/65"><span className="font-mono text-kurla-amber">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.status}{event.location ? ` · ${event.location}` : ''}{event.description ? ` — ${event.description}` : ''}</p>)}</div>}
                         </div>
                       )}
 
                       {/* Return Request Controls */}
-                      <div className="flex items-center justify-between pt-2 border-t border-[#FFF7EF]/5">
+                      <div className="flex items-center justify-between pt-2 border-t border-kurla-cream/5">
                         {returnReq ? (
                           <div className="text-xs font-semibold text-amber-400 bg-amber-950/40 px-3 py-1 rounded-xl border border-amber-500/30">
                             Demande de retour #{returnReq.id} ({returnReq.status}) · {returnReq.quantity} article(s)
-                            {Array.isArray(returnReq.items) && returnReq.items.length > 0 && <div className="mt-1 text-[10px] text-[#FFF7EF]/50 font-normal">{returnReq.items.map((item: any) => `${item.productId || 'produit non renseigné'} × ${item.quantity}`).join(' · ')}</div>}
-                            {returnHistories[returnReq.id]?.length > 0 && <div className="mt-1 text-[10px] text-[#FFF7EF]/50 font-normal">{returnHistories[returnReq.id].map((event: any) => <p key={event.id}>{new Date(event.createdAt).toLocaleString('fr-FR')} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
+                            {Array.isArray(returnReq.items) && returnReq.items.length > 0 && <div className="mt-1 text-[10px] text-kurla-cream/50 font-normal">{returnReq.items.map((item: any) => `${item.productId || 'produit non renseigné'} × ${item.quantity}`).join(' · ')}</div>}
+                            {returnHistories[returnReq.id]?.length > 0 && <div className="mt-1 text-[10px] text-kurla-cream/50 font-normal">{returnHistories[returnReq.id].map((event: any) => <p key={event.id}>{new Date(event.createdAt).toLocaleString('fr-FR')} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
                           </div>
                         ) : (
                           (order.status === 'delivered' || order.status === 'shipped' || order.status === 'paid') && (
                             <button
                               onClick={() => setShowReturnModal(order.id)}
-                              className="px-4 py-1.5 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/15 text-xs text-[#D49A63] font-semibold flex items-center gap-1.5 transition-colors"
+                              className="px-4 py-1.5 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/15 text-xs text-kurla-amber font-semibold flex items-center gap-1.5 transition-colors"
                             >
                               <RotateCcw className="w-3.5 h-3.5" /> Effectuer une demande de retour / remboursement
                             </button>
@@ -569,14 +569,14 @@ export const CustomerAccountPage: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="p-12 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-center space-y-3 shadow-xl">
-                <ShoppingBag className="w-12 h-12 text-[#C8753D] mx-auto opacity-70" />
-                <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Aucune commande effectuée</h3>
-                <p className="text-xs text-[#FFF7EF]/60 max-w-sm mx-auto">
+              <div className="p-12 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 text-center space-y-3 shadow-xl">
+                <ShoppingBag className="w-12 h-12 text-kurla-copper mx-auto opacity-70" />
+                <h3 className="text-lg font-serif-title font-bold text-kurla-cream">Aucune commande effectuée</h3>
+                <p className="text-xs text-kurla-cream/60 max-w-sm mx-auto">
                   Découvrez notre boutique de soins naturels adaptés à votre texture capillaire.
                 </p>
                 <div className="pt-2">
-                  <a href="/boutique" className="px-6 py-3 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider inline-block shadow-lg">
+                  <a href="/boutique" className="px-6 py-3 rounded-full bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider inline-block shadow-lg">
                     Visiter la Boutique KURLA
                   </a>
                 </div>
@@ -587,33 +587,33 @@ export const CustomerAccountPage: React.FC = () => {
 
         {/* TAB PARRAINAGE 10/10 € */}
         {activeTab === 'parrainage' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
             <ReferralPanel />
           </div>
         )}
 
         {/* TAB 2: IN-APP NOTIFICATIONS */}
         {activeTab === 'notifications' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <Bell className="w-5 h-5 text-[#C8753D]" /> Mes Notifications & Alertes Commande
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+              <Bell className="w-5 h-5 text-kurla-copper" /> Mes Notifications & Alertes Commande
             </h2>
 
             {notifications.length === 0 ? (
-              <p className="text-xs text-[#FFF7EF]/40 italic">Aucune notification pour le moment.</p>
+              <p className="text-xs text-kurla-cream/40 italic">Aucune notification pour le moment.</p>
             ) : (
               <div className="space-y-3">
                 {notifications.map(n => (
                   <div
                     key={n.id}
                     className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-4 ${
-                      n.read ? 'bg-[#050403] border-[#FFF7EF]/5 opacity-70' : 'bg-[#1D170E] border-[#C8753D]/40'
+                      n.read ? 'bg-kurla-ink border-kurla-cream/5 opacity-70' : 'bg-[#1D170E] border-kurla-copper/40'
                     }`}
                   >
                     <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-[#FFF7EF]">{n.title}</h4>
-                      <p className="text-xs text-[#FFF7EF]/80">{n.message}</p>
-                      <span className="text-[10px] text-[#D49A63] font-mono block">
+                      <h4 className="text-xs font-bold text-kurla-cream">{n.title}</h4>
+                      <p className="text-xs text-kurla-cream/80">{n.message}</p>
+                      <span className="text-[10px] text-kurla-amber font-mono block">
                         {new Date(n.createdAt).toLocaleString('fr-FR')}
                       </span>
                     </div>
@@ -622,7 +622,7 @@ export const CustomerAccountPage: React.FC = () => {
                       {!n.read && (
                         <button
                           onClick={() => handleMarkNotifRead(n.id)}
-                          className="p-1.5 rounded-full bg-[#050403] hover:bg-[#3A2218] text-emerald-400 border border-emerald-500/30 text-xs"
+                          className="p-1.5 rounded-full bg-kurla-ink hover:bg-kurla-bark text-emerald-400 border border-emerald-500/30 text-xs"
                           title="Marquer comme lu"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -630,7 +630,7 @@ export const CustomerAccountPage: React.FC = () => {
                       )}
                       <button
                         onClick={() => handleDeleteNotif(n.id)}
-                        className="p-1.5 rounded-full bg-[#050403] hover:bg-rose-950 text-rose-400 border border-rose-500/30 text-xs"
+                        className="p-1.5 rounded-full bg-kurla-ink hover:bg-rose-950 text-rose-400 border border-rose-500/30 text-xs"
                         title="Supprimer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -645,18 +645,18 @@ export const CustomerAccountPage: React.FC = () => {
 
         {/* TAB 3: CUSTOMER SUPPORT TICKETS */}
         {activeTab === 'support' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-4">
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-kurla-cream/10 pb-4">
               <div>
-                <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#C8753D]" /> Support Client & Réclamations
+                <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-kurla-copper" /> Support Client & Réclamations
                 </h2>
-                <p className="text-xs text-[#FFF7EF]/60">Discutez directement avec l'équipe support KURLA.</p>
+                <p className="text-xs text-kurla-cream/60">Discutez directement avec l'équipe support KURLA.</p>
               </div>
 
               <button
                 onClick={() => setShowNewTicketModal(true)}
-                className="px-5 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold shadow flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-full bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold shadow flex items-center gap-1.5"
               >
                 + Nouveau Ticket
               </button>
@@ -666,7 +666,7 @@ export const CustomerAccountPage: React.FC = () => {
               {/* Tickets list */}
               <div className="space-y-3 lg:col-span-1">
                 {supportTickets.length === 0 ? (
-                  <p className="text-xs text-[#FFF7EF]/40 italic">Aucun ticket créé.</p>
+                  <p className="text-xs text-kurla-cream/40 italic">Aucun ticket créé.</p>
                 ) : (
                   supportTickets.map(tkt => (
                     <div
@@ -674,31 +674,31 @@ export const CustomerAccountPage: React.FC = () => {
                       onClick={() => loadTicketMessages(tkt)}
                       className={`p-4 rounded-2xl cursor-pointer border transition-all ${
                         selectedTicket?.id === tkt.id
-                          ? 'bg-[#3A2218]/40 border-[#C8753D]'
-                          : 'bg-[#050403] border-[#FFF7EF]/5 hover:border-[#FFF7EF]/20'
+                          ? 'bg-kurla-bark/40 border-kurla-copper'
+                          : 'bg-kurla-ink border-kurla-cream/5 hover:border-kurla-cream/20'
                       }`}
                     >
-                      <h4 className="text-xs font-bold text-[#FFF7EF] truncate">{tkt.subject}</h4>
-                      <p className="text-[11px] text-[#D49A63]">Statut: {tkt.status} · Priorité: {tkt.priority || 'normal'}</p>
-                      {tkt.assignedAgentId && <p className="text-[10px] text-[#FFF7EF]/45">Agent : {tkt.assignedAgentId}</p>}
-                      <span className="text-[10px] text-[#FFF7EF]/40 font-mono block mt-1">#{tkt.id}</span>
+                      <h4 className="text-xs font-bold text-kurla-cream truncate">{tkt.subject}</h4>
+                      <p className="text-[11px] text-kurla-amber">Statut: {tkt.status} · Priorité: {tkt.priority || 'normal'}</p>
+                      {tkt.assignedAgentId && <p className="text-[10px] text-kurla-cream/45">Agent : {tkt.assignedAgentId}</p>}
+                      <span className="text-[10px] text-kurla-cream/40 font-mono block mt-1">#{tkt.id}</span>
                     </div>
                   ))
                 )}
               </div>
 
               {/* Message thread */}
-              <div className="lg:col-span-2 p-6 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-4">
+              <div className="lg:col-span-2 p-6 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-4">
                 {!selectedTicket ? (
-                  <div className="h-48 flex items-center justify-center text-xs text-[#FFF7EF]/40 italic">
+                  <div className="h-48 flex items-center justify-center text-xs text-kurla-cream/40 italic">
                     Sélectionnez un ticket pour afficher les échanges.
                   </div>
                 ) : (
                   <>
-                    <div className="border-b border-[#FFF7EF]/10 pb-3">
-                      <h3 className="text-sm font-bold text-[#FFF7EF]">{selectedTicket.subject}</h3>
-                      <p className="text-xs text-[#D49A63]">Catégorie: {selectedTicket.subjectCategory} • Statut: {selectedTicket.status} • Priorité: {selectedTicket.priority || 'normal'}</p>
-                      <p className="text-[11px] text-[#FFF7EF]/45 mt-1">Les événements et messages sont conservés chronologiquement. {selectedTicket.assignedAgentId ? `Agent : ${selectedTicket.assignedAgentId}` : 'Aucun agent affecté.'}</p>
+                    <div className="border-b border-kurla-cream/10 pb-3">
+                      <h3 className="text-sm font-bold text-kurla-cream">{selectedTicket.subject}</h3>
+                      <p className="text-xs text-kurla-amber">Catégorie: {selectedTicket.subjectCategory} • Statut: {selectedTicket.status} • Priorité: {selectedTicket.priority || 'normal'}</p>
+                      <p className="text-[11px] text-kurla-cream/45 mt-1">Les événements et messages sont conservés chronologiquement. {selectedTicket.assignedAgentId ? `Agent : ${selectedTicket.assignedAgentId}` : 'Aucun agent affecté.'}</p>
                     </div>
 
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -707,19 +707,19 @@ export const CustomerAccountPage: React.FC = () => {
                           key={m.id}
                           className={`p-3 rounded-2xl max-w-[80%] text-xs ${
                             m.senderRole === 'customer'
-                              ? 'ml-auto bg-[#C8753D]/20 border border-[#C8753D]/40 text-[#FFF7EF]'
-                              : 'bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF]/90'
+                              ? 'ml-auto bg-kurla-copper/20 border border-kurla-copper/40 text-kurla-cream'
+                              : 'bg-kurla-espresso border border-kurla-cream/10 text-kurla-cream/90'
                           }`}
                         >
                           <div className="text-[10px] opacity-70 mb-0.5 font-bold uppercase">{m.senderRole} · {new Date(m.createdAt).toLocaleString('fr-FR')}</div>
                           <p>{m.message}</p>
                         </div>
                       ))}
-                      {ticketAttachments.length > 0 && <div className="border-t border-[#FFF7EF]/10 pt-3 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-[#C8753D] hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-[#FFF7EF]/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
+                      {ticketAttachments.length > 0 && <div className="border-t border-kurla-cream/10 pt-3 space-y-1"><p className="text-[10px] text-kurla-cream/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-kurla-copper hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-kurla-cream/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#FFF7EF]/10">
-                      <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/75 cursor-pointer"><input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleUploadAttachment} />Ajouter une pièce jointe (5 Mo max)</label>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-kurla-cream/10">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/10 text-xs text-kurla-cream/75 cursor-pointer"><input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleUploadAttachment} />Ajouter une pièce jointe (5 Mo max)</label>
                     </div>
                     <form onSubmit={handleSendReply} className="flex gap-2">
                       <input
@@ -727,11 +727,11 @@ export const CustomerAccountPage: React.FC = () => {
                         value={replyText}
                         onChange={e => setReplyText(e.target.value)}
                         placeholder="Répondre au ticket..."
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-kurla-espresso border border-kurla-cream/15 text-xs text-kurla-cream focus:outline-none focus:border-kurla-copper"
                       />
                       <button
                         type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold flex items-center gap-1.5 shadow"
+                        className="px-5 py-2.5 rounded-xl bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold flex items-center gap-1.5 shadow"
                       >
                         <Send className="w-3.5 h-3.5" /> Envoyer
                       </button>
@@ -745,55 +745,55 @@ export const CustomerAccountPage: React.FC = () => {
 
         {/* TAB 4: NOTIFICATION PREFERENCES */}
         {activeTab === 'preferences' && (
-          <form onSubmit={handleSavePreferences} className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <Settings className="w-5 h-5 text-[#C8753D]" /> Préférences de Communication & Email
+          <form onSubmit={handleSavePreferences} className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+              <Settings className="w-5 h-5 text-kurla-copper" /> Préférences de Communication & Email
             </h2>
 
             <div className="space-y-4 max-w-xl">
-              <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Emails de service et de commande</span>
-                  <span className="text-[11px] text-[#FFF7EF]/50">Confirmations et étapes de livraison. Les emails transactionnels restent obligatoires.</span>
+                  <span className="text-xs font-bold text-kurla-cream block">Emails de service et de commande</span>
+                  <span className="text-[11px] text-kurla-cream/50">Confirmations et étapes de livraison. Les emails transactionnels restent obligatoires.</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={notifPrefs.emailNotifications}
                   onChange={e => setNotifPrefs({ ...notifPrefs, emailNotifications: e.target.checked })}
-                  className="w-4 h-4 accent-[#C8753D]"
+                  className="w-4 h-4 accent-kurla-copper"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Conseils et offres KURLA</span>
-                  <span className="text-[11px] text-[#FFF7EF]/50">Recevoir les communications marketing et nouveautés.</span>
+                  <span className="text-xs font-bold text-kurla-cream block">Conseils et offres KURLA</span>
+                  <span className="text-[11px] text-kurla-cream/50">Recevoir les communications marketing et nouveautés.</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={notifPrefs.marketingEmails}
                   onChange={e => setNotifPrefs({ ...notifPrefs, marketingEmails: e.target.checked })}
-                  className="w-4 h-4 accent-[#C8753D]"
+                  className="w-4 h-4 accent-kurla-copper"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 cursor-pointer">
+              <label className="flex items-center justify-between p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/5 cursor-pointer">
                 <div>
-                  <span className="text-xs font-bold text-[#FFF7EF] block">Notifications dans mon espace</span>
-                  <span className="text-[11px] text-[#FFF7EF]/50">Alertes visuelles directement dans votre espace client.</span>
+                  <span className="text-xs font-bold text-kurla-cream block">Notifications dans mon espace</span>
+                  <span className="text-[11px] text-kurla-cream/50">Alertes visuelles directement dans votre espace client.</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={notifPrefs.inAppNotifications}
                   onChange={e => setNotifPrefs({ ...notifPrefs, inAppNotifications: e.target.checked })}
-                  className="w-4 h-4 accent-[#C8753D]"
+                  className="w-4 h-4 accent-kurla-copper"
                 />
               </label>
             </div>
 
             <button
               type="submit"
-              className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider shadow"
+              className="px-6 py-3 rounded-xl bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider shadow"
             >
               Enregistrer les Préférences
             </button>
@@ -803,33 +803,33 @@ export const CustomerAccountPage: React.FC = () => {
         {/* TAB 5: PROFILE FORM */}
         {activeTab === 'profil' && (
           <>
-            <div className="mb-6 p-5 rounded-2xl bg-[#3A2218] border border-[#C8753D]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="mb-6 p-5 rounded-2xl bg-kurla-bark border border-kurla-copper/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-serif-title font-bold text-[#FFF7EF]">Votre profil beauté se construit dans KURla ID</h3>
-              <p className="text-xs text-[#FFF7EF]/70 mt-1">Texture, porosité, peau, environnement, historique et préférences sont gérés dans l’espace dédié.</p>
+              <h3 className="text-base font-serif-title font-bold text-kurla-cream">Votre profil beauté se construit dans KURla ID</h3>
+              <p className="text-xs text-kurla-cream/70 mt-1">Texture, porosité, peau, environnement, historique et préférences sont gérés dans l’espace dédié.</p>
             </div>
-            <a href="/account/kurla-id" className="shrink-0 px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-semibold">Ouvrir KURla ID</a>
+            <a href="/account/kurla-id" className="shrink-0 px-4 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-semibold">Ouvrir KURla ID</a>
           </div>
-          <form onSubmit={handleSaveProfile} className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Informations de compte</h3>
+          <form onSubmit={handleSaveProfile} className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h3 className="text-lg font-serif-title font-bold text-kurla-cream">Informations de compte</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#D49A63] mb-1">Prénom</label>
+                <label className="block text-xs font-semibold text-kurla-amber mb-1">Prénom</label>
                 <input
                   type="text"
                   value={formData.first_name}
                   onChange={e => setFormData({ ...formData, first_name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]"
+                  className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#D49A63] mb-1">Nom</label>
+                <label className="block text-xs font-semibold text-kurla-amber mb-1">Nom</label>
                 <input
                   type="text"
                   value={formData.last_name}
                   onChange={e => setFormData({ ...formData, last_name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]"
+                  className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream"
                 />
               </div>
             </div>
@@ -837,22 +837,22 @@ export const CustomerAccountPage: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider shadow"
+              className="px-6 py-3 rounded-xl bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold uppercase tracking-wider shadow"
             >
               {saving ? 'Enregistrement...' : 'Sauvegarder le profil'}
             </button>
           </form>
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
-            <div><h3 className="text-lg font-serif-title font-bold">Adresses de livraison</h3><p className="text-xs text-[#FFF7EF]/55 mt-1">Ces adresses peuvent être réutilisées au checkout. L’adresse d’une commande reste conservée dans son snapshot.</p></div>
-            <div className="space-y-2">{shippingAddresses.length ? shippingAddresses.map(address => <div key={address.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-xs"><div><p className="font-semibold">{address.fullName} {address.isDefault && <span className="text-[#D49A63]">· par défaut</span>}</p><p className="text-[#FFF7EF]/60">{address.street}, {address.postalCode} {address.city} · {address.country}</p></div><button type="button" onClick={() => handleDeleteAddress(address.id)} className="text-rose-300 hover:text-rose-200" aria-label="Supprimer l’adresse"><Trash2 className="w-4 h-4" /></button></div>) : <p className="text-xs text-[#FFF7EF]/40 italic">Aucune adresse enregistrée.</p>}</div>
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-5 shadow-xl">
+            <div><h3 className="text-lg font-serif-title font-bold">Adresses de livraison</h3><p className="text-xs text-kurla-cream/55 mt-1">Ces adresses peuvent être réutilisées au checkout. L’adresse d’une commande reste conservée dans son snapshot.</p></div>
+            <div className="space-y-2">{shippingAddresses.length ? shippingAddresses.map(address => <div key={address.id} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-kurla-ink border border-kurla-cream/10 text-xs"><div><p className="font-semibold">{address.fullName} {address.isDefault && <span className="text-kurla-amber">· par défaut</span>}</p><p className="text-kurla-cream/60">{address.street}, {address.postalCode} {address.city} · {address.country}</p></div><button type="button" onClick={() => handleDeleteAddress(address.id)} className="text-rose-300 hover:text-rose-200" aria-label="Supprimer l’adresse"><Trash2 className="w-4 h-4" /></button></div>) : <p className="text-xs text-kurla-cream/40 italic">Aucune adresse enregistrée.</p>}</div>
             <form onSubmit={handleSaveAddress} className="grid sm:grid-cols-2 gap-2">
-              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Nom complet" value={addressForm.fullName} onChange={e => setAddressForm({ ...addressForm, fullName: e.target.value })} />
-              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Rue et numéro" value={addressForm.street} onChange={e => setAddressForm({ ...addressForm, street: e.target.value })} />
-              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Ville" value={addressForm.city} onChange={e => setAddressForm({ ...addressForm, city: e.target.value })} />
-              <input required className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Code postal" value={addressForm.postalCode} onChange={e => setAddressForm({ ...addressForm, postalCode: e.target.value })} />
-              <input required maxLength={2} className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs uppercase" placeholder="Pays (ex. FR)" value={addressForm.country} onChange={e => setAddressForm({ ...addressForm, country: e.target.value.toUpperCase() })} />
-              <input className="px-3 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs" placeholder="Téléphone (facultatif)" value={addressForm.phone} onChange={e => setAddressForm({ ...addressForm, phone: e.target.value })} />
-              <button className="sm:col-span-2 px-4 py-2.5 rounded-xl bg-[#C8753D] text-white text-xs font-bold inline-flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Enregistrer l’adresse</button>
+              <input required className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" placeholder="Nom complet" value={addressForm.fullName} onChange={e => setAddressForm({ ...addressForm, fullName: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" placeholder="Rue et numéro" value={addressForm.street} onChange={e => setAddressForm({ ...addressForm, street: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" placeholder="Ville" value={addressForm.city} onChange={e => setAddressForm({ ...addressForm, city: e.target.value })} />
+              <input required className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" placeholder="Code postal" value={addressForm.postalCode} onChange={e => setAddressForm({ ...addressForm, postalCode: e.target.value })} />
+              <input required maxLength={2} className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs uppercase" placeholder="Pays (ex. FR)" value={addressForm.country} onChange={e => setAddressForm({ ...addressForm, country: e.target.value.toUpperCase() })} />
+              <input className="px-3 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" placeholder="Téléphone (facultatif)" value={addressForm.phone} onChange={e => setAddressForm({ ...addressForm, phone: e.target.value })} />
+              <button className="sm:col-span-2 px-4 py-2.5 rounded-xl bg-kurla-copper text-white text-xs font-bold inline-flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Enregistrer l’adresse</button>
             </form>
           </div>
           </>
@@ -861,26 +861,26 @@ export const CustomerAccountPage: React.FC = () => {
         {/* NEW TICKET MODAL */}
         {showNewTicketModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-            <div className="max-w-md w-full p-6 rounded-3xl bg-[#1A0F0A] border border-[#C8753D]/40 space-y-4 shadow-2xl">
-              <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Ouvrir un Ticket Support</h3>
+            <div className="max-w-md w-full p-6 rounded-3xl bg-kurla-espresso border border-kurla-copper/40 space-y-4 shadow-2xl">
+              <h3 className="text-lg font-serif-title font-bold text-kurla-cream">Ouvrir un Ticket Support</h3>
               <form onSubmit={handleCreateTicket} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Sujet</label>
+                  <label className="block text-kurla-amber mb-1 font-semibold">Sujet</label>
                   <input
                     type="text"
                     required
                     value={newTicketForm.subject}
                     onChange={e => setNewTicketForm({ ...newTicketForm, subject: e.target.value })}
                     placeholder="Ex: Question sur la livraison de ma commande"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
+                    className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream"
                   />
                 </div>
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Catégorie</label>
+                  <label className="block text-kurla-amber mb-1 font-semibold">Catégorie</label>
                   <select
                     value={newTicketForm.category}
                     onChange={e => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
+                    className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream"
                   >
                     <option value="commande">Commande & Suivi</option>
                     <option value="livraison">Livraison & Colis</option>
@@ -890,8 +890,8 @@ export const CustomerAccountPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Priorité</label>
-                  <select value={newTicketForm.priority} onChange={e => setNewTicketForm({ ...newTicketForm, priority: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]">
+                  <label className="block text-kurla-amber mb-1 font-semibold">Priorité</label>
+                  <select value={newTicketForm.priority} onChange={e => setNewTicketForm({ ...newTicketForm, priority: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream">
                     <option value="low">Basse</option>
                     <option value="normal">Normale</option>
                     <option value="high">Haute</option>
@@ -899,27 +899,27 @@ export const CustomerAccountPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Message</label>
+                  <label className="block text-kurla-amber mb-1 font-semibold">Message</label>
                   <textarea
                     rows={4}
                     required
                     value={newTicketForm.message}
                     onChange={e => setNewTicketForm({ ...newTicketForm, message: e.target.value })}
                     placeholder="Décrivez votre demande..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
+                    className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowNewTicketModal(false)}
-                    className="px-4 py-2 rounded-xl bg-[#050403] text-[#FFF7EF]/70 border border-[#FFF7EF]/10"
+                    className="px-4 py-2 rounded-xl bg-kurla-ink text-kurla-cream/70 border border-kurla-cream/10"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white font-bold"
+                    className="px-5 py-2 rounded-xl bg-kurla-copper hover:bg-[#B3632F] text-white font-bold"
                   >
                     Soumettre le Ticket
                   </button>
@@ -932,15 +932,15 @@ export const CustomerAccountPage: React.FC = () => {
         {/* RETURN REQUEST MODAL */}
         {showReturnModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-            <div className="max-w-md w-full p-6 rounded-3xl bg-[#1A0F0A] border border-[#C8753D]/40 space-y-4 shadow-2xl">
-              <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF]">Demande de Retour - #{showReturnModal}</h3>
+            <div className="max-w-md w-full p-6 rounded-3xl bg-kurla-espresso border border-kurla-copper/40 space-y-4 shadow-2xl">
+              <h3 className="text-lg font-serif-title font-bold text-kurla-cream">Demande de Retour - #{showReturnModal}</h3>
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Raison du retour</label>
+                  <label className="block text-kurla-amber mb-1 font-semibold">Raison du retour</label>
                   <select
                     value={returnReason}
                     onChange={e => setReturnReason(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
+                    className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream"
                   >
                     <option value="defect">Produit endommagé / défectueux</option>
                     <option value="wrong_item">Mauvais article reçu</option>
@@ -949,27 +949,27 @@ export const CustomerAccountPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[#D49A63] mb-1 font-semibold">Commentaire explicatif</label>
+                  <label className="block text-kurla-amber mb-1 font-semibold">Commentaire explicatif</label>
                   <textarea
                     rows={3}
                     value={returnComment}
                     onChange={e => setReturnComment(e.target.value)}
                     placeholder="Précisez le problème..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF]"
+                    className="w-full px-4 py-2.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowReturnModal(null)}
-                    className="px-4 py-2 rounded-xl bg-[#050403] text-[#FFF7EF]/70 border border-[#FFF7EF]/10"
+                    className="px-4 py-2 rounded-xl bg-kurla-ink text-kurla-cream/70 border border-kurla-cream/10"
                   >
                     Annuler
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRequestReturn(showReturnModal)}
-                    className="px-5 py-2 rounded-xl bg-[#C8753D] font-bold text-white"
+                    className="px-5 py-2 rounded-xl bg-kurla-copper font-bold text-white"
                   >
                     Confirmer la Demande
                   </button>

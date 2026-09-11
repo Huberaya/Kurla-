@@ -29,7 +29,7 @@ const DOMAIN_ICONS: Record<AssortmentDomain, React.ComponentType<{ className?: s
 const PRIORITY_STYLE: Record<string, { label: string; cls: string }> = {
   essential: { label: 'Indispensable', cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
   important: { label: 'Prioritaire', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
-  later: { label: 'Plus tard', cls: 'bg-[#FFF7EF]/10 text-[#FFF7EF]/60 border-[#FFF7EF]/20' },
+  later: { label: 'Plus tard', cls: 'bg-kurla-cream/10 text-kurla-cream/60 border-kurla-cream/20' },
 };
 
 export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) => {
@@ -74,28 +74,28 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <FlaskConical className="w-5 h-5 text-[#C8753D]" /> Plan d'assortiment — quels produits, qui contacter
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-kurla-copper" /> Plan d'assortiment — quels produits, qui contacter
           </h3>
-          <p className="text-[11px] text-[#FFF7EF]/60 mt-1">
+          <p className="text-[11px] text-kurla-cream/60 mt-1">
             Vue « responsable achats » : les besoins par fonction (hydrater, réduire la casse, soigner le cuir chevelu…),
             les produits à commander et les fournisseurs à contacter. Les contacts/prix/MOQ restent gérés dans l'onglet
             « Contacts » ; un besoin sans fournisseur identifié est marqué comme un sourcing à ouvrir.
           </p>
         </div>
         <div className="flex gap-2 text-[11px]">
-          <span className="px-3 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/70">{counts.needs} besoins</span>
+          <span className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/70">{counts.needs} besoins</span>
           <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">{counts.covered} avec fournisseurs</span>
           <span className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300">{counts.gaps} à sourcer</span>
         </div>
       </div>
 
       {/* Filtres */}
-      <div className="rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 p-3 space-y-3">
+      <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-3 space-y-3">
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setDomain('all')}
-            className={`px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 ${domain === 'all' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/65 border border-[#FFF7EF]/10'}`}
+            className={`px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 ${domain === 'all' ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/65 border border-kurla-cream/10'}`}
           >
             <Filter className="w-3.5 h-3.5" /> Tous
           </button>
@@ -107,7 +107,7 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                 key={d.id}
                 onClick={() => setDomain(d.id)}
                 title={d.hint}
-                className={`px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 ${active ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/65 border border-[#FFF7EF]/10 hover:text-white'}`}
+                className={`px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-2 ${active ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/65 border border-kurla-cream/10 hover:text-white'}`}
               >
                 <Icon className="w-3.5 h-3.5" /> {d.label}
               </button>
@@ -116,15 +116,15 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px]">
-            <Search className="w-4 h-4 text-[#FFF7EF]/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-kurla-cream/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filtrer par besoin, produit, étape… (ex. hydrater, casse, solaire)"
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/30 focus:outline-none focus:border-[#C8753D]"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/10 text-xs text-kurla-cream placeholder:text-kurla-cream/30 focus:outline-none focus:border-kurla-copper"
             />
           </div>
-          <label className="flex items-center gap-2 text-[11px] text-[#FFF7EF]/70 cursor-pointer whitespace-nowrap">
+          <label className="flex items-center gap-2 text-[11px] text-kurla-cream/70 cursor-pointer whitespace-nowrap">
             <input type="checkbox" checked={gapOnly} onChange={(e) => setGapOnly(e.target.checked)} />
             Fournisseurs à identifier seulement
           </label>
@@ -134,7 +134,7 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
       {/* Besoins */}
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <p className="text-xs text-[#FFF7EF]/45 italic p-4 text-center">Aucun besoin ne correspond à ce filtre.</p>
+          <p className="text-xs text-kurla-cream/45 italic p-4 text-center">Aucun besoin ne correspond à ce filtre.</p>
         )}
         {filtered.map((need) => {
           const open = openId === need.id;
@@ -146,15 +146,15 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
           const needCandidates = candidatesFor(need);
 
           return (
-            <div key={need.id} className="rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 overflow-hidden">
+            <div key={need.id} className="rounded-2xl bg-kurla-espresso border border-kurla-cream/10 overflow-hidden">
               <button
                 onClick={() => setOpenId(open ? null : need.id)}
-                className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-[#FFF7EF]/[0.02]"
+                className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-kurla-cream/[0.02]"
               >
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 text-[#C8753D]"><DomainIcon className="w-4 h-4" /></span>
+                  <span className="mt-0.5 text-kurla-copper"><DomainIcon className="w-4 h-4" /></span>
                   <div>
-                    <p className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-kurla-cream flex items-center gap-2 flex-wrap">
                       {need.concern}
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${prio.cls}`}>{prio.label}</span>
                       {need.supplierGap && (
@@ -163,17 +163,17 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                         </span>
                       )}
                     </p>
-                    <p className="text-[11px] text-[#FFF7EF]/55 mt-0.5">{need.benefit}</p>
+                    <p className="text-[11px] text-kurla-cream/55 mt-0.5">{need.benefit}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-[#FFF7EF]/50">
+                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-kurla-cream/50">
                     <Package className="w-3.5 h-3.5" /> {need.productTypes.length}
                   </span>
                   <span className={`hidden sm:flex items-center gap-1 text-[10px] ${needProspects.length ? 'text-emerald-300' : 'text-rose-300'}`}>
                     <UserPlus className="w-3.5 h-3.5" /> {needProspects.length || '—'}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-[#FFF7EF]/50 transition-transform ${open ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-kurla-cream/50 transition-transform ${open ? 'rotate-180' : ''}`} />
                 </div>
               </button>
 
@@ -181,30 +181,30 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                 <div className="px-4 pb-4 pt-1 grid lg:grid-cols-3 gap-4">
                   {/* Produits à commander */}
                   <div className="lg:col-span-1 space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold flex items-center gap-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold flex items-center gap-1.5">
                       <Package className="w-3.5 h-3.5" /> Produits à commander
                     </p>
                     <ul className="space-y-1.5">
                       {need.productTypes.map((pt) => (
-                        <li key={pt} className="text-[11px] text-[#FFF7EF]/80 bg-[#050403] border border-[#FFF7EF]/5 rounded-lg px-3 py-2">{pt}</li>
+                        <li key={pt} className="text-[11px] text-kurla-cream/80 bg-kurla-ink border border-kurla-cream/5 rounded-lg px-3 py-2">{pt}</li>
                       ))}
                     </ul>
-                    <p className="text-[10px] text-[#FFF7EF]/45 italic pt-1">{need.why}</p>
-                    <p className="text-[10px] text-[#FFF7EF]/50">
-                      Route d'achat : <strong className="text-[#D49A63]">{need.routeHint === 'A' ? 'A — revente de marques' : need.routeHint === 'B' ? 'B — façonnage KURLA' : 'A+B — revente puis façonnage'}</strong>
+                    <p className="text-[10px] text-kurla-cream/45 italic pt-1">{need.why}</p>
+                    <p className="text-[10px] text-kurla-cream/50">
+                      Route d'achat : <strong className="text-kurla-amber">{need.routeHint === 'A' ? 'A — revente de marques' : need.routeHint === 'B' ? 'B — façonnage KURLA' : 'A+B — revente puis façonnage'}</strong>
                     </p>
                   </div>
 
                   {/* Fournisseurs à contacter */}
                   <div className="lg:col-span-2 space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-[#D49A63] font-bold flex items-center gap-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold flex items-center gap-1.5">
                       <TruckIcon className="w-3.5 h-3.5" /> Fournisseurs à contacter
                     </p>
 
                     {needProspects.length === 0 ? (
                       <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 space-y-1">
                         <p className="text-[11px] font-bold text-rose-300 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Aucun fournisseur identifié pour ce besoin</p>
-                        <p className="text-[10px] text-[#FFF7EF]/60">
+                        <p className="text-[10px] text-kurla-cream/60">
                           Types de contacts à chercher : {need.contactTypes.length ? need.contactTypes.map((t) => CONTACT_TYPE_LABELS[t]).join(' · ') : 'à définir (textile / accessoire)'}.<br />
                           À ajouter dans l'onglet « Contacts » une fois la cible trouvée. Aucun nom ni contact n'est inventé.
                         </p>
@@ -215,9 +215,9 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                           const done = ['agreed'].includes(p.status);
                           const action = contactActionForProspect(p.id, p.name);
                           return (
-                            <div key={p.id} className="rounded-xl bg-[#050403] border border-[#FFF7EF]/8 p-3 space-y-1.5">
+                            <div key={p.id} className="rounded-xl bg-kurla-ink border border-kurla-cream/8 p-3 space-y-1.5">
                               <div className="flex items-start justify-between gap-2">
-                                <p className="text-[12px] font-bold text-[#FFF7EF]">{p.name}</p>
+                                <p className="text-[12px] font-bold text-kurla-cream">{p.name}</p>
                                 {done ? (
                                   <span className="text-[9px] font-bold text-emerald-300 flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" /> Accord</span>
                                 ) : action ? (
@@ -227,7 +227,7 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                                     title={action.kind === 'email'
                                       ? `Ouvrir l'email pré-rempli à ${action.email}`
                                       : 'Ouvrir le formulaire de contact du site'}
-                                    className="text-[9px] font-bold shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#C8753D] text-white hover:bg-[#b06330] transition-colors"
+                                    className="text-[9px] font-bold shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-kurla-copper text-white hover:bg-kurla-cocoa transition-colors"
                                   >
                                     {action.kind === 'email'
                                       ? <><Send className="w-3 h-3" /> Envoyer l'email</>
@@ -237,20 +237,20 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                                   <span className="text-[9px] font-bold text-amber-300 shrink-0">{STATUS_LABELS[p.status] || p.status}</span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-[#FFF7EF]/55">{p.specialty}</p>
-                              <p className="text-[10px] text-[#D49A63] flex items-center gap-1">
+                              <p className="text-[10px] text-kurla-cream/55">{p.specialty}</p>
+                              <p className="text-[10px] text-kurla-amber flex items-center gap-1">
                                 {p.route === 'B' ? <Factory className="w-3 h-3" /> : <TruckIcon className="w-3 h-3" />}
                                 {CONTACT_TYPE_LABELS[p.contactType] || p.contactType}
                               </p>
                               <div className="text-[10px] space-y-0.5 pt-1">
                                 {action?.kind === 'email' ? (
-                                  <a href={action.href} className="flex items-center gap-1 text-[#C8753D] hover:underline break-all"><Mail className="w-3 h-3 shrink-0" /> {action.email}</a>
+                                  <a href={action.href} className="flex items-center gap-1 text-kurla-copper hover:underline break-all"><Mail className="w-3 h-3 shrink-0" /> {action.email}</a>
                                 ) : action?.kind === 'form' ? (
-                                  <a href={action.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#FFF7EF]/55 hover:text-[#D49A63]"><Mail className="w-3 h-3 shrink-0" /> Contacter via le formulaire du site</a>
+                                  <a href={action.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-kurla-cream/55 hover:text-kurla-amber"><Mail className="w-3 h-3 shrink-0" /> Contacter via le formulaire du site</a>
                                 ) : (
-                                  <p className="flex items-center gap-1 text-[#FFF7EF]/45"><Mail className="w-3 h-3 shrink-0" /> Contact à récupérer</p>
+                                  <p className="flex items-center gap-1 text-kurla-cream/45"><Mail className="w-3 h-3 shrink-0" /> Contact à récupérer</p>
                                 )}
-                                {p.sourceUrl && <p className="text-[9px] text-[#FFF7EF]/40 break-all">Source : {p.sourceUrl}</p>}
+                                {p.sourceUrl && <p className="text-[9px] text-kurla-cream/40 break-all">Source : {p.sourceUrl}</p>}
                               </div>
                             </div>
                           );
@@ -259,18 +259,18 @@ export const AssortmentPlanPanel: React.FC<Props> = ({ prospects, candidates }) 
                     )}
 
                     {need.viaDistributor && (
-                      <p className="text-[10px] text-[#FFF7EF]/50 flex items-center gap-1.5">
+                      <p className="text-[10px] text-kurla-cream/50 flex items-center gap-1.5">
                         <Droplets className="w-3.5 h-3.5 text-sky-300" />
                         Astucieux : le grossiste multimarques (Dina Afro Shop) couvre d'un coup plusieurs références de ce besoin.
                       </p>
                     )}
 
                     {needCandidates.length > 0 && (
-                      <div className="rounded-xl border border-[#C8753D]/25 bg-[#C8753D]/5 p-3 space-y-1.5">
-                        <p className="text-[10px] font-bold text-[#D49A63]">Références déjà repérées pour cette étape ({needCandidates.length})</p>
+                      <div className="rounded-xl border border-kurla-copper/25 bg-kurla-copper/5 p-3 space-y-1.5">
+                        <p className="text-[10px] font-bold text-kurla-amber">Références déjà repérées pour cette étape ({needCandidates.length})</p>
                         <ul className="space-y-1">
                           {needCandidates.slice(0, 6).map((c) => (
-                            <li key={c.id} className="text-[10px] text-[#FFF7EF]/70 flex items-center gap-1.5">
+                            <li key={c.id} className="text-[10px] text-kurla-cream/70 flex items-center gap-1.5">
                               <span className={`w-1.5 h-1.5 rounded-full ${c.governanceStatus === 'published' || c.governanceStatus === 'ready' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                               {c.brand} — {c.product}
                             </li>

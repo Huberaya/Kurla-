@@ -226,6 +226,7 @@ export class SupabaseServerStore {
   public getBeautyProfile!: Curried<typeof beautyProfileStore>['getBeautyProfile'];
   public getProducts!: Curried<typeof catalogStore>['getProducts'];
   public getProductById!: Curried<typeof catalogStore>['getProductById'];
+  public getPublicProductByIdOrSlug!: Curried<typeof catalogStore>['getPublicProductByIdOrSlug'];
   public getOrdersByCustomer!: Curried<typeof orderStore>['getOrdersByCustomer'];
   public getInventoryByProductId!: Curried<typeof inventoryStore>['getInventoryByProductId'];
   public getInventoryByVariantId!: Curried<typeof inventoryStore>['getInventoryByVariantId'];

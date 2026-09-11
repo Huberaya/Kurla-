@@ -83,9 +83,9 @@ export const KurlaPlusPage: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+      <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
         <div className="max-w-3xl mx-auto px-4">
-          <p className="text-[#FFF7EF]/70">Connectez-vous pour voir l’état de votre abonnement.</p>
+          <p className="text-kurla-cream/70">Connectez-vous pour voir l’état de votre abonnement.</p>
         </div>
       </div>
     );
@@ -93,9 +93,9 @@ export const KurlaPlusPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+      <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
         <div className="max-w-3xl mx-auto px-4">
-          <p className="text-[#FFF7EF]/60">Chargement…</p>
+          <p className="text-kurla-cream/60">Chargement…</p>
         </div>
       </div>
     );
@@ -109,12 +109,12 @@ export const KurlaPlusPage: React.FC = () => {
   const canTrial = !isPlus && !state?.trialUsed;
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#C8753D]">Abonnement</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-kurla-copper">Abonnement</p>
           <h1 className="text-3xl sm:text-4xl font-semibold">KURLA+</h1>
-          <p className="text-[#FFF7EF]/70 max-w-2xl">
+          <p className="text-kurla-cream/70 max-w-2xl">
             KURLA+ n’enlève rien : c’est l’analyse approfondie de ce que vous avez déjà déclaré. Tout ce qui
             est essentiel reste gratuit.
           </p>
@@ -132,18 +132,18 @@ export const KurlaPlusPage: React.FC = () => {
         )}
 
         {/* État courant */}
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-2">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#C8753D]" />
+            <Sparkles className="w-4 h-4 text-kurla-copper" />
             <h2 className="text-lg font-medium">{STATUS_LABEL[state?.status ?? 'none']}</h2>
           </div>
-          <p className="text-sm text-[#FFF7EF]/70">
-            Droits appliqués : <strong className="text-[#FFF7EF]">{isPlus ? 'KURLA+' : 'KURLA Libre'}</strong>
+          <p className="text-sm text-kurla-cream/70">
+            Droits appliqués : <strong className="text-kurla-cream">{isPlus ? 'KURLA+' : 'KURLA Libre'}</strong>
             {state?.accessUntil ? ` — jusqu’au ${new Date(state.accessUntil).toLocaleDateString('fr-FR')}` : ''}
             {state?.cancelAtPeriodEnd ? ' (résiliation enregistrée, l’accès reste dû jusqu’à cette date)' : ''}
           </p>
           {overview?.persistence === 'server_fallback' && (
-            <p className="text-xs text-[#FFF7EF]/50">
+            <p className="text-xs text-kurla-cream/50">
               Données du serveur de développement : non synchronisées avec votre compte.
             </p>
           )}
@@ -152,7 +152,7 @@ export const KurlaPlusPage: React.FC = () => {
               type="button"
               disabled={busy}
               onClick={() => void call('/api/membership/cancel', { atPeriodEnd: true }, 'Résiliation enregistrée.')}
-              className="text-sm underline text-[#FFF7EF]/60 hover:text-[#FFF7EF] disabled:opacity-50"
+              className="text-sm underline text-kurla-cream/60 hover:text-kurla-cream disabled:opacity-50"
             >
               Résilier à la fin de la période
             </button>
@@ -161,23 +161,23 @@ export const KurlaPlusPage: React.FC = () => {
 
         {/* Ce que vaut le dossier */}
         {overview && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-4">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-4">
             <h2 className="text-lg font-medium">Ce que vaut votre dossier</h2>
-            <p className="text-sm text-[#FFF7EF]/70">
-              Score de dossier : <strong className="text-[#FFF7EF]">{overview.offer.dossierScore}/100</strong>.
+            <p className="text-sm text-kurla-cream/70">
+              Score de dossier : <strong className="text-kurla-cream">{overview.offer.dossierScore}/100</strong>.
               {overview.offer.shouldPropose
                 ? ' Il y a assez de déclarations pour qu’une analyse approfondie ait du sens.'
                 : ' KURLA+ ne vous est pas proposé : il n’y aurait rien à approfondir pour l’instant.'}
             </p>
             {overview.offer.reasons.length > 0 && (
-              <ul className="text-sm text-[#FFF7EF]/70 space-y-1">
+              <ul className="text-sm text-kurla-cream/70 space-y-1">
                 {overview.offer.reasons.map(reason => (
                   <li key={reason} className="flex items-start gap-2"><Check className="w-4 h-4 mt-0.5 text-emerald-300 shrink-0" />{reason}</li>
                 ))}
               </ul>
             )}
             {overview.offer.blockers.length > 0 && (
-              <ul className="text-sm text-[#FFF7EF]/60 space-y-1">
+              <ul className="text-sm text-kurla-cream/60 space-y-1">
                 {overview.offer.blockers.map(blocker => (
                   <li key={blocker} className="flex items-start gap-2"><Info className="w-4 h-4 mt-0.5 shrink-0" />{blocker}</li>
                 ))}
@@ -188,18 +188,18 @@ export const KurlaPlusPage: React.FC = () => {
 
         {/* Offre */}
         {overview && (
-          <section className="rounded-2xl border border-[#C8753D]/30 bg-[#0B0806] p-5 space-y-5">
+          <section className="rounded-2xl border border-kurla-copper/30 bg-[#0B0806] p-5 space-y-5">
             <div className="space-y-3">
               <h2 className="text-lg font-medium">Ce que KURLA+ changerait pour vous</h2>
-              <ul className="text-sm text-[#FFF7EF]/80 space-y-1">
+              <ul className="text-sm text-kurla-cream/80 space-y-1">
                 {overview.offer.whatItWouldChange.map(item => (
-                  <li key={item} className="flex items-start gap-2"><Check className="w-4 h-4 mt-0.5 text-[#C8753D] shrink-0" />{item}</li>
+                  <li key={item} className="flex items-start gap-2"><Check className="w-4 h-4 mt-0.5 text-kurla-copper shrink-0" />{item}</li>
                 ))}
               </ul>
             </div>
-            <div className="space-y-3 border-t border-[#FFF7EF]/10 pt-4">
-              <h3 className="text-base font-medium text-[#FFF7EF]/90">Ce qu’il ne changerait pas</h3>
-              <ul className="text-sm text-[#FFF7EF]/60 space-y-1">
+            <div className="space-y-3 border-t border-kurla-cream/10 pt-4">
+              <h3 className="text-base font-medium text-kurla-cream/90">Ce qu’il ne changerait pas</h3>
+              <ul className="text-sm text-kurla-cream/60 space-y-1">
                 {overview.offer.whatItWouldNotChange.map(item => (
                   <li key={item} className="flex items-start gap-2"><X className="w-4 h-4 mt-0.5 shrink-0" />{item}</li>
                 ))}
@@ -210,7 +210,7 @@ export const KurlaPlusPage: React.FC = () => {
 
         {/* Prix */}
         {plus && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-4">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-medium mr-auto">Formules</h2>
               {(['monthly', 'annual'] as const).map(option => (
@@ -218,22 +218,22 @@ export const KurlaPlusPage: React.FC = () => {
                   key={option}
                   type="button"
                   onClick={() => setBilling(option)}
-                  className={`px-3 py-1.5 rounded-full text-sm border ${billing === option ? 'border-[#C8753D] text-[#C8753D]' : 'border-[#FFF7EF]/15 text-[#FFF7EF]/60'}`}
+                  className={`px-3 py-1.5 rounded-full text-sm border ${billing === option ? 'border-kurla-copper text-kurla-copper' : 'border-kurla-cream/15 text-kurla-cream/60'}`}
                 >
                   {option === 'annual' ? 'Annuel' : 'Mensuel'}
                 </button>
               ))}
             </div>
 
-            <p className="text-sm text-[#FFF7EF]/80">
-              <strong className="text-[#FFF7EF]">{formatCents(price?.netCents ?? null)}</strong>
+            <p className="text-sm text-kurla-cream/80">
+              <strong className="text-kurla-cream">{formatCents(price?.netCents ?? null)}</strong>
               {billing === 'annual' ? ' par an' : ' par mois'} hors taxe
               {price?.vatRatePercent !== null && price?.vatRatePercent !== undefined
                 ? ` — TVA ${price.vatRatePercent} % incluse : ${formatCents(price.grossCents ?? null)} TTC`
                 : ' — TVA non calculée : pays non desservi'}
             </p>
             {billing === 'annual' && (
-              <p className="text-xs text-[#FFF7EF]/50">
+              <p className="text-xs text-kurla-cream/50">
                 Soit {formatCents(price?.monthlyEquivalentCents ?? null)} par mois — deux mois offerts par rapport au mensuel.
               </p>
             )}
@@ -250,7 +250,7 @@ export const KurlaPlusPage: React.FC = () => {
                 type="button"
                 disabled={busy || !canTrial}
                 onClick={() => void call('/api/membership/trial', { planCode: 'kurla_plus' }, 'Essai de 14 jours ouvert.')}
-                className="px-4 py-2 rounded-full text-sm font-medium bg-[#C8753D] text-[#050403] disabled:opacity-40"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-kurla-copper text-kurla-ink disabled:opacity-40"
               >
                 {state?.trialUsed ? 'Essai déjà utilisé' : 'Essayer 14 jours, sans carte'}
               </button>
@@ -258,7 +258,7 @@ export const KurlaPlusPage: React.FC = () => {
                 type="button"
                 disabled={busy || isPlus || !overview?.paymentConfigured}
                 onClick={() => void call('/api/membership/checkout', { planCode: 'kurla_plus', billing }, 'Redirection vers le paiement…')}
-                className="px-4 py-2 rounded-full text-sm font-medium border border-[#FFF7EF]/20 text-[#FFF7EF]/80 disabled:opacity-40"
+                className="px-4 py-2 rounded-full text-sm font-medium border border-kurla-cream/20 text-kurla-cream/80 disabled:opacity-40"
               >
                 S’abonner
               </button>
@@ -268,27 +268,27 @@ export const KurlaPlusPage: React.FC = () => {
 
         {/* Droits */}
         {overview && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-4">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-4">
             <h2 className="text-lg font-medium">Droits détaillés</h2>
             <ul className="space-y-3">
               {overview.entitlements.map(item => (
                 <li key={item.code} className="flex items-start gap-3 text-sm">
                   {item.included
                     ? <BadgeCheck className="w-4 h-4 mt-0.5 text-emerald-300 shrink-0" />
-                    : <X className="w-4 h-4 mt-0.5 text-[#FFF7EF]/30 shrink-0" />}
+                    : <X className="w-4 h-4 mt-0.5 text-kurla-cream/30 shrink-0" />}
                   <div className="space-y-1">
-                    <p className="text-[#FFF7EF]/90">
+                    <p className="text-kurla-cream/90">
                       {item.label}
-                      {item.essential && <span className="ml-2 text-xs text-[#FFF7EF]/50">essentiel — toujours gratuit</span>}
+                      {item.essential && <span className="ml-2 text-xs text-kurla-cream/50">essentiel — toujours gratuit</span>}
                       {item.included && !item.applied && (
                         <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-200">
                           <Clock className="w-3 h-3" /> annoncé, pas encore branché
                         </span>
                       )}
                     </p>
-                    <p className="text-[#FFF7EF]/60">{item.description}</p>
+                    <p className="text-kurla-cream/60">{item.description}</p>
                     {item.included && !item.applied && item.pendingReason && (
-                      <p className="text-xs text-[#FFF7EF]/40">{item.pendingReason}</p>
+                      <p className="text-xs text-kurla-cream/40">{item.pendingReason}</p>
                     )}
                   </div>
                 </li>
@@ -298,9 +298,9 @@ export const KurlaPlusPage: React.FC = () => {
         )}
 
         {overview && (
-          <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#0B0806] p-5 space-y-2">
+          <section className="rounded-2xl border border-kurla-cream/10 bg-[#0B0806] p-5 space-y-2">
             <h2 className="text-base font-medium">À savoir</h2>
-            <ul className="text-xs text-[#FFF7EF]/55 space-y-1">
+            <ul className="text-xs text-kurla-cream/55 space-y-1">
               {overview.disclaimers.map(item => <li key={item}>• {item}</li>)}
             </ul>
           </section>

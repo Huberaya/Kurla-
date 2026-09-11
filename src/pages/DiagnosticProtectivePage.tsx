@@ -16,25 +16,25 @@ export const DiagnosticProtectivePage: React.FC = () => {
   };
 
   return (
-    <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-28 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Progress */}
         <div className="mb-8 space-y-2">
-          <div className="flex justify-between text-xs text-[#C8753D] font-bold uppercase tracking-wider">
+          <div className="flex justify-between text-xs text-kurla-copper font-bold uppercase tracking-wider">
             <span>Diagnostic coiffure protectrice • Étape {step} / 2</span>
             <span>{Math.round((step / 2) * 100)}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-[#E8E1DA] overflow-hidden">
-            <div className="h-full bg-[#C8753D] transition-all duration-300" style={{ width: `${(step / 2) * 100}%` }} />
+          <div className="w-full h-2 rounded-full bg-kurla-stone overflow-hidden">
+            <div className="h-full bg-kurla-copper transition-all duration-300" style={{ width: `${(step / 2) * 100}%` }} />
           </div>
         </div>
 
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] shadow-sm">
+        <div className="p-8 sm:p-12 rounded-3xl bg-kurla-sand border border-kurla-stone shadow-sm">
           {step === 1 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase font-bold text-[#C8753D] block">1. Style Porté</span>
-              <h2 className="text-2xl font-serif-title font-bold text-[#111111]">
+              <span className="text-xs uppercase font-bold text-kurla-copper block">1. Style Porté</span>
+              <h2 className="text-2xl font-serif-title font-bold text-kurla-carbon">
                 Quelle est votre coiffure protectrice actuelle ou envisagée ?
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -48,7 +48,7 @@ export const DiagnosticProtectivePage: React.FC = () => {
                     key={s.id}
                     onClick={() => { setStyleType(s.id); setStep(2); }}
                     className={`p-4 rounded-2xl border text-left transition-all ${
-                      styleType === s.id ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-[#FFFDF9] border-[#E8E1DA] text-[#111111]'
+                      styleType === s.id ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-kurla-ivory border-kurla-stone text-kurla-carbon'
                     }`}
                   >
                     <div className="font-bold text-sm mb-1">{s.title}</div>
@@ -61,8 +61,8 @@ export const DiagnosticProtectivePage: React.FC = () => {
 
           {step === 2 && (
             <div className="space-y-6">
-              <span className="text-xs uppercase font-bold text-[#C8753D] block">2. Durée de la Pose</span>
-              <h2 className="text-2xl font-serif-title font-bold text-[#111111]">
+              <span className="text-xs uppercase font-bold text-kurla-copper block">2. Durée de la Pose</span>
+              <h2 className="text-2xl font-serif-title font-bold text-kurla-carbon">
                 Depuis combien de temps portez-vous cette coiffure ?
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -75,7 +75,7 @@ export const DiagnosticProtectivePage: React.FC = () => {
                     key={w.id}
                     onClick={() => { setWeeksActive(w.id); handleNext(); }}
                     className={`p-4 rounded-2xl border text-left transition-all ${
-                      weeksActive === w.id ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-[#FFFDF9] border-[#E8E1DA] text-[#111111]'
+                      weeksActive === w.id ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-kurla-ivory border-kurla-stone text-kurla-carbon'
                     }`}
                   >
                     <div className="font-bold text-sm mb-1">{w.title}</div>

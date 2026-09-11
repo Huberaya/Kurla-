@@ -4,9 +4,9 @@ import { BeautyProfileEditor } from '../components/BeautyProfileEditor';
 
 export const HairIdPage: React.FC = () => {
   return (
-    <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-28 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/account/kurla-id" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] font-semibold mb-6 hover:underline">
+        <a href="/account/kurla-id" className="inline-flex items-center gap-1.5 text-xs text-kurla-copper font-semibold mb-6 hover:underline">
           <ArrowLeft className="w-4 h-4" /> Retour à mon KURLA ID
         </a>
         <BeautyProfileEditor focus="hair" />

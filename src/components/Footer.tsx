@@ -47,11 +47,11 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="bg-[#050403] text-[#FFF7EF]/70 border-t border-[#FFF7EF]/10 pt-16 pb-12">
+    <footer className="bg-kurla-ink text-kurla-cream/70 border-t border-kurla-cream/10 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Top Footer Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-[#FFF7EF]/10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-kurla-cream/10">
 
           {/* Brand Info */}
           <div className="md:col-span-5 space-y-4">
@@ -59,11 +59,11 @@ export const Footer: React.FC = () => {
               <Logo variant="lockup" tone="light" height={34} title="" />
             </a>
 
-            <p className="text-xs text-[#FFF7EF]/60 font-light max-w-sm leading-relaxed">
+            <p className="text-xs text-kurla-cream/60 font-light max-w-sm leading-relaxed">
               {t('footer.tagline')}
             </p>
 
-            <p className="text-xs text-[#D49A63] font-medium italic">
+            <p className="text-xs text-kurla-amber font-medium italic">
               {t('footer.quote')}
             </p>
           </div>
@@ -72,11 +72,11 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8 text-xs">
             {columns.map((column) => (
               <div key={column.heading}>
-                <h4 className="font-semibold text-[#FFF7EF] uppercase tracking-wider mb-4">{column.heading}</h4>
+                <h4 className="font-semibold text-kurla-cream uppercase tracking-wider mb-4">{column.heading}</h4>
                 <ul className="space-y-2.5">
                   {column.links.map((link) => (
                     <li key={link.path}>
-                      <a href={localizedPath(link.path, locale)} className="hover:text-[#C8753D] transition-colors">
+                      <a href={localizedPath(link.path, locale)} className="hover:text-kurla-copper transition-colors">
                         {link.label}
                       </a>
                     </li>
@@ -89,19 +89,19 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Disclaimer Bar */}
-        <div className="py-6 border-b border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/50 leading-relaxed">
+        <div className="py-6 border-b border-kurla-cream/10 text-[11px] text-kurla-cream/50 leading-relaxed">
           <p>
             <strong>{t('footer.nonMedical')}</strong> {t('footer.nonMedicalBody')}
           </p>
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#FFF7EF]/40 gap-4">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-kurla-cream/40 gap-4">
           <p>© {new Date().getFullYear()} KURLA Beauty SAS. {t('footer.rights')}</p>
           <div className="flex items-center gap-6">
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8753D] transition-colors">Instagram</a>
-            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8753D] transition-colors">TikTok</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8753D] transition-colors">LinkedIn</a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-kurla-copper transition-colors">Instagram</a>
+            <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="hover:text-kurla-copper transition-colors">TikTok</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-kurla-copper transition-colors">LinkedIn</a>
           </div>
         </div>
 

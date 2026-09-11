@@ -349,82 +349,82 @@ export const SkinJournalPage: React.FC = () => {
     } finally { setAiLoading(false); }
   };
 
-  if (loading) return <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center text-sm text-[#111111]/60">Chargement du journal peau…</div>;
+  if (loading) return <div className="pt-32 pb-24 bg-kurla-ivory min-h-screen flex items-center justify-center text-sm text-kurla-carbon/60">Chargement du journal peau…</div>;
 
   return (
-    <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-28 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <a href="/peau" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] font-semibold hover:underline"><ArrowLeft className="w-4 h-4" /> Retour pôle peau</a>
+        <a href="/peau" className="inline-flex items-center gap-1.5 text-xs text-kurla-copper font-semibold hover:underline"><ArrowLeft className="w-4 h-4" /> Retour pôle peau</a>
 
         {/* Header */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#F8F2EC] via-[#FFFDF9] to-[#FCEFE8] border border-[#E8E1DA] shadow-sm">
+        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-kurla-sand via-kurla-ivory to-[#FCEFE8] border border-kurla-stone shadow-sm">
           <div className="flex flex-col lg:flex-row gap-6 justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D] flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> KURLA SKIN · Journal peau — P2 slider + synthèse IA</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> KURLA SKIN · Journal peau — P2 slider + synthèse IA</p>
               <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mt-1">Votre peau, jour après jour.</h1>
-              <p className="text-sm text-[#111111]/70 font-light mt-2 max-w-2xl leading-relaxed">
-                Notez votre <strong className="font-semibold text-[#111111]">ressenti (1–5)</strong>, vos préoccupations du jour et, si vous le souhaitez, une photo (1 max, &lt;2 Mo). KURLA repère les motifs sans poser de diagnostic médical.
+              <p className="text-sm text-kurla-carbon/70 font-light mt-2 max-w-2xl leading-relaxed">
+                Notez votre <strong className="font-semibold text-kurla-carbon">ressenti (1–5)</strong>, vos préoccupations du jour et, si vous le souhaitez, une photo (1 max, &lt;2 Mo). KURLA repère les motifs sans poser de diagnostic médical.
               </p>
-              <p className="text-xs mt-3 flex items-start gap-1.5 text-[#111111]/60"><Info className="w-3.5 h-3.5 mt-0.5 shrink-0" /> Uniformiser ≠ éclaircir. Si rougeurs, douleurs ou lésions persistent, consultez un dermatologue/pharmacien. Export ou suppression : <a href="/account/donnees" className="underline">Vos données</a>.</p>
+              <p className="text-xs mt-3 flex items-start gap-1.5 text-kurla-carbon/60"><Info className="w-3.5 h-3.5 mt-0.5 shrink-0" /> Uniformiser ≠ éclaircir. Si rougeurs, douleurs ou lésions persistent, consultez un dermatologue/pharmacien. Export ou suppression : <a href="/account/donnees" className="underline">Vos données</a>.</p>
             </div>
-            <div className="min-w-[200px] p-4 rounded-2xl bg-white border border-[#E8E1DA] text-center h-fit">
-              <span className="text-[10px] uppercase tracking-wider text-[#111111]/55 block">Entrées</span>
-              <span className="text-3xl font-bold text-[#C8753D]">{entries.length}</span><span className="text-sm text-[#111111]/50"> / 50</span>
-              <p className="text-[11px] text-[#111111]/50 mt-1">J+0 · J+7 · J+30</p>
+            <div className="min-w-[200px] p-4 rounded-2xl bg-white border border-kurla-stone text-center h-fit">
+              <span className="text-[10px] uppercase tracking-wider text-kurla-carbon/55 block">Entrées</span>
+              <span className="text-3xl font-bold text-kurla-copper">{entries.length}</span><span className="text-sm text-kurla-carbon/50"> / 50</span>
+              <p className="text-[11px] text-kurla-carbon/50 mt-1">J+0 · J+7 · J+30</p>
               <div className="mt-3 flex gap-2 justify-center">
-                <a href="/peau/routine" className="px-3 py-1.5 rounded-full bg-[#111111] text-white text-[11px] font-bold">Ma routine</a>
-                <a href="/account/shelf?cat=peau" className="px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-[11px] font-bold">Mon étagère peau</a>
+                <a href="/peau/routine" className="px-3 py-1.5 rounded-full bg-kurla-carbon text-white text-[11px] font-bold">Ma routine</a>
+                <a href="/account/shelf?cat=peau" className="px-3 py-1.5 rounded-full bg-kurla-sand border border-kurla-stone text-[11px] font-bold">Mon étagère peau</a>
               </div>
             </div>
           </div>
         </div>
 
         {/* C7 — Observance peau + phototype (intégré au journal, pas séparé) */}
-        <section className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E1DA] shadow-sm">
+        <section className="p-5 sm:p-6 rounded-3xl bg-white border border-kurla-stone shadow-sm">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1">
-              <h2 className="text-sm font-bold flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8753D]" /> Observance aujourd’hui — {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-              <p className="text-xs text-[#111111]/60 mt-1">Cochez matin / soir. KURLA compte le streak sans juger. Journal ≠ diagnostic médical.</p>
+              <h2 className="text-sm font-bold flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-kurla-copper" /> Observance aujourd’hui — {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+              <p className="text-xs text-kurla-carbon/60 mt-1">Cochez matin / soir. KURLA compte le streak sans juger. Journal ≠ diagnostic médical.</p>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <button onClick={() => handleToggleObs('matin')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.matin ? 'bg-[#111111] text-white border-[#111111]' : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                <button onClick={() => handleToggleObs('matin')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.matin ? 'bg-kurla-carbon text-white border-kurla-carbon' : 'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper'}`}>
                   <span className="text-lg">☀️</span>
                   <span className="text-xs font-bold">Matin : protéger</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.matin ? 'bg-white text-[#111111]' : 'bg-[#F8F2EC] border border-[#E8E1DA]'}`}>{todayObs.matin ? 'Fait ✓' : 'À faire'}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.matin ? 'bg-white text-kurla-carbon' : 'bg-kurla-sand border border-kurla-stone'}`}>{todayObs.matin ? 'Fait ✓' : 'À faire'}</span>
                   <span className="text-[11px] opacity-70">Streak {streakMatin}j</span>
                 </button>
-                <button onClick={() => handleToggleObs('soir')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.soir ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D]'}`}>
+                <button onClick={() => handleToggleObs('soir')} className={`p-4 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${todayObs.soir ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper'}`}>
                   <span className="text-lg">🌙</span>
                   <span className="text-xs font-bold">Soir : réparer</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.soir ? 'bg-white text-[#C8753D]' : 'bg-[#F8F2EC] border border-[#E8E1DA]'}`}>{todayObs.soir ? 'Fait ✓' : 'À faire'}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${todayObs.soir ? 'bg-white text-kurla-copper' : 'bg-kurla-sand border border-kurla-stone'}`}>{todayObs.soir ? 'Fait ✓' : 'À faire'}</span>
                   <span className="text-[11px] opacity-80">Streak {streakSoir}j</span>
                 </button>
               </div>
               {observanceMsg && <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-3">{observanceMsg}</p>}
               <div className="mt-4 flex flex-wrap gap-1.5 items-center">
-                <span className="text-[11px] font-bold text-[#111111]/60 mr-1">7 derniers jours :</span>
+                <span className="text-[11px] font-bold text-kurla-carbon/60 mr-1">7 derniers jours :</span>
                 {weekHist.map(d => (
-                  <span key={d.date} title={`${d.date} · matin ${d.matin ? '✓' : '—'} · soir ${d.soir ? '✓' : '—'}`} className={`w-8 h-8 rounded-xl border flex flex-col items-center justify-center text-[10px] font-bold leading-none ${d.matin && d.soir ? 'bg-[#111111] text-white border-[#111111]' : d.matin || d.soir ? 'bg-[#F8F2EC] border-[#E8E1DA] text-[#111111]' : 'bg-white border-dashed border-[#E8E1DA] text-[#111111]/40'}`}>
+                  <span key={d.date} title={`${d.date} · matin ${d.matin ? '✓' : '—'} · soir ${d.soir ? '✓' : '—'}`} className={`w-8 h-8 rounded-xl border flex flex-col items-center justify-center text-[10px] font-bold leading-none ${d.matin && d.soir ? 'bg-kurla-carbon text-white border-kurla-carbon' : d.matin || d.soir ? 'bg-kurla-sand border-kurla-stone text-kurla-carbon' : 'bg-white border-dashed border-kurla-stone text-kurla-carbon/40'}`}>
                     <span>{new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'narrow' }).toUpperCase()}</span>
                     <span className="text-[11px]">{d.matin ? '☀' : '·'}{d.soir ? '☾' : '·'}</span>
                   </span>
                 ))}
-                <a href="/peau/routine" className="ml-2 text-[11px] font-bold text-[#C8753D] hover:underline">Ma routine →</a>
+                <a href="/peau/routine" className="ml-2 text-[11px] font-bold text-kurla-copper hover:underline">Ma routine →</a>
               </div>
             </div>
-            <div className="lg:w-[300px] shrink-0 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
-              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Votre profil peau</p>
+            <div className="lg:w-[300px] shrink-0 p-4 rounded-2xl bg-kurla-sand border border-kurla-stone">
+              <p className="text-xs font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-kurla-copper" /> Votre profil peau</p>
               <div className="mt-3 space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-[#111111]/60">Type</span><span className="font-semibold">{profile.skin?.skinType && profile.skin.skinType !== UNKNOWN ? profile.skin.skinType : 'non renseigné'}</span></div>
-                <div className="flex justify-between"><span className="text-[#111111]/60">Carnation</span><span className="font-semibold">{profile.skin?.toneDepth && profile.skin.toneDepth !== UNKNOWN ? profile.skin.toneDepth : '—'}</span></div>
-                <div className="flex justify-between"><span className="text-[#111111]/60">Sensibilité</span><span className="font-semibold">{profile.skin?.sensitivity && profile.skin.sensitivity !== UNKNOWN ? profile.skin.sensitivity : '—'}</span></div>
-                <div className="flex justify-between"><span className="text-[#111111]/60">HPI</span><span className="font-semibold">{profile.skin?.hyperpigmentationTendency && profile.skin.hyperpigmentationTendency !== UNKNOWN ? profile.skin.hyperpigmentationTendency : '—'}</span></div>
-                <div className="flex justify-between"><span className="text-[#111111]/60">Budget</span><span className="font-semibold">{profile.skin?.budget || '—'}</span></div>
+                <div className="flex justify-between"><span className="text-kurla-carbon/60">Type</span><span className="font-semibold">{profile.skin?.skinType && profile.skin.skinType !== UNKNOWN ? profile.skin.skinType : 'non renseigné'}</span></div>
+                <div className="flex justify-between"><span className="text-kurla-carbon/60">Carnation</span><span className="font-semibold">{profile.skin?.toneDepth && profile.skin.toneDepth !== UNKNOWN ? profile.skin.toneDepth : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-kurla-carbon/60">Sensibilité</span><span className="font-semibold">{profile.skin?.sensitivity && profile.skin.sensitivity !== UNKNOWN ? profile.skin.sensitivity : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-kurla-carbon/60">HPI</span><span className="font-semibold">{profile.skin?.hyperpigmentationTendency && profile.skin.hyperpigmentationTendency !== UNKNOWN ? profile.skin.hyperpigmentationTendency : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-kurla-carbon/60">Budget</span><span className="font-semibold">{profile.skin?.budget || '—'}</span></div>
               </div>
               <div className="mt-3 flex gap-2">
-                <a href="/peau/diagnostic" className="flex-1 py-2 rounded-full bg-[#111111] text-white text-xs font-bold text-center">Diagnostic</a>
-                <a href="/account/kurla-id" className="flex-1 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold text-center">Éditer profil</a>
+                <a href="/peau/diagnostic" className="flex-1 py-2 rounded-full bg-kurla-carbon text-white text-xs font-bold text-center">Diagnostic</a>
+                <a href="/account/kurla-id" className="flex-1 py-2 rounded-full bg-white border border-kurla-stone text-xs font-bold text-center">Éditer profil</a>
               </div>
-              <p className="text-[11px] text-[#111111]/50 mt-2">Le journal lit votre profil peau pour pré-remplir les suggestions. Modifiable à tout moment.</p>
+              <p className="text-[11px] text-kurla-carbon/50 mt-2">Le journal lit votre profil peau pour pré-remplir les suggestions. Modifiable à tout moment.</p>
             </div>
           </div>
         </section>
@@ -437,27 +437,27 @@ export const SkinJournalPage: React.FC = () => {
         )}
 
         {/* Form */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E8E1DA] space-y-5 shadow-sm">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white border border-kurla-stone space-y-5 shadow-sm">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#C8753D]" />
+            <Calendar className="w-5 h-5 text-kurla-copper" />
             <h2 className="text-lg font-bold">Nouvelle entrée</h2>
-            <span className="text-xs text-[#111111]/50 ml-auto">{milestone} · {new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            <span className="text-xs text-kurla-carbon/50 ml-auto">{milestone} · {new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/60">Date d’observation</span>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} max={localISODate()} className="px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-kurla-carbon/60">Date d’observation</span>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} max={localISODate()} className="px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper" />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/60">Jalon</span>
-              <select value={milestone} onChange={e => setMilestone(e.target.value)} className="px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-kurla-carbon/60">Jalon</span>
+              <select value={milestone} onChange={e => setMilestone(e.target.value)} className="px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper">
                 {MILESTONES.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
             </label>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/60">Votre profil peau</span>
-              <span className="px-3 py-2.5 rounded-xl bg-[#F8F2EC] border border-[#E8E1DA] text-xs text-[#111111]/70">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-kurla-carbon/60">Votre profil peau</span>
+              <span className="px-3 py-2.5 rounded-xl bg-kurla-sand border border-kurla-stone text-xs text-kurla-carbon/70">
                 {profile.skin?.skinType && profile.skin.skinType !== UNKNOWN ? profile.skin.skinType : '—'} · {profile.skin?.toneDepth && profile.skin.toneDepth !== UNKNOWN ? profile.skin.toneDepth : '—'} · {profile.skin?.budget || '—'}
               </span>
             </div>
@@ -471,11 +471,11 @@ export const SkinJournalPage: React.FC = () => {
                   key={f.score}
                   type="button"
                   onClick={() => setFeelingScore(f.score)}
-                  className={`p-3 rounded-2xl border text-center transition-all ${feelingScore === f.score ? 'bg-[#111111] text-white border-[#111111] shadow-md' : 'bg-[#FFFDF9] border-[#E8E1DA] hover:border-[#C8753D] hover:bg-[#F8F2EC]'}`}
+                  className={`p-3 rounded-2xl border text-center transition-all ${feelingScore === f.score ? 'bg-kurla-carbon text-white border-kurla-carbon shadow-md' : 'bg-kurla-ivory border-kurla-stone hover:border-kurla-copper hover:bg-kurla-sand'}`}
                 >
                   <span className="text-xl block">{f.emoji}</span>
-                  <span className={`text-xs font-bold block mt-1 ${feelingScore === f.score ? 'text-white' : 'text-[#111111]'}`}>{f.score}/5</span>
-                  <span className={`text-[10px] block ${feelingScore === f.score ? 'text-white/80' : 'text-[#111111]/60'}`}>{f.label}</span>
+                  <span className={`text-xs font-bold block mt-1 ${feelingScore === f.score ? 'text-white' : 'text-kurla-carbon'}`}>{f.score}/5</span>
+                  <span className={`text-[10px] block ${feelingScore === f.score ? 'text-white/80' : 'text-kurla-carbon/60'}`}>{f.label}</span>
                 </button>
               ))}
             </div>
@@ -489,32 +489,32 @@ export const SkinJournalPage: React.FC = () => {
                   key={c.value}
                   type="button"
                   onClick={() => toggleConcern(c.value)}
-                  className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${concerns.includes(c.value) ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${concerns.includes(c.value) ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-white border-kurla-stone hover:border-kurla-copper'}`}
                 >
                   {c.label.split(' ·')[0].split(' /')[0]}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-[#111111]/50 mt-1">{concerns.length}/3 sélectionnées</p>
+            <p className="text-[11px] text-kurla-carbon/50 mt-1">{concerns.length}/3 sélectionnées</p>
           </div>
 
           <div>
             <label className="text-xs font-bold">Notes (facultatif, 400 max)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} maxLength={400} rows={3} placeholder="Ex : SPF réappliqué à midi, picotement léger après sérum, peau plus confortable le soir..." className="mt-1.5 w-full p-3 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D] resize-none" />
-            <p className="text-[11px] text-[#111111]/40 text-right">{notes.length}/400</p>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} maxLength={400} rows={3} placeholder="Ex : SPF réappliqué à midi, picotement léger après sérum, peau plus confortable le soir..." className="mt-1.5 w-full p-3 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper resize-none" />
+            <p className="text-[11px] text-kurla-carbon/40 text-right">{notes.length}/400</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] space-y-3">
+          <div className="p-4 rounded-2xl bg-kurla-sand border border-kurla-stone space-y-3">
             <div className="flex items-center gap-2">
-              <Camera className="w-4 h-4 text-[#C8753D]" />
+              <Camera className="w-4 h-4 text-kurla-copper" />
               <span className="text-xs font-bold">Photo optionnelle (1 max, &lt;2 Mo)</span>
-              <span className="text-[11px] text-[#111111]/50 ml-auto">JPG / PNG / WebP</span>
+              <span className="text-[11px] text-kurla-carbon/50 ml-auto">JPG / PNG / WebP</span>
             </div>
-            <input id="skin-journal-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto} className="block w-full text-xs file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-[#111111] file:text-white file:text-xs file:font-bold hover:file:bg-black" />
+            <input id="skin-journal-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto} className="block w-full text-xs file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-kurla-carbon file:text-white file:text-xs file:font-bold hover:file:bg-black" />
             {photoError && <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{photoError}</p>}
             {photoDataUrl && (
               <div className="flex gap-3 items-start">
-                <img src={photoDataUrl} alt="Aperçu" className="w-24 h-24 rounded-xl object-cover border border-[#E8E1DA]" />
+                <img src={photoDataUrl} alt="Aperçu" className="w-24 h-24 rounded-xl object-cover border border-kurla-stone" />
                 <div className="flex-1">
                   <p className="text-xs font-semibold">Aperçu — cette photo restera sur votre appareil et, si vous êtes connectée, dans votre profil chiffré.</p>
                   <button onClick={() => setPhotoDataUrl(undefined)} className="mt-1 text-xs text-rose-700 hover:underline">Retirer la photo</button>
@@ -522,37 +522,37 @@ export const SkinJournalPage: React.FC = () => {
               </div>
             )}
             <label className="flex items-start gap-2 text-xs leading-relaxed cursor-pointer">
-              <input type="checkbox" checked={photoConsent} onChange={e => setPhotoConsent(e.target.checked)} className="mt-0.5 rounded text-[#C8753D] w-4 h-4" />
-              <span className={`${photoDataUrl && !photoConsent ? 'text-rose-700 font-semibold' : 'text-[#111111]/70'}`}>
-                J’autorise KURLA à stocker cette photo dans mon journal peau. Je peux la supprimer à tout moment dans <em>Vos données</em> ou depuis cet écran. <ShieldCheck className="w-3.5 h-3.5 inline text-[#C8753D]" /> RGPD · aucune revente, aucun partage sans consentement.
+              <input type="checkbox" checked={photoConsent} onChange={e => setPhotoConsent(e.target.checked)} className="mt-0.5 rounded text-kurla-copper w-4 h-4" />
+              <span className={`${photoDataUrl && !photoConsent ? 'text-rose-700 font-semibold' : 'text-kurla-carbon/70'}`}>
+                J’autorise KURLA à stocker cette photo dans mon journal peau. Je peux la supprimer à tout moment dans <em>Vos données</em> ou depuis cet écran. <ShieldCheck className="w-3.5 h-3.5 inline text-kurla-copper" /> RGPD · aucune revente, aucun partage sans consentement.
               </span>
             </label>
             {photoDataUrl && !photoConsent && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">Cochez le consentement pour enregistrer une entrée avec photo.</p>}
           </div>
 
-          <button onClick={addEntry} disabled={saving || !canSave} className="w-full py-3.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={addEntry} disabled={saving || !canSave} className="w-full py-3.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60">
             {saving ? 'Enregistrement…' : 'Enregistrer cette entrée'}
             {!saving && <CheckCircle2 className="w-4 h-4" />}
           </button>
-          <p className="text-[11px] text-[#111111]/45 flex gap-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> Journal déclaratif, non médical. Les photos ne sont jamais utilisées pour entraîner une IA sans consentement explicite.</p>
+          <p className="text-[11px] text-kurla-carbon/45 flex gap-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> Journal déclaratif, non médical. Les photos ne sont jamais utilisées pour entraîner une IA sans consentement explicite.</p>
         </div>
 
         {/* Timeline */}
-        <section className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E8E1DA] space-y-4">
+        <section className="p-6 sm:p-8 rounded-3xl bg-white border border-kurla-stone space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-[#C8753D]" /> Historique ({entries.length})</h2>
-            {entries.length > 0 && <span className="text-[11px] px-2 py-1 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] text-[#111111]/60">{entries.filter(e => e.milestone === 'J+0').length} J+0 · {entries.filter(e => e.milestone === 'J+7').length} J+7 · {entries.filter(e => e.milestone === 'J+30').length} J+30</span>}
+            <h2 className="text-lg font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-kurla-copper" /> Historique ({entries.length})</h2>
+            {entries.length > 0 && <span className="text-[11px] px-2 py-1 rounded-full bg-kurla-sand border border-kurla-stone text-kurla-carbon/60">{entries.filter(e => e.milestone === 'J+0').length} J+0 · {entries.filter(e => e.milestone === 'J+7').length} J+7 · {entries.filter(e => e.milestone === 'J+30').length} J+30</span>}
           </div>
           {entries.length === 0 ? (
-            <p className="text-sm text-[#111111]/50 text-center py-8">Aucune entrée — votre première note apparaîtra ici, avec J+0 / J+7 / J+30 pour suivre l’évolution.</p>
+            <p className="text-sm text-kurla-carbon/50 text-center py-8">Aucune entrée — votre première note apparaîtra ici, avec J+0 / J+7 / J+30 pour suivre l’évolution.</p>
           ) : (
             <div className="space-y-3">
               {entries.slice(0, 30).map((entry, idx) => {
                 const feelingMeta = FEELINGS.find(f => f.score === entry.feelingScore) || FEELINGS[2];
                 return (
-                  <article key={entry.createdAt + idx} className="p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] flex gap-4">
+                  <article key={entry.createdAt + idx} className="p-4 rounded-2xl bg-kurla-sand border border-kurla-stone flex gap-4">
                     <div className="shrink-0 text-center min-w-[72px]">
-                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${entry.milestone === 'J+0' ? 'bg-[#111111] text-white' : entry.milestone === 'J+7' ? 'bg-[#C8753D] text-white' : 'bg-white border border-[#E8E1DA]'}`}>{entry.milestone || '—'}</span>
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${entry.milestone === 'J+0' ? 'bg-kurla-carbon text-white' : entry.milestone === 'J+7' ? 'bg-kurla-copper text-white' : 'bg-white border border-kurla-stone'}`}>{entry.milestone || '—'}</span>
                       <span className="text-xs font-bold block mt-1">{new Date(entry.date + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
                       <span className="text-lg block">{feelingMeta.emoji}</span>
                       <span className="text-[11px] font-bold">{entry.feelingScore}/5</span>
@@ -561,20 +561,20 @@ export const SkinJournalPage: React.FC = () => {
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         {(entry.concerns || []).filter(v => v !== UNKNOWN).slice(0, 4).map(v => {
                           const lab = CONCERNS.find(o => o.value === v)?.label?.split(' ·')[0] || v.replaceAll('_', ' ');
-                          return <span key={v} className="px-2 py-0.5 rounded-full bg-white border border-[#E8E1DA] text-[11px] font-semibold">{lab}</span>;
+                          return <span key={v} className="px-2 py-0.5 rounded-full bg-white border border-kurla-stone text-[11px] font-semibold">{lab}</span>;
                         })}
-                        {(!entry.concerns || entry.concerns.length === 0 || entry.concerns[0] === UNKNOWN) && <span className="text-[11px] text-[#111111]/50">—</span>}
+                        {(!entry.concerns || entry.concerns.length === 0 || entry.concerns[0] === UNKNOWN) && <span className="text-[11px] text-kurla-carbon/50">—</span>}
                       </div>
-                      {entry.notes && <p className="text-sm text-[#111111]/75 leading-relaxed break-words">{entry.notes}</p>}
-                      <p className="text-[11px] text-[#111111]/40 mt-1">Saisi le {new Date(entry.createdAt).toLocaleString('fr-FR')}</p>
+                      {entry.notes && <p className="text-sm text-kurla-carbon/75 leading-relaxed break-words">{entry.notes}</p>}
+                      <p className="text-[11px] text-kurla-carbon/40 mt-1">Saisi le {new Date(entry.createdAt).toLocaleString('fr-FR')}</p>
                     </div>
                     <div className="shrink-0 flex flex-col gap-2 items-center">
                       {(entry.photoUrl || entry.photoDataUrl) ? (
                         <a href={entry.photoUrl || entry.photoDataUrl} target="_blank" rel="noreferrer">
-                          <img src={entry.photoUrl || entry.photoDataUrl} alt="Photo journal" className="w-16 h-16 rounded-xl object-cover border border-[#E8E1DA] hover:opacity-90" />
+                          <img src={entry.photoUrl || entry.photoDataUrl} alt="Photo journal" className="w-16 h-16 rounded-xl object-cover border border-kurla-stone hover:opacity-90" />
                         </a>
                       ) : (
-                        <div className="w-16 h-16 rounded-xl bg-white border border-dashed border-[#E8E1DA] flex items-center justify-center"><ImageIcon className="w-5 h-5 text-[#111111]/30" /></div>
+                        <div className="w-16 h-16 rounded-xl bg-white border border-dashed border-kurla-stone flex items-center justify-center"><ImageIcon className="w-5 h-5 text-kurla-carbon/30" /></div>
                       )}
                       <button onClick={() => deleteEntry(idx)} className="text-[11px] text-rose-700 hover:underline flex items-center gap-1"><Trash2 className="w-3 h-3" /> Suppr.</button>
                     </div>
@@ -594,10 +594,10 @@ export const SkinJournalPage: React.FC = () => {
         {(() => {
           const withPhoto = entries.filter(e => !!(e.photoUrl || e.photoDataUrl));
           if (withPhoto.length < 2) return (
-            <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA]">
-              <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — avant/après</h3>
-              <p className="text-xs text-[#111111]/60 mt-1">Ajoutez 2 photos (J+0 + J+7) avec <strong>même lumière</strong> (fenêtre, visage neutre, pas de filtre) pour activer le slider. Uniformiser≠éclaircir — on compare le confort et les marques, pas la carnation.</p>
-              <div className="mt-3 p-4 rounded-2xl bg-[#F8F2EC] border border-dashed border-[#E8E1DA] text-center text-xs text-[#111111]/50">Exemple Fatou : J+0 → J+7 (7 jours d’Équilibrée, prix indicatif 62€, sans parfum) · ressenti 3→4/5</div>
+            <section className="p-6 rounded-3xl bg-white border border-kurla-stone">
+              <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-kurla-copper" /> Comparateur photo P2 — avant/après</h3>
+              <p className="text-xs text-kurla-carbon/60 mt-1">Ajoutez 2 photos (J+0 + J+7) avec <strong>même lumière</strong> (fenêtre, visage neutre, pas de filtre) pour activer le slider. Uniformiser≠éclaircir — on compare le confort et les marques, pas la carnation.</p>
+              <div className="mt-3 p-4 rounded-2xl bg-kurla-sand border border-dashed border-kurla-stone text-center text-xs text-kurla-carbon/50">Exemple Fatou : J+0 → J+7 (7 jours d’Équilibrée, prix indicatif 62€, sans parfum) · ressenti 3→4/5</div>
             </section>
           );
           const idxA = Math.min(compareIdxA, withPhoto.length-1);
@@ -612,53 +612,53 @@ export const SkinJournalPage: React.FC = () => {
           const topLabel = topConcern ? (CONCERNS.find(o=>o.value===topConcern[0])?.label?.split(' ·')[0] || topConcern[0].replaceAll('_',' ')) + ` ×${topConcern[1]}` : '—';
           const obsRate = (()=>{ try{ const h=getWeekHistory(7); const total=h.length*2; const done=h.reduce((s,d)=>s+(d.matin?1:0)+(d.soir?1:0),0); return total? Math.round(done/total*100):0; }catch{return 0;}})();
           return (
-            <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA] space-y-4">
+            <section className="p-6 rounded-3xl bg-white border border-kurla-stone space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — glissez pour comparer</h3>
-                <span className="text-[11px] px-2 py-1 rounded-full bg-[#F8F2EC] border border-[#E8E1DA]">{withPhoto.length} photos · même lumière conseillée</span>
+                <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-kurla-copper" /> Comparateur photo P2 — glissez pour comparer</h3>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-kurla-sand border border-kurla-stone">{withPhoto.length} photos · même lumière conseillée</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="text-xs font-semibold">Avant <select value={idxA} onChange={e=>setCompareIdxA(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-xs">{withPhoto.map((e,i)=><option key={e.createdAt} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
-                <label className="text-xs font-semibold">Après <select value={idxB} onChange={e=>setCompareIdxB(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-xs">{withPhoto.map((e,i)=><option key={e.createdAt+i} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
+                <label className="text-xs font-semibold">Avant <select value={idxA} onChange={e=>setCompareIdxA(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-kurla-sand border border-kurla-stone text-xs">{withPhoto.map((e,i)=><option key={e.createdAt} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
+                <label className="text-xs font-semibold">Après <select value={idxB} onChange={e=>setCompareIdxB(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-kurla-sand border border-kurla-stone text-xs">{withPhoto.map((e,i)=><option key={e.createdAt+i} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
               </div>
-              <div className="relative w-full max-w-xl mx-auto aspect-[4/3] rounded-2xl overflow-hidden border border-[#E8E1DA] bg-[#F8F2EC] select-none">
+              <div className="relative w-full max-w-xl mx-auto aspect-[4/3] rounded-2xl overflow-hidden border border-kurla-stone bg-kurla-sand select-none">
                 <img src={(b.photoUrl || b.photoDataUrl)!} alt="Après" className="absolute inset-0 w-full h-full object-cover" />
                 <img src={(a.photoUrl || a.photoDataUrl)!} alt="Avant" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }} />
                 <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)] pointer-events-none" style={{ left: `${sliderPos}%` }} />
-                <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-[#111111]/80 text-white text-[10px] font-bold">{a.milestone||'Avant'} {a.date}</div>
-                <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold">{b.milestone||'Après'} {b.date}</div>
-                <input type="range" min={0} max={100} value={sliderPos} onChange={e=>setSliderPos(parseInt(e.target.value))} aria-label="Comparer avant après" className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[80%] accent-[#C8753D] cursor-pointer" />
+                <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-kurla-carbon/80 text-white text-[10px] font-bold">{a.milestone||'Avant'} {a.date}</div>
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-kurla-copper text-white text-[10px] font-bold">{b.milestone||'Après'} {b.date}</div>
+                <input type="range" min={0} max={100} value={sliderPos} onChange={e=>setSliderPos(parseInt(e.target.value))} aria-label="Comparer avant après" className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[80%] accent-kurla-copper cursor-pointer" />
               </div>
-              <p className="text-[11px] text-[#111111]/50 text-center">Glissez le curseur · photos prises à la fenêtre, visage neutre, pas de filtre — on compare confort/marks, pas carnation. Uniformiser≠éclaircir.</p>
+              <p className="text-[11px] text-kurla-carbon/50 text-center">Glissez le curseur · photos prises à la fenêtre, visage neutre, pas de filtre — on compare confort/marks, pas carnation. Uniformiser≠éclaircir.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Ressenti moyen</p><p className="text-lg font-bold text-[#C8753D]">{avg}/5</p><p className="text-[#111111]/60">{entries.length} entrées · J+0→J+30</p></div>
-                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Préoccupation récurrente</p><p className="font-semibold">{topLabel}</p><p className="text-[#111111]/60">La plus citée — HPI/SPF si taches</p></div>
-                <div className="p-3 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]"><p className="font-bold">Observance 7j</p><p className="text-lg font-bold">{obsRate}%</p><p className="text-[#111111]/60">Matin + soir cochés · streak {streakMatin}/{streakSoir}j</p></div>
+                <div className="p-3 rounded-2xl bg-kurla-sand border border-kurla-stone"><p className="font-bold">Ressenti moyen</p><p className="text-lg font-bold text-kurla-copper">{avg}/5</p><p className="text-kurla-carbon/60">{entries.length} entrées · J+0→J+30</p></div>
+                <div className="p-3 rounded-2xl bg-kurla-sand border border-kurla-stone"><p className="font-bold">Préoccupation récurrente</p><p className="font-semibold">{topLabel}</p><p className="text-kurla-carbon/60">La plus citée — HPI/SPF si taches</p></div>
+                <div className="p-3 rounded-2xl bg-kurla-sand border border-kurla-stone"><p className="font-bold">Observance 7j</p><p className="text-lg font-bold">{obsRate}%</p><p className="text-kurla-carbon/60">Matin + soir cochés · streak {streakMatin}/{streakSoir}j</p></div>
               </div>
-              <p className="text-[11px] text-[#111111]/50">Analyse cosmétique chiffrée, pas de diagnostic médical. Si lésion qui persiste/s'aggrave → pro peau visio.</p>
+              <p className="text-[11px] text-kurla-carbon/50">Analyse cosmétique chiffrée, pas de diagnostic médical. Si lésion qui persiste/s'aggrave → pro peau visio.</p>
             </section>
           );
         })()}
 
         {/* C11 — Synthèse IA journal (cosmétique, chiffrée, sans diag médical) */}
-        <section className="p-6 rounded-3xl bg-[#111111] text-white border border-[#FFF7EF]/10">
+        <section className="p-6 rounded-3xl bg-kurla-carbon text-white border border-kurla-cream/10">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#D49A63]" /> Synthèse IA de votre journal</h3>
-              <p className="text-xs text-white/70 mt-1 leading-relaxed max-w-2xl">À partir de J+0/J+7/J+30, ressenti 1–5, préoccupations et observance. L’IA donne 3 observations chiffrées + 1 conseil routine <strong className="text-white">sans parfum</strong> + garde <em>uniformiser≠éclaircir</em>. <strong className="text-[#D49A63]">Aucun diagnostic médical</strong> — si lésion qui persiste → pro peau.</p>
+              <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4 text-kurla-amber" /> Synthèse IA de votre journal</h3>
+              <p className="text-xs text-white/70 mt-1 leading-relaxed max-w-2xl">À partir de J+0/J+7/J+30, ressenti 1–5, préoccupations et observance. L’IA donne 3 observations chiffrées + 1 conseil routine <strong className="text-white">sans parfum</strong> + garde <em>uniformiser≠éclaircir</em>. <strong className="text-kurla-amber">Aucun diagnostic médical</strong> — si lésion qui persiste → pro peau.</p>
             </div>
-            <button onClick={handleAiSynthesis} disabled={aiLoading || entries.length < 2} className="px-5 py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold disabled:opacity-40 shrink-0">{aiLoading ? 'Analyse…' : 'Générer synthèse IA →'}</button>
+            <button onClick={handleAiSynthesis} disabled={aiLoading || entries.length < 2} className="px-5 py-3 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-bold disabled:opacity-40 shrink-0">{aiLoading ? 'Analyse…' : 'Générer synthèse IA →'}</button>
           </div>
           {aiError && <p className="mt-3 p-3 rounded-xl bg-rose-900/30 border border-rose-400/30 text-xs text-rose-200">{aiError}</p>}
-          {aiSynthesis && <div className="mt-4 p-4 rounded-2xl bg-white text-[#111111] text-sm leading-relaxed whitespace-pre-wrap">{aiSynthesis}<p className="text-[11px] text-[#111111]/50 mt-3">Synthèse cosmétique générée par KURLA AI — ne remplace pas un avis dermatologique. <a href="/assistant" className="text-[#C8753D] underline">Poser une question à l’IA →</a> · <a href="/professionnels?cat=peau" className="text-[#C8753D] underline">Voir pros peau →</a></p></div>}
+          {aiSynthesis && <div className="mt-4 p-4 rounded-2xl bg-white text-kurla-carbon text-sm leading-relaxed whitespace-pre-wrap">{aiSynthesis}<p className="text-[11px] text-kurla-carbon/50 mt-3">Synthèse cosmétique générée par KURLA AI — ne remplace pas un avis dermatologique. <a href="/assistant" className="text-kurla-copper underline">Poser une question à l’IA →</a> · <a href="/professionnels?cat=peau" className="text-kurla-copper underline">Voir pros peau →</a></p></div>}
           {entries.length < 2 && !aiSynthesis && <p className="mt-3 text-xs text-white/50">Ajoutez 2 entrées minimum pour activer la synthèse (ex: J+0 + J+7).</p>}
         </section>
 
         {/* Cross links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <a href="/peau/routine" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> Ma routine peau</p><p className="text-[#111111]/60 font-light mt-1">Matin 6 · Soir 8 · prix indicatifs de précommande 49,70/62/84,90.</p></a>
-          <a href="/account/shelf?cat=peau" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Award className="w-4 h-4 text-[#C8753D]" /> Mon étagère peau</p><p className="text-[#111111]/60 font-light mt-1">% restant, jauge, alerte J-7 réassort.</p></a>
-          <a href="/boutique?cat=peau" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> Boutique peau filtrée</p><p className="text-[#111111]/60 font-light mt-1">15 besoins · actif · phototype V–VI safe.</p></a>
+          <a href="/peau/routine" className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-kurla-copper" /> Ma routine peau</p><p className="text-kurla-carbon/60 font-light mt-1">Matin 6 · Soir 8 · prix indicatifs de précommande 49,70/62/84,90.</p></a>
+          <a href="/account/shelf?cat=peau" className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper"><p className="font-bold flex items-center gap-1.5"><Award className="w-4 h-4 text-kurla-copper" /> Mon étagère peau</p><p className="text-kurla-carbon/60 font-light mt-1">% restant, jauge, alerte J-7 réassort.</p></a>
+          <a href="/boutique?cat=peau" className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-kurla-copper" /> Boutique peau filtrée</p><p className="text-kurla-carbon/60 font-light mt-1">15 besoins · actif · phototype V–VI safe.</p></a>
         </div>
       </div>
     </div>

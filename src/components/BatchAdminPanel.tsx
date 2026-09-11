@@ -64,10 +64,10 @@ const BATCH_STATUS_LABELS: Record<string, string> = {
 };
 
 function inputClass(): string {
-  return 'w-full px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]';
+  return 'w-full px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper';
 }
 function labelClass(): string {
-  return 'text-[10px] uppercase tracking-wider font-bold text-[#D49A63]';
+  return 'text-[10px] uppercase tracking-wider font-bold text-kurla-amber';
 }
 /** Les coûts sont stockés en centimes ; la saisie se fait en euros. */
 function toCents(euros: string): number | null {
@@ -216,13 +216,13 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-[#FFF7EF] flex items-center gap-2"><Boxes size={18} /> Lots et traçabilité</h2>
-          <p className="text-[11px] text-[#FFF7EF]/60 mt-1 max-w-3xl">
+          <h2 className="text-lg font-bold text-kurla-cream flex items-center gap-2"><Boxes size={18} /> Lots et traçabilité</h2>
+          <p className="text-[11px] text-kurla-cream/60 mt-1 max-w-3xl">
             Ce qui est entré en stock, à quel coût réel, et dans quelles commandes c'est parti.
             Le coût servi se calcule à partir des coûts saisis — il ne s'estime pas.
           </p>
         </div>
-        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-[#FFF7EF]/15 text-[#FFF7EF]/80 text-xs flex items-center gap-2 hover:border-[#C8753D]">
+        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-kurla-cream/15 text-kurla-cream/80 text-xs flex items-center gap-2 hover:border-kurla-copper">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Recharger
         </button>
       </div>
@@ -240,15 +240,15 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
           { label: 'Unités allouées', value: trace ? trace.allocatedUnits : '—' },
           { label: 'Réponses de traçabilité', value: trace ? trace.orderCount : '—' }
         ].map(kpi => (
-          <div key={kpi.label} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] px-4 py-3">
-            <div className="text-2xl font-bold text-[#FFF7EF]">{kpi.value}</div>
-            <div className="text-[10px] uppercase tracking-wider text-[#D49A63] mt-1">{kpi.label}</div>
+          <div key={kpi.label} className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] px-4 py-3">
+            <div className="text-2xl font-bold text-kurla-cream">{kpi.value}</div>
+            <div className="text-[10px] uppercase tracking-wider text-kurla-amber mt-1">{kpi.label}</div>
           </div>
         ))}
       </div>
 
-      <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Enregistrer un lot reçu</h3>
+      <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Enregistrer un lot reçu</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="space-y-1"><span className={labelClass()}>Référence de lot *</span>
             <input className={inputClass()} value={draft.lotReference} onChange={event => setDraft({ ...draft, lotReference: event.target.value })} placeholder="LOT-2026-001" /></label>
@@ -286,20 +286,20 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
               {Object.entries(BATCH_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select></label>
         </div>
-        <p className="text-[10px] text-[#FFF7EF]/40 mt-3">
+        <p className="text-[10px] text-kurla-cream/40 mt-3">
           Le coût servi par unité est calculé par la base : (quantité × coût unitaire + fret + droits + autres) ÷ quantité.
           Saisissez ce que vous avez réellement payé — un coût saisi au hasard fausse toute la marge affichée ensuite.
         </p>
         <button onClick={() => void createBatch()} disabled={busy || !draft.lotReference.trim() || !draft.productId || !draft.quantityReceived || !draft.unitCost || !draft.receivedOn}
-          className="mt-4 px-4 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+          className="mt-4 px-4 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center gap-2 disabled:opacity-40">
           <Save size={13} /> Enregistrer le lot
         </button>
       </section>
 
-      <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Lots ({batches.length})</h3>
+      <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Lots ({batches.length})</h3>
         {batches.length === 0 ? (
-          <p className="text-xs text-[#FFF7EF]/50">
+          <p className="text-xs text-kurla-cream/50">
             Aucun lot enregistré. Tant qu'aucun achat réel n'a eu lieu, il n'y a ni coût servi ni traçabilité —
             et rien n'est affiché à la place.
           </p>
@@ -307,7 +307,7 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-[#D49A63]">
+                <tr className="text-[10px] uppercase tracking-wider text-kurla-amber">
                   <th className="py-2 pr-3">Lot</th>
                   <th className="py-2 pr-3">Produit</th>
                   <th className="py-2 pr-3">Fournisseur</th>
@@ -320,16 +320,16 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
               </thead>
               <tbody>
                 {batches.map(batch => (
-                  <tr key={batch.id} className="border-t border-[#FFF7EF]/10">
-                    <td className="py-2 pr-3 text-[#FFF7EF] font-mono">{batch.lotReference}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{productName(batch.productId)}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplierName(batch.supplierId)}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{batch.quantityReceived}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]">{euros(batch.servedCostCents, batch.currency)}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{batch.receivedOn}</td>
-                    <td className="py-2 pr-3 text-[#FFF7EF]/70">{BATCH_STATUS_LABELS[batch.status] || batch.status}</td>
+                  <tr key={batch.id} className="border-t border-kurla-cream/10">
+                    <td className="py-2 pr-3 text-kurla-cream font-mono">{batch.lotReference}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{productName(batch.productId)}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{supplierName(batch.supplierId)}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{batch.quantityReceived}</td>
+                    <td className="py-2 pr-3 text-kurla-cream">{euros(batch.servedCostCents, batch.currency)}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{batch.receivedOn}</td>
+                    <td className="py-2 pr-3 text-kurla-cream/70">{BATCH_STATUS_LABELS[batch.status] || batch.status}</td>
                     <td className="py-2 text-right">
-                      <button onClick={() => void openTrace(batch.id)} className="text-[#C8753D] hover:underline flex items-center gap-1 ml-auto">
+                      <button onClick={() => void openTrace(batch.id)} className="text-kurla-copper hover:underline flex items-center gap-1 ml-auto">
                         <Search size={11} /> Tracer
                       </button>
                     </td>
@@ -342,10 +342,10 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
       </section>
 
       {trace && (
-        <section className="rounded-2xl border border-[#C8753D]/40 bg-[#C8753D]/[0.06] p-5 space-y-4">
+        <section className="rounded-2xl border border-kurla-copper/40 bg-kurla-copper/[0.06] p-5 space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-[#FFF7EF] flex items-center gap-2"><Link2 size={14} /> Lot {trace.batch.lotReference}</h3>
-            <p className="text-[11px] text-[#FFF7EF]/60">
+            <h3 className="text-sm font-bold text-kurla-cream flex items-center gap-2"><Link2 size={14} /> Lot {trace.batch.lotReference}</h3>
+            <p className="text-[11px] text-kurla-cream/60">
               {productName(trace.batch.productId)} · {trace.batch.quantityReceived} unité(s) reçues ·
               {trace.allocatedUnits} allouée(s) · <strong>{trace.unallocatedUnits} restante(s)</strong> ·
               {trace.orderCount} commande(s) concernée(s)
@@ -355,15 +355,15 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
           <div>
             <h4 className={labelClass()}>Commandes contenant ce lot ({trace.rows.length})</h4>
             {trace.rows.length === 0 ? (
-              <p className="text-[11px] text-[#FFF7EF]/50 mt-1">
+              <p className="text-[11px] text-kurla-cream/50 mt-1">
                 Ce lot n'est encore dans aucune commande. La réponse à « quelles commandes contiennent ce lot » est : aucune.
               </p>
             ) : (
               <ul className="mt-2 space-y-2">
                 {trace.rows.map((row, index) => (
-                  <li key={`${row.orderId}-${index}`} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                    <div className="text-xs text-[#FFF7EF] font-mono">{row.orderId} <span className="text-[#FFF7EF]/50">· {row.orderStatus}</span></div>
-                    <div className="text-[10px] text-[#FFF7EF]/60">
+                  <li key={`${row.orderId}-${index}`} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                    <div className="text-xs text-kurla-cream font-mono">{row.orderId} <span className="text-kurla-cream/50">· {row.orderStatus}</span></div>
+                    <div className="text-[10px] text-kurla-cream/60">
                       {row.allocatedQuantity} unité(s) allouée(s) sur {row.orderedQuantity} commandée(s) · le {String(row.orderedAt).slice(0, 10)}
                     </div>
                   </li>
@@ -373,10 +373,10 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
           </div>
 
           {trace.unallocatedUnits > 0 && (
-            <div className="rounded-xl border border-[#FFF7EF]/10 p-3 space-y-2">
+            <div className="rounded-xl border border-kurla-cream/10 p-3 space-y-2">
               <h4 className={labelClass()}>Allouer à une ligne de commande</h4>
               {lines.length === 0 ? (
-                <p className="text-[11px] text-[#FFF7EF]/50">Aucune ligne de commande en attente pour ce produit.</p>
+                <p className="text-[11px] text-kurla-cream/50">Aucune ligne de commande en attente pour ce produit.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -398,10 +398,10 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
                         onChange={event => setAllocationDraft({ ...allocationDraft, quantity: event.target.value })} /></label>
                   </div>
                   <button onClick={() => void allocate()} disabled={busy || !allocationDraft.orderItemId || !allocationDraft.quantity}
-                    className="px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold disabled:opacity-40">
+                    className="px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold disabled:opacity-40">
                     Allouer
                   </button>
-                  <p className="text-[10px] text-[#FFF7EF]/40">
+                  <p className="text-[10px] text-kurla-cream/40">
                     Refusé si la quantité dépasse la ligne, dépasse le lot, ou si le lot ne porte pas ce produit.
                   </p>
                 </>
@@ -412,26 +412,26 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
       )}
 
       {doubleSourcing && (
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3 flex items-center gap-2">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
             <GitBranch size={13} /> Double sourcing — {doubleSourcing.withSecondSource} couvert(s), {doubleSourcing.withoutSecondSource} à risque, {doubleSourcing.undetermined} indéterminé(s)
           </h3>
           {doubleSourcing.rows.length === 0 ? (
-            <p className="text-xs text-[#FFF7EF]/50">
+            <p className="text-xs text-kurla-cream/50">
               Aucun produit n'a reçu de lot : il n'y a rien à qualifier. Le double sourcing se mesure sur des
               approvisionnements réels, pas sur des intentions.
             </p>
           ) : (
             <ul className="space-y-2">
               {doubleSourcing.rows.map(row => (
-                <li key={row.productId} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                  <div className="text-xs text-[#FFF7EF]">
+                <li key={row.productId} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                  <div className="text-xs text-kurla-cream">
                     {row.productName}
-                    {row.hasSecondSource === null && <span className="ml-2 text-[#FFF7EF]/50">indéterminé — aucun besoin de sourcing rattaché</span>}
+                    {row.hasSecondSource === null && <span className="ml-2 text-kurla-cream/50">indéterminé — aucun besoin de sourcing rattaché</span>}
                     {row.hasSecondSource === true && <span className="ml-2 text-emerald-300">second fournisseur qualifié disponible</span>}
                     {row.hasSecondSource === false && <span className="ml-2 text-amber-300">aucun second fournisseur qualifié</span>}
                   </div>
-                  <div className="text-[10px] text-[#FFF7EF]/50 mt-1">
+                  <div className="text-[10px] text-kurla-cream/50 mt-1">
                     {row.batches} lot(s) · fournisseur(s) actuel(s) : {row.incumbentSupplierIds.map(supplierName).join(', ') || '—'}
                     {row.requiredDocuments.length > 0 && ` · exigés : ${row.requiredDocuments.join(', ')}`}
                   </div>
@@ -444,7 +444,7 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
               ))}
             </ul>
           )}
-          <p className="text-[10px] text-[#FFF7EF]/40 mt-3">
+          <p className="text-[10px] text-kurla-cream/40 mt-3">
             « Qualifié » signifie : détenir tous les documents exigés par le besoin de sourcing rattaché.
             Un fournisseur qui n'en a qu'une partie n'est pas une alternative.
           </p>

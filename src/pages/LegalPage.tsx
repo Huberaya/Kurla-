@@ -169,42 +169,42 @@ export const LegalPage: React.FC<LegalPageProps> = ({ kind }) => {
   const page = content[kind];
 
   return (
-    <main className="min-h-screen pt-32 pb-24 bg-[#FFFDF9] text-[#111111]">
+    <main className="min-h-screen pt-32 pb-24 bg-kurla-ivory text-kurla-carbon">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/" className="inline-flex items-center gap-1.5 text-xs text-[#C8753D] font-semibold mb-8 hover:underline">
+        <a href="/" className="inline-flex items-center gap-1.5 text-xs text-kurla-copper font-semibold mb-8 hover:underline">
           <ArrowLeft className="w-4 h-4" /> Retour à l’accueil
         </a>
 
         <header className="max-w-2xl mb-10">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold">{page.eyebrow}</span>
-          <h1 className="mt-2 text-3xl sm:text-5xl font-serif-title font-bold text-[#111111]">{page.title}</h1>
-          <p className="mt-4 text-sm sm:text-base text-[#111111]/75 leading-relaxed">{page.intro}</p>
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-bold">{page.eyebrow}</span>
+          <h1 className="mt-2 text-3xl sm:text-5xl font-serif-title font-bold text-kurla-carbon">{page.title}</h1>
+          <p className="mt-4 text-sm sm:text-base text-kurla-carbon/75 leading-relaxed">{page.intro}</p>
         </header>
 
         {page.notice && (
-          <div className="mb-8 p-5 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] flex items-start gap-3 text-sm">
+          <div className="mb-8 p-5 rounded-2xl bg-kurla-sand border border-kurla-stone flex items-start gap-3 text-sm">
             {kind === 'cgv' ? (
-              <ShieldCheck className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-[#C8753D] shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-kurla-copper shrink-0 mt-0.5" />
             )}
-            <p className="text-[#111111]/75 leading-relaxed">{page.notice}</p>
+            <p className="text-kurla-carbon/75 leading-relaxed">{page.notice}</p>
           </div>
         )}
 
         <div className="space-y-4">
           {page.sections.map(section => (
-            <section key={section.heading} className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E8E1DA] shadow-sm">
-              <h2 className="text-lg sm:text-xl font-serif-title font-bold text-[#111111]">{section.heading}</h2>
+            <section key={section.heading} className="p-6 sm:p-8 rounded-3xl bg-white border border-kurla-stone shadow-sm">
+              <h2 className="text-lg sm:text-xl font-serif-title font-bold text-kurla-carbon">{section.heading}</h2>
               <div className="mt-3 space-y-3">
                 {section.blocks.map((block, i) =>
                   isBullet(block) ? (
-                    <p key={i} className="flex gap-2 text-sm text-[#111111]/75 leading-relaxed">
-                      <span className="text-[#C8753D] mt-[2px]">•</span>
+                    <p key={i} className="flex gap-2 text-sm text-kurla-carbon/75 leading-relaxed">
+                      <span className="text-kurla-copper mt-[2px]">•</span>
                       <span>{block.slice(2)}</span>
                     </p>
                   ) : (
-                    <p key={i} className="text-sm text-[#111111]/75 leading-relaxed">{block}</p>
+                    <p key={i} className="text-sm text-kurla-carbon/75 leading-relaxed">{block}</p>
                   )
                 )}
               </div>
@@ -212,7 +212,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ kind }) => {
           ))}
         </div>
 
-        <p className="mt-8 text-xs text-[#111111]/50">Dernière mise à jour : {page.updated}</p>
+        <p className="mt-8 text-xs text-kurla-carbon/50">Dernière mise à jour : {page.updated}</p>
       </div>
     </main>
   );

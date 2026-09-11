@@ -37,9 +37,9 @@ export const CategoryWaitlist: React.FC<Props> = ({ source, label, tone = 'light
   const [error, setError] = useState('');
 
   const dark = tone === 'dark';
-  const border = dark ? 'border-[#FFF7EF]/15' : 'border-[#E8E1DA]';
-  const inputBg = dark ? 'bg-[#FFF7EF]/5 text-[#FFF7EF]' : 'bg-white text-[#111111]';
-  const muted = dark ? 'text-[#FFF7EF]/60' : 'text-[#111111]/60';
+  const border = dark ? 'border-kurla-cream/15' : 'border-kurla-stone';
+  const inputBg = dark ? 'bg-kurla-cream/5 text-kurla-cream' : 'bg-white text-kurla-carbon';
+  const muted = dark ? 'text-kurla-cream/60' : 'text-kurla-carbon/60';
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -77,7 +77,7 @@ export const CategoryWaitlist: React.FC<Props> = ({ source, label, tone = 'light
     return (
       <div className={`flex items-start gap-2.5 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 ${className}`}>
         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-        <p className={`text-xs leading-relaxed ${dark ? 'text-[#FFF7EF]/85' : 'text-[#111111]/80'}`}>
+        <p className={`text-xs leading-relaxed ${dark ? 'text-kurla-cream/85' : 'text-kurla-carbon/80'}`}>
           C’est noté. Tu recevras un e-mail dès que les <strong className="font-semibold">{label}</strong> seront disponibles — pas avant, pas de newsletter déguisée.
         </p>
       </div>
@@ -95,12 +95,12 @@ export const CategoryWaitlist: React.FC<Props> = ({ source, label, tone = 'light
           value={email}
           onChange={event => setEmail(event.target.value)}
           placeholder="ton@email.fr"
-          className={`flex-1 px-4 py-2.5 rounded-full border ${border} ${inputBg} text-xs outline-none focus:border-[#C8753D] placeholder:opacity-50`}
+          className={`flex-1 px-4 py-2.5 rounded-full border ${border} ${inputBg} text-xs outline-none focus:border-kurla-copper placeholder:opacity-50`}
         />
         <button
           type="submit"
           disabled={state === 'loading'}
-          className="px-5 py-2.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
+          className="px-5 py-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60 shrink-0"
         >
           {state === 'loading'
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

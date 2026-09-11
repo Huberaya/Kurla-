@@ -90,9 +90,9 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
   };
 
   return (
-    <main className="min-h-screen pt-32 pb-24 bg-[#FFFDF9] text-[#111111] flex items-center">
+    <main className="min-h-screen pt-32 pb-24 bg-kurla-ivory text-kurla-carbon flex items-center">
       <div className="max-w-xl mx-auto w-full px-4">
-        <div className="p-8 sm:p-10 rounded-3xl bg-white border border-[#E8E1DA] shadow-xl text-center">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white border border-kurla-stone shadow-xl text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center border ${
             copy.tone === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
             copy.tone === 'error' ? 'bg-rose-50 border-rose-200 text-rose-600' :
@@ -101,35 +101,35 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
             {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : copy.tone === 'success' ? <CheckCircle2 className="w-8 h-8" /> : copy.tone === 'error' ? <AlertTriangle className="w-8 h-8" /> : <Clock3 className="w-8 h-8" />}
           </div>
 
-          <span className="mt-6 block text-xs uppercase tracking-widest text-[#C8753D] font-bold">KURLA Beauty</span>
+          <span className="mt-6 block text-xs uppercase tracking-widest text-kurla-copper font-bold">KURLA Beauty</span>
           <h1 className="mt-2 text-3xl font-serif-title font-bold">{loading ? 'Vérification du paiement…' : requestError ? 'Vérification impossible' : copy.title}</h1>
-          <p className="mt-3 text-sm text-[#111111]/70 leading-relaxed">{requestError || copy.message}</p>
+          <p className="mt-3 text-sm text-kurla-carbon/70 leading-relaxed">{requestError || copy.message}</p>
           {!requestError && copy.tone === 'success' && (
             <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-left space-y-1.5">
               <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Précommande — expédié sous 3–5 jours</p>
-              <p className="text-[11px] text-[#111111]/65 leading-relaxed">{DISPATCH_SENTENCE} <span className="font-semibold">Petite production hebdomadaire : lun & jeu 18h</span> (via 3PL IDF). Vous pouvez annuler et être remboursé·e à tout moment avant expédition.</p>
+              <p className="text-[11px] text-kurla-carbon/65 leading-relaxed">{DISPATCH_SENTENCE} <span className="font-semibold">Petite production hebdomadaire : lun & jeu 18h</span> (via 3PL IDF). Vous pouvez annuler et être remboursé·e à tout moment avant expédition.</p>
               <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5">📦 <strong>Commande groupée</strong> : {getNextBatchShortLabel(new Date())}. Suivi par email dès remise au transporteur.</p>
-              <p className="text-[10px] text-[#111111]/50">Si le délai dépasse 5 jours, nous vous informons immédiatement et vous pouvez annuler avec <strong>remboursement immédiat</strong> (CGV précommande).</p>
-              <p className="text-[10px] text-[#111111]/50">{DISPATCH_LEGAL}</p>
+              <p className="text-[10px] text-kurla-carbon/50">Si le délai dépasse 5 jours, nous vous informons immédiatement et vous pouvez annuler avec <strong>remboursement immédiat</strong> (CGV précommande).</p>
+              <p className="text-[10px] text-kurla-carbon/50">{DISPATCH_LEGAL}</p>
             </div>
           )}
 
           {result?.order && !requestError && (
-            <div className="mt-6 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-left text-sm space-y-2">
-              <div className="flex items-center justify-between gap-4"><span className="text-[#111111]/60">Commande</span><strong>{result.order.id}</strong></div>
-              <div className="flex items-center justify-between gap-4"><span className="text-[#111111]/60">Montant</span><strong>{Number(result.order.total).toFixed(2)} €</strong></div>
-              <div className="flex items-center justify-between gap-4"><span className="text-[#111111]/60">Statut</span><strong className="capitalize">{result.order.status.replaceAll('_', ' ')}</strong></div>
+            <div className="mt-6 p-4 rounded-2xl bg-kurla-sand border border-kurla-stone text-left text-sm space-y-2">
+              <div className="flex items-center justify-between gap-4"><span className="text-kurla-carbon/60">Commande</span><strong>{result.order.id}</strong></div>
+              <div className="flex items-center justify-between gap-4"><span className="text-kurla-carbon/60">Montant</span><strong>{Number(result.order.total).toFixed(2)} €</strong></div>
+              <div className="flex items-center justify-between gap-4"><span className="text-kurla-carbon/60">Statut</span><strong className="capitalize">{result.order.status.replaceAll('_', ' ')}</strong></div>
             </div>
           )}
 
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-            <a href="/boutique" className="px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-semibold inline-flex items-center justify-center gap-2">
+            <a href="/boutique" className="px-5 py-3 rounded-full bg-kurla-carbon text-white text-xs font-semibold inline-flex items-center justify-center gap-2">
               <ShoppingBag className="w-4 h-4" /> Retour à la boutique
             </a>
-            <a href={`/suivi-commande?order=${encodeURIComponent(result.order.id)}`} className="px-5 py-3 rounded-full bg-[#C8753D] text-white text-xs font-semibold">
+            <a href={`/suivi-commande?order=${encodeURIComponent(result.order.id)}`} className="px-5 py-3 rounded-full bg-kurla-copper text-white text-xs font-semibold">
               Suivre ma commande
             </a>
-            <a href="/account" className="px-5 py-3 rounded-full border border-[#C8753D] text-[#C8753D] text-xs font-semibold">
+            <a href="/account" className="px-5 py-3 rounded-full border border-kurla-copper text-kurla-copper text-xs font-semibold">
               Mon espace client
             </a>
           </div>

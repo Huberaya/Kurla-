@@ -152,20 +152,20 @@ export const ChooseNeedSection: React.FC = () => {
   const filteredNeeds = ALL_NEEDS.filter(need => filter === 'all' || need.category === filter);
 
   return (
-    <section className="py-24 bg-[#FFFDF9] text-[#111111] relative overflow-hidden">
+    <section className="py-24 bg-kurla-ivory text-kurla-carbon relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* En-tête */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <Reveal>
             <div className="max-w-[560px]">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold block mb-2">
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-bold block mb-2">
                 Par où commencer ?
               </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-[#111111] mb-3">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-kurla-carbon mb-3">
                 Quel est votre besoin aujourd’hui ?
               </h2>
-              <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
+              <p className="text-sm sm:text-base text-kurla-carbon/75 font-light leading-relaxed">
                 Choisissez ce qui vous correspond : on vous oriente vers la routine et les produits adaptés.
               </p>
             </div>
@@ -173,13 +173,13 @@ export const ChooseNeedSection: React.FC = () => {
 
           {/* Filtres */}
           <Reveal delay={0.2}>
-            <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
+            <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-kurla-sand border border-kurla-stone">
               {FILTERS.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id)}
                   className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    filter === f.id ? 'bg-[#C8753D] text-white shadow-sm' : 'text-[#111111]/70 hover:text-[#111111]'
+                    filter === f.id ? 'bg-kurla-copper text-white shadow-sm' : 'text-kurla-carbon/70 hover:text-kurla-carbon'
                   }`}
                 >
                   {f.label}
@@ -210,7 +210,7 @@ export const ChooseNeedSection: React.FC = () => {
                 >
                   <a
                     href={need.link}
-                    className="group relative rounded-3xl overflow-hidden bg-[#F8F2EC] border border-[#E8E1DA] hover:border-[#C8753D] transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col justify-between h-[380px] block"
+                    className="group relative rounded-3xl overflow-hidden bg-kurla-sand border border-kurla-stone hover:border-kurla-copper transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col justify-between h-[380px] block"
                   >
                     {/* Image */}
                     <div className="absolute inset-0 z-0">
@@ -222,22 +222,22 @@ export const ChooseNeedSection: React.FC = () => {
                         className="group-hover:scale-110 transition-transform duration-700 ease-out"
                         wrapperClassName="absolute inset-0 z-0"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/90 via-[#050403]/40 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-kurla-ink/90 via-kurla-ink/40 to-transparent" />
                     </div>
 
                     {/* Badge haut */}
                     <div className="relative z-10 p-5">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFFDF9]/90 backdrop-blur-md text-[11px] font-semibold text-[#111111] border border-[#E8E1DA] shadow-xs">
-                        <Icon className="w-3.5 h-3.5 text-[#C8753D]" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kurla-ivory/90 backdrop-blur-md text-[11px] font-semibold text-kurla-carbon border border-kurla-stone shadow-xs">
+                        <Icon className="w-3.5 h-3.5 text-kurla-copper" />
                         {need.badge}
                       </span>
                     </div>
 
                     {/* Contenu bas */}
                     <div className="relative z-10 p-6 flex flex-col justify-end text-white">
-                      <h3 className="text-lg font-serif-title font-bold text-white mb-2 group-hover:text-[#D49A63] transition-colors flex items-center justify-between">
+                      <h3 className="text-lg font-serif-title font-bold text-white mb-2 group-hover:text-kurla-amber transition-colors flex items-center justify-between">
                         {need.title}
-                        <div className="w-8 h-8 rounded-full bg-[#C8753D] text-white flex items-center justify-center transition-all group-hover:scale-110 shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-kurla-copper text-white flex items-center justify-center transition-all group-hover:scale-110 shrink-0">
                           <ArrowUpRight className="w-4 h-4" />
                         </div>
                       </h3>

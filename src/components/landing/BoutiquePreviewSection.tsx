@@ -132,20 +132,20 @@ export const BoutiquePreviewSection: React.FC = () => {
   };
 
   return (
-    <section className="py-24 bg-[#050403] text-white relative overflow-hidden">
+    <section className="py-24 bg-kurla-ink text-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {/* En-tête */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-6">
           <Reveal>
             <div className="max-w-[600px]">
-              <span className="text-xs uppercase tracking-widest text-[#D49A63] font-bold block mb-2">
+              <span className="text-xs uppercase tracking-widest text-kurla-amber font-bold block mb-2">
                 La boutique — précommandes ouvertes
               </span>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-white mb-3">
                 Tout ce que vous cherchiez, au même endroit.
               </h2>
-              <p className="text-sm sm:text-base text-[#FFF7EF]/75 font-light leading-relaxed">
+              <p className="text-sm sm:text-base text-kurla-cream/75 font-light leading-relaxed">
                 Plus de 60 références : soins capillaires 3A à 4C, les outils introuvables ailleurs — peigne afro, steamer, diffuseur, satin — 10 coffrets et les dernières innovations. Réservez dès maintenant, {DISPATCH_SENTENCE.toLowerCase()} Annulation et remboursement à tout moment avant expédition.
               </p>
             </div>
@@ -154,7 +154,7 @@ export const BoutiquePreviewSection: React.FC = () => {
           <Reveal delay={0.2}>
             <a
               href="/boutique"
-              className="px-8 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm tracking-wide shadow-xl shadow-[#C8753D]/30 transition-all flex items-center gap-2 shrink-0"
+              className="px-8 py-4 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm tracking-wide shadow-xl shadow-kurla-copper/30 transition-all flex items-center gap-2 shrink-0"
             >
               <ShoppingBag className="w-4 h-4" />
               <span>Explorer toute la boutique</span>
@@ -172,7 +172,7 @@ export const BoutiquePreviewSection: React.FC = () => {
               <Reveal key={idx} delay={0.05 * idx}>
                 <a
                   href={cat.href}
-                  className="group relative rounded-3xl overflow-hidden bg-[#1A0F0A] border border-white/10 hover:border-[#C8753D] transition-all duration-500 shadow-xl flex flex-col justify-between h-[320px]"
+                  className="group relative rounded-3xl overflow-hidden bg-kurla-espresso border border-white/10 hover:border-kurla-copper transition-all duration-500 shadow-xl flex flex-col justify-between h-[320px]"
                 >
                   {/* Image */}
                   <div className="absolute inset-0 z-0">
@@ -184,28 +184,28 @@ export const BoutiquePreviewSection: React.FC = () => {
                       className="group-hover:scale-105 transition-transform duration-700 ease-out"
                       wrapperClassName="absolute inset-0 z-0"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/90 via-[#050403]/45 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-kurla-ink/90 via-kurla-ink/45 to-transparent" />
                   </div>
 
                   {/* Badge haut */}
                   <div className="relative z-10 p-5 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#050403]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider border">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-kurla-ink/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider border">
                       <span className={`w-1.5 h-1.5 rounded-full ${isPreco ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                       <span className={isPreco ? 'text-emerald-300 border-emerald-400/30' : 'text-amber-300 border-amber-400/30'}>
                         {isPreco ? 'En précommande' : 'Bientôt'}
                       </span>
                     </span>
                     <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-[#D49A63]" />
+                      <Icon className="w-4 h-4 text-kurla-amber" />
                     </div>
                   </div>
 
                   {/* Texte bas */}
                   <div className="relative z-10 p-6 flex flex-col justify-end text-white">
-                    <span className="text-[11px] text-[#FFF7EF]/70 font-medium block mb-1">{countLabelFor(cat)}</span>
-                    <h3 className="text-lg font-serif-title font-bold text-white group-hover:text-[#D49A63] transition-colors flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-kurla-cream/70 font-medium block mb-1">{countLabelFor(cat)}</span>
+                    <h3 className="text-lg font-serif-title font-bold text-white group-hover:text-kurla-amber transition-colors flex items-center justify-between gap-2">
                       {cat.title}
-                      <ArrowRight className="w-4 h-4 text-[#C8753D] group-hover:translate-x-1 transition-transform shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-kurla-copper group-hover:translate-x-1 transition-transform shrink-0" />
                     </h3>
                     <p className="text-[11px] text-white/60 font-light mt-1">{cat.tag}</p>
                   </div>

@@ -114,36 +114,36 @@ export const CreatorsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center max-w-[560px] mx-auto mb-12">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block mb-2">
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block mb-2">
             Programme experts et créateurs
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold mb-3">
             La visibilité ne s’achète pas.
           </h1>
-          <p className="text-sm sm:text-base text-[#FFF7EF]/70 font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-kurla-cream/70 font-light leading-relaxed">
             Les experts et les créateurs sont classés par contributions vérifiées, et payés sur les résultats
             réellement déclarés par les membres — jamais sur des clics, jamais sur un budget.
           </p>
         </div>
 
         {loadError && (
-          <div className="mb-8 rounded-xl border border-[#C8753D]/40 bg-[#C8753D]/10 p-4 text-sm text-[#FFF7EF]/80">
+          <div className="mb-8 rounded-xl border border-kurla-copper/40 bg-kurla-copper/10 p-4 text-sm text-kurla-cream/80">
             {loadError}
           </div>
         )}
 
         {/* --- Ce qui compte pour la visibilité ---------------------------- */}
-        <section className="mb-10 rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="mb-10 rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-            <BadgeCheck className="h-5 w-5 text-[#C8753D]" />
+            <BadgeCheck className="h-5 w-5 text-kurla-copper" />
             Ce qui fait la visibilité
           </h2>
           {rules ? (
             <>
-              <ul className="space-y-3 text-sm text-[#FFF7EF]/75">
+              <ul className="space-y-3 text-sm text-kurla-cream/75">
                 <li className="flex items-baseline justify-between gap-4">
                   <span>Contributions vérifiées (contenus publiés, réponses d’expert)</span>
                   <span className="shrink-0 font-semibold">
@@ -164,40 +164,40 @@ export const CreatorsPage: React.FC = () => {
                 </li>
                 <li className="flex items-baseline justify-between gap-4">
                   <span>Contradictions argumentées reçues</span>
-                  <span className="shrink-0 font-semibold text-[#C8753D]">
+                  <span className="shrink-0 font-semibold text-kurla-copper">
                     −{rules.visibility.contradictionPenaltyPerUnit} pts chacune
                   </span>
                 </li>
               </ul>
-              <p className="mt-4 text-xs text-[#FFF7EF]/55">
+              <p className="mt-4 text-xs text-kurla-cream/55">
                 Moins de {rules.visibility.minContributionsToRank} contributions vérifiées : le profil n’est pas
                 classé. Il n’y a aucun emplacement à acheter — la liste des entrées payantes est vide.
               </p>
             </>
           ) : (
-            <p className="text-sm text-[#FFF7EF]/60">Chargement des règles…</p>
+            <p className="text-sm text-kurla-cream/60">Chargement des règles…</p>
           )}
         </section>
 
         {/* --- Ce qui est payé --------------------------------------------- */}
-        <section className="mb-10 rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="mb-10 rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-            <Sparkles className="h-5 w-5 text-[#C8753D]" />
+            <Sparkles className="h-5 w-5 text-kurla-copper" />
             Ce qui est rémunéré
           </h2>
           {rules ? (
             <>
-              <ul className="space-y-2 text-sm text-[#FFF7EF]/75">
+              <ul className="space-y-2 text-sm text-kurla-cream/75">
                 {Object.entries(rules.payout.attributionValues).map(([event, value]) => (
                   <li key={event} className="flex items-baseline justify-between gap-4">
                     <span>{EVENT_LABELS[event] ?? event}</span>
-                    <span className={value > 0 ? 'shrink-0 font-semibold text-emerald-300' : 'shrink-0 font-semibold text-[#FFF7EF]/45'}>
+                    <span className={value > 0 ? 'shrink-0 font-semibold text-emerald-300' : 'shrink-0 font-semibold text-kurla-cream/45'}>
                       {value > 0 ? `${(rules.payout.rateCentsPerOutcome / 100).toFixed(2).replace('.', ',')} €` : '0 €'}
                     </span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 text-xs text-[#FFF7EF]/55">
+              <p className="mt-4 text-xs text-kurla-cream/55">
                 Le versement commence à {rules.payout.minOutcomesForPayout} résultats déclarés. Le taux est le même
                 pour un résultat positif et pour un résultat négatif : rapporter une déception rapporte autant que
                 rapporter une réussite. Au-delà de {Math.round(rules.payout.negativeShareReviewThreshold * 100)} % de
@@ -205,7 +205,7 @@ export const CreatorsPage: React.FC = () => {
               </p>
             </>
           ) : (
-            <p className="text-sm text-[#FFF7EF]/60">Chargement des règles…</p>
+            <p className="text-sm text-kurla-cream/60">Chargement des règles…</p>
           )}
         </section>
 
@@ -213,21 +213,21 @@ export const CreatorsPage: React.FC = () => {
         <section className="mb-10">
           <h2 className="text-lg font-semibold mb-4">Créateurs publiés</h2>
           {creators.length === 0 ? (
-            <p className="rounded-xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-4 text-sm text-[#FFF7EF]/65">
+            <p className="rounded-xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-4 text-sm text-kurla-cream/65">
               {directoryNote || 'Aucun créateur vérifié et publié pour le moment.'}
             </p>
           ) : (
             <ul className="space-y-3">
               {creators.map(creator => (
-                <li key={creator.id} className="rounded-xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-4">
+                <li key={creator.id} className="rounded-xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-4">
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="font-semibold">{creator.displayName}</span>
-                    <span className="text-xs text-[#FFF7EF]/50">
+                    <span className="text-xs text-kurla-cream/50">
                       {creator.contributions} contributions · {creator.endorsements} appuis · {creator.outcomeReports} résultats
                     </span>
                   </div>
-                  <p className="mt-1 text-xs uppercase tracking-wide text-[#C8753D]">{creator.specialty}</p>
-                  <p className="mt-2 text-sm text-[#FFF7EF]/70">{creator.biography}</p>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-kurla-copper">{creator.specialty}</p>
+                  <p className="mt-2 text-sm text-kurla-cream/70">{creator.biography}</p>
                 </li>
               ))}
             </ul>
@@ -235,12 +235,12 @@ export const CreatorsPage: React.FC = () => {
         </section>
 
         {/* --- Candidature ------------------------------------------------- */}
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-2">
-            <ShieldCheck className="h-5 w-5 text-[#C8753D]" />
+            <ShieldCheck className="h-5 w-5 text-kurla-copper" />
             Déposer une candidature
           </h2>
-          <p className="mb-5 text-sm text-[#FFF7EF]/65">
+          <p className="mb-5 text-sm text-kurla-cream/65">
             Rien n’est publié avant vérification de l’identité et de la compétence déclarée.
           </p>
 
@@ -253,22 +253,22 @@ export const CreatorsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">Nom affiché</span>
+                  <span className="mb-1 block text-kurla-cream/70">Nom affiché</span>
                   <input
                     required
                     minLength={2}
                     maxLength={80}
                     value={form.displayName}
                     onChange={event => setForm({ ...form, displayName: event.target.value })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">Type de profil</span>
+                  <span className="mb-1 block text-kurla-cream/70">Type de profil</span>
                   <select
                     value={form.kind}
                     onChange={event => setForm({ ...form, kind: event.target.value })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   >
                     {Object.entries(rules?.kinds ?? { creator: 'Créateur de contenu', expert: 'Expert' }).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
@@ -277,48 +277,48 @@ export const CreatorsPage: React.FC = () => {
                 </label>
               </div>
               <label className="block text-sm">
-                <span className="mb-1 block text-[#FFF7EF]/70">Domaine d’expertise</span>
+                <span className="mb-1 block text-kurla-cream/70">Domaine d’expertise</span>
                 <input
                   required
                   value={form.specialty}
                   onChange={event => setForm({ ...form, specialty: event.target.value })}
                   placeholder="Cheveux texturés, cuir chevelu sensible, coloration sur peau mélaninée…"
-                  className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                  className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block text-[#FFF7EF]/70">Votre pratique (40 caractères minimum)</span>
+                <span className="mb-1 block text-kurla-cream/70">Votre pratique (40 caractères minimum)</span>
                 <textarea
                   required
                   minLength={40}
                   rows={4}
                   value={form.biography}
                   onChange={event => setForm({ ...form, biography: event.target.value })}
-                  className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                  className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block text-[#FFF7EF]/70">Lien de portfolio (facultatif)</span>
+                <span className="mb-1 block text-kurla-cream/70">Lien de portfolio (facultatif)</span>
                 <input
                   type="url"
                   value={form.portfolioUrl}
                   onChange={event => setForm({ ...form, portfolioUrl: event.target.value })}
                   placeholder="https://"
-                  className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                  className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                 />
               </label>
 
-              {submitError && <p className="text-sm text-[#C8753D]">{submitError}</p>}
+              {submitError && <p className="text-sm text-kurla-copper">{submitError}</p>}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-[#C8753D] px-4 py-3 text-sm font-semibold text-[#050403] transition hover:bg-[#D98A50] disabled:opacity-60"
+                className="w-full rounded-lg bg-kurla-copper px-4 py-3 text-sm font-semibold text-kurla-ink transition hover:bg-[#D98A50] disabled:opacity-60"
               >
                 {submitting ? 'Envoi…' : 'Déposer la candidature'}
               </button>
               {!session && (
-                <p className="text-xs text-[#FFF7EF]/50">
+                <p className="text-xs text-kurla-cream/50">
                   Un compte KURLA est nécessaire : la candidature est rattachée à un compte vérifiable.
                 </p>
               )}
@@ -328,12 +328,12 @@ export const CreatorsPage: React.FC = () => {
 
         {/* --- Réserves ---------------------------------------------------- */}
         {rules && (
-          <section className="mt-10 rounded-2xl border border-[#FFF7EF]/10 p-6">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#FFF7EF]/60 mb-3">
+          <section className="mt-10 rounded-2xl border border-kurla-cream/10 p-6">
+            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-kurla-cream/60 mb-3">
               <Info className="h-4 w-4" />
               À savoir
             </h2>
-            <ul className="space-y-2 text-xs text-[#FFF7EF]/55">
+            <ul className="space-y-2 text-xs text-kurla-cream/55">
               {rules.disclaimers.map(disclaimer => (
                 <li key={dispatcherKey(disclaimer)}>{`• ${disclaimer}`}</li>
               ))}

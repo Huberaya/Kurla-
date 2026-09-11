@@ -49,6 +49,17 @@ async function runProductionHardeningTests() {
 
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
+
+    // CSP : en production, chaque réponse porte une politique Report-Only sans
+    // 'unsafe-inline' dans script-src. Si un futur handler inline réapparaît
+    // dans index.html, cette politique bloquerait le rendu — le banc le
+    // verrouille donc maintenant.
+    const cspProbe = await fetch(`${baseUrl}/api/health`);
+    const csp = cspProbe.headers.get('content-security-policy-report-only');
+    if (!csp) throw new Error('Content-Security-Policy-Report-Only is missing in production mode.');
+    if (/script-src[^;]*unsafe-inline/i.test(csp)) throw new Error('CSP script-src still contains unsafe-inline.');
+    if (!/default-src 'self'/.test(csp)) throw new Error('CSP default-src is not locked to self.');
+
     const productionConsoleEmail = await emailService.sendEmail({
       to: 'hardening@example.com',
       subject: 'Production guard test',

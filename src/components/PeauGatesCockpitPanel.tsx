@@ -71,18 +71,18 @@ export const PeauGatesCockpitPanel: React.FC<{ headers: HeadersInit }> = ({ head
   const blockedCount = totalGates - okCount - pendingCount;
 
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6 sm:p-8 space-y-6 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-6 shadow-xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <Gauge className="w-5 h-5 text-[#C8753D]" /> C19 — Pilotage peau : 8 gates fichier+date
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <Gauge className="w-5 h-5 text-kurla-copper" /> C19 — Pilotage peau : 8 gates fichier+date
             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${okCount? 'bg-amber-500/15 text-amber-300 border-amber-500/30':'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>{okCount}/{totalGates} au vert</span>
           </h3>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1 max-w-3xl leading-relaxed">
-            Un gate n’est vert que sur <strong className="text-[#FFF7EF]">preuve fichier+date</strong> : aucun pays, aucun lot n’ouvre sans ses 8 preuves. Tant qu’un gate est rouge, la commande fournisseur est bloquée — c’est voulu.
+          <p className="text-xs text-kurla-cream/60 mt-1 max-w-3xl leading-relaxed">
+            Un gate n’est vert que sur <strong className="text-kurla-cream">preuve fichier+date</strong> : aucun pays, aucun lot n’ouvre sans ses 8 preuves. Tant qu’un gate est rouge, la commande fournisseur est bloquée — c’est voulu.
           </p>
         </div>
-        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70 flex items-center gap-1.5 hover:border-[#C8753D]">
+        <button onClick={()=>void load()} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs text-kurla-cream/70 flex items-center gap-1.5 hover:border-kurla-copper">
           <RefreshCw className={`w-3.5 h-3.5 ${loading?'animate-spin':''}`} /> Actualiser
         </button>
       </div>
@@ -98,7 +98,7 @@ export const PeauGatesCockpitPanel: React.FC<{ headers: HeadersInit }> = ({ head
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         {GATES.map(g=>{
           const Icon=g.icon;
-          return <span key={g.key} className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1" title={g.hint}><Icon className="w-3 h-3" /> {g.label}</span>;
+          return <span key={g.key} className="px-2 py-1 rounded-full bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60 flex items-center gap-1" title={g.hint}><Icon className="w-3 h-3" /> {g.label}</span>;
         })}
       </div>
 
@@ -106,11 +106,11 @@ export const PeauGatesCockpitPanel: React.FC<{ headers: HeadersInit }> = ({ head
         {display.map(row=>{
           const overall = row.ready;
           return (
-            <div key={row.productId} className={`rounded-2xl border p-4 ${overall?'border-emerald-500/30 bg-emerald-950/20':'border-[#FFF7EF]/10 bg-[#050403]'}`}>
+            <div key={row.productId} className={`rounded-2xl border p-4 ${overall?'border-emerald-500/30 bg-emerald-950/20':'border-kurla-cream/10 bg-kurla-ink'}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-bold text-[#FFF7EF]">{row.title} <span className="font-mono text-[11px] text-[#FFF7EF]/40">{row.productId}</span></p>
-                  <p className="text-[11px] text-[#FFF7EF]/55">Fournisseur : {row.supplierName || <span className="text-amber-300">aucune provenance</span>} · {row.documentsHeld.length} doc(s) {row.expiredDocuments.length? <span className="text-amber-300">dont {row.expiredDocuments.length} périmé(s)</span>:''} · {row.batchCount} lot(s)</p>
+                  <p className="text-sm font-bold text-kurla-cream">{row.title} <span className="font-mono text-[11px] text-kurla-cream/40">{row.productId}</span></p>
+                  <p className="text-[11px] text-kurla-cream/55">Fournisseur : {row.supplierName || <span className="text-amber-300">aucune provenance</span>} · {row.documentsHeld.length} doc(s) {row.expiredDocuments.length? <span className="text-amber-300">dont {row.expiredDocuments.length} périmé(s)</span>:''} · {row.batchCount} lot(s)</p>
                   {row.missing.length>0 && <p className="text-[11px] text-rose-300 mt-1">Manque : {row.missing.join(' · ')}</p>}
                 </div>
                 <span className={`px-2.5 py-1 rounded-full border text-xs font-bold flex items-center gap-1 ${overall?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30':'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>
@@ -142,7 +142,7 @@ export const PeauGatesCockpitPanel: React.FC<{ headers: HeadersInit }> = ({ head
         <span><strong>Règle :</strong> un fournisseur créé naît « non fourni » : la vérification ne se déclare pas, elle se justifie par un document daté (PIF/CPSR/CPNP/ISO 24444/24443/OEKO-TEX/EUDR/microplastic/GMP). Tant que 0 gate vert, la matrice pays reste en <strong>Vague 2/3 → pays bloqué</strong>. C’est ce qui empêche d’ouvrir un pays par ambition.</span>
       </div>
 
-      <p className="text-[10px] text-[#FFF7EF]/35 text-center leading-relaxed">C19 — sources : <span className="text-[#D49A63]">/api/admin/operations/cockpit</span> (ready/missing/supplier/documents/batchCount) + <span className="text-[#D49A63]">/api/admin/suppliers</span> (vérification) + <span className="text-[#D49A63]">peauKits.ts</span> (7 composants). 8 gates : tarif/MOQ/délai/marge/dossier/INCI/échantillon/franco — tous fichier+date.</p>
+      <p className="text-[10px] text-kurla-cream/35 text-center leading-relaxed">C19 — sources : <span className="text-kurla-amber">/api/admin/operations/cockpit</span> (ready/missing/supplier/documents/batchCount) + <span className="text-kurla-amber">/api/admin/suppliers</span> (vérification) + <span className="text-kurla-amber">peauKits.ts</span> (7 composants). 8 gates : tarif/MOQ/délai/marge/dossier/INCI/échantillon/franco — tous fichier+date.</p>
     </div>
   );
 };

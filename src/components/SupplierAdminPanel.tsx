@@ -58,14 +58,14 @@ const DOCUMENT_TYPE_LABELS = SUPPLIER_DOCUMENT_LABELS;
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   verified: { label: 'Vérifié', color: 'text-emerald-300 border-emerald-300/30 bg-emerald-300/10' },
   pending: { label: 'En attente', color: 'text-amber-300 border-amber-300/30 bg-amber-300/10' },
-  not_provided: { label: 'Non fourni', color: 'text-[#D49A63] border-[#D49A63]/30 bg-[#D49A63]/10' }
+  not_provided: { label: 'Non fourni', color: 'text-kurla-amber border-kurla-amber/30 bg-kurla-amber/10' }
 };
 
 function inputClass(): string {
-  return 'w-full px-3 py-2 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]';
+  return 'w-full px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper';
 }
 function labelClass(): string {
-  return 'text-[10px] uppercase tracking-wider font-bold text-[#D49A63]';
+  return 'text-[10px] uppercase tracking-wider font-bold text-kurla-amber';
 }
 
 export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelProps) {
@@ -227,13 +227,13 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-[#FFF7EF] flex items-center gap-2"><Building2 size={18} /> Approvisionnement</h2>
-          <p className="text-[11px] text-[#FFF7EF]/60 mt-1 max-w-2xl">
+          <h2 className="text-lg font-bold text-kurla-cream flex items-center gap-2"><Building2 size={18} /> Approvisionnement</h2>
+          <p className="text-[11px] text-kurla-cream/60 mt-1 max-w-2xl">
             Qui fabrique quoi, et sur quelle preuve. Un fournisseur créé ici naît « non fourni » :
             la vérification ne se déclare pas, elle se justifie par un document daté.
           </p>
         </div>
-        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-[#FFF7EF]/15 text-[#FFF7EF]/80 text-xs flex items-center gap-2 hover:border-[#C8753D]">
+        <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-kurla-cream/15 text-kurla-cream/80 text-xs flex items-center gap-2 hover:border-kurla-copper">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Recharger
         </button>
       </div>
@@ -244,10 +244,10 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
         </div>
       )}
 
-      <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Référentiel ({suppliers.length})</h3>
+      <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Référentiel ({suppliers.length})</h3>
         {suppliers.length === 0 ? (
-          <p className="text-xs text-[#FFF7EF]/50">
+          <p className="text-xs text-kurla-cream/50">
             Aucun fournisseur enregistré. Les 16 produits du catalogue n’ont pas de provenance
             renseignée : leur fournisseur réel n’est pas connu et n’a pas été inventé.
           </p>
@@ -255,7 +255,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-[#D49A63]">
+                <tr className="text-[10px] uppercase tracking-wider text-kurla-amber">
                   <th className="py-2 pr-3">Raison sociale</th>
                   <th className="py-2 pr-3">Métier</th>
                   <th className="py-2 pr-3">Pays</th>
@@ -271,20 +271,20 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                 {suppliers.map(supplier => {
                   const status = STATUS_LABELS[supplier.verificationStatus] || STATUS_LABELS.not_provided;
                   return (
-                    <tr key={supplier.id} className="border-t border-[#FFF7EF]/10">
-                      <td className="py-2 pr-3 text-[#FFF7EF]">{supplier.legalName}{supplier.tradeName ? <span className="text-[#FFF7EF]/40"> · {supplier.tradeName}</span> : null}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.country || '—'}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">
+                    <tr key={supplier.id} className="border-t border-kurla-cream/10">
+                      <td className="py-2 pr-3 text-kurla-cream">{supplier.legalName}{supplier.tradeName ? <span className="text-kurla-cream/40"> · {supplier.tradeName}</span> : null}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">{SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">{supplier.country || '—'}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">
                         {supplier.contactEmail
-                          ? <a href={`mailto:${supplier.contactEmail}`} className="text-[#C8753D] hover:underline">{supplier.contactEmail}</a>
+                          ? <a href={`mailto:${supplier.contactEmail}`} className="text-kurla-copper hover:underline">{supplier.contactEmail}</a>
                           : supplier.contactName
                             ? <span title="E-mail à compléter">{supplier.contactName}</span>
                             : <span className="text-amber-300/80">à compléter</span>}
                       </td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.moqUnits ? `${supplier.moqUnits} u.` : '—'}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">{supplier.leadTimeDays ? `${supplier.leadTimeDays} j` : '—'}</td>
-                      <td className="py-2 pr-3 text-[#FFF7EF]/70">
+                      <td className="py-2 pr-3 text-kurla-cream/70">{supplier.moqUnits ? `${supplier.moqUnits} u.` : '—'}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">{supplier.leadTimeDays ? `${supplier.leadTimeDays} j` : '—'}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">
                         {supplier.documentCount}
                         {supplier.expiredDocumentCount > 0 && (
                           <span className="ml-2 text-amber-300">dont {supplier.expiredDocumentCount} périmée(s)</span>
@@ -294,7 +294,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${status.color}`}>{status.label}</span>
                       </td>
                       <td className="py-2 text-right">
-                        <button onClick={() => void openDetail(supplier.id)} className="text-[#C8753D] hover:underline">Ouvrir</button>
+                        <button onClick={() => void openDetail(supplier.id)} className="text-kurla-copper hover:underline">Ouvrir</button>
                       </td>
                     </tr>
                   );
@@ -305,8 +305,8 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
         )}
       </section>
 
-      <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Déclarer un fournisseur</h3>
+      <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Déclarer un fournisseur</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="space-y-1"><span className={labelClass()}>Raison sociale *</span>
             <input className={inputClass()} value={draft.legalName} onChange={event => setDraft({ ...draft, legalName: event.target.value })} placeholder="Ex. Laboratoire Alvend" /></label>
@@ -331,22 +331,22 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
           <label className="space-y-1"><span className={labelClass()}>Certifications</span>
             <input className={inputClass()} value={draft.certifications} onChange={event => setDraft({ ...draft, certifications: event.target.value })} placeholder="ISO 22716 | Ecocert" /></label>
         </div>
-        <p className="text-[10px] text-[#FFF7EF]/40 mt-3">
+        <p className="text-[10px] text-kurla-cream/40 mt-3">
           Le MOQ et le délai annoncés par un fournisseur sont des informations commerciales :
           ils restent à confirmer par demande de prix avant tout engagement.
         </p>
         <button onClick={() => void createSupplier()} disabled={busy || !draft.legalName.trim()}
-          className="mt-4 px-4 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+          className="mt-4 px-4 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center gap-2 disabled:opacity-40">
           <Plus size={13} /> Créer le fournisseur
         </button>
       </section>
 
       {detail && (
-        <section className="rounded-2xl border border-[#C8753D]/40 bg-[#C8753D]/[0.06] p-5">
+        <section className="rounded-2xl border border-kurla-copper/40 bg-kurla-copper/[0.06] p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h3 className="text-sm font-bold text-[#FFF7EF]">{detail.supplier.legalName}</h3>
-              <p className="text-[11px] text-[#FFF7EF]/60">
+              <h3 className="text-sm font-bold text-kurla-cream">{detail.supplier.legalName}</h3>
+              <p className="text-[11px] text-kurla-cream/60">
                 {SUPPLIER_TYPE_LABELS[detail.supplier.supplierType] || detail.supplier.supplierType}
                 {detail.supplier.country ? ` · ${detail.supplier.country}` : ''} · identifiant <code>{detail.supplier.id}</code>
               </p>
@@ -362,7 +362,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
             </label>
           </div>
 
-          <p className="text-[10px] text-[#FFF7EF]/50 mb-2">
+          <p className="text-[10px] text-kurla-cream/50 mb-2">
             « Vérifié » exige au moins un document enregistré ci-dessous : sans preuve, la
             plateforme refuse le changement de statut.
           </p>
@@ -373,10 +373,10 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
             const today = new Date().toISOString().slice(0,10);
             const allExpired = (t: string) => detail.documents.filter(d => d.documentType === t).every(d => d.expiresOn && d.expiresOn < today) && held.has(t);
             return (
-              <div className="rounded-xl border border-[#C8753D]/30 bg-[#1A0F0A] p-4 mb-5 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-2"><ShieldCheck size={13} /> Dossier cosmétique UE — 5 héros (CPNP / RP / CPSR)</h4>
-                <p className="text-[10px] text-[#FFF7EF]/50 leading-relaxed">
-                  Un cosmétique (tout soin p01–p15, p28–p34, p51–p54) n'est vendable qu'avec le trio vérifié <strong className="text-[#FFF7EF]">CPSR + notification CPNP + Personne Responsable UE</strong> (Règl. 1223/2009). Sans ce trio chez le fournisseur, le catalogue bloque la publication — rattachez uniquement une source UE dont le dossier est effectivement fourni et vérifié.
+              <div className="rounded-xl border border-kurla-copper/30 bg-kurla-espresso p-4 mb-5 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-2"><ShieldCheck size={13} /> Dossier cosmétique UE — 5 héros (CPNP / RP / CPSR)</h4>
+                <p className="text-[10px] text-kurla-cream/50 leading-relaxed">
+                  Un cosmétique (tout soin p01–p15, p28–p34, p51–p54) n'est vendable qu'avec le trio vérifié <strong className="text-kurla-cream">CPSR + notification CPNP + Personne Responsable UE</strong> (Règl. 1223/2009). Sans ce trio chez le fournisseur, le catalogue bloque la publication — rattachez uniquement une source UE dont le dossier est effectivement fourni et vérifié.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {COSMETIC_REQUIRED_DOCS.map(doc => {
@@ -403,13 +403,13 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                     </p>
                   );
                 })()}
-                <p className="text-[10px] text-[#FFF7EF]/35">Astuce : si le façonnier ne peut pas fournir le CPSR/CPNP, ne bloquez pas la vente — importez le même SKU via un grossiste UE vérifié (il porte déjà le trio). L'écran « Fournisseur & sourcing » du catalogue permet de basculer le rattachement en 1 clic.</p>
+                <p className="text-[10px] text-kurla-cream/35">Astuce : si le façonnier ne peut pas fournir le CPSR/CPNP, ne bloquez pas la vente — importez le même SKU via un grossiste UE vérifié (il porte déjà le trio). L'écran « Fournisseur & sourcing » du catalogue permet de basculer le rattachement en 1 clic.</p>
               </div>
             );
           })()}
 
-          <div className="rounded-xl border border-[#FFF7EF]/10 bg-[#050403]/60 p-4 mb-5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-3">Coordonnées & contact</h4>
+          <div className="rounded-xl border border-kurla-cream/10 bg-kurla-ink/60 p-4 mb-5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Coordonnées & contact</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="space-y-1"><span className={labelClass()}>Nom du contact</span>
                 <input className={inputClass()} value={contactDraft.contactName}
@@ -428,12 +428,12 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                   onChange={event => setContactDraft({ ...contactDraft, notes: event.target.value })} /></label>
             </div>
             <div className="flex items-center justify-between gap-3 mt-3">
-              <p className="text-[10px] text-[#FFF7EF]/40">
+              <p className="text-[10px] text-kurla-cream/40">
                 Uniquement des coordonnées publiques réelles et vérifiées (page contact officielle,
                 registre) — jamais une adresse devinée. Si le contact est inconnu, laissez vide.
               </p>
               <button onClick={() => void saveContact()} disabled={busy}
-                className="px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40 shrink-0">
+                className="px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center gap-2 disabled:opacity-40 shrink-0">
                 <Save size={13} /> Enregistrer le contact
               </button>
             </div>
@@ -441,22 +441,22 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-2 flex items-center gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-2 flex items-center gap-2">
                 <FileCheck2 size={13} /> Preuves ({detail.documents.length})
               </h4>
               {detail.documents.length === 0 ? (
-                <p className="text-xs text-[#FFF7EF]/50">Aucune preuve enregistrée.</p>
+                <p className="text-xs text-kurla-cream/50">Aucune preuve enregistrée.</p>
               ) : (
                 <ul className="space-y-2">
                   {detail.documents.map(document => (
-                    <li key={document.id} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                      <div className="text-xs text-[#FFF7EF]">{DOCUMENT_TYPE_LABELS[document.documentType] || document.documentType}</div>
-                      <div className="text-[10px] text-[#FFF7EF]/50">
+                    <li key={document.id} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                      <div className="text-xs text-kurla-cream">{DOCUMENT_TYPE_LABELS[document.documentType] || document.documentType}</div>
+                      <div className="text-[10px] text-kurla-cream/50">
                         Émis le {document.issuedOn}
                         {document.expiresOn ? ` · expire le ${document.expiresOn}` : ''}
                         {document.reference ? ` · réf. ${document.reference}` : ''}
                       </div>
-                      <a href={document.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[#C8753D] hover:underline break-all">{document.fileUrl}</a>
+                      <a href={document.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-kurla-copper hover:underline break-all">{document.fileUrl}</a>
                     </li>
                   ))}
                 </ul>
@@ -486,10 +486,10 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                   <input className={inputClass()} value={documentDraft.reference}
                     onChange={event => setDocumentDraft({ ...documentDraft, reference: event.target.value })} /></label>
                 <button onClick={() => void addDocument()} disabled={busy || !documentDraft.fileUrl.trim() || !documentDraft.issuedOn}
-                  className="px-3 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold flex items-center gap-2 disabled:opacity-40">
+                  className="px-3 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold flex items-center gap-2 disabled:opacity-40">
                   <Save size={13} /> Enregistrer la preuve
                 </button>
-                <p className="text-[10px] text-[#FFF7EF]/40">
+                <p className="text-[10px] text-kurla-cream/40">
                   Le fichier doit déjà être hébergé : cet écran enregistre l’adresse et la date,
                   il ne téléverse pas. Sans les deux, l’enregistrement est refusé.
                 </p>
@@ -497,20 +497,20 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] mb-2 flex items-center gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-2 flex items-center gap-2">
                 <Package size={13} /> Produits rattachés ({detail.products.length})
               </h4>
               {detail.products.length === 0 ? (
-                <p className="text-xs text-[#FFF7EF]/50">
+                <p className="text-xs text-kurla-cream/50">
                   Aucun produit rattaché. Le rattachement se fait par l’import fournisseur, qui
                   résout le nom avant d’écrire — il ne devine jamais.
                 </p>
               ) : (
                 <ul className="space-y-2">
                   {detail.products.map(product => (
-                    <li key={product.id} className="rounded-xl border border-[#FFF7EF]/10 px-3 py-2">
-                      <div className="text-xs text-[#FFF7EF]">{product.name}</div>
-                      <div className="text-[10px] text-[#FFF7EF]/50">{product.slug} · {product.catalogStatus || '—'}</div>
+                    <li key={product.id} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
+                      <div className="text-xs text-kurla-cream">{product.name}</div>
+                      <div className="text-[10px] text-kurla-cream/50">{product.slug} · {product.catalogStatus || '—'}</div>
                     </li>
                   ))}
                 </ul>

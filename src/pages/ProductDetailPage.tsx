@@ -80,16 +80,16 @@ function normalizedVariant(value: any, productId: string, productPrice: number):
 
 function ReviewCard({ review }: { review: ProductReview }) {
   return (
-    <article className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4">
+    <article className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-4">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-1 text-amber-300" aria-label={`${review.rating} sur 5`}>
           {Array.from({ length: 5 }).map((_, index) => <Star key={index} className={`w-3.5 h-3.5 ${index < review.rating ? 'fill-current' : 'opacity-30'}`} />)}
         </div>
         <span className="text-[10px] text-emerald-300 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Achat vérifié</span>
       </div>
-      {review.title && <h3 className="font-semibold text-sm text-[#FFF7EF] mb-1">{review.title}</h3>}
-      <p className="text-xs text-[#FFF7EF]/75 leading-relaxed">{review.comment}</p>
-      <p className="text-[10px] text-[#FFF7EF]/45 mt-3 flex items-center gap-1"><UserRound className="w-3 h-3" /> {review.author}</p>
+      {review.title && <h3 className="font-semibold text-sm text-kurla-cream mb-1">{review.title}</h3>}
+      <p className="text-xs text-kurla-cream/75 leading-relaxed">{review.comment}</p>
+      <p className="text-[10px] text-kurla-cream/45 mt-3 flex items-center gap-1"><UserRound className="w-3 h-3" /> {review.author}</p>
     </article>
   );
 }
@@ -181,11 +181,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   };
 
   if (loading) {
-    return <div className="min-h-screen pt-32 bg-[#050403] text-[#FFF7EF] flex items-center justify-center"><div className="text-center p-8"><Loader2 className="w-10 h-10 text-[#C8753D] animate-spin mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Chargement du produit…</h2></div></div>;
+    return <div className="min-h-screen pt-32 bg-kurla-ink text-kurla-cream flex items-center justify-center"><div className="text-center p-8"><Loader2 className="w-10 h-10 text-kurla-copper animate-spin mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Chargement du produit…</h2></div></div>;
   }
 
   if (error || !product) {
-    return <div className="min-h-screen pt-32 bg-[#050403] text-[#FFF7EF] flex items-center justify-center"><div className="text-center p-8 max-w-md bg-[#1A0F0A] rounded-3xl border border-[#FFF7EF]/10"><XCircle className="w-10 h-10 text-amber-400 mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Produit indisponible</h2><p className="text-xs text-[#FFF7EF]/60 mb-6">{error?.message || 'Ce produit n’est pas publié ou n’est plus disponible.'}</p><a href="/boutique" className="px-5 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-semibold inline-flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Retour à la boutique</a></div></div>;
+    return <div className="min-h-screen pt-32 bg-kurla-ink text-kurla-cream flex items-center justify-center"><div className="text-center p-8 max-w-md bg-kurla-espresso rounded-3xl border border-kurla-cream/10"><XCircle className="w-10 h-10 text-amber-400 mx-auto mb-4" /><h2 className="text-xl font-serif-title font-bold mb-2">Produit indisponible</h2><p className="text-xs text-kurla-cream/60 mb-6">{error?.message || 'Ce produit n’est pas publié ou n’est plus disponible.'}</p><a href="/boutique" className="px-5 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-semibold inline-flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Retour à la boutique</a></div></div>;
   }
 
   const targetTypes = [...(product.targetHairTypes || []), ...(product.targetSkinTypes || [])];
@@ -218,28 +218,28 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   }, [product?.id, isSkinProduct]);
 
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-28 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <a href="/boutique" className="inline-flex items-center gap-2 text-xs text-[#FFF7EF]/60 hover:text-[#FFF7EF] mb-6"><ArrowLeft className="w-4 h-4" /> Retour aux produits</a>
+        <a href="/boutique" className="inline-flex items-center gap-2 text-xs text-kurla-cream/60 hover:text-kurla-cream mb-6"><ArrowLeft className="w-4 h-4" /> Retour aux produits</a>
 
         {actionMessage && <div className="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-900/20 p-3 text-sm text-emerald-200 flex items-center gap-2"><Check className="w-4 h-4" />{actionMessage}</div>}
         {actionError && <div className="mb-5 rounded-xl border border-rose-400/30 bg-rose-900/20 p-3 text-sm text-rose-200 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{actionError}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-5 space-y-3">
-            <div className="relative aspect-square rounded-3xl overflow-hidden border border-[#FFF7EF]/10 bg-[#1A0F0A]">
-              {currentImage?.url ? <img loading="lazy" decoding="async" src={currentImage.url} alt={currentImage.label || product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-sm text-[#FFF7EF]/50"><ImageIcon className="w-5 h-5 mr-2" /> Image en attente de validation</div>}
-              {currentImage && <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4"><p className="text-xs text-[#FFF7EF]/85 flex items-center gap-2"><ImageIcon className="w-3.5 h-3.5 text-[#D49A63]" />{imageTrustLabel(currentImage.imageTrust)}</p></div>}
+            <div className="relative aspect-square rounded-3xl overflow-hidden border border-kurla-cream/10 bg-kurla-espresso">
+              {currentImage?.url ? <img loading="lazy" decoding="async" src={currentImage.url} alt={currentImage.label || product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-sm text-kurla-cream/50"><ImageIcon className="w-5 h-5 mr-2" /> Image en attente de validation</div>}
+              {currentImage && <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4"><p className="text-xs text-kurla-cream/85 flex items-center gap-2"><ImageIcon className="w-3.5 h-3.5 text-kurla-amber" />{imageTrustLabel(currentImage.imageTrust)}</p></div>}
             </div>
-            {gallery.length > 1 && <div className="grid grid-cols-4 gap-2">{gallery.map((image, index) => <button key={`${image.url}-${index}`} onClick={() => setActiveImageIndex(index)} className={`aspect-square rounded-xl overflow-hidden border ${index === activeImageIndex ? 'border-[#C8753D] ring-2 ring-[#C8753D]/30' : 'border-[#FFF7EF]/10 opacity-70 hover:opacity-100'}`}><img loading="lazy" decoding="async" src={image.url} alt={image.label || product.name} className="w-full h-full object-cover" /></button>)}</div>}
-            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/70 p-4 text-xs text-[#FFF7EF]/65 flex gap-2"><Info className="w-4 h-4 text-[#D49A63] shrink-0" /><span>La provenance de chaque image est indiquée quand elle est connue. Aucune image de remplacement n’est ajoutée à cette fiche.</span></div>
+            {gallery.length > 1 && <div className="grid grid-cols-4 gap-2">{gallery.map((image, index) => <button key={`${image.url}-${index}`} onClick={() => setActiveImageIndex(index)} className={`aspect-square rounded-xl overflow-hidden border ${index === activeImageIndex ? 'border-kurla-copper ring-2 ring-kurla-copper/30' : 'border-kurla-cream/10 opacity-70 hover:opacity-100'}`}><img loading="lazy" decoding="async" src={image.url} alt={image.label || product.name} className="w-full h-full object-cover" /></button>)}</div>}
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/70 p-4 text-xs text-kurla-cream/65 flex gap-2"><Info className="w-4 h-4 text-kurla-amber shrink-0" /><span>La provenance de chaque image est indiquée quand elle est connue. Aucune image de remplacement n’est ajoutée à cette fiche.</span></div>
           </div>
 
           <div className="lg:col-span-7 space-y-6">
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#D49A63] font-semibold mb-2">{product.brand}{product.routineStep ? ` · ${product.routineStep}` : ''}</p>
+              <p className="text-xs uppercase tracking-widest text-kurla-amber font-semibold mb-2">{product.brand}{product.routineStep ? ` · ${product.routineStep}` : ''}</p>
               <h1 className="text-3xl sm:text-5xl font-serif-title font-bold leading-tight mb-3">{product.name}</h1>
-              {product.benefitPrimary && <p className="text-lg text-[#D49A63]">{product.benefitPrimary}</p>}
+              {product.benefitPrimary && <p className="text-lg text-kurla-amber">{product.benefitPrimary}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-4 text-xs">
                 <span className={`px-2.5 py-1 rounded-full border ${canOrder ? (isPreorder ? 'text-amber-300 border-amber-400/30 bg-amber-900/20' : 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20') : 'text-rose-300 border-rose-400/30 bg-rose-900/20'}`}>
                   {canOrder ? (isPreorder ? 'Précommande — expédition selon délai annoncé' : isDropshipTool ? 'En stock partenaire — 24–48h' : 'Disponible') : 'Indisponible pour cette option'}
@@ -254,9 +254,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               </div>
             </div>
 
-            <p className="text-sm text-[#FFF7EF]/78 leading-relaxed">{valueOrMissing(product.description)}</p>
+            <p className="text-sm text-kurla-cream/78 leading-relaxed">{valueOrMissing(product.description)}</p>
 
-            {variants.length > 0 && <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-4"><h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-[#C8753D] bg-[#C8753D]/15' : 'border-[#FFF7EF]/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-[#FFF7EF]/60">{variant.price.toFixed(2)} € · {isDropshipTool ? (variant.inStock ? '24–48h' : 'Indisponible') : variant.inStock ? 'Précommande — 3–5j' : 'Indisponible'}</span></button>)}</div></section>}
+            {variants.length > 0 && <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-4"><h2 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-kurla-copper bg-kurla-copper/15' : 'border-kurla-cream/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-kurla-cream/60">{variant.price.toFixed(2)} € · {isDropshipTool ? (variant.inStock ? '24–48h' : 'Indisponible') : variant.inStock ? 'Précommande — 3–5j' : 'Indisponible'}</span></button>)}</div></section>}
 
             <ProductComplianceBanner
               productId={product.id}
@@ -264,48 +264,48 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               onVerdictChange={sellable => setSellableInCountry(sellable)}
             />
 
-            <div className="rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-[#FFF7EF]/50">Prix affiché avant les frais de livraison</span>{!isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-[#FFF7EF]/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : 'Indisponible'}</button></div>
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-kurla-cream/50">Prix affiché avant les frais de livraison</span>{!isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-kurla-cream/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : 'Indisponible'}</button></div>
 
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
             <TrustGuarantees isPreorder={product.isPreorder === true} />
 
             {isSkinProduct && (
-              <section className="rounded-3xl border border-[#C8753D]/30 bg-gradient-to-br from-[#1A0F0A] to-[#050403] p-5 sm:p-6 space-y-4">
+              <section className="rounded-3xl border border-kurla-copper/30 bg-gradient-to-br from-kurla-espresso to-kurla-ink p-5 sm:p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold tracking-widest uppercase">KURLA SKIN · fiche experte peau</span>
-                  {routineBadge && <span className="px-3 py-1 rounded-full bg-[#FFF7EF]/10 border border-[#FFF7EF]/10 text-[#D49A63] text-[10px] font-bold">{routineBadge}</span>}
+                  <span className="px-3 py-1 rounded-full bg-kurla-copper text-white text-[10px] font-bold tracking-widest uppercase">KURLA SKIN · fiche experte peau</span>
+                  {routineBadge && <span className="px-3 py-1 rounded-full bg-kurla-cream/10 border border-kurla-cream/10 text-kurla-amber text-[10px] font-bold">{routineBadge}</span>}
                   {hasFragrance ? <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 text-[10px] font-bold">Contient parfum</span> : <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-[10px] font-bold">Sans parfum ajouté</span>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
-                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Sun className="w-4 h-4" /> Pour peaux riches en mélanine</p>
-                    <ul className="mt-2 space-y-1 text-[#FFF7EF]/75 leading-relaxed">
-                      <li>• <strong className="text-[#FFF7EF]">Uniformiser ≠ éclaircir.</strong> Ce soin vise à atténuer l’irrégulier (HPI), pas la carnation.</li>
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
+                    <p className="font-bold flex items-center gap-1.5 text-kurla-amber"><Sun className="w-4 h-4" /> Pour peaux riches en mélanine</p>
+                    <ul className="mt-2 space-y-1 text-kurla-cream/75 leading-relaxed">
+                      <li>• <strong className="text-kurla-cream">Uniformiser ≠ éclaircir.</strong> Ce soin vise à atténuer l’irrégulier (HPI), pas la carnation.</li>
                       <li>• HPI : marques sombres post-bouton plus visibles phototypes IV–VI — SPF quotidien clé.</li>
                       <li>• Filtres invisibles privilégiés sur peaux foncées.</li>
                     </ul>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
-                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Shield className="w-4 h-4" /> Barrière & tolérance</p>
-                    <ul className="mt-2 space-y-1 text-[#FFF7EF]/75 leading-relaxed">
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
+                    <p className="font-bold flex items-center gap-1.5 text-kurla-amber"><Shield className="w-4 h-4" /> Barrière & tolérance</p>
+                    <ul className="mt-2 space-y-1 text-kurla-cream/75 leading-relaxed">
                       <li>• Parfum : <strong className={hasFragrance ? 'text-amber-200' : 'text-emerald-200'}>{hasFragrance ? 'présent — éviter si sensible' : 'sans parfum ajouté — adapté peaux sensibles'}</strong></li>
                       <li>• Céramides / squalane renforcent la barrière.</li>
                       <li>• Éviter AHA + rétinol le même soir sans avis.</li>
                     </ul>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
-                    <p className="font-bold flex items-center gap-1.5 text-[#D49A63]"><Droplets className="w-4 h-4" /> Placement routine</p>
-                    <p className="text-[#FFF7EF]/75 leading-relaxed mt-2">
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
+                    <p className="font-bold flex items-center gap-1.5 text-kurla-amber"><Droplets className="w-4 h-4" /> Placement routine</p>
+                    <p className="text-kurla-cream/75 leading-relaxed mt-2">
                       {routineBadge || 'À intégrer selon texture et objectif.'} <br />
                       Matin : protéger (SPF dernier). Soir : réparer. Hebdo : exfoliant 1–2×/sem max.
                     </p>
-                    {skinGuided && <p className="text-[11px] text-[#FFF7EF]/50 mt-2">Votre profil : {skinGuided.skinType || '—'} · budget {skinGuided.budget || '—'}{skinGuided.sensitivities?.includes('parfum') && hasFragrance ? ' → alternative sans parfum recommandée' : ''}</p>}
+                    {skinGuided && <p className="text-[11px] text-kurla-cream/50 mt-2">Votre profil : {skinGuided.skinType || '—'} · budget {skinGuided.budget || '—'}{skinGuided.sensitivities?.includes('parfum') && hasFragrance ? ' → alternative sans parfum recommandée' : ''}</p>}
                   </div>
                 </div>
                 {isSPFProduct && (
-                  <div className={`p-4 rounded-2xl border flex gap-3 ${whitecastRisk === 'eleve' ? 'bg-amber-500/10 border-amber-500/30 text-amber-100' : whitecastRisk === 'modere' ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/80' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'}`}>
-                    <Sun className={`w-5 h-5 shrink-0 ${whitecastRisk === 'eleve' ? 'text-amber-400' : whitecastRisk === 'faible' ? 'text-emerald-400' : 'text-[#D49A63]'}`} />
+                  <div className={`p-4 rounded-2xl border flex gap-3 ${whitecastRisk === 'eleve' ? 'bg-amber-500/10 border-amber-500/30 text-amber-100' : whitecastRisk === 'modere' ? 'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/80' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'}`}>
+                    <Sun className={`w-5 h-5 shrink-0 ${whitecastRisk === 'eleve' ? 'text-amber-400' : whitecastRisk === 'faible' ? 'text-emerald-400' : 'text-kurla-amber'}`} />
                     <div className="text-xs leading-relaxed">
                       <p className="font-bold">{whitecastRisk === 'eleve' ? 'Risque de trace blanche élevé' : whitecastRisk === 'modere' ? 'Trace blanche : modérée' : 'SPF invisible — adapté peaux foncées'}</p>
                       <p className="opacity-80 mt-1">
@@ -315,33 +315,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-[#FFF7EF] text-[#111111] text-xs font-bold hover:bg-white">Vérifier ma compatibilité peau →</a>
-                  <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Comparer en boutique peau</a>
-                  <a href="/peau/routine" className="px-4 py-2 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs font-bold hover:border-[#C8753D]">Voir la routine complète</a>
+                  <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-kurla-cream text-kurla-carbon text-xs font-bold hover:bg-white">Vérifier ma compatibilité peau →</a>
+                  <a href="/boutique?cat=peau" className="px-4 py-2 rounded-full border border-kurla-cream/15 text-kurla-cream text-xs font-bold hover:border-kurla-copper">Comparer en boutique peau</a>
+                  <a href="/peau/routine" className="px-4 py-2 rounded-full border border-kurla-cream/15 text-kurla-cream text-xs font-bold hover:border-kurla-copper">Voir la routine complète</a>
                 </div>
                 {/* C9 — fiche peau INCI + preuve A/B + V-VI safe (15 fiches) */}
                 {matchedSkinIngredients.length > 0 && (
-                  <div className="mt-4 p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
-                    <p className="text-xs font-bold flex items-center gap-1.5 text-[#D49A63]"><FlaskConical className="w-3.5 h-3.5" /> Actifs documentés — 15 fiches peau</p>
+                  <div className="mt-4 p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
+                    <p className="text-xs font-bold flex items-center gap-1.5 text-kurla-amber"><FlaskConical className="w-3.5 h-3.5" /> Actifs documentés — 15 fiches peau</p>
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {matchedSkinIngredients.slice(0,4).map(ing => (
-                        <a key={ing.id} href={`/ingredient/${ing.id}`} className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 hover:border-[#C8753D]/40 block">
+                        <a key={ing.id} href={`/ingredient/${ing.id}`} className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10 hover:border-kurla-copper/40 block">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-[#FFF7EF]">{ing.commonNames[0] || ing.id}</span>
+                            <span className="text-xs font-bold text-kurla-cream">{ing.commonNames[0] || ing.id}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold border ${ing.evidenceLevel==='A' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-amber-500/15 border-amber-500/30 text-amber-200'}`}>Niveau {ing.evidenceLevel}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#FFF7EF]/10 border border-[#FFF7EF]/10 text-[#FFF7EF]/70">V-VI safe</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-kurla-cream/10 border border-kurla-cream/10 text-kurla-cream/70">V-VI safe</span>
                           </div>
-                          <p className="text-[11px] font-mono text-[#FFF7EF]/60 mt-1">INCI: {ing.inci} {ing.maxEuPercent ? `· UE max ${ing.maxEuPercent}%` : ''}</p>
-                          <p className="text-[11px] text-[#FFF7EF]/70 mt-1 line-clamp-2">{ing.evidenceClaim}</p>
-                          <span className="text-[11px] font-bold text-[#D49A63] mt-1 inline-block">Fiche CosIng →</span>
+                          <p className="text-[11px] font-mono text-kurla-cream/60 mt-1">INCI: {ing.inci} {ing.maxEuPercent ? `· UE max ${ing.maxEuPercent}%` : ''}</p>
+                          <p className="text-[11px] text-kurla-cream/70 mt-1 line-clamp-2">{ing.evidenceClaim}</p>
+                          <span className="text-[11px] font-bold text-kurla-amber mt-1 inline-block">Fiche CosIng →</span>
                         </a>
                       ))}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {matchedSkinIngredients.slice(0,2).map(ing => (
-                        <a key={`b-${ing.id}`} href={`/boutique?cat=peau&actif=${ing.boutiqueActif}`} className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFF7EF] text-[#111111] font-bold hover:bg-white">Boutique ?actif={ing.boutiqueActif} →</a>
+                        <a key={`b-${ing.id}`} href={`/boutique?cat=peau&actif=${ing.boutiqueActif}`} className="text-[11px] px-3 py-1.5 rounded-full bg-kurla-cream text-kurla-carbon font-bold hover:bg-white">Boutique ?actif={ing.boutiqueActif} →</a>
                       ))}
-                      <a href="/guides/ingredients" className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFF7EF]/15 text-[#FFF7EF] font-bold hover:border-[#C8753D]">15 fiches →</a>
+                      <a href="/guides/ingredients" className="text-[11px] px-3 py-1.5 rounded-full border border-kurla-cream/15 text-kurla-cream font-bold hover:border-kurla-copper">15 fiches →</a>
                     </div>
                   </div>
                 )}
@@ -349,15 +349,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
             )}
 
             {isSkinProduct && (
-              <section className="rounded-3xl border border-[#E8E1DA] bg-[#FFFDF9] p-5 text-[#111111]">
+              <section className="rounded-3xl border border-kurla-stone bg-kurla-ivory p-5 text-kurla-carbon">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <h3 className="text-sm font-bold flex items-center gap-2"><Scale className="w-4 h-4 text-[#C8753D]" /> Alternatives — même étape, autre budget/texture</h3>
-                  <a href="/peau/comparer" className="text-[11px] font-bold text-[#C8753D] hover:underline flex items-center gap-1">Ouvrir le comparateur <ArrowRightCircle className="w-3.5 h-3.5" /></a>
+                  <h3 className="text-sm font-bold flex items-center gap-2"><Scale className="w-4 h-4 text-kurla-copper" /> Alternatives — même étape, autre budget/texture</h3>
+                  <a href="/peau/comparer" className="text-[11px] font-bold text-kurla-copper hover:underline flex items-center gap-1">Ouvrir le comparateur <ArrowRightCircle className="w-3.5 h-3.5" /></a>
                 </div>
                 {skinAlternatives.length === 0 ? (
-                  <div className="mt-4 p-4 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA] text-xs text-[#111111]/70">
+                  <div className="mt-4 p-4 rounded-2xl bg-kurla-sand border border-kurla-stone text-xs text-kurla-carbon/70">
                     <p className="font-bold">Pas encore d’alternative publiée pour cette étape.</p>
-                    <p className="font-light mt-1">Le catalogue peau s’enrichit progressivement · filtrez par <a href="/boutique?cat=peau&need=taches" className="text-[#C8753D] underline">besoin taches</a> ou <a href="/boutique?cat=peau&budget=moins_40" className="text-[#C8753D] underline">budget &lt; 18€</a>. · Uniformiser ≠ éclaircir.</p>
+                    <p className="font-light mt-1">Le catalogue peau s’enrichit progressivement · filtrez par <a href="/boutique?cat=peau&need=taches" className="text-kurla-copper underline">besoin taches</a> ou <a href="/boutique?cat=peau&budget=moins_40" className="text-kurla-copper underline">budget &lt; 18€</a>. · Uniformiser ≠ éclaircir.</p>
                   </div>
                 ) : (
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -365,53 +365,53 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                       const wc = altWhitecastRisk(alt);
                       const isSPF = altIsSPF(alt);
                       return (
-                        <div key={alt.id} className="p-3 rounded-2xl bg-white border border-[#E8E1DA] text-xs">
+                        <div key={alt.id} className="p-3 rounded-2xl bg-white border border-kurla-stone text-xs">
                           <img src={alt.image} alt="" className="w-full h-28 object-cover rounded-xl mb-2" />
                           <p className="font-bold leading-tight line-clamp-2">{alt.name}</p>
-                          <p className="text-[11px] text-[#111111]/60">{alt.brand} · {alt.price.toFixed(2)} € · {alt.sizeLabel || ''}</p>
+                          <p className="text-[11px] text-kurla-carbon/60">{alt.brand} · {alt.price.toFixed(2)} € · {alt.sizeLabel || ''}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1">
                             <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${alt.containsFragrance ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>{alt.containsFragrance ? 'Parfum' : 'Sans parfum ✓'}</span>
-                            {isSPF && <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${wc==='faible'?'bg-emerald-50 border-emerald-200 text-emerald-700': wc==='eleve'?'bg-amber-50 border-amber-200 text-amber-700':'bg-[#F8F2EC] border-[#E8E1DA] text-[#111111]/70'}`}>{wc==='faible'?'Invisible': wc==='eleve'?'Trace probable':'Modéré'}</span>}
+                            {isSPF && <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${wc==='faible'?'bg-emerald-50 border-emerald-200 text-emerald-700': wc==='eleve'?'bg-amber-50 border-amber-200 text-amber-700':'bg-kurla-sand border-kurla-stone text-kurla-carbon/70'}`}>{wc==='faible'?'Invisible': wc==='eleve'?'Trace probable':'Modéré'}</span>}
                           </div>
-                          <p className="text-[11px] text-[#C8753D] font-semibold mt-1.5">{alt.routineStep || alt.needs?.[0] || 'Soins peau'}</p>
+                          <p className="text-[11px] text-kurla-copper font-semibold mt-1.5">{alt.routineStep || alt.needs?.[0] || 'Soins peau'}</p>
                           <div className="mt-2 flex gap-1.5">
-                            <a href={`/produit/${alt.slug}`} className="flex-1 py-1.5 rounded-full bg-[#111111] text-white text-center font-bold hover:bg-black">Voir</a>
-                            <a href={`/peau/comparer?ids=${product.id},${alt.id}`} className="flex-1 py-1.5 rounded-full bg-white border border-[#E8E1DA] text-center font-bold hover:border-[#C8753D]">Comparer</a>
+                            <a href={`/produit/${alt.slug}`} className="flex-1 py-1.5 rounded-full bg-kurla-carbon text-white text-center font-bold hover:bg-black">Voir</a>
+                            <a href={`/peau/comparer?ids=${product.id},${alt.id}`} className="flex-1 py-1.5 rounded-full bg-white border border-kurla-stone text-center font-bold hover:border-kurla-copper">Comparer</a>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 )}
-                <p className="text-[11px] text-[#111111]/45 mt-3">Moteur d’alternatives : même famille routine + même besoin + sans parfum si sensible + whitecast invisible si SPF + prix ±30%. Aucun conseil médical.</p>
+                <p className="text-[11px] text-kurla-carbon/45 mt-3">Moteur d’alternatives : même famille routine + même besoin + sans parfum si sensible + whitecast invisible si SPF + prix ±30%. Aucun conseil médical.</p>
               </section>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoCard title="Bénéfice & cible" icon={<CheckCircle2 className="w-4 h-4 text-emerald-300" />}><p>{valueOrMissing(product.benefitPrimary)}</p><p className="mt-2">{targetTypes.length ? targetTypes.join(' · ') : valueOrMissing(product.forWho)}</p></InfoCard>
               <InfoCard title="Pas idéal si…" icon={<AlertCircle className="w-4 h-4 text-amber-300" />}><p>{valueOrMissing(product.notIdealIf)}</p></InfoCard>
-              <InfoCard title="Texture, parfum & usage" icon={<RefreshCw className="w-4 h-4 text-[#D49A63]" />}><p>Texture : {valueOrMissing(product.texture)}</p><p>Parfum : {valueOrMissing(product.fragrance)}</p><p>Fréquence : {valueOrMissing(product.usageFrequency)}</p><p>Mode d’emploi : {valueOrMissing(product.howToUse)}</p>{TOOL_BY_PRODUCT_SLUG.has(product.slug) && <a href={`/outils#${TOOL_BY_PRODUCT_SLUG.get(product.slug)!.id}`} className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-[#D49A63] hover:underline">Guide d’utilisation complet de cet outil →</a>}</InfoCard>
-              <InfoCard title="Format & rendement" icon={<PackageCheck className="w-4 h-4 text-[#D49A63]" />}><p>Format : {valueOrMissing(product.sizeLabel)}</p><p>Rendement estimé : {valueOrMissing(product.estimatedYield)}</p></InfoCard>
+              <InfoCard title="Texture, parfum & usage" icon={<RefreshCw className="w-4 h-4 text-kurla-amber" />}><p>Texture : {valueOrMissing(product.texture)}</p><p>Parfum : {valueOrMissing(product.fragrance)}</p><p>Fréquence : {valueOrMissing(product.usageFrequency)}</p><p>Mode d’emploi : {valueOrMissing(product.howToUse)}</p>{TOOL_BY_PRODUCT_SLUG.has(product.slug) && <a href={`/outils#${TOOL_BY_PRODUCT_SLUG.get(product.slug)!.id}`} className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-kurla-amber hover:underline">Guide d’utilisation complet de cet outil →</a>}</InfoCard>
+              <InfoCard title="Format & rendement" icon={<PackageCheck className="w-4 h-4 text-kurla-amber" />}><p>Format : {valueOrMissing(product.sizeLabel)}</p><p>Rendement estimé : {valueOrMissing(product.estimatedYield)}</p></InfoCard>
             </div>
 
-            <section className="rounded-2xl border border-[#D49A63]/30 bg-[#D49A63]/10 p-4 text-xs text-[#FFF7EF]/80">
-              <h2 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Public concerné & précautions</h2>
+            <section className="rounded-2xl border border-kurla-amber/30 bg-kurla-amber/10 p-4 text-xs text-kurla-cream/80">
+              <h2 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Public concerné & précautions</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <p><strong className="text-[#FFF7EF]">Âge recommandé</strong><br />{product.recommendedAgeBand && product.recommendedAgeBand !== 'not_provided' ? `${ageBandLabel(product.recommendedAgeBand)}${product.recommendedAgeMin !== undefined ? ` · dès ${product.recommendedAgeMin} ans` : ''}${product.recommendedAgeMax !== undefined ? ` · jusqu’à ${product.recommendedAgeMax} ans` : ''}` : missing}</p>
-                <p><strong className="text-[#FFF7EF]">Sécurité mineur</strong><br />{product.minorSafetyStatus === 'verified' ? 'Vérifiée' : product.minorSafetyStatus === 'pending' ? 'En cours de vérification' : 'Non renseignée'}</p>
-                <p><strong className="text-[#FFF7EF]">Actifs réservés aux adultes</strong><br />{product.adultOnlyActives?.length ? `Présents : ${product.adultOnlyActives.join(' · ')}` : 'Non signalés dans la fiche'}</p>
-                <p><strong className="text-[#FFF7EF]">Supervision parentale</strong><br />{product.parentalSupervisionRequired ? 'Requise' : 'Non indiquée'}</p>
-                <p><strong className="text-[#FFF7EF]">Visuel pour mineur</strong><br />{product.imageSupervisionStatus === 'verified' ? 'Validé' : product.imageSupervisionStatus === 'pending' ? 'À valider' : 'Non renseigné'}</p>
+                <p><strong className="text-kurla-cream">Âge recommandé</strong><br />{product.recommendedAgeBand && product.recommendedAgeBand !== 'not_provided' ? `${ageBandLabel(product.recommendedAgeBand)}${product.recommendedAgeMin !== undefined ? ` · dès ${product.recommendedAgeMin} ans` : ''}${product.recommendedAgeMax !== undefined ? ` · jusqu’à ${product.recommendedAgeMax} ans` : ''}` : missing}</p>
+                <p><strong className="text-kurla-cream">Sécurité mineur</strong><br />{product.minorSafetyStatus === 'verified' ? 'Vérifiée' : product.minorSafetyStatus === 'pending' ? 'En cours de vérification' : 'Non renseignée'}</p>
+                <p><strong className="text-kurla-cream">Actifs réservés aux adultes</strong><br />{product.adultOnlyActives?.length ? `Présents : ${product.adultOnlyActives.join(' · ')}` : 'Non signalés dans la fiche'}</p>
+                <p><strong className="text-kurla-cream">Supervision parentale</strong><br />{product.parentalSupervisionRequired ? 'Requise' : 'Non indiquée'}</p>
+                <p><strong className="text-kurla-cream">Visuel pour mineur</strong><br />{product.imageSupervisionStatus === 'verified' ? 'Validé' : product.imageSupervisionStatus === 'pending' ? 'À valider' : 'Non renseigné'}</p>
               </div>
-              {product.audienceTags?.length ? <p className="mt-3 text-[#FFF7EF]/60">Publics documentés : {product.audienceTags.join(' · ')}</p> : null}
+              {product.audienceTags?.length ? <p className="mt-3 text-kurla-cream/60">Publics documentés : {product.audienceTags.join(' · ')}</p> : null}
             </section>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-12">
-          <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<ShieldCheck className="w-5 h-5" />} title="Composition complète" />{linkedIngredients.length > 0 && (
+          <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<ShieldCheck className="w-5 h-5" />} title="Composition complète" />{linkedIngredients.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-3">Ingrédients reliés au référentiel</h3>
+              <h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-3">Ingrédients reliés au référentiel</h3>
               <div className="flex flex-wrap gap-2">
                 {linkedIngredients.map((entry, idx) => {
                   if (!entry.resolved || !entry.inciName) return null;
@@ -420,27 +420,27 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
                       key={`${entry.ingredientId}-${idx}`}
                       href={`/ingredient/${entry.ingredientId}`}
                       title={entry.functions.length ? entry.functions.join(', ') : undefined}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-colors hover:border-[#C8753D]/60 ${entry.isKeyIngredient ? 'bg-[#C8753D]/15 border-[#C8753D]/40 text-[#FFF7EF]' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/85'}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-colors hover:border-kurla-copper/60 ${entry.isKeyIngredient ? 'bg-kurla-copper/15 border-kurla-copper/40 text-kurla-cream' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/85'}`}
                     >
-                      {entry.isKeyIngredient && <Star className="w-3 h-3 text-[#D49A63]" />}
+                      {entry.isKeyIngredient && <Star className="w-3 h-3 text-kurla-amber" />}
                       {entry.inciName}
                       {entry.isAllergenRegulated && <AlertTriangle className="w-3 h-3 text-amber-400" aria-label="Allergène à déclarer" />}
-                      {entry.isFragrance && <span className="text-[#FFF7EF]/40">· parfum</span>}
+                      {entry.isFragrance && <span className="text-kurla-cream/40">· parfum</span>}
                     </a>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-[#FFF7EF]/50 mt-2">Touchez un ingrédient pour voir sa fiche (fonctions CosIng, restrictions UE, allergènes). L’étoile marque un ingrédient clé.</p>
+              <p className="text-[11px] text-kurla-cream/50 mt-2">Touchez un ingrédient pour voir sa fiche (fonctions CosIng, restrictions UE, allergènes). L’étoile marque un ingrédient clé.</p>
             </div>
-          )}{compositionKind(product) === 'cible' ? (<><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-2">Composition visée</h3><p className="text-[11px] leading-relaxed text-[#D49A63]/90 mb-2">Produit en précommande, non encore fabriqué. Voici la formulation demandée au laboratoire — la composition définitive sera celle de l’étiquette du produit livré.</p><p className="text-sm leading-relaxed text-[#FFF7EF]/80 break-words">{inciListe(product)}</p></>) : compositionKind(product) === 'accessoire' ? (<><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-2">Composition</h3><p className="text-sm leading-relaxed text-[#FFF7EF]/80">{inciListe(product) || 'Accessoire — aucun ingrédient cosmétique.'}</p></>) : (<><h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mb-2">INCI</h3><p className="text-sm leading-relaxed text-[#FFF7EF]/80 break-words">{valueOrMissing(product.inci)}</p></>)}<h3 className="text-xs uppercase tracking-widest text-[#D49A63] font-bold mt-6 mb-2">Rôle des ingrédients principaux</h3>{product.ingredientRoles?.length ? <ul className="space-y-2">{product.ingredientRoles.map((item, index) => <li key={`${item.name}-${index}`} className="text-xs text-[#FFF7EF]/75"><strong className="text-[#FFF7EF]">{item.name}</strong> · {item.role}</li>)}</ul> : <p className="text-xs text-[#FFF7EF]/60">{missing}</p>}<div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><div><strong className="text-[#FFF7EF]">Allergènes déclarés</strong><p className="text-[#FFF7EF]/65 mt-1">{product.allergens?.length ? product.allergens.join(', ') : missing}</p></div><div><strong className="text-[#FFF7EF]">Parfum</strong><p className="text-[#FFF7EF]/65 mt-1">{product.containsFragrance === undefined ? missing : product.containsFragrance ? 'Présent' : 'Non ajouté'}</p></div></div></section>
+          )}{compositionKind(product) === 'cible' ? (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">Composition visée</h3><p className="text-[11px] leading-relaxed text-kurla-amber/90 mb-2">Produit en précommande, non encore fabriqué. Voici la formulation demandée au laboratoire — la composition définitive sera celle de l’étiquette du produit livré.</p><p className="text-sm leading-relaxed text-kurla-cream/80 break-words">{inciListe(product)}</p></>) : compositionKind(product) === 'accessoire' ? (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">Composition</h3><p className="text-sm leading-relaxed text-kurla-cream/80">{inciListe(product) || 'Accessoire — aucun ingrédient cosmétique.'}</p></>) : (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">INCI</h3><p className="text-sm leading-relaxed text-kurla-cream/80 break-words">{valueOrMissing(product.inci)}</p></>)}<h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mt-6 mb-2">Rôle des ingrédients principaux</h3>{product.ingredientRoles?.length ? <ul className="space-y-2">{product.ingredientRoles.map((item, index) => <li key={`${item.name}-${index}`} className="text-xs text-kurla-cream/75"><strong className="text-kurla-cream">{item.name}</strong> · {item.role}</li>)}</ul> : <p className="text-xs text-kurla-cream/60">{missing}</p>}<div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><div><strong className="text-kurla-cream">Allergènes déclarés</strong><p className="text-kurla-cream/65 mt-1">{product.allergens?.length ? product.allergens.join(', ') : missing}</p></div><div><strong className="text-kurla-cream">Parfum</strong><p className="text-kurla-cream/65 mt-1">{product.containsFragrance === undefined ? missing : product.containsFragrance ? 'Présent' : 'Non ajouté'}</p></div></div></section>
 
-          <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<Globe2 className="w-5 h-5" />} title="Origine, certifications & livraison" /><div className="space-y-4 text-sm"><div><span className="text-xs text-[#FFF7EF]/50 block">Pays d’origine</span><span>{valueOrMissing(product.originCountry)}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block mb-2">Certifications vérifiables</span>{certifications.length ? <div className="space-y-2">{certifications.map((cert, index) => <div key={`${cert.name}-${index}`} className="rounded-xl border border-[#FFF7EF]/10 p-3"><div className="flex justify-between gap-2"><span>{cert.name}</span><span className={`text-[10px] ${cert.status === 'verified' ? 'text-emerald-300' : 'text-amber-300'}`}>{cert.status === 'verified' ? 'Vérifiée' : 'À vérifier'}</span></div>{cert.verificationUrl && cert.status === 'verified' ? <a className="text-xs text-[#D49A63] hover:underline" href={cert.verificationUrl} target="_blank" rel="noreferrer">Voir la preuve</a> : <p className="text-[10px] text-[#FFF7EF]/50 mt-1">Preuve publique non renseignée</p>}</div>)}</div> : <p className="text-xs text-[#FFF7EF]/60">{missing}</p>}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><span className="text-xs text-[#FFF7EF]/50 block">Pays livrés</span><span>{availableCountries.length ? availableCountries.join(', ') : missing}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block">Délai indicatif</span><span>{valueOrMissing(shipping.deliveryEstimate)}</span></div></div><div><span className="text-xs text-[#FFF7EF]/50 block">Frais</span><span>{shipping.deliveryFee === undefined ? missing : `${shipping.deliveryFee.toFixed(2)} €`}</span></div><div><span className="text-xs text-[#FFF7EF]/50 block">Retours</span><span>{valueOrMissing(shipping.returnsPolicy || product.returnsPolicy)}</span></div></div></section>
+          <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<Globe2 className="w-5 h-5" />} title="Origine, certifications & livraison" /><div className="space-y-4 text-sm"><div><span className="text-xs text-kurla-cream/50 block">Pays d’origine</span><span>{valueOrMissing(product.originCountry)}</span></div><div><span className="text-xs text-kurla-cream/50 block mb-2">Certifications vérifiables</span>{certifications.length ? <div className="space-y-2">{certifications.map((cert, index) => <div key={`${cert.name}-${index}`} className="rounded-xl border border-kurla-cream/10 p-3"><div className="flex justify-between gap-2"><span>{cert.name}</span><span className={`text-[10px] ${cert.status === 'verified' ? 'text-emerald-300' : 'text-amber-300'}`}>{cert.status === 'verified' ? 'Vérifiée' : 'À vérifier'}</span></div>{cert.verificationUrl && cert.status === 'verified' ? <a className="text-xs text-kurla-amber hover:underline" href={cert.verificationUrl} target="_blank" rel="noreferrer">Voir la preuve</a> : <p className="text-[10px] text-kurla-cream/50 mt-1">Preuve publique non renseignée</p>}</div>)}</div> : <p className="text-xs text-kurla-cream/60">{missing}</p>}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><span className="text-xs text-kurla-cream/50 block">Pays livrés</span><span>{availableCountries.length ? availableCountries.join(', ') : missing}</span></div><div><span className="text-xs text-kurla-cream/50 block">Délai indicatif</span><span>{valueOrMissing(shipping.deliveryEstimate)}</span></div></div><div><span className="text-xs text-kurla-cream/50 block">Frais</span><span>{shipping.deliveryFee === undefined ? missing : `${shipping.deliveryFee.toFixed(2)} €`}</span></div><div><span className="text-xs text-kurla-cream/50 block">Retours</span><span>{valueOrMissing(shipping.returnsPolicy || product.returnsPolicy)}</span></div></div></section>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <section id="avis" className="scroll-mt-28 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><div className="flex items-center justify-between gap-3 mb-4"><SectionTitle icon={<Star className="w-5 h-5" />} title="Avis vérifiés" /><span className="text-xs text-[#FFF7EF]/50">{trustLoading ? 'Chargement…' : `${trust.verifiedReviewCount} avis`}</span></div>{trust.reviews.length ? <div className="space-y-3">{trust.reviews.map(review => <div key={review.id}><ReviewCard review={review} /></div>)}</div> : <p className="text-sm text-[#FFF7EF]/60">Aucun avis vérifié publié pour le moment.</p>}{user && <div className="mt-6 pt-5 border-t border-[#FFF7EF]/10 space-y-2"><p className="text-xs text-[#D49A63] font-semibold">Vous avez acheté ce produit ? Déposez un avis.</p><input value={reviewTitle} onChange={event => setReviewTitle(event.target.value)} placeholder="Titre facultatif" className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none" /><div className="flex gap-1">{[1, 2, 3, 4, 5].map(value => <button key={value} onClick={() => setReviewRating(value)} aria-label={`${value} étoiles`}><Star className={`w-5 h-5 ${value <= reviewRating ? 'text-amber-300 fill-current' : 'text-[#FFF7EF]/30'}`} /></button>)}</div><textarea value={reviewComment} onChange={event => setReviewComment(event.target.value)} placeholder="Votre expérience après utilisation" rows={3} className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none resize-none" /><button disabled={busy || !reviewComment.trim()} onClick={() => withAction(() => submitProductReview(product.id, { rating: reviewRating, title: reviewTitle, comment: reviewComment, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Send className="w-3.5 h-3.5" /> Envoyer pour modération</button></div>}</section>
+          <section id="avis" className="scroll-mt-28 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><div className="flex items-center justify-between gap-3 mb-4"><SectionTitle icon={<Star className="w-5 h-5" />} title="Avis vérifiés" /><span className="text-xs text-kurla-cream/50">{trustLoading ? 'Chargement…' : `${trust.verifiedReviewCount} avis`}</span></div>{trust.reviews.length ? <div className="space-y-3">{trust.reviews.map(review => <div key={review.id}><ReviewCard review={review} /></div>)}</div> : <p className="text-sm text-kurla-cream/60">Aucun avis vérifié publié pour le moment.</p>}{user && <div className="mt-6 pt-5 border-t border-kurla-cream/10 space-y-2"><p className="text-xs text-kurla-amber font-semibold">Vous avez acheté ce produit ? Déposez un avis.</p><input value={reviewTitle} onChange={event => setReviewTitle(event.target.value)} placeholder="Titre facultatif" className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none" /><div className="flex gap-1">{[1, 2, 3, 4, 5].map(value => <button key={value} onClick={() => setReviewRating(value)} aria-label={`${value} étoiles`}><Star className={`w-5 h-5 ${value <= reviewRating ? 'text-amber-300 fill-current' : 'text-kurla-cream/30'}`} /></button>)}</div><textarea value={reviewComment} onChange={event => setReviewComment(event.target.value)} placeholder="Votre expérience après utilisation" rows={3} className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none resize-none" /><button disabled={busy || !reviewComment.trim()} onClick={() => withAction(() => submitProductReview(product.id, { rating: reviewRating, title: reviewTitle, comment: reviewComment, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-kurla-copper px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Send className="w-3.5 h-3.5" /> Envoyer pour modération</button></div>}</section>
 
-          <section className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><div className="flex items-center justify-between gap-3 mb-4"><SectionTitle icon={<Mail className="w-5 h-5" />} title="Questions & réponses" /><span className="text-xs text-[#FFF7EF]/50">{trust.questionsCount} réponse(s)</span></div>{trust.questions.length ? <div className="space-y-3">{trust.questions.map(item => <div key={item.id} className="rounded-xl border border-[#FFF7EF]/10 p-3"><p className="text-xs font-semibold">Q. {item.question}</p>{item.answer && <p className="text-xs text-[#FFF7EF]/70 mt-2">R. {item.answer}</p>}</div>)}</div> : <p className="text-sm text-[#FFF7EF]/60">Aucune question publiée pour le moment.</p>}{user ? <div className="mt-6 pt-5 border-t border-[#FFF7EF]/10 space-y-2"><textarea value={question} onChange={event => setQuestion(event.target.value)} placeholder="Posez une question sur la formule, l’usage ou la livraison" rows={3} className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none resize-none" /><button disabled={busy || question.trim().length < 5} onClick={() => withAction(() => askProductQuestion(product.id, question, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Send className="w-3.5 h-3.5" /> Poser ma question</button></div> : <p className="mt-5 text-xs text-[#FFF7EF]/60">Connectez-vous pour poser une question à l’équipe.</p>}</section>
+          <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><div className="flex items-center justify-between gap-3 mb-4"><SectionTitle icon={<Mail className="w-5 h-5" />} title="Questions & réponses" /><span className="text-xs text-kurla-cream/50">{trust.questionsCount} réponse(s)</span></div>{trust.questions.length ? <div className="space-y-3">{trust.questions.map(item => <div key={item.id} className="rounded-xl border border-kurla-cream/10 p-3"><p className="text-xs font-semibold">Q. {item.question}</p>{item.answer && <p className="text-xs text-kurla-cream/70 mt-2">R. {item.answer}</p>}</div>)}</div> : <p className="text-sm text-kurla-cream/60">Aucune question publiée pour le moment.</p>}{user ? <div className="mt-6 pt-5 border-t border-kurla-cream/10 space-y-2"><textarea value={question} onChange={event => setQuestion(event.target.value)} placeholder="Posez une question sur la formule, l’usage ou la livraison" rows={3} className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none resize-none" /><button disabled={busy || question.trim().length < 5} onClick={() => withAction(() => askProductQuestion(product.id, question, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-kurla-copper px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Send className="w-3.5 h-3.5" /> Poser ma question</button></div> : <p className="mt-5 text-xs text-kurla-cream/60">Connectez-vous pour poser une question à l’équipe.</p>}</section>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -449,18 +449,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
         </div>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {!effectiveInStock && <div className="rounded-3xl bg-[#1A0F0A] border border-amber-400/20 p-6"><SectionTitle icon={<Clock className="w-5 h-5" />} title="Être prévenu du retour" /><p className="text-xs text-[#FFF7EF]/65 mb-4">Indiquez votre pays pour recevoir une alerte uniquement lorsque cette option est réellement disponible.</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><input value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} type="email" placeholder="votre@email.com" className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none" /><select value={country} onChange={event => setCountry(event.target.value)} className="w-full rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] placeholder:text-[#FFF7EF]/35 focus:border-[#C8753D] focus:outline-none">{(availableCountries.length ? availableCountries : ['FR']).map(item => <option key={item} value={item}>{item}</option>)}</select></div><button disabled={busy || !waitlistEmail} onClick={() => withAction(() => joinProductWaitlist(product.id, { email: waitlistEmail, country, variantId: selectedVariant?.id }, session?.access_token))} className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Mail className="w-3.5 h-3.5" /> M’inscrire à la liste d’attente</button></div>}
-          <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6"><SectionTitle icon={<RefreshCw className="w-5 h-5" />} title="Réassort automatique" /><p className="text-xs text-[#FFF7EF]/65 mb-4">Optionnel. Une demande est enregistrée, puis confirmée avant tout prélèvement récurrent.</p>{user ? <div className="flex flex-wrap gap-2"><select value={frequency} onChange={event => setFrequency(event.target.value as typeof frequency)} className="flex-1 min-w-[170px] rounded-xl border border-[#FFF7EF]/15 bg-black/20 px-3 py-2 text-xs text-[#FFF7EF] focus:border-[#C8753D] focus:outline-none"><option value="30_days">Tous les 30 jours</option><option value="45_days">Tous les 45 jours</option><option value="60_days">Tous les 60 jours</option><option value="90_days">Tous les 90 jours</option></select><button disabled={busy || !effectiveInStock || !sellableInCountry} onClick={() => withAction(() => createProductSubscription(product.id, { frequency, quantity: 1, country, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Demander ce réassort</button></div> : <p className="text-xs text-[#FFF7EF]/60">Connectez-vous pour activer cette option.</p>}</div>
+          {!effectiveInStock && <div className="rounded-3xl bg-kurla-espresso border border-amber-400/20 p-6"><SectionTitle icon={<Clock className="w-5 h-5" />} title="Être prévenu du retour" /><p className="text-xs text-kurla-cream/65 mb-4">Indiquez votre pays pour recevoir une alerte uniquement lorsque cette option est réellement disponible.</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><input value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} type="email" placeholder="votre@email.com" className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none" /><select value={country} onChange={event => setCountry(event.target.value)} className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none">{(availableCountries.length ? availableCountries : ['FR']).map(item => <option key={item} value={item}>{item}</option>)}</select></div><button disabled={busy || !waitlistEmail} onClick={() => withAction(() => joinProductWaitlist(product.id, { email: waitlistEmail, country, variantId: selectedVariant?.id }, session?.access_token))} className="mt-3 inline-flex items-center gap-2 rounded-full bg-kurla-copper px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Mail className="w-3.5 h-3.5" /> M’inscrire à la liste d’attente</button></div>}
+          <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<RefreshCw className="w-5 h-5" />} title="Réassort automatique" /><p className="text-xs text-kurla-cream/65 mb-4">Optionnel. Une demande est enregistrée, puis confirmée avant tout prélèvement récurrent.</p>{user ? <div className="flex flex-wrap gap-2"><select value={frequency} onChange={event => setFrequency(event.target.value as typeof frequency)} className="flex-1 min-w-[170px] rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream focus:border-kurla-copper focus:outline-none"><option value="30_days">Tous les 30 jours</option><option value="45_days">Tous les 45 jours</option><option value="60_days">Tous les 60 jours</option><option value="90_days">Tous les 90 jours</option></select><button disabled={busy || !effectiveInStock || !sellableInCountry} onClick={() => withAction(() => createProductSubscription(product.id, { frequency, quantity: 1, country, variantId: selectedVariant?.id }, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-kurla-copper px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Demander ce réassort</button></div> : <p className="text-xs text-kurla-cream/60">Connectez-vous pour activer cette option.</p>}</div>
         </section>
 
-        <div className="mt-8 rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A]/70 p-4 text-xs text-[#FFF7EF]/65 flex items-start gap-2"><ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" /><span>Les avis sont marqués « achat vérifié » uniquement après contrôle d’une commande réglée. Les recommandations beauté ne constituent pas un avis médical.</span></div>
+        <div className="mt-8 rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/70 p-4 text-xs text-kurla-cream/65 flex items-start gap-2"><ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" /><span>Les avis sont marqués « achat vérifié » uniquement après contrôle d’une commande réglée. Les recommandations beauté ne constituent pas un avis médical.</span></div>
       </div>
     </div>
   );
 };
 
 function InfoCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return <div className="rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-4 text-xs text-[#FFF7EF]/75 leading-relaxed"><h2 className="text-xs uppercase tracking-wider font-bold text-[#D49A63] flex items-center gap-2 mb-2">{icon}{title}</h2>{children}</div>;
+  return <div className="rounded-2xl bg-kurla-espresso border border-kurla-cream/10 p-4 text-xs text-kurla-cream/75 leading-relaxed"><h2 className="text-xs uppercase tracking-wider font-bold text-kurla-amber flex items-center gap-2 mb-2">{icon}{title}</h2>{children}</div>;
 }
 
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
@@ -489,11 +489,11 @@ function TrustGuarantees({ isPreorder }: { isPreorder: boolean }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {items.map((item) => (
-        <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-[#FFF7EF]/10 bg-[#1A0F0A] p-3.5">
+        <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-3.5">
           <span className="mt-0.5 text-emerald-300 shrink-0">{item.icon}</span>
           <div>
-            <p className="text-xs font-semibold text-[#FFF7EF]">{item.title}</p>
-            <p className="text-[11px] text-[#FFF7EF]/55 leading-snug mt-0.5">{item.body}</p>
+            <p className="text-xs font-semibold text-kurla-cream">{item.title}</p>
+            <p className="text-[11px] text-kurla-cream/55 leading-snug mt-0.5">{item.body}</p>
           </div>
         </div>
       ))}

@@ -29,11 +29,11 @@ import { PeauC26FinalPanel } from '../components/PeauC26FinalPanel';
 import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
 import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 
-const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-[#FFF7EF]' }) => (
-  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1">
-    <span className="text-[11px] uppercase tracking-wider text-[#FFF7EF]/50 block">{label}</span>
+const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-kurla-cream' }) => (
+  <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-1">
+    <span className="text-[11px] uppercase tracking-wider text-kurla-cream/50 block">{label}</span>
     <strong className={`text-xl font-bold block ${tone}`}>{value}</strong>
-    {hint && <span className="text-[10px] text-[#FFF7EF]/40 block leading-snug">{hint}</span>}
+    {hint && <span className="text-[10px] text-kurla-cream/40 block leading-snug">{hint}</span>}
   </div>
 );
 
@@ -428,14 +428,14 @@ export const AdminDashboardPage: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF] flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-[#1A0F0A] border border-rose-500/30 shadow-2xl space-y-5 text-center">
+      <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream flex items-center justify-center px-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-kurla-espresso border border-rose-500/30 shadow-2xl space-y-5 text-center">
           <Lock className="w-8 h-8 mx-auto text-rose-400" />
           <h1 className="text-2xl font-serif-title font-bold">Authentification administrateur requise</h1>
-          <p className="text-xs text-[#FFF7EF]/60">
+          <p className="text-xs text-kurla-cream/60">
             Connectez-vous avec Supabase Auth. Les mots de passe locaux et les clés administrateur partagées sont désactivés.
           </p>
-          <a href="/account" className="inline-flex px-5 py-3 rounded-xl bg-[#C8753D] text-white text-xs font-bold">
+          <a href="/account" className="inline-flex px-5 py-3 rounded-xl bg-kurla-copper text-white text-xs font-bold">
             Se connecter
           </a>
         </div>
@@ -444,22 +444,22 @@ export const AdminDashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
         {/* Header Bar */}
-        <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
+        <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-3">
-              <Shield className="w-7 h-7 text-[#C8753D]" /> Administration & Operations Commerciales
+            <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-kurla-cream flex items-center gap-3">
+              <Shield className="w-7 h-7 text-kurla-copper" /> Administration & Operations Commerciales
             </h1>
-            <p className="text-xs text-[#FFF7EF]/60">Supervision en temps réel des commandes, expéditions, retours, support et métriques commerciales.</p>
+            <p className="text-xs text-kurla-cream/60">Supervision en temps réel des commandes, expéditions, retours, support et métriques commerciales.</p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={loadData}
-              className="p-2.5 rounded-full bg-[#050403] hover:bg-[#3A2218] text-[#D49A63] border border-[#C8753D]/30 transition-colors"
+              className="p-2.5 rounded-full bg-kurla-ink hover:bg-kurla-bark text-kurla-amber border border-kurla-copper/30 transition-colors"
               title="Rafraîchir les données"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -469,7 +469,7 @@ export const AdminDashboardPage: React.FC = () => {
             </span>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-full bg-[#050403] hover:bg-[#3A2218] text-[#FFF7EF]/70 hover:text-white border border-[#FFF7EF]/10 transition-colors"
+              className="p-2 rounded-full bg-kurla-ink hover:bg-kurla-bark text-kurla-cream/70 hover:text-white border border-kurla-cream/10 transition-colors"
               title="Déconnexion"
             >
               <LogOut className="w-4 h-4" />
@@ -573,8 +573,8 @@ export const AdminDashboardPage: React.FC = () => {
                       onClick={() => setActiveTab(group.tabs[0].id as any)}
                       className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                         isActiveGroup
-                          ? 'bg-[#C8753D] text-white shadow-lg'
-                          : 'bg-transparent text-[#FFF7EF]/55 hover:text-[#FFF7EF] border border-[#FFF7EF]/10 hover:border-[#FFF7EF]/25'
+                          ? 'bg-kurla-copper text-white shadow-lg'
+                          : 'bg-transparent text-kurla-cream/55 hover:text-kurla-cream border border-kurla-cream/10 hover:border-kurla-cream/25'
                       }`}
                     >
                       <GIcon className="w-4 h-4" />
@@ -584,8 +584,8 @@ export const AdminDashboardPage: React.FC = () => {
                 })}
               </div>
               {/* Sous-onglets de la famille active */}
-              <div className="flex overflow-x-auto gap-2 border-b border-[#FFF7EF]/10 pb-3">
-                <span className="flex items-center gap-1.5 px-3 text-[10px] uppercase tracking-wider text-[#D49A63]/80 font-bold whitespace-nowrap">
+              <div className="flex overflow-x-auto gap-2 border-b border-kurla-cream/10 pb-3">
+                <span className="flex items-center gap-1.5 px-3 text-[10px] uppercase tracking-wider text-kurla-amber/80 font-bold whitespace-nowrap">
                   <GroupIcon className="w-3.5 h-3.5" />
                   {activeGroup.label}
                 </span>
@@ -598,14 +598,14 @@ export const AdminDashboardPage: React.FC = () => {
                       onClick={() => setActiveTab(tab.id as any)}
                       className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
                         active
-                          ? 'bg-[#1A0F0A] text-[#FFF7EF] border border-[#C8753D]/60 shadow'
-                          : 'bg-transparent text-[#FFF7EF]/60 hover:text-white border border-transparent'
+                          ? 'bg-kurla-espresso text-kurla-cream border border-kurla-copper/60 shadow'
+                          : 'bg-transparent text-kurla-cream/60 hover:text-white border border-transparent'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {tab.label}
                       {typeof tab.badge === 'number' && tab.badge > 0 && (
-                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-[#C8753D] text-white' : 'bg-[#FFF7EF]/10 text-[#FFF7EF]/70'}`}>
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-kurla-copper text-white' : 'bg-kurla-cream/10 text-kurla-cream/70'}`}>
                           {tab.badge}
                         </span>
                       )}
@@ -621,62 +621,62 @@ export const AdminDashboardPage: React.FC = () => {
         {activeTab === 'analytics' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
-                <div className="flex items-center justify-between text-[#D49A63]">
+              <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
+                <div className="flex items-center justify-between text-kurla-amber">
                   <span className="text-xs font-semibold">Chiffre d'Affaires Test</span>
                   <DollarSign className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-bold text-[#FFF7EF] block">
+                <span className="text-3xl font-bold text-kurla-cream block">
                   {metrics ? `${metrics.revenueTest.toFixed(2)} €` : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">Commandes réglées, moins les remboursements persistés</span>
+                <span className="text-[11px] text-kurla-cream/50 block">Commandes réglées, moins les remboursements persistés</span>
               </div>
 
-              <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
+              <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
                 <div className="flex items-center justify-between text-emerald-400">
                   <span className="text-xs font-semibold">Panier Moyen (AOV)</span>
                   <TrendingUp className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-bold text-[#FFF7EF] block">
+                <span className="text-3xl font-bold text-kurla-cream block">
                   {metrics ? `${metrics.avgOrderValue.toFixed(2)} €` : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">Valeur moyenne par commande payée</span>
+                <span className="text-[11px] text-kurla-cream/50 block">Valeur moyenne par commande payée</span>
               </div>
 
-              <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
+              <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
                 <div className="flex items-center justify-between text-amber-400">
                   <span className="text-xs font-semibold">Commandes Totales</span>
                   <ShoppingBag className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-bold text-[#FFF7EF] block">
+                <span className="text-3xl font-bold text-kurla-cream block">
                   {metrics ? metrics.totalOrders : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">{metrics ? metrics.todayOrdersCount : '—'} aujourd'hui</span>
+                <span className="text-[11px] text-kurla-cream/50 block">{metrics ? metrics.todayOrdersCount : '—'} aujourd'hui</span>
               </div>
 
-              <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-2 shadow-xl">
+              <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
                 <div className="flex items-center justify-between text-sky-400">
                   <span className="text-xs font-semibold">Tickets Support Ouverts</span>
                   <MessageSquare className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-bold text-[#FFF7EF] block">
+                <span className="text-3xl font-bold text-kurla-cream block">
                   {metrics ? metrics.openTicketsCount : '—'}
                 </span>
-                <span className="text-[11px] text-[#FFF7EF]/50 block">En cours de traitement</span>
+                <span className="text-[11px] text-kurla-cream/50 block">En cours de traitement</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-rose-300">Remboursements persistés</span><strong className="text-2xl block">{metrics ? metrics.refundsCount : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Transactions pending ou finalisées</span></div>
-              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-amber-300">Recherches sans résultat</span><strong className="text-2xl block">{metrics ? metrics.searchesWithoutResultsCount : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Événements persistés, requêtes ≥ 2 caractères</span></div>
-              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-sky-300">Utilisation IA</span><strong className="text-2xl block">{metrics?.aiUsageRate == null ? (metrics ? 'Non calculable' : '—') : `${metrics.aiUsageRate.toFixed(1)} %`}</strong><span className="text-[11px] text-[#FFF7EF]/45">Utilisateurs inscrits ayant utilisé l’IA</span></div>
-              <div className="p-5 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? (metrics.popularProducts?.length || 0) : '—'}</strong><span className="text-[11px] text-[#FFF7EF]/45">Classement issu des lignes de commandes réglées</span></div>
+              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-rose-300">Remboursements persistés</span><strong className="text-2xl block">{metrics ? metrics.refundsCount : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Transactions pending ou finalisées</span></div>
+              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-amber-300">Recherches sans résultat</span><strong className="text-2xl block">{metrics ? metrics.searchesWithoutResultsCount : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Événements persistés, requêtes ≥ 2 caractères</span></div>
+              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-sky-300">Utilisation IA</span><strong className="text-2xl block">{metrics?.aiUsageRate == null ? (metrics ? 'Non calculable' : '—') : `${metrics.aiUsageRate.toFixed(1)} %`}</strong><span className="text-[11px] text-kurla-cream/45">Utilisateurs inscrits ayant utilisé l’IA</span></div>
+              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? (metrics.popularProducts?.length || 0) : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Classement issu des lignes de commandes réglées</span></div>
             </div>
 
             {/* ── Pilotage économique : marge / LTV / CAC / acquisition ── */}
-            <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-5 shadow-xl">
+            <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-5 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF]">Pilotage économique</h2>
+                <h2 className="text-xl font-serif-title font-bold text-kurla-cream">Pilotage économique</h2>
                 <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${metrics?.stripeMode === 'live' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>
                   Stripe : {metrics?.stripeMode === 'live' ? 'LIVE (encaissements réels)' : metrics?.stripeMode === 'test' ? 'MODE TEST (aucun euro réel)' : 'non configuré'}
                 </span>
@@ -684,20 +684,20 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCell label="Marge estimée" value={metrics ? `${metrics.estimatedMargin.toFixed(2)} €` : '—'} hint="CA net − coûts d'achat cibles − port" tone="text-emerald-300" />
                 <KpiCell label="Taux de marge estimé" value={metrics?.estimatedMarginRate == null ? (metrics ? '—' : '—') : `${metrics.estimatedMarginRate.toFixed(0)} %`} hint="Sur coûts cibles du plan" tone="text-emerald-300" />
-                <KpiCell label="Clients uniques" value={metrics ? metrics.uniqueCustomers : '—'} hint="Emails distincts ayant commandé" tone="text-[#FFF7EF]" />
+                <KpiCell label="Clients uniques" value={metrics ? metrics.uniqueCustomers : '—'} hint="Emails distincts ayant commandé" tone="text-kurla-cream" />
                 <KpiCell label="Taux de réachat" value={metrics?.repeatRate == null ? '—' : `${metrics.repeatRate.toFixed(0)} %`} hint="Clients avec ≥ 2 commandes" tone="text-sky-300" />
-                <KpiCell label="LTV proxy" value={metrics?.ltvProxy == null ? '—' : `${metrics.ltvProxy.toFixed(2)} €`} hint="CA net / clients uniques" tone="text-[#D49A63]" />
+                <KpiCell label="LTV proxy" value={metrics?.ltvProxy == null ? '—' : `${metrics.ltvProxy.toFixed(2)} €`} hint="CA net / clients uniques" tone="text-kurla-amber" />
                 <KpiCell
                   label="CAC"
                   value={cacValue == null ? '—' : `${cacValue.toFixed(2)} €`}
                   hint={cacValue == null ? 'Saisir les dépenses d’acquisition ci-dessous' : `${adSpendValue.toFixed(0)} € dépensés / ${metrics.uniqueCustomers} clients`}
-                  tone={cacValue == null ? 'text-[#FFF7EF]/70' : (metrics?.ltvProxy != null && cacValue > metrics.ltvProxy / 3 ? 'text-rose-300' : 'text-emerald-300')}
+                  tone={cacValue == null ? 'text-kurla-cream/70' : (metrics?.ltvProxy != null && cacValue > metrics.ltvProxy / 3 ? 'text-rose-300' : 'text-emerald-300')}
                 />
                 <KpiCell label="Liste d'attente (emails)" value={metrics ? metrics.waitlistCount : '—'} hint="Emails capturés sur la home" tone="text-rose-300" />
-                <KpiCell label="Inscrits (comptes)" value={metrics ? metrics.registeredUsersCount : '—'} hint="Profils créés" tone="text-[#FFF7EF]/70" />
+                <KpiCell label="Inscrits (comptes)" value={metrics ? metrics.registeredUsersCount : '—'} hint="Profils créés" tone="text-kurla-cream/70" />
               </div>
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <label htmlFor="admin-ad-spend" className="text-xs text-[#FFF7EF]/60 font-semibold">Dépenses d’acquisition cumulées (€)</label>
+                <label htmlFor="admin-ad-spend" className="text-xs text-kurla-cream/60 font-semibold">Dépenses d’acquisition cumulées (€)</label>
                 <input
                   id="admin-ad-spend"
                   type="number"
@@ -707,38 +707,38 @@ export const AdminDashboardPage: React.FC = () => {
                   value={adSpend}
                   onChange={e => handleAdSpendChange(e.target.value)}
                   placeholder="ex. 900"
-                  className="w-32 px-3 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-sm text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]/60"
+                  className="w-32 px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-sm text-kurla-cream focus:outline-none focus:border-kurla-copper/60"
                 />
-                <span className="text-[11px] text-[#FFF7EF]/40">Créateurs + publicité + barters. Le CAC ci-dessus = ce montant / clients uniques ayant commandé.</span>
+                <span className="text-[11px] text-kurla-cream/40">Créateurs + publicité + barters. Le CAC ci-dessus = ce montant / clients uniques ayant commandé.</span>
               </div>
-              <p className="text-[11px] text-[#FFF7EF]/40 leading-relaxed">
+              <p className="text-[11px] text-kurla-cream/40 leading-relaxed">
                 Marge et LTV sont des estimations de pilotage basées sur les coûts d'achat cibles du plan de lancement (non comptables) ; la marge est calculée sur le CA net de TVA.
-                Cible <strong className="text-[#FFF7EF]/60">CAC &lt; LTV / 3</strong> et ROAS &gt; 2,5 avant toute publicité payante (le CAC passe en rouge si la cible est dépassée).
+                Cible <strong className="text-kurla-cream/60">CAC &lt; LTV / 3</strong> et ROAS &gt; 2,5 avant toute publicité payante (le CAC passe en rouge si la cible est dépassée).
                 En mode TEST, tous les montants correspondent à des commandes fictives.
               </p>
             </div>
 
             {(metrics?.topZeroResultSearches?.length > 0 || metrics?.popularProducts?.length > 0) && <div className="grid lg:grid-cols-2 gap-6">
-              {metrics?.topZeroResultSearches?.length > 0 && <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Requêtes à examiner</h2><div className="flex flex-wrap gap-2">{metrics.topZeroResultSearches.map((item: any) => <span key={item.query} className="px-3 py-2 rounded-xl bg-[#050403] text-xs text-[#D49A63]">{item.query} · {item.count}</span>)}</div></div>}
-              {metrics?.popularProducts?.length > 0 && <div className="p-6 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{metrics.popularProducts.map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
+              {metrics?.topZeroResultSearches?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Requêtes à examiner</h2><div className="flex flex-wrap gap-2">{metrics.topZeroResultSearches.map((item: any) => <span key={item.query} className="px-3 py-2 rounded-xl bg-kurla-ink text-xs text-kurla-amber">{item.query} · {item.count}</span>)}</div></div>}
+              {metrics?.popularProducts?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{metrics.popularProducts.map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
             </div>}
 
             {/* Inventory Stock Alerts */}
-            <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-              <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
+            <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+              <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" /> Alertes Stock & Inventaire
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-[#050403] border border-amber-500/20 space-y-3">
+                <div className="p-5 rounded-2xl bg-kurla-ink border border-amber-500/20 space-y-3">
                   <h3 className="text-xs font-bold uppercase text-amber-400 tracking-wider">Stock Faible (&lt; 5 unités)</h3>
                   {metrics?.lowStockProducts?.length === 0 ? (
-                    <p className="text-xs text-[#FFF7EF]/40 italic">Aucune alerte de stock faible.</p>
+                    <p className="text-xs text-kurla-cream/40 italic">Aucune alerte de stock faible.</p>
                   ) : (
                     <div className="space-y-2">
                       {metrics?.lowStockProducts?.map((p: any) => (
-                        <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-[#FFF7EF]/5">
-                          <span className="font-medium text-[#FFF7EF]">{p.name}</span>
+                        <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-kurla-cream/5">
+                          <span className="font-medium text-kurla-cream">{p.name}</span>
                           <span className="font-mono text-amber-400 font-bold">{p.stockQuantity} restants</span>
                         </div>
                       ))}
@@ -746,15 +746,15 @@ export const AdminDashboardPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="p-5 rounded-2xl bg-[#050403] border border-rose-500/20 space-y-3">
+                <div className="p-5 rounded-2xl bg-kurla-ink border border-rose-500/20 space-y-3">
                   <h3 className="text-xs font-bold uppercase text-rose-400 tracking-wider">Rupture de Stock (0 unité)</h3>
                   {metrics?.outOfStockProducts?.length === 0 ? (
-                    <p className="text-xs text-[#FFF7EF]/40 italic">Aucun produit en rupture totale.</p>
+                    <p className="text-xs text-kurla-cream/40 italic">Aucun produit en rupture totale.</p>
                   ) : (
                     <div className="space-y-2">
                       {metrics?.outOfStockProducts?.map((p: any) => (
-                        <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-[#FFF7EF]/5">
-                          <span className="font-medium text-[#FFF7EF]">{p.name}</span>
+                        <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-kurla-cream/5">
+                          <span className="font-medium text-kurla-cream">{p.name}</span>
                           <span className="font-mono text-rose-400 font-bold">Rupture</span>
                         </div>
                       ))}
@@ -768,18 +768,18 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 2: ORDERS MANAGEMENT WITH STATUS HISTORY & TRANSITION CONTROLS */}
         {activeTab === 'orders' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-[#C8753D]" /> Commandes et Suivi Opérationnel
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-kurla-copper" /> Commandes et Suivi Opérationnel
             </h2>
 
             {serverOrders.length === 0 ? (
-              <p className="text-xs text-[#FFF7EF]/50 italic">Aucune commande enregistrée dans la base.</p>
+              <p className="text-xs text-kurla-cream/50 italic">Aucune commande enregistrée dans la base.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-[#FFF7EF]/10 text-[#D49A63] uppercase tracking-wider">
+                    <tr className="border-b border-kurla-cream/10 text-kurla-amber uppercase tracking-wider">
                       <th className="py-3 px-4">N° Commande</th>
                       <th className="py-3 px-4">Client</th>
                       <th className="py-3 px-4">Total</th>
@@ -788,12 +788,12 @@ export const AdminDashboardPage: React.FC = () => {
                       <th className="py-3 px-4">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#FFF7EF]/5">
+                  <tbody className="divide-y divide-kurla-cream/5">
                     {serverOrders.map((ord: any) => (
-                      <tr key={ord.id} className="hover:bg-[#050403]/40 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-[#FFF7EF]">{ord.id}</td>
-                        <td className="py-3 px-4 text-[#FFF7EF]/80">{ord.customerEmail}</td>
-                        <td className="py-3 px-4 font-bold text-[#FFF7EF]">{Number(ord.total).toFixed(2)} €</td>
+                      <tr key={ord.id} className="hover:bg-kurla-ink/40 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-kurla-cream">{ord.id}</td>
+                        <td className="py-3 px-4 text-kurla-cream/80">{ord.customerEmail}</td>
+                        <td className="py-3 px-4 font-bold text-kurla-cream">{Number(ord.total).toFixed(2)} €</td>
                         <td className="py-3 px-4">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                             ord.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
@@ -809,7 +809,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <select
                             value={ord.status}
                             onChange={(e) => handleOrderStatusChange(ord.id, e.target.value)}
-                            className="px-3 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                            className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/20 text-xs text-kurla-cream focus:outline-none focus:border-kurla-copper"
                           >
                             <option value="pending_payment">pending_payment</option>
                             <option value="payment_pending_webhook">payment_pending_webhook</option>
@@ -831,7 +831,7 @@ export const AdminDashboardPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => { setSelectedOrder(ord); fetchHistory(ord.id); }}
-                            className="px-3 py-1 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/10 text-[11px] font-medium text-[#D49A63]"
+                            className="px-3 py-1 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/10 text-[11px] font-medium text-kurla-amber"
                           >
                             Historique
                           </button>
@@ -851,34 +851,34 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* Panneau Expédition : transporteur + numéro de suivi */}
             {shippingOrder && (
-              <div className="p-6 rounded-3xl bg-[#050403] border border-indigo-500/40 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-3">
+              <div className="p-6 rounded-3xl bg-kurla-ink border border-indigo-500/40 space-y-4">
+                <div className="flex items-center justify-between border-b border-kurla-cream/10 pb-3">
                   <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
                     📦 Expédier la commande <span className="font-mono">{shippingOrder.id}</span>
                   </h3>
-                  <button onClick={() => setShippingOrder(null)} className="text-xs text-[#FFF7EF]/50 hover:text-white">Fermer</button>
+                  <button onClick={() => setShippingOrder(null)} className="text-xs text-kurla-cream/50 hover:text-white">Fermer</button>
                 </div>
-                <p className="text-[11px] text-[#FFF7EF]/50">
+                <p className="text-[11px] text-kurla-cream/50">
                   Client : {shippingOrder.customerEmail} • Total {Number(shippingOrder.total).toFixed(2)} €.
                   Le statut de la commande est mis à jour automatiquement (préparation → emballé → expédié → livré) et la cliente voit le suivi sur sa page de suivi.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                  <label className="text-xs text-kurla-cream/70 space-y-1 block">
                     Transporteur
                     <select
                       value={shippingForm.carrier}
                       onChange={(e) => setShippingForm(f => ({ ...f, carrier: e.target.value }))}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream focus:outline-none focus:border-indigo-400"
                     >
                       {Object.entries(CARRIER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                   </label>
-                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                  <label className="text-xs text-kurla-cream/70 space-y-1 block">
                     Statut d'acheminement
                     <select
                       value={shippingForm.status}
                       onChange={(e) => setShippingForm(f => ({ ...f, status: e.target.value }))}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream focus:outline-none focus:border-indigo-400"
                     >
                       <option value="preparing">Préparation (commande → processing)</option>
                       <option value="label_created">Étiquette créée (→ packed)</option>
@@ -888,38 +888,38 @@ export const AdminDashboardPage: React.FC = () => {
                       <option value="delivered">Livrée (→ delivered)</option>
                     </select>
                   </label>
-                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                  <label className="text-xs text-kurla-cream/70 space-y-1 block">
                     Numéro de suivi
                     <input
                       type="text"
                       value={shippingForm.trackingNumber}
                       onChange={(e) => setShippingForm(f => ({ ...f, trackingNumber: e.target.value }))}
                       placeholder="Ex : 8L0123456789FR"
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] font-mono focus:outline-none focus:border-indigo-400"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream font-mono focus:outline-none focus:border-indigo-400"
                     />
                   </label>
-                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block">
+                  <label className="text-xs text-kurla-cream/70 space-y-1 block">
                     Date de livraison estimée
                     <input
                       type="date"
                       value={shippingForm.estimatedDelivery}
                       onChange={(e) => setShippingForm(f => ({ ...f, estimatedDelivery: e.target.value }))}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] focus:outline-none focus:border-indigo-400"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream focus:outline-none focus:border-indigo-400"
                     />
                   </label>
-                  <label className="text-xs text-[#FFF7EF]/70 space-y-1 block sm:col-span-2">
+                  <label className="text-xs text-kurla-cream/70 space-y-1 block sm:col-span-2">
                     Lien de suivi (laisser vide pour le générer automatiquement selon le transporteur)
                     <input
                       type="url"
                       value={shippingForm.trackingUrl}
                       onChange={(e) => setShippingForm(f => ({ ...f, trackingUrl: e.target.value }))}
                       placeholder="https://…"
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF] font-mono focus:outline-none focus:border-indigo-400"
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream font-mono focus:outline-none focus:border-indigo-400"
                     />
                   </label>
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
-                  <button onClick={() => setShippingOrder(null)} className="px-4 py-2 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF]/70">Annuler</button>
+                  <button onClick={() => setShippingOrder(null)} className="px-4 py-2 rounded-full bg-kurla-espresso border border-kurla-cream/15 text-xs text-kurla-cream/70">Annuler</button>
                   <button
                     onClick={handleShipmentSave}
                     disabled={shippingSaving}
@@ -933,25 +933,25 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* Selected Order Audit History Drawer */}
             {selectedOrder && (
-              <div className="p-6 rounded-3xl bg-[#050403] border border-[#C8753D]/40 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-3">
-                  <h3 className="text-sm font-bold text-[#D49A63] flex items-center gap-2">
+              <div className="p-6 rounded-3xl bg-kurla-ink border border-kurla-copper/40 space-y-4">
+                <div className="flex items-center justify-between border-b border-kurla-cream/10 pb-3">
+                  <h3 className="text-sm font-bold text-kurla-amber flex items-center gap-2">
                     <Clock className="w-4 h-4" /> Traçabilité Audit Trail - Commande #{selectedOrder.id}
                   </h3>
-                  <button onClick={() => setSelectedOrder(null)} className="text-xs text-[#FFF7EF]/50 hover:text-white">Fermer</button>
+                  <button onClick={() => setSelectedOrder(null)} className="text-xs text-kurla-cream/50 hover:text-white">Fermer</button>
                 </div>
 
                 <div className="space-y-3">
                   {orderHistory.length === 0 ? (
-                    <p className="text-xs text-[#FFF7EF]/40 italic">Aucun changement de statut archivé.</p>
+                    <p className="text-xs text-kurla-cream/40 italic">Aucun changement de statut archivé.</p>
                   ) : (
                     orderHistory.map((h, i) => (
-                      <div key={i} className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/5 text-xs flex justify-between items-center">
+                      <div key={i} className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/5 text-xs flex justify-between items-center">
                         <div>
-                          <span className="font-semibold text-[#FFF7EF]">{h.oldStatus || 'Création'} &rarr; <span className="text-[#C8753D]">{h.newStatus}</span></span>
-                          <p className="text-[10px] text-[#FFF7EF]/50 mt-0.5">Par {h.changedBy || 'système'} ({h.source}) • Raison: {h.reason || 'N/A'}</p>
+                          <span className="font-semibold text-kurla-cream">{h.oldStatus || 'Création'} &rarr; <span className="text-kurla-copper">{h.newStatus}</span></span>
+                          <p className="text-[10px] text-kurla-cream/50 mt-0.5">Par {h.changedBy || 'système'} ({h.source}) • Raison: {h.reason || 'N/A'}</p>
                         </div>
-                        <span className="font-mono text-[10px] text-[#FFF7EF]/40">{new Date(h.createdAt).toLocaleString('fr-FR')}</span>
+                        <span className="font-mono text-[10px] text-kurla-cream/40">{new Date(h.createdAt).toLocaleString('fr-FR')}</span>
                       </div>
                     ))
                   )}
@@ -965,17 +965,17 @@ export const AdminDashboardPage: React.FC = () => {
         {activeTab === 'demand' && (
           <div className="space-y-10">
             <PeauDemandStockGapPanel headers={adminHeaders} />
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-                  <Factory className="w-5 h-5 text-[#C8753D]" /> Demande précommandes — sourcing du premier lot
+                <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+                  <Factory className="w-5 h-5 text-kurla-copper" /> Demande précommandes — sourcing du premier lot
                 </h2>
-                <p className="text-xs text-[#FFF7EF]/55 mt-1 max-w-2xl">
+                <p className="text-xs text-kurla-cream/55 mt-1 max-w-2xl">
                   Quantités fermement réservées (commandes réglées) sur les précommandes, avec le déroulage des kits en composants pour caler les quantités à commander aux fournisseurs.
                 </p>
               </div>
-              <button onClick={fetchDemand} className="px-4 py-2 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/15 text-[11px] font-semibold text-[#D49A63] flex items-center gap-1.5">
+              <button onClick={fetchDemand} className="px-4 py-2 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/15 text-[11px] font-semibold text-kurla-amber flex items-center gap-1.5">
                 <RefreshCw className="w-3.5 h-3.5" /> Actualiser
               </button>
             </div>
@@ -988,36 +988,36 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {!demand ? (
-              <p className="text-xs text-[#FFF7EF]/50 italic">Chargement de la demande…</p>
+              <p className="text-xs text-kurla-cream/50 italic">Chargement de la demande…</p>
             ) : (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-emerald-500/25">
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-emerald-500/25">
                     <p className="text-[11px] text-emerald-300 font-bold uppercase">Commandes fermes</p>
-                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.firmOrders}</p>
-                    <p className="text-[10px] text-[#FFF7EF]/45">{demand.totals.preorderFirmOrders} contenant une précommande</p>
+                    <p className="text-2xl font-bold text-kurla-cream mt-1">{demand.totals.firmOrders}</p>
+                    <p className="text-[10px] text-kurla-cream/45">{demand.totals.preorderFirmOrders} contenant une précommande</p>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-amber-500/25">
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-amber-500/25">
                     <p className="text-[11px] text-amber-300 font-bold uppercase">En attente paiement</p>
-                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.pendingOrders}</p>
-                    <p className="text-[10px] text-[#FFF7EF]/45">intentions non confirmées</p>
+                    <p className="text-2xl font-bold text-kurla-cream mt-1">{demand.totals.pendingOrders}</p>
+                    <p className="text-[10px] text-kurla-cream/45">intentions non confirmées</p>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
-                    <p className="text-[11px] text-[#D49A63] font-bold uppercase">CA commandes fermes</p>
-                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{Number(demand.totals.firmRevenue).toFixed(2)} €</p>
-                    <p className="text-[10px] text-[#FFF7EF]/45">toutes commandes réglées (TTC)</p>
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
+                    <p className="text-[11px] text-kurla-amber font-bold uppercase">CA commandes fermes</p>
+                    <p className="text-2xl font-bold text-kurla-cream mt-1">{Number(demand.totals.firmRevenue).toFixed(2)} €</p>
+                    <p className="text-[10px] text-kurla-cream/45">toutes commandes réglées (TTC)</p>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#050403] border border-indigo-500/25">
+                  <div className="p-4 rounded-2xl bg-kurla-ink border border-indigo-500/25">
                     <p className="text-[11px] text-indigo-300 font-bold uppercase">Unités à sourcer</p>
-                    <p className="text-2xl font-bold text-[#FFF7EF] mt-1">{demand.totals.totalUnitsToSource}</p>
-                    <p className="text-[10px] text-[#FFF7EF]/45">SKU + composants kits (hors kits)</p>
+                    <p className="text-2xl font-bold text-kurla-cream mt-1">{demand.totals.totalUnitsToSource}</p>
+                    <p className="text-[10px] text-kurla-cream/45">SKU + composants kits (hors kits)</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {([['components', 'Composants à sourcer'], ['kits', 'Kits'], ['all', 'Tout']] as const).map(([id, label]) => (
                     <button key={id} onClick={() => setDemandFilter(id)}
-                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold border ${demandFilter === id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/60'}`}>
+                      className={`px-4 py-1.5 rounded-full text-[11px] font-bold border ${demandFilter === id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
                       {label}
                     </button>
                   ))}
@@ -1026,7 +1026,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-[#FFF7EF]/10 text-[#D49A63] uppercase tracking-wider">
+                      <tr className="border-b border-kurla-cream/10 text-kurla-amber uppercase tracking-wider">
                         <th className="py-3 px-3">Produit</th>
                         <th className="py-3 px-3 text-center">Type</th>
                         <th className="py-3 px-3 text-center">Qté ferme</th>
@@ -1036,13 +1036,13 @@ export const AdminDashboardPage: React.FC = () => {
                         <th className="py-3 px-3 text-right">CA ferme</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#FFF7EF]/5">
+                    <tbody className="divide-y divide-kurla-cream/5">
                       {demand.products
                         .filter((p: any) => demandFilter === 'all' ? true : demandFilter === 'kits' ? p.isKit : !p.isKit)
                         .map((p: any) => (
-                        <tr key={p.productId} className="hover:bg-[#050403]/40">
+                        <tr key={p.productId} className="hover:bg-kurla-ink/40">
                           <td className="py-2.5 px-3">
-                            <span className="font-semibold text-[#FFF7EF]">{p.name}</span>
+                            <span className="font-semibold text-kurla-cream">{p.name}</span>
                             {p.componentOfKits?.length > 0 && (
                               <p className="text-[10px] text-indigo-300/70 mt-0.5">composant de {p.componentOfKits.length} kit(s)</p>
                             )}
@@ -1056,18 +1056,18 @@ export const AdminDashboardPage: React.FC = () => {
                           <td className="py-2.5 px-3 text-center text-amber-300">{p.qtyPending}</td>
                           <td className="py-2.5 px-3 text-center text-indigo-300">{p.qtyFromKits || '—'}</td>
                           <td className="py-2.5 px-3 text-center">
-                            <span className="inline-block min-w-[2ch] px-2.5 py-1 rounded-full bg-[#C8753D]/20 text-[#F3C9A4] border border-[#C8753D]/40 font-bold">{p.qtyToSource}</span>
+                            <span className="inline-block min-w-[2ch] px-2.5 py-1 rounded-full bg-kurla-copper/20 text-[#F3C9A4] border border-kurla-copper/40 font-bold">{p.qtyToSource}</span>
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono text-[#D49A63]">{Number(p.revenueFirm).toFixed(2)} €</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-kurla-amber">{Number(p.revenueFirm).toFixed(2)} €</td>
                         </tr>
                       ))}
                       {demand.products.filter((p: any) => demandFilter === 'all' ? true : demandFilter === 'kits' ? p.isKit : !p.isKit).length === 0 && (
-                        <tr><td colSpan={7} className="py-8 text-center text-[#FFF7EF]/45 italic">Aucune demande pour ce filtre pour le moment.</td></tr>
+                        <tr><td colSpan={7} className="py-8 text-center text-kurla-cream/45 italic">Aucune demande pour ce filtre pour le moment.</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-                <p className="text-[11px] text-[#FFF7EF]/40">
+                <p className="text-[11px] text-kurla-cream/40">
                   « À sourcer » = quantités fermes + en attente + unités induites par les kits (un kit vendu = 1 unité de chacun de ses composants). Appliquez votre marge de sécurité (MOQ / casse) avant de passer commande fournisseur.
                 </p>
               </>
@@ -1078,21 +1078,21 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 3: RETURNS & REFUNDS */}
         {activeTab === 'returns' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-[#C8753D]" /> Demandes de Retour & Remboursements Stripe
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-kurla-copper" /> Demandes de Retour & Remboursements Stripe
             </h2>
 
             {returnsList.length === 0 ? (
-              <p className="text-xs text-[#FFF7EF]/50 italic">Aucune demande de retour enregistrée.</p>
+              <p className="text-xs text-kurla-cream/50 italic">Aucune demande de retour enregistrée.</p>
             ) : (
               <div className="space-y-4">
                 {returnsList.map(ret => (
-                  <div key={ret.id} className="p-5 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#FFF7EF]/5 pb-3">
+                  <div key={ret.id} className="p-5 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-kurla-cream/5 pb-3">
                       <div>
-                        <span className="font-mono font-bold text-sm text-[#FFF7EF]">Retour #{ret.id}</span>
-                        <p className="text-xs text-[#D49A63]">Commande #{ret.orderId} • Motif: {ret.reason}</p>
+                        <span className="font-mono font-bold text-sm text-kurla-cream">Retour #{ret.id}</span>
+                        <p className="text-xs text-kurla-amber">Commande #{ret.orderId} • Motif: {ret.reason}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         ret.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
@@ -1103,9 +1103,9 @@ export const AdminDashboardPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {ret.comment && <p className="text-xs text-[#FFF7EF]/70 italic">"{ret.comment}"</p>}
-                    <p className="text-xs text-[#FFF7EF]/60">Lignes : {Array.isArray(ret.items) && ret.items.length > 0 ? ret.items.map((item: any) => `${item.productId || item.product_id || 'produit non renseigné'} × ${item.quantity}`).join(' · ') : 'lignes non renseignées — réconciliation requise'}</p>
-                    {returnHistories[ret.id]?.length > 0 && <div className="p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/5 text-[10px] text-[#FFF7EF]/55 space-y-1">{returnHistories[ret.id].map((event: any) => <p key={event.id}><span className="font-mono">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.actorRole} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
+                    {ret.comment && <p className="text-xs text-kurla-cream/70 italic">"{ret.comment}"</p>}
+                    <p className="text-xs text-kurla-cream/60">Lignes : {Array.isArray(ret.items) && ret.items.length > 0 ? ret.items.map((item: any) => `${item.productId || item.product_id || 'produit non renseigné'} × ${item.quantity}`).join(' · ') : 'lignes non renseignées — réconciliation requise'}</p>
+                    {returnHistories[ret.id]?.length > 0 && <div className="p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/5 text-[10px] text-kurla-cream/55 space-y-1">{returnHistories[ret.id].map((event: any) => <p key={event.id}><span className="font-mono">{new Date(event.createdAt).toLocaleString('fr-FR')}</span> · {event.actorRole} · {event.oldStatus || 'création'} → {event.newStatus}{event.comment ? ` · ${event.comment}` : ''}</p>)}</div>}
 
                     <div className="flex items-center gap-3 pt-2">
                       {ret.status === 'requested' && (
@@ -1135,7 +1135,7 @@ export const AdminDashboardPage: React.FC = () => {
                       {ret.status === 'received' && (
                         <button
                           onClick={() => handleTriggerRefund(ret.orderId, ret.id)}
-                          className="px-4 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold shadow"
+                          className="px-4 py-1.5 rounded-full bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold shadow"
                         >
                           Émettre Remboursement Stripe
                         </button>
@@ -1150,16 +1150,16 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 4: SUPPORT CLIENT TICKETS */}
         {activeTab === 'support' && (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
-            <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-[#C8753D]" /> Helpdesk Support Client
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
+            <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-kurla-copper" /> Helpdesk Support Client
             </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Tickets List */}
               <div className="space-y-3 lg:col-span-1">
                 {supportTickets.length === 0 ? (
-                  <p className="text-xs text-[#FFF7EF]/40 italic">Aucun ticket ouvert.</p>
+                  <p className="text-xs text-kurla-cream/40 italic">Aucun ticket ouvert.</p>
                 ) : (
                   supportTickets.map(tkt => (
                     <div
@@ -1167,53 +1167,53 @@ export const AdminDashboardPage: React.FC = () => {
                       onClick={() => loadTicketMessages(tkt)}
                       className={`p-4 rounded-2xl cursor-pointer transition-all border ${
                         selectedTicket?.id === tkt.id
-                          ? 'bg-[#3A2218]/40 border-[#C8753D]'
-                          : 'bg-[#050403] border-[#FFF7EF]/5 hover:border-[#FFF7EF]/20'
+                          ? 'bg-kurla-bark/40 border-kurla-copper'
+                          : 'bg-kurla-ink border-kurla-cream/5 hover:border-kurla-cream/20'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className="text-xs font-bold text-[#FFF7EF] truncate">{tkt.subject}</span>
+                        <span className="text-xs font-bold text-kurla-cream truncate">{tkt.subject}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           tkt.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                         }`}>
                           {tkt.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#D49A63]">Catégorie: {tkt.subjectCategory} · Priorité: {tkt.priority || 'normal'}</p>
-                      <p className="text-[10px] text-[#FFF7EF]/45">{tkt.assignedAgentId ? `Affecté à ${tkt.assignedAgentId}` : 'Non affecté'}</p>
-                      <span className="text-[10px] text-[#FFF7EF]/40 block mt-1 font-mono">#{tkt.id}</span>
+                      <p className="text-[11px] text-kurla-amber">Catégorie: {tkt.subjectCategory} · Priorité: {tkt.priority || 'normal'}</p>
+                      <p className="text-[10px] text-kurla-cream/45">{tkt.assignedAgentId ? `Affecté à ${tkt.assignedAgentId}` : 'Non affecté'}</p>
+                      <span className="text-[10px] text-kurla-cream/40 block mt-1 font-mono">#{tkt.id}</span>
                     </div>
                   ))
                 )}
               </div>
 
               {/* Message Thread */}
-              <div className="lg:col-span-2 p-6 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-4">
+              <div className="lg:col-span-2 p-6 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-4">
                 {!selectedTicket ? (
-                  <div className="h-64 flex items-center justify-center text-xs text-[#FFF7EF]/40 italic">
+                  <div className="h-64 flex items-center justify-center text-xs text-kurla-cream/40 italic">
                     Sélectionnez un ticket pour consulter la conversation et répondre.
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between border-b border-[#FFF7EF]/10 pb-3">
+                    <div className="flex items-center justify-between border-b border-kurla-cream/10 pb-3">
                       <div>
-                        <h3 className="text-sm font-bold text-[#FFF7EF]">{selectedTicket.subject}</h3>
-                        <p className="text-xs text-[#D49A63]">Client ID: {selectedTicket.userId} • Catégorie: {selectedTicket.subjectCategory}</p>
-                        <p className="text-[11px] text-[#FFF7EF]/45 mt-1">Historique conservé : {ticketEvents.length} événement(s) · {selectedTicket.assignedAgentId ? `agent ${selectedTicket.assignedAgentId}` : 'non affecté'}</p>
+                        <h3 className="text-sm font-bold text-kurla-cream">{selectedTicket.subject}</h3>
+                        <p className="text-xs text-kurla-amber">Client ID: {selectedTicket.userId} • Catégorie: {selectedTicket.subjectCategory}</p>
+                        <p className="text-[11px] text-kurla-cream/45 mt-1">Historique conservé : {ticketEvents.length} événement(s) · {selectedTicket.assignedAgentId ? `agent ${selectedTicket.assignedAgentId}` : 'non affecté'}</p>
                       </div>
 
                       <div className="flex flex-wrap gap-2 justify-end">
-                        <select value={selectedTicket.priority || 'normal'} onChange={(e) => handleTicketPriorityChange(selectedTicket.id, e.target.value)} className="px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]">
+                        <select value={selectedTicket.priority || 'normal'} onChange={(e) => handleTicketPriorityChange(selectedTicket.id, e.target.value)} className="px-3 py-1 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream">
                           <option value="low">low</option><option value="normal">normal</option><option value="high">high</option><option value="urgent">urgent</option>
                         </select>
-                        <select value={selectedTicket.assignedAgentId || ''} onChange={(e) => handleTicketAssignmentChange(selectedTicket.id, e.target.value)} className="max-w-44 px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]">
+                        <select value={selectedTicket.assignedAgentId || ''} onChange={(e) => handleTicketAssignmentChange(selectedTicket.id, e.target.value)} className="max-w-44 px-3 py-1 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream">
                           <option value="">Non affecté</option>
                           {(adminDashboard?.users || []).filter((candidate: any) => ['support', 'admin', 'superadmin'].includes(candidate.role)).map((candidate: any) => <option key={candidate.id} value={candidate.id}>{candidate.email || candidate.id}</option>)}
                         </select>
                         <select
                         value={selectedTicket.status}
                         onChange={(e) => handleTicketStatusChange(selectedTicket.id, e.target.value)}
-                        className="px-3 py-1 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-xs text-[#FFF7EF]"
+                        className="px-3 py-1 rounded-xl bg-kurla-espresso border border-kurla-cream/20 text-xs text-kurla-cream"
                       >
                         <option value="open">open</option>
                         <option value="in_progress">in_progress</option>
@@ -1229,8 +1229,8 @@ export const AdminDashboardPage: React.FC = () => {
                           key={m.id}
                           className={`p-3 rounded-2xl max-w-[80%] text-xs space-y-1 ${
                             m.senderRole === 'admin'
-                              ? 'ml-auto bg-[#C8753D]/20 border border-[#C8753D]/40 text-[#FFF7EF]'
-                              : 'bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF]/90'
+                              ? 'ml-auto bg-kurla-copper/20 border border-kurla-copper/40 text-kurla-cream'
+                              : 'bg-kurla-espresso border border-kurla-cream/10 text-kurla-cream/90'
                           }`}
                         >
                           <div className="flex justify-between items-center text-[10px] opacity-70">
@@ -1240,20 +1240,20 @@ export const AdminDashboardPage: React.FC = () => {
                           <p>{m.message}</p>
                         </div>
                       ))}
-                      {ticketAttachments.length > 0 && <div className="border-t border-[#FFF7EF]/10 pt-3 space-y-1"><p className="text-[10px] text-[#FFF7EF]/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-[#C8753D] hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-[#FFF7EF]/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
+                      {ticketAttachments.length > 0 && <div className="border-t border-kurla-cream/10 pt-3 space-y-1"><p className="text-[10px] text-kurla-cream/45 uppercase font-bold">Pièces jointes</p>{ticketAttachments.map(file => file.signedUrl ? <a key={file.id} href={file.signedUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-kurla-copper hover:underline">{file.fileName} · {(file.sizeBytes / 1024).toFixed(0)} Ko</a> : <p key={file.id} className="text-xs text-kurla-cream/45">{file.fileName} · URL temporaire indisponible</p>)}</div>}
                     </div>
 
-                    <form onSubmit={handleSendAdminReply} className="flex gap-2 pt-3 border-t border-[#FFF7EF]/10">
+                    <form onSubmit={handleSendAdminReply} className="flex gap-2 pt-3 border-t border-kurla-cream/10">
                       <input
                         type="text"
                         value={replyText}
                         onChange={e => setReplyText(e.target.value)}
                         placeholder="Rédigez votre réponse officielle KURLA..."
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 text-xs text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-kurla-espresso border border-kurla-cream/15 text-xs text-kurla-cream focus:outline-none focus:border-kurla-copper"
                       />
                       <button
                         type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#B3632F] text-white text-xs font-bold flex items-center gap-1.5 shadow"
+                        className="px-5 py-2.5 rounded-xl bg-kurla-copper hover:bg-[#B3632F] text-white text-xs font-bold flex items-center gap-1.5 shadow"
                       >
                         <Send className="w-3.5 h-3.5" /> Envoyer
                       </button>
@@ -1335,7 +1335,7 @@ export const AdminDashboardPage: React.FC = () => {
                 setTimeout(() => setActionSuccess(''), 5000);
               }}
             />
-            <div className="border-t border-[#FFF7EF]/10 pt-8">
+            <div className="border-t border-kurla-cream/10 pt-8">
               <SupplierAdminPanel
                 headers={adminHeaders}
                 onSuccess={(message) => {
@@ -1380,24 +1380,24 @@ export const AdminDashboardPage: React.FC = () => {
             return true;
           });
           return (
-          <div className="p-8 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 space-y-6 shadow-xl">
+          <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
             <div>
-              <h2 className="text-xl font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#C8753D]" /> Candidatures KURLA Pro — C15 peau & cheveux
+              <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+                <Users className="w-5 h-5 text-kurla-copper" /> Candidatures KURLA Pro — C15 peau & cheveux
               </h2>
-              <p className="text-xs text-[#FFF7EF]/55 mt-2">Les candidatures sont chargées depuis le stockage serveur. Une validation admin ne crée pas automatiquement un compte professionnel — le Trust Score (identité + qualification + avis sur prestation réelle) reste la porte d’entrée vers l’annuaire public.</p>
-              <div className="mt-3 p-3 rounded-2xl bg-[#050403] border border-emerald-500/20 flex flex-wrap gap-2 text-[11px] leading-relaxed">
+              <p className="text-xs text-kurla-cream/55 mt-2">Les candidatures sont chargées depuis le stockage serveur. Une validation admin ne crée pas automatiquement un compte professionnel — le Trust Score (identité + qualification + avis sur prestation réelle) reste la porte d’entrée vers l’annuaire public.</p>
+              <div className="mt-3 p-3 rounded-2xl bg-kurla-ink border border-emerald-500/20 flex flex-wrap gap-2 text-[11px] leading-relaxed">
                 <span className="px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">Peau riche en mélanine</span>
-                <span className="text-[#FFF7EF]/60">Vérifier pour <strong className="text-[#FFF7EF]">Experte Skincare / Dermato / Esthéticienne peau</strong> : formation HPI (hyperpigmentation), conseils SPF <em>sans trace blanche</em> testés phototypes V–VI, barrière hydratation. Demander portfolio / diplôme / cas avant/après si doute. Vocabulaire : <strong className="text-[#FFF7EF]">uniformiser ≠ éclaircir</strong>.</span>
+                <span className="text-kurla-cream/60">Vérifier pour <strong className="text-kurla-cream">Experte Skincare / Dermato / Esthéticienne peau</strong> : formation HPI (hyperpigmentation), conseils SPF <em>sans trace blanche</em> testés phototypes V–VI, barrière hydratation. Demander portfolio / diplôme / cas avant/après si doute. Vocabulaire : <strong className="text-kurla-cream">uniformiser ≠ éclaircir</strong>.</span>
               </div>
             </div>
 
             {/* Stats rapides */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 text-center"><p className="text-[10px] uppercase tracking-wider text-[#FFF7EF]/50 font-bold">Total</p><p className="text-xl font-bold text-[#FFF7EF]">{professionalApplications.length}</p></div>
-              <div className="p-3 rounded-2xl bg-[#050403] border border-emerald-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Peau</p><p className="text-xl font-bold text-emerald-300">{peauCount}</p><p className="text-[10px] text-[#FFF7EF]/40">{peauCount ? 'skincare / peau' : '0 peau'}</p></div>
-              <div className="p-3 rounded-2xl bg-[#050403] border border-amber-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Cheveux</p><p className="text-xl font-bold text-amber-300">{cheveuxCount}</p></div>
-              <div className="p-3 rounded-2xl bg-[#050403] border border-sky-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-sky-300 font-bold">En attente</p><p className="text-xl font-bold text-sky-300">{pendingCount}</p><p className="text-[10px] text-[#FFF7EF]/40">à traiter</p></div>
+              <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 text-center"><p className="text-[10px] uppercase tracking-wider text-kurla-cream/50 font-bold">Total</p><p className="text-xl font-bold text-kurla-cream">{professionalApplications.length}</p></div>
+              <div className="p-3 rounded-2xl bg-kurla-ink border border-emerald-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Peau</p><p className="text-xl font-bold text-emerald-300">{peauCount}</p><p className="text-[10px] text-kurla-cream/40">{peauCount ? 'skincare / peau' : '0 peau'}</p></div>
+              <div className="p-3 rounded-2xl bg-kurla-ink border border-amber-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Cheveux</p><p className="text-xl font-bold text-amber-300">{cheveuxCount}</p></div>
+              <div className="p-3 rounded-2xl bg-kurla-ink border border-sky-500/25 text-center"><p className="text-[10px] uppercase tracking-wider text-sky-300 font-bold">En attente</p><p className="text-xl font-bold text-sky-300">{pendingCount}</p><p className="text-[10px] text-kurla-cream/40">à traiter</p></div>
             </div>
 
             {/* Filtres */}
@@ -1406,20 +1406,20 @@ export const AdminDashboardPage: React.FC = () => {
                 const labels: Record<string,string> = { all:`Tous · ${professionalApplications.length}`, peau:`Peau · ${peauCount}`, cheveux:`Cheveux · ${cheveuxCount}`, pending:`En attente · ${pendingCount}` };
                 const active = prosFilter===id;
                 return (
-                  <button key={id} onClick={()=>setProsFilter(id)} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${active ? 'bg-[#FFF7EF] text-[#1A0F0A] border-[#FFF7EF]' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/70 hover:text-white hover:border-[#FFF7EF]/30'}`}>{labels[id]}</button>
+                  <button key={id} onClick={()=>setProsFilter(id)} className={`px-3 py-1.5 rounded-full border text-xs font-bold ${active ? 'bg-kurla-cream text-kurla-espresso border-kurla-cream' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/70 hover:text-white hover:border-kurla-cream/30'}`}>{labels[id]}</button>
                 );
               })}
               <a href="/professionnels?cat=peau" target="_blank" rel="noreferrer" className="ml-auto px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:bg-emerald-500/25">Voir annuaire peau →</a>
-              <a href="/peau/guide" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-xs font-semibold hover:border-[#C8753D]">Guide peau</a>
+              <a href="/peau/guide" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/10 text-xs font-semibold hover:border-kurla-copper">Guide peau</a>
             </div>
 
             {professionalApplications.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 text-center space-y-2">
-                <p className="text-sm text-[#FFF7EF]/55">Aucune candidature enregistrée.</p>
-                <p className="text-xs text-[#FFF7EF]/35">Astuce peau : partager <span className="font-mono text-[#D49A63]">/professionnels/rejoindre</span> avec spécialité « Experte Skincare Peaux Mélaninées » — les candidatures peau apparaîtront ici avec le badge Peau.</p>
+              <div className="p-8 rounded-2xl bg-kurla-ink border border-kurla-cream/5 text-center space-y-2">
+                <p className="text-sm text-kurla-cream/55">Aucune candidature enregistrée.</p>
+                <p className="text-xs text-kurla-cream/35">Astuce peau : partager <span className="font-mono text-kurla-amber">/professionnels/rejoindre</span> avec spécialité « Experte Skincare Peaux Mélaninées » — les candidatures peau apparaîtront ici avec le badge Peau.</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-[#050403] border border-[#FFF7EF]/5 text-center text-sm text-[#FFF7EF]/55">
+              <div className="p-8 rounded-2xl bg-kurla-ink border border-kurla-cream/5 text-center text-sm text-kurla-cream/55">
                 Aucune candidature pour le filtre « {prosFilter} ».
               </div>
             ) : (
@@ -1433,20 +1433,20 @@ export const AdminDashboardPage: React.FC = () => {
                       : application.status === 'rejected' ? 'Refusée' : 'Soumise';
                   const isPeau = isPeauProfession(application.profession);
                   return (
-                    <div key={application.id} className={`p-5 rounded-2xl bg-[#050403] border space-y-4 ${isPeau ? 'border-emerald-500/30' : 'border-[#FFF7EF]/5'}`}>
+                    <div key={application.id} className={`p-5 rounded-2xl bg-kurla-ink border space-y-4 ${isPeau ? 'border-emerald-500/30' : 'border-kurla-cream/5'}`}>
                       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-serif-title font-bold text-[#FFF7EF]">{application.name}</h3>
+                            <h3 className="text-sm font-serif-title font-bold text-kurla-cream">{application.name}</h3>
                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${isPeau ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>{isPeau ? 'Peau' : 'Cheveux'} · {application.profession}</span>
-                            <span className="px-2 py-1 rounded-full bg-[#C8753D]/15 text-[#D49A63] text-[10px] font-semibold border border-[#C8753D]/20">{statusLabel}</span>
+                            <span className="px-2 py-1 rounded-full bg-kurla-copper/15 text-kurla-amber text-[10px] font-semibold border border-kurla-copper/20">{statusLabel}</span>
                           </div>
-                          <p className="text-xs text-[#FFF7EF]/70 mt-1">{application.experience} • {application.city} {isPeau && <span className="text-emerald-300">• HPI / SPF sans trace à vérifier</span>}</p>
-                          <p className="text-xs text-[#FFF7EF]/60 mt-1">{application.email} • {application.phone}</p>
+                          <p className="text-xs text-kurla-cream/70 mt-1">{application.experience} • {application.city} {isPeau && <span className="text-emerald-300">• HPI / SPF sans trace à vérifier</span>}</p>
+                          <p className="text-xs text-kurla-cream/60 mt-1">{application.email} • {application.phone}</p>
                           {application.portfolioUrl && (
                             <a href={application.portfolioUrl} target="_blank" rel="noreferrer" className="text-xs text-sky-300 hover:text-sky-200 underline break-all">Voir le portfolio</a>
                           )}
-                          <p className="text-[11px] text-[#FFF7EF]/40 mt-1">Reçue le {new Date(application.createdAt).toLocaleString('fr-FR')}</p>
+                          <p className="text-[11px] text-kurla-cream/40 mt-1">Reçue le {new Date(application.createdAt).toLocaleString('fr-FR')}</p>
                           {isPeau && (
                             <p className="mt-2 text-[11px] leading-relaxed p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/20 text-emerald-200">
                               Checklist peau : diplôme / attestation HPI ou cas taches ? SPF conseillé testé V–VI sans trace blanche ? Routine barrière (céramides/niacinamide) maîtrisée ? Si documents manquants → passer en <em>En examen</em> et demander pièces.
@@ -1458,7 +1458,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <select
                             value={draftStatus}
                             onChange={e => setProfessionalStatusDrafts({ ...professionalStatusDrafts, [application.id]: e.target.value })}
-                            className="px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/15 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
+                            className="px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper"
                             aria-label={`Statut de la candidature de ${application.name}`}
                           >
                             <option value="submitted">Soumise</option>
@@ -1466,7 +1466,7 @@ export const AdminDashboardPage: React.FC = () => {
                             <option value="approved">Approuvée</option>
                             <option value="rejected">Refusée</option>
                           </select>
-                          <button onClick={() => handleProfessionalStatusChange(application)} className="px-4 py-2 rounded-xl bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-semibold shadow">
+                          <button onClick={() => handleProfessionalStatusChange(application)} className="px-4 py-2 rounded-xl bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-semibold shadow">
                             Enregistrer
                           </button>
                         </div>
@@ -1478,14 +1478,14 @@ export const AdminDashboardPage: React.FC = () => {
                         maxLength={1000}
                         rows={2}
                         placeholder={isPeau ? "Commentaire interne peau : HPI / SPF testé V-VI / barrière — pièces reçues ?" : "Commentaire interne (facultatif)"}
-                        className="w-full p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
+                        className="w-full p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper"
                       />
                     </div>
                   );
                 })}
               </div>
             )}
-            <p className="text-[11px] text-[#FFF7EF]/35 leading-relaxed">C15 : filtre Peau/Cheveux + badge + checklist HPI/SPF. Une candidature approuvée devient publique seulement si identité + qualification vérifiées (Trust Score) — l’annuaire peau reste vide tant qu’aucun pro n’est approuvé, c’est voulu.</p>
+            <p className="text-[11px] text-kurla-cream/35 leading-relaxed">C15 : filtre Peau/Cheveux + badge + checklist HPI/SPF. Une candidature approuvée devient publique seulement si identité + qualification vérifiées (Trust Score) — l’annuaire peau reste vide tant qu’aucun pro n’est approuvé, c’est voulu.</p>
           </div>
           ); })()}
 

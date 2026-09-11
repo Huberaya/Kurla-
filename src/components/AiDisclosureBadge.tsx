@@ -27,7 +27,7 @@ export function AiDisclosureBadge({ compact = false, className = '' }: AiDisclos
   if (compact) {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border border-[#C8753D]/40 bg-[#C8753D]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#D49A63] ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border border-kurla-copper/40 bg-kurla-copper/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-kurla-amber ${className}`}
       >
         <Bot className="w-3 h-3" aria-hidden="true" />
         Assistant IA
@@ -38,14 +38,14 @@ export function AiDisclosureBadge({ compact = false, className = '' }: AiDisclos
   return (
     <div
       role="note"
-      className={`flex items-start gap-2.5 rounded-2xl border border-[#C8753D]/30 bg-[#C8753D]/10 p-3 ${className}`}
+      className={`flex items-start gap-2.5 rounded-2xl border border-kurla-copper/30 bg-kurla-copper/10 p-3 ${className}`}
     >
-      <Bot className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" aria-hidden="true" />
+      <Bot className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" aria-hidden="true" />
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[#D49A63] mb-1">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-kurla-amber mb-1">
           Assistant IA
         </p>
-        <p className="text-[11px] leading-relaxed text-[#FFF7EF]/75">{AI_TRANSPARENCY.disclosure}</p>
+        <p className="text-[11px] leading-relaxed text-kurla-cream/75">{AI_TRANSPARENCY.disclosure}</p>
       </div>
     </div>
   );
@@ -58,7 +58,7 @@ export function AiDisclosureBadge({ compact = false, className = '' }: AiDisclos
  */
 export function AiResponseMarker({ className = '' }: { className?: string }) {
   return (
-    <p className={`text-[10px] italic text-[#FFF7EF]/45 ${className}`}>
+    <p className={`text-[10px] italic text-kurla-cream/45 ${className}`}>
       {AI_TRANSPARENCY.responseMarker}
     </p>
   );

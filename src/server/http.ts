@@ -61,6 +61,46 @@ export function asyncRoute(handler: AsyncRouteHandler) {
   };
 }
 
+/**
+ * CHANTIER CONSOLIDATION — Content-Security-Policy.
+ *
+ * Mode `Report-Only` en production : les violations sont signalées dans la
+ * console des navigateurs sans jamais casser une page qui marche déjà.
+ * L'objectif est de basculer en mode imposé (`Content-Security-Policy`)
+ * après revue des rapports — voir docs/ARCHITECTURE/09-securite-gdpr.md.
+ *
+ * Règles de construction :
+ *  - `script-src` ne contient PAS 'unsafe-inline' : l'unique handler inline
+ *    du dépôt (le swap de police d'index.html) a été déplacé dans
+ *    `public/fonts.js` précisément pour rendre cette politique possible.
+ *  - `style-src` garde 'unsafe-inline' : les composants React posent des
+ *    attributs `style` inline (Tailwind génère des classes, pas d'impact).
+ *  - Le domaine Plausible vient de l'environnement (VITE_PLAUSIBLE_DOMAIN) :
+ *    il est validé comme simple hostname avant d'entrer dans la politique,
+ *    jamais par simple concaténation.
+ */
+export function contentSecurityPolicy(): string {
+  const directives: string[] = [
+    "default-src 'self'",
+    "script-src 'self' https://www.googletagmanager.com https://plausible.io",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://*.supabase.com https://*.googleusercontent.com",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.com https://www.google-analytics.com https://analytics.google.com",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ];
+  const plausibleRaw = process.env.VITE_PLAUSIBLE_DOMAIN;
+  if (plausibleRaw && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(plausibleRaw.trim())) {
+    const domain = plausibleRaw.trim();
+    directives[1] += ` https://${domain}`;
+    directives[5] += ` https://${domain}`;
+  }
+  return directives.join('; ');
+}
+
 /** En-têtes de sécurité et identifiant de requête, appliqués à toute réponse. */
 export function securityHeaders(req: Request, res: Response, next: NextFunction): void {
   const requestId = typeof req.headers['x-request-id'] === 'string' && /^[A-Za-z0-9._-]{8,128}$/.test(req.headers['x-request-id'])
@@ -75,6 +115,9 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    // Report-only : observe sans bloquer. Le basculement en mode imposé est
+    // conditionné à la revue des violations (docs/ARCHITECTURE/09-securite-gdpr.md).
+    res.setHeader('Content-Security-Policy-Report-Only', contentSecurityPolicy());
   }
 
   res.on('finish', () => {

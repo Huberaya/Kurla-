@@ -16,9 +16,9 @@ import {
 } from '../lib/protectiveStyle';
 import { addProtectiveStyleSignal } from '../services/intelligenceService';
 
-const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-1.5';
-const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-1.5';
+const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-4 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
 
 const RISK_STYLES: Record<string, { className: string; label: string }> = {
   low: { className: 'bg-emerald-50 border-emerald-200 text-emerald-900', label: 'Risque faible' },
@@ -144,8 +144,8 @@ export const WashDayPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C8753D]" />
+      <div className="pt-32 pb-24 bg-kurla-ivory min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-kurla-copper" />
       </div>
     );
   }
@@ -155,12 +155,12 @@ export const WashDayPage: React.FC = () => {
   const riskStyle = risk ? RISK_STYLES[risk.riskLevel] : null;
 
   return (
-    <div className="pt-32 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-32 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D] mb-2">Wash Day OS</p>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper mb-2">Wash Day OS</p>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-3">Ton cycle, pas une routine quotidienne.</h1>
-          <p className="text-sm text-[#111111]/70 max-w-2xl leading-relaxed">
+          <p className="text-sm text-kurla-carbon/70 max-w-2xl leading-relaxed">
             Un cheveu texturé se lave tous les 7 à 21 jours, pas tous les matins. KURLA planifie autour de ton cycle
             réel et garde le quotidien volontairement minimal : moins de manipulation, moins de casse.
           </p>
@@ -173,19 +173,19 @@ export const WashDayPage: React.FC = () => {
 
         {/* Compte à rebours */}
         {plan && (
-          <section className="mb-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] flex flex-col sm:flex-row sm:items-center gap-4">
-            <CalendarCheck className="w-8 h-8 text-[#C8753D] shrink-0" />
+          <section className="mb-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone flex flex-col sm:flex-row sm:items-center gap-4">
+            <CalendarCheck className="w-8 h-8 text-kurla-copper shrink-0" />
             <div className="flex-1">
               <h2 className="font-bold text-sm mb-1">
                 {plan.nextWashDayAt ? `Prochain wash day : ${formatDate(plan.nextWashDayAt)}` : 'Date du dernier lavage non renseignée'}
               </h2>
-              <p className="text-xs text-[#111111]/65">
+              <p className="text-xs text-kurla-carbon/65">
                 {plan.daysSinceLastWashDay !== null
                   ? `Dernier lavage il y a ${plan.daysSinceLastWashDay} jour(s), intervalle de ${plan.cycle.intervalDays} jour(s).`
                   : 'Renseigne la date de ton dernier lavage pour démarrer le cycle.'}
               </p>
               {plan.isOverdue && (
-                <p className="mt-2 text-[11px] text-[#111111]/60 italic">
+                <p className="mt-2 text-[11px] text-kurla-carbon/60 italic">
                   Ce n’est pas un retard à rattraper : un intervalle plus long réduit la casse mécanique, à condition
                   que le cuir chevelu reste sain.
                 </p>
@@ -203,28 +203,28 @@ export const WashDayPage: React.FC = () => {
             <h2 className="font-bold text-sm mb-4">Les étapes de ton wash day</h2>
             <ol className="space-y-3">
               {plan.tasks.map((task, index) => (
-                <li key={task.id} className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex gap-4">
-                  <span className="w-7 h-7 shrink-0 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-bold flex items-center justify-center">{index + 1}</span>
+                <li key={task.id} className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone flex gap-4">
+                  <span className="w-7 h-7 shrink-0 rounded-full bg-kurla-copper/10 text-kurla-copper text-xs font-bold flex items-center justify-center">{index + 1}</span>
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold">{task.label}</p>
-                      {task.optional && <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#111111]/5 text-[#111111]/50">optionnel</span>}
-                      {task.productLabel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8753D]/10 text-[#8b4b24]">{task.productLabel}</span>}
+                      {task.optional && <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-kurla-carbon/5 text-kurla-carbon/50">optionnel</span>}
+                      {task.productLabel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-kurla-copper/10 text-[#8b4b24]">{task.productLabel}</span>}
                     </div>
                     {/* Chaque tâche explique pourquoi elle est là. */}
-                    <p className="text-[11px] text-[#111111]/65 mt-1 leading-relaxed">{task.reason}</p>
-                    <p className="text-[10px] text-[#111111]/45 mt-1">~{task.durationMinutes} min</p>
+                    <p className="text-[11px] text-kurla-carbon/65 mt-1 leading-relaxed">{task.reason}</p>
+                    <p className="text-[10px] text-kurla-carbon/45 mt-1">~{task.durationMinutes} min</p>
                   </div>
                 </li>
               ))}
             </ol>
 
             {plan.adaptationNotes.length > 0 && (
-              <div className="mt-4 p-4 rounded-2xl bg-[#C8753D]/5 border border-[#C8753D]/20">
+              <div className="mt-4 p-4 rounded-2xl bg-kurla-copper/5 border border-kurla-copper/20">
                 <p className="text-[10px] uppercase tracking-wider font-bold text-[#8b4b24] mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Adaptations</p>
                 <ul className="space-y-1.5">
                   {plan.adaptationNotes.map((note, index) => (
-                    <li key={index} className="text-[11px] text-[#111111]/70 leading-relaxed">{note}</li>
+                    <li key={index} className="text-[11px] text-kurla-carbon/70 leading-relaxed">{note}</li>
                   ))}
                 </ul>
               </div>
@@ -236,14 +236,14 @@ export const WashDayPage: React.FC = () => {
         {state && state.dailyTasks.length > 0 && (
           <section className="mb-8">
             <h2 className="font-bold text-sm mb-2">Entre deux wash days</h2>
-            <p className="text-[11px] text-[#111111]/60 mb-4">Volontairement court : manipuler moins, c'est casser moins.</p>
+            <p className="text-[11px] text-kurla-carbon/60 mb-4">Volontairement court : manipuler moins, c'est casser moins.</p>
             <div className="space-y-2">
               {state.dailyTasks.map(task => (
-                <div key={task.id} className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] flex items-start gap-3">
-                  <Moon className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" />
+                <div key={task.id} className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone flex items-start gap-3">
+                  <Moon className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold">{task.label}</p>
-                    <p className="text-[11px] text-[#111111]/65 mt-1 leading-relaxed">{task.reason}</p>
+                    <p className="text-[11px] text-kurla-carbon/65 mt-1 leading-relaxed">{task.reason}</p>
                   </div>
                 </div>
               ))}
@@ -296,7 +296,7 @@ export const WashDayPage: React.FC = () => {
         )}
 
         {/* Configuration du cycle */}
-        <section className="p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+        <section className="p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
           <h2 className="font-bold text-sm mb-4">Ton cycle</h2>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -319,11 +319,11 @@ export const WashDayPage: React.FC = () => {
             </div>
 
             {/* Soin protéiné : désactivable, car un excès rigidifie la fibre. */}
-            <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA]">
+            <div className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone">
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input type="checkbox" checked={proteinEnabled} onChange={event => setProteinEnabled(event.target.checked)} className="mt-0.5" />
-                <span className="text-xs text-[#111111]/75 leading-relaxed">
-                  <strong className="block text-[#111111]">Soin protéiné</strong>
+                <span className="text-xs text-kurla-carbon/75 leading-relaxed">
+                  <strong className="block text-kurla-carbon">Soin protéiné</strong>
                   À activer seulement si ta fibre est fragilisée (chaleur, chimie, casse). Un excès de protéines
                   rigidifie le cheveu : dans le doute, laisse désactivé.
                 </span>
@@ -348,7 +348,7 @@ export const WashDayPage: React.FC = () => {
               </div>
               <label className="flex items-center gap-2.5 self-end pb-2.5 cursor-pointer">
                 <input type="checkbox" checked={hardWater} onChange={event => setHardWater(event.target.checked)} />
-                <span className="text-xs text-[#111111]/75 flex items-center gap-1.5"><Droplets className="w-3.5 h-3.5 text-[#C8753D]" /> Eau dure chez moi</span>
+                <span className="text-xs text-kurla-carbon/75 flex items-center gap-1.5"><Droplets className="w-3.5 h-3.5 text-kurla-copper" /> Eau dure chez moi</span>
               </label>
             </div>
 

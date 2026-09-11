@@ -7,9 +7,9 @@ import {
   SearchResultItem
 } from '../services/intelligenceService';
 
-const cardClass = 'bg-white border border-[#E8E1DA] rounded-2xl p-5';
-const inputClass = 'w-full px-4 py-3.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-5 py-3.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
+const cardClass = 'bg-white border border-kurla-stone rounded-2xl p-5';
+const inputClass = 'w-full px-4 py-3.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-5 py-3.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50';
 
 const EXAMPLES = [
   'routine cheveux crépus secs moins de 30 €',
@@ -55,14 +55,14 @@ export const SmartSearchPage: React.FC = () => {
   }, [token, country]);
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] text-[#111111]">
+    <div className="min-h-screen bg-kurla-ivory text-kurla-carbon">
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <Search className="w-5 h-5 text-[#C8753D]" />
+            <Search className="w-5 h-5 text-kurla-copper" />
             <h1 className="text-2xl font-bold">Recherche par intention</h1>
           </div>
-          <p className="text-sm text-[#111111]/60 max-w-2xl">
+          <p className="text-sm text-kurla-carbon/60 max-w-2xl">
             Décrivez ce que vous cherchez en une phrase. KURLA décompose la demande,
             dit ce qu&apos;elle a compris, et signale ce qu&apos;elle n&apos;a pas su interpréter.
           </p>
@@ -81,7 +81,7 @@ export const SmartSearchPage: React.FC = () => {
               />
             </div>
             <select
-              className="px-3 py-3 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]"
+              className="px-3 py-3 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper"
               value={country}
               onChange={event => setCountry(event.target.value)}
               aria-label="Pays de livraison"
@@ -101,7 +101,7 @@ export const SmartSearchPage: React.FC = () => {
               <button
                 key={example}
                 onClick={() => { setQuery(example); void runSearch(example); }}
-                className="px-3 py-1.5 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-xs text-[#111111]/70 hover:border-[#C8753D] cursor-pointer"
+                className="px-3 py-1.5 rounded-full bg-kurla-ivory border border-kurla-stone text-xs text-kurla-carbon/70 hover:border-kurla-copper cursor-pointer"
               >
                 {example}
               </button>
@@ -120,7 +120,7 @@ export const SmartSearchPage: React.FC = () => {
           <div className="mt-8 space-y-5">
             {/* Ce que KURLA a compris — et ce qu'elle n'a pas compris. */}
             <div className={cardClass}>
-              <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]/50 mb-2">Interprétation</h2>
+              <h2 className="text-xs uppercase tracking-wider font-bold text-kurla-carbon/50 mb-2">Interprétation</h2>
               <p className="text-sm font-medium">{result.interpretation}</p>
 
               {result.intent.unresolved.length > 0 && (
@@ -154,12 +154,12 @@ export const SmartSearchPage: React.FC = () => {
 
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-bold">{result.total} résultat{result.total > 1 ? 's' : ''}</h2>
-              <span className="text-xs text-[#111111]/50">Triés par contraintes satisfaites</span>
+              <span className="text-xs text-kurla-carbon/50">Triés par contraintes satisfaites</span>
             </div>
 
             {result.results.length === 0 && (
               <div className={cardClass}>
-                <div className="flex items-start gap-2 text-sm text-[#111111]/70">
+                <div className="flex items-start gap-2 text-sm text-kurla-carbon/70">
                   <X className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>
                     Aucun produit ne satisfait ces contraintes. KURLA n&apos;élargit pas la recherche
@@ -180,7 +180,7 @@ export const SmartSearchPage: React.FC = () => {
 };
 
 const Chip: React.FC<{ label: string }> = ({ label }) => (
-  <span className="px-2 py-1 rounded-lg bg-[#FFFDF9] border border-[#E8E1DA] text-xs text-[#111111]/70">{label}</span>
+  <span className="px-2 py-1 rounded-lg bg-kurla-ivory border border-kurla-stone text-xs text-kurla-carbon/70">{label}</span>
 );
 
 const ResultCard: React.FC<{ item: SearchResultItem }> = ({ item }) => (
@@ -188,11 +188,11 @@ const ResultCard: React.FC<{ item: SearchResultItem }> = ({ item }) => (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <h3 className="font-semibold text-sm truncate">{item.product.name}</h3>
-        {item.product.brand && <p className="text-xs text-[#111111]/50">{item.product.brand}</p>}
+        {item.product.brand && <p className="text-xs text-kurla-carbon/50">{item.product.brand}</p>}
       </div>
       <div className="text-right shrink-0">
         <div className="font-bold">{Number(item.product.price).toFixed(2)} €</div>
-        <div className="text-[10px] text-[#111111]/50">{item.satisfied} contrainte{item.satisfied > 1 ? 's' : ''} OK</div>
+        <div className="text-[10px] text-kurla-carbon/50">{item.satisfied} contrainte{item.satisfied > 1 ? 's' : ''} OK</div>
       </div>
     </div>
 
@@ -210,7 +210,7 @@ const ResultCard: React.FC<{ item: SearchResultItem }> = ({ item }) => (
     {item.missedOn.length > 0 && (
       <div className="mt-3 space-y-1">
         {item.missedOn.map((reason, index) => (
-          <div key={index} className="flex items-start gap-1.5 text-xs text-[#111111]/55">
+          <div key={index} className="flex items-start gap-1.5 text-xs text-kurla-carbon/55">
             <X className="w-3 h-3 mt-0.5 shrink-0" />
             <span>{reason}</span>
           </div>
@@ -220,7 +220,7 @@ const ResultCard: React.FC<{ item: SearchResultItem }> = ({ item }) => (
 
     <a
       href={`/produit/${item.product.slug || item.product.id}`}
-      className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#C8753D] hover:underline"
+      className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-kurla-copper hover:underline"
     >
       <ShoppingBag className="w-3.5 h-3.5" />
       Voir la fiche

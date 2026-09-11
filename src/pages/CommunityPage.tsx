@@ -39,18 +39,18 @@ export const CommunityPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="pt-28 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-28 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Hero — sans nombre inventé */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-xs font-semibold mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kurla-copper/10 text-kurla-copper text-xs font-semibold mb-3">
             <Heart className="w-4 h-4" /> La Communauté KURLA Beauty
           </div>
-          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4">
+          <h1 className="text-3xl sm:text-5xl font-serif-title font-bold text-kurla-carbon mb-4">
             Entraide utile et traçable
           </h1>
-          <p className="text-sm sm:text-base text-[#111111]/75 font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-kurla-carbon/75 font-light leading-relaxed">
             Des questions posées par de vraies personnes, des réponses de membres et de
             professionnels vérifiés. Ni fil infini, ni likes, ni classement : seulement ce
             qui aide quelqu&apos;un à comprendre son produit.
@@ -60,25 +60,25 @@ export const CommunityPage: React.FC = () => {
         {/* Questions qui attendent une réponse */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-5">
-            <MessageCircleQuestion className="w-5 h-5 text-[#C8753D]" />
+            <MessageCircleQuestion className="w-5 h-5 text-kurla-copper" />
             <h2 className="text-xl sm:text-2xl font-serif-title font-bold">Questions en attente d&apos;aide</h2>
           </div>
 
           {failed && (
-            <p className="text-sm text-[#111111]/60 px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+            <p className="text-sm text-kurla-carbon/60 px-6 py-8 rounded-3xl bg-kurla-sand border border-kurla-stone">
               Impossible de charger les questions. Réessaie dans un instant.
             </p>
           )}
 
           {!failed && questions === null && (
-            <p className="text-sm text-[#111111]/50 px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+            <p className="text-sm text-kurla-carbon/50 px-6 py-8 rounded-3xl bg-kurla-sand border border-kurla-stone">
               Chargement…
             </p>
           )}
 
           {!failed && questions !== null && questions.length === 0 && (
-            <div className="px-6 py-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
-              <p className="text-sm text-[#111111]/70">
+            <div className="px-6 py-8 rounded-3xl bg-kurla-sand border border-kurla-stone">
+              <p className="text-sm text-kurla-carbon/70">
                 Aucune question n&apos;attend de réponse pour l&apos;instant. C&apos;est un bon signe — ou le
                 signe qu&apos;il n&apos;y a pas encore assez de monde ici. Dans les deux cas, nous ne
                 l&apos;inventerons pas.
@@ -92,15 +92,15 @@ export const CommunityPage: React.FC = () => {
                 <li key={question.id}>
                   <a
                     href={`/produit/${question.productSlug || question.productId}`}
-                    className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-white border border-[#E8E1DA] hover:border-[#C8753D] transition-colors"
+                    className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-white border border-kurla-stone hover:border-kurla-copper transition-colors"
                   >
                     <span>
-                      <span className="block text-xs uppercase tracking-widest text-[#C8753D]/80 mb-1">
+                      <span className="block text-xs uppercase tracking-widest text-kurla-copper/80 mb-1">
                         {question.productName || 'Produit KURLA'}
                       </span>
-                      <span className="text-sm text-[#111111]/85">{question.question}</span>
+                      <span className="text-sm text-kurla-carbon/85">{question.question}</span>
                     </span>
-                    <ArrowRight className="w-4 h-4 text-[#C8753D] shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-kurla-copper shrink-0" />
                   </a>
                 </li>
               ))}

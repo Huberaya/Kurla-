@@ -34,33 +34,33 @@ export const HairSkinSection: React.FC = () => {
   const features = activeTab === 'hair' ? HAIR_FEATURES : SKIN_FEATURES;
 
   return (
-    <section id="hair-skin-section" className="py-24 bg-[#FFFDF9] text-[#111111] relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#C8753D]/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F8F2EC] rounded-full blur-3xl pointer-events-none" />
+    <section id="hair-skin-section" className="py-24 bg-kurla-ivory text-kurla-carbon relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-kurla-copper/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-kurla-sand rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {/* En-tête */}
         <div className="text-center max-w-3xl mx-auto mb-14">
           <Reveal>
-            <span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold block mb-2">
+            <span className="text-xs uppercase tracking-widest text-kurla-copper font-bold block mb-2">
               Cheveux &amp; peau
             </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-[#111111] leading-tight mb-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif-title font-bold text-kurla-carbon leading-tight mb-4">
               Deux expertises, une même exigence.
             </h2>
-            <p className="text-base text-[#111111]/75 font-light leading-relaxed max-w-[580px] mx-auto">
+            <p className="text-base text-kurla-carbon/75 font-light leading-relaxed max-w-[580px] mx-auto">
               Des soins pensés pour les textures bouclées à crépues <em>et</em> pour les peaux riches en mélanine. Explorez l’univers qui vous concerne.
             </p>
           </Reveal>
 
           {/* Onglets */}
           <Reveal delay={0.2}>
-            <div className="inline-flex p-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] mt-8 shadow-inner">
+            <div className="inline-flex p-1.5 rounded-full bg-kurla-sand border border-kurla-stone mt-8 shadow-inner">
               <button
                 onClick={() => setActiveTab('hair')}
                 className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
-                  activeTab === 'hair' ? 'bg-[#C8753D] text-white shadow-md' : 'text-[#111111]/70 hover:text-[#111111]'
+                  activeTab === 'hair' ? 'bg-kurla-copper text-white shadow-md' : 'text-kurla-carbon/70 hover:text-kurla-carbon'
                 }`}
               >
                 <Scissors className="w-4 h-4" /> Cheveux texturés
@@ -68,7 +68,7 @@ export const HairSkinSection: React.FC = () => {
               <button
                 onClick={() => setActiveTab('skin')}
                 className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
-                  activeTab === 'skin' ? 'bg-[#C8753D] text-white shadow-md' : 'text-[#111111]/70 hover:text-[#111111]'
+                  activeTab === 'skin' ? 'bg-kurla-copper text-white shadow-md' : 'text-kurla-carbon/70 hover:text-kurla-carbon'
                 }`}
               >
                 <Sun className="w-4 h-4" /> Peau &amp; carnations
@@ -88,7 +88,7 @@ export const HairSkinSection: React.FC = () => {
           >
             {/* Visuel */}
             <div className="lg:col-span-5 relative">
-              <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-[#E8E1DA] shadow-2xl group bg-[#1A0F0A]">
+              <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-kurla-stone shadow-2xl group bg-kurla-espresso">
                 <BrandImage
                   image={activeTab === 'hair' ? HERO_IMAGE : MELANIN_SKIN_IMAGE}
                   fill
@@ -97,9 +97,9 @@ export const HairSkinSection: React.FC = () => {
                   className="group-hover:scale-105 transition-transform duration-700"
                   wrapperClassName="absolute inset-0"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050403]/80 via-transparent to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl bg-[#050403]/85 backdrop-blur-md border border-white/10 text-white">
-                  <span className="text-xs uppercase font-bold text-[#D49A63] tracking-widest block mb-1">
+                <div className="absolute inset-0 bg-gradient-to-t from-kurla-ink/80 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl bg-kurla-ink/85 backdrop-blur-md border border-white/10 text-white">
+                  <span className="text-xs uppercase font-bold text-kurla-amber tracking-widest block mb-1">
                     {activeTab === 'hair' ? 'Expertise capillaire' : 'Expertise peau'}
                   </span>
                   <h3 className="text-xl font-serif-title font-bold text-white mb-2">
@@ -107,7 +107,7 @@ export const HairSkinSection: React.FC = () => {
                   </h3>
                   <a
                     href={activeTab === 'hair' ? '/diagnostic/cheveux' : '/melanin-skin'}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#D49A63] hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-kurla-amber hover:text-white transition-colors"
                   >
                     Voir l’approche complète <ArrowRight className="w-3.5 h-3.5" />
                   </a>
@@ -125,17 +125,17 @@ export const HairSkinSection: React.FC = () => {
                       key={item.title}
                       whileHover={{ y: -4, scale: 1.02 }}
                       transition={{ duration: 0.2 }}
-                      className="p-5 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] shadow-xs hover:shadow-xl transition-all group"
+                      className="p-5 rounded-2xl bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper shadow-xs hover:shadow-xl transition-all group"
                     >
                       <div className="flex items-center gap-2.5 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#C8753D]/10 text-[#C8753D] border border-[#C8753D]/20 flex items-center justify-center group-hover:bg-[#C8753D] group-hover:text-white transition-colors shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-kurla-copper/10 text-kurla-copper border border-kurla-copper/20 flex items-center justify-center group-hover:bg-kurla-copper group-hover:text-white transition-colors shrink-0">
                           <Icon className="w-4 h-4" />
                         </div>
-                        <h4 className="font-serif-title font-bold text-sm text-[#111111] group-hover:text-[#C8753D] transition-colors">
+                        <h4 className="font-serif-title font-bold text-sm text-kurla-carbon group-hover:text-kurla-copper transition-colors">
                           {item.title}
                         </h4>
                       </div>
-                      <p className="text-xs text-[#111111]/75 leading-relaxed font-light pl-[46px]">
+                      <p className="text-xs text-kurla-carbon/75 leading-relaxed font-light pl-[46px]">
                         {item.desc}
                       </p>
                     </motion.div>
@@ -149,7 +149,7 @@ export const HairSkinSection: React.FC = () => {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   href={activeTab === 'hair' ? '/diagnostic/cheveux' : '/melanin-skin'}
-                  className="px-8 py-3.5 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm tracking-wide shadow-md shadow-[#C8753D]/20 transition-all flex items-center gap-2"
+                  className="px-8 py-3.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm tracking-wide shadow-md shadow-kurla-copper/20 transition-all flex items-center gap-2"
                 >
                   {activeTab === 'hair' ? 'Trouver ma routine cheveux' : 'Découvrir les soins peau'}
                   <ArrowRight className="w-4 h-4" />
@@ -158,7 +158,7 @@ export const HairSkinSection: React.FC = () => {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   href="/boutique"
-                  className="px-6 py-3.5 rounded-full bg-[#F8F2EC] hover:bg-[#E8E1DA] text-[#111111] border border-[#E8E1DA] font-semibold text-sm transition-all"
+                  className="px-6 py-3.5 rounded-full bg-kurla-sand hover:bg-kurla-stone text-kurla-carbon border border-kurla-stone font-semibold text-sm transition-all"
                 >
                   Voir toute la boutique
                 </motion.a>

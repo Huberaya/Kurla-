@@ -54,7 +54,7 @@ export function openedLabel(item: ShelfItem): string {
 }
 
 export function progressColor(percent: number | null | undefined): string {
-  if (percent == null) return 'bg-[#111111]/10';
+  if (percent == null) return 'bg-kurla-carbon/10';
   if (percent <= 25) return 'bg-rose-500';
   if (percent <= 50) return 'bg-amber-500';
   return 'bg-emerald-500';

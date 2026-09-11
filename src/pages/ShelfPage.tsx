@@ -46,9 +46,9 @@ const CONFLICT_SEVERITY: Record<string, { label: string; className: string }> = 
 const HAIR_STEPS: RoutineStep[] = ['cleanse', 'condition', 'deep_condition', 'leave_in', 'seal_oil', 'styling_definer', 'scalp_treatment', 'protein_treatment'];
 const SKIN_STEPS: RoutineStep[] = ['skin_cleanser', 'skin_treatment', 'skin_moisturizer', 'skin_spf'];
 
-const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-1.5';
-const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-1.5';
+const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-4 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
 
 /**
  * KURLA SHELF — l'écran de l'inventaire réel.
@@ -329,19 +329,19 @@ export const ShelfPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C8753D]" />
+      <div className="pt-32 pb-24 bg-kurla-ivory min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-kurla-copper" />
       </div>
     );
   }
 
   return (
-    <div className="pt-32 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-32 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D] mb-2">KURLA Shelf</p>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper mb-2">KURLA Shelf</p>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-3">Ton étagère réelle.</h1>
-          <p className="text-sm text-[#111111]/70 max-w-2xl leading-relaxed">
+          <p className="text-sm text-kurla-carbon/70 max-w-2xl leading-relaxed">
             Ce que tu possèdes vraiment n'est pas ce que tu as acheté. En renseignant ton étagère, KURLA peut te dire
             ce qu'il te manque réellement — y compris quand la réponse est « rien ».
           </p>
@@ -351,11 +351,11 @@ export const ShelfPage: React.FC = () => {
 
         {/* C4.1 — Tabs étagère Cheveux | Peau */}
         <div className="mb-6 flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/50 mr-1">Voir :</span>
-          <button onClick={() => { setShelfCat('tous'); window.history.replaceState({}, '', '/account/shelf'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold ${shelfCat==='tous' ? 'bg-[#111111] text-white' : 'bg-white border border-[#E8E1DA]'}`}>Tous ({items.length})</button>
-          <button onClick={() => { setShelfCat('peau'); window.history.replaceState({}, '', '/account/shelf?cat=peau'); setRoutineStep('skin_cleanser'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='peau' ? 'bg-[#C8753D] text-white' : 'bg-white border border-[#E8E1DA]'}`}><span>Peau</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='peau'?'bg-white/20':'bg-[#F8F2EC]'}`}>{skinItems.length}</span></button>
-          <button onClick={() => { setShelfCat('cheveux'); window.history.replaceState({}, '', '/account/shelf?cat=cheveux'); setRoutineStep('leave_in'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='cheveux' ? 'bg-[#111111] text-white' : 'bg-white border border-[#E8E1DA]'}`}><span>Cheveux</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='cheveux'?'bg-white/20':'bg-[#F8F2EC]'}`}>{items.length - skinItems.length}</span></button>
-          <a href="/peau/journal" className="ml-auto text-xs font-bold text-[#C8753D] hover:underline hidden sm:inline">Journal peau →</a>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-kurla-carbon/50 mr-1">Voir :</span>
+          <button onClick={() => { setShelfCat('tous'); window.history.replaceState({}, '', '/account/shelf'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold ${shelfCat==='tous' ? 'bg-kurla-carbon text-white' : 'bg-white border border-kurla-stone'}`}>Tous ({items.length})</button>
+          <button onClick={() => { setShelfCat('peau'); window.history.replaceState({}, '', '/account/shelf?cat=peau'); setRoutineStep('skin_cleanser'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='peau' ? 'bg-kurla-copper text-white' : 'bg-white border border-kurla-stone'}`}><span>Peau</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='peau'?'bg-white/20':'bg-kurla-sand'}`}>{skinItems.length}</span></button>
+          <button onClick={() => { setShelfCat('cheveux'); window.history.replaceState({}, '', '/account/shelf?cat=cheveux'); setRoutineStep('leave_in'); }} className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${shelfCat==='cheveux' ? 'bg-kurla-carbon text-white' : 'bg-white border border-kurla-stone'}`}><span>Cheveux</span><span className={`px-1.5 py-0.5 rounded-full text-[10px] ${shelfCat==='cheveux'?'bg-white/20':'bg-kurla-sand'}`}>{items.length - skinItems.length}</span></button>
+          <a href="/peau/journal" className="ml-auto text-xs font-bold text-kurla-copper hover:underline hidden sm:inline">Journal peau →</a>
         </div>
 
         {/* C4.1 — Shelf peau : % restant, jauge, alerte J-7 */}
@@ -370,17 +370,17 @@ export const ShelfPage: React.FC = () => {
                   return <li key={it.id}>{it.freeLabel || it.productId} · {days}j restant(s){it.estimatedRemainingPercent != null ? ` · ${it.estimatedRemainingPercent}%` : ''} · ouvert le {openedLabel(it)}</li>;
                 })}
               </ul>
-              <a href="/boutique?cat=peau" className="inline-block mt-2 text-[11px] font-bold text-[#C8753D] hover:underline">Voir la boutique peau →</a>
+              <a href="/boutique?cat=peau" className="inline-block mt-2 text-[11px] font-bold text-kurla-copper hover:underline">Voir la boutique peau →</a>
             </div>
           </div>
         )}
 
         {/* C4.1 — Kits peau : ajout rapide à l'étagère quand vide peau */}
         {shelfCat === 'peau' && skinItems.length === 0 && (
-          <div className="mb-6 p-5 rounded-3xl bg-gradient-to-br from-[#FFFDF9] to-[#F8F2EC] border border-[#E8E1DA]">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D] mb-2">Gagnez du temps — KPEAU</p>
+          <div className="mb-6 p-5 rounded-3xl bg-gradient-to-br from-kurla-ivory to-kurla-sand border border-kurla-stone">
+            <p className="text-xs font-bold uppercase tracking-wider text-kurla-copper mb-2">Gagnez du temps — KPEAU</p>
             <p className="text-sm font-semibold">Vous utilisez un kit KURLA SKIN ? Ajoutez-le à votre étagère en 1 clic.</p>
-            <p className="text-xs text-[#111111]/60 mt-1">Fatou · peau mixte · HPI · sans parfum → <strong className="text-[#111111]">KPEAU-01 Essentielle (3 soins · 49,70€)</strong> : nettoyant + crème céramides + SPF invisible.</p>
+            <p className="text-xs text-kurla-carbon/60 mt-1">Fatou · peau mixte · HPI · sans parfum → <strong className="text-kurla-carbon">KPEAU-01 Essentielle (3 soins · 49,70€)</strong> : nettoyant + crème céramides + SPF invisible.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {PEAU_KITS.slice(0, 3).map(kit => (
                 <button
@@ -397,13 +397,13 @@ export const ShelfPage: React.FC = () => {
                     } catch (e) { setError(e instanceof Error ? e.message : 'Ajout kit impossible.'); }
                     finally { setBusy(false); }
                   }}
-                  className={`px-3 py-2 rounded-full text-xs font-bold border ${kit.id==='KPEAU-01' ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}
+                  className={`px-3 py-2 rounded-full text-xs font-bold border ${kit.id==='KPEAU-01' ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-white border-kurla-stone hover:border-kurla-copper'}`}
                 >
                   + {kit.id} · {kit.products.length} soins · prix indicatif {kit.priceBundle.toFixed(2)}€
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-[#111111]/40 mt-2">Crée 3 entrées « En cours » à 80 % — ajustez le % restant ensuite. Les kits restent des cibles de routine tant que C1 n’a pas accepté leurs composants.</p>
+            <p className="text-[11px] text-kurla-carbon/40 mt-2">Crée 3 entrées « En cours » à 80 % — ajustez le % restant ensuite. Les kits restent des cibles de routine tant que C1 n’a pas accepté leurs composants.</p>
           </div>
         )}
 
@@ -412,12 +412,12 @@ export const ShelfPage: React.FC = () => {
 
         {/* Verdict d'achat — affiché en premier, même quand il dit « non ». */}
         {verdict && (
-          <section className={`mb-8 p-6 rounded-3xl border ${verdict.needsPurchase ? 'bg-[#C8753D]/5 border-[#C8753D]/25' : 'bg-emerald-50/60 border-emerald-200'}`}>
+          <section className={`mb-8 p-6 rounded-3xl border ${verdict.needsPurchase ? 'bg-kurla-copper/5 border-kurla-copper/25' : 'bg-emerald-50/60 border-emerald-200'}`}>
             <div className="flex items-start gap-3">
-              <Sparkles className={`w-5 h-5 shrink-0 mt-0.5 ${verdict.needsPurchase ? 'text-[#C8753D]' : 'text-emerald-600'}`} />
+              <Sparkles className={`w-5 h-5 shrink-0 mt-0.5 ${verdict.needsPurchase ? 'text-kurla-copper' : 'text-emerald-600'}`} />
               <div>
                 <h2 className="font-bold text-sm mb-1">{verdict.needsPurchase ? 'Ce qu’il te manque' : 'Tu n’as rien à acheter'}</h2>
-                <p className="text-sm text-[#111111]/75 leading-relaxed">{verdict.message}</p>
+                <p className="text-sm text-kurla-carbon/75 leading-relaxed">{verdict.message}</p>
               </div>
             </div>
 
@@ -425,8 +425,8 @@ export const ShelfPage: React.FC = () => {
               <ul className="mt-4 space-y-1.5">
                 {verdict.gaps.map(gap => (
                   <li key={gap.routineStep} className="flex items-center gap-2 text-xs">
-                    <span className={`w-1.5 h-1.5 rounded-full ${gap.critical ? 'bg-[#C8753D]' : 'bg-[#111111]/25'}`} />
-                    <span className={gap.critical ? 'text-[#111111]/80' : 'text-[#111111]/50'}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${gap.critical ? 'bg-kurla-copper' : 'bg-kurla-carbon/25'}`} />
+                    <span className={gap.critical ? 'text-kurla-carbon/80' : 'text-kurla-carbon/50'}>
                       {gap.label}{gap.critical ? '' : ' — optionnel'}
                     </span>
                   </li>
@@ -435,11 +435,11 @@ export const ShelfPage: React.FC = () => {
             )}
 
             {verdict.surplus.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-[#111111]/10">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-2">En trop sur ton étagère</p>
+              <div className="mt-4 pt-4 border-t border-kurla-carbon/10">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-2">En trop sur ton étagère</p>
                 <ul className="space-y-1">
                   {verdict.surplus.map(item => (
-                    <li key={item.routineStep} className="text-xs text-[#111111]/65">{item.message}</li>
+                    <li key={item.routineStep} className="text-xs text-kurla-carbon/65">{item.message}</li>
                   ))}
                 </ul>
               </div>
@@ -450,17 +450,17 @@ export const ShelfPage: React.FC = () => {
         {/* D-03 — Conflits d'actifs. Affiché avant l'ajout : avant de proposer
             d'acheter, on dit ce qui, dans l'étagère, ne va pas ensemble. */}
         {verdict?.conflicts && verdict.conflicts.analysedCount > 0 && (
-          <section className="mb-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+          <section className="mb-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
             <h2 className="font-bold text-sm mb-1 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-[#C8753D]" />
+              <AlertTriangle className="w-4 h-4 text-kurla-copper" />
               Conflits d’actifs dans ton étagère
               {verdict.conflicts.conflicts.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-[#C8753D]/10 text-[#C8753D] text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-kurla-copper/10 text-kurla-copper text-[10px] font-bold">
                   {verdict.conflicts.conflicts.length}
                 </span>
               )}
             </h2>
-            <p className="text-xs text-[#111111]/60 mb-4 leading-relaxed">{verdict.conflicts.message}</p>
+            <p className="text-xs text-kurla-carbon/60 mb-4 leading-relaxed">{verdict.conflicts.message}</p>
 
             {verdict.conflicts.conflicts.map((conflict, index) => {
               const style = CONFLICT_SEVERITY[conflict.severity] || CONFLICT_SEVERITY.caution;
@@ -482,7 +482,7 @@ export const ShelfPage: React.FC = () => {
             })}
 
             {verdict.conflicts.unanalysed.length > 0 && (
-              <p className="text-[11px] text-[#111111]/50 mt-2 leading-relaxed">
+              <p className="text-[11px] text-kurla-carbon/50 mt-2 leading-relaxed">
                 Non évalué{verdict.conflicts.unanalysed.length > 1 ? 's' : ''} — composition non rattachée : {verdict.conflicts.unanalysed.map(u => u.label).join(', ')}.
               </p>
             )}
@@ -495,14 +495,14 @@ export const ShelfPage: React.FC = () => {
         )}
 
         {/* Ajout */}
-        <section className="mb-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
-          <h2 className="font-bold text-sm mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#C8753D]" /> Ajouter un produit</h2>
+        <section className="mb-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
+          <h2 className="font-bold text-sm mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-kurla-copper" /> Ajouter un produit</h2>
 
           {/* Scan code-barres : remplissage automatique via Open Beauty Facts.
               Ne bloque jamais la saisie manuelle (produit non reconnu = ajout quand même). */}
-          <div className="mb-4 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA]">
+          <div className="mb-4 p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone">
             <span className={labelClass + ' flex items-center gap-1.5'}>
-              <Barcode className="w-3.5 h-3.5 text-[#C8753D]" /> Le plus rapide : scanne ou saisis le code-barres
+              <Barcode className="w-3.5 h-3.5 text-kurla-copper" /> Le plus rapide : scanne ou saisis le code-barres
             </span>
             <form onSubmit={handleScan} className="flex gap-2">
               <input
@@ -515,12 +515,12 @@ export const ShelfPage: React.FC = () => {
                 aria-label="Code-barres du produit"
               />
               <button type="submit" disabled={scanning || barcodeInput.length < 8}
-                className="px-4 py-2.5 rounded-xl bg-[#1A0F0A] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50">
+                className="px-4 py-2.5 rounded-xl bg-kurla-espresso text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50">
                 {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                 Reconnaître
               </button>
               <button type="button" onClick={cameraScanning ? stopCameraScan : startCameraScan}
-                className="px-3 py-2.5 rounded-xl border border-[#E8E1DA] text-xs font-semibold whitespace-nowrap">
+                className="px-3 py-2.5 rounded-xl border border-kurla-stone text-xs font-semibold whitespace-nowrap">
                 {cameraScanning ? 'Fermer caméra' : 'Scanner caméra'}
               </button>
             </form>
@@ -563,7 +563,7 @@ export const ShelfPage: React.FC = () => {
               <div>
                 <span className={labelClass}>{routineStep.startsWith('skin_') ? 'Date d’ouverture' : 'Date de début'}</span>
                 <input type="date" value={openedAt} onChange={event => setOpenedAt(event.target.value)} max={new Date().toISOString().slice(0, 10)} className={inputClass} disabled={status !== 'in_use'} />
-                {status !== 'in_use' && <p className="text-[10px] text-[#111111]/45 mt-1">Disponible dès que le produit passe « en cours ».</p>}
+                {status !== 'in_use' && <p className="text-[10px] text-kurla-carbon/45 mt-1">Disponible dès que le produit passe « en cours ».</p>}
               </div>
               <div>
                 <span className={labelClass}>Restant (%)</span>
@@ -573,7 +573,7 @@ export const ShelfPage: React.FC = () => {
 
             {/* Le motif d'abandon est obligatoire : sans lui, l'information est perdue. */}
             {status === 'abandoned' && (
-              <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA]">
+              <div className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone">
                 <span className={labelClass}>Pourquoi ce produit ne t’a pas convenu ?</span>
                 <select value={abandonmentReason} onChange={event => setAbandonmentReason(event.target.value as AbandonmentReason)} className={inputClass} required>
                   <option value="">Choisir un motif (obligatoire)</option>
@@ -593,7 +593,7 @@ export const ShelfPage: React.FC = () => {
         <section>
           <h2 className="font-bold text-sm mb-4">Ton inventaire ({items.length})</h2>
           {items.length === 0 ? (
-            <p className="text-sm text-[#111111]/55 p-6 rounded-2xl bg-[#F8F2EC] border border-[#E8E1DA]">
+            <p className="text-sm text-kurla-carbon/55 p-6 rounded-2xl bg-kurla-sand border border-kurla-stone">
               Ton étagère est vide. Ajoute les produits que tu utilises actuellement : c'est ce qui permet à KURLA
               de ne pas te recommander ce que tu as déjà.
             </p>
@@ -601,14 +601,14 @@ export const ShelfPage: React.FC = () => {
             <div className="space-y-6">
               {Array.from(grouped.entries()).map(([step, stepItems]) => (
                 <div key={step}>
-                  <h3 className="text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-2">{ROUTINE_STEP_LABELS[step]}</h3>
+                  <h3 className="text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-2">{ROUTINE_STEP_LABELS[step]}</h3>
                   <div className="space-y-2">
                     {stepItems.map(item => {
                       const isSkin = isSkinShelfItem(item);
                       const daysLeft = estimateDaysLeft(item);
                       const alertRestock = isRestockAlert(item);
                       return (
-                      <div key={item.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 ${alertRestock ? 'bg-amber-50/70 border-amber-200' : 'bg-[#FFFDF9] border-[#E8E1DA]'}`}>
+                      <div key={item.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 ${alertRestock ? 'bg-amber-50/70 border-amber-200' : 'bg-kurla-ivory border-kurla-stone'}`}>
                         <div className="flex-1">
                           <p className="text-sm font-semibold flex items-center gap-2">
                             {item.freeLabel || item.productId}
@@ -618,11 +618,11 @@ export const ShelfPage: React.FC = () => {
                             {alertRestock && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">J-7 réassort</span>}
                           </p>
                           {item.inciSource === 'open_beauty_facts' && (
-                            <p className="text-[10px] text-[#111111]/50 mt-1">
+                            <p className="text-[10px] text-kurla-carbon/50 mt-1">
                               INCI Open Beauty Facts · {item.inciUnresolvedCount && item.inciUnresolvedCount > 0 ? `${item.inciUnresolvedCount} non rattaché(s)` : 'rattaché au graphe'}
                             </p>
                           )}
-                          <p className="text-[11px] text-[#111111]/55">
+                          <p className="text-[11px] text-kurla-carbon/55">
                             {STATUS_LABELS[item.status]}
                             {item.estimatedRemainingPercent !== null && item.estimatedRemainingPercent !== undefined && ` · ${item.estimatedRemainingPercent} % restant`}
                             {isSkin && daysLeft != null && ` · ~${daysLeft}j restants`}
@@ -630,7 +630,7 @@ export const ShelfPage: React.FC = () => {
                             {item.abandonmentReason && ` · ${ABANDONMENT_LABELS[item.abandonmentReason]}`}
                           </p>
                           {isSkin && item.estimatedRemainingPercent != null && (
-                            <div className="mt-1.5 h-1.5 rounded-full bg-[#111111]/10 overflow-hidden w-full max-w-[220px]">
+                            <div className="mt-1.5 h-1.5 rounded-full bg-kurla-carbon/10 overflow-hidden w-full max-w-[220px]">
                               <div className={`h-full ${progressColor(item.estimatedRemainingPercent)}`} style={{ width: `${Math.max(0, Math.min(100, item.estimatedRemainingPercent))}%` }} />
                             </div>
                           )}
@@ -646,16 +646,16 @@ export const ShelfPage: React.FC = () => {
                               }
                               handleStatusChange(item, next);
                             }}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-[11px]"
+                            className="px-2.5 py-1.5 rounded-lg bg-kurla-sand border border-kurla-stone text-[11px]"
                           >
                             {Object.entries(STATUS_LABELS).filter(([value]) => value !== 'abandoned').map(([value, label]) => (
                               <option key={value} value={value}>{label}</option>
                             ))}
                           </select>
-                          <button type="button" onClick={() => setOutcomeTarget(item)} className="px-2.5 py-1.5 rounded-lg bg-[#C8753D]/10 text-[#8b4b24] text-[11px] font-semibold">
+                          <button type="button" onClick={() => setOutcomeTarget(item)} className="px-2.5 py-1.5 rounded-lg bg-kurla-copper/10 text-[#8b4b24] text-[11px] font-semibold">
                             Donner mon retour
                           </button>
-                          <button type="button" onClick={() => handleDelete(item)} aria-label="Retirer" className="p-1.5 rounded-lg text-[#111111]/40 hover:text-rose-700">
+                          <button type="button" onClick={() => handleDelete(item)} aria-label="Retirer" className="p-1.5 rounded-lg text-kurla-carbon/40 hover:text-rose-700">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -671,18 +671,18 @@ export const ShelfPage: React.FC = () => {
 
         {/* Motifs d'abandon agrégés */}
         {verdict && verdict.abandonmentPatterns.length > 0 && (
-          <section className="mt-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA]">
+          <section className="mt-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
             <h2 className="font-bold text-sm mb-3">Ce qui ne te convient pas, en général</h2>
             <ul className="space-y-1.5">
               {verdict.abandonmentPatterns.map(pattern => (
                 <li key={pattern.reason} className="flex items-center justify-between text-xs">
-                  <span className="text-[#111111]/70">{pattern.label}</span>
-                  <span className="font-semibold text-[#C8753D]">{pattern.count}× · {Math.round(pattern.share * 100)} %</span>
+                  <span className="text-kurla-carbon/70">{pattern.label}</span>
+                  <span className="font-semibold text-kurla-copper">{pattern.count}× · {Math.round(pattern.share * 100)} %</span>
                 </li>
               ))}
             </ul>
             {verdict.avoidedIngredients.length > 0 && (
-              <p className="mt-4 pt-4 border-t border-[#111111]/10 text-[11px] text-[#111111]/60">
+              <p className="mt-4 pt-4 border-t border-kurla-carbon/10 text-[11px] text-kurla-carbon/60">
                 {verdict.avoidedIngredients.length} ingrédient(s) seront écartés de tes prochaines recommandations,
                 d'après au moins deux abandons motivés.
               </p>
@@ -693,14 +693,14 @@ export const ShelfPage: React.FC = () => {
 
       {/* Modale d'observation — la boucle d'apprentissage */}
       {outcomeTarget && (
-        <div className="fixed inset-0 z-50 bg-[#111111]/50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#FFFDF9] rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-kurla-carbon/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-kurla-ivory rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="font-bold text-sm">Ton retour sur {outcomeTarget.freeLabel || outcomeTarget.productId}</h2>
-                <p className="text-[11px] text-[#111111]/55 mt-1">C'est ce retour qui modifie tes prochaines recommandations.</p>
+                <p className="text-[11px] text-kurla-carbon/55 mt-1">C'est ce retour qui modifie tes prochaines recommandations.</p>
               </div>
-              <button type="button" onClick={() => setOutcomeTarget(null)} aria-label="Fermer" className="p-1.5 rounded-lg hover:bg-[#F8F2EC]"><X className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setOutcomeTarget(null)} aria-label="Fermer" className="p-1.5 rounded-lg hover:bg-kurla-sand"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleOutcome} className="space-y-4">
               <div>
@@ -713,9 +713,9 @@ export const ShelfPage: React.FC = () => {
                 <span className={labelClass}>Après combien de jours ?</span>
                 <input type="number" min={0} value={outcomeDays} onChange={event => setOutcomeDays(event.target.value)} placeholder="facultatif" className={inputClass} />
               </div>
-              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[#F8F2EC] border border-[#E8E1DA] cursor-pointer">
+              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-kurla-sand border border-kurla-stone cursor-pointer">
                 <input type="checkbox" checked={shareOutcome} onChange={event => setShareOutcome(event.target.checked)} className="mt-0.5" />
-                <span className="text-[11px] text-[#111111]/70 leading-relaxed">
+                <span className="text-[11px] text-kurla-carbon/70 leading-relaxed">
                   Contribuer à la recherche KURLA (agrégats anonymes uniquement).
                   Sans cette case, ton retour n'améliore que <strong>tes</strong> recommandations.
                   Une observation partagée ne conserve aucune note libre.

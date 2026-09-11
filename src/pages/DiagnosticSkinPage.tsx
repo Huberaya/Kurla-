@@ -374,118 +374,118 @@ export const DiagnosticSkinPage: React.FC = () => {
         <button
           key={opt.id}
           onClick={() => { setter(opt.id); if (autoNext && opt.id !== UNKNOWN) setTimeout(handleNext, 140); }}
-          className={`p-4 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 ${value === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D] ring-1 ring-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'}`}
+          className={`p-4 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 ${value === opt.id ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'}`}
         >
           <div>
-            <div className="font-bold text-sm text-[#FFF7EF]">{opt.label}</div>
-            {!!opt.desc && <div className="text-xs text-[#FFF7EF]/60 mt-1 leading-relaxed">{opt.desc}</div>}
+            <div className="font-bold text-sm text-kurla-cream">{opt.label}</div>
+            {!!opt.desc && <div className="text-xs text-kurla-cream/60 mt-1 leading-relaxed">{opt.desc}</div>}
           </div>
-          {value === opt.id && <Check className="w-4 h-4 text-[#C8753D] shrink-0 mt-0.5" />}
+          {value === opt.id && <Check className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" />}
         </button>
       ))}
     </div>
   );
 
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-gradient-to-b from-[#050403] via-[#1A0F0A] to-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-28 pb-24 bg-gradient-to-b from-kurla-ink via-kurla-espresso to-kurla-ink text-kurla-cream">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#C8753D]/15 border border-[#C8753D]/30 text-[#D49A63] text-xs font-semibold tracking-wider uppercase mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-amber text-xs font-semibold tracking-wider uppercase mb-4">
             <Sparkles className="w-3.5 h-3.5" /> KURLA SKIN · diagnostic peau · {isExpress ? 'express 2 min' : 'complet 5 min'} · gratuit
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">{isExpress ? 'Votre peau en 2 minutes' : 'Comprendre votre peau'}</h1>
-          <p className="text-sm text-[#FFF7EF]/70 font-light max-w-lg mx-auto">
+          <p className="text-sm text-kurla-cream/70 font-light max-w-lg mx-auto">
             {isExpress
               ? '5 questions essentielles — phototype, besoins, budget. Idéal pour explorer vite, puis affiner en complet.'
               : '12 questions visuelles, jamais anxiogènes. À chaque étape : “Je ne sais pas encore” est une vraie réponse. HPI, SPF sans trace blanche, vocabulaire uniformiser ≠ éclaircir.'}
           </p>
           <div className="mt-3 flex items-center justify-center gap-2 text-[11px]">
-            <a href="/peau/diagnostic" className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${!isExpress ? 'bg-[#FFF7EF] text-[#1A0F0A] border-[#FFF7EF]' : 'border-[#FFF7EF]/20 text-[#FFF7EF]/70 hover:bg-[#FFF7EF]/10'}`}>Complet</a>
-            <a href="/peau/diagnostic?mode=express" className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${isExpress ? 'bg-[#FFF7EF] text-[#1A0F0A] border-[#FFF7EF]' : 'border-[#FFF7EF]/20 text-[#FFF7EF]/70 hover:bg-[#FFF7EF]/10'}`}>Express</a>
+            <a href="/peau/diagnostic" className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${!isExpress ? 'bg-kurla-cream text-kurla-espresso border-kurla-cream' : 'border-kurla-cream/20 text-kurla-cream/70 hover:bg-kurla-cream/10'}`}>Complet</a>
+            <a href="/peau/diagnostic?mode=express" className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${isExpress ? 'bg-kurla-cream text-kurla-espresso border-kurla-cream' : 'border-kurla-cream/20 text-kurla-cream/70 hover:bg-kurla-cream/10'}`}>Express</a>
           </div>
         </div>
 
         <div className="mb-8 space-y-2">
-          <div className="flex justify-between text-xs text-[#D49A63] font-semibold uppercase tracking-wider">
+          <div className="flex justify-between text-xs text-kurla-amber font-semibold uppercase tracking-wider">
             <span>{isExpress ? 'Express' : 'Diagnostic complet'} — question {step} / {totalSteps}</span>
             <span>{Math.round((step / totalSteps) * 100)}% complété</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-[#1A0F0A] border border-[#FFF7EF]/10 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }} />
+          <div className="w-full h-2 rounded-full bg-kurla-espresso border border-kurla-cream/10 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-kurla-copper to-kurla-amber transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }} />
           </div>
         </div>
 
-        <div className="p-6 sm:p-10 rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/15 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#C8753D]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="p-6 sm:p-10 rounded-3xl bg-kurla-espresso border border-kurla-cream/15 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-kurla-copper/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* ════════════════════ MODE EXPRESS (5) ════════════════════ */}
           {isExpress && (
             <>
               {step === 1 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">1 · Type de peau</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">1 · Type de peau</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment qualifiez-vous votre peau ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Choisissez l’état dominant aujourd’hui. Vous pourrez affiner l’hydratation en mode complet.</p>
+                  <p className="text-xs text-kurla-cream/60">Choisissez l’état dominant aujourd’hui. Vous pourrez affiner l’hydratation en mode complet.</p>
                   {renderSingleGrid(skinTypes, answers.skinType, v => setAnswers({ ...answers, skinType: v }))}
                 </div>
               )}
               {step === 2 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2 · Phototype</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">2 · Phototype</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre carnation</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Pour recommander un SPF sans trace blanche. Palette non stigmatisante — “Je préfère ne pas classer” possible.</p>
+                  <p className="text-xs text-kurla-cream/60">Pour recommander un SPF sans trace blanche. Palette non stigmatisante — “Je préfère ne pas classer” possible.</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                     {toneDepths.map(opt => (
-                      <button key={opt.id} onClick={() => { setAnswers({ ...answers, toneDepth: opt.id }); setTimeout(handleNext, 140); }} className={`p-4 rounded-2xl border text-center transition-all ${answers.toneDepth === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D] ring-1 ring-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'}`}>
-                        {opt.id !== UNKNOWN ? <span className="w-10 h-10 rounded-full border border-[#FFF7EF]/15 mx-auto block" style={{ background: opt.color }} /> : <span className="w-10 h-10 rounded-full border border-dashed border-[#FFF7EF]/30 mx-auto flex items-center justify-center text-[10px] leading-none text-[#FFF7EF]/60">—</span>}
+                      <button key={opt.id} onClick={() => { setAnswers({ ...answers, toneDepth: opt.id }); setTimeout(handleNext, 140); }} className={`p-4 rounded-2xl border text-center transition-all ${answers.toneDepth === opt.id ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'}`}>
+                        {opt.id !== UNKNOWN ? <span className="w-10 h-10 rounded-full border border-kurla-cream/15 mx-auto block" style={{ background: opt.color }} /> : <span className="w-10 h-10 rounded-full border border-dashed border-kurla-cream/30 mx-auto flex items-center justify-center text-[10px] leading-none text-kurla-cream/60">—</span>}
                         <span className="text-xs font-bold mt-2 block">{opt.label}</span>
                       </button>
                     ))}
                   </div>
-                  <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-3 flex gap-2 text-xs text-[#FFF7EF]/75">
-                    <Info className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" /> Phototype ≠ valeur : un SPF 30+ reste utile quel que soit le phototype, surtout pour limiter les marques post-inflammatoires (HPI).
+                  <div className="rounded-2xl bg-kurla-ink border border-kurla-amber/30 p-3 flex gap-2 text-xs text-kurla-cream/75">
+                    <Info className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" /> Phototype ≠ valeur : un SPF 30+ reste utile quel que soit le phototype, surtout pour limiter les marques post-inflammatoires (HPI).
                   </div>
                 </div>
               )}
               {step === 3 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">3 · Préoccupations (max 3)</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">3 · Préoccupations (max 3)</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Qu’aimeriez-vous améliorer ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Sélectionnez jusqu’à 3. “Uniformiser” = atténuer les irrégularités, jamais “éclaircir”.</p>
+                  <p className="text-xs text-kurla-cream/60">Sélectionnez jusqu’à 3. “Uniformiser” = atténuer les irrégularités, jamais “éclaircir”.</p>
                   <div className="flex flex-wrap gap-2 pt-2">
                     {concernOptions.map(opt => {
                       const active = (answers.skinConcerns || []).includes(opt.id);
                       const limit = (answers.skinConcerns || []).filter(v => v !== UNKNOWN).length >= 3 && !active;
-                      return <button key={opt.id} onClick={() => toggleMulti('skinConcerns', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-[#C8753D] border-[#C8753D] text-white' : limit ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/30 cursor-not-allowed' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{opt.label}</button>;
+                      return <button key={opt.id} onClick={() => toggleMulti('skinConcerns', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-kurla-copper border-kurla-copper text-white' : limit ? 'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/30 cursor-not-allowed' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{opt.label}</button>;
                     })}
                   </div>
-                  <p className="text-[11px] text-[#D49A63]">{(answers.skinConcerns || []).filter(v => v !== UNKNOWN).length}/3 sélectionnées</p>
+                  <p className="text-[11px] text-kurla-amber">{(answers.skinConcerns || []).filter(v => v !== UNKNOWN).length}/3 sélectionnées</p>
                 </div>
               )}
               {step === 4 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4 · Objectifs (max 3)</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">4 · Objectifs (max 3)</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel résultat attendez-vous ?</h2>
                   <div className="flex flex-wrap gap-2 pt-2">
                     {objectiveOptions.map(opt => {
                       const active = (answers.skinObjectives || []).includes(opt.id);
                       const limit = (answers.skinObjectives || []).filter(v => v !== UNKNOWN).length >= 3 && !active;
-                      return <button key={opt.id} onClick={() => toggleMulti('skinObjectives', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-[#C8753D] border-[#C8753D] text-white' : limit ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/30' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{opt.label}</button>;
+                      return <button key={opt.id} onClick={() => toggleMulti('skinObjectives', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-kurla-copper border-kurla-copper text-white' : limit ? 'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/30' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{opt.label}</button>;
                     })}
                   </div>
-                  <p className="text-[11px] text-[#D49A63]">{(answers.skinObjectives || []).filter(v => v !== UNKNOWN).length}/3 · Astuce : choisissez “Uniformiser” + “Atténuer les taches” pour HPI.</p>
+                  <p className="text-[11px] text-kurla-amber">{(answers.skinObjectives || []).filter(v => v !== UNKNOWN).length}/3 · Astuce : choisissez “Uniformiser” + “Atténuer les taches” pour HPI.</p>
                 </div>
               )}
               {step === 5 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">5 · Budget & sauvegarde</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">5 · Budget & sauvegarde</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre budget & envoi du résultat</h2>
                   {renderSingleGrid(budgets.slice(0, 4), answers.budget, v => setAnswers({ ...answers, budget: v }), 2, false)}
                   <div className="pt-4">
-                    <label className="text-xs font-semibold text-[#FFF7EF]/80">E-mail (facultatif, pour recevoir votre routine)</label>
-                    <input type="email" value={answers.email} onChange={e => setAnswers({ ...answers, email: e.target.value })} placeholder="votre@email.fr (facultatif)" className="mt-1.5 w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-sm focus:outline-none focus:border-[#C8753D]" />
-                    <div className="mt-4 p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 flex items-start gap-3 text-xs text-[#FFF7EF]/60">
-                      <ShieldAlert className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
+                    <label className="text-xs font-semibold text-kurla-cream/80">E-mail (facultatif, pour recevoir votre routine)</label>
+                    <input type="email" value={answers.email} onChange={e => setAnswers({ ...answers, email: e.target.value })} placeholder="votre@email.fr (facultatif)" className="mt-1.5 w-full p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream placeholder-kurla-cream/40 text-sm focus:outline-none focus:border-kurla-copper" />
+                    <div className="mt-4 p-4 rounded-xl bg-kurla-ink/80 border border-kurla-cream/10 flex items-start gap-3 text-xs text-kurla-cream/60">
+                      <ShieldAlert className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" />
                       <span><strong>Bon à savoir :</strong> conseils beauté personnalisés — ne remplacent pas un avis dermatologique. En cas d’irritation persistante, consultez.</span>
                     </div>
                   </div>
@@ -499,56 +499,56 @@ export const DiagnosticSkinPage: React.FC = () => {
             <>
               {step === 1 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">1 · Type de peau</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">1 · Type de peau</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment qualifier votre peau aujourd’hui ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">État dominant au quotidien. Vous préciserez l’hydratation à l’étape suivante.</p>
+                  <p className="text-xs text-kurla-cream/60">État dominant au quotidien. Vous préciserez l’hydratation à l’étape suivante.</p>
                   {renderSingleGrid(skinTypes, answers.skinType, v => setAnswers({ ...answers, skinType: v }))}
                 </div>
               )}
               {step === 2 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">2 · Hydratation / confort</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">2 · Hydratation / confort</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre peau tiraille-t-elle, brille-t-elle ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Même une peau grasse peut être déshydratée (manque d’eau).</p>
+                  <p className="text-xs text-kurla-cream/60">Même une peau grasse peut être déshydratée (manque d’eau).</p>
                   {renderSingleGrid(hydrationLevels, answers.hydrationLevel || UNKNOWN, v => setAnswers({ ...answers, hydrationLevel: v }))}
                 </div>
               )}
               {step === 3 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">3 · Phototype / carnation</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">3 · Phototype / carnation</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre carnation</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Pour conseiller un SPF sans trace blanche et des actifs adaptés à la mélanine.</p>
+                  <p className="text-xs text-kurla-cream/60">Pour conseiller un SPF sans trace blanche et des actifs adaptés à la mélanine.</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                     {toneDepths.map(opt => (
-                      <button key={opt.id} onClick={() => { setAnswers({ ...answers, toneDepth: opt.id }); setTimeout(handleNext, 140); }} className={`p-4 rounded-2xl border text-center transition-all ${answers.toneDepth === opt.id ? 'bg-[#C8753D]/20 border-[#C8753D] ring-1 ring-[#C8753D]' : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'}`}>
-                        {opt.id !== UNKNOWN ? <span className="w-10 h-10 rounded-full border border-[#FFF7EF]/15 mx-auto block" style={{ background: opt.color }} /> : <span className="w-10 h-10 rounded-full border border-dashed border-[#FFF7EF]/30 mx-auto flex items-center justify-center text-[10px] text-[#FFF7EF]/60">—</span>}
+                      <button key={opt.id} onClick={() => { setAnswers({ ...answers, toneDepth: opt.id }); setTimeout(handleNext, 140); }} className={`p-4 rounded-2xl border text-center transition-all ${answers.toneDepth === opt.id ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'}`}>
+                        {opt.id !== UNKNOWN ? <span className="w-10 h-10 rounded-full border border-kurla-cream/15 mx-auto block" style={{ background: opt.color }} /> : <span className="w-10 h-10 rounded-full border border-dashed border-kurla-cream/30 mx-auto flex items-center justify-center text-[10px] text-kurla-cream/60">—</span>}
                         <span className="text-xs font-bold mt-2 block">{opt.label}</span>
                       </button>
                     ))}
                   </div>
-                  <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-3 flex gap-2 text-xs text-[#FFF7EF]/70"><Info className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" /> Peaux riches en mélanine (phototypes IV–VI) : HPI plus visible, SPF minéral peut laisser un voile blanc — on privilégie filtres invisibles.</div>
+                  <div className="rounded-2xl bg-kurla-ink border border-kurla-amber/30 p-3 flex gap-2 text-xs text-kurla-cream/70"><Info className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" /> Peaux riches en mélanine (phototypes IV–VI) : HPI plus visible, SPF minéral peut laisser un voile blanc — on privilégie filtres invisibles.</div>
                 </div>
               )}
               {step === 4 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">4 · Sous-ton</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">4 · Sous-ton</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre sous-ton</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Utile pour SPF teinté / correcteur, mais totalement facultatif.</p>
+                  <p className="text-xs text-kurla-cream/60">Utile pour SPF teinté / correcteur, mais totalement facultatif.</p>
                   {renderSingleGrid(undertones, answers.undertone || UNKNOWN, v => setAnswers({ ...answers, undertone: v }))}
                 </div>
               )}
               {step === 5 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">5 · Tendance aux marques</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">5 · Tendance aux marques</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Après un bouton ou une irritation…</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">HPI = taches sombres post-inflammatoires, fréquentes sur peaux mates/foncées.</p>
+                  <p className="text-xs text-kurla-cream/60">HPI = taches sombres post-inflammatoires, fréquentes sur peaux mates/foncées.</p>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Les marques (HPI) apparaissent :</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Les marques (HPI) apparaissent :</p>
                       {renderSingleGrid(hyperOptions, answers.hyperpigmentationTendency || UNKNOWN, v => setAnswers({ ...answers, hyperpigmentationTendency: v }), 1, false)}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Imperfections actuelles :</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Imperfections actuelles :</p>
                       {renderSingleGrid(acneOptions, answers.acne || UNKNOWN, v => setAnswers({ ...answers, acne: v }), 1, false)}
                     </div>
                   </div>
@@ -556,51 +556,51 @@ export const DiagnosticSkinPage: React.FC = () => {
               )}
               {step === 6 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">6 · Préoccupations · max 3</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">6 · Préoccupations · max 3</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Qu’aimeriez-vous améliorer en priorité ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Jusqu’à 3. Exemple : “Taches / HPI” + “Teint non uniforme” + “Protection solaire”.</p>
+                  <p className="text-xs text-kurla-cream/60">Jusqu’à 3. Exemple : “Taches / HPI” + “Teint non uniforme” + “Protection solaire”.</p>
                   <div className="flex flex-wrap gap-2 pt-2">
                     {concernOptions.map(opt => {
                       const active = (answers.skinConcerns || []).includes(opt.id);
                       const count = (answers.skinConcerns || []).filter(v => v !== UNKNOWN).length;
                       const limit = count >= 3 && !active;
-                      return <button key={opt.id} onClick={() => toggleMulti('skinConcerns', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-[#C8753D] border-[#C8753D] text-white' : limit ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/30 cursor-not-allowed' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/85 hover:border-[#C8753D]/50'}`}>{opt.label}</button>;
+                      return <button key={opt.id} onClick={() => toggleMulti('skinConcerns', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all ${active ? 'bg-kurla-copper border-kurla-copper text-white' : limit ? 'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/30 cursor-not-allowed' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/85 hover:border-kurla-copper/50'}`}>{opt.label}</button>;
                     })}
                   </div>
-                  <p className="text-[11px] text-[#D49A63]">{(answers.skinConcerns || []).filter(v => v !== UNKNOWN).length}/3 sélectionnées</p>
+                  <p className="text-[11px] text-kurla-amber">{(answers.skinConcerns || []).filter(v => v !== UNKNOWN).length}/3 sélectionnées</p>
                 </div>
               )}
               {step === 7 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">7 · Objectifs · max 3</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">7 · Objectifs · max 3</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel résultat attendez-vous ?</h2>
-                  <p className="text-xs text-[#FFF7EF]/60">Vocabulaire KURLA : <strong className="text-[#FFF7EF]">uniformiser</strong> le teint, jamais “éclaircir”. On atténue l’irrégulier, on respecte la carnation.</p>
+                  <p className="text-xs text-kurla-cream/60">Vocabulaire KURLA : <strong className="text-kurla-cream">uniformiser</strong> le teint, jamais “éclaircir”. On atténue l’irrégulier, on respecte la carnation.</p>
                   <div className="flex flex-wrap gap-2 pt-2">
                     {objectiveOptions.map(opt => {
                       const active = (answers.skinObjectives || []).includes(opt.id);
                       const count = (answers.skinObjectives || []).filter(v => v !== UNKNOWN).length;
                       const limit = count >= 3 && !active;
-                      return <button key={opt.id} onClick={() => toggleMulti('skinObjectives', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold ${active ? 'bg-[#C8753D] border-[#C8753D] text-white' : limit ? 'bg-[#050403] border-[#FFF7EF]/10 text-[#FFF7EF]/30' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/85 hover:border-[#C8753D]/50'}`}>{opt.label}</button>;
+                      return <button key={opt.id} onClick={() => toggleMulti('skinObjectives', opt.id)} disabled={limit} className={`px-3.5 py-2.5 rounded-full border text-xs font-semibold ${active ? 'bg-kurla-copper border-kurla-copper text-white' : limit ? 'bg-kurla-ink border-kurla-cream/10 text-kurla-cream/30' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/85 hover:border-kurla-copper/50'}`}>{opt.label}</button>;
                     })}
                   </div>
-                  <p className="text-[11px] text-[#D49A63]">{(answers.skinObjectives || []).filter(v => v !== UNKNOWN).length}/3</p>
+                  <p className="text-[11px] text-kurla-amber">{(answers.skinObjectives || []).filter(v => v !== UNKNOWN).length}/3</p>
                 </div>
               )}
               {step === 8 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">8 · Sensibilité</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">8 · Sensibilité</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre peau est-elle sensible ?</h2>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Niveau global</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Niveau global</p>
                       {renderSingleGrid(sensitivityLevels, answers.sensitivity, v => setAnswers({ ...answers, sensitivity: v }), 1, false)}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Déclencheurs connus (plusieurs possibles)</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Déclencheurs connus (plusieurs possibles)</p>
                       <div className="flex flex-wrap gap-2">
                         {sensitivityTriggers.map(opt => {
                           const active = (answers.sensitivities || []).includes(opt.id);
-                          return <button key={opt.id} onClick={() => toggleSensitivity(opt.id)} className={`px-3.5 py-2 rounded-full border text-xs font-semibold ${active ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{opt.label}</button>;
+                          return <button key={opt.id} onClick={() => toggleSensitivity(opt.id)} className={`px-3.5 py-2 rounded-full border text-xs font-semibold ${active ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{opt.label}</button>;
                         })}
                       </div>
                     </div>
@@ -609,41 +609,41 @@ export const DiagnosticSkinPage: React.FC = () => {
               )}
               {step === 9 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">9 · Soleil & SPF</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">9 · Soleil & SPF</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Exposition et protection solaire</h2>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Exposition au soleil</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Exposition au soleil</p>
                       {renderSingleGrid(sunOptions, answers.sunExposure || UNKNOWN, v => setAnswers({ ...answers, sunExposure: v }), 2, false)}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Habitude SPF</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Habitude SPF</p>
                       {renderSingleGrid(spfOptions, answers.spfUsage, v => setAnswers({ ...answers, spfUsage: v }), 2, false)}
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-[#050403] border border-[#D49A63]/30 p-3 text-xs text-[#FFF7EF]/70 flex gap-2"><Info className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" /> SPF 30→50+, filtres organiques ou hybrides souvent plus invisibles que 100% minéral sur peaux foncées. Toujours réappliquer si exposition prolongée.</div>
+                  <div className="rounded-2xl bg-kurla-ink border border-kurla-amber/30 p-3 text-xs text-kurla-cream/70 flex gap-2"><Info className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" /> SPF 30→50+, filtres organiques ou hybrides souvent plus invisibles que 100% minéral sur peaux foncées. Toujours réappliquer si exposition prolongée.</div>
                 </div>
               )}
               {step === 10 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">10 · Routine & textures</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">10 · Routine & textures</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre routine actuelle</h2>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Routine aujourd’hui</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Routine aujourd’hui</p>
                       {renderSingleGrid(routineOptions, answers.currentRoutine || UNKNOWN, v => setAnswers({ ...answers, currentRoutine: v }), 1, false)}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-[#D49A63] mb-2">Texture préférée</p>
+                        <p className="text-xs font-semibold text-kurla-amber mb-2">Texture préférée</p>
                         <div className="flex flex-wrap gap-2">
-                          {textureOptions.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, texturePreference: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.texturePreference === o.id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{o.label}</button>)}
+                          {textureOptions.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, texturePreference: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.texturePreference === o.id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{o.label}</button>)}
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-[#D49A63] mb-2">Fini</p>
+                        <p className="text-xs font-semibold text-kurla-amber mb-2">Fini</p>
                         <div className="flex flex-wrap gap-2">
-                          {finishOptions.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, finishPreference: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.finishPreference === o.id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{o.label}</button>)}
+                          {finishOptions.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, finishPreference: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.finishPreference === o.id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{o.label}</button>)}
                         </div>
                       </div>
                     </div>
@@ -652,23 +652,23 @@ export const DiagnosticSkinPage: React.FC = () => {
               )}
               {step === 11 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">11 · Budget, âge & environnement</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">11 · Budget, âge & environnement</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Votre cadre</h2>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Budget mensuel peau</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Budget mensuel peau</p>
                       {renderSingleGrid(budgets.slice(0, 4), answers.budget, v => setAnswers({ ...answers, budget: v }), 2, false)}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Tranche d’âge</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Tranche d’âge</p>
                       <div className="flex flex-wrap gap-2">
-                        {ageRanges.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, ageRange: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.ageRange === o.id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{o.label}</button>)}
+                        {ageRanges.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, ageRange: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.ageRange === o.id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{o.label}</button>)}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-[#D49A63] mb-2">Climat / saison</p>
+                      <p className="text-xs font-semibold text-kurla-amber mb-2">Climat / saison</p>
                       <div className="flex flex-wrap gap-2">
-                        {climates.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, climate: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.climate === o.id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/80 hover:border-[#C8753D]/50'}`}>{o.label}</button>)}
+                        {climates.map(o => <button key={o.id} onClick={() => setAnswers({ ...answers, climate: o.id })} className={`px-3 py-2 rounded-full border text-xs font-semibold ${answers.climate === o.id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/80 hover:border-kurla-copper/50'}`}>{o.label}</button>)}
                       </div>
                     </div>
                   </div>
@@ -676,20 +676,20 @@ export const DiagnosticSkinPage: React.FC = () => {
               )}
               {step === 12 && (
                 <div className="space-y-6">
-                  <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">12 · Sauvegarde</span>
+                  <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">12 · Sauvegarde</span>
                   <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Recevez votre routine</h2>
-                  <p className="text-sm text-[#FFF7EF]/70">Votre résultat s’affiche immédiatement. L’e-mail n’est utile que pour sauvegarder et retrouver “Ma peau”.</p>
+                  <p className="text-sm text-kurla-cream/70">Votre résultat s’affiche immédiatement. L’e-mail n’est utile que pour sauvegarder et retrouver “Ma peau”.</p>
                   <div>
-                    <label className="text-xs font-semibold text-[#FFF7EF]/80">E-mail (facultatif)</label>
-                    <input type="email" value={answers.email} onChange={e => setAnswers({ ...answers, email: e.target.value })} placeholder="votre@email.fr" className="mt-1.5 w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-sm focus:outline-none focus:border-[#C8753D]" />
+                    <label className="text-xs font-semibold text-kurla-cream/80">E-mail (facultatif)</label>
+                    <input type="email" value={answers.email} onChange={e => setAnswers({ ...answers, email: e.target.value })} placeholder="votre@email.fr" className="mt-1.5 w-full p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream placeholder-kurla-cream/40 text-sm focus:outline-none focus:border-kurla-copper" />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#FFF7EF]/80">Quelque chose à signaler ? (allergies, traitements en cours)</label>
-                    <textarea value={answers.reactionHistory || ''} onChange={e => setAnswers({ ...answers, reactionHistory: e.target.value })} placeholder="Ex: peau réactive au parfum, traitement acné en cours..." rows={3} maxLength={300} className="mt-1.5 w-full p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] placeholder-[#FFF7EF]/40 text-sm focus:outline-none focus:border-[#C8753D] resize-none" />
-                    <p className="text-[11px] text-[#FFF7EF]/40 text-right mt-1">{(answers.reactionHistory || '').length}/300</p>
+                    <label className="text-xs font-semibold text-kurla-cream/80">Quelque chose à signaler ? (allergies, traitements en cours)</label>
+                    <textarea value={answers.reactionHistory || ''} onChange={e => setAnswers({ ...answers, reactionHistory: e.target.value })} placeholder="Ex: peau réactive au parfum, traitement acné en cours..." rows={3} maxLength={300} className="mt-1.5 w-full p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream placeholder-kurla-cream/40 text-sm focus:outline-none focus:border-kurla-copper resize-none" />
+                    <p className="text-[11px] text-kurla-cream/40 text-right mt-1">{(answers.reactionHistory || '').length}/300</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 flex items-start gap-3 text-xs text-[#FFF7EF]/60">
-                    <ShieldAlert className="w-4 h-4 text-[#D49A63] shrink-0 mt-0.5" />
+                  <div className="p-4 rounded-xl bg-kurla-ink/80 border border-kurla-cream/10 flex items-start gap-3 text-xs text-kurla-cream/60">
+                    <ShieldAlert className="w-4 h-4 text-kurla-amber shrink-0 mt-0.5" />
                     <span><strong>Bon à savoir :</strong> ces recommandations beauté ne constituent pas un avis médical ni un diagnostic. En cas de symptômes persistants, consultez un dermatologue. Données stockées dans “Ma peau”, modifiables à tout moment.</span>
                   </div>
                 </div>
@@ -699,9 +699,9 @@ export const DiagnosticSkinPage: React.FC = () => {
 
           {step === totalSteps && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block">{totalSteps} · Votre peau</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{totalSteps} · Votre peau</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">{PHOTOTYPE_QUESTION}</h2>
-              <p className="text-sm text-[#FFF7EF]/70">
+              <p className="text-sm text-kurla-cream/70">
                 C’est la seule question qui change réellement nos conseils sur les taches et les marques :
                 la réaction au soleil dit comment votre peau se défend, et donc comment elle risque de marquer.
               </p>
@@ -713,8 +713,8 @@ export const DiagnosticSkinPage: React.FC = () => {
                     onClick={() => setPhototype(option.value)}
                     className={`w-full p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
                       phototype === option.value
-                        ? 'bg-[#C8753D]/20 border-[#C8753D]'
-                        : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#C8753D]/50'
+                        ? 'bg-kurla-copper/20 border-kurla-copper'
+                        : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
                   >
                     {option.label}
@@ -722,34 +722,34 @@ export const DiagnosticSkinPage: React.FC = () => {
                 ))}
               </div>
 
-              <label className="flex items-start gap-3 p-4 rounded-xl bg-[#050403]/80 border border-[#FFF7EF]/10 cursor-pointer">
+              <label className="flex items-start gap-3 p-4 rounded-xl bg-kurla-ink/80 border border-kurla-cream/10 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={phototypeConsent}
                   onChange={event => setPhototypeConsent(event.target.checked)}
-                  className="mt-0.5 w-4 h-4 shrink-0 accent-[#C8753D]"
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-kurla-copper"
                 />
-                <span className="text-xs text-[#FFF7EF]/70 leading-relaxed">{PHOTOTYPE_CONSENT_TEXT}</span>
+                <span className="text-xs text-kurla-cream/70 leading-relaxed">{PHOTOTYPE_CONSENT_TEXT}</span>
               </label>
 
-              <p className="text-xs text-[#FFF7EF]/50">
+              <p className="text-xs text-kurla-cream/50">
                 Vous pouvez passer cette question : la routine fonctionne sans elle, elle sera simplement
                 moins précise sur les marques et le choix de la protection solaire.
               </p>
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-8 border-t border-[#FFF7EF]/10 mt-8">
-            <button onClick={handlePrev} disabled={step === 1} className={`px-5 py-2.5 rounded-full border border-[#FFF7EF]/20 text-xs font-semibold flex items-center gap-2 ${step === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#FFF7EF]/10'}`}>
+          <div className="flex items-center justify-between pt-8 border-t border-kurla-cream/10 mt-8">
+            <button onClick={handlePrev} disabled={step === 1} className={`px-5 py-2.5 rounded-full border border-kurla-cream/20 text-xs font-semibold flex items-center gap-2 ${step === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-kurla-cream/10'}`}>
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
-            <button onClick={handleNext} disabled={loading} className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all">
+            <button onClick={handleNext} disabled={loading} className="px-8 py-3.5 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all">
               {loading ? 'Génération KURLA…' : step === totalSteps ? <>Voir ma routine <Sparkles className="w-4 h-4" /></> : <>Continuer <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         </div>
 
-        <p className="text-[11px] text-[#FFF7EF]/40 text-center mt-6 leading-relaxed px-4">
+        <p className="text-[11px] text-kurla-cream/40 text-center mt-6 leading-relaxed px-4">
           KURLA SKIN respecte votre carnation : “uniformiser” signifie réduire les irrégularités et atténuer les marques (HPI), jamais “éclaircir” la peau. SPF conseillé quotidiennement, filtres invisibles privilégiés sur peaux foncées.
         </p>
       </div>

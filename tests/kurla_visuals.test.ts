@@ -33,6 +33,11 @@ const ok = (label: string) => {
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
+    // `src/server/` est du code d'infrastructure (politique CSP, SEO, plomberie
+    // HTTP) : il référence des ORIGINES de politique, jamais des visuels rendus.
+    // La règle « visuel = banque BrandImage » s'applique au code d'interface ;
+    // le rendu serveur de HTML (seoResolver) reste couvert par le contrôle 4.
+    if (entry === 'server') continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, out);
     else if (/\.(tsx|ts)$/.test(full)) out.push(full);

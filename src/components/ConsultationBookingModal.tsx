@@ -181,21 +181,21 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
         role="dialog"
         aria-modal="true"
         aria-labelledby="consultation-modal-title"
-        className="relative w-full max-w-2xl rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/20 text-[#FFF7EF] shadow-2xl my-8 overflow-hidden"
+        className="relative w-full max-w-2xl rounded-3xl bg-kurla-espresso border border-kurla-cream/20 text-kurla-cream shadow-2xl my-8 overflow-hidden"
       >
         
         {/* Top Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#FFF7EF]/10 bg-[#050403]">
+        <div className="flex items-center justify-between p-6 border-b border-kurla-cream/10 bg-kurla-ink">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#C8753D]/20 text-[#C8753D] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-kurla-copper/20 text-kurla-copper flex items-center justify-center">
               <Video className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-[#C8753D] uppercase tracking-wider">KURLA Visio Expert</span>
+                <span className="text-[10px] font-bold text-kurla-copper uppercase tracking-wider">KURLA Visio Expert</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium">Bêta — demande d’intérêt</span>
               </div>
-              <h2 id="consultation-modal-title" className="text-lg font-serif-title font-bold text-[#FFF7EF]">
+              <h2 id="consultation-modal-title" className="text-lg font-serif-title font-bold text-kurla-cream">
                 Réserver une Consultation Vidéo Privée
               </h2>
             </div>
@@ -204,7 +204,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
           <button
             onClick={onClose}
             aria-label="Fermer la demande de consultation"
-            className="w-9 h-9 rounded-full bg-[#1A0F0A] text-[#FFF7EF]/60 hover:text-white border border-[#FFF7EF]/10 flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full bg-kurla-espresso text-kurla-cream/60 hover:text-white border border-kurla-cream/10 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -212,19 +212,19 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
         {/* Step Indicator */}
         {!bookingConfirmed && (
-          <div className="px-6 py-3 bg-[#0D0805] border-b border-[#FFF7EF]/10 flex items-center justify-between text-xs">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-[#C8753D] font-bold' : 'text-[#FFF7EF]/40'}`}>
-              <span className="w-5 h-5 rounded-full bg-[#C8753D]/20 flex items-center justify-center text-[10px]">1</span>
+          <div className="px-6 py-3 bg-[#0D0805] border-b border-kurla-cream/10 flex items-center justify-between text-xs">
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-kurla-copper font-bold' : 'text-kurla-cream/40'}`}>
+              <span className="w-5 h-5 rounded-full bg-kurla-copper/20 flex items-center justify-center text-[10px]">1</span>
               <span>Séance & Expert</span>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#FFF7EF]/20" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-[#C8753D] font-bold' : 'text-[#FFF7EF]/40'}`}>
-              <span className="w-5 h-5 rounded-full bg-[#C8753D]/20 flex items-center justify-center text-[10px]">2</span>
+            <ChevronRight className="w-3.5 h-3.5 text-kurla-cream/20" />
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-kurla-copper font-bold' : 'text-kurla-cream/40'}`}>
+              <span className="w-5 h-5 rounded-full bg-kurla-copper/20 flex items-center justify-center text-[10px]">2</span>
               <span>Date & Créneau</span>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#FFF7EF]/20" />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-[#C8753D] font-bold' : 'text-[#FFF7EF]/40'}`}>
-              <span className="w-5 h-5 rounded-full bg-[#C8753D]/20 flex items-center justify-center text-[10px]">3</span>
+            <ChevronRight className="w-3.5 h-3.5 text-kurla-cream/20" />
+            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-kurla-copper font-bold' : 'text-kurla-cream/40'}`}>
+              <span className="w-5 h-5 rounded-full bg-kurla-copper/20 flex items-center justify-center text-[10px]">3</span>
               <span>Coordonnées</span>
             </div>
           </div>
@@ -237,7 +237,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-[#C8753D] uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-kurla-copper uppercase tracking-wider mb-2">
                   1. Choisis le type de consultation
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -249,20 +249,20 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                         onClick={() => setSelectedService(type)}
                         className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-[#C8753D]/20 border-[#C8753D] shadow-lg'
-                            : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#FFF7EF]/30'
+                            ? 'bg-kurla-copper/20 border-kurla-copper shadow-lg'
+                            : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-cream/30'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xl">{type.icon}</span>
-                          <span className="text-sm font-bold text-[#C8753D]">{type.price} €</span>
+                          <span className="text-sm font-bold text-kurla-copper">{type.price} €</span>
                         </div>
-                        <h4 className="text-sm font-bold text-[#FFF7EF] mb-1">{type.title}</h4>
-                        <p className="text-[11px] text-[#FFF7EF]/70 leading-relaxed mb-2 line-clamp-2">
+                        <h4 className="text-sm font-bold text-kurla-cream mb-1">{type.title}</h4>
+                        <p className="text-[11px] text-kurla-cream/70 leading-relaxed mb-2 line-clamp-2">
                           {type.description}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-[#FFF7EF]/50">
-                          <Clock className="w-3 h-3 text-[#C8753D]" />
+                        <div className="flex items-center gap-1.5 text-[10px] text-kurla-cream/50">
+                          <Clock className="w-3 h-3 text-kurla-copper" />
                           <span>{type.duration} via lien visio sécurisé</span>
                         </div>
                       </div>
@@ -273,7 +273,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
               {/* Expert Selection */}
               <div>
-                <label className="block text-xs font-bold text-[#C8753D] uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-kurla-copper uppercase tracking-wider mb-2">
                   2. Choisis ton expert KURLA Certifié
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -282,25 +282,25 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                     onClick={() => setSelectedProId('any')}
                     className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${
                       selectedProId === 'any'
-                        ? 'bg-[#C8753D]/20 border-[#C8753D]'
-                        : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#FFF7EF]/30'
+                        ? 'bg-kurla-copper/20 border-kurla-copper'
+                        : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-cream/30'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-[#C8753D]/20 text-[#C8753D] flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-kurla-copper/20 text-kurla-copper flex items-center justify-center font-bold text-xs shrink-0">
                       ⚡
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-[#FFF7EF]">1er Expert Dispo</div>
-                      <div className="text-[10px] text-[#FFF7EF]/60">Attribution rapide</div>
+                      <div className="text-xs font-bold text-kurla-cream">1er Expert Dispo</div>
+                      <div className="text-[10px] text-kurla-cream/60">Attribution rapide</div>
                     </div>
                   </div>
 
                   {professionals.length === 0 && (
-                    <div className="p-3 rounded-2xl border border-[#FFF7EF]/10 bg-[#050403]">
-                      <div className="text-xs font-bold text-[#FFF7EF] mb-1">
+                    <div className="p-3 rounded-2xl border border-kurla-cream/10 bg-kurla-ink">
+                      <div className="text-xs font-bold text-kurla-cream mb-1">
                         Aucun professionnel vérifié pour l&apos;instant
                       </div>
-                      <div className="text-[10px] text-[#FFF7EF]/60 leading-relaxed">
+                      <div className="text-[10px] text-kurla-cream/60 leading-relaxed">
                         {directoryLoaded
                           ? 'Choisissez « 1er expert dispo » : votre demande sera traitée dès qu\'un professionnel vérifié sera disponible. KURLA n\'invente pas de profil pour remplir la liste.'
                           : 'Chargement de l\'annuaire…'}
@@ -316,19 +316,19 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                         onClick={() => setSelectedProId(pro.id)}
                         className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${
                           isSelected
-                            ? 'bg-[#C8753D]/20 border-[#C8753D]'
-                            : 'bg-[#050403] border-[#FFF7EF]/10 hover:border-[#FFF7EF]/30'
+                            ? 'bg-kurla-copper/20 border-kurla-copper'
+                            : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-cream/30'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-full bg-[#C8753D]/20 border border-[#C8753D]/50 shrink-0 flex items-center justify-center text-sm font-bold text-[#D49A63]">
+                        <div className="w-10 h-10 rounded-full bg-kurla-copper/20 border border-kurla-copper/50 shrink-0 flex items-center justify-center text-sm font-bold text-kurla-amber">
                           {pro.name.trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs font-bold text-[#FFF7EF] truncate flex items-center gap-1">
+                          <div className="text-xs font-bold text-kurla-cream truncate flex items-center gap-1">
                             {pro.name}
-                            {pro.verified && <CheckCircle2 className="w-3 h-3 text-[#C8753D] shrink-0" />}
+                            {pro.verified && <CheckCircle2 className="w-3 h-3 text-kurla-copper shrink-0" />}
                           </div>
-                          <div className="text-[10px] text-[#D49A63] truncate">{pro.profession}</div>
+                          <div className="text-[10px] text-kurla-amber truncate">{pro.profession}</div>
                         </div>
                       </div>
                     );
@@ -340,7 +340,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               <div className="pt-4 flex justify-end">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                  className="px-6 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all cursor-pointer"
                 >
                   <span>Continuer : Choisir la Date</span>
                   <ArrowRight className="w-4 h-4" />
@@ -355,27 +355,27 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Calendar Widget */}
-                <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10">
+                <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
                   <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={handlePrevMonth}
-                      className="p-1 rounded-lg bg-[#1A0F0A] text-[#FFF7EF]/70 hover:text-white"
+                      className="p-1 rounded-lg bg-kurla-espresso text-kurla-cream/70 hover:text-white"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <span className="text-xs font-bold text-[#FFF7EF]">
+                    <span className="text-xs font-bold text-kurla-cream">
                       {monthNames[currentMonth]} {currentYear}
                     </span>
                     <button
                       onClick={handleNextMonth}
-                      className="p-1 rounded-lg bg-[#1A0F0A] text-[#FFF7EF]/70 hover:text-white"
+                      className="p-1 rounded-lg bg-kurla-espresso text-kurla-cream/70 hover:text-white"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Day Names */}
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-[#FFF7EF]/40 mb-2">
+                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-kurla-cream/40 mb-2">
                     <span>Dim</span>
                     <span>Lun</span>
                     <span>Mar</span>
@@ -405,10 +405,10 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                           onClick={() => setSelectedDate(dayNum)}
                           className={`p-2 rounded-xl text-xs font-semibold transition-all ${
                             isPast
-                              ? 'text-[#FFF7EF]/20 cursor-not-allowed'
+                              ? 'text-kurla-cream/20 cursor-not-allowed'
                               : isSelected
-                              ? 'bg-[#C8753D] text-white shadow-md font-bold'
-                              : 'hover:bg-[#1A0F0A] text-[#FFF7EF]'
+                              ? 'bg-kurla-copper text-white shadow-md font-bold'
+                              : 'hover:bg-kurla-espresso text-kurla-cream'
                           }`}
                         >
                           {dayNum}
@@ -419,13 +419,13 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                 </div>
 
                 {/* Time Slots Picker */}
-                <div className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 flex flex-col justify-between">
+                <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 flex flex-col justify-between">
                   <div>
-                    <label className="block text-xs font-bold text-[#C8753D] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <label className="block text-xs font-bold text-kurla-copper uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" />
                       Créneaux Disponibles pour le {selectedDate} {monthNames[currentMonth]}
                     </label>
-                    <p className="text-[11px] text-[#FFF7EF]/60 mb-4">
+                    <p className="text-[11px] text-kurla-cream/60 mb-4">
                       Heures exprimées en fuseau Europe/Paris (CET).
                     </p>
 
@@ -438,8 +438,8 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                             onClick={() => setSelectedSlot(slot)}
                             className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all border ${
                               isSlotSelected
-                                ? 'bg-[#C8753D] border-[#C8753D] text-white shadow-md'
-                                : 'bg-[#1A0F0A] border-[#FFF7EF]/10 text-[#FFF7EF] hover:border-[#C8753D]/40'
+                                ? 'bg-kurla-copper border-kurla-copper text-white shadow-md'
+                                : 'bg-kurla-espresso border-kurla-cream/10 text-kurla-cream hover:border-kurla-copper/40'
                             }`}
                           >
                             {slot}
@@ -449,7 +449,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 rounded-xl bg-[#1A0F0A] border border-[#FFF7EF]/10 text-[11px] text-[#FFF7EF]/70 flex items-center gap-2">
+                  <div className="mt-4 p-3 rounded-xl bg-kurla-espresso border border-kurla-cream/10 text-[11px] text-kurla-cream/70 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>Lien Google Meet / Visio généré automatiquement dès validation.</span>
                   </div>
@@ -460,14 +460,14 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               <div className="pt-2 flex items-center justify-between">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2.5 rounded-xl bg-[#050403] text-[#FFF7EF]/70 hover:text-white text-xs font-semibold flex items-center gap-1"
+                  className="px-4 py-2.5 rounded-xl bg-kurla-ink text-kurla-cream/70 hover:text-white text-xs font-semibold flex items-center gap-1"
                 >
                   <ChevronLeft className="w-4 h-4" /> Retour
                 </button>
 
                 <button
                   onClick={() => setStep(3)}
-                  className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all"
+                  className="px-6 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-2 shadow-md transition-all"
                 >
                   <span>Continuer : Mes Informations</span>
                   <ArrowRight className="w-4 h-4" />
@@ -482,16 +482,16 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
             <form onSubmit={handleConfirmBooking} className="space-y-4 text-xs">
               
               {/* Summary Banner */}
-              <div className="p-4 rounded-2xl bg-[#050403] border border-[#C8753D]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-copper/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="text-[10px] text-[#C8753D] uppercase font-bold">Récapitulatif de séance</div>
-                  <div className="text-sm font-bold text-[#FFF7EF]">{selectedService.title}</div>
-                  <div className="text-xs text-[#FFF7EF]/70">
+                  <div className="text-[10px] text-kurla-copper uppercase font-bold">Récapitulatif de séance</div>
+                  <div className="text-sm font-bold text-kurla-cream">{selectedService.title}</div>
+                  <div className="text-xs text-kurla-cream/70">
                     {selectedDate} {monthNames[currentMonth]} {currentYear} à <strong>{selectedSlot}</strong> ({selectedService.duration})
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold text-[#C8753D]">{selectedService.price} €</div>
+                  <div className="text-base font-bold text-kurla-copper">{selectedService.price} €</div>
                   <div className="text-[10px] text-emerald-400 flex items-center gap-1 justify-end">
                     <Lock className="w-3 h-3" /> Visio sécurisée
                   </div>
@@ -500,46 +500,46 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold mb-1 text-[#FFF7EF]">Ton Nom complet *</label>
+                  <label className="block font-semibold mb-1 text-kurla-cream">Ton Nom complet *</label>
                   <input
                     type="text"
                     required
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Ex: Fatou Diallo"
-                    className="w-full p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                    className="w-full p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream focus:outline-none focus:border-kurla-copper"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#FFF7EF]">Adresse Email (pour le lien visio) *</label>
+                  <label className="block font-semibold mb-1 text-kurla-cream">Adresse Email (pour le lien visio) *</label>
                   <input
                     type="email"
                     required
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     placeholder="fatou@example.com"
-                    className="w-full p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                    className="w-full p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream focus:outline-none focus:border-kurla-copper"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold mb-1 text-[#FFF7EF]">Téléphone (Rappels SMS)</label>
+                  <label className="block font-semibold mb-1 text-kurla-cream">Téléphone (Rappels SMS)</label>
                   <input
                     type="tel"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="+33 6 12 34 56 78"
-                    className="w-full p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                    className="w-full p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream focus:outline-none focus:border-kurla-copper"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#FFF7EF]">Expert Attribué</label>
-                  <div className="p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#C8753D]" />
+                  <label className="block font-semibold mb-1 text-kurla-cream">Expert Attribué</label>
+                  <div className="p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream flex items-center gap-2">
+                    <User className="w-4 h-4 text-kurla-copper" />
                     <span className="font-semibold">
                       {selectedProObj ? selectedProObj.name : 'Premier Expert KURLA Certifié Disponible'}
                     </span>
@@ -548,13 +548,13 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               </div>
 
               <div>
-                <label className="block font-semibold mb-1 text-[#FFF7EF]">Questions ou détails spécifiques pour l'expert</label>
+                <label className="block font-semibold mb-1 text-kurla-cream">Questions ou détails spécifiques pour l'expert</label>
                 <textarea
                   rows={3}
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
                   placeholder="Ex: Mes cheveux restent très secs après mes tresses. Je souhaite revoir ma routine de scellage..."
-                  className="w-full p-3 rounded-xl bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] focus:outline-none focus:border-[#C8753D]"
+                  className="w-full p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream focus:outline-none focus:border-kurla-copper"
                 />
               </div>
 
@@ -562,14 +562,14 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-4 py-2.5 rounded-xl bg-[#050403] text-[#FFF7EF]/70 hover:text-white text-xs font-semibold flex items-center gap-1"
+                  className="px-4 py-2.5 rounded-xl bg-kurla-ink text-kurla-cream/70 hover:text-white text-xs font-semibold flex items-center gap-1"
                 >
                   <ChevronLeft className="w-4 h-4" /> Modifier la date
                 </button>
 
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-2 shadow-lg transition-all"
+                  className="px-6 py-3 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-2 shadow-lg transition-all"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Envoyer ma demande de consultation</span>
@@ -588,13 +588,13 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               </div>
 
               <div>
-                <span className="text-xs uppercase tracking-widest text-[#C8753D] font-bold">
+                <span className="text-xs uppercase tracking-widest text-kurla-copper font-bold">
                   Demande enregistrée
                 </span>
-                <h3 className="text-2xl font-serif-title font-bold text-[#FFF7EF] my-1">
+                <h3 className="text-2xl font-serif-title font-bold text-kurla-cream my-1">
                   Ta demande de consultation est prise en compte
                 </h3>
-                <p className="text-xs text-[#FFF7EF]/70 max-w-md mx-auto">
+                <p className="text-xs text-kurla-cream/70 max-w-md mx-auto">
                   Aucune réservation ni aucun paiement n’est encore créé. Les informations saisies servent à préparer le futur service de consultation.
                 </p>
               </div>
@@ -607,7 +607,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
                 <p className="text-xs text-amber-100/80 leading-relaxed">
                   Cette demande ne crée pas encore de réservation, de paiement, d’invitation calendrier ou de lien visio. Notre équipe pourra confirmer le rendez-vous lorsque le service sera disponible.
                 </p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-[#FFF7EF]/80 pt-2">
+                <div className="grid grid-cols-2 gap-2 text-xs text-kurla-cream/80 pt-2">
                   <div><strong>Date souhaitée :</strong> {selectedDate} {monthNames[currentMonth]} {currentYear}</div>
                   <div><strong>Heure souhaitée :</strong> {selectedSlot} ({selectedService.duration})</div>
                   <div><strong>Expert souhaité :</strong> {selectedProObj ? selectedProObj.name : 'Premier expert disponible'}</div>
@@ -618,7 +618,7 @@ export const ConsultationBookingModal: React.FC<ConsultationBookingModalProps> =
               <div className="flex justify-center gap-3 pt-2">
                 <button
                   onClick={onClose}
-                  className="px-6 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold transition-colors"
+                  className="px-6 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold transition-colors"
                 >
                   Terminer & Retourner aux Pros
                 </button>

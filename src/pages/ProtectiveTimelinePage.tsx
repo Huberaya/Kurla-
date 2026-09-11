@@ -16,11 +16,11 @@ function EpisodeCard({
   const remainingDays = assessment ? Math.max(0, assessment.maxWearDays - assessment.wearDays) : null;
 
   return (
-    <li className="rounded-2xl border border-[#E8E1DA] bg-white p-4">
+    <li className="rounded-2xl border border-kurla-stone bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-base font-semibold">{STYLE_LABELS[episode.style]}</p>
-          <p className="text-[11px] text-[#111111]/55 mt-0.5">
+          <p className="text-[11px] text-kurla-carbon/55 mt-0.5">
             Posée le {formatDate(episode.installedAt)} · tension {TENSION_LABELS[episode.tension].toLowerCase()}
           </p>
         </div>
@@ -32,7 +32,7 @@ function EpisodeCard({
       </div>
 
       <div className="mt-4">
-        <div className="flex items-center justify-between text-[11px] text-[#111111]/60 mb-1.5">
+        <div className="flex items-center justify-between text-[11px] text-kurla-carbon/60 mb-1.5">
           <span className="flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" />
             Jour {assessment?.wearDays ?? 0} sur {episode.maxWearDays} recommandés
@@ -52,7 +52,7 @@ function EpisodeCard({
       </div>
 
       {assessment?.recommendation && (
-        <p className="mt-3 text-xs text-[#111111]/70 leading-relaxed">{assessment.recommendation}</p>
+        <p className="mt-3 text-xs text-kurla-carbon/70 leading-relaxed">{assessment.recommendation}</p>
       )}
 
       {episode.signals.length > 0 && (
@@ -63,7 +63,7 @@ function EpisodeCard({
               className={`rounded-full border px-2 py-0.5 text-[10px] ${
                 ESCALATION_SIGNALS.includes(signal)
                   ? 'border-rose-300 bg-rose-50 text-rose-900'
-                  : 'border-[#E8E1DA] bg-[#FFFDF9] text-[#111111]/65'
+                  : 'border-kurla-stone bg-kurla-ivory text-kurla-carbon/65'
               }`}
             >
               {PROTECTIVE_SIGNAL_LABELS[signal] ?? signal}
@@ -73,7 +73,7 @@ function EpisodeCard({
       )}
 
       <div className="mt-4 pt-3 border-t border-[#F0EAE2]">
-        <p className="text-[10px] uppercase tracking-wider text-[#111111]/45 mb-2">Signaler un symptôme</p>
+        <p className="text-[10px] uppercase tracking-wider text-kurla-carbon/45 mb-2">Signaler un symptôme</p>
         <div className="flex flex-wrap gap-1.5">
           {PROTECTIVE_SIGNALS.map(signal => (
             <button
@@ -81,7 +81,7 @@ function EpisodeCard({
               type="button"
               disabled={busy || episode.signals.includes(signal)}
               onClick={() => onSignal(signal)}
-              className="rounded-full border border-[#E8E1DA] px-2.5 py-1 text-[10px] text-[#111111]/70 hover:border-[#C8753D] hover:text-[#C8753D] disabled:opacity-40"
+              className="rounded-full border border-kurla-stone px-2.5 py-1 text-[10px] text-kurla-carbon/70 hover:border-kurla-copper hover:text-kurla-copper disabled:opacity-40"
             >
               {PROTECTIVE_SIGNAL_LABELS[signal]}
             </button>
@@ -94,12 +94,12 @@ function EpisodeCard({
           type="button"
           disabled={busy}
           onClick={onClose}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-[#E8E1DA] px-3 py-2 text-[11px] font-semibold text-[#111111]/70 hover:border-[#111111]/30 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-kurla-stone px-3 py-2 text-[11px] font-semibold text-kurla-carbon/70 hover:border-kurla-carbon/30 disabled:opacity-40"
         >
           <Scissors className="w-3.5 h-3.5" /> Marquer comme retirée
         </button>
         {assessment && assessment.limitations.length > 0 && (
-          <p className="text-[10px] text-[#111111]/40 max-w-[22rem] text-right">
+          <p className="text-[10px] text-kurla-carbon/40 max-w-[22rem] text-right">
             {assessment.limitations.join(' ')}
           </p>
         )}
@@ -128,9 +128,9 @@ import {
   TractionRiskAssessment
 } from '../lib/protectiveStyle';
 
-const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-[#111111]/50 mb-1.5';
-const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]';
-const primaryButton = 'px-4 py-2.5 rounded-xl bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const labelClass = 'block text-[10px] uppercase tracking-wider font-bold text-kurla-carbon/50 mb-1.5';
+const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-kurla-ivory border border-kurla-stone text-sm focus:outline-none focus:border-kurla-copper';
+const primaryButton = 'px-4 py-2.5 rounded-xl bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
 
 const STYLE_LABELS: Record<ProtectiveStyle, string> = {
   braids: 'Tresses',
@@ -232,16 +232,16 @@ export function ProtectiveTimelinePage() {
 
   if (!token) {
     return (
-      <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center px-4">
-        <p className="text-sm text-[#111111]/60">Connectez-vous pour suivre vos coiffures protectrices.</p>
+      <div className="pt-32 pb-24 bg-kurla-ivory min-h-screen flex items-center justify-center px-4">
+        <p className="text-sm text-kurla-carbon/60">Connectez-vous pour suivre vos coiffures protectrices.</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="pt-32 pb-24 bg-[#FFFDF9] min-h-screen flex items-center justify-center">
-        <p className="flex items-center gap-2 text-sm text-[#111111]/60">
+      <div className="pt-32 pb-24 bg-kurla-ivory min-h-screen flex items-center justify-center">
+        <p className="flex items-center gap-2 text-sm text-kurla-carbon/60">
           <Loader2 className="w-4 h-4 animate-spin" /> Chargement de la timeline…
         </p>
       </div>
@@ -253,11 +253,11 @@ export function ProtectiveTimelinePage() {
   );
 
   return (
-    <div className="pt-32 pb-24 bg-[#FFFDF9] text-[#111111] min-h-screen">
+    <div className="pt-32 pb-24 bg-kurla-ivory text-kurla-carbon min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
         <header className="mb-8">
           <h1 className="text-3xl font-serif-title font-bold">Timeline coiffure protectrice</h1>
-          <p className="text-sm text-[#111111]/60 mt-2 max-w-2xl">
+          <p className="text-sm text-kurla-carbon/60 mt-2 max-w-2xl">
             Une coiffure protectrice protège les longueurs et expose les racines. Le risque dépend de la
             durée de port et de la tension. KURLA suit ce que vous déclarez : il ne pose aucun diagnostic.
           </p>
@@ -293,20 +293,20 @@ export function ProtectiveTimelinePage() {
 
         {state && state.history.episodeCount > 0 && (
           <section className="mb-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-2xl border border-[#E8E1DA] bg-white p-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#111111]/45">Épisodes</p>
+            <div className="rounded-2xl border border-kurla-stone bg-white p-4">
+              <p className="text-[10px] uppercase tracking-wider text-kurla-carbon/45">Épisodes</p>
               <p className="text-2xl font-bold mt-1">{state.history.episodeCount}</p>
             </div>
-            <div className="rounded-2xl border border-[#E8E1DA] bg-white p-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#111111]/45">Jours de port</p>
+            <div className="rounded-2xl border border-kurla-stone bg-white p-4">
+              <p className="text-[10px] uppercase tracking-wider text-kurla-carbon/45">Jours de port</p>
               <p className="text-2xl font-bold mt-1">{state.history.totalWearDays}</p>
             </div>
-            <div className="rounded-2xl border border-[#E8E1DA] bg-white p-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#111111]/45">Portés trop longtemps</p>
+            <div className="rounded-2xl border border-kurla-stone bg-white p-4">
+              <p className="text-[10px] uppercase tracking-wider text-kurla-carbon/45">Portés trop longtemps</p>
               <p className="text-2xl font-bold mt-1">{Math.round(state.history.shareWithElevatedRisk * 100)} %</p>
             </div>
-            <div className="rounded-2xl border border-[#E8E1DA] bg-white p-4">
-              <p className="text-[10px] uppercase tracking-wider text-[#111111]/45">Signal récurrent</p>
+            <div className="rounded-2xl border border-kurla-stone bg-white p-4">
+              <p className="text-[10px] uppercase tracking-wider text-kurla-carbon/45">Signal récurrent</p>
               <p className="text-sm font-semibold mt-2 leading-tight">
                 {state.history.recurringSignals[0]?.label || 'Aucun signal répété'}
               </p>
@@ -323,7 +323,7 @@ export function ProtectiveTimelinePage() {
           </div>
 
           {showForm && (
-            <div className="mb-6 rounded-2xl border border-[#E8E1DA] bg-white p-4 space-y-3">
+            <div className="mb-6 rounded-2xl border border-kurla-stone bg-white p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className={labelClass}>Coiffure</label>
@@ -346,7 +346,7 @@ export function ProtectiveTimelinePage() {
                   <input type="date" className={inputClass} value={installedAt} onChange={event => setInstalledAt(event.target.value)} />
                 </div>
               </div>
-              <p className="text-[11px] text-[#111111]/50">
+              <p className="text-[11px] text-kurla-carbon/50">
                 KURLA ne devine pas : sans date de pose, aucune durée de port ne peut être calculée.
               </p>
               <button
@@ -364,7 +364,7 @@ export function ProtectiveTimelinePage() {
           )}
 
           {activeEpisodes.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[#E8E1DA] p-6 text-sm text-[#111111]/55">
+            <p className="rounded-2xl border border-dashed border-kurla-stone p-6 text-sm text-kurla-carbon/55">
               Aucune coiffure protectrice en cours. Déclarez-en une pour suivre la durée de port et être
               prévenu avant la limite prudente.
             </p>
@@ -391,9 +391,9 @@ export function ProtectiveTimelinePage() {
         </section>
 
         {state && state.history.pattern && (
-          <section className="mb-8 rounded-2xl border border-[#E8E1DA] bg-white p-4">
+          <section className="mb-8 rounded-2xl border border-kurla-stone bg-white p-4">
             <h2 className="text-sm font-bold mb-2">Ce que montre votre historique</h2>
-            <p className="text-xs leading-relaxed text-[#111111]/70">{state.history.pattern}</p>
+            <p className="text-xs leading-relaxed text-kurla-carbon/70">{state.history.pattern}</p>
           </section>
         )}
 
@@ -405,16 +405,16 @@ export function ProtectiveTimelinePage() {
                 const assessment = assessmentFor(episode.id);
                 const risk = assessment ? RISK_STYLES[assessment.riskLevel] : undefined;
                 return (
-                  <li key={episode.id} className="rounded-2xl border border-[#E8E1DA] bg-white p-4 flex flex-wrap items-center justify-between gap-3">
+                  <li key={episode.id} className="rounded-2xl border border-kurla-stone bg-white p-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold">{STYLE_LABELS[episode.style]}</p>
-                      <p className="text-[11px] text-[#111111]/55 mt-0.5">
+                      <p className="text-[11px] text-kurla-carbon/55 mt-0.5">
                         {formatDate(episode.installedAt)} → {formatDate(episode.removedAt)}
                         {episode.removalReason ? ` · ${episode.removalReason}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[#111111]/55">
+                      <span className="text-[11px] text-kurla-carbon/55">
                         {assessment ? `${assessment.wearDays} j / ${assessment.maxWearDays} j` : '—'}
                       </span>
                       {risk && (
@@ -430,7 +430,7 @@ export function ProtectiveTimelinePage() {
           </section>
         )}
 
-        <p className="mt-8 text-[11px] leading-relaxed text-[#111111]/45">
+        <p className="mt-8 text-[11px] leading-relaxed text-kurla-carbon/45">
           Les durées maximales affichées sont des ordres de grandeur prudents issus de l’usage courant des
           coiffures texturées, pas des seuils cliniques. Elles ne remplacent pas l’avis d’un professionnel.
         </p>

@@ -98,29 +98,29 @@ export const BrandTestsDashboardPage: React.FC = () => {
   }, [load]);
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-10">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block mb-2">Espace marque</span>
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block mb-2">Espace marque</span>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Vos tests produits</h1>
-          <p className="text-sm text-[#FFF7EF]/65">
+          <p className="text-sm text-kurla-cream/65">
             Les rapports sont k-anonymes. Aucune donnée personnelle n’y figure, et une cellule sous le seuil n’est pas
             transmise du tout.
           </p>
         </div>
 
         {error && (
-          <div className="mb-8 rounded-xl border border-[#C8753D]/40 bg-[#C8753D]/10 p-4 text-sm text-[#FFF7EF]/80">{error}</div>
+          <div className="mb-8 rounded-xl border border-kurla-copper/40 bg-kurla-copper/10 p-4 text-sm text-kurla-cream/80">{error}</div>
         )}
 
         {!token && (
-          <p className="rounded-xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-4 text-sm text-[#FFF7EF]/65">
+          <p className="rounded-xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-4 text-sm text-kurla-cream/65">
             Connexion requise : cet espace n’est accessible qu’à un compte portant le rôle marque.
           </p>
         )}
 
         {token && tests.length === 0 && !error && (
-          <p className="rounded-xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-4 text-sm text-[#FFF7EF]/65">
+          <p className="rounded-xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-4 text-sm text-kurla-cream/65">
             Aucun test pour le moment. Déposez une demande depuis la page espace marque.
           </p>
         )}
@@ -129,23 +129,23 @@ export const BrandTestsDashboardPage: React.FC = () => {
           {tests.map(test => {
             const report = reports[test.id];
             return (
-              <li key={test.id} className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+              <li key={test.id} className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
                 <div className="flex flex-wrap items-baseline justify-between gap-3 mb-1">
                   <h2 className="text-lg font-semibold">{test.productName}</h2>
-                  <span className="text-xs uppercase tracking-wide text-[#C8753D]">{test.statusLabel}</span>
+                  <span className="text-xs uppercase tracking-wide text-kurla-copper">{test.statusLabel}</span>
                 </div>
-                <p className="text-xs text-[#FFF7EF]/55 mb-4">
+                <p className="text-xs text-kurla-cream/55 mb-4">
                   Cohorte : {test.cohort.needs.map(need => NEED_LABELS[need] ?? need).join(', ')} · cible{' '}
                   {test.targetParticipants} participants · {test.durationDays} jours
                 </p>
                 {test.adminComment && (
-                  <p className="mb-4 rounded-lg border border-[#FFF7EF]/10 p-3 text-xs text-[#FFF7EF]/60">
+                  <p className="mb-4 rounded-lg border border-kurla-cream/10 p-3 text-xs text-kurla-cream/60">
                     Retour KURLA : {test.adminComment}
                   </p>
                 )}
 
                 {!report ? (
-                  <p className="text-sm text-[#FFF7EF]/55">Rapport non disponible pour ce test.</p>
+                  <p className="text-sm text-kurla-cream/55">Rapport non disponible pour ce test.</p>
                 ) : (
                   <>
                     <div className="mb-4 flex flex-wrap gap-4 text-sm">
@@ -162,7 +162,7 @@ export const BrandTestsDashboardPage: React.FC = () => {
 
                     {report.totals.publishable && report.signals ? (
                       <table className="w-full text-left text-sm">
-                        <thead className="text-xs uppercase tracking-wide text-[#FFF7EF]/50">
+                        <thead className="text-xs uppercase tracking-wide text-kurla-cream/50">
                           <tr>
                             <th className="py-2">Besoin</th>
                             <th className="py-2">Participants</th>
@@ -174,7 +174,7 @@ export const BrandTestsDashboardPage: React.FC = () => {
                         </thead>
                         <tbody>
                           {report.cells.map(cell => (
-                            <tr key={cell.need} className="border-t border-[#FFF7EF]/10">
+                            <tr key={cell.need} className="border-t border-kurla-cream/10">
                               <td className="py-2">{NEED_LABELS[cell.need] ?? cell.need}</td>
                               <td className="py-2">{cell.participants}</td>
                               <td className="py-2">{cell.positive}</td>
@@ -188,14 +188,14 @@ export const BrandTestsDashboardPage: React.FC = () => {
                         </tbody>
                       </table>
                     ) : (
-                      <p className="flex items-start gap-2 rounded-lg border border-[#FFF7EF]/10 p-3 text-sm text-[#FFF7EF]/65">
+                      <p className="flex items-start gap-2 rounded-lg border border-kurla-cream/10 p-3 text-sm text-kurla-cream/65">
                         <Lock className="mt-0.5 h-4 w-4 shrink-0" />
                         Effectif sous le seuil k = {report.kThreshold} : aucune distribution n’est transmise. Ce n’est
                         pas un résultat négatif, c’est un résultat non publiable.
                       </p>
                     )}
 
-                    <div className="mt-4 flex items-start gap-2 text-xs text-[#FFF7EF]/50">
+                    <div className="mt-4 flex items-start gap-2 text-xs text-kurla-cream/50">
                       <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>
                         Signaux non reconnus comptés à part : {report.signals?.unknown ?? 0}. Un résultat négatif a la
@@ -203,7 +203,7 @@ export const BrandTestsDashboardPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <ul className="mt-4 space-y-1 text-xs text-[#FFF7EF]/45">
+                    <ul className="mt-4 space-y-1 text-xs text-kurla-cream/45">
                       {report.caveats.slice(0, 3).map(caveat => (
                         <li key={caveat.slice(0, 32)} className="flex items-start gap-2">
                           <Info className="mt-0.5 h-3 w-3 shrink-0" />

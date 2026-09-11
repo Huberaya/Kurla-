@@ -53,18 +53,18 @@ export const AbandonedCartReminder: React.FC<Props> = ({ count, onOpenCart }) =>
       aria-label="Votre panier vous attend"
       className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-sm z-40 animate-in slide-in-from-bottom-4 duration-300"
     >
-      <div className="rounded-2xl bg-[#1A0F0A] border border-[#C8753D]/30 shadow-2xl shadow-black/40 p-5 space-y-3">
+      <div className="rounded-2xl bg-kurla-espresso border border-kurla-copper/30 shadow-2xl shadow-black/40 p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 text-[#D49A63]">
+          <div className="flex items-center gap-2 text-kurla-amber">
             <ShoppingBag className="w-5 h-5" />
-            <span className="text-sm font-bold text-[#FFF7EF]">Votre panier vous attend</span>
+            <span className="text-sm font-bold text-kurla-cream">Votre panier vous attend</span>
           </div>
-          <button onClick={dismiss} aria-label="Fermer" className="text-[#FFF7EF]/50 hover:text-[#FFF7EF]">
+          <button onClick={dismiss} aria-label="Fermer" className="text-kurla-cream/50 hover:text-kurla-cream">
             <X className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-xs text-[#FFF7EF]/70 leading-relaxed">
-          Vous avez <strong className="text-[#FFF7EF]">{count} article{count > 1 ? 's' : ''}</strong> en attente dans votre panier.
+        <p className="text-xs text-kurla-cream/70 leading-relaxed">
+          Vous avez <strong className="text-kurla-cream">{count} article{count > 1 ? 's' : ''}</strong> en attente dans votre panier.
           {DISPATCH_SENTENCE}
         </p>
         <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-3 py-2">
@@ -75,7 +75,7 @@ export const AbandonedCartReminder: React.FC<Props> = ({ count, onOpenCart }) =>
         </div>
         <button
           onClick={() => { dismiss(); onOpenCart(); }}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#C8753D] to-[#D49A63] hover:from-[#b06330] px-4 py-3 text-xs font-semibold text-white transition-all"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber hover:from-kurla-cocoa px-4 py-3 text-xs font-semibold text-white transition-all"
         >
           Reprendre ma commande <ArrowRight className="w-4 h-4" />
         </button>

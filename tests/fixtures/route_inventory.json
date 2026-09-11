@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T14:43:35.185Z",
+  "generatedAt": "2026-09-11T19:01:41.849Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -114,6 +114,7 @@
     "GET /api/privacy/photo-aipd",
     "GET /api/products",
     "GET /api/products/:idOrSlug/ingredients",
+    "GET /api/products/:productId",
     "GET /api/products/:productId/archetype-ratings",
     "GET /api/products/:productId/compliance",
     "GET /api/products/:productId/endorsements",

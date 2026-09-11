@@ -83,22 +83,22 @@ export const PeauSourcingCahierPanel: React.FC = () => {
     try { await navigator.clipboard.writeText(EMAIL_TEMPLATE); setCopied(true); setTimeout(()=>setCopied(false), 2500); } catch {}
   };
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6 sm:p-8 space-y-6 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-6 shadow-xl">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <FlaskConical className="w-5 h-5 text-[#C8753D]" /> C16 — Sourcing peau V-VI safe
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-kurla-copper" /> C16 — Sourcing peau V-VI safe
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">15 actifs + 20 fournisseurs</span>
           </h3>
-          <p className="text-xs text-[#FFF7EF]/60 mt-1 max-w-3xl leading-relaxed">
-            Cahier des charges peau à envoyer aux façonniers : <strong className="text-[#FFF7EF]">15 actifs documentés V-VI safe</strong> (preuves A/B), 3 kits 49,70/62/84,90€, <strong className="text-[#FFF7EF]">MOQ 50–100</strong> (1er run, pas 500), test <strong className="text-emerald-300">whitecast V–VI lumière du jour</strong> obligatoire pour tout SPF, <strong className="text-[#FFF7EF]">sans parfum exigé</strong> si sensible. Précommande 3–5j lun/jeu 18h, 0 stock Paris, Stripe TEST.
+          <p className="text-xs text-kurla-cream/60 mt-1 max-w-3xl leading-relaxed">
+            Cahier des charges peau à envoyer aux façonniers : <strong className="text-kurla-cream">15 actifs documentés V-VI safe</strong> (preuves A/B), 3 kits 49,70/62/84,90€, <strong className="text-kurla-cream">MOQ 50–100</strong> (1er run, pas 500), test <strong className="text-emerald-300">whitecast V–VI lumière du jour</strong> obligatoire pour tout SPF, <strong className="text-kurla-cream">sans parfum exigé</strong> si sensible. Précommande 3–5j lun/jeu 18h, 0 stock Paris, Stripe TEST.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href="/docs/sourcing/cahier_des_charges_peau.md" target="_blank" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs font-semibold hover:border-[#C8753D]">Cahier .md</a>
-          <a href="/docs/sourcing/fournisseurs_20.md" target="_blank" className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/15 text-xs font-semibold hover:border-[#C8753D]">20 fournisseurs .md</a>
-          <button onClick={copyMail} className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#D49A63] text-white text-xs font-bold flex items-center gap-1.5">
+          <a href="/docs/sourcing/cahier_des_charges_peau.md" target="_blank" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs font-semibold hover:border-kurla-copper">Cahier .md</a>
+          <a href="/docs/sourcing/fournisseurs_20.md" target="_blank" className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/15 text-xs font-semibold hover:border-kurla-copper">20 fournisseurs .md</a>
+          <button onClick={copyMail} className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-kurla-amber text-white text-xs font-bold flex items-center gap-1.5">
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{copied ? 'Copié !' : 'Copier mail type'}
           </button>
         </div>
@@ -122,40 +122,40 @@ export const PeauSourcingCahierPanel: React.FC = () => {
 
       {/* 15 actifs */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-1.5 mb-2"><Sparkles className="w-3.5 h-3.5" /> 15 actifs documentés — source unique skinIngredients15.ts</h4>
-        <div className="overflow-x-auto rounded-2xl border border-[#FFF7EF]/10">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-1.5 mb-2"><Sparkles className="w-3.5 h-3.5" /> 15 actifs documentés — source unique skinIngredients15.ts</h4>
+        <div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
           <table className="w-full text-left text-[11px] border-collapse">
-            <thead className="bg-[#050403] text-[#D49A63] uppercase tracking-wider text-[10px]">
+            <thead className="bg-kurla-ink text-kurla-amber uppercase tracking-wider text-[10px]">
               <tr><th className="px-2.5 py-2">#</th><th className="px-2.5 py-2">Actif (INCI)</th><th className="px-2.5 py-2">Famille</th><th className="px-2.5 py-2">Preuve</th><th className="px-2.5 py-2">V-VI</th><th className="px-2.5 py-2">Rôle HPI/barrière/SPF</th><th className="px-2.5 py-2">Kit</th></tr>
             </thead>
-            <tbody className="divide-y divide-[#FFF7EF]/5">
+            <tbody className="divide-y divide-kurla-cream/5">
               {ACTIFS.map((a,i)=> (
-                <tr key={a.inci} className="hover:bg-[#FFF7EF]/[0.02]">
-                  <td className="px-2.5 py-1.5 text-[#FFF7EF]/40">{i+1}</td>
-                  <td className="px-2.5 py-1.5 font-semibold text-[#FFF7EF]">{a.inci}</td>
-                  <td className="px-2.5 py-1.5 text-[#FFF7EF]/70">{a.famille}</td>
+                <tr key={a.inci} className="hover:bg-kurla-cream/[0.02]">
+                  <td className="px-2.5 py-1.5 text-kurla-cream/40">{i+1}</td>
+                  <td className="px-2.5 py-1.5 font-semibold text-kurla-cream">{a.inci}</td>
+                  <td className="px-2.5 py-1.5 text-kurla-cream/70">{a.famille}</td>
                   <td className="px-2.5 py-1.5"><span className={`px-1.5 py-0.5 rounded-full border text-[10px] font-bold ${a.preuve==='A'?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30':'bg-sky-500/15 text-sky-300 border-sky-500/30'}`}>{a.preuve}</span></td>
                   <td className="px-2.5 py-1.5 text-emerald-300 font-bold">{a.vv}</td>
-                  <td className="px-2.5 py-1.5 text-[#FFF7EF]/60 leading-snug">{a.role}</td>
-                  <td className="px-2.5 py-1.5 font-mono text-[#D49A63] text-[10px]">{a.kit}</td>
+                  <td className="px-2.5 py-1.5 text-kurla-cream/60 leading-snug">{a.role}</td>
+                  <td className="px-2.5 py-1.5 font-mono text-kurla-amber text-[10px]">{a.kit}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-[11px] text-[#FFF7EF]/40 mt-1.5">INCI normalisé, CosIng fichier+date, <code className="px-1 py-0.5 rounded bg-[#050403] border border-[#FFF7EF]/10">containsFragrance</code> booléen, <code>routineStep</code> matin 6/soir 8/hebdo 3. Prix achat cible : Essentielle &lt;22€, Équilibrée &lt;30€, Experte &lt;40€ HT.</p>
+        <p className="text-[11px] text-kurla-cream/40 mt-1.5">INCI normalisé, CosIng fichier+date, <code className="px-1 py-0.5 rounded bg-kurla-ink border border-kurla-cream/10">containsFragrance</code> booléen, <code>routineStep</code> matin 6/soir 8/hebdo 3. Prix achat cible : Essentielle &lt;22€, Équilibrée &lt;30€, Experte &lt;40€ HT.</p>
       </div>
 
       {/* Kits */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-1.5 mb-2"><Package className="w-3.5 h-3.5" /> 3 kits vente (pas achat) — prix publics</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-1.5 mb-2"><Package className="w-3.5 h-3.5" /> 3 kits vente (pas achat) — prix publics</h4>
         <div className="grid md:grid-cols-3 gap-3">
           {KITS.map(k=> (
-            <div key={k.name} className="p-4 rounded-2xl bg-[#050403] border border-[#FFF7EF]/10 space-y-1.5">
-              <div className="flex items-center justify-between"><span className="text-sm font-bold text-[#FFF7EF]">{k.name}</span><span className="text-sm font-bold text-emerald-300">{k.price}</span></div>
-              <p className="text-[11px] text-[#FFF7EF]/70 leading-relaxed">{k.contenu}</p>
-              <p className="text-[11px] text-[#D49A63] leading-relaxed">{k.exigence}</p>
-              <p className="text-[10px] font-mono text-[#FFF7EF]/50">Achat cible {k.achat} HT — port 4,90€ Essentielle, gratuit 62/84,90</p>
+            <div key={k.name} className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-1.5">
+              <div className="flex items-center justify-between"><span className="text-sm font-bold text-kurla-cream">{k.name}</span><span className="text-sm font-bold text-emerald-300">{k.price}</span></div>
+              <p className="text-[11px] text-kurla-cream/70 leading-relaxed">{k.contenu}</p>
+              <p className="text-[11px] text-kurla-amber leading-relaxed">{k.exigence}</p>
+              <p className="text-[10px] font-mono text-kurla-cream/50">Achat cible {k.achat} HT — port 4,90€ Essentielle, gratuit 62/84,90</p>
             </div>
           ))}
         </div>
@@ -163,27 +163,27 @@ export const PeauSourcingCahierPanel: React.FC = () => {
 
       {/* 20 fournisseurs */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> 20 fournisseurs cibles — 12 UE + 8 Afrique (MOQ 50–100, V-VI safe, ISO 22716)</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> 20 fournisseurs cibles — 12 UE + 8 Afrique (MOQ 50–100, V-VI safe, ISO 22716)</h4>
         <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-200">0 contact existant. Prospection à froid — <strong>J0 : 5 mails UE + SN prioritaire</strong> (1,2,3,8,13), <strong>J1 : 6 mails</strong> (4,5,6,9,15,17), <strong>J2 : 4 mails</strong> + relance J0 à J+3. <strong>KPI J+7 : &gt;30% réponse (6/20), 3 échantillons, 1 whitecast V–VI validé</strong>.</div>
         {[
           { title: 'UE — 12 cibles (stock partenaire 24–72h, précommande 3–5j)', rows: FOURNISSEURS_UE, tone: 'emerald' },
           { title: 'Afrique — 8 cibles (hub Dakar/Abidjan, Wave/MTN, français)', rows: FOURNISSEURS_AF, tone: 'sky' },
         ].map(group=> (
-          <div key={group.title} className="overflow-x-auto rounded-2xl border border-[#FFF7EF]/10">
+          <div key={group.title} className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
             <div className={`px-3 py-2 text-[11px] font-bold ${group.tone==='emerald'?'bg-emerald-500/10 text-emerald-300':'bg-sky-500/10 text-sky-300'}`}>{group.title}</div>
             <table className="w-full text-left text-[11px] border-collapse">
-              <thead className="bg-[#050403] text-[#FFF7EF]/50 uppercase tracking-wider text-[10px]">
+              <thead className="bg-kurla-ink text-kurla-cream/50 uppercase tracking-wider text-[10px]">
                 <tr><th className="px-2.5 py-1.5">#</th><th className="px-2.5 py-1.5">Fournisseur</th><th className="px-2.5 py-1.5">Pays</th><th className="px-2.5 py-1.5">Spécialité</th><th className="px-2.5 py-1.5">MOQ</th><th className="px-2.5 py-1.5">Quand</th><th className="px-2.5 py-1.5">Contact</th></tr>
               </thead>
-              <tbody className="divide-y divide-[#FFF7EF]/5">
+              <tbody className="divide-y divide-kurla-cream/5">
                 {group.rows.map(r=> (
-                  <tr key={r.n} className="hover:bg-[#FFF7EF]/[0.02]">
-                    <td className="px-2.5 py-1.5 text-[#FFF7EF]/40">{r.n}</td>
-                    <td className="px-2.5 py-1.5 font-semibold text-[#FFF7EF]">{r.nom}</td>
-                    <td className="px-2.5 py-1.5 text-[#FFF7EF]/60">{r.pays}</td>
-                    <td className="px-2.5 py-1.5 text-[#FFF7EF]/70">{r.spe}</td>
-                    <td className="px-2.5 py-1.5 font-mono text-[#D49A63]">{r.moq}</td>
-                    <td className="px-2.5 py-1.5"><span className={`px-1.5 py-0.5 rounded-full border text-[10px] font-bold ${r.statut.includes('J0')?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30': r.statut==='Veille'?'bg-[#FFF7EF]/5 text-[#FFF7EF]/40 border-[#FFF7EF]/10':'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>{r.statut}</span></td>
+                  <tr key={r.n} className="hover:bg-kurla-cream/[0.02]">
+                    <td className="px-2.5 py-1.5 text-kurla-cream/40">{r.n}</td>
+                    <td className="px-2.5 py-1.5 font-semibold text-kurla-cream">{r.nom}</td>
+                    <td className="px-2.5 py-1.5 text-kurla-cream/60">{r.pays}</td>
+                    <td className="px-2.5 py-1.5 text-kurla-cream/70">{r.spe}</td>
+                    <td className="px-2.5 py-1.5 font-mono text-kurla-amber">{r.moq}</td>
+                    <td className="px-2.5 py-1.5"><span className={`px-1.5 py-0.5 rounded-full border text-[10px] font-bold ${r.statut.includes('J0')?'bg-emerald-500/15 text-emerald-300 border-emerald-500/30': r.statut==='Veille'?'bg-kurla-cream/5 text-kurla-cream/40 border-kurla-cream/10':'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>{r.statut}</span></td>
                     <td className="px-2.5 py-1.5 font-mono text-sky-300 text-[10px]">{r.contact}</td>
                   </tr>
                 ))}
@@ -192,12 +192,12 @@ export const PeauSourcingCahierPanel: React.FC = () => {
           </div>
         ))}
         <div className="flex flex-wrap gap-2">
-          <a href="mailto:?subject=KURLA%20%E2%80%94%20kits%20peau%20V-VI%20safe&body=Bonjour%2C%0A%0AKURLA%20lance%20son%20p%C3%B4le%20peau..." className="px-3 py-1.5 rounded-full bg-[#C8753D] text-white text-xs font-bold flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Mail type J0 (5 mails)</a>
-          <span className="px-3 py-1.5 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-xs text-[#FFF7EF]/60">Objet : KURLA — kits peau V-VI safe 49,70/62/84,90€ (MOQ 50, précommande) — échantillon 1 kit + whitecast V–VI lumière du jour</span>
+          <a href="mailto:?subject=KURLA%20%E2%80%94%20kits%20peau%20V-VI%20safe&body=Bonjour%2C%0A%0AKURLA%20lance%20son%20p%C3%B4le%20peau..." className="px-3 py-1.5 rounded-full bg-kurla-copper text-white text-xs font-bold flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Mail type J0 (5 mails)</a>
+          <span className="px-3 py-1.5 rounded-full bg-kurla-ink border border-kurla-cream/10 text-xs text-kurla-cream/60">Objet : KURLA — kits peau V-VI safe 49,70/62/84,90€ (MOQ 50, précommande) — échantillon 1 kit + whitecast V–VI lumière du jour</span>
         </div>
       </div>
 
-      <p className="text-[10px] text-[#FFF7EF]/35 leading-relaxed text-center">C16 — doc sources : <span className="text-[#D49A63]">cahier_des_charges_peau.md</span> + <span className="text-[#D49A63]">fournisseurs_20.md</span> + <span className="text-[#D49A63]">skinIngredients15.ts</span> + <span className="text-[#D49A63]">peauKits.ts</span>. Aucun fournisseur contacté tant que précommandes non validées — « nous allons commencer par 5 mails J0 » (pas « nous pourrions »).</p>
+      <p className="text-[10px] text-kurla-cream/35 leading-relaxed text-center">C16 — doc sources : <span className="text-kurla-amber">cahier_des_charges_peau.md</span> + <span className="text-kurla-amber">fournisseurs_20.md</span> + <span className="text-kurla-amber">skinIngredients15.ts</span> + <span className="text-kurla-amber">peauKits.ts</span>. Aucun fournisseur contacté tant que précommandes non validées — « nous allons commencer par 5 mails J0 » (pas « nous pourrions »).</p>
     </div>
   );
 };

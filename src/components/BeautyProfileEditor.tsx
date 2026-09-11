@@ -57,8 +57,8 @@ interface Recommendation {
   fit: { score: number | null; confidence: number; reasons: string[]; evidence: { field: string; label: string; value: string; relation: string }[]; unmetNeeds: string[] };
 }
 
-const fieldClass = 'w-full px-3.5 py-3 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-xs text-[#111111] focus:outline-none focus:border-[#C8753D]';
-const sectionClass = 'p-6 sm:p-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] shadow-xs space-y-6';
+const fieldClass = 'w-full px-3.5 py-3 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs text-kurla-carbon focus:outline-none focus:border-kurla-copper';
+const sectionClass = 'p-6 sm:p-8 rounded-3xl bg-kurla-sand border border-kurla-stone shadow-xs space-y-6';
 const zoneConcernOptions = [
   { value: 'secheresse', label: 'Sécheresse' },
   { value: 'fragilite', label: 'Fragilité' },
@@ -70,8 +70,8 @@ const zoneConcernOptions = [
 
 function Help({ children }: { children: React.ReactNode }) {
   return (
-    <details className="mt-1 text-[11px] text-[#111111]/60">
-      <summary className="cursor-pointer list-none inline-flex items-center gap-1 hover:text-[#C8753D]">
+    <details className="mt-1 text-[11px] text-kurla-carbon/60">
+      <summary className="cursor-pointer list-none inline-flex items-center gap-1 hover:text-kurla-copper">
         <Info className="w-3 h-3" /> Pourquoi cette question ? <ChevronDown className="w-3 h-3" />
       </summary>
       <p className="mt-2 pl-4 leading-relaxed">{children}</p>
@@ -82,7 +82,7 @@ function Help({ children }: { children: React.ReactNode }) {
 function SelectField({ label, help, value, options, onChange }: { label: string; help: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[#111111] mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-kurla-carbon mb-1.5">{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)} className={fieldClass}>
         {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -94,11 +94,11 @@ function SelectField({ label, help, value, options, onChange }: { label: string;
 function MultiField({ label, help, values, options, onToggle }: { label: string; help: string; values: string[]; options: { value: string; label: string }[]; onToggle: (value: string) => void }) {
   return (
     <fieldset>
-      <legend className="block text-xs font-bold text-[#111111] mb-1.5">{label}</legend>
+      <legend className="block text-xs font-bold text-kurla-carbon mb-1.5">{label}</legend>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {options.map(option => (
-          <label key={option.value} className={`flex items-start gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${values.includes(option.value) ? 'bg-[#C8753D]/10 border-[#C8753D] text-[#111111]' : 'bg-[#FFFDF9] border-[#E8E1DA] text-[#111111]/75 hover:border-[#C8753D]'}`}>
-            <input type="checkbox" checked={values.includes(option.value)} onChange={() => onToggle(option.value)} className="mt-0.5 accent-[#C8753D]" />
+          <label key={option.value} className={`flex items-start gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${values.includes(option.value) ? 'bg-kurla-copper/10 border-kurla-copper text-kurla-carbon' : 'bg-kurla-ivory border-kurla-stone text-kurla-carbon/75 hover:border-kurla-copper'}`}>
+            <input type="checkbox" checked={values.includes(option.value)} onChange={() => onToggle(option.value)} className="mt-0.5 accent-kurla-copper" />
             <span>{option.label}</span>
           </label>
         ))}
@@ -110,10 +110,10 @@ function MultiField({ label, help, values, options, onToggle }: { label: string;
 
 function SectionTitle({ eyebrow, title, children }: { eyebrow: string; title: string; children?: React.ReactNode }) {
   return (
-    <div className="border-b border-[#E8E1DA] pb-4">
-      <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D]">{eyebrow}</p>
-      <h2 className="text-xl font-serif-title font-bold text-[#111111] mt-1">{title}</h2>
-      {children && <p className="text-xs text-[#111111]/65 leading-relaxed mt-2">{children}</p>}
+    <div className="border-b border-kurla-stone pb-4">
+      <p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper">{eyebrow}</p>
+      <h2 className="text-xl font-serif-title font-bold text-kurla-carbon mt-1">{title}</h2>
+      {children && <p className="text-xs text-kurla-carbon/65 leading-relaxed mt-2">{children}</p>}
     </div>
   );
 }
@@ -290,7 +290,7 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
   };
 
   if (loading) {
-    return <div className="p-10 text-center text-sm text-[#111111]/60"><Loader2 className="w-7 h-7 animate-spin text-[#C8753D] mx-auto mb-3" />Chargement de votre profil beauté…</div>;
+    return <div className="p-10 text-center text-sm text-kurla-carbon/60"><Loader2 className="w-7 h-7 animate-spin text-kurla-copper mx-auto mb-3" />Chargement de votre profil beauté…</div>;
   }
 
   if (error && !token) {
@@ -302,16 +302,16 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
 
   return (
     <div className="space-y-8">
-      <div className="p-6 sm:p-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+      <div className="p-6 sm:p-8 rounded-3xl bg-kurla-sand border border-kurla-stone flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D]">KURLA ID · profil vivant</p>
-          <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-[#111111] mt-1">Votre profil beauté, sans raccourci</h1>
-          <p className="text-sm text-[#111111]/65 font-light mt-2 max-w-2xl">Chaque réponse peut rester « je ne sais pas ». Le profil décrit séparément la fibre, le cuir chevelu, la peau et l’environnement : il ne pose aucun diagnostic médical.</p>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper">KURLA ID · profil vivant</p>
+          <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-kurla-carbon mt-1">Votre profil beauté, sans raccourci</h1>
+          <p className="text-sm text-kurla-carbon/65 font-light mt-2 max-w-2xl">Chaque réponse peut rester « je ne sais pas ». Le profil décrit séparément la fibre, le cuir chevelu, la peau et l’environnement : il ne pose aucun diagnostic médical.</p>
         </div>
-        <div className="min-w-[180px] p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] text-center">
-          <span className="text-[10px] uppercase tracking-wider text-[#111111]/55 block">Confiance du profil</span>
-          <span className="text-3xl font-bold text-[#C8753D]">{confidence.overall}%</span>
-          <span className="text-[10px] text-[#111111]/55 block">{confidence.knownFields}/{confidence.totalFields} champs documentés</span>
+        <div className="min-w-[180px] p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone text-center">
+          <span className="text-[10px] uppercase tracking-wider text-kurla-carbon/55 block">Confiance du profil</span>
+          <span className="text-3xl font-bold text-kurla-copper">{confidence.overall}%</span>
+          <span className="text-[10px] text-kurla-carbon/55 block">{confidence.knownFields}/{confidence.totalFields} champs documentés</span>
         </div>
       </div>
 
@@ -351,8 +351,8 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
             {(['scalp', 'lengths', 'ends'] as HairZoneKey[]).map(zone => {
               const labels = { scalp: 'Cuir chevelu', lengths: 'Longueurs', ends: 'Pointes' };
               return (
-                <div key={zone} className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] space-y-4">
-                  <h3 className="text-sm font-bold text-[#111111]">{labels[zone]}</h3>
+                <div key={zone} className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone space-y-4">
+                  <h3 className="text-sm font-bold text-kurla-carbon">{labels[zone]}</h3>
                   <SelectField label="Sécheresse" help="La sensation peut différer entre les zones." value={profile.hair.zones[zone].dryness} options={DRYNESS_OPTIONS} onChange={value => setZone(zone, 'dryness', value)} />
                   <SelectField label="État de la fibre" help="Une zone fragilisée peut recevoir une routine différente du reste de la tête." value={profile.hair.zones[zone].fiberCondition} options={CONDITION_OPTIONS} onChange={value => setZone(zone, 'fiberCondition', value)} />
                   <SelectField label="Casse" help="Cette réponse est propre à la zone observée." value={profile.hair.zones[zone].breakage} options={BREAKAGE_OPTIONS} onChange={value => setZone(zone, 'breakage', value)} />
@@ -398,7 +398,7 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
             <SelectField label="Fini préféré" help="Le fini permet de tenir compte du confort, du maquillage et des préférences sensorielles." value={profile.skin.finishPreference} options={FINISH_OPTIONS} onChange={value => setSkin('finishPreference', value)} />
           </div>
           <div>
-            <label className="block text-xs font-bold text-[#111111] mb-1.5" htmlFor="reaction-history">Historique de réactions (facultatif)</label>
+            <label className="block text-xs font-bold text-kurla-carbon mb-1.5" htmlFor="reaction-history">Historique de réactions (facultatif)</label>
             <textarea id="reaction-history" rows={4} maxLength={1000} value={profile.skin.reactionHistory} onChange={event => setSkin('reactionHistory', event.target.value)} placeholder="Ex. réaction à un parfum, un acide, un écran solaire… ou « je ne sais pas »." className={`${fieldClass} resize-y`} />
             <Help>Ce texte permet d’expliquer une recommandation et de signaler une prudence. Il n’est pas utilisé pour établir une conclusion médicale.</Help>
           </div>
@@ -420,26 +420,26 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
       {focus === 'all' && (
         <section className={sectionClass}>
           <SectionTitle eyebrow="06 · Photos facultatives" title="Importer une photo, seulement si vous le souhaitez">Les photos sont privées, stockées sans URL publique et ne sont jamais nécessaires pour utiliser KURLA ID. Retirer le consentement supprime les photos associées.</SectionTitle>
-          <label className="flex items-start gap-3 p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] cursor-pointer">
-            <input type="checkbox" checked={profile.photoConsent} onChange={event => { setProfile(current => ({ ...current, photoConsent: event.target.checked })); setPhotoUploadReady(false); }} className="mt-1 accent-[#C8753D]" />
-            <span className="text-xs text-[#111111]/80 leading-relaxed"><strong>Je consens à importer des photos dans mon espace privé KURLA.</strong><br />La photo sert uniquement à enrichir votre suivi. Elle n’est pas publiée, et vous pouvez retirer ce consentement à tout moment.</span>
+          <label className="flex items-start gap-3 p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone cursor-pointer">
+            <input type="checkbox" checked={profile.photoConsent} onChange={event => { setProfile(current => ({ ...current, photoConsent: event.target.checked })); setPhotoUploadReady(false); }} className="mt-1 accent-kurla-copper" />
+            <span className="text-xs text-kurla-carbon/80 leading-relaxed"><strong>Je consens à importer des photos dans mon espace privé KURLA.</strong><br />La photo sert uniquement à enrichir votre suivi. Elle n’est pas publiée, et vous pouvez retirer ce consentement à tout moment.</span>
           </label>
-          {!profile.photoConsent && <p className="text-xs text-[#111111]/55">Enregistrez le profil après avoir coché le consentement pour activer l’import.</p>}
-          {profile.photoConsent && !photoUploadReady && <p className="text-xs text-[#C8753D]">Enregistrez d’abord le profil pour activer l’import privé.</p>}
+          {!profile.photoConsent && <p className="text-xs text-kurla-carbon/55">Enregistrez le profil après avoir coché le consentement pour activer l’import.</p>}
+          {profile.photoConsent && !photoUploadReady && <p className="text-xs text-kurla-copper">Enregistrez d’abord le profil pour activer l’import privé.</p>}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <label className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold ${photoUploadReady ? 'bg-[#111111] text-white cursor-pointer hover:bg-[#C8753D]' : 'bg-[#E8E1DA] text-[#111111]/45 cursor-not-allowed'}`}>
+            <label className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold ${photoUploadReady ? 'bg-kurla-carbon text-white cursor-pointer hover:bg-kurla-copper' : 'bg-kurla-stone text-kurla-carbon/45 cursor-not-allowed'}`}>
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
               {uploading ? 'Import en cours…' : 'Choisir une photo'}
               <input type="file" accept="image/jpeg,image/png,image/webp" disabled={!photoUploadReady || uploading} onChange={handlePhotoUpload} className="sr-only" />
             </label>
-            <span className="text-xs text-[#111111]/55">JPG, PNG ou WebP · 5 Mo maximum · {photos.length} photo{photos.length > 1 ? 's' : ''} privée{photos.length > 1 ? 's' : ''}</span>
+            <span className="text-xs text-kurla-carbon/55">JPG, PNG ou WebP · 5 Mo maximum · {photos.length} photo{photos.length > 1 ? 's' : ''} privée{photos.length > 1 ? 's' : ''}</span>
             {photos.length > 0 && <button type="button" onClick={deletePhotos} className="text-xs text-rose-700 underline">Supprimer les photos</button>}
           </div>
         </section>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <button type="button" onClick={saveProfile} disabled={saving || !token} className="flex-1 py-4 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white font-semibold text-sm transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60">
+        <button type="button" onClick={saveProfile} disabled={saving || !token} className="flex-1 py-4 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-sm transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {saving ? 'Enregistrement…' : 'Enregistrer mon KURLA ID'}
         </button>
@@ -450,37 +450,37 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
 
       {focus === 'all' && (
         <>
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] space-y-4">
-            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[#C8753D]" /><h2 className="text-xl font-serif-title font-bold">Comment lire la confiance</h2></div>
-            <p className="text-sm text-[#111111]/70 leading-relaxed">{confidence.overall}% correspond à la couverture des informations connues, pas à une vérité sur votre beauté. Les recommandations restent prudentes tant que des champs importants sont inconnus.</p>
+          <section className="p-6 sm:p-8 rounded-3xl bg-kurla-ivory border border-kurla-stone space-y-4">
+            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-kurla-copper" /><h2 className="text-xl font-serif-title font-bold">Comment lire la confiance</h2></div>
+            <p className="text-sm text-kurla-carbon/70 leading-relaxed">{confidence.overall}% correspond à la couverture des informations connues, pas à une vérité sur votre beauté. Les recommandations restent prudentes tant que des champs importants sont inconnus.</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-[#F8F2EC]"><strong className="block">Hair ID</strong><span>{confidence.hair}% documenté</span></div>
-              <div className="p-3 rounded-xl bg-[#F8F2EC]"><strong className="block">Skin ID</strong><span>{confidence.skin}% documenté</span></div>
-              <div className="p-3 rounded-xl bg-[#F8F2EC]"><strong className="block">Environnement</strong><span>{confidence.environment}% documenté</span></div>
+              <div className="p-3 rounded-xl bg-kurla-sand"><strong className="block">Hair ID</strong><span>{confidence.hair}% documenté</span></div>
+              <div className="p-3 rounded-xl bg-kurla-sand"><strong className="block">Skin ID</strong><span>{confidence.skin}% documenté</span></div>
+              <div className="p-3 rounded-xl bg-kurla-sand"><strong className="block">Environnement</strong><span>{confidence.environment}% documenté</span></div>
             </div>
-            {confidence.missingLabels.length > 0 && <p className="text-xs text-[#111111]/55">Encore inconnus : {confidence.missingLabels.slice(0, 7).join(', ')}{confidence.missingLabels.length > 7 ? '…' : ''}</p>}
+            {confidence.missingLabels.length > 0 && <p className="text-xs text-kurla-carbon/55">Encore inconnus : {confidence.missingLabels.slice(0, 7).join(', ')}{confidence.missingLabels.length > 7 ? '…' : ''}</p>}
           </section>
 
           {recommendations.length > 0 && (
-            <section className="p-6 sm:p-8 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] space-y-5">
-              <div><p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D]">07 · Recommandations explicables</p><h2 className="text-xl font-serif-title font-bold mt-1">KURLA Fit, sans score décoratif</h2><p className="text-xs text-[#111111]/65 mt-2">Chaque score repose sur les besoins du produit et les informations réellement renseignées. Les champs inconnus ne sont pas inventés.</p></div>
+            <section className="p-6 sm:p-8 rounded-3xl bg-kurla-sand border border-kurla-stone space-y-5">
+              <div><p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper">07 · Recommandations explicables</p><h2 className="text-xl font-serif-title font-bold mt-1">KURLA Fit, sans score décoratif</h2><p className="text-xs text-kurla-carbon/65 mt-2">Chaque score repose sur les besoins du produit et les informations réellement renseignées. Les champs inconnus ne sont pas inventés.</p></div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {recommendations.slice(0, 4).map(recommendation => (
-                  <article key={recommendation.product.id} className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA]">
-                    <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase text-[#C8753D] font-bold">{recommendation.product.brand}</p><h3 className="text-sm font-bold mt-1">{recommendation.product.name}</h3></div><span className="text-lg font-bold text-[#C8753D]">{recommendation.fit.score}%</span></div>
-                    <p className="text-[11px] text-[#111111]/60 mt-2">Confiance des données utilisées : {recommendation.fit.confidence}%</p>
-                    {recommendation.fit.reasons.slice(0, 2).map(reason => <p key={reason} className="text-xs text-[#111111]/75 mt-2">• {reason}</p>)}
-                    {recommendation.fit.evidence.slice(0, 3).map(item => <p key={`${item.field}-${item.value}`} className="text-[11px] text-[#111111]/55 mt-1"><strong>{item.label} :</strong> {item.value} — {item.relation}.</p>)}
-                    <a href={`/produit/${recommendation.product.slug}`} className="inline-block mt-3 text-xs font-semibold text-[#C8753D] underline">Voir le soin</a>
+                  <article key={recommendation.product.id} className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone">
+                    <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase text-kurla-copper font-bold">{recommendation.product.brand}</p><h3 className="text-sm font-bold mt-1">{recommendation.product.name}</h3></div><span className="text-lg font-bold text-kurla-copper">{recommendation.fit.score}%</span></div>
+                    <p className="text-[11px] text-kurla-carbon/60 mt-2">Confiance des données utilisées : {recommendation.fit.confidence}%</p>
+                    {recommendation.fit.reasons.slice(0, 2).map(reason => <p key={reason} className="text-xs text-kurla-carbon/75 mt-2">• {reason}</p>)}
+                    {recommendation.fit.evidence.slice(0, 3).map(item => <p key={`${item.field}-${item.value}`} className="text-[11px] text-kurla-carbon/55 mt-1"><strong>{item.label} :</strong> {item.value} — {item.relation}.</p>)}
+                    <a href={`/produit/${recommendation.product.slug}`} className="inline-block mt-3 text-xs font-semibold text-kurla-copper underline">Voir le soin</a>
                   </article>
                 ))}
               </div>
             </section>
           )}
 
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] space-y-4">
-            <div><p className="text-[10px] uppercase tracking-widest font-bold text-[#C8753D]">08 · Historique</p><h2 className="text-xl font-serif-title font-bold mt-1">Évolutions du profil</h2><p className="text-xs text-[#111111]/60 mt-2">Chaque enregistrement crée un instantané. L’historique est supprimé avec vos données KURLA ID.</p></div>
-            {history.length === 0 ? <p className="text-sm text-[#111111]/55">Aucun changement enregistré pour le moment.</p> : <div className="space-y-2">{history.slice(0, 10).map(item => <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#F8F2EC] text-xs"><span>{new Date(item.createdAt).toLocaleString('fr-FR')} · {item.source === 'user' ? 'modification personnelle' : 'consentement photo retiré'}</span><strong className="text-[#C8753D]">{item.confidence.overall}%</strong></div>)}</div>}
+          <section className="p-6 sm:p-8 rounded-3xl bg-kurla-ivory border border-kurla-stone space-y-4">
+            <div><p className="text-[10px] uppercase tracking-widest font-bold text-kurla-copper">08 · Historique</p><h2 className="text-xl font-serif-title font-bold mt-1">Évolutions du profil</h2><p className="text-xs text-kurla-carbon/60 mt-2">Chaque enregistrement crée un instantané. L’historique est supprimé avec vos données KURLA ID.</p></div>
+            {history.length === 0 ? <p className="text-sm text-kurla-carbon/55">Aucun changement enregistré pour le moment.</p> : <div className="space-y-2">{history.slice(0, 10).map(item => <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-kurla-sand text-xs"><span>{new Date(item.createdAt).toLocaleString('fr-FR')} · {item.source === 'user' ? 'modification personnelle' : 'consentement photo retiré'}</span><strong className="text-kurla-copper">{item.confidence.overall}%</strong></div>)}</div>}
           </section>
         </>
       )}

@@ -100,17 +100,17 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
   const totalCount = products.filter(p => p.category !== 'kits').length;
 
   return (
-    <div className="rounded-3xl bg-[#1A0F0A] border border-[#FFF7EF]/10 p-6 sm:p-8 space-y-5 shadow-xl">
+    <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-5 shadow-xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#C8753D]" /> Fournisseur par produit
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <Package className="w-5 h-5 text-kurla-copper" /> Fournisseur par produit
           </h3>
-          <p className="text-xs text-[#FFF7EF]/55 mt-1 max-w-2xl">
+          <p className="text-xs text-kurla-cream/55 mt-1 max-w-2xl">
             Affectez la source d'approvisionnement de chaque référence. Les produits finis passent par un façonnier private label (bas coût), le karité/huiles par les matières premières, les accessoires en OEM. Les kits sont des assemblages (pas de fournisseur unique).
           </p>
         </div>
-        <button onClick={load} className="px-4 py-2 rounded-full bg-[#050403] hover:bg-[#3A2218] border border-[#FFF7EF]/15 text-[11px] font-semibold text-[#D49A63] flex items-center gap-1.5">
+        <button onClick={load} className="px-4 py-2 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/15 text-[11px] font-semibold text-kurla-amber flex items-center gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Actualiser
         </button>
       </div>
@@ -122,7 +122,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
         <div className="flex gap-1.5">
           {([['all', 'Tous'], ['unassigned', 'Sans fournisseur']] as const).map(([id, label]) => (
             <button key={id} onClick={() => setFilter(id)}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border ${filter === id ? 'bg-[#C8753D] border-[#C8753D] text-white' : 'bg-[#050403] border-[#FFF7EF]/15 text-[#FFF7EF]/60'}`}>
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border ${filter === id ? 'bg-kurla-copper border-kurla-copper text-white' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
               {label}
             </button>
           ))}
@@ -130,7 +130,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
       </div>
 
       {loading ? (
-        <p className="text-xs text-[#FFF7EF]/50 italic">Chargement…</p>
+        <p className="text-xs text-kurla-cream/50 italic">Chargement…</p>
       ) : suppliers.length === 0 ? (
         <p className="text-xs text-amber-300/80 bg-amber-950/30 border border-amber-500/20 rounded-2xl p-4">
           Aucun fournisseur enregistré. Créez d'abord des fournisseurs dans le panneau ci-dessous (ou lancez le script de seed sourcing).
@@ -139,28 +139,28 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#FFF7EF]/10 text-[#D49A63] uppercase tracking-wider">
+              <tr className="border-b border-kurla-cream/10 text-kurla-amber uppercase tracking-wider">
                 <th className="py-2.5 px-2">Produit</th>
                 <th className="py-2.5 px-2">Fournisseur</th>
                 <th className="py-2.5 px-2">SKU fourn.</th>
                 <th className="py-2.5 px-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#FFF7EF]/5">
+            <tbody className="divide-y divide-kurla-cream/5">
               {visible.map(p => {
                 const draft = drafts[p.id] || { supplierId: '', supplierSku: '' };
                 const dirty = draft.supplierId !== (p.supplierId || '') || draft.supplierSku !== (p.supplierSku || '');
                 return (
                   <tr key={p.id} className="align-middle">
                     <td className="py-2.5 px-2">
-                      <span className="font-semibold text-[#FFF7EF]">{p.name}</span>
-                      <p className="text-[10px] text-[#FFF7EF]/40 font-mono">{p.id} · {p.category}</p>
+                      <span className="font-semibold text-kurla-cream">{p.name}</span>
+                      <p className="text-[10px] text-kurla-cream/40 font-mono">{p.id} · {p.category}</p>
                     </td>
                     <td className="py-2.5 px-2">
                       <select
                         value={draft.supplierId}
                         onChange={e => setDrafts(d => ({ ...d, [p.id]: { ...d[p.id], supplierId: e.target.value } }))}
-                        className="w-56 px-2.5 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] text-xs focus:outline-none focus:border-[#C8753D]"
+                        className="w-56 px-2.5 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper"
                       >
                         <option value="">— Non affecté —</option>
                         {suppliers.map(s => (
@@ -173,14 +173,14 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
                         value={draft.supplierSku}
                         onChange={e => setDrafts(d => ({ ...d, [p.id]: { ...d[p.id], supplierSku: e.target.value } }))}
                         placeholder="réf. fournisseur"
-                        className="w-32 px-2.5 py-1.5 rounded-xl bg-[#050403] border border-[#FFF7EF]/20 text-[#FFF7EF] text-xs font-mono focus:outline-none focus:border-[#C8753D]"
+                        className="w-32 px-2.5 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream text-xs font-mono focus:outline-none focus:border-kurla-copper"
                       />
                     </td>
                     <td className="py-2.5 px-2">
                       <button
                         onClick={() => save(p)}
                         disabled={!dirty || savingId === p.id}
-                        className="px-3 py-1.5 rounded-full bg-[#C8753D] hover:bg-[#B3632F] disabled:opacity-30 text-white text-[11px] font-bold flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-full bg-kurla-copper hover:bg-[#B3632F] disabled:opacity-30 text-white text-[11px] font-bold flex items-center gap-1.5"
                       >
                         {savingId === p.id ? '…' : dirty ? <Save className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                         {dirty ? 'Enregistrer' : 'OK'}
@@ -190,13 +190,13 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
                 );
               })}
               {visible.length === 0 && (
-                <tr><td colSpan={4} className="py-8 text-center text-[#FFF7EF]/45 italic">Tous les produits ont un fournisseur. 🎉</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-kurla-cream/45 italic">Tous les produits ont un fournisseur. 🎉</td></tr>
               )}
             </tbody>
           </table>
         </div>
       )}
-      <p className="text-[11px] text-[#FFF7EF]/40 flex items-start gap-1.5">
+      <p className="text-[11px] text-kurla-cream/40 flex items-start gap-1.5">
         <Truck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
         Levier « prix type Action » : les façonniers private label (Chine, MOQ 100–500) descendent le coût des produits finis à ~1–4 $/pièce ; les grossistes karité en UE évitent les droits de douane pour le premier lot. Vérifier conformité UE (CPNP, allergènes) et demander des échantillons avant toute commande.
       </p>

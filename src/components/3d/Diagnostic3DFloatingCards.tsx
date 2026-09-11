@@ -40,7 +40,7 @@ export const Diagnostic3DFloatingCards: React.FC = () => {
       style={{ perspective: '1000px' }}
     >
       {/* Background ambient lighting */}
-      <div className="absolute inset-0 bg-radial from-[#C8753D]/15 via-transparent to-transparent blur-3xl rounded-full animate-pulse-glow pointer-events-none" />
+      <div className="absolute inset-0 bg-radial from-kurla-copper/15 via-transparent to-transparent blur-3xl rounded-full animate-pulse-glow pointer-events-none" />
 
       {/* 3D Container with Mouse Tilt */}
       <div
@@ -64,8 +64,8 @@ export const Diagnostic3DFloatingCards: React.FC = () => {
               onClick={() => setActiveStep(idx)}
               className={`absolute w-[90%] sm:w-[380px] p-6 rounded-2xl border transition-all duration-500 ease-out backdrop-blur-md shadow-xl ${
                 isActive
-                  ? 'bg-[#FFFDF9] border-[#C8753D] shadow-[0_20px_40px_rgba(200,117,61,0.2)] ring-1 ring-[#C8753D]/30 text-[#111111]'
-                  : 'bg-[#F8F2EC]/90 border-[#E8E1DA] hover:border-[#C8753D]/40 text-[#111111]/80'
+                  ? 'bg-kurla-ivory border-kurla-copper shadow-[0_20px_40px_rgba(200,117,61,0.2)] ring-1 ring-kurla-copper/30 text-kurla-carbon'
+                  : 'bg-kurla-sand/90 border-kurla-stone hover:border-kurla-copper/40 text-kurla-carbon/80'
               }`}
               style={{
                 transform: `translate3d(0, ${yOffset}px, ${zOffset}px) scale(${scale})`,
@@ -74,28 +74,28 @@ export const Diagnostic3DFloatingCards: React.FC = () => {
               }}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold flex items-center gap-1.5">
+                <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold flex items-center gap-1.5">
                   <span className="text-sm">{step.icon}</span> {step.label}
                 </span>
-                <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#C8753D]/10 text-[#C8753D] border border-[#C8753D]/20 font-semibold">
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-kurla-copper/10 text-kurla-copper border border-kurla-copper/20 font-semibold">
                   {step.badge}
                 </span>
               </div>
 
-              <h4 className="text-lg font-serif-title text-[#111111] font-bold mb-1 flex items-center justify-between">
+              <h4 className="text-lg font-serif-title text-kurla-carbon font-bold mb-1 flex items-center justify-between">
                 {step.title}
-                {isActive && <CheckCircle2 className="w-5 h-5 text-[#C8753D]" />}
+                {isActive && <CheckCircle2 className="w-5 h-5 text-kurla-copper" />}
               </h4>
 
-              <p className="text-sm text-[#111111]/75 leading-relaxed mb-4">
+              <p className="text-sm text-kurla-carbon/75 leading-relaxed mb-4">
                 {step.detail}
               </p>
 
-              <div className="flex items-center justify-between text-xs text-[#C8753D]">
+              <div className="flex items-center justify-between text-xs text-kurla-copper">
                 <span className="flex items-center gap-1 font-medium">
                   <Sparkles className="w-3.5 h-3.5" /> IA Supervisée
                 </span>
-                <span className="flex items-center gap-1 hover:text-[#111111] font-semibold">
+                <span className="flex items-center gap-1 hover:text-kurla-carbon font-semibold">
                   Cliquer pour explorer <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>
@@ -111,7 +111,7 @@ export const Diagnostic3DFloatingCards: React.FC = () => {
             key={idx}
             onClick={() => setActiveStep(idx)}
             className={`h-2 rounded-full transition-all duration-300 ${
-              activeStep === idx ? 'w-8 bg-[#C8753D]' : 'w-2 bg-[#E8E1DA] hover:bg-[#C8753D]/40'
+              activeStep === idx ? 'w-8 bg-kurla-copper' : 'w-2 bg-kurla-stone hover:bg-kurla-copper/40'
             }`}
             aria-label={`Aller à l'étape ${idx + 1}`}
           />

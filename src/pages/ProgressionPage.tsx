@@ -95,16 +95,16 @@ export const ProgressionPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <header className="text-center max-w-[640px] mx-auto">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block mb-2">
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block mb-2">
             KURLA Progression
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold mb-3">
             Vous progressez en apprenant, pas seulement en achetant.
           </h1>
-          <p className="text-sm sm:text-base text-[#FFF7EF]/70 font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-kurla-cream/70 font-light leading-relaxed">
             Cinq axes, chacun plafonné. L’achat est l’un d’eux — et il est borné, pour qu’un membre
             qui ne commande jamais puisse atteindre le dernier niveau.
           </p>
@@ -116,74 +116,74 @@ export const ProgressionPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-[#C0392B]/15 border border-[#C0392B]/40 text-sm">{error}</div>
         )}
         {notice && (
-          <div className="p-4 rounded-2xl bg-[#C8753D]/15 border border-[#C8753D]/40 text-sm">{notice}</div>
+          <div className="p-4 rounded-2xl bg-kurla-copper/15 border border-kurla-copper/40 text-sm">{notice}</div>
         )}
 
         {loading && !overview && (
-          <div className="p-8 rounded-3xl bg-[#100C09] border border-[#241C16] text-sm text-[#FFF7EF]/60">
+          <div className="p-8 rounded-3xl bg-[#100C09] border border-kurla-umber text-sm text-kurla-cream/60">
             Chargement de la progression…
           </div>
         )}
 
         {!token && !loading && (
-          <div className="p-8 rounded-3xl bg-[#100C09] border border-[#241C16] text-sm text-[#FFF7EF]/70">
+          <div className="p-8 rounded-3xl bg-[#100C09] border border-kurla-umber text-sm text-kurla-cream/70">
             Le barème ci-dessous est public. Connectez-vous pour voir votre niveau, vos axes et vos
             récompenses.
           </div>
         )}
 
         {overview && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-[#241C16]">
+          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-kurla-umber">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <span className="text-[10px] uppercase tracking-widest text-[#FFF7EF]/50">Niveau atteint</span>
+                <span className="text-[10px] uppercase tracking-widest text-kurla-cream/50">Niveau atteint</span>
                 <h2 className="text-3xl font-serif-title font-bold mt-1">
                   {overview.currentLevel.label}
                 </h2>
-                <p className="text-sm text-[#FFF7EF]/60 mt-1">{overview.currentLevel.benefit}</p>
+                <p className="text-sm text-kurla-cream/60 mt-1">{overview.currentLevel.benefit}</p>
               </div>
               <div className="text-right">
-                <span className="text-4xl font-bold text-[#C8753D]">{overview.account.progressionScore}</span>
-                <span className="text-sm text-[#FFF7EF]/50"> / {overview.maxScore} points</span>
+                <span className="text-4xl font-bold text-kurla-copper">{overview.account.progressionScore}</span>
+                <span className="text-sm text-kurla-cream/50"> / {overview.maxScore} points</span>
               </div>
             </div>
 
             {overview.nextLevel ? (
-              <p className="text-sm text-[#FFF7EF]/70 mt-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#C8753D]" />
+              <p className="text-sm text-kurla-cream/70 mt-4 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-kurla-copper" />
                 Encore {overview.nextLevel.pointsMissing} point
                 {overview.nextLevel.pointsMissing > 1 ? 's' : ''} pour « {overview.nextLevel.label} » —
                 aucun achat n’est nécessaire.
               </p>
             ) : (
-              <p className="text-sm text-[#FFF7EF]/70 mt-4 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#C8753D]" />
+              <p className="text-sm text-kurla-cream/70 mt-4 flex items-center gap-2">
+                <Award className="w-4 h-4 text-kurla-copper" />
                 Dernier niveau atteint.
               </p>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-6">
               {overview.axes.map(axis => (
-                <div key={axis.axis} className="p-4 rounded-2xl bg-[#171109] border border-[#241C16]">
+                <div key={axis.axis} className="p-4 rounded-2xl bg-[#171109] border border-kurla-umber">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-sm font-bold">{axis.label}</h3>
-                    <span className="text-xs text-[#FFF7EF]/50">
+                    <span className="text-xs text-kurla-cream/50">
                       {axis.score}/{axis.maxPoints}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-[#241C16] mt-3 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-kurla-umber mt-3 overflow-hidden">
                     <div
-                      className="h-full bg-[#C8753D]"
+                      className="h-full bg-kurla-copper"
                       style={{ width: `${Math.min(100, (axis.score / axis.maxPoints) * 100)}%` }}
                     />
                   </div>
-                  <p className="text-[11px] text-[#FFF7EF]/50 mt-3 leading-relaxed">{axis.rationale}</p>
+                  <p className="text-[11px] text-kurla-cream/50 mt-3 leading-relaxed">{axis.rationale}</p>
                 </div>
               ))}
             </div>
 
             {purchaseAxis && (
-              <p className="text-xs text-[#FFF7EF]/55 mt-5 leading-relaxed">
+              <p className="text-xs text-kurla-cream/55 mt-5 leading-relaxed">
                 L’axe achat est plafonné à {purchaseAxis.maxPoints} points sur {overview.maxScore} :
                 au-delà de quatre commandes réglées, acheter ne rapporte plus rien. Sans aucun achat,
                 {overview.maxScoreWithoutPurchase} points restent atteignables.
@@ -193,11 +193,11 @@ export const ProgressionPage: React.FC = () => {
         )}
 
         {overview && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-[#241C16]">
+          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-kurla-umber">
             <h2 className="text-xl font-serif-title font-bold flex items-center gap-2">
-              <ScanLine className="w-5 h-5 text-[#C8753D]" /> Scanner fait progresser
+              <ScanLine className="w-5 h-5 text-kurla-copper" /> Scanner fait progresser
             </h2>
-            <p className="text-sm text-[#FFF7EF]/60 mt-2 leading-relaxed">
+            <p className="text-sm text-kurla-cream/60 mt-2 leading-relaxed">
               Un code-barres, un ingrédient ou un produit : la curiosité est un comportement
               récompensé, plafonné à 15 points par jour pour rester honnête.
             </p>
@@ -206,12 +206,12 @@ export const ProgressionPage: React.FC = () => {
                 value={barcode}
                 onChange={event => setBarcode(event.target.value)}
                 placeholder="Code-barres, ingrédient ou produit"
-                className="flex-1 px-4 py-3 rounded-2xl bg-[#171109] border border-[#241C16] text-sm outline-none focus:border-[#C8753D]"
+                className="flex-1 px-4 py-3 rounded-2xl bg-[#171109] border border-kurla-umber text-sm outline-none focus:border-kurla-copper"
               />
               <button
                 type="submit"
                 disabled={pending === 'scan' || !barcode.trim()}
-                className="px-5 py-3 rounded-2xl bg-[#C8753D] text-[#050403] text-sm font-bold disabled:opacity-50"
+                className="px-5 py-3 rounded-2xl bg-kurla-copper text-kurla-ink text-sm font-bold disabled:opacity-50"
               >
                 {pending === 'scan' ? 'Enregistrement…' : 'Enregistrer le scan'}
               </button>
@@ -220,33 +220,33 @@ export const ProgressionPage: React.FC = () => {
         )}
 
         {(overview?.rewards ?? rules?.rewards ?? []).length > 0 && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-[#241C16]">
+          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-kurla-umber">
             <h2 className="text-xl font-serif-title font-bold flex items-center gap-2">
-              <Gift className="w-5 h-5 text-[#C8753D]" /> Récompenses
+              <Gift className="w-5 h-5 text-kurla-copper" /> Récompenses
             </h2>
-            <p className="text-sm text-[#FFF7EF]/60 mt-2">
+            <p className="text-sm text-kurla-cream/60 mt-2">
               Elles se débloquent par niveau. Aucune ne s’achète avec des points.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 mt-5">
               {(overview?.rewards ?? []).map(reward => (
-                <article key={reward.code} className="p-5 rounded-2xl bg-[#171109] border border-[#241C16]">
+                <article key={reward.code} className="p-5 rounded-2xl bg-[#171109] border border-kurla-umber">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-sm font-bold">{reward.label}</h3>
-                    <span className="text-[10px] uppercase tracking-widest text-[#FFF7EF]/45">
+                    <span className="text-[10px] uppercase tracking-widest text-kurla-cream/45">
                       Niveau {reward.levelRequired}
                     </span>
                   </div>
-                  <p className="text-xs text-[#FFF7EF]/60 mt-2 leading-relaxed">{reward.description}</p>
+                  <p className="text-xs text-kurla-cream/60 mt-2 leading-relaxed">{reward.description}</p>
                   {reward.unlocked ? (
                     <button
                       onClick={() => void onRequestReward(reward.code, reward.label)}
                       disabled={pending === reward.code}
-                      className="mt-4 px-4 py-2 rounded-xl bg-[#C8753D] text-[#050403] text-xs font-bold disabled:opacity-50"
+                      className="mt-4 px-4 py-2 rounded-xl bg-kurla-copper text-kurla-ink text-xs font-bold disabled:opacity-50"
                     >
                       {pending === reward.code ? 'Envoi…' : 'Demander cette récompense'}
                     </button>
                   ) : (
-                    <p className="mt-4 text-xs text-[#FFF7EF]/45">
+                    <p className="mt-4 text-xs text-kurla-cream/45">
                       Encore {reward.levelRequired - (overview?.account.level ?? 1)} niveau
                       {(reward.levelRequired - (overview?.account.level ?? 1)) > 1 ? 'x' : ''} à atteindre.
                     </p>
@@ -255,10 +255,10 @@ export const ProgressionPage: React.FC = () => {
               ))}
               {!overview &&
                 (rules?.rewards ?? []).map(reward => (
-                  <article key={reward.code} className="p-5 rounded-2xl bg-[#171109] border border-[#241C16]">
+                  <article key={reward.code} className="p-5 rounded-2xl bg-[#171109] border border-kurla-umber">
                     <h3 className="text-sm font-bold">{reward.label}</h3>
-                    <p className="text-xs text-[#FFF7EF]/60 mt-2 leading-relaxed">{reward.description}</p>
-                    <span className="text-[10px] uppercase tracking-widest text-[#FFF7EF]/45">
+                    <p className="text-xs text-kurla-cream/60 mt-2 leading-relaxed">{reward.description}</p>
+                    <span className="text-[10px] uppercase tracking-widest text-kurla-cream/45">
                       Niveau {reward.levelRequired}
                     </span>
                   </article>
@@ -268,9 +268,9 @@ export const ProgressionPage: React.FC = () => {
         )}
 
         {overview && overview.badges.some(badge => badge.earned || true) && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-[#241C16]">
+          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-kurla-umber">
             <h2 className="text-xl font-serif-title font-bold flex items-center gap-2">
-              <BadgeCheck className="w-5 h-5 text-[#C8753D]" /> Badges
+              <BadgeCheck className="w-5 h-5 text-kurla-copper" /> Badges
             </h2>
             <div className="flex flex-wrap gap-3 mt-5">
               {overview.badges.map(badge => (
@@ -279,8 +279,8 @@ export const ProgressionPage: React.FC = () => {
                   title={badge.description}
                   className={`px-3 py-2 rounded-full text-xs font-semibold border ${
                     badge.earned
-                      ? 'bg-[#C8753D]/15 border-[#C8753D]/50 text-[#C8753D]'
-                      : 'bg-[#171109] border-[#241C16] text-[#FFF7EF]/35'
+                      ? 'bg-kurla-copper/15 border-kurla-copper/50 text-kurla-copper'
+                      : 'bg-[#171109] border-kurla-umber text-kurla-cream/35'
                   }`}
                 >
                   {badge.label}
@@ -291,15 +291,15 @@ export const ProgressionPage: React.FC = () => {
         )}
 
         {overview && overview.recentEvents.length > 0 && (
-          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-[#241C16]">
+          <section className="p-6 sm:p-8 rounded-3xl bg-[#100C09] border border-kurla-umber">
             <h2 className="text-xl font-serif-title font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#C8753D]" /> Faits récents
+              <Sparkles className="w-5 h-5 text-kurla-copper" /> Faits récents
             </h2>
-            <ul className="mt-4 divide-y divide-[#241C16]">
+            <ul className="mt-4 divide-y divide-kurla-umber">
               {overview.recentEvents.slice(0, 12).map(event => (
                 <li key={event.id} className="py-3 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-[#FFF7EF]/80">{event.label}</span>
-                  <span className="text-xs text-[#FFF7EF]/50">
+                  <span className="text-kurla-cream/80">{event.label}</span>
+                  <span className="text-xs text-kurla-cream/50">
                     {event.points > 0 ? `+${event.points}` : 'plafond atteint'}
                   </span>
                 </li>

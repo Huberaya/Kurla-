@@ -216,9 +216,9 @@ function AppContent() {
   };
 
   const PageLoader = () => (
-    <div className="min-h-[60vh] flex items-center justify-center bg-[#FFFDF9]">
-      <div className="flex flex-col items-center gap-3 text-[#C8753D]">
-        <div className="w-8 h-8 border-3 border-[#C8753D]/30 border-t-[#C8753D] rounded-full animate-spin" />
+    <div className="min-h-[60vh] flex items-center justify-center bg-kurla-ivory">
+      <div className="flex flex-col items-center gap-3 text-kurla-copper">
+        <div className="w-8 h-8 border-3 border-kurla-copper/30 border-t-kurla-copper rounded-full animate-spin" />
         <span className="text-xs uppercase tracking-widest font-semibold">KURLA</span>
       </div>
     </div>
@@ -229,7 +229,7 @@ function AppContent() {
   };
 
   return (
-      <div className="min-h-screen bg-[#FFFDF9] text-[#111111] font-sans selection:bg-[#C8753D] selection:text-white">
+      <div className="min-h-screen bg-kurla-ivory text-kurla-carbon font-sans selection:bg-kurla-copper selection:text-white">
         <Navbar
           cartCount={cartCount}
           onOpenCart={() => setIsCartOpen(true)}
@@ -244,13 +244,13 @@ function AppContent() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
               <div className="min-w-0 text-left">
-                <p className="text-[13px] font-semibold text-[#111111]">Service KURLA indisponible</p>
+                <p className="text-[13px] font-semibold text-kurla-carbon">Service KURLA indisponible</p>
                 <p className="text-[12px] leading-relaxed text-neutral-600 mt-0.5">{apiFailure}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setApiFailure(null)}
-                className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-[#111111]"
+                className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-kurla-carbon"
                 aria-label="Fermer l’alerte"
               >
                 ×

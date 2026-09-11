@@ -43,7 +43,7 @@ type Candidate = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  to_contact: { label: 'À contacter', color: 'text-[#FFF7EF]/70 border-[#FFF7EF]/20 bg-[#FFF7EF]/5' },
+  to_contact: { label: 'À contacter', color: 'text-kurla-cream/70 border-kurla-cream/20 bg-kurla-cream/5' },
   emailed: { label: 'Email envoyé', color: 'text-sky-300 border-sky-300/30 bg-sky-300/10' },
   followed_up: { label: 'Relancé', color: 'text-indigo-300 border-indigo-300/30 bg-indigo-300/10' },
   replied: { label: 'Réponse reçue', color: 'text-cyan-300 border-cyan-300/30 bg-cyan-300/10' },
@@ -83,7 +83,7 @@ function euros(cents: number | null): string {
 }
 
 function inputClass(): string {
-  return 'w-full px-2.5 py-1.5 rounded-lg bg-[#050403] border border-[#FFF7EF]/15 text-[#FFF7EF] text-[11px] focus:outline-none focus:border-[#C8753D]';
+  return 'w-full px-2.5 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-[11px] focus:outline-none focus:border-kurla-copper';
 }
 function badge(cls: { label: string; color: string }): string {
   return `px-2 py-0.5 rounded-full border text-[10px] font-semibold whitespace-nowrap ${cls.color}`;
@@ -164,14 +164,14 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-serif-title font-bold text-[#FFF7EF] flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#C8753D]" /> Approvisionnement
+          <h3 className="text-lg font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <Truck className="w-5 h-5 text-kurla-copper" /> Approvisionnement
           </h3>
-          <p className="text-[11px] text-[#FFF7EF]/60 mt-1">
+          <p className="text-[11px] text-kurla-cream/60 mt-1">
             Du besoin produit au fournisseur à contacter. Route hybride : A = revente de marques existantes · B = façonnage KURLA. Les tarifs, MOQ et contacts restent vides tant qu'aucune réponse réelle ne les donne.
           </p>
         </div>
-        <button onClick={load} className="px-3 py-2 rounded-xl bg-[#1A0F0A] border border-[#C8753D]/30 text-[#FFF7EF] text-[11px] flex items-center gap-2 hover:bg-[#C8753D]/10">
+        <button onClick={load} className="px-3 py-2 rounded-xl bg-kurla-espresso border border-kurla-copper/30 text-kurla-cream text-[11px] flex items-center gap-2 hover:bg-kurla-copper/10">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Actualiser
         </button>
       </div>
@@ -185,9 +185,9 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
           ['INCI reçus', counts.inciReady],
           ['Réf. prêtes', counts.ready],
         ].map(([label, value]) => (
-          <div key={label as string} className="rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/8 p-3 text-center">
-            <div className="text-xl font-bold text-[#C8753D]">{value as number}</div>
-            <div className="text-[10px] text-[#FFF7EF]/60 mt-0.5">{label}</div>
+          <div key={label as string} className="rounded-2xl bg-kurla-espresso border border-kurla-cream/8 p-3 text-center">
+            <div className="text-xl font-bold text-kurla-copper">{value as number}</div>
+            <div className="text-[10px] text-kurla-cream/60 mt-0.5">{label}</div>
           </div>
         ))}
       </div>
@@ -201,24 +201,24 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       {/* Onglets */}
       <div className="flex gap-2 flex-wrap">
         <button onClick={() => setTab('desk')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'desk' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'desk' ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/70 border border-kurla-cream/10'}`}>
           <ClipboardList className="w-4 h-4" /> Bureau des achats
         </button>
         <button onClick={() => setTab('plan')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'plan' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'plan' ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/70 border border-kurla-cream/10'}`}>
           <Package className="w-4 h-4" /> Plan d'assortiment
         </button>
         <button onClick={() => setTab('prospects')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'prospects' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'prospects' ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/70 border border-kurla-cream/10'}`}>
           <Mail className="w-4 h-4" /> Contacts ({prospects.length})
         </button>
         <button onClick={() => setTab('candidates')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'candidates' ? 'bg-[#C8753D] text-white' : 'bg-[#1A0F0A] text-[#FFF7EF]/70 border border-[#FFF7EF]/10'}`}>
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${tab === 'candidates' ? 'bg-kurla-copper text-white' : 'bg-kurla-espresso text-kurla-cream/70 border border-kurla-cream/10'}`}>
           <Package className="w-4 h-4" /> Références à intégrer ({candidates.length})
         </button>
       </div>
 
-      {loading && <p className="text-xs text-[#FFF7EF]/60">Chargement…</p>}
+      {loading && <p className="text-xs text-kurla-cream/60">Chargement…</p>}
 
       {/* ---------------- BUREAU DES ACHATS ---------------- */}
       {!loading && tab === 'desk' && (
@@ -236,29 +236,29 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
           {prospects.map((p) => {
             const st = STATUS_LABELS[p.status] || STATUS_LABELS.to_contact;
             return (
-              <details key={p.id} className="rounded-2xl bg-[#1A0F0A] border border-[#FFF7EF]/10 overflow-hidden">
-                <summary className="cursor-pointer list-none px-4 py-3 flex items-center gap-3 flex-wrap hover:bg-[#FFF7EF]/[0.03]">
+              <details key={p.id} className="rounded-2xl bg-kurla-espresso border border-kurla-cream/10 overflow-hidden">
+                <summary className="cursor-pointer list-none px-4 py-3 flex items-center gap-3 flex-wrap hover:bg-kurla-cream/[0.03]">
                   <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${p.route === 'A' ? 'bg-sky-500/15 text-sky-300' : 'bg-purple-500/15 text-purple-300'}`}>{p.route}</span>
-                  <span className="text-xs font-semibold text-[#FFF7EF] flex-1 min-w-[160px] text-left">{p.name}</span>
-                  <span className="text-[10px] text-[#FFF7EF]/50">{TYPE_LABELS[p.contactType] || p.contactType}</span>
+                  <span className="text-xs font-semibold text-kurla-cream flex-1 min-w-[160px] text-left">{p.name}</span>
+                  <span className="text-[10px] text-kurla-cream/50">{TYPE_LABELS[p.contactType] || p.contactType}</span>
                   <span className={badge(st)}>{st.label}</span>
-                  {savingId === p.id && <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C8753D]" />}
+                  {savingId === p.id && <RefreshCw className="w-3.5 h-3.5 animate-spin text-kurla-copper" />}
                 </summary>
                 <div className="px-4 pb-4 pt-1 space-y-3">
-                  <p className="text-[11px] text-[#FFF7EF]/60">{p.specialty} {p.sourceUrl && <span className="text-[#C8753D]/80">· {p.sourceUrl}</span>}</p>
+                  <p className="text-[11px] text-kurla-cream/60">{p.specialty} {p.sourceUrl && <span className="text-kurla-copper/80">· {p.sourceUrl}</span>}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <label className="text-[10px] text-[#FFF7EF]/50">Statut
+                    <label className="text-[10px] text-kurla-cream/50">Statut
                       <select value={p.status} onChange={(e) => patchProspect(p.id, { status: e.target.value })} className={inputClass() + ' mt-1'}>
                         {STATUS_ORDER.map((s) => <option key={s} value={s}>{STATUS_LABELS[s].label}</option>)}
                       </select>
                     </label>
-                    <label className="text-[10px] text-[#FFF7EF]/50">Relance prévue le
+                    <label className="text-[10px] text-kurla-cream/50">Relance prévue le
                       <input type="date" value={p.followUpOn?.slice(0, 10) || ''} onChange={(e) => patchProspect(p.id, { followUpOn: e.target.value })} className={inputClass() + ' mt-1'} />
                     </label>
-                    <label className="text-[10px] text-[#FFF7EF]/50">Email contact
+                    <label className="text-[10px] text-kurla-cream/50">Email contact
                       <input type="email" placeholder="contact@marque.com" value={p.contactEmail || ''} onChange={(e) => patchProspect(p.id, { contactEmail: e.target.value })} className={inputClass() + ' mt-1'} />
                     </label>
-                    <label className="text-[10px] text-[#FFF7EF]/50">Décision
+                    <label className="text-[10px] text-kurla-cream/50">Décision
                       <select value={p.decision || 'pending'} onChange={(e) => patchProspect(p.id, { decision: e.target.value })} className={inputClass() + ' mt-1'}>
                         {DECISIONS.map((d) => <option key={d} value={d}>{DECISION_LABEL[d]}</option>)}
                       </select>
@@ -271,14 +271,14 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                       ['euCompliance', 'Conformité UE'],
                       ['samplesReceived', 'Échantillons'],
                     ] as const).map(([field, label]) => (
-                      <label key={field} className="text-[10px] text-[#FFF7EF]/50">{label}
+                      <label key={field} className="text-[10px] text-kurla-cream/50">{label}
                         <select value={(p as any)[field] || 'pending'} onChange={(e) => patchProspect(p.id, { [field]: e.target.value } as any)} className={inputClass() + ' mt-1'}>
                           {TRI.map((t) => <option key={t} value={t}>{TRI_LABEL[t]}</option>)}
                         </select>
                       </label>
                     ))}
                   </div>
-                  <label className="block text-[10px] text-[#FFF7EF]/50">Notes
+                  <label className="block text-[10px] text-kurla-cream/50">Notes
                     <textarea rows={2} value={p.notes || ''} onChange={(e) => patchProspect(p.id, { notes: e.target.value })}
                       placeholder="Tarif annoncé, MOQ, délai, interlocuteur…" className={inputClass() + ' mt-1 resize-y'} />
                   </label>
@@ -291,9 +291,9 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
 
       {/* ---------------- CANDIDATES ---------------- */}
       {!loading && tab === 'candidates' && (
-        <div className="overflow-x-auto rounded-2xl border border-[#FFF7EF]/10">
+        <div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
           <table className="w-full text-left text-[11px]">
-            <thead className="bg-[#1A0F0A] text-[#FFF7EF]/60">
+            <thead className="bg-kurla-espresso text-kurla-cream/60">
               <tr>
                 {['Produit', 'Marque', 'Étape', 'Achat', 'Public', 'Marge %', 'Qté', 'INCI', 'Visuels', 'Gouvernance'].map((h) => (
                   <th key={h} className="px-3 py-2 font-semibold whitespace-nowrap">{h}</th>
@@ -304,10 +304,10 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
               {candidates.map((c) => {
                 const gov = GOV_LABELS[c.governanceStatus] || GOV_LABELS.blocked;
                 return (
-                  <tr key={c.id} className="border-t border-[#FFF7EF]/5 align-top">
-                    <td className="px-3 py-2 text-[#FFF7EF] min-w-[180px]">{c.product}</td>
-                    <td className="px-3 py-2 text-[#FFF7EF]/70 whitespace-nowrap">{c.brand}</td>
-                    <td className="px-3 py-2 text-[#FFF7EF]/60 whitespace-nowrap">{c.routineStep || '—'}</td>
+                  <tr key={c.id} className="border-t border-kurla-cream/5 align-top">
+                    <td className="px-3 py-2 text-kurla-cream min-w-[180px]">{c.product}</td>
+                    <td className="px-3 py-2 text-kurla-cream/70 whitespace-nowrap">{c.brand}</td>
+                    <td className="px-3 py-2 text-kurla-cream/60 whitespace-nowrap">{c.routineStep || '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <input type="number" min="0" step="0.01" value={c.purchasePriceCents === null ? '' : c.purchasePriceCents / 100}
                         onChange={(e) => patchCandidate(c.id, { purchasePriceCents: e.target.value === '' ? null : Math.round(Number(e.target.value) * 100) })}
@@ -329,10 +329,10 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                         placeholder="—" className={inputClass() + ' w-16'} />
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input type="checkbox" checked={c.inciReceived} onChange={(e) => patchCandidate(c.id, { inciReceived: e.target.checked })} className="accent-[#C8753D]" />
+                      <input type="checkbox" checked={c.inciReceived} onChange={(e) => patchCandidate(c.id, { inciReceived: e.target.checked })} className="accent-kurla-copper" />
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input type="checkbox" checked={c.visualsReceived} onChange={(e) => patchCandidate(c.id, { visualsReceived: e.target.checked })} className="accent-[#C8753D]" />
+                      <input type="checkbox" checked={c.visualsReceived} onChange={(e) => patchCandidate(c.id, { visualsReceived: e.target.checked })} className="accent-kurla-copper" />
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <select value={c.governanceStatus} onChange={(e) => patchCandidate(c.id, { governanceStatus: e.target.value })} className={inputClass() + ' min-w-[120px]'}>
@@ -348,7 +348,7 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
       )}
 
       {!loading && tab === 'candidates' && (
-        <p className="text-[10px] text-[#FFF7EF]/50 flex items-center gap-1.5">
+        <p className="text-[10px] text-kurla-cream/50 flex items-center gap-1.5">
           <Save className="w-3 h-3" /> Les modifications s'enregistrent automatiquement. Une référence ne passe « Publié » qu'avec INCI reçu, visuels et les 7 validations de gouvernance catalogue.
         </p>
       )}

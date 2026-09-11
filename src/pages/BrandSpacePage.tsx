@@ -105,37 +105,37 @@ export const BrandSpacePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#050403] text-[#FFF7EF]">
+    <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center max-w-[560px] mx-auto mb-12">
-          <span className="text-xs uppercase tracking-widest text-[#C8753D] font-semibold block mb-2">
+          <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block mb-2">
             Espace marque
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif-title font-bold mb-3">
             Testez sur les bons besoins. Jamais sur des personnes.
           </h1>
-          <p className="text-sm sm:text-base text-[#FFF7EF]/70 font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-kurla-cream/70 font-light leading-relaxed">
             Une marque propose un produit, KURLA recrute les membres qui déclarent le besoin concerné, les membres
             déclarent ce qu’ils constatent. La marque reçoit des effectifs — jamais des profils.
           </p>
         </div>
 
         {loadError && (
-          <div className="mb-8 rounded-xl border border-[#C8753D]/40 bg-[#C8753D]/10 p-4 text-sm text-[#FFF7EF]/80">
+          <div className="mb-8 rounded-xl border border-kurla-copper/40 bg-kurla-copper/10 p-4 text-sm text-kurla-cream/80">
             {loadError}
           </div>
         )}
 
         {/* --- Ce qu'on peut cibler ---------------------------------------- */}
-        <section className="mb-10 rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="mb-10 rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-            <Target className="h-5 w-5 text-[#C8753D]" />
+            <Target className="h-5 w-5 text-kurla-copper" />
             Ce que vous pouvez cibler
           </h2>
-          <p className="mb-4 text-sm text-[#FFF7EF]/70">{program?.cohort.rule ?? 'Chargement…'}</p>
+          <p className="mb-4 text-sm text-kurla-cream/70">{program?.cohort.rule ?? 'Chargement…'}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(program?.cohort.needCodes ?? Object.keys(NEED_LABELS)).map(need => (
-              <span key={need} className="rounded-lg border border-[#FFF7EF]/10 px-3 py-2 text-xs text-[#FFF7EF]/70">
+              <span key={need} className="rounded-lg border border-kurla-cream/10 px-3 py-2 text-xs text-kurla-cream/70">
                 {NEED_LABELS[need] ?? need}
               </span>
             ))}
@@ -143,18 +143,18 @@ export const BrandSpacePage: React.FC = () => {
         </section>
 
         {/* --- Ce qu'on n'obtient jamais ----------------------------------- */}
-        <section className="mb-10 rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="mb-10 rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-4">
-            <Lock className="h-5 w-5 text-[#C8753D]" />
+            <Lock className="h-5 w-5 text-kurla-copper" />
             Ce que vous n’obtiendrez jamais
           </h2>
-          <ul className="space-y-2 text-sm text-[#FFF7EF]/75">
+          <ul className="space-y-2 text-sm text-kurla-cream/75">
             {(program?.neverProvided ?? []).map(item => (
               <li key={item}>{`• ${item}`}</li>
             ))}
           </ul>
           {program && (
-            <p className="mt-4 text-xs text-[#FFF7EF]/55">
+            <p className="mt-4 text-xs text-kurla-cream/55">
               {program.publication.rule} Seuil k = {program.publication.kThreshold}. Clés de ciblage refusées :{' '}
               {program.cohort.refusedKeys.join(', ')}.
             </p>
@@ -162,12 +162,12 @@ export const BrandSpacePage: React.FC = () => {
         </section>
 
         {/* --- Demande ----------------------------------------------------- */}
-        <section className="rounded-2xl border border-[#FFF7EF]/10 bg-[#FFF7EF]/[0.03] p-6">
+        <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-2">
-            <ShieldCheck className="h-5 w-5 text-[#C8753D]" />
+            <ShieldCheck className="h-5 w-5 text-kurla-copper" />
             Déposer une demande de test
           </h2>
-          <p className="mb-5 text-sm text-[#FFF7EF]/65">
+          <p className="mb-5 text-sm text-kurla-cream/65">
             Le recrutement n’est ouvert qu’après acceptation par KURLA.
           </p>
 
@@ -179,58 +179,58 @@ export const BrandSpacePage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">Marque</span>
+                  <span className="mb-1 block text-kurla-cream/70">Marque</span>
                   <input
                     required
                     value={form.brandName}
                     onChange={event => setForm({ ...form, brandName: event.target.value })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">E-mail de contact</span>
+                  <span className="mb-1 block text-kurla-cream/70">E-mail de contact</span>
                   <input
                     required
                     type="email"
                     value={form.contactEmail}
                     onChange={event => setForm({ ...form, contactEmail: event.target.value })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   />
                 </label>
               </div>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-[#FFF7EF]/70">Produit testé</span>
+                <span className="mb-1 block text-kurla-cream/70">Produit testé</span>
                 <input
                   required
                   value={form.productName}
                   onChange={event => setForm({ ...form, productName: event.target.value })}
-                  className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                  className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-[#FFF7EF]/70">Hypothèse — la question à laquelle le test répond</span>
+                <span className="mb-1 block text-kurla-cream/70">Hypothèse — la question à laquelle le test répond</span>
                 <textarea
                   required
                   minLength={20}
                   rows={3}
                   value={form.hypothesis}
                   onChange={event => setForm({ ...form, hypothesis: event.target.value })}
-                  className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                  className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                 />
               </label>
 
               <fieldset className="text-sm">
-                <legend className="mb-2 text-[#FFF7EF]/70">Besoins ciblés (cohorte)</legend>
+                <legend className="mb-2 text-kurla-cream/70">Besoins ciblés (cohorte)</legend>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {Object.entries(NEED_LABELS).map(([value, label]) => (
-                    <label key={value} className="flex items-center gap-2 rounded-lg border border-[#FFF7EF]/10 px-3 py-2 text-xs">
+                    <label key={value} className="flex items-center gap-2 rounded-lg border border-kurla-cream/10 px-3 py-2 text-xs">
                       <input
                         type="checkbox"
                         checked={form.needs.includes(value)}
                         onChange={() => toggleNeed(value)}
-                        className="accent-[#C8753D]"
+                        className="accent-kurla-copper"
                       />
                       {label}
                     </label>
@@ -240,7 +240,7 @@ export const BrandSpacePage: React.FC = () => {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">
+                  <span className="mb-1 block text-kurla-cream/70">
                     Participants visés (minimum {program?.publication.kThreshold ?? 30})
                   </span>
                   <input
@@ -249,11 +249,11 @@ export const BrandSpacePage: React.FC = () => {
                     min={program?.publication.kThreshold ?? 30}
                     value={form.targetParticipants}
                     onChange={event => setForm({ ...form, targetParticipants: Number(event.target.value) })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[#FFF7EF]/70">Durée (jours)</span>
+                  <span className="mb-1 block text-kurla-cream/70">Durée (jours)</span>
                   <input
                     required
                     type="number"
@@ -261,22 +261,22 @@ export const BrandSpacePage: React.FC = () => {
                     max={180}
                     value={form.durationDays}
                     onChange={event => setForm({ ...form, durationDays: Number(event.target.value) })}
-                    className="w-full rounded-lg border border-[#FFF7EF]/15 bg-[#050403] px-3 py-2 text-sm outline-none focus:border-[#C8753D]"
+                    className="w-full rounded-lg border border-kurla-cream/15 bg-kurla-ink px-3 py-2 text-sm outline-none focus:border-kurla-copper"
                   />
                 </label>
               </div>
 
-              {submitError && <p className="text-sm text-[#C8753D]">{submitError}</p>}
+              {submitError && <p className="text-sm text-kurla-copper">{submitError}</p>}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-[#C8753D] px-4 py-3 text-sm font-semibold text-[#050403] transition hover:bg-[#D98A50] disabled:opacity-60"
+                className="w-full rounded-lg bg-kurla-copper px-4 py-3 text-sm font-semibold text-kurla-ink transition hover:bg-[#D98A50] disabled:opacity-60"
               >
                 {submitting ? 'Envoi…' : 'Déposer la demande'}
               </button>
               {!session && (
-                <p className="text-xs text-[#FFF7EF]/50">
+                <p className="text-xs text-kurla-cream/50">
                   Un compte KURLA portant le rôle marque est nécessaire : c’est ce compte qui recevra le rapport.
                 </p>
               )}
@@ -286,12 +286,12 @@ export const BrandSpacePage: React.FC = () => {
 
         {/* --- Réserves ---------------------------------------------------- */}
         {program && (
-          <section className="mt-10 rounded-2xl border border-[#FFF7EF]/10 p-6">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#FFF7EF]/60 mb-3">
+          <section className="mt-10 rounded-2xl border border-kurla-cream/10 p-6">
+            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-kurla-cream/60 mb-3">
               <Info className="h-4 w-4" />
               À savoir
             </h2>
-            <ul className="space-y-2 text-xs text-[#FFF7EF]/55">
+            <ul className="space-y-2 text-xs text-kurla-cream/55">
               {program.caveats.map(caveat => (
                 <li key={caveat.slice(0, 32)}>{`• ${caveat}`}</li>
               ))}

@@ -302,6 +302,29 @@ export async function getPublicProducts(store: SupabaseServerStore): Promise<any
     return (await getProducts(store, { publishedOnly: true })).map(toPublicProduct);
   }
 
+/**
+ * CHANTIER CONSOLIDATION — lecture d'UN produit publié.
+ *
+ * Le client chargeait tout le catalogue (`/api/products`) pour ouvrir une
+ * fiche : à 100 produits c'est acceptable, à 10 000 c'est une fuite de
+ * latence et de bande passante sur la page la plus importante de l'e-commerce.
+ *
+ * La méthode réutilise volontairement le pipeline `getProducts` +
+ * `toPublicProduct` + `isPublishableProduct` — exactement la projection de
+ * `/api/products` — plutôt que de réécrire la lecture : une fiche servie
+ * isolément doit être byte-identique à sa version servie dans la liste, sinon
+ * le panier et les comparaisons divergent. L'optimisation de requête ciblée
+ * (`SELECT ... WHERE slug = $1`) est réservée à la phase réel-DB : réécrire
+ * ici la projection de 120 lignes dupliquerait le code que cette plateforme
+ * déduplique.
+ */
+export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idOrSlug: string): Promise<any | undefined> {
+  const key = String(idOrSlug || '').trim();
+  if (!key) return undefined;
+  const published = await getPublicProducts(store);
+  return published.find(product => String(product.id) === key || String(product.slug) === key);
+}
+
   /**
    * Fiches de formulation cible de la gamme peau (B-08).
    *
