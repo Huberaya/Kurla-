@@ -161,6 +161,24 @@ function hasMinimalCatalogProof(product: any): boolean {
     && hasActivePromotion(product);
 }
 
+/**
+ * Vrai si la fiche porte un marqueur de FORMULATION CIBLE (source, statut ou
+ * badge), indépendamment de l'état de ses preuves.
+ *
+ * Distinction utile, et pas seulement théorique : `commercialState` vaut
+ * `'formulation_target'` dès qu'il manque une preuve (composition non
+ * vérifiée, stock en attente…). Quatre fiches de démonstration du catalogue
+ * (« aucun sourcing réel ») tombent donc dans cet état alors qu'elles ne
+ * décrivent aucune formulation. Les confondre reviendrait à présenter un
+ * soin d'une marque tierce comme une cible de formulation KURLA.
+ *
+ * Seul le marqueur compte ici : c'est lui qui dit « ce produit n'est pas
+ * fabriqué », pas l'avancement du dossier de preuves.
+ */
+export function isFormulationTarget(product: any): boolean {
+  return hasFormulationTargetMarker(product);
+}
+
 export function isCatalogPubliclyListable(product: any): boolean {
   return readCatalogField(product, 'is_active') === true
     && readCatalogField(product, 'catalog_status') === 'published'

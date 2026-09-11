@@ -1129,6 +1129,21 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
   res.json({ products, count: products.length });
 }));
 
+// Gamme peau en cours de formulation (B-08 / C-06).
+//
+// Ces fiches sont écartées du catalogue achetable, et c'est volontaire : ce
+// sont des formules cibles, pas des produits fabriqués. Les enterrer était
+// pourtant un défaut — seize fiches décrites que personne ne pouvait lire.
+//
+// La route les expose donc, mais projetées par `getSkinRangeTargets` : sans
+// visuel, sans stock, sans prix engageant, INCI étiqueté « formule cible ».
+// Elle ne doit jamais servir de source au panier ni au schéma Product —
+// deux garde-fous vérifiés par le banc `kurla_gamme_peau_cible`.
+app.get('/api/peau/gamme', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const fiches = await serverDb.getSkinRangeTargets();
+  res.json({ fiches, count: fiches.length, availabilityState: 'formulation_target' });
+}));
+
 // Customer-facing trust data is deliberately separated from the catalogue
 // record. Only moderated, verified reviews and answered questions are public.
 app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

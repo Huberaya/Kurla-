@@ -187,6 +187,18 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.8,
   },
   {
+    // Non indexable, et c'est un choix : une page qui présente des soins non
+    // fabriqués ne doit pas être poussée dans les résultats commerciaux, où
+    // elle passerait pour une offre. Elle reste accessible depuis le pôle
+    // peau — visible pour qui vient la lire, absente pour qui cherche à
+    // acheter. Elle n'émet aucun schéma Product.
+    path: '/peau/gamme',
+    title: 'Gamme peau KURLA — en cours de formulation | KURLA SKIN',
+    description:
+      'Seize soins en cours de formulation, publiés tels quels : préoccupation visée, actifs retenus, formule cible. Aucun n’est en vente et aucun prix n’est arrêté.',
+    indexable: false,
+  },
+  {
     path: '/peau/journal',
     title: 'Journal peau — suivi J+0/J+7/J+30 | KURLA SKIN',
     description:

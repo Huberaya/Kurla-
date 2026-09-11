@@ -19,7 +19,12 @@ export const WAITLIST_SOURCES: readonly string[] = [
   DEFAULT_WAITLIST_SOURCE,
   'categorie_peau',
   'categorie_hommes',
-  'categorie_enfants'
+  'categorie_enfants',
+  // C-06 — gamme peau en cours de formulation : l'intention n'est pas
+  // « prévenez-moi quand le rayon peau ouvre » mais « prévenez-moi quand
+  // CES soins sont fabriqués ». La relance parle de formulation et de
+  // disponibilité, pas d'ouverture de catégorie.
+  'gamme_peau_cible'
 ];
 
 /**

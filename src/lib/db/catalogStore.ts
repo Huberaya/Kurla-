@@ -17,6 +17,7 @@ import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance'
 import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
 import { getCatalogTruth } from '../catalogTruth';
 import { CORRECTED_PRODUCT_NEEDS } from '../productNeedsCorrection';
+import { estFicheCiblePeau, projeterFicheCiblePeau, trierFichesCibles, type FicheCiblePeau } from '../skinRangeTarget';
 
 import type {
   MarketplaceQuestion,
@@ -275,6 +276,27 @@ export async function getProductForAdministration(store: SupabaseServerStore, id
 
 export async function getPublicProducts(store: SupabaseServerStore): Promise<any[]> {
     return (await getProducts(store, { publishedOnly: true })).map(toPublicProduct);
+  }
+
+  /**
+   * Fiches de formulation cible de la gamme peau (B-08).
+   *
+   * Elles ne passent PAS par `toPublicProduct` : cette projection sert le
+   * catalogue achetable (prix effectif, variantes, stock, visuels vérifiés).
+   * La projeter ici reviendrait à habiller une cible de formulation en
+   * produit, exactement ce que la règle B-08 interdit.
+   *
+   * La projection est donc celle de `skinRangeTarget` : sans visuel, sans
+   * stock, avec l'INCI étiqueté « formule cible ».
+   */
+  export async function getSkinRangeTargets(store: SupabaseServerStore): Promise<FicheCiblePeau[]> {
+    const produits = await getProducts(store, { publishedOnly: true });
+    return trierFichesCibles(
+      produits
+        .filter(produit => produit.catalog_status === 'published' || produit.catalogStatus === 'published')
+        .filter(estFicheCiblePeau)
+        .map(projeterFicheCiblePeau)
+    );
   }
 
 export async function getProductReviews(store: SupabaseServerStore, productId: string): Promise<MarketplaceReview[]> {

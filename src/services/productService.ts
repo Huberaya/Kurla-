@@ -1,4 +1,5 @@
 import { Product } from '../types';
+import type { FicheCiblePeau } from '../lib/skinRangeTarget';
 import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -116,4 +117,41 @@ export function useProduct(slugOrId: string) {
 
   useEffect(() => { loadData(); }, [loadData]);
   return { product, source, loading, error, refetch: loadData };
+}
+
+/**
+ * Gamme peau en cours de formulation.
+ *
+ * Volontairement séparé de `fetchPublicProducts` : ce ne sont pas des produits
+ * achetables, et les mélanger ferait croire au reste de l'application qu'une
+ * cible de formulation peut entrer dans un panier. Aucun appelant ne doit
+ * alimenter un comparateur, un panier ou un schéma Product avec ces fiches.
+ */
+async function fetchSkinRangeTargets(): Promise<FicheCiblePeau[]> {
+  const response = await fetch('/api/peau/gamme');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La gamme en cours de formulation est indisponible.'));
+  return Array.isArray(data.fiches) ? data.fiches : [];
+}
+
+export function useSkinRangeTargets() {
+  const [fiches, setFiches] = useState<FicheCiblePeau[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      setFiches(await fetchSkinRangeTargets());
+      setError(null);
+    } catch (err) {
+      setFiches([]);
+      setError(err instanceof Error ? err : new Error('La gamme en cours de formulation est indisponible.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+  return { fiches, loading, error, refetch: loadData };
 }
