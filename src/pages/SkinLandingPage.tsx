@@ -202,6 +202,25 @@ export const SkinLandingPage: React.FC = () => {
           </div>
         </div>
 
+        {/* GAMME EN COURS DE FORMULATION — C-06 */}
+        <div className="mb-10">
+          <div className="rounded-3xl border border-[#E8E1DA] bg-[#F8F2EC] p-6 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="text-lg font-serif-title font-bold flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-[#C8753D]" /> La gamme peau KURLA, avant qu’elle existe
+              </h2>
+              <p className="text-xs text-[#111111]/65 font-light mt-1.5 leading-relaxed">
+                Seize soins en cours de formulation, publiés tels quels : préoccupation visée, actifs
+                retenus, formule cible. Aucun n’est en vente — nous montrons le travail en cours plutôt
+                que de le garder dans un tiroir.
+              </p>
+            </div>
+            <a href="/peau/gamme" className="shrink-0 px-5 py-3 rounded-full bg-[#111111] text-white text-xs font-bold inline-flex items-center gap-1.5">
+              Voir la gamme <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+
         {/* PROS PEAU */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-6">
