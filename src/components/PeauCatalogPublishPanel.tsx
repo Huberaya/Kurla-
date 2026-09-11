@@ -4,7 +4,11 @@ import { AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck, Eye, Beaker, Truck
 type Row = { productId: string; title: string; slug?: string; ready: boolean; missing: string[]; catalogStatus: string };
 type Product = { id: string; name: string; category: string; brand?: string; price: number; catalogStatus: string; supplierId?: string };
 
-const PEAU_IDS = new Set(['peau-ess-001','peau-ess-002','peau-ess-003','peau-serum-niacinamide-001','peau-gel-hyaluronique-001','peau-exfoliant-aha-bha-001','peau-baume-levres-001','kit-peau-ess-001','kit-peau-eq-001','kit-peau-exp-001']);
+const PEAU_IDS = new Set([
+  'peau-ess-001', 'peau-ess-002', 'peau-ess-003',
+  'peau-ess-005', 'peau-ess-006', 'peau-ess-011', 'peau-ess-013',
+  'peau-ess-014', 'kit-peau-ess-001', 'kit-peau-eq-001', 'kit-peau-exp-001'
+]);
 
 function isPeau(product: { id: string; category?: string; name?: string }){
   return product.category==='peau' || product.category==='kits' || PEAU_IDS.has(product.id) || product.id.startsWith('peau-') || product.id.startsWith('kit-peau');
@@ -102,9 +106,9 @@ export const PeauCatalogPublishPanel: React.FC<{ headers: HeadersInit; onSuccess
 
       <div className="flex flex-wrap gap-1.5 text-[10px]">
         <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Beaker className="w-3 h-3" /> PIF/CPSR/CPNP fichier+date</span>
-        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Eye className="w-3 h-3" /> Whitecast V-VI faible</span>
-        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Truck className="w-3 h-3" /> MOQ 50·Délai 3–5j·Franco</span>
-        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Clock className="w-3 h-3" /> Préco lun/jeu 18h·0 stock Paris</span>
+        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Eye className="w-3 h-3" /> Whitecast IV–VI à documenter</span>
+        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Truck className="w-3 h-3" /> MOQ / délai / franco à prouver</span>
+        <span className="px-2 py-1 rounded-full bg-[#050403] border border-[#FFF7EF]/10 text-[#FFF7EF]/60 flex items-center gap-1"><Clock className="w-3 h-3" /> Stock et pays FR à vérifier</span>
       </div>
 
       {loading ? <p className="text-xs text-[#FFF7EF]/50 italic">Chargement readiness peau…</p> : display.length===0 ? (
@@ -132,7 +136,7 @@ export const PeauCatalogPublishPanel: React.FC<{ headers: HeadersInit; onSuccess
                     <p className="text-xs text-emerald-300 mt-1">Tous les contrôles au vert — publiable en TEST (l’encaissement reste Stripe TEST tant que Stripe LIVE non activé).</p>
                   )}
                   {row.missing.some(m=>/cpnp|cpsr|responsable|pif/i.test(m)) && !row.ready && (
-                    <p className="text-[11px] text-amber-300 mt-1">→ Joignez CPSR + CPNP + attestation Personne Responsable chez le fournisseur, ou basculez vers grossiste UE vérifié (AfricanFabs / Afro Wholesale avec dossier).</p>
+                    <p className="text-[11px] text-amber-300 mt-1">→ Joignez CPSR + CPNP + attestation Personne Responsable au dossier fournisseur vérifié, ou importez une source UE dont les preuves sont effectivement disponibles.</p>
                   )}
                 </div>
 

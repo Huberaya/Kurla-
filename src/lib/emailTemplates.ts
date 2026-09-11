@@ -99,7 +99,7 @@ function carrierName(c?: string): string {
 }
 
 // ── Coquille HTML de marque ──────────────────────────────────────────────────
-function shell(opts: { heading: string; intro: string; blocks: string; cta?: { label: string; url: string }; accent?: string }): string {
+function shell(opts: { heading: string; intro: string; blocks: string; cta?: { label: string; url: string }; accent?: string; footerIntro?: string }): string {
   const accent = opts.accent || C.orange;
   const cta = opts.cta
     ? `<tr><td style="padding:8px 40px 24px;"><a href="${esc(opts.cta.url)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;padding:13px 30px;border-radius:999px;">${esc(opts.cta.label)}</a></td></tr>`
@@ -122,7 +122,7 @@ function shell(opts: { heading: string; intro: string; blocks: string; cta?: { l
   ${cta}
   <tr><td style="padding:20px 40px 32px;border-top:1px solid #eee3d6;">
     <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#9a8977;margin:0;">
-      Merci de soutenir KURLA. Vous recevez cet email car une commande est associée à cette adresse.
+      ${esc(opts.footerIntro || 'Merci de soutenir KURLA. Vous recevez cet email car une commande est associée à cette adresse.')}
       Les fonctions de confiance KURLA sont gratuites pour toujours ; vos données ne sont jamais revendues.
       Besoin d'aide ? Répondez à cet email ou écrivez à bonjour@kurlabeauty.fr.</p>
   </td></tr>
@@ -313,6 +313,19 @@ export function renderOrderEmail(template: string, data: EmailData): RenderedEma
           cta: { label: 'Accéder à mon espace', url: `${baseUrl()}/account` }
         }),
         text: `Bienvenue chez KURLA${data.name ? ' ' + data.name : ''}. Votre compte est créé.`
+      };
+    }
+    case 'launch_tester_invitation': {
+      const invitationUrl = data.invitationUrl ? String(data.invitationUrl) : `${baseUrl()}/account`;
+      return {
+        html: shell({
+          heading: 'Votre accès pilote KURLA est ouvert 🧡',
+          intro: 'Vous avez été sélectionné(e) pour le pilote fermé KURLA en France, limité à 300 testeurs. Votre retour nous aidera à améliorer une expérience de soins personnalisée, sans diagnostic médical ni promesse thérapeutique.',
+          blocks: `<tr><td style="padding:8px 40px 8px;"><div style="background:${C.creamCard};border-radius:14px;padding:16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:${C.ink};">KURLA croise type de peau, préoccupations, sensibilité, phototype, environnement et préférences. Nous vous demanderons des retours d’usage concrets — pas une note médicale. Les données photo et de profil restent soumises à votre consentement et peuvent être supprimées.</div></td></tr>`,
+          cta: { label: 'Activer mon accès pilote', url: invitationUrl },
+          footerIntro: 'Vous recevez cet email parce que vous vous êtes inscrit(e) à la liste de lancement KURLA et avez été sélectionné(e) pour le pilote fermé.'
+        }),
+        text: `Votre accès au pilote fermé KURLA est ouvert. Le service reste cosmétique et ne constitue pas un diagnostic médical. Activez votre accès : ${invitationUrl}`
       };
     }
     case 'password_reset': {

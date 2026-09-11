@@ -22,7 +22,7 @@ import {
   ShelfVerdictResponse,
   updateShelfItem
 } from '../services/intelligenceService';
-import { isSkinShelfItem, estimateDaysLeft, isRestockAlert, progressColor, openedLabel } from '../lib/skinShelf';
+import { isSkinShelfItem, estimateDaysLeft, isRestockAlert, progressColor, openedLabel, skinShelfStepForRole } from '../lib/skinShelf';
 import { PEAU_KITS } from '../lib/peauKits';
 
 const STATUS_LABELS: Record<ShelfItem['status'], string> = {
@@ -75,6 +75,7 @@ export const ShelfPage: React.FC = () => {
   const [freeLabel, setFreeLabel] = useState('');
   const [routineStep, setRoutineStep] = useState<RoutineStep>('leave_in');
   const [status, setStatus] = useState<ShelfItem['status']>('in_use');
+  const [openedAt, setOpenedAt] = useState(() => new Date().toISOString().slice(0, 10));
   const [remaining, setRemaining] = useState<string>('');
   const [abandonmentReason, setAbandonmentReason] = useState<AbandonmentReason | ''>('');
   const [abandonmentNote, setAbandonmentNote] = useState('');
@@ -181,7 +182,9 @@ export const ShelfPage: React.FC = () => {
       await addShelfItem(token, {
         freeLabel: freeLabel.trim(),
         routineStep,
+        category: routineStep.startsWith('skin_') ? 'peau' : 'cheveux',
         status,
+        openedAt: status === 'in_use' && openedAt ? new Date(`${openedAt}T12:00:00`).toISOString() : undefined,
         barcode: normalizeBarcode(barcodeInput) || undefined,
         estimatedRemainingPercent: remaining === '' ? undefined : Number(remaining),
         // Le motif est obligatoire pour un abandon : c'est la seule partie
@@ -190,6 +193,7 @@ export const ShelfPage: React.FC = () => {
         abandonmentNote: status === 'abandoned' ? abandonmentNote.trim() || undefined : undefined
       });
       setFreeLabel('');
+      setOpenedAt(new Date().toISOString().slice(0, 10));
       setRemaining('');
       setAbandonmentReason('');
       setAbandonmentNote('');
@@ -214,7 +218,9 @@ export const ShelfPage: React.FC = () => {
         freeLabel: item.freeLabel,
         productId: item.productId,
         routineStep: item.routineStep,
+        category: item.category,
         status: nextStatus,
+        openedAt: nextStatus === 'in_use' && !item.openedAt ? new Date().toISOString() : item.openedAt,
         abandonmentReason: nextStatus === 'abandoned' ? reason : undefined
       });
       setNotice(nextStatus === 'abandoned' ? 'Abandon enregistré. Merci : ce motif améliore les prochaines recommandations.' : 'Statut mis à jour.');
@@ -328,22 +334,21 @@ export const ShelfPage: React.FC = () => {
                     if (!token) return;
                     setBusy(true);
                     try {
-                      for (const p of kit.products.slice(0, 3)) {
-                        const step = p.role.toLowerCase().includes('nettoyant') ? 'skin_cleanser' : p.role.toLowerCase().includes('spf') ? 'skin_spf' : 'skin_moisturizer';
-                        await addShelfItem(token, { freeLabel: p.name, routineStep: step as RoutineStep, status: 'in_use', estimatedRemainingPercent: 80 });
+                      for (const p of kit.products) {
+                        await addShelfItem(token, { freeLabel: p.name, category: 'peau', routineStep: skinShelfStepForRole(p.role), status: 'in_use', openedAt: new Date().toISOString(), estimatedRemainingPercent: 80 });
                       }
-                      setNotice(`${kit.name} ajouté à ton étagère peau (3 soins · 80% restant chacun).`);
+                      setNotice(`${kit.name} ajouté à ton étagère peau (${kit.products.length} soins · 80% restant chacun).`);
                       await load();
                     } catch (e) { setError(e instanceof Error ? e.message : 'Ajout kit impossible.'); }
                     finally { setBusy(false); }
                   }}
                   className={`px-3 py-2 rounded-full text-xs font-bold border ${kit.id==='KPEAU-01' ? 'bg-[#C8753D] text-white border-[#C8753D]' : 'bg-white border-[#E8E1DA] hover:border-[#C8753D]'}`}
                 >
-                  + {kit.id} · {kit.products.length} soins · {kit.priceBundle.toFixed(2)}€
+                  + {kit.id} · {kit.products.length} soins · prix indicatif {kit.priceBundle.toFixed(2)}€
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-[#111111]/40 mt-2">Crée 3 entrées “En cours” à 80% — ajustez le % restant ensuite. Kit précommande 3–5j.</p>
+            <p className="text-[11px] text-[#111111]/40 mt-2">Crée 3 entrées « En cours » à 80 % — ajustez le % restant ensuite. Les kits restent des cibles de routine tant que C1 n’a pas accepté leurs composants.</p>
           </div>
         )}
 
@@ -468,7 +473,7 @@ export const ShelfPage: React.FC = () => {
               <span className={labelClass}>Nom du produit</span>
               <input value={freeLabel} onChange={event => setFreeLabel(event.target.value)} placeholder="Ex. Leave-in hydratant karité — ou scanne un produit ci-dessus" className={inputClass} required maxLength={200} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div>
                 <span className={labelClass}>Étape</span>
                 <select value={routineStep} onChange={event => setRoutineStep(event.target.value as RoutineStep)} className={inputClass}>
@@ -486,6 +491,11 @@ export const ShelfPage: React.FC = () => {
                 <select value={status} onChange={event => setStatus(event.target.value as ShelfItem['status'])} className={inputClass}>
                   {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
+              </div>
+              <div>
+                <span className={labelClass}>{routineStep.startsWith('skin_') ? 'Date d’ouverture' : 'Date de début'}</span>
+                <input type="date" value={openedAt} onChange={event => setOpenedAt(event.target.value)} max={new Date().toISOString().slice(0, 10)} className={inputClass} disabled={status !== 'in_use'} />
+                {status !== 'in_use' && <p className="text-[10px] text-[#111111]/45 mt-1">Disponible dès que le produit passe « en cours ».</p>}
               </div>
               <div>
                 <span className={labelClass}>Restant (%)</span>

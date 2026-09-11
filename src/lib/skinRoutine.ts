@@ -63,9 +63,19 @@ export type BuiltSkinRoutine = {
 
 function isKnown(v: string | undefined): boolean { return !!v && v !== UNKNOWN && v !== '' && v !== 'inconnu'; }
 
-function pickProduct(keyword: string, family: string, pool: Product[], ctx: { budgetMax?: number; preferSansParfum?: boolean; preferInvisible?: boolean }): Product | undefined {
-  // petit scoring via skinRecommendation (budget + préférences) pour 1 step
+function isRoutineSelectableProduct(product: Product): boolean {
+  const blockedStates = new Set(['draft', 'formulation_target', 'pending_validation', 'placeholder', 'unavailable']);
+  if (product.availabilityState && blockedStates.has(product.availabilityState)) return false;
+  if (product.inStock === false && product.isPreorder !== true && product.availabilityState !== 'preorder') return false;
+  return true;
+}
+
+export function pickRoutineProduct(keyword: string, family: string, pool: Product[], ctx: { budgetMax?: number; preferSansParfum?: boolean; preferInvisible?: boolean }): Product | undefined {
+  // Petit scoring via skinRecommendation (budget + préférences) pour un step.
+  // Les fiches draft/formulation_target/placeholder ne sont jamais injectées
+  // dans une routine, même si elles figurent dans le pool administratif.
   const scored = pool
+    .filter(isRoutineSelectableProduct)
     .map(p => {
       const { score } = scoreSkinProduct(p, { activeFilters: { actif: keyword.includes('niacinamide') ? 'niacinamide' : keyword.includes('retinol') ? 'retinol' : undefined, budgetMax: ctx.budgetMax, sansParfum: ctx.preferSansParfum, spfInvisible: ctx.preferInvisible } });
       const hay = `${p.name} ${p.description} ${(p as any).inci||''} ${(p.keyIngredients||[]).join(' ')}`.toLowerCase();
@@ -83,8 +93,10 @@ export function buildSkinRoutine(profile: BeautyProfile | undefined, pool: Produ
   const budget = skin?.budget as string | undefined;
   const skinType = skin?.skinType as string | undefined;
   const sensitivity = skin?.sensitivity as string | undefined;
-  const phototype = skin?.toneDepth as string | undefined; // clair/interm/fonce/tres_fonce → map V–VI
-  const toneDepth = skin?.toneDepth;
+  // C2 : le phototype est une dimension déclarée séparément. Ne jamais le
+  // déduire de toneDepth : une profondeur de ton perçue n'est pas une réaction
+  // au soleil et ne permet pas de classer une personne I–VI.
+  const phototype = skin?.phototype;
   const hasHPI = skin?.hyperpigmentationTendency === 'frequente' || (skin?.skinConcerns||[]).some(c=>/taches|hyperpigmentation|teint_terne/i.test(c));
 
   // Tier choisi : opts.tier > budget > skinType
@@ -98,7 +110,7 @@ export function buildSkinRoutine(profile: BeautyProfile | undefined, pool: Produ
   const kit = (tier === 'Experte' ? peauKitForBudget('premium') : tier === 'Équilibrée' ? peauKitForBudget('moyen') : peauKitForBudget('petit'));
   const budgetMax = tier === 'Experte' ? 45 : tier === 'Équilibrée' ? 28 : 14;
   const preferSansParfum = sensitivity === 'elevee' || (skin?.sensitivities||[]).includes('parfum') || (skin?.preferences||[]).includes('sans parfum');
-  const preferInvisible = toneDepth === 'fonce' || toneDepth === 'tres_fonce' || phototype === 'fonce' || phototype === 'tres_fonce';
+  const preferInvisible = phototype !== undefined && phototype >= 4;
 
   // Sélection steps selon tier
   let stepsSpecs: RoutineStepSpec[] = [];
@@ -115,7 +127,7 @@ export function buildSkinRoutine(profile: BeautyProfile | undefined, pool: Produ
   const incompatibilities: string[] = [];
 
   for (const spec of stepsSpecs) {
-    const product = pickProduct(spec.keyword, spec.family, pool, { budgetMax, preferSansParfum, preferInvisible: spec.family==='spf' ? phototypeVI : undefined });
+    const product = pickRoutineProduct(spec.keyword, spec.family, pool, { budgetMax, preferSansParfum, preferInvisible: spec.family==='spf' ? phototypeVI : undefined });
     const price = product ? Number(product.price) || 0 : 0;
     total += price;
     let alert: string | undefined;

@@ -30,7 +30,20 @@ async function run(): Promise<void> {
       hairTypes: ['4c'],
       concerns: ['dryness'],
       is_active: true,
-      stock_quantity: 5
+      catalog_status: 'published',
+      ingredient_verification_status: 'verified',
+      claims_validation_status: 'verified',
+      images_validation_status: 'verified',
+      stock_validation_status: 'verified',
+      certifications_validation_status: 'verified',
+      translations_validation_status: 'verified',
+      brand_verification_status: 'verified',
+      image_ownership_status: 'brand_provided',
+      ingredients: ['Glycerin'],
+      image: 'https://cdn.example.test/composition-probe.jpg',
+      country_availability: ['FR'],
+      stock_quantity: 5,
+      in_stock: true
     } as any
   ]);
 

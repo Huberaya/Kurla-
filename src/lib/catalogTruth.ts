@@ -22,6 +22,7 @@ export type CatalogAdministrativeStatus =
 export type CatalogCommercialState =
   | 'draft'
   | 'formulation_target'
+  | 'pending_validation'
   | 'placeholder'
   | 'preorder'
   | 'available'
@@ -34,8 +35,15 @@ export type CatalogTruth = {
   commercialState: CatalogCommercialState;
   isPubliclyListable: boolean;
   isCheckoutEligible: boolean;
+  /** Libellé stable destiné aux écrans publics et admin. */
+  availabilityLabel: string;
+  /** Explication lisible, sans exposer les détails internes de gouvernance. */
+  availabilityMessage: string;
   blockers: string[];
 };
+
+/** Nom métier de la projection serveur consommée par toutes les surfaces. */
+export type ProductTruth = CatalogTruth;
 
 const VERIFIED_FIELDS = [
   'ingredient_verification_status',
@@ -213,21 +221,24 @@ export function getCatalogTruth(product: any): CatalogTruth {
   const administrativeStatus = String(readCatalogField(product, 'catalog_status') || 'draft') as CatalogAdministrativeStatus;
   const active = asBoolean(product, 'is_active');
   const published = administrativeStatus === 'published';
-  const target = hasFormulationTargetMarker(product) || hasPendingEvidence(product);
+  const formulationTarget = hasFormulationTargetMarker(product);
   const placeholder = hasPlaceholderMarker(product);
+  const pendingValidation = hasPendingEvidence(product);
   const proofState: CatalogTruth['proofState'] = hasMinimalCatalogProof(product) ? 'compliant' : 'incomplete';
   const listable = isCatalogPubliclyListable(product);
   const blockers: string[] = [];
 
   if (!active) blockers.push('produit inactif');
   if (!published) blockers.push(`statut administratif « ${administrativeStatus} »`);
-  if (target) blockers.push('preuves produit incomplètes ou formulation cible');
-  if (!target && placeholder) blockers.push('visuel placeholder ou droits non établis');
+  if (formulationTarget) blockers.push('formulation cible : aucun produit fabriqué/achetable démontré');
+  if (!formulationTarget && placeholder) blockers.push('visuel placeholder ou droits non établis');
+  if (!formulationTarget && !placeholder && pendingValidation) blockers.push('preuves produit en attente de validation');
   if (published && !listable) blockers.push('ne satisfait pas la porte de publiabilité');
 
   let commercialState: CatalogCommercialState;
-  if (target) commercialState = 'formulation_target';
+  if (formulationTarget) commercialState = 'formulation_target';
   else if (placeholder) commercialState = 'placeholder';
+  else if (pendingValidation) commercialState = 'pending_validation';
   else if (!active || administrativeStatus === 'unavailable') commercialState = 'unavailable';
   else if (!published) commercialState = 'draft';
   else if (isPreorder(product)) commercialState = 'preorder';
@@ -235,15 +246,46 @@ export function getCatalogTruth(product: any): CatalogTruth {
   else commercialState = 'unavailable';
 
   const isCheckoutEligible = listable && (commercialState === 'available' || commercialState === 'preorder');
+  const availabilityLabel = commercialState === 'available'
+    ? 'Disponible'
+    : commercialState === 'preorder'
+      ? 'Précommande'
+      : commercialState === 'formulation_target'
+        ? 'Formulation cible'
+        : commercialState === 'pending_validation'
+          ? 'Validation en attente'
+          : commercialState === 'placeholder'
+            ? 'Visuel à remplacer'
+            : commercialState === 'draft'
+              ? 'En préparation'
+              : 'Indisponible';
+  const availabilityMessage = commercialState === 'available'
+    ? 'Référence vérifiée et achetable.'
+    : commercialState === 'preorder'
+      ? 'Référence vérifiée, expédition après réception du prochain lot.'
+      : commercialState === 'formulation_target'
+        ? 'Cette fiche décrit une cible de formulation ; elle n’est ni un produit fabriqué ni éligible au checkout.'
+        : commercialState === 'pending_validation'
+          ? 'Cette référence reste masquée tant que ses preuves produit ne sont pas validées.'
+          : commercialState === 'placeholder'
+            ? 'Cette fiche reste masquée tant que le visuel et les droits associés ne sont pas établis.'
+            : commercialState === 'draft'
+              ? 'Cette fiche est en préparation et n’est pas publiée.'
+              : 'Cette référence n’est pas achetable actuellement.';
   return {
     administrativeStatus,
     proofState,
     commercialState,
     isPubliclyListable: listable,
     isCheckoutEligible,
+    availabilityLabel,
+    availabilityMessage,
     blockers: Array.from(new Set(blockers)),
   };
 }
+
+/** Alias explicite : le nom ProductTruth est le contrat serveur de référence. */
+export const getProductTruth = getCatalogTruth;
 
 /** Checkout is deliberately stricter than a public product page. */
 export function isCheckoutEligibleProduct(product: any): boolean {

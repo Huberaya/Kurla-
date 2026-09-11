@@ -24,18 +24,16 @@ export type PeauKit = {
   routine: string; // matin 6 / soir 8 / hebdo 3 placement
 };
 
-function pct(economy: number, separate: number): number {
-  return Math.round((economy / separate) * 100);
-}
-
-// Produits existants (3) + placeholders C1 (4) — placeholder price = cible C1
+// Références alignées sur les IDs du catalogue peau. Leur présence dans un
+// kit ne vaut pas preuve de fabrication, de stock ou de conformité : les kits
+// restent formulation_target tant que C1 n'a pas accepté leurs composants.
 const P_NETTOYANT = { id: 'peau-ess-001', name: 'Nettoyant doux sans parfum', price: 12.90, role: 'Nettoyant matin & soir' };
 const P_CREME = { id: 'peau-ess-002', name: 'Crème céramides + squalane', price: 16.90, role: 'Crème barrière' };
-const P_SPF = { id: 'peau-ess-003', name: 'SPF 50 invisible fluide', price: 19.90, role: 'SPF matin (phototype V–VI safe)' };
-const P_SERUM_NIA = { id: 'peau-serum-niacinamide-001', name: 'Sérum niacinamide 5%', price: 18.90, role: 'Sérum HPI (matin)', placeholder: true };
-const P_GEL_HA = { id: 'peau-gel-hyaluronique-001', name: 'Gel acide hyaluronique', price: 16.90, role: 'Hydratation profonde' };
-const P_EXFOLIANT = { id: 'peau-exfoliant-aha-bha-001', name: 'Exfoliant AHA/BHA 1×/sem', price: 19.90, role: 'Hebdo — grain & taches', hebdo: true };
-const P_BAUME = { id: 'peau-baume-levres-001', name: 'Baume lèvres céramides', price: 8.90, role: 'Lèvres sèches' };
+const P_SPF = { id: 'peau-ess-003', name: 'SPF 50 invisible fluide', price: 19.90, role: 'SPF matin (phototypes IV–VI à vérifier)' };
+const P_SERUM_NIA = { id: 'peau-ess-006', name: 'Sérum niacinamide 5%', price: 15.90, role: 'Sérum HPI (matin)' };
+const P_GEL_HA = { id: 'peau-ess-011', name: 'Gel acide hyaluronique', price: 14.90, role: 'Hydratation profonde' };
+const P_EXFOLIANT = { id: 'peau-ess-005', name: 'Exfoliant AHA/BHA 1×/sem', price: 17.90, role: 'Hebdo — grain & taches', hebdo: true };
+const P_BAUME = { id: 'peau-ess-013', name: 'Baume lèvres céramides', price: 8.90, role: 'Lèvres sèches' };
 
 export const PEAU_KITS: PeauKit[] = [
   {
@@ -85,13 +83,9 @@ export const PEAU_KITS: PeauKit[] = [
   },
 ];
 
-// Ajusté : on calcule l'économie exacte depuis les prix bundle vs séparé initiaux
-PEAU_KITS.forEach(k => {
-  const sep = k.products.reduce((s,p)=>s+p.price,0);
-  k.priceSeparate = Math.round(sep*100)/100;
-  k.economy = Math.round((k.priceSeparate - k.priceBundle)*100)/100;
-  k.economyPct = pct(k.economy, k.priceSeparate);
-});
+// Ces prix séparés sont les cibles du plan P0, pas une autorisation de vente.
+// Ils seront recalculés depuis les prix serveur des composants avant tout GO
+// commercial. Tant que C1 est suspendu, les kits restent formulation_target.
 
 export const PEAU_KIT_BY_ID = new Map(PEAU_KITS.map(k=>[k.id,k]));
 export const PEAU_KIT_BY_SKU = new Map(PEAU_KITS.map(k=>[k.sku,k]));

@@ -1,5 +1,6 @@
 import { Product } from '../types';
 import type { FicheCiblePeau } from '../lib/skinRangeTarget';
+import type { SkinKitQuote } from '../lib/skinKitPricing';
 import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -19,6 +20,7 @@ export interface SupabaseCategory {
 
 export interface FetchProductsResponse {
   products: Product[];
+  skinKits: SkinKitQuote[];
   brands: SupabaseBrand[];
   categories: SupabaseCategory[];
   source: 'supabase' | 'fallback';
@@ -31,20 +33,24 @@ export interface FetchProductsResponse {
  * catalog tables directly, which keeps validation notes and operational fields
  * on the server/admin side.
  */
-async function fetchPublicProducts(): Promise<Product[]> {
+async function fetchPublicProducts(): Promise<{ products: Product[]; skinKits: SkinKitQuote[] }> {
   const response = await fetch('/api/products');
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(apiErrorMessage(response, data, 'Le catalogue publié est indisponible.'));
-  return Array.isArray(data.products) ? data.products : [];
+  return {
+    products: Array.isArray(data.products) ? data.products : [],
+    skinKits: Array.isArray(data.skinKits) ? data.skinKits : []
+  };
 }
 
 export async function getProductsFromSupabase(): Promise<FetchProductsResponse> {
   try {
-    const products = await fetchPublicProducts();
-    return { products, brands: [], categories: [], source: 'supabase', count: products.length, error: null };
+    const result = await fetchPublicProducts();
+    return { products: result.products, skinKits: result.skinKits, brands: [], categories: [], source: 'supabase', count: result.products.length, error: null };
   } catch (error: any) {
     return {
       products: [],
+      skinKits: [],
       brands: [],
       categories: [],
       source: 'fallback',
@@ -60,8 +66,8 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
   error: Error | null;
 }> {
   try {
-    const products = await fetchPublicProducts();
-    const product = products.find(item => item.slug === slugOrId || item.id === slugOrId) || null;
+    const result = await fetchPublicProducts();
+    const product = result.products.find(item => item.slug === slugOrId || item.id === slugOrId) || null;
     return product
       ? { product, source: 'supabase', error: null }
       : { product: null, source: 'supabase', error: new Error('Ce produit n’est pas publié ou n’est plus disponible.') };
@@ -76,6 +82,7 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [skinKits, setSkinKits] = useState<SkinKitQuote[]>([]);
   const [brands, setBrands] = useState<SupabaseBrand[]>([]);
   const [categories, setCategories] = useState<SupabaseCategory[]>([]);
   const [source, setSource] = useState<'supabase' | 'fallback'>('fallback');
@@ -87,6 +94,7 @@ export function useProducts() {
     setLoading(true);
     const result = await getProductsFromSupabase();
     setProducts(result.products);
+    setSkinKits(result.skinKits);
     setBrands(result.brands);
     setCategories(result.categories);
     setSource(result.source);
@@ -96,7 +104,7 @@ export function useProducts() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  return { products, brands, categories, source, count, loading, error, refetch: loadData };
+  return { products, skinKits, brands, categories, source, count, loading, error, refetch: loadData };
 }
 
 export function useProduct(slugOrId: string) {

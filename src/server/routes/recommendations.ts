@@ -358,10 +358,11 @@ export function registerRecommendationRoutes(app: Express): void {
     const candidateSlugs = catalog.filter(entry => entry.needs.some(need => needs.includes(need))).slice(0, 5).map(entry => entry.slug);
 
     if (triage.review) {
-      return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });
+      return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, generatedWithAI: false, source: 'fallback', sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });
     }
 
     let parsed: any;
+    let generatedWithAI = false;
     const aiClient = getGeminiClient();
     if (aiClient) {
       try {
@@ -379,6 +380,7 @@ export function registerRecommendationRoutes(app: Express): void {
           }
         });
         parsed = JSON.parse(response.text || '{}');
+        generatedWithAI = true;
       } catch (error) {
         console.error('[AI Routine] constrained model failed, using deterministic catalog routine:', error);
       }
@@ -398,6 +400,8 @@ export function registerRecommendationRoutes(app: Express): void {
       warnings: Array.isArray(parsed?.warnings) ? parsed.warnings.filter((warning: unknown): warning is string => typeof warning === 'string').slice(0, 8) : [AI_DISCLAIMER],
       productHandles,
       requiresHumanReview: parsed?.requiresHumanReview === true,
+      generatedWithAI,
+      source: generatedWithAI ? 'gemini' : 'fallback',
       sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })),
       uncertainty: profile ? 'La routine tient compte des champs complétés du profil KURLA ID.' : 'La routine est basée uniquement sur les réponses du diagnostic ; le profil KURLA ID n’a pas été partagé.'
     };

@@ -47,7 +47,7 @@ export const WaitlistSection: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
 
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFFDF9] border border-[#E8E1DA] text-[#C8753D] text-xs font-semibold tracking-wider uppercase mb-6 shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Lancement — précommandes ouvertes
+          <Sparkles className="w-3.5 h-3.5 text-[#C8753D]" /> Lancement fermé — 300 testeurs
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-serif-title font-bold text-[#111111] mb-4 leading-tight">
@@ -55,7 +55,7 @@ export const WaitlistSection: React.FC = () => {
         </h2>
 
         <p className="text-base sm:text-lg text-[#111111]/80 font-light max-w-xl mx-auto mb-8 leading-relaxed">
-          Laissez votre e-mail : diagnostic gratuit, <strong className="font-semibold">−15 % sur votre première routine</strong>, et un accès prioritaire dès l’expédition du premier lot.
+          Laissez votre e-mail pour rejoindre la liste d’attente du pilote fermé. Les premières personnes sélectionnées recevront un accès prioritaire au diagnostic, à la Shelf et au suivi de routine.
         </p>
 
         {/* Profile Selector (Client vs Pro) */}
@@ -87,7 +87,7 @@ export const WaitlistSection: React.FC = () => {
         {submitted ? (
           <div className="p-6 rounded-2xl bg-[#FFFDF9] border border-emerald-500/40 text-emerald-700 font-semibold text-base inline-flex items-center gap-3 shadow-md animate-in fade-in duration-300">
             <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-            Merci ! Votre code −15 % est réservé pour {email}.
+            Merci ! Votre demande d’accès au pilote est enregistrée pour {email}.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
@@ -115,7 +115,7 @@ export const WaitlistSection: React.FC = () => {
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-[#111111]/60">
           <span className="flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-[#C8753D]" /> −15 % sur votre 1ère commande
+            <Tag className="w-3.5 h-3.5 text-[#C8753D]" /> Sélection progressive jusqu’à 300 testeurs
           </span>
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#C8753D]" /> Pas de spam, désinscription en 1 clic

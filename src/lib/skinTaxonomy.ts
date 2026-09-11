@@ -9,21 +9,21 @@
 // Couvre l'audit peau vs cheveux : 15 familles peau vs 10 cheveux.
 // Chaque need mappe 1 page Boutique + 1 fiche guide + 1 étape routine.
 export const SKIN_NEEDS = [
-  { value: 'hydrater', label: 'Hydrater', shortLabel: 'Hydratation', icon: 'Droplets' },
-  { value: 'eclat', label: 'Éclat & teint terne', shortLabel: 'Éclat', icon: 'Sparkles' },
-  { value: 'taches', label: 'Taches / HPI', shortLabel: 'Taches', icon: 'Target' },
-  { value: 'seche', label: 'Peau sèche / très sèche', shortLabel: 'Sèche', icon: 'Wind' },
-  { value: 'grasse', label: 'Peau grasse / brillance', shortLabel: 'Grasse', icon: 'Sun' },
-  { value: 'imperfections', label: 'Imperfections / boutons', shortLabel: 'Imperfections', icon: 'ShieldAlert' },
-  { value: 'sensible', label: 'Peau sensible / réactive', shortLabel: 'Sensible', icon: 'Heart' },
-  { value: 'spf', label: 'SPF sans trace blanche', shortLabel: 'SPF invisible', icon: 'SunSnow' },
-  { value: 'anti_age', label: 'Rides / fermeté', shortLabel: 'Anti-âge', icon: 'Hourglass' },
-  { value: 'contour_yeux', label: 'Contour des yeux', shortLabel: 'Yeux', icon: 'Eye' },
-  { value: 'levres', label: 'Lèvres sèches', shortLabel: 'Lèvres', icon: 'Smile' },
-  { value: 'corps', label: 'Peau du corps', shortLabel: 'Corps', icon: 'User' },
-  { value: 'cicatrices', label: 'Cicatrices post-acné', shortLabel: 'Cicatrices', icon: 'Bandage' },
-  { value: 'barriere', label: 'Barrière cutanée', shortLabel: 'Barrière', icon: 'Shield' },
-  { value: 'par_ingredient', label: 'Par ingrédient', shortLabel: 'Ingrédient', icon: 'Beaker' },
+  { value: 'hydrater', label: 'Hydrater', shortLabel: 'Hydratation', icon: 'Droplets', description: 'Repulper, confort · même peau grasse peut être déshydratée.', color: 'bg-sky-500' },
+  { value: 'eclat', label: 'Éclat & teint terne', shortLabel: 'Éclat', icon: 'Sparkles', description: 'Teint lumineux, sans effet gras.', color: 'bg-amber-400' },
+  { value: 'taches', label: 'Taches / HPI', shortLabel: 'Taches', icon: 'Target', description: 'HPI, taches post-acné — uniformiser, jamais éclaircir.', color: 'bg-orange-500' },
+  { value: 'seche', label: 'Peau sèche / très sèche', shortLabel: 'Sèche', icon: 'Wind', description: 'Nourrir, apaiser les tiraillements.', color: 'bg-rose-400' },
+  { value: 'grasse', label: 'Peau grasse / brillance', shortLabel: 'Grasse', icon: 'Sun', description: 'Matifier, réguler sans assécher.', color: 'bg-emerald-500' },
+  { value: 'imperfections', label: 'Imperfections / boutons', shortLabel: 'Imperfections', icon: 'ShieldAlert', description: 'Boutons, pores — doux pour peaux mélaninées.', color: 'bg-red-400' },
+  { value: 'sensible', label: 'Peau sensible / réactive', shortLabel: 'Sensible', icon: 'Heart', description: 'Apaiser, haute tolérance.', color: 'bg-violet-400' },
+  { value: 'spf', label: 'SPF sans trace blanche', shortLabel: 'SPF invisible', icon: 'SunSnow', description: 'SPF 50+ sans trace blanche (white cast).', color: 'bg-yellow-500' },
+  { value: 'anti_age', label: 'Rides / fermeté', shortLabel: 'Anti-âge', icon: 'Hourglass', description: 'Prévenir, raffermir.', color: 'bg-stone-500' },
+  { value: 'contour_yeux', label: 'Contour des yeux', shortLabel: 'Yeux', icon: 'Eye', description: 'Cernes, poches.', color: 'bg-indigo-400' },
+  { value: 'levres', label: 'Lèvres sèches', shortLabel: 'Lèvres', icon: 'Smile', description: 'Hydrater, réparer.', color: 'bg-pink-400' },
+  { value: 'corps', label: 'Peau du corps', shortLabel: 'Corps', icon: 'User', description: 'Hydratation, texture.', color: 'bg-teal-500' },
+  { value: 'cicatrices', label: 'Cicatrices post-acné', shortLabel: 'Cicatrices', icon: 'Bandage', description: 'Atténuer, lisser.', color: 'bg-amber-600' },
+  { value: 'barriere', label: 'Barrière cutanée', shortLabel: 'Barrière', icon: 'Shield', description: 'Réparer, renforcer.', color: 'bg-green-600' },
+  { value: 'par_ingredient', label: 'Par ingrédient', shortLabel: 'Ingrédient', icon: 'Beaker', description: 'Niacinamide, rétinol, AHA/BHA, vitamine C.', color: 'bg-cyan-500' },
 ] as const;
 
 export type SkinNeed = typeof SKIN_NEEDS[number]['value'];

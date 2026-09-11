@@ -4,7 +4,7 @@ import { UNKNOWN, SKIN_CONCERN_OPTIONS } from '../lib/beautyProfile';
 import type { BeautyProfile } from '../lib/beautyProfile';
 import { createEmptyBeautyProfile } from '../lib/beautyProfile';
 import { useAuth } from '../context/AuthContext';
-import { loadObservance, toggleToday, getStreak, getWeekHistory } from '../lib/skinObservance';
+import { loadObservance, toggleToday, getStreak, getWeekHistory, localISODate } from '../lib/skinObservance';
 import { queryBeautyAssistant } from '../lib/ai/assistant';
 
 type JournalEntry = {
@@ -66,7 +66,7 @@ export const SkinJournalPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // form
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => localISODate());
   const [feelingScore, setFeelingScore] = useState(4);
   const [concerns, setConcerns] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
@@ -86,7 +86,7 @@ export const SkinJournalPage: React.FC = () => {
   const [observance, setObservance] = useState(() => { try { return loadObservance(); } catch { return {}; } });
   const [observanceMsg, setObservanceMsg] = useState('');
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localISODate();
   const todayObs = observance[todayStr] || { matin: false, soir: false };
   const streakMatin = (() => { try { return getStreak('matin'); } catch { return 0; } })();
   const streakSoir = (() => { try { return getStreak('soir'); } catch { return 0; } })();
@@ -326,7 +326,7 @@ export const SkinJournalPage: React.FC = () => {
               </div>
               <div className="mt-3 flex gap-2">
                 <a href="/peau/diagnostic" className="flex-1 py-2 rounded-full bg-[#111111] text-white text-xs font-bold text-center">Diagnostic</a>
-                <a href="/account/beauty-profile" className="flex-1 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold text-center">Éditer profil</a>
+                <a href="/account/kurla-id" className="flex-1 py-2 rounded-full bg-white border border-[#E8E1DA] text-xs font-bold text-center">Éditer profil</a>
               </div>
               <p className="text-[11px] text-[#111111]/50 mt-2">Le journal lit votre profil peau pour pré-remplir les suggestions. Modifiable à tout moment.</p>
             </div>
@@ -351,7 +351,7 @@ export const SkinJournalPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="flex flex-col gap-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/60">Date d’observation</span>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} className="px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]" />
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} max={localISODate()} className="px-3 py-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8E1DA] text-sm focus:outline-none focus:border-[#C8753D]" />
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#111111]/60">Jalon</span>
@@ -501,7 +501,7 @@ export const SkinJournalPage: React.FC = () => {
             <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA]">
               <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — avant/après</h3>
               <p className="text-xs text-[#111111]/60 mt-1">Ajoutez 2 photos (J+0 + J+7) avec <strong>même lumière</strong> (fenêtre, visage neutre, pas de filtre) pour activer le slider. Uniformiser≠éclaircir — on compare le confort et les marques, pas la carnation.</p>
-              <div className="mt-3 p-4 rounded-2xl bg-[#F8F2EC] border border-dashed border-[#E8E1DA] text-center text-xs text-[#111111]/50">Exemple Fatou : J+0 → J+7 (7 jours d’Équilibrée 62€ sans parfum) · ressenti 3→4/5</div>
+              <div className="mt-3 p-4 rounded-2xl bg-[#F8F2EC] border border-dashed border-[#E8E1DA] text-center text-xs text-[#111111]/50">Exemple Fatou : J+0 → J+7 (7 jours d’Équilibrée, prix indicatif 62€, sans parfum) · ressenti 3→4/5</div>
             </section>
           );
           const idxA = Math.min(compareIdxA, withPhoto.length-1);
@@ -560,7 +560,7 @@ export const SkinJournalPage: React.FC = () => {
 
         {/* Cross links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <a href="/peau/routine" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> Ma routine peau</p><p className="text-[#111111]/60 font-light mt-1">Matin 6 · Soir 8 · Hebdo 3 · kits 49,70/62/84,90.</p></a>
+          <a href="/peau/routine" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> Ma routine peau</p><p className="text-[#111111]/60 font-light mt-1">Matin 6 · Soir 8 · prix indicatifs de précommande 49,70/62/84,90.</p></a>
           <a href="/account/shelf?cat=peau" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Award className="w-4 h-4 text-[#C8753D]" /> Mon étagère peau</p><p className="text-[#111111]/60 font-light mt-1">% restant, jauge, alerte J-7 réassort.</p></a>
           <a href="/boutique?cat=peau" className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D]"><p className="font-bold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#C8753D]" /> Boutique peau filtrée</p><p className="text-[#111111]/60 font-light mt-1">15 besoins · actif · phototype V–VI safe.</p></a>
         </div>

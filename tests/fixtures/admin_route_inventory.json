@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T17:21:02.630Z",
+  "generatedAt": "2026-09-10T22:07:50.756Z",
   "routes": [
     {
       "method": "GET",
@@ -114,7 +114,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/:productId/readiness",
-      "file": "src/server/routes/catalogGovernance.ts:205",
+      "file": "src/server/routes/catalogGovernance.ts:216",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -211,6 +211,13 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/catalog/skin-readiness",
+      "file": "src/server/routes/catalogGovernance.ts:186",
+      "guard": "requireAdmin(",
+      "callers": []
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/catalog/sourcing-readiness",
       "file": "src/server/routes/catalogGovernance.ts:175",
       "guard": "requireAdmin(",
@@ -228,7 +235,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/vocabulary-audit",
-      "file": "src/server/routes/catalogGovernance.ts:198",
+      "file": "src/server/routes/catalogGovernance.ts:209",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -271,23 +278,68 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/api/admin/launch/interviews",
+      "file": "src/server/routes/launchTraction.ts:536",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/LaunchTractionPanel.tsx:115"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/launch/nps",
+      "file": "src/server/routes/launchTraction.ts:584",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/LaunchTractionPanel.tsx:142"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/launch/partners",
+      "file": "src/server/routes/launchTraction.ts:559",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/LaunchTractionPanel.tsx:130"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/launch/testers",
+      "file": "src/server/routes/launchTraction.ts:505",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/LaunchTractionPanel.tsx:149"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/launch/testers/invite",
+      "file": "src/server/routes/launchTraction.ts:366",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/LaunchTractionPanel.tsx:162"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/admin/loyalty/redemptions",
-      "file": "src/server/routes/loyalty.ts:91",
+      "file": "src/server/routes/loyalty.ts:93",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "POST",
       "path": "/api/admin/loyalty/redemptions/:id",
-      "file": "src/server/routes/loyalty.ts:98",
+      "file": "src/server/routes/loyalty.ts:100",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/loyalty/retention",
-      "file": "src/server/routes/loyalty.ts:120",
+      "file": "src/server/routes/loyalty.ts:122",
       "guard": "requireAdmin(",
       "callers": []
     },

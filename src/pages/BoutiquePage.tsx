@@ -15,7 +15,7 @@ import { CategoryWaitlist } from '../components/CategoryWaitlist';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
-import { SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
+import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS, SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
 import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
 import { PEAU_KITS } from '../lib/peauKits';
 import { getCountryConfig, getStripeModeForCountry, COUNTRY_SCORES_SORTED } from '../lib/countryFulfillment';
@@ -47,23 +47,22 @@ const HAIR_NEEDS: NeedOption[] = [
   { id: 'prendre_soin_barbe', label: 'Barbe / grooming homme', domain: 'cheveux', icon: UserCheck, description: 'Outils et soins pour barbe, cheveux courts et waves.' },
 ];
 
-const SKIN_NEEDS: NeedOption[] = [
-  { id: 'hydrater', label: 'Hydrater', domain: 'peau', icon: Droplets, description: 'Repulper, confort · même peau grasse peut être déshydratée.' },
-  { id: 'eclat', label: 'Éclat', domain: 'peau', icon: Sparkles, description: 'Teint lumineux, sans effet gras.' },
-  { id: 'taches', label: 'Taches & teint', domain: 'peau', icon: Sun, description: 'HPI, taches post-acné — uniformiser, jamais éclaircir.' },
-  { id: 'seche', label: 'Peau sèche', domain: 'peau', icon: Heart, description: 'Nourrir, apaiser tiraillements.' },
-  { id: 'grasse', label: 'Peau grasse', domain: 'peau', icon: Wind, description: 'Matifier, réguler sans assécher.' },
-  { id: 'imperfections', label: 'Imperfections', domain: 'peau', icon: Smile, description: 'Boutons, pores — doux pour peaux mélaninées.' },
-  { id: 'sensible', label: 'Peau sensible', domain: 'peau', icon: Shield, description: 'Apaiser, haute tolérance.' },
-  { id: 'spf', label: 'Protection solaire', domain: 'peau', icon: Sun, description: 'SPF 50+ sans trace blanche (white cast).' },
-  { id: 'anti_age', label: 'Anti-âge', domain: 'peau', icon: Clock, description: 'Prévenir, raffermir.' },
-  { id: 'contour_yeux', label: 'Contour des yeux', domain: 'peau', icon: Eye, description: 'Cernes, poches.' },
-  { id: 'levres', label: 'Lèvres', domain: 'peau', icon: Heart, description: 'Hydrater, réparer.' },
-  { id: 'corps', label: 'Corps', domain: 'peau', icon: Package, description: 'Hydratation, texture.' },
-  { id: 'cicatrices', label: 'Cicatrices', domain: 'peau', icon: Layers, description: 'Atténuer, lisser.' },
-  { id: 'barriere', label: 'Barrière cutanée', domain: 'peau', icon: Shield, description: 'Réparer, renforcer.' },
-  { id: 'ingredient', label: 'Par ingrédient', domain: 'peau', icon: FlaskConical, description: 'Niacinamide, rétinol, AHA/BHA, vitamine C.' },
-];
+const SKIN_NEED_ICONS: Record<string, React.ElementType> = {
+  hydrater: Droplets, eclat: Sparkles, taches: Sun, seche: Heart, grasse: Wind,
+  imperfections: Smile, sensible: Shield, spf: Sun, anti_age: Clock,
+  contour_yeux: Eye, levres: Heart, corps: Package, cicatrices: Layers,
+  barriere: Shield, par_ingredient: FlaskConical,
+};
+
+// Les IDs, libellés et descriptions viennent de la taxonomie C2 versionnée.
+// Cette page ne maintient que le choix d’icône propre à l’interface.
+const SKIN_NEEDS: NeedOption[] = SKIN_TAXONOMY_NEEDS.map(need => ({
+  id: need.value,
+  label: need.label,
+  domain: 'peau',
+  icon: SKIN_NEED_ICONS[need.value] || Sparkles,
+  description: need.description,
+}));
 
 // Catégories dont les produits arrivent plus tard : on oriente vers l'espace
 // dédié (conseils/diagnostic) plutôt que d'afficher une grille vide trompeuse.
@@ -95,7 +94,7 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
 };
 
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
-  const { products, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
+  const { products, skinKits, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
   const { profile } = useAuth();
   const hasKurlaProfile = Boolean(profile && (profile.hair_type || profile.skin_type || profile.concerns?.length));
 
@@ -128,7 +127,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     if (need) {
       let normalized = need.toLowerCase().trim();
       // C8 alias : supporte anciennes URLs protection_solaire/par_ingredient et hydrater_peau → hydrater
-      const ALIAS: Record<string,string> = { protection_solaire: 'spf', par_ingredient: 'ingredient', hydrater_peau: 'hydrater' };
+      const ALIAS: Record<string,string> = { protection_solaire: 'spf', ingredient: 'par_ingredient', par_ingredient: 'par_ingredient', hydrater_peau: 'hydrater' };
       normalized = ALIAS[normalized] || normalized;
       const allIds = [...HAIR_NEEDS, ...SKIN_NEEDS].map(n => n.id);
       const found = allIds.find(id => id === normalized || normalized.includes(id) || id.includes(normalized));
@@ -294,7 +293,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         }
         // C2 — Actif
         if (skinActif !== 'tous') {
-          const metaActifs = ((p as any).metadata?.actifs as string[] | undefined) || [];
+          const metaActifs = (p.activeIngredients || []).map((active: any) => typeof active === 'string' ? active : active?.name).filter(Boolean) as string[];
           const hayActif = `${(p.keyIngredients||[]).join(' ')} ${p.inci||''} ${metaActifs.join(' ')}`.toLowerCase();
           const want = SKIN_ACTIVE_FILTERS.find(a=>a.value===skinActif);
           const inciLower = (want?.inci || want?.label || skinActif).toLowerCase();
@@ -302,30 +301,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           const rx = new RegExp(needle, 'i');
           if (!rx.test(hayActif) && !rx.test(inciLower) && !metaActifs.some(a=> rx.test(a))) return false;
         }
-        // C2 — Phototype (I–VI) — filtre sur metadata.phototype ; sans metadata = pass
+        // C2 — dimensions contrôlées : une fiche sans code vérifié ne passe
+        // pas le filtre. Aucun fallback par nom ou description : cela créait
+        // des faux positifs et mélangeait texte marketing et taxonomie.
         if (skinPhototype !== 'tous') {
-          const metaPhoto = ((p as any).metadata?.phototype as string[] | undefined);
-          if (metaPhoto && metaPhoto.length && !metaPhoto.includes(skinPhototype)) return false;
-          // SPF invisible boost is scoring, not filtering — phototype VI + minéral pur visible will be déclassé en scoring, pas bloqué
+          const supportedPhototypes = p.supportedPhototypes || [];
+          if (!supportedPhototypes.includes(skinPhototype)) return false;
         }
-        // C2 — Texture (peaufine: lotion + huile ajoutés, fallback hay plus tolérant)
-        if (skinTexture !== 'tous') {
-          const metaTex = (p as any).metadata?.texture as string | undefined;
-          if (metaTex && metaTex !== skinTexture) return false;
-          if (!metaTex) {
-            const hay = `${p.name} ${p.description}`.toLowerCase();
-            if (skinTexture === 'gel' && !/gel/.test(hay)) return false;
-            if (skinTexture === 'lotion' && !/lotion|fluide/.test(hay)) return false;
-            if (skinTexture === 'creme' && !/crème|creme/.test(hay)) return false;
-            if (skinTexture === 'baume' && !/baume/.test(hay)) return false;
-            if (skinTexture === 'huile' && !/huile|sérum huileux|oil/.test(hay)) return false;
-          }
-        }
-        // C2 — Fini
-        if (skinFini !== 'tous') {
-          const metaFini = (p as any).metadata?.finish as string | undefined;
-          if (metaFini && metaFini !== skinFini) return false;
-        }
+        if (skinTexture !== 'tous' && p.skinTextureCode !== skinTexture) return false;
+        if (skinFini !== 'tous' && p.skinFinishCode !== skinFini) return false;
         // C2 — Sensibilité : sensible / très sensible → exige sans parfum
         if (skinSensibilite !== 'tous') {
           const isSansParfum = !(p as any).containsFragrance && !(p.allergens||[]).some(a=>/parfum|fragrance/i.test(a)) && !/parfum|fragrance/i.test(p.inci||'');
@@ -900,11 +884,19 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <span className="text-xs text-[#111111]/60">Livraison 4,90€ · gratuite dès 59€ (KPEAU-02/03)</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {PEAU_KITS.map(kit => (
+              {PEAU_KITS.map(kit => {
+                const quote = skinKits.find(candidate => candidate.id === kit.id);
+                const bundlePrice = quote?.priceBundle ?? kit.priceBundle;
+                const separatePrice = quote?.priceSeparate ?? kit.priceSeparate;
+                const shippingLabel = quote?.shippingCents == null
+                  ? 'livraison à vérifier'
+                  : quote.shippingCents === 0 ? 'livraison gratuite' : `livraison ${(quote.shippingCents / 100).toFixed(2)}€`;
+                const priceIsIndicative = quote?.priceSource !== 'server_reconciled';
+                return (
                 <div key={kit.id} className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] hover:border-[#C8753D] p-5 flex flex-col shadow-xs hover:shadow-sm transition-all">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${kit.tier==='Essentielle'?'bg-[#F8F2EC] text-[#111111] border border-[#E8E1DA]': kit.tier==='Équilibrée'?'bg-[#C8753D] text-white':'bg-[#111111] text-white'}`}>{kit.tier}</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">−{kit.economyPct}% · −{kit.economy.toFixed(2)}€</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">{priceIsIndicative ? 'Cible ' : ''}−{quote?.economyPct ?? kit.economyPct}% · −{(quote?.economy ?? kit.economy).toFixed(2)}€</span>
                   </div>
                   <h3 className="text-sm font-bold leading-tight">{kit.name}</h3>
                   <p className="text-xs text-[#C8753D] font-semibold">{kit.tagline} · {kit.routine}</p>
@@ -913,15 +905,15 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     {kit.products.map(p=> (
                       <li key={p.id} className="flex items-center justify-between gap-2">
                         <span className="text-[#111111]">{p.name}</span>
-                        <span className="text-[#111111]/40 text-[11px] shrink-0">{p.price.toFixed(2)}€ · {p.role}</span>
+                        <span className="text-[#111111]/40 text-[11px] shrink-0">{(() => { const component = quote?.components.find(item => item.id === p.id); const price = component?.serverUnitPrice ?? p.price; return `${priceIsIndicative && !component?.serverUnitPrice ? 'cible ' : ''}${price.toFixed(2)}€ · ${p.role}`; })()}</span>
                       </li>
                     ))}
                   </ul>
                   <div className="mt-4 pt-4 border-t border-[#E8E1DA] flex items-end justify-between gap-3">
                     <div>
-                      <span className="text-lg font-bold">{kit.priceBundle.toFixed(2)}€</span>
-                      <span className="text-xs text-[#111111]/40 line-through ml-1.5">{kit.priceSeparate.toFixed(2)}€</span>
-                      <p className="text-[11px] text-[#111111]/50">{kit.products.length} soins · {kit.tier==='Essentielle'?'livraison 4,90€':'livraison gratuite'}</p>
+                      <span className="text-lg font-bold">{priceIsIndicative ? 'Indicatif · ' : ''}{bundlePrice.toFixed(2)}€</span>
+                      <span className="text-xs text-[#111111]/40 line-through ml-1.5">{separatePrice.toFixed(2)}€</span>
+                      <p className="text-[11px] text-[#111111]/50">{kit.products.length} soins · {shippingLabel}</p>
                     </div>
                     <button
                       type="button"
@@ -929,12 +921,14 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       aria-disabled="true"
                       className="px-4 py-2.5 rounded-full bg-[#111111]/10 text-[#111111]/55 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
                     >
-                      <Clock className="w-3.5 h-3.5" /> Formulation cible — bientôt disponible
+                      <Clock className="w-3.5 h-3.5" /> {quote?.purchaseState === 'c1_suspended' ? 'C1 suspendu — non achetable' : 'Formulation cible — bientôt disponible'}
                     </button>
                   </div>
                   <p className="text-[10px] text-[#111111]/40 mt-2 text-center">{kit.id} · {kit.products.length} soins · fiche cible, non disponible</p>
+                  {quote?.reason && <p className="text-[10px] text-[#111111]/50 mt-1 text-center">{quote.reason}</p>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

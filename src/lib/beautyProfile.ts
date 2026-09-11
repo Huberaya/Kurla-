@@ -1,6 +1,7 @@
 export const UNKNOWN = 'inconnu';
 
 import { normalizePhototype, type Fitzpatrick } from './skinPhototype';
+import { normalizeSkinProfileTaxonomy } from './skinProfileTaxonomy';
 
 export type HairZoneKey = 'scalp' | 'lengths' | 'ends';
 
@@ -637,6 +638,11 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
   const skin = value.skin && typeof value.skin === 'object' ? value.skin : {};
   const environment = value.environment && typeof value.environment === 'object' ? value.environment : {};
   const zones = hair.zones && typeof hair.zones === 'object' ? hair.zones : {};
+  const skinTaxonomy = normalizeSkinProfileTaxonomy({
+    skinType: skin.skinType ?? skin.skin_type,
+    skinConcerns: skin.skinConcerns ?? skin.skin_concerns,
+    skinObjectives: skin.skinObjectives ?? skin.skin_objectives,
+  });
 
   return {
     version: 1,
@@ -683,10 +689,10 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
       texturePreference: safeString(skin.texturePreference),
       finishPreference: safeString(skin.finishPreference),
       reactionHistory: safeString(skin.reactionHistory, ''),
-      skinType: safeString(skin.skinType ?? skin.skin_type),
+      skinType: skinTaxonomy.skinType,
       hydrationLevel: safeString(skin.hydrationLevel ?? skin.hydration_level),
-      skinConcerns: safeArray(skin.skinConcerns ?? skin.skin_concerns),
-      skinObjectives: safeArray(skin.skinObjectives ?? skin.skin_objectives),
+      skinConcerns: skinTaxonomy.skinConcerns,
+      skinObjectives: skinTaxonomy.skinObjectives,
       currentRoutine: safeString(skin.currentRoutine ?? skin.current_routine),
       budget: safeString(skin.budget),
       sensitivities: safeArray(skin.sensitivities),

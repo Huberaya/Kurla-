@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const migration = await readFile(new URL('../supabase/migrations/20260914000000_launch_traction.sql', import.meta.url), 'utf8');
+const cohortMigration = await readFile(new URL('../supabase/migrations/20260915000000_launch_tester_cohort.sql', import.meta.url), 'utf8');
+const invitationMigration = await readFile(new URL('../supabase/migrations/20260916000000_launch_tester_invitations.sql', import.meta.url), 'utf8');
+const route = await readFile(new URL('../src/server/routes/launchTraction.ts', import.meta.url), 'utf8');
+const panel = await readFile(new URL('../src/components/LaunchTractionPanel.tsx', import.meta.url), 'utf8');
+const internal = await readFile(new URL('../src/lib/db/internal.ts', import.meta.url), 'utf8');
+const waitlist = await readFile(new URL('../src/components/WaitlistSection.tsx', import.meta.url), 'utf8');
+const emailService = await readFile(new URL('../src/lib/emailService.ts', import.meta.url), 'utf8');
+const emailTemplates = await readFile(new URL('../src/lib/emailTemplates.ts', import.meta.url), 'utf8');
+const authContext = await readFile(new URL('../src/context/AuthContext.tsx', import.meta.url), 'utf8');
+
+for (const table of ['launch_interviews', 'launch_partner_links', 'launch_nps_responses']) {
+  assert.match(migration, new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${table}`));
+}
+assert.match(migration, /ALTER TABLE public\.launch_interviews ENABLE ROW LEVEL SECURITY/);
+assert.match(migration, /ALTER TABLE public\.launch_partner_links ENABLE ROW LEVEL SECURITY/);
+assert.match(migration, /ALTER TABLE public\.launch_nps_responses ENABLE ROW LEVEL SECURITY/);
+assert.match(migration, /salon_os_status TEXT/);
+assert.match(migration, /routine_cosigned BOOLEAN/);
+assert.match(cohortMigration, /tester_status/);
+assert.match(cohortMigration, /invited_at/);
+assert.match(cohortMigration, /activated_at/);
+assert.match(cohortMigration, /tester_user_id UUID/);
+assert.match(cohortMigration, /last_activity_kind TEXT/);
+assert.match(invitationMigration, /invitation_last_attempt_at/);
+assert.match(invitationMigration, /invitation_sent_at/);
+assert.match(invitationMigration, /invitation_attempts INTEGER/);
+assert.match(invitationMigration, /invitation_message_id/);
+assert.match(route, /launch\/testers\/invite/);
+assert.match(route, /testerFunnel/);
+assert.match(route, /generateLink/);
+assert.match(route, /launch\/invitation\/accept/);
+assert.match(route, /Mode console : message journalisé/);
+assert.match(emailService, /launch_tester_invitation/);
+assert.match(emailTemplates, /Activer mon accès pilote/);
+assert.match(authContext, /api\/launch\/invitation\/accept/);
+assert.match(panel, /Envoyer l’invitation/);
+assert.match(route, /waitlistTesters: 300/);
+assert.match(route, /closedTesters: 300/);
+assert.match(route, /launch\/testers/);
+assert.match(route, /Array\.from\(\{ length: 8 \}/);
+assert.match(route, /interviewsPerWeek: 10/);
+assert.match(route, /activePartners: 10/);
+assert.match(route, /monthlyActiveUsers: 1000/);
+assert.match(route, /observations: 1000/);
+assert.match(route, /d30RetentionPct: 25/);
+assert.match(route, /available: false/);
+assert.match(route, /LAUNCH_COHORT = 'france-2026'/);
+assert.match(route, /activitySourcesAvailable/);
+assert.match(internal, /recordLaunchTesterActivity/);
+assert.match(internal, /tester_user_id/);
+assert.match(panel, /Non mesuré/);
+assert.match(panel, /Référence interne, pas d’email/);
+assert.match(waitlist, /300 testeurs/);
+assert.doesNotMatch(waitlist, /code −15 %/);
+
+console.log('✓ Chantier 6 : traction, entretiens, partenaires, NPS et métriques non inventées protégés');

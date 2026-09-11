@@ -180,6 +180,17 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   }));
 
   /**
+   * C1 — catalogue peau réellement commercialisable.
+   * Le rapport est une porte de décision, pas un mécanisme de publication.
+   */
+  app.get('/api/admin/catalog/skin-readiness', rateLimit('admin-catalog-skin-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const report = await serverDb.getSkinCatalogReadinessReport();
+    res.json(report);
+  }));
+
+  /**
    * CHANTIER 10 (bloc B3) — vocabulaires contrôlés, publics.
    *
    * Une liste fermée que le client ne peut pas lire est une liste que personne

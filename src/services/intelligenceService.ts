@@ -123,6 +123,8 @@ export interface ShelfItemInput {
   category?: string;
   routineStep?: string;
   barcode?: string;
+  openedAt?: string;
+  finishedAt?: string;
   estimatedRemainingPercent?: number;
   abandonmentReason?: string;
   abandonmentNote?: string;

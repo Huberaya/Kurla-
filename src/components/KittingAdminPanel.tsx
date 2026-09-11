@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Package, Box, Clock, Euro, Truck, AlertTriangle, CheckCircle2, Calculator } from 'lucide-react';
 import { KITTING_SPECS, compareKittingEconomics } from '../lib/kitting';
+import { CATALOG_GUARD_EXPECTED } from '../lib/catalogGuard';
 
 export const KittingAdminPanel: React.FC = () => {
   const [qty, setQty] = useState<Record<string, number>>({ k02: 100, k03: 100 });
@@ -19,7 +20,7 @@ export const KittingAdminPanel: React.FC = () => {
         <div className="flex flex-wrap gap-2 text-[10px]">
           <span className="px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Statut : FIGÉ 2026-09-08</span>
           <span className="px-2 py-1 rounded-full bg-[#FFF7EF]/10 text-[#FFF7EF]/70 border border-[#FFF7EF]/15">Flux 3PL : précommande 3–5j (batch lun/jeu 18h)</span>
-          <span className="px-2 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Garde-fou : launchCatalog.ts intact (54 SKU / 10 kits)</span>
+          <span className="px-2 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Garde-fou : launchCatalog.ts intact ({CATALOG_GUARD_EXPECTED.products} SKU / {CATALOG_GUARD_EXPECTED.kits} kits)</span>
         </div>
       </div>
 

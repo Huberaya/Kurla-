@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Sun, Droplets, Heart, Layers, Search, ArrowRight, Star, Shield, Zap, Eye, Smile, Wind, Package, Clock, AlertCircle, BookOpen, FlaskConical, Award, MapPin } from 'lucide-react';
 import { isSkinProfessional } from '../lib/professionalCategory';
 import { fetchVerifiedProfessionals } from '../services/intelligenceService';
+import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS } from '../lib/skinTaxonomy';
 
 /**
  * PAGE 1 — KURLA SKIN LANDING /peau
@@ -9,23 +10,21 @@ import { fetchVerifiedProfessionals } from '../services/intelligenceService';
  * Design premium, inclusif (phototypes), même langage que pôle cheveux.
  */
 
-const SKIN_NEEDS = [
-  { id: 'hydrater', label: 'Hydrater', desc: 'Repulper, confort', icon: Droplets, color: 'bg-sky-500' },
-  { id: 'eclat', label: 'Éclat', desc: 'Teint lumineux', icon: Sparkles, color: 'bg-amber-400' },
-  { id: 'taches', label: 'Taches & teint', desc: 'Uniformiser', icon: Sun, color: 'bg-orange-500' },
-  { id: 'seche', label: 'Peau sèche', desc: 'Nourrir, apaiser', icon: Heart, color: 'bg-rose-400' },
-  { id: 'grasse', label: 'Peau grasse', desc: 'Matifier, réguler', icon: Wind, color: 'bg-emerald-500' },
-  { id: 'imperfections', label: 'Imperfections', desc: 'Boutons, pores', icon: Smile, color: 'bg-red-400' },
-  { id: 'sensible', label: 'Peau sensible', desc: 'Apaiser, protéger', icon: Shield, color: 'bg-violet-400' },
-  { id: 'spf', label: 'Protection solaire', desc: 'SPF sans trace', icon: Sun, color: 'bg-yellow-500' },
-  { id: 'anti_age', label: 'Anti-âge', desc: 'Prévenir, raffermir', icon: Clock, color: 'bg-stone-500' },
-  { id: 'contour_yeux', label: 'Contour des yeux', desc: 'Cernes, poches', icon: Eye, color: 'bg-indigo-400' },
-  { id: 'levres', label: 'Lèvres', desc: 'Hydrater, réparer', icon: Heart, color: 'bg-pink-400' },
-  { id: 'corps', label: 'Corps', desc: 'Hydratation, texture', icon: Package, color: 'bg-teal-500' },
-  { id: 'cicatrices', label: 'Cicatrices', desc: 'Atténuer, lisser', icon: Layers, color: 'bg-amber-600' },
-  { id: 'barriere', label: 'Barrière cutanée', desc: 'Réparer, renforcer', icon: Shield, color: 'bg-green-600' },
-  { id: 'ingredient', label: 'Par ingrédient', desc: 'Explorer actifs', icon: FlaskConical, color: 'bg-cyan-500' },
-];
+const SKIN_NEED_ICONS: Record<string, React.ElementType> = {
+  hydrater: Droplets, eclat: Sparkles, taches: Sun, seche: Heart, grasse: Wind,
+  imperfections: Smile, sensible: Shield, spf: Sun, anti_age: Clock,
+  contour_yeux: Eye, levres: Heart, corps: Package, cicatrices: Layers,
+  barriere: Shield, par_ingredient: FlaskConical,
+};
+
+// Libellés, descriptions, couleurs et IDs viennent de la taxonomie C2.
+const SKIN_NEEDS = SKIN_TAXONOMY_NEEDS.map(need => ({
+  id: need.value,
+  label: need.label,
+  desc: need.description,
+  icon: SKIN_NEED_ICONS[need.value] || Sparkles,
+  color: need.color,
+}));
 
 const ROUTINE_TIERS = [
   { name: 'Essentielle', price: '49,70 €', products: 3, steps: 'Nettoyant → Crème céramides → SPF invisible · Matin 3 → Soir 2', desc: 'Débutants, petits budgets, 2 min · −5% vs à l’unité', badge: 'Essentielle' },
@@ -149,7 +148,7 @@ export const SkinLandingPage: React.FC = () => {
         {/* ROUTINES TYPES */}
         <div className="mb-10">
           <h2 className="text-2xl font-serif-title font-bold mb-2">Votre routine, à votre budget</h2>
-          <p className="text-sm text-[#111111]/60 font-light mb-6">Matin : protéger. Soir : réparer. KURLA calcule le prix total et propose une alternative à chaque étape.</p>
+          <p className="text-sm text-[#111111]/60 font-light mb-6">Matin : protéger. Soir : réparer. Les montants sont des prix indicatifs de précommande ; le prix achetable est calculé uniquement depuis les fiches serveur publiées, avec une alternative à chaque étape.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {ROUTINE_TIERS.map(t => (
               <div key={t.name} className="rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA] p-6 flex flex-col">
@@ -157,7 +156,7 @@ export const SkinLandingPage: React.FC = () => {
                   <h3 className="text-base font-bold">{t.name}</h3>
                   <span className="text-[10px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">{t.badge}</span>
                 </div>
-                <p className="text-2xl font-bold">{t.price} <span className="text-xs font-normal text-[#111111]/60">/ {t.products} produits</span></p>
+                <p className="text-2xl font-bold">Indicatif · {t.price} <span className="text-xs font-normal text-[#111111]/60">/ {t.products} produits</span></p>
                 <p className="text-xs text-[#111111]/70 font-light mt-2 flex-1">{t.desc}</p>
                 <p className="text-[11px] text-[#111111]/60 mt-3 p-3 rounded-xl bg-[#F8F2EC] border border-[#E8E1DA] font-mono leading-relaxed">{t.steps}</p>
                 <a href="/peau/routine" className="mt-4 w-full py-3 rounded-full bg-[#111111] hover:bg-black text-white text-xs font-bold text-center">Construire ma routine {t.name.toLowerCase()}</a>

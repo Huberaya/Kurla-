@@ -70,6 +70,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { return null; }
   };
 
+  const linkLaunchInvitation = async (currentSession: Session | null) => {
+    const accessToken = currentSession?.access_token;
+    if (!accessToken) return;
+    try {
+      await fetch('/api/launch/invitation/accept', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+    } catch {
+      // Le rattachement est opportuniste : une migration absente ne doit pas
+      // empêcher une connexion ou l'ouverture du compte.
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
@@ -109,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(initialSession.user);
             const p = await fetchProfile(client, initialSession.user.id, initialSession.user.email || '', initialSession.user.user_metadata?.first_name);
             if (mounted) setProfile(p);
+            void linkLaunchInvitation(initialSession);
           }
         } catch (err) { console.error('[AuthContext] Session init error:', err); }
         finally { if (mounted) setLoading(false); }
@@ -121,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (currentSession?.user) {
             const p = await fetchProfile(client, currentSession.user.id, currentSession.user.email || '', currentSession.user.user_metadata?.first_name);
             if (mounted) setProfile(p);
+            void linkLaunchInvitation(currentSession);
           } else setProfile(null);
           setLoading(false);
         });

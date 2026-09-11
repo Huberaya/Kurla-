@@ -103,6 +103,7 @@ import * as shippingStore from './db/shippingStore';
 import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
+import * as skinCatalogStore from './db/skinCatalogStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as prospectStore from './db/prospectStore';
@@ -227,6 +228,7 @@ export class SupabaseServerStore {
   public syncVariantInventoryToSupabase!: Curried<typeof inventoryStore>['syncVariantInventoryToSupabase'];
   public getAdminCatalogProducts!: Curried<typeof catalogStore>['getAdminCatalogProducts'];
   public getCatalogSourcingReadinessReport!: Curried<typeof catalogStore>['getCatalogSourcingReadinessReport'];
+  public getSkinCatalogReadinessReport!: Curried<typeof skinCatalogStore>['getSkinCatalogReadinessReport'];
   // CHANTIER 16A — fournisseurs. Les helpers purs (normalizeSupplierName,
   // supplierIdFromName) ne sont volontairement **pas** liés : bindDomain
   // curryfie le premier argument, une fonction pure liée deviendrait une
@@ -432,6 +434,7 @@ bindDomain(storeInstance, shippingStore);
 bindDomain(storeInstance, returnsStore);
 bindDomain(storeInstance, adminStore);
 bindDomain(storeInstance, catalogStore);
+bindDomain(storeInstance, skinCatalogStore);
 // Sous-ensemble explicite : voir le commentaire des déclarations ci-dessus.
 bindDomain(storeInstance, {
   listSuppliers: supplierStore.listSuppliers,
@@ -507,6 +510,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof returnsStore>
   & Curried<typeof adminStore>
   & Curried<typeof catalogStore>
+  & Curried<typeof skinCatalogStore>
   & Curried<typeof contentStore>
   & Curried<typeof inventoryStore>
   & Curried<typeof orderStore>

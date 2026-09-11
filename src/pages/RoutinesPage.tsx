@@ -4,6 +4,7 @@ import { RoutineBundle } from '../types';
 import { useProducts } from '../services/productService';
 import { findForStep } from '../lib/skinAlternatives';
 import { getTodayState, toggleToday, getStreak, getWeekHistory } from '../lib/skinObservance';
+import { SkinRoutineV1Panel } from '../components/SkinRoutineV1Panel';
 
 type SkinTier = 'essentielle' | 'complete' | 'premium';
 
@@ -128,6 +129,8 @@ export const RoutinesPage: React.FC = () => {
 
   // ── SKIN BRANCH ───────────────────────────────────────────────────────
   if (isSkin) {
+    return <SkinRoutineV1Panel products={skinProducts} guided={guided} />;
+
     const tier = SKIN_TIERS[skinTier];
     const matin = skinTier === 'essentielle' ? MATIN_STEPS.filter(s => [1,5,6].includes(s.n)) : MATIN_STEPS;
     const soir = skinTier === 'essentielle' ? SOIR_STEPS.filter(s => [2,5,7].includes(s.n)) : skinTier === 'complete' ? SOIR_STEPS.filter(s => ![1,4].includes(s.n)) : SOIR_STEPS;
@@ -156,8 +159,8 @@ export const RoutinesPage: React.FC = () => {
           <div className="text-center max-w-3xl mx-auto mb-8">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] text-[#D9A8A4] text-[10px] font-bold tracking-widest uppercase">KURLA SKIN · routine</span>
             <h1 className="text-3xl sm:text-5xl font-serif-title font-bold mt-3">Votre routine peau, à votre budget</h1>
-            <p className="text-sm text-[#111111]/70 font-light mt-3 leading-relaxed">
-              Matin : <strong className="font-semibold text-[#111111]">protéger</strong> (6 étapes) · Soir : <strong className="font-semibold text-[#111111]">réparer</strong> (8) · Hebdo : <strong className="font-semibold text-[#111111]">3 soins</strong>. Prix total, alternatives à chaque étape, et garde-fous actifs.
+              <p className="text-sm text-[#111111]/70 font-light mt-3 leading-relaxed">
+              Matin : <strong className="font-semibold text-[#111111]">protéger</strong> (6 étapes) · Soir : <strong className="font-semibold text-[#111111]">réparer</strong> (8) · Hebdo : <strong className="font-semibold text-[#111111]">3 soins</strong>. Les montants ci-dessous sont des prix indicatifs de précommande : le prix achetable vient uniquement des fiches serveur publiées.
             </p>
             {guided && <p className="text-xs mt-2 px-3 py-1.5 rounded-full bg-[#F8F2EC] border border-[#E8E1DA] inline-block">Basé sur votre diagnostic : {guided.skinType || '—'} · {guided.toneDepth || '—'} · {guided.skinConcerns?.slice(0,2).join(', ') || '—'} {guided.budget ? `· budget ${guided.budget}` : ''}</p>}
           </div>
@@ -174,7 +177,7 @@ export const RoutinesPage: React.FC = () => {
                     <h3 className="text-base font-bold">{t.label}</h3>
                     <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${isActive ? 'bg-[#C8753D] text-white' : 'bg-[#F8F2EC] text-[#C8753D] border border-[#E8E1DA]'}`}>{t.badge}</span>
                   </div>
-                  <p className="text-2xl font-bold">{p.toFixed(2)} € <span className="text-xs font-normal opacity-60">/ {t.products} produits</span></p>
+                  <p className="text-2xl font-bold">Indicatif · {p.toFixed(2)} € <span className="text-xs font-normal opacity-60">/ {t.products} produits</span></p>
                   <p className="text-xs font-light mt-1 opacity-70">{t.desc}</p>
                   <p className="text-[11px] mt-2 px-2 py-1 rounded-lg bg-[#F8F2EC] text-[#111111]/70 border border-[#E8E1DA] font-mono">{k==='essentielle'?'Nettoyant → Hydratant → SPF':k==='complete'?'Nettoyant → Tonique → Sérum → Crème → SPF (+ exfoliant 2×/sem)':'Double nettoyage → Essence → 2 Sérums → Contour yeux → 2 Crèmes → SPF + masques'}</p>
                 </button>
@@ -186,7 +189,7 @@ export const RoutinesPage: React.FC = () => {
           <div className="mb-8 p-5 rounded-3xl bg-[#111111] text-white flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-widest font-bold text-[#D49A63]">Budget Fatou — 28 ans · peau mixte · HPI · sans parfum</p>
-              <p className="text-sm font-light mt-1">Tier <strong className="font-bold text-white">{tier.label}</strong> : <strong className="font-bold text-white">{currentPrice.toFixed(2)} €</strong> pour {tier.products} produits · <span className="text-[#D49A63]">alternative sans parfum à chaque étape</span></p>
+              <p className="text-sm font-light mt-1">Tier <strong className="font-bold text-white">{tier.label}</strong> : <strong className="font-bold text-white">indicatif · {currentPrice.toFixed(2)} €</strong> pour {tier.products} produits · <span className="text-[#D49A63]">alternative sans parfum à chaque étape</span></p>
               {skinBudgetInput && <p className="text-[11px] text-white/60 mt-1">Filtre URL budget={skinBudgetInput} {budgetOk ? '→ tier adapté' : ''}</p>}
             </div>
             <div className="flex gap-2 shrink-0">
@@ -266,7 +269,7 @@ export const RoutinesPage: React.FC = () => {
                                   <div key={i} className="p-3 rounded-xl bg-white border border-[#E8E1DA] text-xs">
                                     <p className="font-bold leading-tight">{a.label}</p>
                                     <p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
-                                    <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'} {a.whitecast?`· ${a.whitecast}`:''}</p>
+                                    <p className="font-bold mt-1">{a.price} {!(a as any)._product && <span className="font-normal text-[#C8753D]">· prix indicatif</span>} {a.sansParfum?'· sans parfum ✓':'· parfum'} {a.whitecast?`· ${a.whitecast}`:''}</p>
                                     <a href={(a as any)._product ? `/produit/${(a as any)._product.slug}` : `/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
                                   </div>
                                 ))}
@@ -305,7 +308,7 @@ export const RoutinesPage: React.FC = () => {
                                 {alts.map((a,i)=> (
                                   <div key={i} className="p-3 rounded-xl bg-white border border-[#E8E1DA] text-xs">
                                     <p className="font-bold leading-tight">{a.label}</p><p className="text-[#111111]/60 font-light mt-1">{a.note}</p>
-                                    <p className="font-bold mt-1">{a.price} {a.sansParfum?'· sans parfum ✓':'· parfum'}</p>
+                                    <p className="font-bold mt-1">{a.price} {!(a as any)._product && <span className="font-normal text-[#C8753D]">· prix indicatif</span>} {a.sansParfum?'· sans parfum ✓':'· parfum'}</p>
                                     <a href={(a as any)._product ? `/produit/${(a as any)._product.slug}` : `/boutique?cat=peau&q=${encodeURIComponent(a.label.split(' ')[0])}`} className="mt-2 inline-block text-[11px] px-2 py-1 rounded-full bg-[#C8753D] text-white font-bold">Voir</a>
                                   </div>
                                 ))}
@@ -340,11 +343,11 @@ export const RoutinesPage: React.FC = () => {
               <section className="p-6 rounded-3xl bg-[#FFFDF9] border border-[#E8E1DA]">
                 <h3 className="text-sm font-bold">Comparer les tiers</h3>
                 <div className="mt-3 space-y-2 text-xs">
-                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Essentielle (3 soins) · −5%</span><strong>{priceEss.toFixed(2)} €</strong></div>
-                  <div className="flex justify-between p-2 rounded-xl bg-[#C8753D]/10 border border-[#C8753D]/30"><span>Équilibrée (5 soins) — recommandée · −13%</span><strong>{priceComp.toFixed(2)} €</strong></div>
-                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Experte (7 soins) · −15% · liv. gratuite</span><strong>{pricePrem.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Essentielle (3 soins) · −5%</span><strong>Indicatif · {priceEss.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#C8753D]/10 border border-[#C8753D]/30"><span>Équilibrée (5 soins) — recommandée · −13%</span><strong>Indicatif · {priceComp.toFixed(2)} €</strong></div>
+                  <div className="flex justify-between p-2 rounded-xl bg-[#F8F2EC]"><span>Experte (7 soins) · −15% · liv. gratuite</span><strong>Indicatif · {pricePrem.toFixed(2)} €</strong></div>
                 </div>
-                <p className="text-[11px] text-[#111111]/50 mt-2">Prix kits peau précommande : 49,70€ / 62€ / 84,90€ · alternatives à chaque étape, budget Fatou 40_70 → Équilibrée.</p>
+                <p className="text-[11px] text-[#111111]/50 mt-2">Prix indicatifs de précommande : aucune commande n'est ouverte tant que les références serveur correspondantes ne sont pas publiées.</p>
               </section>
               <a href="/peau/diagnostic/resultats" className="w-full py-3 rounded-full bg-[#C8753D] hover:bg-[#b06330] text-white text-xs font-bold flex items-center justify-center gap-1">Voir mon résultat peau →</a>
             </div>

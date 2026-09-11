@@ -9,6 +9,33 @@ export interface Phase3TestResult {
 export async function runPhase3CartOrderTests(): Promise<Phase3TestResult[]> {
   const results: Phase3TestResult[] = [];
 
+  // C0 — ce banc exerce le parcours nominal avec deux références explicitement
+  // publiables. Les fixtures générales restent volontairement non publiées :
+  // elles servent aussi à vérifier que le catalogue de développement ne fuit
+  // pas vers la boutique publique.
+  for (const productId of ['p1', 'p2']) {
+    const product = (serverDb as any).inMemoryProducts?.find((candidate: any) => candidate.id === productId);
+    if (product) {
+      Object.assign(product, {
+        is_active: true,
+        catalog_status: 'published',
+        ingredient_verification_status: 'verified',
+        claims_validation_status: 'verified',
+        images_validation_status: 'verified',
+        stock_validation_status: 'verified',
+        certifications_validation_status: 'verified',
+        translations_validation_status: 'verified',
+        brand_verification_status: 'verified',
+        image_ownership_status: 'brand_provided',
+        image: `https://cdn.example.test/phase3/${productId}.jpg`,
+        country_availability: product.countryAvailability || ['FR'],
+        ingredients: product.ingredients || product.keyIngredients || ['Glycerin'],
+        isPromo: false,
+        in_stock: product.inStock !== false,
+      });
+    }
+  }
+
   // Test 1: Panier conservé après actualisation (public.carts & public.cart_items)
   try {
     const testAnonId = 'anon_test_' + Date.now();

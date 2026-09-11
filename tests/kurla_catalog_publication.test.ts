@@ -109,7 +109,7 @@ async function runCatalogPublicationTests(): Promise<void> {
   const lying = report.perProduct.find(entry => entry.productId === LYING);
   assert.ok(lying && lying.missing.length > 0);
   assert.equal(lying?.publiclyListable, false);
-  assert.equal(lying?.commercialState, 'formulation_target');
+  assert.equal(lying?.commercialState, 'pending_validation');
 
   // ---------------------------------------------------------------------
   // 5. Les routes d'état restent fermées au public.

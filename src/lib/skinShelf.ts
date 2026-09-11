@@ -5,7 +5,17 @@
  * Aucun diagnostic médical — estimation cosmétique de consommation.
  */
 
-import type { ShelfItem } from './shelf';
+import type { RoutineStep, ShelfItem } from './shelf';
+
+/** Convertit le rôle lisible d’un composant de kit en étape Shelf persistée. */
+export function skinShelfStepForRole(role: string): RoutineStep {
+  const normalized = role.toLocaleLowerCase('fr-FR');
+  if (normalized.includes('nettoyant')) return 'skin_cleanser';
+  if (normalized.includes('spf')) return 'skin_spf';
+  if (normalized.includes('crème')) return 'skin_moisturizer';
+  if (normalized.includes('lèvres')) return 'other';
+  return 'skin_treatment';
+}
 
 export const SKIN_STEPS = ['skin_cleanser', 'skin_treatment', 'skin_moisturizer', 'skin_spf'] as const;
 

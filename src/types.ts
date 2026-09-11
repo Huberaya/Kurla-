@@ -43,6 +43,9 @@ export interface SkinDiagnosticAnswers {
   climate?: string;
   reactionHistory?: string;
   preferences?: string[];
+  /** Optional phototype, only persisted when the person explicitly consents. */
+  phototype?: number | null;
+  phototypeConsent?: boolean;
 }
 export interface ProductGalleryImage {
   url: string;
@@ -140,8 +143,27 @@ export interface Product {
   benefitPrimary?: string;
   targetHairTypes?: string[];
   targetSkinTypes?: string[];
+  skinTypes?: string[];
+  skinConcerns?: string[];
+  skinObjectives?: string[];
+  skinTaxonomyVersion?: string;
+  skinTextureCode?: 'gel' | 'lotion' | 'creme' | 'baume' | 'huile';
+  skinFinishCode?: 'mat' | 'naturel' | 'glowy';
+  supportedPhototypes?: string[];
+  activeIngredients?: Array<{ name: string; concentration?: string }>;
+  activeConcentrationsStatus?: 'verified' | 'pending' | 'not_provided';
   texture?: string;
+  finish?: string;
   fragrance?: string;
+  whitecastRisk?: 'none' | 'low' | 'medium' | 'high' | 'not_tested';
+  whitecastTestStatus?: 'verified' | 'pending' | 'not_provided';
+  testedPhototypes?: string[];
+  testedUndertones?: string[];
+  inciVisibilityStatus?: 'verified' | 'pending' | 'not_provided';
+  manufacturingStatus?: 'verified' | 'pending' | 'not_provided';
+  lotReference?: string;
+  bestBeforeOrPao?: string;
+  isTinted?: boolean;
   usageFrequency?: string;
   sizeLabel?: string;
   estimatedYield?: string;
@@ -173,7 +195,9 @@ export interface Product {
   isPromo?: boolean;
   isPreorder?: boolean; // Article en précommande (lot non encore réceptionné)
   /** Etat commercial dérivé par la truth layer, distinct du statut admin. */
-  availabilityState?: 'draft' | 'formulation_target' | 'placeholder' | 'preorder' | 'available' | 'unavailable';
+  availabilityState?: 'draft' | 'formulation_target' | 'pending_validation' | 'placeholder' | 'preorder' | 'available' | 'unavailable';
+  availabilityLabel?: string;
+  availabilityMessage?: string;
   subCategoryTag?: string; // Fine-grained subcategory tag
   galleryImages?: ProductGalleryImage[];
   isIllustrativeVisual?: boolean;
@@ -269,6 +293,12 @@ export interface AIRecommendationResult {
   warnings: string[];
   productHandles: string[];
   requiresHumanReview: boolean;
+  /** True only when Gemini returned a valid constrained response. */
+  generatedWithAI?: boolean;
+  /** Traceable origin of the result; never inferred from the presence of steps. */
+  source?: 'gemini' | 'fallback';
+  sources?: Array<{ id: string; label: string; status: string }>;
+  uncertainty?: string;
 }
 
 export interface CartItem {

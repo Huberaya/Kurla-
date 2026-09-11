@@ -1,6 +1,7 @@
 import type { Express, Response } from 'express';
 
 import { serverDb } from '../../lib/serverDb';
+import { recordLaunchTesterActivity } from '../../lib/db/internal';
 import { LOYALTY_AXES, LOYALTY_BADGES, LOYALTY_EVENT_RULES, LOYALTY_LEVELS, LOYALTY_REWARDS } from '../../lib/loyaltyRules';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { requireAdmin, requireUser } from '../auth';
@@ -65,6 +66,7 @@ export function registerLoyaltyRoutes(app: Express): void {
     // la clé d'idempotence porte la date.
     const dedupeKey = `scan_performed:${user.id}:${reference.toLowerCase()}:${new Date().toISOString().slice(0, 10)}`;
     const result = await serverDb.applyLoyaltyEvent(user.id, 'scan_performed', reference, dedupeKey);
+    await recordLaunchTesterActivity(user.id, 'scan_performed');
     res.status(201).json({ scanned: reference, ...result });
   }));
 

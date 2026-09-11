@@ -79,6 +79,7 @@ import {
   loadJurisdictionGraph,
 } from './src/server/compliance';
 import { getAvailableCatalog } from './src/server/ai/catalog';
+import { buildSkinKitQuotes } from './src/lib/skinKitPricing';
 import { AI_DISCLAIMER, medicalTriage } from './src/server/ai/assistant';
 import { registerFamilyRoutes } from './src/server/routes/family';
 import { registerIntelligenceRoutes } from './src/server/routes/intelligence';
@@ -111,6 +112,7 @@ import { registerEditorialComplianceRoutes } from './src/server/routes/editorial
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
 import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
 import { registerStrategyRoutes } from './src/server/routes/strategy';
+import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
 import {
@@ -579,6 +581,25 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
     // Verify product publication, variant pricing and stock against the
     // customer catalogue. Client-provided prices and availability are ignored.
     const customerCatalog = await serverDb.getProducts({ publishedOnly: true });
+
+    // Porte C3.3 précoce : un kit cible, placeholder, brouillon ou fiche à
+    // preuve incomplète doit être refusé avant même le contrôle réglementaire.
+    // Cela évite de transformer l'absence du graphe de juridiction en réponse
+    // ambiguë pour un article qui n'aurait de toute façon jamais été payable.
+    // La boucle métier ci-dessous répète volontairement la recherche avant de
+    // calculer stock, TVA et prix ; elle reste la source d'autorité finale.
+    for (const rawItem of items) {
+      const preflightId = rawItem?.product_id || rawItem?.productId || rawItem?.product?.id || rawItem?.id;
+      if (typeof preflightId !== 'string' || !preflightId.trim()) {
+        return res.status(400).json({ error: 'Article invalide dans le panier.' });
+      }
+      const preflightProduct = customerCatalog.find(product => product.id === preflightId || product.slug === preflightId);
+      if (!preflightProduct || !isCheckoutEligibleProduct(preflightProduct)) {
+        console.error(`[Stripe Checkout Error] Prévalidation truth layer refusée: ${preflightId}`);
+        return res.status(400).json({ error: 'Ce produit n’est pas disponible à la vente.' });
+      }
+    }
+
     // CHANTIER 7.7 — un ingrédient interdit dans le pays de livraison rend la vente
     // illégale : ni le score de recommandation, ni le stock, ni le panier ne
     // peuvent l'autoriser. Sans graphe lisible, on refuse la vente plutôt que de
@@ -1125,8 +1146,18 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
 
 // Products API endpoint
 app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-  const products = await serverDb.getPublicProducts();
-  res.json({ products, count: products.length });
+  const [products, pricingCatalog] = await Promise.all([
+    serverDb.getPublicProducts(),
+    // Les devis de kits ne lisent jamais un prix client : ils sont construits
+    // depuis la projection serveur publiée des composants. Tant qu'un composant
+    // n'est pas réellement publié, le devis reste explicitement indicatif.
+    serverDb.getProducts({ publishedOnly: true })
+  ]);
+  res.json({
+    products,
+    count: products.length,
+    skinKits: buildSkinKitQuotes(pricingCatalog, 'FR', 'standard')
+  });
 }));
 
 // Gamme peau en cours de formulation (B-08 / C-06).
@@ -1502,6 +1533,7 @@ registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
 registerIngredientNavRoutes(app);
 registerStrategyRoutes(app);
+registerLaunchTractionRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);
 

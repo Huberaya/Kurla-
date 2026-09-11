@@ -11,8 +11,17 @@ export type SkinMoment = 'matin' | 'soir';
 export type ObservanceDay = { matin: boolean; soir: boolean };
 export type ObservanceMap = Record<string, ObservanceDay>; // YYYY-MM-DD → {matin, soir}
 
+/** Date civile locale : l'observance ne doit pas basculer au lendemain à 23h
+ * en France simplement parce que `toISOString()` travaille en UTC. */
+export function localISODate(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISODate();
 }
 
 export function loadObservance(): ObservanceMap {
@@ -58,13 +67,13 @@ export function getStreak(moment: SkinMoment): number {
   let streak = 0;
   const d = new Date();
   // Si aujourd'hui non coché, on ne compte pas aujourd'hui mais on regarde hier
-  const todayKey = d.toISOString().slice(0, 10);
+  const todayKey = localISODate(d);
   const todayDone = map[todayKey]?.[moment] === true;
   if (!todayDone) {
     d.setDate(d.getDate() - 1);
   }
   for (let i = 0; i < 90; i++) {
-    const key = d.toISOString().slice(0, 10);
+    const key = localISODate(d);
     if (map[key]?.[moment]) {
       streak++;
       d.setDate(d.getDate() - 1);
@@ -80,7 +89,7 @@ export function getWeekHistory(days = 7): Array<{ date: string; dayLabel: string
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localISODate(d);
     const v = map[key] || { matin: false, soir: false };
     out.push({
       date: key,

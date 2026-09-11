@@ -142,8 +142,26 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         targetHairTypes: p.hair_types || [],
         skinTypes: p.skin_types || [],
         targetSkinTypes: p.skin_types || [],
+        skinConcerns: p.skin_concerns || [],
+        skinTaxonomyVersion: p.skin_taxonomy_version || undefined,
+        skinTextureCode: p.skin_texture_code || undefined,
+        skinFinishCode: p.skin_finish_code || undefined,
+        supportedPhototypes: p.skin_supported_phototypes || [],
         concerns: correctedNeeds(p.id, uniqueNeeds(p.concerns, p.needs)),
         needs: correctedNeeds(p.id, uniqueNeeds(p.needs, p.concerns)),
+        skinObjectives: p.skin_objectives || [],
+        activeIngredients: p.active_ingredients || [],
+        activeConcentrationsStatus: p.active_concentrations_status || 'not_provided',
+        finish: p.skin_finish,
+        whitecastRisk: p.whitecast_risk,
+        whitecastTestStatus: p.whitecast_test_status || 'not_provided',
+        testedPhototypes: p.tested_phototypes || [],
+        testedUndertones: p.tested_undertones || [],
+        inciVisibilityStatus: p.inci_visibility_status || 'not_provided',
+        manufacturingStatus: p.manufacturing_status || 'not_provided',
+        lotReference: p.lot_reference,
+        bestBeforeOrPao: p.best_before_or_pao,
+        isTinted: p.is_tinted === true,
         countryAvailability: p.country_availability || [],
         isActive: p.is_active === true,
         createdAt: p.created_at,
@@ -655,11 +673,47 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       ingredients: array(source.ingredients || source.keyIngredients),
       inci: text(source.inci, 12000),
       warnings: array(source.warnings),
+      skinObjectives: array(source.skinObjectives || source.skin_objectives),
+      activeIngredients: Array.isArray(typeof source.activeIngredients === 'string' ? parseJsonCell(source.activeIngredients, []) : source.activeIngredients)
+        ? (typeof source.activeIngredients === 'string' ? parseJsonCell(source.activeIngredients, []) : source.activeIngredients).slice(0, 100)
+        : [],
+      activeConcentrationsStatus: ['verified', 'pending', 'not_provided'].includes(source.activeConcentrationsStatus || source.active_concentrations_status)
+        ? (source.activeConcentrationsStatus || source.active_concentrations_status)
+        : 'not_provided',
+      finish: text(source.finish || source.skinFinish || source.skin_finish, 240),
+      whitecastRisk: ['none', 'low', 'medium', 'high', 'not_tested'].includes(source.whitecastRisk || source.whitecast_risk)
+        ? (source.whitecastRisk || source.whitecast_risk)
+        : undefined,
+      whitecastTestStatus: ['verified', 'pending', 'not_provided'].includes(source.whitecastTestStatus || source.whitecast_test_status)
+        ? (source.whitecastTestStatus || source.whitecast_test_status)
+        : 'not_provided',
+      testedPhototypes: array(source.testedPhototypes || source.tested_phototypes),
+      testedUndertones: array(source.testedUndertones || source.tested_undertones),
+      inciVisibilityStatus: ['verified', 'pending', 'not_provided'].includes(source.inciVisibilityStatus || source.inci_visibility_status)
+        ? (source.inciVisibilityStatus || source.inci_visibility_status)
+        : 'not_provided',
+      manufacturingStatus: ['verified', 'pending', 'not_provided'].includes(source.manufacturingStatus || source.manufacturing_status)
+        ? (source.manufacturingStatus || source.manufacturing_status)
+        : 'not_provided',
+      lotReference: text(source.lotReference || source.lot_reference, 240),
+      bestBeforeOrPao: text(source.bestBeforeOrPao || source.best_before_or_pao, 240),
+      isTinted: parseBoolean(source.isTinted ?? source.is_tinted, false),
       certifications: Array.isArray(typeof source.certifications === 'string' ? parseJsonCell(source.certifications, []) : source.certifications)
         ? (typeof source.certifications === 'string' ? parseJsonCell(source.certifications, []) : source.certifications).slice(0, 50)
         : [],
       hairTypes: array(source.hairTypes || source.hair_types || source.targetHairTypes),
       skinTypes: array(source.skinTypes || source.skin_types || source.targetSkinTypes),
+      skinConcerns: array(source.skinConcerns || source.skin_concerns),
+      skinTaxonomyVersion: text(source.skinTaxonomyVersion || source.skin_taxonomy_version, 40) || '2026-09-18.c2',
+      skinTextureCode: ['gel', 'lotion', 'creme', 'baume', 'huile'].includes(source.skinTextureCode || source.skin_texture_code)
+        ? (source.skinTextureCode || source.skin_texture_code)
+        : undefined,
+      skinFinishCode: ['mat', 'naturel', 'glowy'].includes(source.skinFinishCode || source.skin_finish_code)
+        ? (source.skinFinishCode || source.skin_finish_code)
+        : undefined,
+      supportedPhototypes: array(source.supportedPhototypes || source.skin_supported_phototypes)
+        .map(value => String(value).toUpperCase().replace('FITZPATRICK ', ''))
+        .filter(value => ['I', 'II', 'III', 'IV', 'V', 'VI'].includes(value)),
       concerns: array(source.concerns || source.needs),
       sourceSupplier: text(source.sourceSupplier || source.source_supplier || source.supplier, 240),
       supplierId: text(source.supplierId || source.supplier_id, 80),
@@ -687,8 +741,10 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
   }
 
 export function catalogAdminView(store: SupabaseServerStore, product: any): any {
+    const truth = getCatalogTruth(product);
     return {
       ...product,
+      truth,
       price: product.basePrice ?? product.price,
       isActive: product.isActive ?? product.is_active ?? false,
       catalogStatus: product.catalogStatus ?? product.catalog_status ?? 'draft',
@@ -731,6 +787,9 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
     const vocabulary = await checkProductVocabulary(store, {
       concerns: input?.concerns ?? input?.needs,
       hairTypes: input?.hairTypes ?? input?.hair_types,
+      skinTypes: input?.skinTypes ?? input?.skin_types,
+      skinConcerns: input?.skinConcerns ?? input?.skin_concerns,
+      skinObjectives: input?.skinObjectives ?? input?.skin_objectives,
       routineSteps: input?.routineSteps,
       countryAvailability: input?.countryAvailability ?? input?.country_availability,
       toneDepths: input?.toneDepths
@@ -742,6 +801,9 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
     if (vocabulary.vocabularyLoaded) {
       if (vocabulary.values.concerns) input = { ...input, concerns: vocabulary.values.concerns };
       if (vocabulary.values.hairTypes) input = { ...input, hairTypes: vocabulary.values.hairTypes };
+      if (vocabulary.values.skinTypes) input = { ...input, skinTypes: vocabulary.values.skinTypes };
+      if (vocabulary.values.skinConcerns) input = { ...input, skinConcerns: vocabulary.values.skinConcerns };
+      if (vocabulary.values.skinObjectives) input = { ...input, skinObjectives: vocabulary.values.skinObjectives };
       if (vocabulary.values.countryAvailability) input = { ...input, countryAvailability: vocabulary.values.countryAvailability };
       if (vocabulary.resolvedFromSynonym.length > 0) {
         console.warn(`[Catalogue] synonymes résolus vers leur code canonique : ${vocabulary.resolvedFromSynonym.map(item => `${item.from} → ${item.to}`).join(', ')}`);
@@ -813,9 +875,27 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         ingredients: normalized.ingredients,
         inci: normalized.inci || null,
         warnings: normalized.warnings,
+        active_ingredients: normalized.activeIngredients,
+        active_concentrations_status: normalized.activeConcentrationsStatus,
+        skin_finish: normalized.finish || null,
+        whitecast_risk: normalized.whitecastRisk || null,
+        whitecast_test_status: normalized.whitecastTestStatus,
+        tested_phototypes: normalized.testedPhototypes,
+        tested_undertones: normalized.testedUndertones,
+        inci_visibility_status: normalized.inciVisibilityStatus,
+        manufacturing_status: normalized.manufacturingStatus,
+        lot_reference: normalized.lotReference || null,
+        best_before_or_pao: normalized.bestBeforeOrPao || null,
+        is_tinted: normalized.isTinted,
         certifications: normalized.certifications,
         hair_types: normalized.hairTypes,
         skin_types: normalized.skinTypes,
+        skin_concerns: normalized.skinConcerns,
+        skin_objectives: normalized.skinObjectives,
+        skin_texture_code: normalized.skinTextureCode || null,
+        skin_finish_code: normalized.skinFinishCode || null,
+        skin_supported_phototypes: normalized.supportedPhototypes,
+        skin_taxonomy_version: normalized.skinTaxonomyVersion,
         concerns: normalized.concerns,
         source_supplier: normalized.sourceSupplier || null,
         supplier_id: normalized.supplierId || null,
@@ -1122,7 +1202,7 @@ export async function updateCatalogStatus(store: SupabaseServerStore, productId:
         const evalCpnp = evaluateCosmeticCompliance(existing, compliance.heldTypes, compliance.expiredTypes, supplier.verificationStatus);
         if (!evalCpnp.compliant) {
           const alt = compliance.heldTypes.length === 0
-            ? ` Aucun document enregistré chez « ${supplier.legalName} » — solution : joindre CPSR + CPNP + RP, ou basculer vers un grossiste UE qui les fournit (ex. AfricanFabs / Afro Wholesale avec dossier).`
+            ? ` Aucun document enregistré chez « ${supplier.legalName} » — solution : joindre CPSR + CPNP + RP, ou rattacher une source UE dont les preuves sont effectivement disponibles.`
             : '';
           throw new Error(`Publication refusée — conformité cosmétique UE manquante : ${evalCpnp.missing.map(m => m.label).join(' ; ')}.${alt}`);
         }

@@ -651,6 +651,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
               <ShieldCheck className="w-4 h-4" /> Total recalculé et vérifié côté serveur avant paiement
             </div>
+            <p className="text-[10px] leading-relaxed text-[#FFF7EF]/50">
+              Aperçu catalogue indicatif : le serveur revalide les lignes, les prix, le stock et l’éligibilité avant de créer le paiement.
+            </p>
 
             {/* Informations précontractuelles précommande + CGV — C1 : petite production hebdomadaire explicite */}
             <div className="rounded-2xl bg-[#050403]/60 border border-[#FFF7EF]/10 p-3 text-[10.5px] leading-relaxed text-[#FFF7EF]/65 space-y-1.5">

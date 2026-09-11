@@ -1,6 +1,6 @@
 -- C3 — 3 KITS PEAU (Essentielle 49.70 / Équilibrée 62 / Experte 84.90) — 2026-09-11
 -- AOV peau 14€ → 52€. Livraison 4,90€, gratuite >59€ (K02/K03 gratuits). Bundle −5/−13/−15%.
--- Chaque kit = assemblage de SKU peau (3 existants + 4 placeholders C1). Kits = précommande tant que 40 ref non livrées.
+-- Chaque kit = plan d'assemblage de SKU peau. Tant que C1 n'a pas accepté les composants, les kits restent des formulations cibles : draft, inactifs, non listables et non éligibles au checkout.
 
 INSERT INTO public.products (
   id, slug, name, brand, category, subcategory, price, in_stock, stock_quantity,
@@ -18,7 +18,7 @@ INSERT INTO public.products (
   'kits',
   'Peau',
   49.70,
-  true, 0,
+  false, 0,
   '[KIT PRÉCOMMANDE] Nettoyant doux sans parfum 150ml + Crème céramides 50ml + SPF 50 invisible 40ml. La base barrière + SPF sans trace blanche (phototype V–VI safe). Matin 3 → Soir 2. Économie 2,90€ (−5% vs 52,60€ à l’unité). Livraison 4,90€, gratuite si +1 produit (59€).',
   'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80',
   ARRAY['Glycérine','Squalane','Céramides NP','Filtres organiques invisibles'],
@@ -26,17 +26,17 @@ INSERT INTO public.products (
   ARRAY['mixte','grasse','sensible','foncée'],
   ARRAY['hydrater_peau','barriere_cutanee','protection_solaire'],
   ARRAY['FR','BE','DOM','INT'],
-  true,
+  false,
   'Uniformiser, barrière',
   'Kit 3 soins — Essentielle',
   'Voir fiche de chaque soin (INCI publiés)',
-  ARRAY['kit','essentielle','3-soins','preorder','sans-parfum','invisible'],
+  ARRAY['kit','essentielle','3-soins','preorder','sans-parfum','invisible','formulation-target'],
   'Kit 3 soins · Matin 3 → Soir 2',
   'Sans parfum ajouté',
   false,
   '3 soins · 49,70€ (−5%)',
-  'published','verified','verified','verified','verified','verified','verified','verified','brand_provided',
-  'sup-brands-wholesale','KURLA — assemblage kit (précommande)'
+  'draft','pending','pending','pending','pending','pending','pending','pending','illustrative',
+  'sup-brands-wholesale','KURLA — assemblage kit (formulation cible)'
 ),
 (
   'kit-peau-eq-001',
@@ -46,7 +46,7 @@ INSERT INTO public.products (
   'kits',
   'Peau',
   62.00,
-  true, 0,
+  false, 0,
   '[KIT PRÉCOMMANDE] Essentielle + Sérum niacinamide 5% + Gel acide hyaluronique. Le cœur HPI : uniformiser sans dessécher. Matin 4 → Soir 4. Économie 9,40€ (−13% vs 71,40€). Livraison gratuite (>59€).',
   'https://images.unsplash.com/photo-1570554886111-eafa33934098?auto=format&fit=crop&w=800&q=80',
   ARRAY['Niacinamide 5%','Acide Hyaluronique','Céramides NP','Glycérine','Filtres organiques invisibles'],
@@ -54,17 +54,17 @@ INSERT INTO public.products (
   ARRAY['mixte','grasse','sensible','foncée'],
   ARRAY['hydrater_peau','taches_hyperpigmentation','barriere_cutanee','protection_solaire'],
   ARRAY['FR','BE','DOM','INT'],
-  true,
+  false,
   'Uniformiser, HPI, barrière',
   'Kit 5 soins — Équilibrée',
   'Voir fiche de chaque soin',
-  ARRAY['kit','equilibree','5-soins','preorder','sans-parfum','invisible','HPI'],
+  ARRAY['kit','equilibree','5-soins','preorder','sans-parfum','invisible','HPI','formulation-target'],
   'Kit 5 soins · Matin 4 → Soir 4',
   'Sans parfum ajouté',
   false,
   '5 soins · 62€ (−13%) · livraison gratuite',
-  'published','verified','verified','verified','verified','verified','verified','verified','brand_provided',
-  'sup-brands-wholesale','KURLA — assemblage kit (précommande)'
+  'draft','pending','pending','pending','pending','pending','pending','pending','illustrative',
+  'sup-brands-wholesale','KURLA — assemblage kit (formulation cible)'
 ),
 (
   'kit-peau-exp-001',
@@ -74,7 +74,7 @@ INSERT INTO public.products (
   'kits',
   'Peau',
   84.90,
-  true, 0,
+  false, 0,
   '[KIT PRÉCOMMANDE] Équilibrée + Exfoliant AHA/BHA 1×/sem + Baume lèvres céramides. La routine hebdo : grain affiné, taches atténuées. Matin 4 → Soir 5 → Hebdo 1. Économie 14,90€ (−15% vs 99,80€). Livraison gratuite. Rétinol × AHA même soir = alternance soir A/B.',
   'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=800&q=80',
   ARRAY['Niacinamide 5%','AHA/BHA','Céramides NP','Acide Hyaluronique','Squalane','Filtres organiques'],
@@ -82,17 +82,17 @@ INSERT INTO public.products (
   ARRAY['mixte','sensible','mature','foncée'],
   ARRAY['taches_hyperpigmentation','hydrater_peau','barriere_cutanee','protection_solaire','grain_irregulier'],
   ARRAY['FR','BE','DOM','INT'],
-  true,
+  false,
   'Uniformiser, grain, HPI',
   'Kit 7 soins — Experte',
   'Voir fiche de chaque soin',
-  ARRAY['kit','experte','7-soins','preorder','sans-parfum','invisible','hebdo'],
+  ARRAY['kit','experte','7-soins','preorder','sans-parfum','invisible','hebdo','formulation-target'],
   'Kit 7 soins · Matin 4 → Soir 5 → Hebdo 1',
   'Sans parfum ajouté',
   false,
   '7 soins · 84,90€ (−15%) · livraison gratuite',
-  'published','verified','verified','verified','verified','verified','verified','verified','brand_provided',
-  'sup-brands-wholesale','KURLA — assemblage kit (précommande)'
+  'draft','pending','pending','pending','pending','pending','pending','pending','illustrative',
+  'sup-brands-wholesale','KURLA — assemblage kit (formulation cible)'
 )
 ON CONFLICT (id) DO UPDATE SET
   slug = EXCLUDED.slug,
@@ -105,7 +105,7 @@ ON CONFLICT (id) DO UPDATE SET
   badges = EXCLUDED.badges,
   texture = EXCLUDED.texture,
   size_label = EXCLUDED.size_label,
-  catalog_status = 'published', is_active = true, in_stock = true, stock_quantity = 0, updated_at = NOW();
+  catalog_status = 'draft', is_active = false, in_stock = false, stock_quantity = 0, updated_at = NOW();
 
 DELETE FROM public.product_variants WHERE product_id IN ('kit-peau-ess-001','kit-peau-eq-001','kit-peau-exp-001');
 INSERT INTO public.product_variants (product_id, name, sku, price, stock_quantity) VALUES
@@ -137,14 +137,14 @@ BEGIN
       ('kit-peau-eq-001','peau-ess-001',1,1),
       ('kit-peau-eq-001','peau-ess-002',1,2),
       ('kit-peau-eq-001','peau-ess-003',1,3),
-      ('kit-peau-eq-001','peau-serum-niacinamide-001',1,4),
-      ('kit-peau-eq-001','peau-gel-hyaluronique-001',1,5),
+      ('kit-peau-eq-001','peau-ess-006',1,4),
+      ('kit-peau-eq-001','peau-ess-011',1,5),
       ('kit-peau-exp-001','peau-ess-001',1,1),
       ('kit-peau-exp-001','peau-ess-002',1,2),
       ('kit-peau-exp-001','peau-ess-003',1,3),
-      ('kit-peau-exp-001','peau-serum-niacinamide-001',1,4),
-      ('kit-peau-exp-001','peau-gel-hyaluronique-001',1,5),
-      ('kit-peau-exp-001','peau-exfoliant-aha-bha-001',1,6),
-      ('kit-peau-exp-001','peau-baume-levres-001',1,7);
+      ('kit-peau-exp-001','peau-ess-006',1,4),
+      ('kit-peau-exp-001','peau-ess-011',1,5),
+      ('kit-peau-exp-001','peau-ess-005',1,6),
+      ('kit-peau-exp-001','peau-ess-013',1,7);
   END IF;
 END $$;

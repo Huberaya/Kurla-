@@ -193,7 +193,7 @@ export const NeedHubPage: React.FC<NeedHubPageProps> = ({ need, texture, onAddTo
                   <p className="text-xs font-bold uppercase tracking-wider text-[#C8753D]">Kits peau — formulation cible, non disponibles</p>
                   {PEAU_KITS.map(kit => (
                     <a key={kit.id} href={`/boutique?cat=kits`} className="block p-4 rounded-2xl bg-white border border-[#E8E1DA] hover:border-[#C8753D] transition-colors">
-                      <p className="text-sm font-bold">{kit.name} · {kit.priceBundle.toFixed(2)}€ <span className="text-xs font-normal text-[#111111]/40 line-through ml-1">{kit.priceSeparate.toFixed(2)}€</span></p>
+                      <p className="text-sm font-bold">{kit.name} · indicatif {kit.priceBundle.toFixed(2)}€ <span className="text-xs font-normal text-[#111111]/40 line-through ml-1">{kit.priceSeparate.toFixed(2)}€ indicatif</span></p>
                       <p className="text-xs text-[#111111]/60">{kit.tagline} · {kit.routine}</p>
                       <p className="text-[11px] text-emerald-700 font-bold mt-1">−{kit.economyPct}% · {kit.products.length} soins</p>
                     </a>

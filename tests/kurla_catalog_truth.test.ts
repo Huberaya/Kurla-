@@ -54,6 +54,10 @@ const placeholder = verified({
   in_stock: false,
   stock_quantity: 0,
 });
+const pendingValidation = verified({
+  id: 'pending-validation',
+  claims_validation_status: 'pending',
+});
 const preorder = verified({
   id: 'preorder',
   is_preorder: true,
@@ -72,6 +76,11 @@ assert.equal(isCheckoutEligibleProduct(target), false);
 assert.equal(getCatalogTruth(placeholder).commercialState, 'placeholder');
 assert.equal(isCatalogPubliclyListable(placeholder), false);
 assert.equal(isCheckoutEligibleProduct(placeholder), false);
+
+assert.equal(getCatalogTruth(pendingValidation).commercialState, 'pending_validation');
+assert.equal(getCatalogTruth(pendingValidation).availabilityLabel, 'Validation en attente');
+assert.equal(isCatalogPubliclyListable(pendingValidation), false);
+assert.equal(isCheckoutEligibleProduct(pendingValidation), false);
 
 assert.equal(getCatalogTruth(preorder).commercialState, 'preorder');
 assert.equal(getCatalogTruth(preorder).proofState, 'compliant');

@@ -89,7 +89,15 @@ export function scoreSkinProduct(product: Product, ctx: SkinScoringContext = {})
   const incompatibilities: SkinIncompatibility[] = [];
 
   const p = product as any;
-  const meta = p.metadata as { phototype?: string[]; texture?: string; finish?: string; actifs?: string[]; whitecastRisk?: string; sansParfum?: boolean } | undefined;
+  const legacyMeta = p.metadata as { phototype?: string[]; texture?: string; finish?: string; actifs?: string[]; whitecastRisk?: string; sansParfum?: boolean } | undefined;
+  const meta = {
+    phototype: p.supportedPhototypes || legacyMeta?.phototype,
+    texture: p.skinTextureCode || legacyMeta?.texture,
+    finish: p.skinFinishCode || legacyMeta?.finish,
+    actifs: (p.activeIngredients || []).map((active: any) => typeof active === 'string' ? active : active?.name).filter(Boolean).concat(legacyMeta?.actifs || []),
+    whitecastRisk: legacyMeta?.whitecastRisk,
+    sansParfum: legacyMeta?.sansParfum,
+  };
   const hay = `${product.name} ${product.description} ${(product.badges||[]).join(' ')} ${(product.keyIngredients||[]).join(' ')}`.toLowerCase();
 
   // 1. Filtre actif demandé → boost si présent, malus si absent

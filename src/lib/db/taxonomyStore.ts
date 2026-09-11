@@ -176,7 +176,7 @@ export async function getVocabularyAudit(store: SupabaseServerStore): Promise<{
   const supabase = getSupabaseServerClient();
   let rows: any[] = [];
   if (supabase) {
-    const { data, error } = await supabase.from('products').select('id, title, concerns, hair_types, country_availability');
+    const { data, error } = await supabase.from('products').select('id, title, concerns, hair_types, skin_types, skin_concerns, skin_objectives, country_availability');
     ensureDatabaseSuccess('audit des vocabulaires produit', error);
     rows = data || [];
   } else {
@@ -191,6 +191,9 @@ export async function getVocabularyAudit(store: SupabaseServerStore): Promise<{
     const check = await checkProductVocabulary(store, {
       concerns: row.concerns,
       hairTypes: row.hair_types ?? row.hairTypes,
+      skinTypes: row.skin_types ?? row.skinTypes,
+      skinConcerns: row.skin_concerns ?? row.skinConcerns,
+      skinObjectives: row.skin_objectives ?? row.skinObjectives,
       countryAvailability: row.country_availability ?? row.countryAvailability
     });
     if (!check.vocabularyLoaded) vocabularyLoaded = false;

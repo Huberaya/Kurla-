@@ -376,7 +376,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
               <div className="rounded-xl border border-[#C8753D]/30 bg-[#1A0F0A] p-4 mb-5 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#D49A63] flex items-center gap-2"><ShieldCheck size={13} /> Dossier cosmétique UE — 5 héros (CPNP / RP / CPSR)</h4>
                 <p className="text-[10px] text-[#FFF7EF]/50 leading-relaxed">
-                  Un cosmétique (tout soin p01–p15, p28–p34, p51–p54) n'est vendable qu'avec le trio vérifié <strong className="text-[#FFF7EF]">CPSR + notification CPNP + Personne Responsable UE</strong> (Règl. 1223/2009). Sans ce trio chez le fournisseur, le catalogue bloque la publication — basculez vers un grossiste UE qui fournit le dossier (ex. AfricanFabs / Afro Wholesale avec CPSR+CPNP déjà constitués).
+                  Un cosmétique (tout soin p01–p15, p28–p34, p51–p54) n'est vendable qu'avec le trio vérifié <strong className="text-[#FFF7EF]">CPSR + notification CPNP + Personne Responsable UE</strong> (Règl. 1223/2009). Sans ce trio chez le fournisseur, le catalogue bloque la publication — rattachez uniquement une source UE dont le dossier est effectivement fourni et vérifié.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {COSMETIC_REQUIRED_DOCS.map(doc => {

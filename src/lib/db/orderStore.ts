@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { EmailMessage } from '../emailService';
 import { getSupabaseServerClient } from '../supabaseClient';
+import { getCatalogTruth } from '../catalogTruth';
 import {
   emailTemplateForOrderStatus,
   orderEmailData,
@@ -485,12 +486,16 @@ export async function normalizeCartItems(store: SupabaseServerStore, items: { pr
         ? publishedProducts.find(itemProduct => itemProduct.id === item.productId)
         : await store.getProductById(item.productId);
       if (!product) throw new Error(`Produit de panier introuvable ou non publié : ${item.productId}.`);
+      const truth = getCatalogTruth(product);
+      if (!truth.isCheckoutEligible) {
+        throw new Error(`Produit non éligible au checkout : ${item.productId}.`);
+      }
       if (item.variantId) {
         const variant = (product.variants || []).find((candidate: any) => candidate.id === item.variantId);
         if (!variant || variant.is_active === false || Number(variant.stock_quantity) <= Number(variant.reserved_quantity || 0)) {
           throw new Error('Variante indisponible.');
         }
-      } else if (product.inStock === false) {
+      } else if (truth.commercialState !== 'preorder' && product.inStock === false) {
         throw new Error('Produit indisponible.');
       }
       const key = `${product.id}:${item.variantId || ''}`;

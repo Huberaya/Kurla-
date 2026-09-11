@@ -67,7 +67,7 @@ export const PeauGoLiveC24Panel: React.FC<{ headers: HeadersInit }> = ({ headers
       const m = mRes && mRes.ok ? await mRes.json() : { metrics:{stripeMode:'test'} };
 
       const rows: any[] = c.cockpit?.rows || [];
-      const peauRows = rows.filter((x:any)=> x.productId?.startsWith('peau-') || x.productId?.startsWith('kit-peau') || ['peau-ess-001','peau-ess-002','peau-ess-003','peau-serum-niacinamide-001','peau-gel-hyaluronique-001','peau-exfoliant-aha-bha-001','peau-baume-levres-001'].includes(x.productId));
+      const peauRows = rows.filter((x:any)=> x.productId?.startsWith('peau-') || x.productId?.startsWith('kit-peau') || ['peau-ess-001','peau-ess-002','peau-ess-003','peau-ess-005','peau-ess-006','peau-ess-011','peau-ess-013'].includes(x.productId));
       const gatesTotal = peauRows.length ? peauRows.length*8 : 7*8;
       const gatesOk = peauRows.reduce((acc:number, row:any)=> acc + (row.ready ? 8 : 0), 0); // brut, honnête: ready = 8 gates
       // fallback si pas de cockpit peau: 0/56

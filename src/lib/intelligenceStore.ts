@@ -9,6 +9,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { getSupabaseServerClient } from './supabaseClient';
+import { recordLaunchTesterActivity } from './db/internal';
 import {
   ArchetypeDerivation,
   ArchetypeKey,
@@ -322,6 +323,7 @@ class KurlaIntelligenceStore {
     }
     const list = this.shelf.get(userId) || [];
     this.shelf.set(userId, [item, ...list]);
+    await recordLaunchTesterActivity(userId, 'shelf_item_added');
     return item;
   }
 
@@ -346,6 +348,7 @@ class KurlaIntelligenceStore {
       ensureSuccess('mise à jour de l’étagère', error);
     }
     this.shelf.set(userId, (this.shelf.get(userId) || []).map(item => (item.id === itemId ? updated : item)));
+    await recordLaunchTesterActivity(userId, 'shelf_item_updated');
     return updated;
   }
 
@@ -480,6 +483,7 @@ class KurlaIntelligenceStore {
     }
     const list = this.outcomes.get(userId) || [];
     this.outcomes.set(userId, [observation, ...list].slice(0, 500));
+    await recordLaunchTesterActivity(userId, 'outcome_observation_created');
     return observation;
   }
 

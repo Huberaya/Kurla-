@@ -6,18 +6,18 @@ type Supplier = { id: string; legalName: string; verificationStatus: string; doc
 
 const GATES = [
   { key: 'tarif', label: 'Tarif HT écrit', icon: FileCheck2, hint: 'prix fournisseur noté, pas estimé' },
-  { key: 'moq', label: 'MOQ ≤100', icon: BoxesIcon, hint: '50–100 peau, pas 500' },
-  { key: 'delai', label: 'Délai ≤5j UE / 7j SN', icon: Truck, hint: 'FR 3–5j, SN 5–7j Dakar' },
+  { key: 'moq', label: 'MOQ documenté', icon: BoxesIcon, hint: 'valeur écrite par SKU, jamais estimée' },
+  { key: 'delai', label: 'Délai par pays documenté', icon: Truck, hint: 'FR et autres pays autorisés, valeur sourcée' },
   { key: 'marge', label: 'Marge HT ≥34% (cible 52%)', icon: Gauge, hint: 'prix public − coût servi' },
   { key: 'dossier', label: 'Dossier PIF+CPSR+CPNP', icon: ShieldCheck, hint: 'fichier+date, jamais case cochée' },
   { key: 'inci', label: 'INCI + visuels', icon: Beaker, hint: 'INCI normalisé + photo pack' },
-  { key: 'echantillon', label: 'Échantillon V–VI 0 trace', icon: Eye, hint: 'whitecast faible + sans parfum vérifié' },
-  { key: 'franco', label: 'Franco / port chiffré', icon: Truck, hint: '4,90€ Essentielle, gratuit 62/84,90' },
+  { key: 'echantillon', label: 'Essai phototypes IV–VI', icon: Eye, hint: 'résultat whitecast documenté, lumière et sous-tons décrits' },
+  { key: 'franco', label: 'Coût livré chiffré', icon: Truck, hint: 'transport et seuil éventuel confirmés par la source' },
 ];
 
 function BoxesIcon(props:any){ return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l9 4.5v9L12 20 3 15.5v-9L12 2z"/><path d="M12 12v8"/><path d="M3 7.5l9 4.5 9-4.5"/></svg>; }
 
-const PEAU_IDS = ['peau-ess-001','peau-ess-002','peau-ess-003','peau-serum-niacinamide-001','peau-gel-hyaluronique-001','peau-exfoliant-aha-bha-001','peau-baume-levres-001'];
+const PEAU_IDS = ['peau-ess-001','peau-ess-002','peau-ess-003','peau-ess-005','peau-ess-006','peau-ess-011','peau-ess-013'];
 
 export const PeauGatesCockpitPanel: React.FC<{ headers: HeadersInit }> = ({ headers }) => {
   const [rows, setRows] = useState<CockpitRow[]>([]);

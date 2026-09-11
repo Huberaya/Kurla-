@@ -9,7 +9,7 @@ import {
   normalizeBeautyProfile,
 } from '../beautyProfile';
 import { getSupabaseServerClient } from '../supabaseClient';
-import { ensureDatabaseSuccess, recordLoyaltySafely } from './internal';
+import { ensureDatabaseSuccess, recordLaunchTesterActivity, recordLoyaltySafely } from './internal';
 
 import type { SupabaseServerStore } from '../serverDb';
 
@@ -188,6 +188,8 @@ export async function saveBeautyProfile(store: SupabaseServerStore, userId: stri
   const record = await saveBeautyProfileInner(store, userId, input, source);
   if (record.confidence?.overall >= 60) {
     await recordLoyaltySafely(store, userId, 'profile_completed', record.userId);
+  } else {
+    await recordLaunchTesterActivity(userId, source === 'diagnostic' ? 'diagnostic_completed' : 'beauty_profile_saved');
   }
   return record;
 }

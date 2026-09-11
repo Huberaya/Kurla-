@@ -355,7 +355,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
               <input type="checkbox" checked={draft.isDropship} onChange={e => setField('isDropship', e.target.checked)} className="mt-0.5 accent-emerald-500" />
               <span className="text-[11px] leading-tight">
                 <span className="font-bold text-emerald-300">Dropship 24–48h (partenaire UE) — 0 stock chez toi</span>
-                <span className="block text-[#FFF7EF]/60">Coche pour les outils/accessoires expédiés depuis AfricanFabs/Afro Wholesale (NL) en 24–48h. Décoche pour les soins/kits en précommande 3–5j (tampon + batch). Badge boutique passe au vert automatiquement.</span>
+                <span className="block text-[#FFF7EF]/60">Coche uniquement si le fournisseur, le délai et le flux d’expédition sont documentés pour ce SKU. Décoche pour les soins/kits tant que la source, le lot et les preuves ne sont pas validés. Le badge boutique passe au vert uniquement après les contrôles serveur.</span>
               </span>
             </label>
             <label className="space-y-1 sm:col-span-2"><span className={labelClass()}>Image principale (URL vérifiable)</span><input value={draft.image} onChange={e => setField('image', e.target.value)} className={inputClass()} placeholder="https://…" /></label>
@@ -412,7 +412,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     <p className="text-[10px] font-bold text-amber-300">⛔ Publication bloquée — {readinessMap[product.id].missing.length} manque(s) :</p>
     <p className="text-[10px] text-amber-200/70 leading-relaxed">{readinessMap[product.id].missing.join(' · ')}</p>
     {readinessMap[product.id].missing.some((m: string) => m.includes('CPNP') || m.includes('Responsable') || m.includes('CPSR') || m.includes('cpsr') || m.includes('cpnp')) && (
-      <p className="text-[10px] text-amber-300 mt-1">→ Joignez CPSR + notification CPNP + attestation Personne Responsable chez le fournisseur, ou basculez ce SKU vers un grossiste UE vérifié (AfricanFabs / Afro Wholesale avec dossier).</p>
+      <p className="text-[10px] text-amber-300 mt-1">→ Joignez CPSR + notification CPNP + attestation Personne Responsable au dossier fournisseur vérifié, ou basculez ce SKU vers une source UE dont le dossier est effectivement disponible.</p>
     )}
   </div>
 )}

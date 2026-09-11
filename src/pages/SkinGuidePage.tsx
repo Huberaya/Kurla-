@@ -102,14 +102,14 @@ const GUIDES = [
     id: 'budget',
     tag: 'Budget · routine',
     read: '3 min',
-    title: 'Routine à 49,70€, 62€ ou 84,90€ : que choisit-on vraiment ?',
-    desc: 'Moins de produits mais les bons, à votre enveloppe. Prix total et alternatives à chaque étape.',
-    hero: '49,70€ = nettoyant → hydratant céramides → SPF invisible (Essentielle · −5% · 3 soins). 62€ ajoute tonique niacinamide + gel HA + sérum HPI (Équilibrée · −13% · Recommandée · 5 soins). 84,90€ ajoute double nettoyage + contour yeux + exfoliant AHA/BHA + masques (Experte · −15% · liv. gratuite · 7 soins).',
+    title: 'Prix indicatifs de précommande : 49,70€, 62€ ou 84,90€ — que choisit-on vraiment ?',
+    desc: 'Moins de produits mais les bons, à votre enveloppe. Ces montants restent indicatifs tant que les fiches serveur correspondantes ne sont pas publiées.',
+    hero: 'Prix indicatifs de précommande : 49,70€ = nettoyant → hydratant céramides → SPF invisible (Essentielle · −5% · 3 soins). 62€ ajoute tonique niacinamide + gel HA + sérum HPI (Équilibrée · −13% · Recommandée · 5 soins). 84,90€ ajoute double nettoyage + contour yeux + exfoliant AHA/BHA + masques (Experte · −15% · liv. gratuite · 7 soins).',
     points: [
       'Essentielle (49,70€) : 3 soins, le meilleur rapport si budget serré ou débutante — barrière + SPF invisible en 2 min.',
       'Équilibrée (62€) : 5 soins, la plus équilibrée pour HPI/barrière sans routine de 9 étapes — niacinamide + HA + céramides.',
       'Experte (84,90€) : 7 soins, pour passionnées qui aiment le layering + hebdo 1×/sem — pas “mieux”, juste plus complet, grain & taches.',
-      'Chaque étape propose alternative sans parfum et prix au 10 ml pour comparer. Exemple Fatou 28 ans mixte V HPI sans parfum : Équilibrée sans parfum est son entrée idéale.',
+      'Chaque étape propose une alternative sans parfum et un prix serveur quand la référence est publiée ; sinon le montant reste indicatif. Exemple Fatou 28 ans mixte V HPI sans parfum : Équilibrée sans parfum est son entrée idéale.',
     ],
     routine: 'Dites à KURLA “routine à 62€” → sélection dans l’enveloppe. Fatou 28 ans mixte V HPI a choisi Équilibrée sans parfum (62€).',
     cta: '/peau/routine?tier=equilibree&budget=40_70',
@@ -213,7 +213,7 @@ export const SkinGuidePage: React.FC = () => {
         </div>
 
         <div className="mt-8 p-6 rounded-3xl bg-[#F8F2EC] border border-[#E8E1DA] flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <p className="text-xs text-[#111111]/70"><strong className="text-[#111111]">Fatou 28 ans mixte V HPI sans parfum</strong> a commencé par HPI → SPF invisible : Équilibrée 62€ (5 soins · −13%), 2 alternatives sans parfum par étape.</p>
+          <p className="text-xs text-[#111111]/70"><strong className="text-[#111111]">Fatou 28 ans mixte V HPI sans parfum</strong> a commencé par HPI → SPF invisible : Équilibrée, prix indicatif 62€ (5 soins · −13%), 2 alternatives sans parfum par étape.</p>
           <a href="/peau/guide#hpi" className="px-5 py-2.5 rounded-full bg-[#C8753D] text-white text-xs font-bold">Commencer par HPI →</a>
         </div>
       </div>

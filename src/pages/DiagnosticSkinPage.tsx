@@ -157,6 +157,8 @@ export const DiagnosticSkinPage: React.FC = () => {
         routine: (answers.currentRoutine && answers.currentRoutine !== UNKNOWN ? answers.currentRoutine : answers.routine) as any,
         skinConcerns: answers.skinConcerns && answers.skinConcerns[0] !== UNKNOWN ? answers.skinConcerns : [answers.priority || 'taches'],
         skinObjectives: answers.skinObjectives && answers.skinObjectives[0] !== UNKNOWN ? answers.skinObjectives : [UNKNOWN],
+        phototype: phototypeConsent ? phototype : undefined,
+        phototypeConsent,
       };
       // sauvegarde locale pour résultat + futur `Ma peau`
       try {
@@ -197,6 +199,8 @@ export const DiagnosticSkinPage: React.FC = () => {
               ageRange: payload.ageRange,
               reactionHistory: payload.reactionHistory,
               preferences: payload.preferences,
+              phototype: payload.phototype,
+              phototypeConsent: payload.phototypeConsent,
             },
             environment: { climate: payload.climate },
           };

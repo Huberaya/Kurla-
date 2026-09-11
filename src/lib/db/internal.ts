@@ -14,6 +14,7 @@ export function ensureDatabaseSuccess(operation: string, error: { message?: stri
 }
 
 import type { EmailMessage } from '../emailService';
+import { getSupabaseServerClient } from '../supabaseClient';
 
 import type { OrderStatus, ServerOrder } from './types';
 import { getCatalogTruth, isCatalogPubliclyListable } from '../catalogTruth';
@@ -163,6 +164,8 @@ export function toPublicProduct(product: any): any {
     inStock: truth.commercialState === 'available'
       && (product.inStock === true || variants.some((variant: any) => variant.inStock)),
     availabilityState: truth.commercialState,
+    availabilityLabel: truth.availabilityLabel,
+    availabilityMessage: truth.availabilityMessage,
     needs: product.needs || product.concerns || [],
     countryAvailability: product.countryAvailability || [],
     catalogCategoryTags: product.catalogCategoryTags || [],
@@ -239,6 +242,77 @@ export function orderEmailData(order: {
  * l'action qui l'a produit. Un avis publié doit rester publié même si le calcul
  * de progression échoue ; l'incident est journalisé, pas propagé.
  */
+/**
+ * Relie une activité authentifiée à la cohorte de lancement sans créer de
+ * seconde identité. Le lien initial se fait par email uniquement si aucun
+ * `tester_user_id` n'existe encore ; ensuite les activités utilisent l'UUID.
+ *
+ * Important : un inscrit `waitlisted` n'est pas activé implicitement. Seuls les
+ * testeurs invités ou acceptés peuvent passer à `activated`, ce qui protège le
+ * lancement fermé à 300 personnes.
+ */
+export async function recordLaunchTesterActivity(userId: string, kind: string): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase || !userId) return;
+  const now = new Date().toISOString();
+  const activityKind = String(kind || 'activity').slice(0, 80);
+
+  try {
+    const { data: linked, error: linkedError } = await supabase
+      .from('launch_leads')
+      .select('id,tester_status')
+      .eq('tester_user_id', userId)
+      .in('tester_status', ['invited', 'accepted', 'activated'])
+      .limit(1)
+      .maybeSingle();
+    if (linkedError) return;
+
+    let lead = linked;
+    if (!lead) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .maybeSingle();
+      if (profileError || typeof profile?.email !== 'string' || !profile.email.trim()) return;
+
+      const { data: matched, error: matchError } = await supabase
+        .from('launch_leads')
+        .update({
+          tester_user_id: userId,
+          tester_status: 'activated',
+          activated_at: now,
+          last_active_at: now,
+          last_activity_kind: activityKind
+        })
+        .eq('email', profile.email.trim().toLowerCase())
+        .eq('profile_type', 'client')
+        .eq('country', 'FR')
+        .in('tester_status', ['invited', 'accepted', 'activated'])
+        .select('id,tester_status')
+        .limit(1)
+        .maybeSingle();
+      if (matchError || !matched) return;
+      lead = matched;
+    }
+
+    // Si le lien existait déjà, on ne réécrit pas l'instant d'activation.
+    await supabase
+      .from('launch_leads')
+      .update({
+        last_active_at: now,
+        last_activity_kind: activityKind,
+        ...(lead.tester_status === 'invited' || lead.tester_status === 'accepted'
+          ? { tester_status: 'activated', activated_at: now }
+          : {})
+      })
+      .eq('id', lead.id);
+  } catch {
+    // L'instrumentation ne doit jamais casser un diagnostic, une commande ou un
+    // événement de progression si la migration n'est pas encore déployée.
+  }
+}
+
 export async function recordLoyaltySafely(
   store: { applyLoyaltyEvent: (userId: string, kind: string, sourceRef?: string, dedupeKey?: string) => Promise<unknown> },
   userId: string,
@@ -248,6 +322,7 @@ export async function recordLoyaltySafely(
 ): Promise<void> {
   try {
     await store.applyLoyaltyEvent(userId, kind, sourceRef, dedupeKey);
+    await recordLaunchTesterActivity(userId, kind);
   } catch (error: any) {
     console.warn(`[progression] fait « ${kind} » ignoré : ${error?.message || 'erreur inconnue'}`);
   }

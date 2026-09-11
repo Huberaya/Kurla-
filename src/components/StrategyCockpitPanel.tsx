@@ -13,6 +13,7 @@ import {
 } from '../lib/businessStrategy';
 import { LaunchPlanSection } from './LaunchPlanSection';
 import { PenetrationCommandCenter } from './PenetrationCommandCenter';
+import { LaunchTractionPanel } from './LaunchTractionPanel';
 
 type Props = { headers: HeadersInit };
 
@@ -61,6 +62,7 @@ const num = (v: number | null | undefined) => v === null || v === undefined ? '�
 const SECTIONS = [
   { id: 'actions', label: 'À faire maintenant', icon: ListChecks },
   { id: 'penetration', label: 'Pénétration & expansion', icon: Rocket },
+  { id: 'traction', label: 'Traction France', icon: Target },
   { id: 'performance', label: 'Ventes réelles', icon: BarChart3 },
   { id: 'conquete', label: 'Conquête & expansion', icon: Globe },
   { id: 'positioning', label: 'Positionnement', icon: Target },
@@ -190,6 +192,11 @@ export function StrategyCockpitPanel({ headers }: Props) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* CHANTIER 6 — traction France, métriques réelles et saisies minimisées */}
+      <div id="traction" className="scroll-mt-4">
+        <LaunchTractionPanel headers={headers} />
       </div>
 
       {/* PERFORMANCE COMMERCIALE RÉELLE — quel produit/kit se vend, marge réelle */}

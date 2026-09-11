@@ -24,7 +24,7 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 const prod = (id: string) => LAUNCH_PRODUCTS.find(p => p.id === id);
 
 export function LaunchPlanSection() {
-  // Filtrage de la table catalogue (54 lignes)
+  // Filtrage de la table catalogue (nombre lu depuis la source de vérité)
   const [catFilter, setCatFilter] = useState<string>('all');
   const [query, setQuery] = useState('');
   const categories = useMemo(

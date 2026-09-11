@@ -9,6 +9,7 @@ import { renderOrderEmail } from './emailTemplates';
 
 export type EmailTemplate =
   | 'account_created'
+  | 'launch_tester_invitation'
   | 'email_confirmation_pending'
   | 'password_reset'
   | 'order_created'
@@ -281,6 +282,8 @@ export class EmailService {
     switch (template) {
       case 'account_created':
         return `Bienvenue chez KURLA BEAUTY, ${data.name || 'Cher client'} !\nVotre compte a été créé avec succès.`;
+      case 'launch_tester_invitation':
+        return `Votre accès au pilote fermé KURLA est prêt. Activez-le ici : ${data.invitationUrl || '#'}`;
       case 'email_confirmation_pending':
         return `Votre compte KURLA BEAUTY est créé. Confirmez votre adresse email pour activer votre compte${data.confirmationUrl ? ` : ${data.confirmationUrl}` : '.'}`;
       case 'password_reset':
