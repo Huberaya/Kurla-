@@ -1174,7 +1174,20 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
 // deux garde-fous vérifiés par le banc `kurla_gamme_peau_cible`.
 app.get('/api/peau/gamme', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const fiches = await serverDb.getSkinRangeTargets();
-  res.json({ fiches, count: fiches.length, availabilityState: 'formulation_target' });
+  res.json({
+    fiches,
+    count: fiches.length,
+    availabilityState: 'formulation_target',
+    // Un 200 à vide ne se lit pas comme une panne : seize fiches sont
+    // restées invisibles plusieurs jours parce que la route répondait
+    // correctement, mais à rien — d'abord un filtre trop strict, puis des
+    // fiches repassées en brouillon. Le vide doit donc être énoncé, comme
+    // /api/professionals le fait déjà. La sonde `probe-production.mjs`
+    // traite un vide non expliqué comme un silence.
+    note: fiches.length === 0
+      ? 'Aucune fiche de formulation n’est publiée pour le moment. La gamme peau KURLA est en cours de formulation : rien n’est encore rendu public.'
+      : undefined
+  });
 }));
 
 // Customer-facing trust data is deliberately separated from the catalogue
@@ -1186,7 +1199,18 @@ app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRe
     serverDb.getProductReviews(product.id),
     serverDb.getProductQuestions(product.id)
   ]);
-  res.json({ reviews, questions, verifiedReviewCount: reviews.length, questionsCount: questions.length });
+  // Même règle que /api/professionals et /api/peau/gamme : une absence est
+  // énoncée. Un produit sans avis renvoie « aucun avis vérifié », pas trois
+  // tableaux vides qu'on ne peut pas distinguer d'une panne de lecture.
+  res.json({
+    reviews,
+    questions,
+    verifiedReviewCount: reviews.length,
+    questionsCount: questions.length,
+    note: reviews.length === 0 && questions.length === 0
+      ? 'Aucun avis vérifié et aucune question publiée pour ce produit. KURLA n’affiche que des avis contrôlés.'
+      : undefined
+  });
 }));
 
 /**
