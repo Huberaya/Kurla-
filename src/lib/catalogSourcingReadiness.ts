@@ -171,11 +171,9 @@ export function evaluateCatalogSourcingReadiness(
   if (!hasPositiveStock(product)) {
     missing.push({ field: 'stock_quantity', label: 'stock disponible nul ou absent — produit non achetable maintenant' });
   }
-  const isPreorder = product?.isPreorder === true || product?.is_preorder === true
-    || (Array.isArray(product?.badges) && product.badges.some((badge: unknown) => String(badge).toLowerCase() === 'preorder'));
-  if (isPreorder) {
-    missing.push({ field: 'commercial_state', label: 'précommande — à séparer du catalogue réellement achetable' });
-  }
+  // Une précommande documentée peut être sourcing-ready, mais elle ne doit
+  // jamais être requalifiée en stock disponible. La truth layer et le rapport
+  // C1 portent ensuite l’état commercial `preorder_verified` séparément.
 
   for (const required of requiredDocuments) {
     if (!heldDocuments.includes(required)) {

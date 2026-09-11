@@ -99,6 +99,8 @@ La cible de sortie est atteinte seulement si :
 - aucun SKU accepté n’a une provenance `formulation interne` ;
 - les pays et le stock sont testés pour `FR`.
 
-## État au démarrage de C1
+## État de clôture du sourcing C1 — 11 septembre 2026
 
-Aucun SKU peau présent dans le workspace ne satisfait actuellement cette porte. Les formulations internes et les anciennes précommandes restent non achetables tant que les preuves externes ne sont pas versées et validées.
+Aucun SKU peau présent dans la base distante ne satisfait cette porte : **0/3 héros `ready_to_buy`**. Les fournisseurs et les 21 lignes candidat restent non vérifiés ou bloqués, et aucun document fournisseur n'est disponible. Les formulations internes et les anciennes précommandes restent non achetables tant que les preuves externes ne sont pas versées et validées.
+
+Le détail fournisseur par fournisseur, les compteurs contrôlés et la décision opérationnelle sont consignés dans [`docs/sourcing/C1_CLOSURE_REPORT_2026-09-11.md`](sourcing/C1_CLOSURE_REPORT_2026-09-11.md).

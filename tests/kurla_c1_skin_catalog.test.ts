@@ -84,6 +84,17 @@ ok('une source formulation interne ne peut pas devenir ready_to_buy', () => {
   assert.ok(readiness.blockers.some(item => item.field === 'source_supplier'));
 });
 
+ok('une précommande externe documentée reste une précommande, pas une formulation cible', () => {
+  const readiness = evaluateSkinProductReadiness({
+    ...baseProduct,
+    id: SKIN_HERO_SCOPE[1],
+    sourceSupplier: 'Distributeur UE vérifié',
+    isPreorder: true,
+  });
+  assert.equal(readiness.internalSource, false);
+  assert.equal(readiness.commercialState, 'preorder_verified');
+});
+
 ok('l’acceptation héros reste à zéro tant que les trois preuves ne sont pas réunies', () => {
   const report = SKIN_HERO_SCOPE.map(id => evaluateSkinProductReadiness({
     ...baseProduct,

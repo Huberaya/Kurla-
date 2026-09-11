@@ -162,10 +162,12 @@ function isTintedProduct(product: any): boolean {
 
 function isInternalSource(product: any): boolean {
   const source = text(product, 'sourceSupplier', 'source_supplier').toLowerCase();
+  // Une précommande peut être réelle et documentée. Elle ne devient une cible
+  // que si la provenance dit explicitement formulation interne/cible.
   return source.includes('formulation interne')
+    || source.includes('formulation cible')
     || source.includes('internal formulation')
-    || source.includes('précommande')
-    || source.includes('preorder');
+    || source.includes('internal formulation target');
 }
 
 function isPreorder(product: any): boolean {
@@ -175,7 +177,11 @@ function isPreorder(product: any): boolean {
 
 function isFormulationTarget(product: any): boolean {
   const status = text(product, 'catalogStatus', 'catalog_status').toLowerCase();
+  const commercialState = text(product, 'availabilityState', 'availability_state').toLowerCase();
+  const stage = text(product, 'catalogStage', 'catalog_stage').toLowerCase();
   return status === 'formulation_target'
+    || commercialState === 'formulation_target'
+    || stage === 'formulation_target'
     || isInternalSource(product)
     || array(product, 'badges').some(value => String(value).toLowerCase().includes('formulation-target'));
 }
@@ -256,7 +262,7 @@ export function evaluateSkinProductReadiness(
   const extraBlockers = [...(options.extraBlockers || [])];
   const internalSource = isInternalSource(product);
   if (internalSource && !extraBlockers.some(blocker => blocker.field === 'source_supplier')) {
-    extraBlockers.push({ field: 'source_supplier', label: 'source_supplier = formulation interne / précommande' });
+    extraBlockers.push({ field: 'source_supplier', label: 'source_supplier = formulation interne / formulation cible' });
   }
   const blockers = [...metadata.missing, ...extraBlockers].filter((blocker, index, all) =>
     all.findIndex(candidate => candidate.field === blocker.field) === index
