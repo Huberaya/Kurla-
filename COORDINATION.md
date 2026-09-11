@@ -104,6 +104,57 @@ Le banc `kurla_gamme_peau_cible` ne peut pas voir cette régression : il
 tourne en mémoire, sans la base. Seul un contrôle contre la production la
 détecte — c'est l'objet de la proposition « silences » ci-dessous.
 
+### Panne de production du 11/09/2026 — dépendances non déclarées
+
+**Toute l'API est tombée en 500** : `Cannot find module 'web-push'`. La page
+d'accueil continuait de répondre 200 — la panne était invisible au premier
+coup d'œil, et aucun banc ne la voyait.
+
+`src/lib/pushDelivery.ts` importait `web-push`, absent de `package.json`.
+Jamais installé à la construction, introuvable au chargement du bundle ; et
+comme l'import était en tête de module, **le serveur entier refusait de
+démarrer**. `/api/health`, `/api/products`, le panier, tout était hors
+service pour un module de notification push.
+
+Le sondage a révélé le même défaut, latent, sur `jpeg-js` et `pngjs` :
+importés par `src/lib/photoPilot.ts`, atteint depuis
+`src/server/routes/beautyProfile.ts`, jamais déclarés. Ils ne fonctionnaient
+que par accident de hoisting — c'est-à-dire jusqu'au prochain changement
+d'arbre de dépendances.
+
+Localement, rien n'apparaissait : types vérifiés, bancs verts. Seule la
+production, dont l'installation part de `package.json`, trahissait le
+manque. **Règle à retenir : tout nouvel import doit être déclaré.** Le banc
+`kurla_dependances_declares` l'applique désormais aux 551 fichiers du projet
+et est chaîné dans `npm test` — il aurait vu les trois paquets manquants
+avant la mise en ligne.
+
+Corrigé : les trois paquets déclarés, `playwright` passé en dépendance de
+développement, et `pushDelivery.ts` qui charge `web-push` à la demande dans
+un `try/catch` — un service annexe ne doit pas pouvoir empêcher le serveur
+de démarrer. Production rétablie, mesuré : plus aucun 500.
+
+### Les silences ont maintenant une sonde
+
+`scripts/probe-production.mjs` interroge les endpoints publics d'une
+production et classe chaque réponse : erreur franche (5xx, réseau), silence
+(200 à vide **non expliqué**), vide expliqué, vide attendu, protégé.
+
+La règle qu'elle porte : **un endpoint qui peut légitimement être vide doit
+énoncer pourquoi.** `/api/professionals` le faisait déjà ;
+`/api/peau/gamme` et `/api/products/:id/trust` sont alignés. Un endpoint
+critique (`/api/products`, `/api/peau/gamme`, `/api/health`) reste une
+anomalie même vidé expliqué : énoncer le vide rend la panne lisible, cela
+ne doit pas la faire passer.
+
+Emploi : `KURLA_PROD_URL=https://… node scripts/probe-production.mjs`
+(code 1 si anomalie). Les bancs tournant en mémoire ne peuvent pas voir ces
+pannes ; seule une sonde contre la production le peut.
+
+Dernier passage (11/09/2026) : 5 ok · 1 silence critique (`/api/peau/gamme`,
+les 16 fiches en brouillon — voir ci-dessus) · 2 vides expliqués · 1 vide
+attendu · 0 erreur.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`
@@ -160,20 +211,24 @@ trois réglages (8 contrôles).
 | C-07 | un diagnostic peau ne recommande plus de produits cheveux | livré |
 | D-01 | comparateur : coût par utilisation, pas seulement le prix | livré |
 | — | suite de tests exécutable de bout en bout | livré |
+| — | panne de production : dépendances non déclarées | livré |
+| — | sonde anti-silences + banc « dépendances déclarées » | livré |
 
 ## Propositions pour la suite (robustesse)
 
-1. **Silences** — plusieurs endpoints répondent 200 avec un tableau vide
-   au lieu de signaler l'anomalie. Relevé deux fois sur `/api/peau/gamme` :
-   d'abord un filtre trop strict, aujourd'hui 16 fiches repassées en brouillon
-   (voir ci-dessus). Une sonde de production, activée à la demande par
-   `KURLA_PROD_URL`, détecterait ce que les bancs en mémoire ne voient pas.
-   Passer les endpoints publics au crible.
+1. **Silences** — outillé : `scripts/probe-production.mjs` classe les
+   réponses et exige qu'un vide soit énoncé. Reste à l'exécuter
+   régulièrement (un cron Vercel ferait l'affaire) et à étendre la liste
+   d'endpoints sondés. Le silence restant est un problème de données, pas
+   de code : les 16 fiches peau en brouillon.
 2. **Durée de la suite** — réglé : 1 min 52 au lieu de 25 min. Reste à
    décider si l'on veut une suite « rapide » pour la boucle courte.
 3. **Coordination** — un conflit sur `package.json` à chaque chantier,
    parce que les deux intervenants y ajoutent leurs bancs. Réserver le
    fichier à un seul intervenant, ou convenir d'un ordre.
+4. **Dépendances** — déclarer systématiquement ce que l'on importe. La
+   panne du 11/09/2026 vient de trois paquets utilisés sans être déclarés ;
+   le banc `kurla_dependances_declares` l'interdit désormais.
 
 ## Chantiers de l'intervenant A (domaine)
 
