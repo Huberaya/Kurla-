@@ -12,6 +12,7 @@ import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
+import { GrowthControlCenterPanel } from '../components/GrowthControlCenterPanel';
 import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
 import { PeauSourcingCahierPanel } from '../components/PeauSourcingCahierPanel';
@@ -79,7 +80,7 @@ export const AdminDashboardPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship'>('analytics');
   
   const [metrics, setMetrics] = useState<any>(null);
   // CAC : dépenses d'acquisition cumulées, saisies par l'admin (aucune valeur
@@ -522,7 +523,8 @@ export const AdminDashboardPage: React.FC = () => {
               id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard,
               tabs: [
                 { id: 'analytics', label: 'Tableau de bord commercial', icon: TrendingUp },
-                { id: 'strategy', label: 'Business Control Center', icon: Target },
+                { id: 'growth', label: '🚀 Growth Command Center', icon: Target },
+                { id: 'strategy', label: 'Business Control Center (référentiel)', icon: Target },
               ],
             },
             {
@@ -1287,6 +1289,10 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 1B: PILOTAGE CATALOGUE ET APPROVISIONNEMENT — chantier 15B */}
+        {activeTab === 'growth' && (
+          <GrowthControlCenterPanel headers={adminHeaders} />
+        )}
+
         {activeTab === 'strategy' && (
           <StrategyCockpitPanel headers={adminHeaders} />
         )}

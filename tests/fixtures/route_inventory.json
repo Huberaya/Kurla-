@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T17:43:34.452Z",
+  "generatedAt": "2026-09-11T18:02:10.745Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -34,6 +34,7 @@
     "GET /api/admin/dashboard",
     "GET /api/admin/double-sourcing",
     "GET /api/admin/email-health",
+    "GET /api/admin/growth/command-center",
     "GET /api/admin/launch/traction",
     "GET /api/admin/loyalty/redemptions",
     "GET /api/admin/loyalty/retention",
@@ -165,6 +166,9 @@
     "PATCH /api/admin/catalog/:productId/status",
     "PATCH /api/admin/catalog/products/:productId",
     "PATCH /api/admin/entities/:entity/:id",
+    "PATCH /api/admin/growth/campaigns/:id",
+    "PATCH /api/admin/growth/markets/:id",
+    "PATCH /api/admin/growth/tasks/:id",
     "PATCH /api/admin/products/:productId/supplier",
     "PATCH /api/admin/shipments/:orderId",
     "PATCH /api/admin/shipping/rates/:id",
@@ -192,6 +196,7 @@
     "POST /api/admin/content/articles",
     "POST /api/admin/creators/:id/review",
     "POST /api/admin/entities/:entity",
+    "POST /api/admin/growth/tasks",
     "POST /api/admin/launch/interviews",
     "POST /api/admin/launch/nps",
     "POST /api/admin/launch/partners",

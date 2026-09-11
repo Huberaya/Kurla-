@@ -113,6 +113,7 @@ import { registerEditorialComplianceRoutes } from './src/server/routes/editorial
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
 import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
 import { registerStrategyRoutes } from './src/server/routes/strategy';
+import { registerGrowthControlRoutes } from './src/server/routes/growthControl';
 import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
@@ -1535,6 +1536,7 @@ registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
 registerIngredientNavRoutes(app);
 registerStrategyRoutes(app);
+registerGrowthControlRoutes(app);
 registerLaunchTractionRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);

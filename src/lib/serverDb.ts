@@ -94,6 +94,7 @@ import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
 import * as pushSubscriptionStore from './db/pushSubscriptionStore';
 import * as photoAnalysisStore from './db/photoAnalysisStore';
+import * as growthStore from './db/growthStore';
 import * as supportStore from './db/supportStore';
 import * as adaptiveRoutineStore from './db/adaptiveRoutineStore';
 import * as aiSessionStore from './db/aiSessionStore';
@@ -201,6 +202,9 @@ export class SupabaseServerStore {
   public inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
   public inMemoryBeautyProfilePhotoBytes: Map<string, Uint8Array> = new Map();
   public inMemoryPhotoAiAnalyses: import('./db/types').PhotoAiAnalysisRecord[] = [];
+  public inMemoryGrowthTasks: import('./growthControl').GrowthTask[] = [];
+  public inMemoryGrowthCampaigns: import('./growthControl').GrowthCampaign[] = [];
+  public inMemoryGrowthMarkets: import('./growthControl').GrowthMarket[] = [];
   public inMemorySkinJournal: Map<string, SkinJournalEntry[]> = new Map();
   public inMemorySkinObservance: Map<string, SkinObservanceDay[]> = new Map();
   public inMemoryFamilySpaces: Map<string, any> = new Map();
@@ -444,6 +448,7 @@ const storeInstance = new SupabaseServerStore();
 bindDomain(storeInstance, notificationsStore);
 bindDomain(storeInstance, pushSubscriptionStore);
 bindDomain(storeInstance, photoAnalysisStore);
+bindDomain(storeInstance, growthStore);
 bindDomain(storeInstance, beautyProfileStore);
 bindDomain(storeInstance, familyStore);
 bindDomain(storeInstance, supportStore);
@@ -527,6 +532,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
   & Curried<typeof pushSubscriptionStore>
   & Curried<typeof photoAnalysisStore>
+  & Curried<typeof growthStore>
   & Curried<typeof beautyProfileStore>
   & Curried<typeof skinJournalStore>
   & Curried<typeof familyStore>
