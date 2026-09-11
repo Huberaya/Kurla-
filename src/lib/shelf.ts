@@ -93,6 +93,11 @@ export interface ShelfItem {
   category?: string;
   routineStep?: RoutineStep;
   ingredientIds: string[];
+  /** Libellés INCI déclarés par la source du produit, jamais une preuve réglementaire. */
+  inciNames?: string[];
+  inciSource?: 'none' | 'open_beauty_facts' | 'catalog' | 'manual';
+  /** Nombre de libellés non rattachés au graphe : > 0 = compatibilité incomplète. */
+  inciUnresolvedCount?: number;
   openedAt?: string;
   finishedAt?: string;
   estimatedRemainingPercent?: number | null;

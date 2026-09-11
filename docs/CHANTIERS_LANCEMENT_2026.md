@@ -54,7 +54,7 @@
 ## CHANTIER 3 — ALLUMER LA BOUCLE DE DONNÉES (le MOAT)  (S3-S7)
 **Objectif : que le moteur apprenne de vrais utilisateurs.**
 
-- [ ] **Scan code-barres du Shelf** (BarcodeDetector + API Open Beauty Facts) + onboarding « photographie ton étagère ».
+- [x] **Scan code-barres du Shelf** + API Open Beauty Facts, rattachement INCI prudent au graphe et avertissement de compatibilité partielle.
 - [ ] Déclencheurs de la boucle : notification **feedback J+14** (« ça fait 2 semaines, résultat ? »), rappels **wash-day** et **âge de coiffure protectrice**.
 - [ ] Réassort prédictif branché sur les notifications (les tables existent déjà).
 - [ ] **Eval set de 50 cas experts** (profil × produits attendus) pour mesurer la qualité des recommandations avant exposition.

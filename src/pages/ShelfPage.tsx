@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { lookupProductByBarcode, normalizeBarcode, type BarcodeProduct } from '../lib/barcodeLookup';
 import { useAuth } from '../context/AuthContext';
@@ -89,8 +89,11 @@ export const ShelfPage: React.FC = () => {
   // Scan / saisie de code-barres (Open Beauty Facts)
   const [barcodeInput, setBarcodeInput] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [cameraScanning, setCameraScanning] = useState(false);
   const [scanNote, setScanNote] = useState('');
   const [scannedProduct, setScannedProduct] = useState<BarcodeProduct | null>(null);
+  const cameraRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   // C4.1 — filtre étagère peau vs cheveux (?cat=peau)
   const [shelfCat, setShelfCat] = useState<'tous' | 'peau' | 'cheveux'>('tous');
@@ -141,9 +144,57 @@ export const ShelfPage: React.FC = () => {
   const skinItems = useMemo(() => items.filter(isSkinShelfItem), [items]);
   const restockAlerts = useMemo(() => skinItems.filter(isRestockAlert), [skinItems]);
 
-  const handleScan = async (event?: React.FormEvent) => {
+  const stopCameraScan = useCallback(() => {
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    if (cameraRef.current) cameraRef.current.srcObject = null;
+    setCameraScanning(false);
+  }, []);
+
+  const startCameraScan = useCallback(async () => {
+    const BarcodeDetectorCtor = (window as unknown as { BarcodeDetector?: new (options?: { formats?: string[] }) => { detect(video: HTMLVideoElement): Promise<Array<{ rawValue?: string }>> } }).BarcodeDetector;
+    if (!BarcodeDetectorCtor || !navigator.mediaDevices?.getUserMedia) {
+      setScanNote('La caméra n’est pas disponible ici. Saisis le code-barres manuellement.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      cameraStreamRef.current = stream;
+      if (!cameraRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      cameraRef.current.srcObject = stream;
+      await cameraRef.current.play();
+      setCameraScanning(true);
+      const detector = new BarcodeDetectorCtor({ formats: ['ean_8', 'ean_13', 'upc_a', 'upc_e'] });
+      const loop = async () => {
+        if (!cameraStreamRef.current || !cameraRef.current) return;
+        try {
+          const detections = await detector.detect(cameraRef.current);
+          const rawValue = detections.find(item => typeof item.rawValue === 'string')?.rawValue;
+          if (rawValue) {
+            const normalized = normalizeBarcode(rawValue) || rawValue;
+            setBarcodeInput(normalized);
+            stopCameraScan();
+            await handleScan(undefined, normalized);
+            return;
+          }
+        } catch { /* la caméra reste disponible pour une nouvelle détection */ }
+        if (cameraStreamRef.current) window.requestAnimationFrame(() => { void loop(); });
+      };
+      void loop();
+    } catch {
+      stopCameraScan();
+      setScanNote('Accès caméra refusé ou indisponible. Saisis le code-barres manuellement.');
+    }
+  }, [stopCameraScan]);
+
+  useEffect(() => () => stopCameraScan(), [stopCameraScan]);
+
+  const handleScan = async (event?: React.FormEvent, rawBarcode?: string) => {
     event?.preventDefault();
-    const code = normalizeBarcode(barcodeInput);
+    const code = normalizeBarcode(rawBarcode || barcodeInput);
     if (!code) {
       setScanNote('Code-barres invalide (8 à 14 chiffres). Vérifie le numéro sous le code.');
       return;
@@ -186,6 +237,10 @@ export const ShelfPage: React.FC = () => {
         status,
         openedAt: status === 'in_use' && openedAt ? new Date(`${openedAt}T12:00:00`).toISOString() : undefined,
         barcode: normalizeBarcode(barcodeInput) || undefined,
+        // La source OBF reste déclarative : le serveur ne conserve comme IDs
+        // d’analyse que les INCI effectivement rattachés à son graphe.
+        inciNames: scannedProduct?.ingredientTags?.length ? scannedProduct.ingredientTags : scannedProduct?.ingredients?.length ? scannedProduct.ingredients : undefined,
+        inciSource: scannedProduct ? 'open_beauty_facts' : undefined,
         estimatedRemainingPercent: remaining === '' ? undefined : Number(remaining),
         // Le motif est obligatoire pour un abandon : c'est la seule partie
         // exploitable. Le formulaire le bloque avant l'envoi.
@@ -431,6 +486,11 @@ export const ShelfPage: React.FC = () => {
                 Non évalué{verdict.conflicts.unanalysed.length > 1 ? 's' : ''} — composition non rattachée : {verdict.conflicts.unanalysed.map(u => u.label).join(', ')}.
               </p>
             )}
+            {verdict.conflicts.partiallyAnalysed.length > 0 && (
+              <p className="text-[11px] text-amber-800 mt-2 leading-relaxed">
+                Analyse partielle — certains INCI restent non rattachés au graphe : {verdict.conflicts.partiallyAnalysed.map(u => u.label).join(', ')}. L’absence d’alerte ne signifie pas absence de risque.
+              </p>
+            )}
           </section>
         )}
 
@@ -459,7 +519,15 @@ export const ShelfPage: React.FC = () => {
                 {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                 Reconnaître
               </button>
+              <button type="button" onClick={cameraScanning ? stopCameraScan : startCameraScan}
+                className="px-3 py-2.5 rounded-xl border border-[#E8E1DA] text-xs font-semibold whitespace-nowrap">
+                {cameraScanning ? 'Fermer caméra' : 'Scanner caméra'}
+              </button>
             </form>
+            {cameraScanning && <div className="mt-3 relative overflow-hidden rounded-2xl bg-black aspect-video max-w-sm">
+              <video ref={cameraRef} muted playsInline className="w-full h-full object-cover" aria-label="Viseur du scanner code-barres" />
+              <p className="absolute bottom-2 left-2 right-2 rounded-lg bg-black/60 px-2 py-1 text-[10px] text-white">Place le code-barres dans le cadre.</p>
+            </div>}
             {scanNote && (
               <p className={`mt-2 text-[11px] flex items-start gap-1.5 ${scannedProduct ? 'text-emerald-700' : 'text-[#8b4b24]'}`}>
                 {scannedProduct ? <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
@@ -549,6 +617,11 @@ export const ShelfPage: React.FC = () => {
                             )}
                             {alertRestock && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">J-7 réassort</span>}
                           </p>
+                          {item.inciSource === 'open_beauty_facts' && (
+                            <p className="text-[10px] text-[#111111]/50 mt-1">
+                              INCI Open Beauty Facts · {item.inciUnresolvedCount && item.inciUnresolvedCount > 0 ? `${item.inciUnresolvedCount} non rattaché(s)` : 'rattaché au graphe'}
+                            </p>
+                          )}
                           <p className="text-[11px] text-[#111111]/55">
                             {STATUS_LABELS[item.status]}
                             {item.estimatedRemainingPercent !== null && item.estimatedRemainingPercent !== undefined && ` · ${item.estimatedRemainingPercent} % restant`}

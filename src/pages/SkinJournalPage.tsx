@@ -4,16 +4,20 @@ import { UNKNOWN, SKIN_CONCERN_OPTIONS } from '../lib/beautyProfile';
 import type { BeautyProfile } from '../lib/beautyProfile';
 import { createEmptyBeautyProfile } from '../lib/beautyProfile';
 import { useAuth } from '../context/AuthContext';
-import { loadObservance, toggleToday, getStreak, getWeekHistory, localISODate } from '../lib/skinObservance';
+import { loadObservance, saveObservance, toggleToday, getStreak, getWeekHistory, localISODate } from '../lib/skinObservance';
 import { queryBeautyAssistant } from '../lib/ai/assistant';
 
 type JournalEntry = {
+  id?: string;
   date: string; // YYYY-MM-DD
   feeling: string; // confortable/mitige/inconfort + mapping to 1-5
   feelingScore: number; // 1-5
   concerns: string[];
   notes?: string;
-  photoDataUrl?: string; // base64 <2Mo
+  /** Legacy anonymous preview only; authenticated photos use private storage. */
+  photoDataUrl?: string;
+  photoId?: string;
+  photoUrl?: string;
   milestone?: string; // J+0 / J+7 / J+30 / hebdo
   createdAt: string;
 };
@@ -55,6 +59,32 @@ function suggestMilestone(entries: JournalEntry[]): string {
   return 'J+30';
 }
 
+async function hydratePhotoUrls(entries: JournalEntry[], token: string): Promise<JournalEntry[]> {
+  return Promise.all(entries.map(async entry => {
+    if (!entry.photoId) return entry;
+    try {
+      const response = await fetch(`/api/beauty-profile/photos/${encodeURIComponent(entry.photoId)}/url`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json().catch(() => ({}));
+      return response.ok && typeof data.url === 'string' ? { ...entry, photoUrl: data.url } : entry;
+    } catch { return entry; }
+  }));
+}
+
+function remoteJournalEntry(row: any): JournalEntry {
+  const score = Number(row.feelingScore ?? row.feeling_score ?? 3);
+  return {
+    id: row.id,
+    date: row.date ?? row.entry_date,
+    feeling: FEELINGS.find(item => item.score === score)?.label.toLowerCase() || 'mitige',
+    feelingScore: score,
+    concerns: Array.isArray(row.concerns) ? row.concerns : [UNKNOWN],
+    notes: row.notes || undefined,
+    milestone: row.milestone || undefined,
+    photoId: row.photoId ?? row.photo_id ?? undefined,
+    createdAt: row.createdAt ?? row.created_at,
+  };
+}
+
 export const SkinJournalPage: React.FC = () => {
   const { session } = useAuth();
   const token = session?.access_token;
@@ -72,6 +102,7 @@ export const SkinJournalPage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [milestone, setMilestone] = useState(() => suggestMilestone([]));
   const [photoDataUrl, setPhotoDataUrl] = useState<string | undefined>(undefined);
+  const [photoFile, setPhotoFile] = useState<File | undefined>(undefined);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [photoError, setPhotoError] = useState('');
   // C11 — Synthèse IA journal (sans diagnostic médical, cosmétique chiffrée)
@@ -96,38 +127,79 @@ export const SkinJournalPage: React.FC = () => {
     try {
       const next = toggleToday(moment);
       setObservance(next);
-      const done = next[todayStr]?.[moment];
+      const current = next[todayStr] || { matin: false, soir: false };
+      if (token) {
+        void fetch(`/api/skin/observance/${todayStr}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(current)
+        }).then(async response => {
+          if (!response.ok) throw new Error('Observance distante indisponible.');
+        }).catch(() => setObservanceMsg('Observance locale conservée ; synchronisation indisponible.'));
+      }
+      const done = current[moment];
       setObservanceMsg(done ? `${moment === 'matin' ? 'Matin' : 'Soir'} coché — streak ${moment === 'matin' ? getStreak('matin') : getStreak('soir')}j` : `${moment === 'matin' ? 'Matin' : 'Soir'} décoché`);
       setTimeout(() => setObservanceMsg(''), 2500);
     } catch { /* ignore */ }
   };
 
   useEffect(() => {
-    const loaded = loadJournal();
-    setEntries(loaded);
-    setMilestone(suggestMilestone(loaded));
-    // Try to hydrate from beauty profile if logged
-    if (token) {
-      fetch('/api/beauty-profile', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json().catch(() => ({})))
-        .then(data => { if (data.profile) setProfile(data.profile as BeautyProfile); })
-        .catch(() => {});
-    } else {
-      try {
-        const raw = localStorage.getItem('kurla_skin_answers');
-        if (raw) {
-          const a = JSON.parse(raw);
-          const empty = createEmptyBeautyProfile();
-          setProfile({
-            ...empty,
-            skin: { ...empty.skin, skinType: a.skinType || UNKNOWN, toneDepth: a.toneDepth || UNKNOWN, journal: loaded as any },
-          } as any);
-        }
-      } catch { /* ignore */ }
-    }
-    // consent
-    try { if (localStorage.getItem(CONSENT_KEY) === 'true') setPhotoConsent(true); } catch {}
-    setLoading(false);
+    let cancelled = false;
+    const load = async () => {
+      // Les données authentifiées viennent du serveur ; ne mélangeons jamais
+      // le localStorage anonyme avec le compte courant.
+      const localEntries = token ? [] : loadJournal();
+      let loaded = localEntries;
+      if (token) {
+        try {
+          const [journalResponse, profileResponse, observanceResponse] = await Promise.all([
+            fetch('/api/skin/journal', { headers: { Authorization: `Bearer ${token}` } }),
+            fetch('/api/beauty-profile', { headers: { Authorization: `Bearer ${token}` } }),
+            fetch('/api/skin/observance', { headers: { Authorization: `Bearer ${token}` } })
+          ]);
+          if (journalResponse.ok) {
+            const data = await journalResponse.json().catch(() => ({}));
+            loaded = await hydratePhotoUrls(Array.isArray(data.entries) ? data.entries.map(remoteJournalEntry) : [], token);
+          }
+          const profileData = await profileResponse.json().catch(() => ({}));
+          if (profileData.profile && !cancelled) {
+            setProfile(profileData.profile as BeautyProfile);
+            setPhotoConsent(profileData.profile.photoConsent === true);
+          }
+          if (observanceResponse.ok) {
+            const data = await observanceResponse.json().catch(() => ({}));
+            const remoteMap = (Array.isArray(data.days) ? data.days : []).reduce((map: ReturnType<typeof loadObservance>, day: any) => {
+              map[day.day] = { matin: day.matin === true, soir: day.soir === true };
+              return map;
+            }, {});
+            // Une réponse serveur vide est l’état réel du compte : elle doit
+            // effacer un éventuel reliquat local d’un autre profil.
+            saveObservance(remoteMap);
+            if (!cancelled) setObservance(remoteMap);
+          }
+        } catch { /* Le repli local reste visible si le serveur est indisponible. */ }
+      } else {
+        try {
+          const raw = localStorage.getItem('kurla_skin_answers');
+          if (raw) {
+            const a = JSON.parse(raw);
+            const empty = createEmptyBeautyProfile();
+            setProfile({
+              ...empty,
+              skin: { ...empty.skin, skinType: a.skinType || UNKNOWN, toneDepth: a.toneDepth || UNKNOWN, journal: loaded as any },
+            } as any);
+          }
+        } catch { /* ignore */ }
+        try { if (localStorage.getItem(CONSENT_KEY) === 'true') setPhotoConsent(true); } catch {}
+      }
+      if (!cancelled) {
+        setEntries(loaded);
+        setMilestone(suggestMilestone(loaded));
+        setLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
   }, [token]);
 
   const toggleConcern = (id: string) => {
@@ -138,6 +210,7 @@ export const SkinJournalPage: React.FC = () => {
     setPhotoError('');
     const file = e.target.files?.[0];
     if (!file) return;
+    setPhotoFile(undefined);
     if (file.size > 2 * 1024 * 1024) {
       setPhotoError('Photo trop lourde : max 2 Mo. Compressez ou recadrez.');
       return;
@@ -155,6 +228,7 @@ export const SkinJournalPage: React.FC = () => {
         return;
       }
       setPhotoDataUrl(url);
+      setPhotoFile(file);
     };
     reader.readAsDataURL(file);
   };
@@ -174,68 +248,90 @@ export const SkinJournalPage: React.FC = () => {
     }
     if (!canSave) { setError('Vérifiez la date et le ressenti (1–5).'); return; }
     const feelingLabel = FEELINGS.find(f => f.score === feelingScore)?.label || 'mitige';
-    const entry: JournalEntry = {
+    const localEntry: JournalEntry = {
       date,
       feeling: feelingLabel.toLowerCase(),
       feelingScore,
       concerns: concerns.length ? concerns : [UNKNOWN],
       notes: notes.slice(0, 400).trim() || undefined,
-      photoDataUrl,
+      photoDataUrl: token ? undefined : photoDataUrl,
       milestone,
       createdAt: new Date().toISOString(),
     };
-    const next = [entry, ...entries].slice(0, 50);
     setSaving(true);
     try {
-      saveJournal(next);
-      // consent persist
-      try { localStorage.setItem(CONSENT_KEY, photoConsent ? 'true' : 'false'); } catch {}
-      // Sync to beautyProfile.skin.journal if possible
-      if (token) {
-        const nextProfile: BeautyProfile = { ...profile, skin: { ...profile.skin, journal: next as any }, photoConsent: photoConsent || profile.photoConsent } as any;
-        const res = await fetch('/api/beauty-profile', {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: nextProfile }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Enregistrement distant impossible — sauvegardé en local.');
-        setProfile(data.profile || nextProfile);
-        setMessage('Entrée enregistrée et synchronisée avec votre compte.');
-      } else {
+      if (!token) {
+        const next = [localEntry, ...entries].slice(0, 50);
+        saveJournal(next);
+        setEntries(next);
         setProfile(p => ({ ...p, skin: { ...p.skin, journal: next as any } } as any));
+        try { localStorage.setItem(CONSENT_KEY, photoConsent ? 'true' : 'false'); } catch {}
         setMessage('Entrée enregistrée localement. Connectez-vous pour la synchroniser.');
+      } else {
+        // Le fichier ne passe jamais dans le JSON du profil : il va dans le
+        // bucket privé encadré par le consentement et l’AIPD photo.
+        let photoId: string | undefined;
+        if (photoFile) {
+          const consentProfile = { ...profile, photoConsent: true } as BeautyProfile;
+          const consentResponse = await fetch('/api/beauty-profile', {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: consentProfile })
+          });
+          const consentData = await consentResponse.json().catch(() => ({}));
+          if (!consentResponse.ok) throw new Error(consentData.error || 'Consentement photo impossible à enregistrer.');
+          setProfile(consentData.profile || consentProfile);
+          const uploadResponse = await fetch('/api/beauty-profile/photos', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': photoFile.type, 'X-Photo-Consent': 'true' },
+            body: photoFile
+          });
+          const uploadData = await uploadResponse.json().catch(() => ({}));
+          if (!uploadResponse.ok || !uploadData.photo?.id) throw new Error(uploadData.error || 'Téléversement photo impossible.');
+          photoId = uploadData.photo.id;
+        }
+        const journalResponse = await fetch('/api/skin/journal', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: localEntry.date, feelingScore: localEntry.feelingScore, concerns: localEntry.concerns, notes: localEntry.notes, milestone: localEntry.milestone, photoId })
+        });
+        const journalData = await journalResponse.json().catch(() => ({}));
+        if (!journalResponse.ok) {
+          if (photoId) await fetch(`/api/beauty-profile/photos/${encodeURIComponent(photoId)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => undefined);
+          throw new Error(journalData.error || 'Enregistrement distant impossible.');
+        }
+        const created = remoteJournalEntry(journalData.entry);
+        const hydrated = await hydratePhotoUrls([created], token);
+        const next = [hydrated[0], ...entries].slice(0, 50);
+        setEntries(next);
+        saveJournal(next.map(item => ({ ...item, photoUrl: undefined })));
+        setMessage('Entrée enregistrée dans votre journal privé.');
       }
-      setEntries(next);
-      // reset form (keep date, reset photo)
-      setConcerns([]); setNotes(''); setPhotoDataUrl(undefined);
-      // suggest next milestone
-      setMilestone(suggestMilestone(next));
-      // clear file input
+      try { localStorage.setItem(CONSENT_KEY, photoConsent ? 'true' : 'false'); } catch {}
+      setConcerns([]); setNotes(''); setPhotoDataUrl(undefined); setPhotoFile(undefined);
+      setMilestone(suggestMilestone([...entries, localEntry]));
       const el = document.getElementById('skin-journal-photo') as HTMLInputElement | null;
       if (el) el.value = '';
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
-      // keep local save even if remote failed — already saved
-      setEntries(next);
     } finally { setSaving(false); }
   };
 
   const deleteEntry = async (idx: number) => {
     if (!window.confirm('Supprimer cette entrée du journal peau ?')) return;
+    const target = entries[idx];
+    if (token && target?.id) {
+      try {
+        const response = await fetch(`/api/skin/journal/${encodeURIComponent(target.id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) throw new Error('Suppression distante impossible.');
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Suppression impossible.');
+        return;
+      }
+    }
     const next = entries.filter((_, i) => i !== idx);
     saveJournal(next);
     setEntries(next);
-    if (token) {
-      try {
-        const nextProfile: BeautyProfile = { ...profile, skin: { ...profile.skin, journal: next as any } } as any;
-        await fetch('/api/beauty-profile', {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile: nextProfile }),
-        }).then(r => r.json().catch(() => ({}))).then(d => { if (d.profile) setProfile(d.profile); });
-      } catch { /* ignore */ }
-    }
     setMessage('Entrée supprimée.');
   };
 
@@ -473,9 +569,9 @@ export const SkinJournalPage: React.FC = () => {
                       <p className="text-[11px] text-[#111111]/40 mt-1">Saisi le {new Date(entry.createdAt).toLocaleString('fr-FR')}</p>
                     </div>
                     <div className="shrink-0 flex flex-col gap-2 items-center">
-                      {entry.photoDataUrl ? (
-                        <a href={entry.photoDataUrl} target="_blank" rel="noreferrer">
-                          <img src={entry.photoDataUrl} alt="Photo journal" className="w-16 h-16 rounded-xl object-cover border border-[#E8E1DA] hover:opacity-90" />
+                      {(entry.photoUrl || entry.photoDataUrl) ? (
+                        <a href={entry.photoUrl || entry.photoDataUrl} target="_blank" rel="noreferrer">
+                          <img src={entry.photoUrl || entry.photoDataUrl} alt="Photo journal" className="w-16 h-16 rounded-xl object-cover border border-[#E8E1DA] hover:opacity-90" />
                         </a>
                       ) : (
                         <div className="w-16 h-16 rounded-xl bg-white border border-dashed border-[#E8E1DA] flex items-center justify-center"><ImageIcon className="w-5 h-5 text-[#111111]/30" /></div>
@@ -496,7 +592,7 @@ export const SkinJournalPage: React.FC = () => {
 
         {/* C13 — Slider avant/après P2 + analyse teint (cosmétique, même lumière, visage neutre) */}
         {(() => {
-          const withPhoto = entries.filter(e => !!e.photoDataUrl);
+          const withPhoto = entries.filter(e => !!(e.photoUrl || e.photoDataUrl));
           if (withPhoto.length < 2) return (
             <section className="p-6 rounded-3xl bg-white border border-[#E8E1DA]">
               <h3 className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#C8753D]" /> Comparateur photo P2 — avant/après</h3>
@@ -526,8 +622,8 @@ export const SkinJournalPage: React.FC = () => {
                 <label className="text-xs font-semibold">Après <select value={idxB} onChange={e=>setCompareIdxB(parseInt(e.target.value))} className="ml-2 px-2 py-1 rounded-lg bg-[#F8F2EC] border border-[#E8E1DA] text-xs">{withPhoto.map((e,i)=><option key={e.createdAt+i} value={i}>{e.milestone||'—'} · {e.date} · {e.feelingScore}/5</option>)}</select></label>
               </div>
               <div className="relative w-full max-w-xl mx-auto aspect-[4/3] rounded-2xl overflow-hidden border border-[#E8E1DA] bg-[#F8F2EC] select-none">
-                <img src={b.photoDataUrl!} alt="Après" className="absolute inset-0 w-full h-full object-cover" />
-                <img src={a.photoDataUrl!} alt="Avant" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }} />
+                <img src={(b.photoUrl || b.photoDataUrl)!} alt="Après" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={(a.photoUrl || a.photoDataUrl)!} alt="Avant" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }} />
                 <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.4)] pointer-events-none" style={{ left: `${sliderPos}%` }} />
                 <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-[#111111]/80 text-white text-[10px] font-bold">{a.milestone||'Avant'} {a.date}</div>
                 <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-[#C8753D] text-white text-[10px] font-bold">{b.milestone||'Après'} {b.date}</div>

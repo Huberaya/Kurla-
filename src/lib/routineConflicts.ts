@@ -62,6 +62,8 @@ export interface ShelfConflictAnalysis {
   conflicts: ShelfConflict[];
   /** Produits sans ingrédient rattaché : leur sort est inconnu, on le dit. */
   unanalysed: ConflictProductRef[];
+  /** Produits partiellement rattachés : les conflits connus sont affichés, pas une absence de risque. */
+  partiallyAnalysed: ConflictProductRef[];
   analysedCount: number;
   /** Phrase de synthèse, y compris quand il n'y a rien à signaler. */
   message: string;
@@ -179,6 +181,9 @@ export function analyseShelfConflicts(
   const unanalysed = carriers
     .filter(carrier => carrier.ingredientIds.length === 0)
     .map(carrier => ({ itemId: carrier.id, label: carrier.label, routineStep: carrier.routineStep }));
+  const partiallyAnalysed = all
+    .filter(item => isApplied(item) && item.ingredientIds.length > 0 && item.inciUnresolvedCount > 0)
+    .map(item => ({ itemId: item.id, label: labelForCarrier(item, options.displayNames), routineStep: item.routineStep }));
 
   const conflicts: ShelfConflict[] = [];
 
@@ -202,8 +207,9 @@ export function analyseShelfConflicts(
   return {
     conflicts,
     unanalysed,
+    partiallyAnalysed,
     analysedCount: analysable.length,
-    message: summaryMessage(conflicts, analysable.length, unanalysed.length)
+    message: summaryMessage(conflicts, analysable.length, unanalysed.length + partiallyAnalysed.length)
   };
 }
 
@@ -227,7 +233,7 @@ function summaryMessage(conflicts: ShelfConflict[], analysed: number, unanalysed
     ? `Aucun conflit détecté entre les ${analysed} produit(s) dont la composition est connue.`
     : `${conflicts.length} conflit(s) d'actifs détecté(s) entre les produits que vous appliquez.`;
   const tail = unanalysed > 0
-    ? ` ${unanalysed} produit(s) sans composition rattachée n’ont pas pu être évalués.`
+    ? ` ${unanalysed} produit(s) — composition non rattachée ou incomplète — n’ont pas pu être évalués ni déclarés sans risque.`
     : '';
   return head + tail;
 }

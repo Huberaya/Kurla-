@@ -9,6 +9,7 @@ import { getShippingAddresses } from './shippingStore';
 import { getNotifications, getNotificationPreferences } from './notificationsStore';
 import { deleteAdaptiveRoutineData } from './adaptiveRoutineStore';
 import { deleteAiSessions } from './aiSessionStore';
+import { getSkinJournalEntries, getSkinObservance } from './skinJournalStore';
 
 import type { SupabaseServerStore } from '../serverDb';
 
@@ -44,6 +45,8 @@ export const PERSONAL_TABLES: Array<[string, string]> = [
   ['beauty_profiles', 'user_id'],
   ['beauty_profile_history', 'user_id'],
   ['beauty_profile_photos', 'user_id'],
+  ['skin_journal_entries', 'user_id'],
+  ['skin_observance_days', 'user_id'],
   ['family_members', 'space_id'],
   ['routine_tasks', 'plan_id'],
   ['routine_plans', 'user_id'],
@@ -117,11 +120,13 @@ export interface UserDataExport {
 export async function exportUserData(store: SupabaseServerStore, userId: string): Promise<UserDataExport> {
   const supabase = getSupabaseServerClient();
   const exportErrors: string[] = [];
-  const [profile, history, photos, shelf, outcomes, protective, washDay, loyalty, familyMembers, tickets] =
+  const [profile, history, photos, skinJournal, skinObservance, shelf, outcomes, protective, washDay, loyalty, familyMembers, tickets] =
     await Promise.all([
       getBeautyProfile(store, userId).catch(() => undefined),
       getBeautyProfileHistory(store, userId).catch(() => []),
       getBeautyProfilePhotos(store, userId).catch(() => []),
+      getSkinJournalEntries(store, userId).catch(() => []),
+      getSkinObservance(store, userId).catch(() => []),
       intelligenceStore.getShelf(userId).catch(() => []),
       intelligenceStore.getOutcomes(userId).catch(() => []),
       intelligenceStore.getProtectiveStyles(userId).catch(() => []),
@@ -148,7 +153,9 @@ export async function exportUserData(store: SupabaseServerStore, userId: string)
       // Les photos ne sont pas incluses en clair dans l'export JSON : on donne
       // leur métadonnée. Le membre qui veut le fichier peut le demander ; un
       // export JSON ne doit pas embarquer de binaire.
-      beautyProfilePhotos: (photos ?? []).map(photo => ({ id: photo.id, mimeType: photo.mimeType, consentAt: photo.consentAt, uploadedAt: photo.uploadedAt })),
+      beautyProfilePhotos: (photos ?? []).map(photo => ({ id: photo.id, mimeType: photo.mimeType, consentAt: photo.consentAt, uploadedAt: photo.createdAt })),
+      skinJournal,
+      skinObservance,
       shelf,
       outcomeObservations: outcomes,
       protectiveStyles: protective,
@@ -223,6 +230,8 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   store.inMemoryBeautyProfiles.delete(userId);
   store.inMemoryBeautyProfileHistory.delete(userId);
   store.inMemoryBeautyProfilePhotos.delete(userId);
+  store.inMemorySkinJournal.delete(userId);
+  store.inMemorySkinObservance.delete(userId);
   store.inMemoryFamilyMembers.delete(userId);
   store.inMemoryFamilyPlans.delete(userId);
   store.inMemoryFamilySpaces.delete(userId);

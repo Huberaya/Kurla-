@@ -118,8 +118,10 @@ import * as loyaltyStore from './db/loyaltyStore';
 import * as journeyStore from './db/journeyStore';
 import * as membershipStore from './db/membershipStore';
 import * as textureGapStore from './db/textureGapStore';
+import * as skinJournalStore from './db/skinJournalStore';
 import { mapRefundRow } from './db/refundSupport';
 import type { MembershipEventRecord } from './db/membershipStore';
+import type { SkinJournalEntry, SkinObservanceDay } from './db/skinJournalStore';
 import type { MembershipRecord } from './membership';
 
 
@@ -194,6 +196,8 @@ export class SupabaseServerStore {
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
   public inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
+  public inMemorySkinJournal: Map<string, SkinJournalEntry[]> = new Map();
+  public inMemorySkinObservance: Map<string, SkinObservanceDay[]> = new Map();
   public inMemoryFamilySpaces: Map<string, any> = new Map();
   public inMemoryFamilyMembers: Map<string, any> = new Map();
   public inMemoryFamilyPlans: Map<string, any> = new Map();
@@ -277,7 +281,15 @@ export class SupabaseServerStore {
   public applyLoyaltyEvent!: Curried<typeof loyaltyStore>['applyLoyaltyEvent'];
   public getAdaptiveRoutineState!: Curried<typeof adaptiveRoutineStore>['getAdaptiveRoutineState'];
   public getBeautyProfilePhotos!: Curried<typeof beautyProfileStore>['getBeautyProfilePhotos'];
+  public getBeautyProfilePhoto!: Curried<typeof beautyProfileStore>['getBeautyProfilePhoto'];
+  public deleteBeautyProfilePhoto!: Curried<typeof beautyProfileStore>['deleteBeautyProfilePhoto'];
   public getBeautyProfileHistory!: Curried<typeof beautyProfileStore>['getBeautyProfileHistory'];
+  public getSkinJournalEntries!: Curried<typeof skinJournalStore>['getSkinJournalEntries'];
+  public createSkinJournalEntry!: Curried<typeof skinJournalStore>['createSkinJournalEntry'];
+  public deleteSkinJournalEntry!: Curried<typeof skinJournalStore>['deleteSkinJournalEntry'];
+  public getSkinObservance!: Curried<typeof skinJournalStore>['getSkinObservance'];
+  public setSkinObservance!: Curried<typeof skinJournalStore>['setSkinObservance'];
+  public deleteSkinJournalData!: Curried<typeof skinJournalStore>['deleteSkinJournalData'];
   public getLoyaltyEvents!: Curried<typeof loyaltyStore>['getLoyaltyEvents'];
   public getLoyaltyAccount!: Curried<typeof loyaltyStore>['getLoyaltyAccount'];
 
@@ -497,6 +509,7 @@ bindDomain(storeInstance, loyaltyStore);
 bindDomain(storeInstance, journeyStore);
 bindDomain(storeInstance, membershipStore);
 bindDomain(storeInstance, textureGapStore);
+bindDomain(storeInstance, skinJournalStore);
 bindDomain(storeInstance, ingredientLinkStore);
 bindDomain(storeInstance, taxonomyStore);
 bindDomain(storeInstance, communityStore);
@@ -506,6 +519,7 @@ bindDomain(storeInstance, brandInvoiceStore);
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
   & Curried<typeof beautyProfileStore>
+  & Curried<typeof skinJournalStore>
   & Curried<typeof familyStore>
   & Curried<typeof supportStore>
   & Curried<typeof adaptiveRoutineStore>

@@ -3,7 +3,7 @@ import type { Express } from 'express';
 import express from 'express';
 
 import { calculateKurlaFit } from '../../lib/kurlaFit';
-import { isSupabaseServerConfigured } from '../../lib/supabaseClient';
+import { getSupabaseServerClient, isSupabaseServerConfigured } from '../../lib/supabaseClient';
 import {
   BeautyProfilePhoto,
   calculateProfileConfidence,
@@ -128,6 +128,30 @@ export function registerBeautyProfileRoutes(app: Express): void {
     } catch (err) {
       console.error('[BeautyProfile] photo upload error:', err);
       res.status(500).json({ error: safeApiError(err, 'Impossible de stocker cette photo.') });
+    }
+  }));
+
+  app.get('/api/beauty-profile/photos/:photoId/url', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const photo = await serverDb.getBeautyProfilePhoto(user.id, String(req.params.photoId));
+    if (!photo) return res.status(404).json({ error: 'Photo introuvable ou non autorisée.' });
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return res.status(503).json({ error: 'Photo distante indisponible en mode mémoire.' });
+    const { data, error } = await supabase.storage.from('beauty-profile-photos').createSignedUrl(photo.storagePath, 3600);
+    if (error || !data?.signedUrl) return res.status(503).json({ error: 'URL temporaire de photo indisponible.' });
+    res.json({ url: data.signedUrl, expiresInSeconds: 3600 });
+  }));
+
+  app.delete('/api/beauty-profile/photos/:photoId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    try {
+      await serverDb.deleteBeautyProfilePhoto(user.id, String(req.params.photoId));
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[BeautyProfile] single photo deletion error:', err);
+      res.status(500).json({ error: safeApiError(err, 'Impossible de supprimer cette photo.') });
     }
   }));
 

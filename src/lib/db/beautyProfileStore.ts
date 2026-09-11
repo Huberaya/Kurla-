@@ -94,6 +94,36 @@ export async function getBeautyProfileHistory(store: SupabaseServerStore, userId
     return [...(store.inMemoryBeautyProfileHistory.get(userId) || [])];
   }
 
+export async function getBeautyProfilePhoto(store: SupabaseServerStore, userId: string, photoId: string): Promise<BeautyProfilePhoto | undefined> {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('beauty_profile_photos').select('*').eq('id', photoId).eq('user_id', userId).maybeSingle();
+      ensureDatabaseSuccess('lecture de la photo du profil beauté', error);
+      return data ? {
+        id: data.id,
+        storagePath: data.storage_path,
+        mimeType: data.mime_type,
+        sizeBytes: Number(data.size_bytes),
+        consentAt: data.consent_at,
+        createdAt: data.created_at
+      } : undefined;
+    }
+    return (store.inMemoryBeautyProfilePhotos.get(userId) || []).find(photo => photo.id === photoId);
+  }
+
+export async function deleteBeautyProfilePhoto(store: SupabaseServerStore, userId: string, photoId: string): Promise<void> {
+    const photo = await getBeautyProfilePhoto(store, userId, photoId);
+    if (!photo) return;
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { error: storageError } = await supabase.storage.from('beauty-profile-photos').remove([photo.storagePath]);
+      ensureDatabaseSuccess('suppression du fichier photo du journal', storageError);
+      const { error } = await supabase.from('beauty_profile_photos').delete().eq('id', photoId).eq('user_id', userId);
+      ensureDatabaseSuccess('suppression de la photo du journal', error);
+    }
+    store.inMemoryBeautyProfilePhotos.set(userId, (store.inMemoryBeautyProfilePhotos.get(userId) || []).filter(item => item.id !== photoId));
+  }
+
 export async function getBeautyProfilePhotos(store: SupabaseServerStore, userId: string): Promise<BeautyProfilePhoto[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -169,6 +199,10 @@ export async function deleteBeautyProfile(store: SupabaseServerStore, userId: st
     const supabase = getSupabaseServerClient();
     if (supabase) {
       await deleteBeautyProfilePhotos(store, userId);
+      const { error: journalError } = await supabase.from('skin_journal_entries').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression du journal peau', journalError);
+      const { error: observanceError } = await supabase.from('skin_observance_days').delete().eq('user_id', userId);
+      ensureDatabaseSuccess('suppression de l’observance peau', observanceError);
       const { error: historyError } = await supabase.from('beauty_profile_history').delete().eq('user_id', userId);
       ensureDatabaseSuccess('suppression de l’historique du profil beauté', historyError);
       const { error } = await supabase.from('beauty_profiles').delete().eq('user_id', userId);
@@ -177,6 +211,8 @@ export async function deleteBeautyProfile(store: SupabaseServerStore, userId: st
     store.inMemoryBeautyProfiles.delete(userId);
     store.inMemoryBeautyProfileHistory.delete(userId);
     store.inMemoryBeautyProfilePhotos.delete(userId);
+    store.inMemorySkinJournal.delete(userId);
+    store.inMemorySkinObservance.delete(userId);
   }
 
   // ============================================================

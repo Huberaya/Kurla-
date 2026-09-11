@@ -97,6 +97,7 @@ import { registerOperationsCockpitRoutes } from './src/server/routes/operationsC
 import { registerBatchRoutes } from './src/server/routes/batches';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
 import { registerBeautyProfileRoutes } from './src/server/routes/beautyProfile';
+import { registerSkinJournalRoutes } from './src/server/routes/skinJournal';
 import { registerLoyaltyRoutes } from './src/server/routes/loyalty';
 import { registerReferralRoutes } from './src/server/routes/referral';
 import { grantReferralReward } from './src/lib/referralRewards';
@@ -1521,6 +1522,7 @@ registerBatchRoutes(app);
 registerAiAssistantRoutes(app);
 registerAdaptiveRoutineRoutes(app);
 registerBeautyProfileRoutes(app);
+registerSkinJournalRoutes(app);
 registerLoyaltyRoutes(app);
 registerBeautyJourneyRoutes(app);
 registerMembershipRoutes(app);

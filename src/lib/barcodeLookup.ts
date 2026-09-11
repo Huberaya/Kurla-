@@ -29,6 +29,8 @@ export interface BarcodeProduct {
   label: string;
   /** Liste INCI brute, séparée en ingrédients, nettoyée mais non normalisée. */
   ingredients: string[];
+  /** Tags INCI OBF utilisés pour le rattachement au graphe, sans les inventer. */
+  ingredientTags: string[];
   /** Catégorie OBF brute (indicative). */
   categories?: string;
   /** Pays de vente déclarés. */
@@ -104,6 +106,9 @@ export async function lookupProductByBarcode(rawBarcode: string): Promise<Barcod
     const brand = firstNonEmpty(product.brands?.split?.(',')[0], product.brand_owner);
     const name = firstNonEmpty(product.product_name, product.generic_name);
     const ingredients = cleanIngredientList(product.ingredients_text, product.ingredients_tags);
+    const ingredientTags = Array.isArray(product.ingredients_tags)
+      ? product.ingredients_tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim().length > 1).slice(0, 200)
+      : [];
 
     // Sans nom ni marque, la fiche ne permet pas de créer un article lisible.
     if (!brand && !name) return null;
@@ -122,6 +127,7 @@ export async function lookupProductByBarcode(rawBarcode: string): Promise<Barcod
       name,
       label,
       ingredients,
+      ingredientTags,
       categories,
       countries,
       imageUrl: firstNonEmpty(product.image_front_url),

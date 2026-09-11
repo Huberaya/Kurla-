@@ -123,6 +123,9 @@ export interface ShelfItemInput {
   category?: string;
   routineStep?: string;
   barcode?: string;
+  inciNames?: string[];
+  inciSource?: 'none' | 'open_beauty_facts' | 'catalog' | 'manual';
+  inciUnresolvedCount?: number;
   openedAt?: string;
   finishedAt?: string;
   estimatedRemainingPercent?: number;

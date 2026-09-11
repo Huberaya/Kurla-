@@ -76,6 +76,7 @@ import {
 } from './protectiveStyle';
 import { BeautyProfile } from './beautyProfile';
 import { INGREDIENT_INCOMPATIBILITIES } from './ingredientIncompatibilities';
+import { canonicalInciKey, inciKeyFromTag } from './ingredientSources';
 
 export interface WashDayCyclePrefs {
   intervalDays: number;
@@ -103,6 +104,82 @@ function iso(value: unknown): string | undefined {
 // ---------------------------------------------------------------------------
 
 const SHELF_STATUSES: ShelfStatus[] = ['owned', 'in_use', 'paused', 'finished', 'abandoned'];
+type InciSource = NonNullable<ShelfItem['inciSource']>;
+
+// Quelques variantes d’étiquetage OBF vers l’identifiant canonique du graphe.
+// Une variante inconnue reste non résolue : elle ne peut jamais être traitée
+// comme une preuve d’absence de conflit.
+const INCI_ALIASES: Record<string, string> = {
+  'butyrospermum-parkii-butter': 'shea-butter',
+  'butyrospermum-parkii-shea-butter': 'shea-butter',
+  'zinc-oxide': 'zinc-oxide',
+  'titanium-dioxide': 'titanium-dioxide'
+};
+
+function inciSource(value: unknown): InciSource {
+  return value === 'open_beauty_facts' || value === 'catalog' || value === 'manual' ? value : 'none';
+}
+
+function cleanInciNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value
+    .filter((name): name is string => typeof name === 'string' && name.trim().length > 1)
+    .map(name => name.trim().slice(0, 160)))).slice(0, 200);
+}
+
+async function resolveShelfIngredients(
+  ingredientNames: string[],
+  candidateIds: string[],
+  suppliedUnresolved: number,
+  source: InciSource
+): Promise<{ ingredientIds: string[]; inciNames: string[]; inciUnresolvedCount: number; inciSource: InciSource }> {
+  const names = cleanInciNames(ingredientNames);
+  const candidates = Array.from(new Set(candidateIds.filter(Boolean).map(id => canonicalInciKey(inciKeyFromTag(id))))).slice(0, 100);
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    // Le mode mémoire ne possède pas le référentiel complet : les libellés
+    // scannés restent donc non résolus, jamais transformés en IDs de preuve.
+    const ids = Array.from(new Set(candidateIds)).slice(0, 100);
+    return { ingredientIds: ids, inciNames: names, inciUnresolvedCount: Math.max(suppliedUnresolved, names.length > 0 ? names.length : 0), inciSource: source };
+  }
+
+  const { data, error } = await supabase.from('ingredients').select('id,inci_name_normalized,common_names');
+  ensureSuccess('résolution de la liste INCI', error);
+  const rows = data || [];
+  const byKey = new Map<string, string>();
+  for (const row of rows as any[]) {
+    const id = typeof row.id === 'string' ? row.id : '';
+    if (!id) continue;
+    byKey.set(canonicalInciKey(inciKeyFromTag(id)), id);
+    if (typeof row.inci_name_normalized === 'string') byKey.set(canonicalInciKey(inciKeyFromTag(row.inci_name_normalized)), id);
+    if (Array.isArray(row.common_names)) {
+      for (const common of row.common_names) if (typeof common === 'string') byKey.set(canonicalInciKey(inciKeyFromTag(common)), id);
+    }
+  }
+  for (const [alias, id] of Object.entries(INCI_ALIASES)) byKey.set(alias, id);
+
+  const resolved: string[] = [];
+  let unresolved = 0;
+  const sourceNames = names.length > 0 ? names : candidates;
+  for (const raw of sourceNames) {
+    const key = canonicalInciKey(inciKeyFromTag(raw));
+    const resolvedId = byKey.get(key);
+    if (resolvedId) resolved.push(resolvedId);
+    else unresolved += 1;
+  }
+  // Un nom absent signifie qu’il n’y a pas de nouveau document INCI à
+  // résoudre ; on conserve les IDs déjà validés du Shelf lors d’une mise à jour.
+  if (sourceNames.length === 0) {
+    for (const candidate of candidateIds) if (byKey.has(canonicalInciKey(inciKeyFromTag(candidate)))) resolved.push(byKey.get(canonicalInciKey(inciKeyFromTag(candidate)))!);
+    unresolved = Math.max(0, suppliedUnresolved);
+  }
+  return {
+    ingredientIds: Array.from(new Set(resolved)).slice(0, 100),
+    inciNames: names,
+    inciUnresolvedCount: Math.max(unresolved, suppliedUnresolved),
+    inciSource: source
+  };
+}
 
 function mapShelfRow(row: any): ShelfItem {
   return {
@@ -113,7 +190,10 @@ function mapShelfRow(row: any): ShelfItem {
     status: row.status,
     category: row.category || undefined,
     routineStep: row.routine_step || undefined,
-    ingredientIds: row.ingredient_ids || [],
+    ingredientIds: Array.isArray(row.ingredient_ids) ? row.ingredient_ids : [],
+    inciNames: Array.isArray(row.inci_names) ? row.inci_names : [],
+    inciSource: ['none', 'open_beauty_facts', 'catalog', 'manual'].includes(row.inci_source) ? row.inci_source : 'none',
+    inciUnresolvedCount: Number.isInteger(row.inci_unresolved_count) ? row.inci_unresolved_count : 0,
     openedAt: row.opened_at || undefined,
     finishedAt: row.finished_at || undefined,
     estimatedRemainingPercent: row.estimated_remaining_percent ?? null,
@@ -133,6 +213,9 @@ export interface ShelfInput {
   category?: unknown;
   routineStep?: unknown;
   ingredientIds?: unknown;
+  inciNames?: unknown;
+  inciSource?: unknown;
+  inciUnresolvedCount?: unknown;
   openedAt?: unknown;
   finishedAt?: unknown;
   estimatedRemainingPercent?: unknown;
@@ -284,6 +367,11 @@ class KurlaIntelligenceStore {
       ingredientIds: Array.isArray(input.ingredientIds)
         ? input.ingredientIds.filter((id): id is string => typeof id === 'string' && id.trim() !== '').slice(0, 100)
         : [],
+      inciNames: cleanInciNames(input.inciNames),
+      inciSource: inciSource(input.inciSource),
+      inciUnresolvedCount: typeof input.inciUnresolvedCount === 'number' && Number.isFinite(input.inciUnresolvedCount)
+        ? Math.max(0, Math.min(200, Math.round(input.inciUnresolvedCount)))
+        : 0,
       openedAt: iso(input.openedAt),
       finishedAt: iso(input.finishedAt),
       estimatedRemainingPercent: remaining,
@@ -296,6 +384,13 @@ class KurlaIntelligenceStore {
 
   public async addShelfItem(userId: string, input: ShelfInput): Promise<ShelfItem> {
     const normalized = this.normalizeShelfInput(input);
+    const resolvedInci = await resolveShelfIngredients(
+      normalized.inciNames,
+      normalized.ingredientIds,
+      normalized.inciUnresolvedCount,
+      normalized.inciSource
+    );
+    Object.assign(normalized, resolvedInci);
     const now = new Date().toISOString();
     const item: ShelfItem = { id: randomUUID(), userId, ...normalized, createdAt: now, updatedAt: now };
 
@@ -309,6 +404,10 @@ class KurlaIntelligenceStore {
         status: item.status,
         category: item.category || null,
         routine_step: item.routineStep || null,
+        ingredient_ids: item.ingredientIds,
+        inci_names: item.inciNames,
+        inci_source: item.inciSource,
+        inci_unresolved_count: item.inciUnresolvedCount,
         opened_at: item.openedAt || null,
         finished_at: item.finishedAt || null,
         estimated_remaining_percent: item.estimatedRemainingPercent,
@@ -331,6 +430,13 @@ class KurlaIntelligenceStore {
     const current = (await this.getShelf(userId)).find(item => item.id === itemId);
     if (!current) return undefined;
     const patch = this.normalizeShelfInput({ ...current, ...input });
+    const resolvedInci = await resolveShelfIngredients(
+      patch.inciNames,
+      patch.ingredientIds,
+      patch.inciUnresolvedCount,
+      patch.inciSource
+    );
+    Object.assign(patch, resolvedInci);
     const updated: ShelfItem = { ...current, ...patch, updatedAt: new Date().toISOString() };
 
     const supabase = getSupabaseServerClient();
@@ -338,6 +444,10 @@ class KurlaIntelligenceStore {
       const { error } = await supabase.from('user_products').update({
         status: updated.status,
         routine_step: updated.routineStep || null,
+        ingredient_ids: updated.ingredientIds,
+        inci_names: updated.inciNames,
+        inci_source: updated.inciSource,
+        inci_unresolved_count: updated.inciUnresolvedCount,
         opened_at: updated.openedAt || null,
         finished_at: updated.finishedAt || null,
         estimated_remaining_percent: updated.estimatedRemainingPercent,
@@ -429,7 +539,12 @@ class KurlaIntelligenceStore {
     if (!isOutcomeSignal(input.signal)) throw new Error('Observation de résultat inconnue.');
     const productId = typeof input.productId === 'string' && input.productId.trim() ? input.productId.trim() : undefined;
     const ingredientId = typeof input.ingredientId === 'string' && input.ingredientId.trim() ? input.ingredientId.trim() : undefined;
-    if (!productId && !ingredientId) throw new Error('Une observation doit porter sur un produit ou sur un ingrédient.');
+    const shelfItemId = typeof input.shelfItemId === 'string' && input.shelfItemId.trim() ? input.shelfItemId.trim() : undefined;
+    if (!productId && !ingredientId && !shelfItemId) throw new Error('Une observation doit porter sur un produit ou sur un ingrédient, ou sur un article du Shelf.');
+    if (shelfItemId) {
+      const shelfItem = (await this.getShelf(userId)).find(item => item.id === shelfItemId);
+      if (!shelfItem) throw new Error('Article du Shelf introuvable ou non autorisé.');
+    }
 
     const signal = input.signal as OutcomeSignal;
     // Le consentement est opt-in et granulaire : par défaut, l'observation
