@@ -1,5 +1,6 @@
 import type { Express } from 'express';
 
+import { createHash } from 'node:crypto';
 import express from 'express';
 
 import { calculateKurlaFit } from '../../lib/kurlaFit';
@@ -14,6 +15,21 @@ import {
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, isUuid, rateLimit, safeApiError } from '../http';
 import { PHOTO_AIPD, PHOTO_RETENTION_DAYS } from '../../lib/photoAipd';
+import {
+  PHOTO_PILOT_MAX_PER_MEMBER_30_DAYS,
+  PHOTO_PILOT_MAX_PER_PHOTO,
+  PHOTO_PILOT_PHOTOTYPE_TO_FITZPATRICK,
+  PHOTO_PILOT_PROMPT_VERSION,
+  PHOTO_PILOT_REQUIRED_STRATA,
+  PHOTO_PILOT_SCHEMA_VERSION,
+  PHOTO_PILOT_QUALITY_VERSION,
+  PHOTO_PILOT_RULES_VERSION,
+  PHOTO_PILOT_SCOPE,
+  assessPhotoQuality,
+  photoPilotProvenance,
+  runPhotoPilot,
+  validatePhotoPilotMetadata
+} from '../../lib/photoPilot';
 import { requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 import type { Response } from 'express';
@@ -128,6 +144,171 @@ export function registerBeautyProfileRoutes(app: Express): void {
     } catch (err) {
       console.error('[BeautyProfile] photo upload error:', err);
       res.status(500).json({ error: safeApiError(err, 'Impossible de stocker cette photo.') });
+    }
+  }));
+
+  app.post('/api/beauty-profile/photos/:photoId/analyze', rateLimit('photo-ai-pilot', 12, 60 * 60 * 1000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const photoId = String(req.params.photoId);
+    const [profileRecord, photo] = await Promise.all([
+      serverDb.getBeautyProfile(user.id),
+      serverDb.getBeautyProfilePhoto(user.id, photoId)
+    ]);
+    if (!photo) return res.status(404).json({ error: 'Photo introuvable ou non autorisée.' });
+    // Le pilote ne crée pas un nouveau consentement : il réutilise le
+    // consentement photo AIPD enregistré sur le profil, qui doit rester actif.
+    if (!profileRecord?.profile.photoConsent) return res.status(400).json({ error: 'Le consentement photo AIPD doit être actif pour analyser cette photo.' });
+
+    const raw = await serverDb.getBeautyProfilePhotoBytes(user.id, photoId);
+    if (!raw) return res.status(503).json({ status: 'PHOTO_BYTES_UNAVAILABLE', error: 'Le contenu privé de la photo est indisponible ; aucune analyse n’a été simulée.' });
+    const inputSha256 = createHash('sha256').update(Buffer.from(raw)).digest('hex');
+    const existing = await serverDb.listPhotoAiAnalyses(user.id, photoId);
+    if (existing.length >= PHOTO_PILOT_MAX_PER_PHOTO) {
+      return res.status(409).json({ status: 'PHOTO_ANALYSIS_LIMIT', error: 'Cette photo a déjà fait l’objet du nombre maximal d’analyses du pilote.', provenance: existing[0] });
+    }
+    const recent = (await serverDb.listPhotoAiAnalyses(user.id)).filter(item => Date.parse(item.createdAt) >= Date.now() - 30 * 24 * 60 * 60 * 1000);
+    if (recent.length >= PHOTO_PILOT_MAX_PER_MEMBER_30_DAYS) {
+      return res.status(429).json({ status: 'PHOTO_ANALYSIS_LIMIT', error: 'La limite du pilote est atteinte pour ce compte sur 30 jours.' });
+    }
+
+    const metadataResult = validatePhotoPilotMetadata(req.body);
+    const requestedMetadata = metadataResult.ok ? metadataResult.metadata : undefined;
+    const phototypeMatchesC5 = metadataResult.ok
+      && profileRecord.profile.skin.phototypeConsent === true
+      && typeof profileRecord.profile.skin.phototype === 'number'
+      && PHOTO_PILOT_PHOTOTYPE_TO_FITZPATRICK[metadataResult.metadata.phototype] === profileRecord.profile.skin.phototype;
+    const metadata = phototypeMatchesC5 && metadataResult.ok ? metadataResult.metadata : undefined;
+    const metadataError = 'message' in metadataResult
+      ? metadataResult.message
+      : 'Le phototype du pilote doit correspondre au phototype C5 déclaré avec son consentement explicite.';
+    const versionData = {
+      scope: PHOTO_PILOT_SCOPE,
+      promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+      rulesVersion: PHOTO_PILOT_RULES_VERSION,
+      responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+      qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+      inputSha256,
+      photoSourceId: photoId,
+      userId: user.id,
+      declaredPhototype: requestedMetadata?.phototype,
+      declaredLighting: requestedMetadata?.lighting,
+      phototypeSource: 'member_declared',
+      lightingSource: 'member_declared',
+      independentValidation: { status: 'pilot_stratified_not_validated', protocol: 'C8-photo-pilot-validation-v1', requiredStrata: PHOTO_PILOT_REQUIRED_STRATA }
+    };
+    if (!metadata) {
+      const analysis = await serverDb.createPhotoAiAnalysis({
+        userId: user.id,
+        photoId,
+        status: 'metadata_rejected',
+        scope: PHOTO_PILOT_SCOPE,
+        provider: 'none',
+        model: 'none',
+        promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+        rulesVersion: PHOTO_PILOT_RULES_VERSION,
+        responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+        qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+        inputSha256,
+        declaredPhototype: requestedMetadata?.phototype,
+        declaredLighting: requestedMetadata?.lighting,
+        errorCode: 'INVALID_PILOT_METADATA'
+      });
+      return res.status(422).json({ status: 'PHOTO_METADATA_REJECTED', error: metadataError, analysis, provenance: versionData });
+    }
+
+    const quality = assessPhotoQuality(raw, photo.mimeType);
+    if (!quality.accepted) {
+      const analysis = await serverDb.createPhotoAiAnalysis({
+        userId: user.id,
+        photoId,
+        status: 'quality_rejected',
+        scope: PHOTO_PILOT_SCOPE,
+        provider: 'none',
+        model: 'none',
+        promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+        rulesVersion: PHOTO_PILOT_RULES_VERSION,
+        responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+        qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+        inputSha256,
+        declaredPhototype: metadata.phototype,
+        declaredLighting: metadata.lighting,
+        quality: quality as unknown as Record<string, unknown>,
+        errorCode: quality.code
+      });
+      return res.status(422).json({ status: 'PHOTO_QUALITY_REJECTED', error: quality.message, quality, analysis, provenance: { ...versionData, declaredPhototype: metadata.phototype, declaredLighting: metadata.lighting } });
+    }
+
+    if (!process.env.GEMINI_API_KEY?.trim()) {
+      const analysis = await serverDb.createPhotoAiAnalysis({
+        userId: user.id,
+        photoId,
+        status: 'provider_unconfigured',
+        scope: PHOTO_PILOT_SCOPE,
+        provider: 'none',
+        model: 'none',
+        promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+        rulesVersion: PHOTO_PILOT_RULES_VERSION,
+        responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+        qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+        inputSha256,
+        declaredPhototype: metadata.phototype,
+        declaredLighting: metadata.lighting,
+        quality: quality as unknown as Record<string, unknown>,
+        errorCode: 'AI_NOT_CONFIGURED'
+      });
+      return res.status(503).json({ status: 'AI_NOT_CONFIGURED', error: 'Le provider d’analyse photo n’est pas configuré ; aucun résultat IA n’a été fabriqué.', analysis, provenance: { ...versionData, provider: 'none', model: 'none', declaredPhototype: metadata.phototype, declaredLighting: metadata.lighting } });
+    }
+
+    try {
+      const result = await runPhotoPilot(raw, photo.mimeType as 'image/jpeg' | 'image/png', metadata);
+      const provenance = { ...photoPilotProvenance(inputSha256, metadata, result.model), photoSourceId: photoId, userId: user.id };
+      const analysis = await serverDb.createPhotoAiAnalysis({
+        userId: user.id,
+        photoId,
+        status: 'completed',
+        scope: PHOTO_PILOT_SCOPE,
+        provider: result.provider,
+        model: result.model,
+        promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+        rulesVersion: PHOTO_PILOT_RULES_VERSION,
+        responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+        qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+        inputSha256,
+        declaredPhototype: metadata.phototype,
+        declaredLighting: metadata.lighting,
+        quality: quality as unknown as Record<string, unknown>,
+        output: result.output as unknown as Record<string, unknown>,
+        completedAt: new Date().toISOString()
+      });
+      return res.status(200).json({
+        status: 'COMPLETED_COSMETIC_PILOT',
+        analysis,
+        provenance,
+        output: result.output,
+        disclosure: 'Cette aide cosmétique expérimentale n’est ni un diagnostic, ni une détection de pathologie, ni une évaluation médicale.'
+      });
+    } catch (error) {
+      const errorCode = error instanceof Error && error.message === 'PHOTO_AI_INVALID_JSON' ? 'AI_INVALID_JSON' : 'AI_PROVIDER_ERROR';
+      const analysis = await serverDb.createPhotoAiAnalysis({
+        userId: user.id,
+        photoId,
+        status: 'provider_failed',
+        scope: PHOTO_PILOT_SCOPE,
+        provider: 'google_gemini',
+        model: process.env.GEMINI_MODEL?.trim() || 'configured_model',
+        promptVersion: PHOTO_PILOT_PROMPT_VERSION,
+        rulesVersion: PHOTO_PILOT_RULES_VERSION,
+        responseSchemaVersion: PHOTO_PILOT_SCHEMA_VERSION,
+        qualityGateVersion: PHOTO_PILOT_QUALITY_VERSION,
+        inputSha256,
+        declaredPhototype: metadata.phototype,
+        declaredLighting: metadata.lighting,
+        quality: quality as unknown as Record<string, unknown>,
+        errorCode
+      });
+      console.error('[PhotoAI] provider error:', error);
+      return res.status(503).json({ status: 'AI_PROVIDER_ERROR', error: 'Le provider d’analyse photo n’a pas fourni de résultat exploitable ; aucune sortie IA n’est présentée.', analysis, provenance: { ...versionData, provider: 'google_gemini', model: process.env.GEMINI_MODEL?.trim() || 'configured_model', declaredPhototype: metadata.phototype, declaredLighting: metadata.lighting } });
     }
   }));
 

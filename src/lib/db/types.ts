@@ -576,3 +576,31 @@ export interface LoyaltyRetentionCohort {
   rateD60: number | null;
   rateD90: number | null;
 }
+
+export type PhotoAiAnalysisStatus = 'completed' | 'quality_rejected' | 'metadata_rejected' | 'provider_unconfigured' | 'provider_failed';
+
+export interface PhotoAiAnalysisRecord {
+  id: string;
+  userId: string;
+  photoId: string;
+  status: PhotoAiAnalysisStatus;
+  scope: string;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  rulesVersion: string;
+  responseSchemaVersion: string;
+  qualityGateVersion: string;
+  inputSha256: string;
+  declaredPhototype?: string;
+  declaredLighting?: string;
+  phototypeSource: 'member_declared';
+  lightingSource: 'member_declared';
+  validationProtocol: string;
+  validationStatus: 'pilot_stratified_not_validated';
+  quality?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  errorCode?: string;
+  createdAt: string;
+  completedAt?: string | null;
+}

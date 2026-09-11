@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T16:41:08.392Z",
+  "generatedAt": "2026-09-11T17:43:34.452Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -234,6 +234,7 @@
     "POST /api/appointments/:appointmentId/checkout",
     "POST /api/appointments/:appointmentId/status",
     "POST /api/beauty-profile/photos",
+    "POST /api/beauty-profile/photos/:photoId/analyze",
     "POST /api/brand-contracts/:contractId/sign",
     "POST /api/brand-invoices/:invoiceId/checkout",
     "POST /api/brand-tests/:id/join",
