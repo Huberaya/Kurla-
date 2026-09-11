@@ -1896,6 +1896,77 @@ chevelu et barbe) ne sont pas faits, et le banc l'asserte plutôt que de le lais
 - Une erreur réelle a été trouvée par `tsc` pendant ce chantier (`NeedNuance` importé sans
   être réexporté) et corrigée. Les bancs seuls ne l'auraient pas vue.
 
+## CHANTIER D2 — PROFONDEUR DES BESOINS DE COIFFURE
+
+### Périmètre et frontière
+
+`entretenir_tresses`, `entretenir_locks`, `entretenir_perruque`,
+`proteger_chaleur`, `proteger_nuit` — cinq besoins, dans `src/lib/needDepth.ts`
+comme D1.
+
+**La frontière avec `styleFit.ts` est la contrainte principale de ce chantier.**
+`assessStyleFit`, `assessTractionFit` et `assessWigFit` établissent déjà
+l'occlusion sous perruque, les résidus sans rinçage complet, la priorité au cuir
+chevelu, la texture fluide, le risque de traction et ses durées de port. D2 ne
+redit rien de cela : il ajoute ce qui dépend des **autres** champs déclarés —
+fréquence de lavage, temps disponible, longueur, densité, épaisseur, porosité,
+coloration, traitements chimiques, sensibilité cutanée, tolérance aux actifs.
+
+Cette frontière est **testée**, pas seulement déclarée : le banc collecte toutes
+les chaînes produites par D2 et fait tomber la suite si l'une d'elles contient
+une formulation réservée à `styleFit.ts` (`texture fluide`,
+`seule zone réellement accessible`, `occlusif de la formule`,
+`retirez la perruque la nuit`, `lavage clarifiant régulier`). Sans ce contrôle,
+deux modules qui ne se connaissent pas finiraient par dire la même phrase à
+l'utilisateur.
+
+### Ce que D2 ajoute : les limites
+
+D2 introduit `limitations` sur `NeedSignal`, à côté des nuances. Une limite
+n'est pas un conseil atténué : c'est **l'absence d'une donnée sans laquelle le
+conseil serait une supposition**. Quatre lacunes réelles du profil sont nommées :
+
+| Lacune | Conséquence dite à l'utilisateur |
+| --- | --- |
+| Nature de la fibre de la perruque (synthétique / cheveux humains) — **aucun champ n'existe** | Une fibre synthétique ne supporte pas la chaleur : KURLA ne recommande aucun outil chauffant sur la perruque |
+| Mode de fixation (lace collée, bonnet, clips) — **aucun champ n'existe** | Les conseils portent sur le cuir chevelu et la fibre, pas sur le retrait d'une colle |
+| Stade des locks (démarrage / installées) — **aucun champ n'existe** | Les besoins diffèrent ; le conseil reste général faute de cette information |
+| Outil chauffant et sa température — **aucun champ n'existe** | KURLA n'indique pas de réglage ; les conseils portent sur la fréquence et la préparation |
+
+Les deux premières sont vérifiées par grep sur `beautyProfile.ts` : ni
+`wigType`, ni `synthetic`, ni `human_hair`, ni `lace` n'y existent comme champ.
+`perruque` n'est qu'une valeur de `PROTECTIVE_STYLE_OPTIONS`, libellée
+« Perruque / lace ».
+
+Une limite est **inconditionnelle** : elle apparaît même quand aucune nuance
+n'est possible. Le banc l'asserte sur une perruque portée sans aucun autre champ
+déclaré — 0 nuance, 2 limites.
+
+### Un défaut trouvé par le banc, pas par la lecture
+
+L'intensité était calculée par `Math.max(BASE_INTENSITY, signaux)`. Conséquence
+mesurée : une peau déclarée réactive sous perruque et une peau tolérante
+tombaient **toutes les deux à 50** — la base écrasait toute différence en
+dessous d'elle. Remplacé par `Math.min(100, base + signaux)`.
+
+**Limite connue, laissée au chantier F** : l'écrêtage à 100 sature les profils
+très renseignés, qui deviennent indiscernables entre eux. Tant que F ne consomme
+pas l'intensité, cela ne produit aucune erreur visible. C'est écrit ici pour que
+F ne le redécouvre pas.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. 5 besoins de fibre + 5 de coiffure,
+  **19 champs** porteurs de nuances, 11 besoins reconnus encore non traités
+  (asserté, pas supposé).
+- **Deux contrôles négatifs exécutés** : (1) les cinq fonctions D2 neutralisées →
+  **exit 1** ; (2) les quatre appels `d.limit()` neutralisés → **exit 1**,
+  `les deux lacunes du profil doivent être nommées`. Les assertions sur les
+  limites ne sont donc pas décoratives.
+- `npm test` — **exit 0**, **123 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Discriminations assertées : sensibilité cutanée sous perruque, décoloration
+  face à la chaleur — à chaque fois avec **même `unmetNeeds` et même `score`**.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

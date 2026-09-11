@@ -29,6 +29,11 @@ export interface NeedSignal {
   intensity: number;
   /** Conseils différenciés, chacun rattaché à un champ déclaré du profil. */
   nuances: NeedNuance[];
+  /**
+   * CHANTIER D2 — ce que le profil ne déclare pas et sans quoi le conseil
+   * serait une supposition. Dit, pas estimé.
+   */
+  limitations: string[];
 }
 
 export interface KurlaFitResult {
@@ -41,14 +46,20 @@ export interface KurlaFitResult {
 }
 
 /**
- * Un besoin couvert part d'une base : il existe et il est servi. L'intensité
- * exprime ensuite à quel point les signaux déclarés le rendent pressant. Sans
- * cette base, un besoin couvert sans aucun signal fort aurait une intensité
- * nulle et serait indiscernable d'un besoin non couvert.
+ * Un besoin couvert part d'une base : il existe et il est servi. Les signaux
+ * déclarés s'y **ajoutent** ensuite.
+ *
+ * Un `Math.max(base, signaux)` avait été écrit d'abord : il écrasait toute
+ * différence en dessous de la base — une peau déclarée réactive sous perruque
+ * et une peau tolérante tombaient toutes les deux à 50. Le banc l'a montré.
+ *
+ * Limite connue, laissée au chantier F : l'écrêtage à 100 sature les profils
+ * très renseignés, qui deviennent indiscernables entre eux. Tant que F ne
+ * consomme pas l'intensité, cela ne produit aucune erreur visible.
  */
 const BASE_INTENSITY = 50;
 
-const NO_DEPTH: NeedDepth = { intensity: 0, nuances: [] };
+const NO_DEPTH: NeedDepth = { intensity: 0, nuances: [], limitations: [] };
 
 function known(value: unknown): boolean {
   return typeof value === 'string' && value !== '' && value !== UNKNOWN;
@@ -352,8 +363,9 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     needSignals.push({
       code: need,
       met,
-      intensity: met ? Math.max(BASE_INTENSITY, depth.intensity) : 0,
-      nuances: depth.nuances
+      intensity: met ? Math.min(100, BASE_INTENSITY + depth.intensity) : 0,
+      nuances: depth.nuances,
+      limitations: depth.limitations
     });
     if (!met) unmetNeeds.push(need);
   });
@@ -373,6 +385,9 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
   needSignals.forEach(signal => {
     signal.nuances.forEach(nuance => {
       reasons.push(`${formatValue(signal.code)} — ${nuance.advice}`);
+    });
+    signal.limitations.forEach(limitation => {
+      reasons.push(`${formatValue(signal.code)} — ${limitation}`);
     });
   });
 

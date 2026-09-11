@@ -180,7 +180,7 @@ trois réglages (8 contrôles).
 | Réf | Objet | État |
 |---|---|---|
 | D1 | profondeur des 5 besoins de fibre (`src/lib/needDepth.ts`) | livré |
-| D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | à faire |
+| D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | livré |
 | D3 | cuir chevelu et barbe (3 besoins) | à faire |
 | E | les 8 besoins peau | à faire |
 | F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | à faire |
@@ -189,6 +189,14 @@ trois réglages (8 contrôles).
 `needSignals` (intensité + nuances), et les nuances sont ajoutées à `reasons`
 **après** les raisons par besoin. Toute modification de `reasons` doit préserver
 cet ordre : `recommendationsForSlugs` affiche `reasons[0]`.
+
+**D2 a modifié `src/lib/needDepth.ts` et ajouté `limitations` sur `NeedSignal`**
+(propagé sur `Recommendation.needLimitations` et `fitLimitations`). D2 ne redit
+**rien** de `styleFit.ts` : le banc `tests/kurla_need_depth.test.ts` fait tomber
+la suite si une chaîne de D2 contient une formulation réservée à `styleFit`
+(`texture fluide`, `seule zone réellement accessible`, `occlusif de la formule`,
+`retirez la perruque la nuit`, `lavage clarifiant régulier`). **Si `styleFit.ts`
+est modifié, cette liste est à revoir.**
 
 **F touchera la ligne du score.** Le banc `tests/kurla_need_depth.test.ts`
 asserte `score === 33` sur un produit à 1 besoin couvert sur 3 : c'est le

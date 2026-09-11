@@ -43,11 +43,16 @@ export interface NeedDepth {
   /** 0–100. Somme des signaux déclarés, écrêtée. */
   intensity: number;
   nuances: NeedNuance[];
+  /**
+   * Ce que KURLA ne peut pas savoir, dit plutôt qu'estimé. Une limite n'est pas
+   * un conseil atténué : c'est l'absence d'une donnée sans laquelle le conseil
+   * serait une supposition. Même principe que `TractionFitResult.limitations`.
+   */
+  limitations: string[];
 }
 
 /**
- * Les cinq besoins de fibre traités par D1. Les huit autres besoins capillaires
- * relèvent de D2 (coiffure) et D3 (cuir chevelu et barbe).
+ * Les cinq besoins de fibre traités par D1.
  */
 export const FIBRE_NEEDS = [
   'hydrater_cheveux',
@@ -57,11 +62,34 @@ export const FIBRE_NEEDS = [
   'demeler_cheveux'
 ] as const;
 
+/**
+ * CHANTIER D2 — les cinq besoins de coiffure.
+ *
+ * Frontière avec `styleFit.ts` : ce module-ci ne redit rien de ce que
+ * `assessStyleFit`, `assessTractionFit` ou `assessWigFit` établissent déjà —
+ * l'occlusion sous perruque, les résidus sans rinçage complet, la priorité au
+ * cuir chevelu, la texture fluide, le risque de traction et ses durées de port.
+ * D2 ajoute ce qui dépend des **autres** champs déclarés : fréquence de lavage,
+ * temps disponible, longueur, densité, coloration, traitements, sensibilité
+ * cutanée. Et il nomme ce que le profil ne déclare pas du tout.
+ */
+export const STYLE_NEEDS = [
+  'entretenir_tresses',
+  'entretenir_locks',
+  'entretenir_perruque',
+  'proteger_chaleur',
+  'proteger_nuit'
+] as const;
+
 export function isFibreNeed(need: string): boolean {
   return (FIBRE_NEEDS as readonly string[]).includes(need);
 }
 
-const EMPTY: NeedDepth = { intensity: 0, nuances: [] };
+export function isStyleNeed(need: string): boolean {
+  return (STYLE_NEEDS as readonly string[]).includes(need);
+}
+
+const EMPTY: NeedDepth = { intensity: 0, nuances: [], limitations: [] };
 
 function known(value: string | undefined): boolean {
   return typeof value === 'string' && value !== '' && value !== UNKNOWN;
@@ -78,6 +106,7 @@ function formatValue(value: string): string {
  */
 function depthBuilder() {
   const nuances: NeedNuance[] = [];
+  const limitations: string[] = [];
   let intensity = 0;
   return {
     push(field: string, value: string, advice: string | null) {
@@ -85,11 +114,18 @@ function depthBuilder() {
         nuances.push({ field, value: formatValue(value), advice });
       }
     },
+    /**
+     * Une limite est inconditionnelle : elle existe parce que la donnée manque,
+     * pas parce qu'un champ a une valeur. Elle ne passe donc pas par `known`.
+     */
+    limit(text: string) {
+      limitations.push(text);
+    },
     raise(amount: number) {
       intensity = Math.min(100, intensity + amount);
     },
     result(): NeedDepth {
-      return { intensity, nuances };
+      return { intensity, nuances, limitations };
     }
   };
 }
@@ -330,15 +366,184 @@ function detangleDepth(profile: BeautyProfile): NeedDepth {
   return d.result();
 }
 
+// === CHANTIER D2 — besoins de coiffure ====================================
+
+// --- entretenir_tresses ----------------------------------------------------
+
+function braidsDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+
+  const washedOften = hair.washFrequency === 'plusieurs_fois_semaine' || hair.washFrequency === 'une_fois_semaine';
+  const long = hair.length === 'long' || hair.length === 'tres_long';
+  if (washedOften) d.raise(15);
+  if (hair.stylingHabits.includes('coiffures_serrees')) d.raise(15);
+  if (hair.density === 'forte') d.raise(10);
+  if (long) d.raise(10);
+  if (hair.availableTime === 'moins_15_min') d.raise(10);
+
+  if (washedOften) {
+    d.push('hair.washFrequency', hair.washFrequency,
+      'Lavage fréquent déclaré alors que des tresses sont portées : la base des tresses sèche mal entre deux lavages. Espacer, ou sécher réellement le cuir chevelu après chaque lavage, compte davantage que le produit utilisé.');
+  }
+  if (hair.stylingHabits.includes('coiffures_serrees')) {
+    d.push('hair.stylingHabits', hair.stylingHabits.join(', '),
+      'Habitude de coiffures serrées déclarée, en plus des tresses actuellement portées : la tension se répète d’une pose à l’autre. Demander une pose plus lâche la fois suivante est le seul levier qui agit sur la cause.');
+  }
+  d.push('hair.density', hair.density, hair.density === 'forte'
+    ? 'Densité élevée : beaucoup de tresses, donc un séchage lent à la base. C’est la zone où l’humidité reste piégée le plus longtemps.'
+    : null);
+  d.push('hair.length', hair.length, long
+    ? 'Cheveux longs tressés : le poids se reporte sur les racines. C’est une contrainte indépendante du serrage choisi à la pose.'
+    : null);
+  d.push('hair.availableTime', hair.availableTime, hair.availableTime === 'moins_15_min'
+    ? 'Moins de 15 minutes par session déclarées : une routine d’entretien plus longue ne sera pas tenue. Une étape réellement faite vaut mieux qu’un programme complet abandonné.'
+    : null);
+
+  return d.result();
+}
+
+// --- entretenir_locks ------------------------------------------------------
+
+function locksCareDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+
+  const spaced = hair.washFrequency === 'moins_frequent' || hair.washFrequency === 'tous_les_10_14_jours';
+  const long = hair.length === 'long' || hair.length === 'tres_long';
+  if (spaced) d.raise(15);
+  if (hair.porosity === 'forte') d.raise(10);
+  if (long) d.raise(10);
+  if (hair.availableTime === 'moins_15_min') d.raise(10);
+
+  d.push('hair.washFrequency', hair.washFrequency, spaced
+    ? 'Lavage espacé déclaré : sur locks, ce qui n’est pas rincé régulièrement reste dans la mèche. L’espacement se compense par un rinçage plus long, pas par davantage de produit.'
+    : null);
+  d.push('hair.porosity', hair.porosity, hair.porosity === 'forte'
+    ? 'Porosité forte : la mèche absorbe et retient ce qu’on y dépose. Une petite quantité suffit ; en ajouter ne pénètre pas plus et s’accumule.'
+    : null);
+  d.push('hair.length', hair.length, long
+    ? 'Locks longues : le poids tire sur les racines en permanence. C’est une contrainte continue, distincte de celle d’une coiffure posée pour quelques semaines.'
+    : null);
+  d.push('hair.availableTime', hair.availableTime, hair.availableTime === 'moins_15_min'
+    ? 'Moins de 15 minutes par session déclarées : l’entretien des locks se prête mal aux routines longues. Mieux vaut un rinçage complet court et régulier qu’un soin riche occasionnel.'
+    : null);
+
+  d.limit('Le stade des locks — démarrage ou locks installées — n’est déclaré nulle part dans le profil. Les besoins diffèrent : des locks en démarrage supportent mal la manipulation, des locks installées davantage. Faute de cette information, ce conseil reste général.');
+
+  return d.result();
+}
+
+// --- entretenir_perruque ---------------------------------------------------
+
+function wigCareDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const skin = profile.skin;
+
+  if (skin.sensitivity === 'elevee') d.raise(20);
+  if (skin.activeTolerance === 'faible') d.raise(10);
+  if (hair.washFrequency === 'moins_frequent') d.raise(10);
+
+  d.push('skin.sensitivity', skin.sensitivity, skin.sensitivity === 'elevee'
+    ? 'Peau déclarée très sensible, sous perruque : le cuir chevelu est occlus et tout ce qui est appliqué reste au contact prolongé. Introduire un produit à la fois, sur une zone réduite d’abord, permet d’identifier ce qui ne convient pas.'
+    : null);
+  d.push('skin.activeTolerance', skin.activeTolerance, skin.activeTolerance === 'faible'
+    ? 'Tolérance aux actifs déclarée faible : sous occlusion, un actif pénètre davantage et irrite davantage. Les concentrations élevées sont les premières à écarter ici.'
+    : null);
+  d.push('hair.washFrequency', hair.washFrequency, hair.washFrequency === 'moins_frequent'
+    ? 'Lavage espacé déclaré : la perruque et le cuir chevelu dessous ne suivent pas le même rythme. Les traiter comme un seul objet conduit à laver l’un trop souvent et l’autre pas assez.'
+    : null);
+
+  d.limit('La nature de la fibre de la perruque — synthétique ou cheveux humains — n’est déclarée nulle part dans le profil. La différence est déterminante : une fibre synthétique ne supporte pas la chaleur. KURLA ne recommande donc aucun usage d’outil chauffant sur la perruque.');
+  d.limit('Le mode de fixation — lace collée, bonnet, clips — n’est pas déclaré non plus. Les conseils ci-dessus portent sur le cuir chevelu et la fibre, pas sur le retrait d’une colle.');
+
+  return d.result();
+}
+
+// --- proteger_chaleur ------------------------------------------------------
+
+function heatDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const treatments = hair.chemicalTreatments.filter(item => item === 'defrisage' || item === 'lissage');
+
+  if (hair.coloring === 'decoloration') d.raise(25);
+  if (treatments.length > 0) d.raise(20);
+  if (hair.fiberCondition === 'fragile') d.raise(15);
+  if (hair.porosity === 'forte') d.raise(10);
+  if (hair.elasticity === 'faible') d.raise(10);
+
+  if (hair.coloring === 'decoloration') {
+    d.push('hair.coloring', hair.coloring,
+      'Fibre décolorée et outils chauffants déclarés : c’est la combinaison la plus à risque. Température la plus basse utilisable, un seul passage par mèche, et ne pas repasser sur une mèche encore chaude.');
+  }
+  if (treatments.length > 0) {
+    d.push('hair.chemicalTreatments', treatments.join(', '),
+      'Un défrisage ou un lissage a déjà modifié la structure de la fibre : la chaleur s’ajoute à une modification existante au lieu de partir d’une fibre intacte. Espacer les deux agit davantage que renforcer le protecteur.');
+  }
+  d.push('hair.fiberCondition', hair.fiberCondition, hair.fiberCondition === 'fragile'
+    ? 'Fibre déclarée fragile : un protecteur thermique réduit l’exposition, il ne la supprime pas. Sur une fibre fragile, réduire la fréquence d’usage est le levier principal.'
+    : null);
+  d.push('hair.porosity', hair.porosity, hair.porosity === 'forte'
+    ? 'Porosité forte : la cuticule est déjà soulevée, la chaleur la soulève davantage. C’est une raison de baisser la température, pas d’augmenter la quantité de produit.'
+    : null);
+  if (hasTightTexture(hair.texturePatterns)) {
+    d.push('hair.texturePatterns', hair.texturePatterns.join(', '),
+      'Sur texture serrée, un lissage thermique répété modifie le motif de façon durable. Ce qui est en jeu est la texture déclarée elle-même, pas seulement l’état de la fibre.');
+  }
+
+  d.limit('Ni l’outil ni sa température ne sont déclarés. KURLA ne peut donc pas indiquer de réglage : ces conseils portent sur la fréquence et la préparation, pas sur une valeur de température.');
+
+  return d.result();
+}
+
+// --- proteger_nuit ---------------------------------------------------------
+
+function nightDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const long = hair.length === 'long' || hair.length === 'tres_long';
+  const styled = hair.protectiveStyles.filter(style => style !== 'aucun' && style !== UNKNOWN);
+
+  if (long) d.raise(15);
+  if (hair.zones.ends.breakage === 'frequente') d.raise(15);
+  if (hasTightTexture(hair.texturePatterns)) d.raise(10);
+  if (hair.strandThickness === 'fine') d.raise(10);
+  if (styled.length > 0) d.raise(10);
+
+  d.push('hair.length', hair.length, long
+    ? 'Cheveux longs : les frottements s’accumulent la nuit, sur plusieurs heures. Réduire le contact agit davantage qu’un soin appliqué le matin sur des longueurs déjà marquées.'
+    : null);
+  if (hasTightTexture(hair.texturePatterns)) {
+    d.push('hair.texturePatterns', hair.texturePatterns.join(', '),
+      'Texture serrée : le frottement répété défait les mèches et casse aux points de contact. Une matière lisse au contact — bonnet ou taie — agit sur la cause mécanique, qu’aucun produit ne remplace.');
+  }
+  d.push('hair.zones.ends.breakage', hair.zones.ends.breakage, hair.zones.ends.breakage === 'frequente'
+    ? 'Casse déclarée sur les pointes : ce sont elles qui touchent en premier. Les regrouper avant de dormir les retire de la zone de frottement.'
+    : null);
+  d.push('hair.strandThickness', hair.strandThickness, hair.strandThickness === 'fine'
+    ? 'Cheveu fin : il supporte mal le frottement répété, et la perte se voit en volume avant de se voir en casse.'
+    : null);
+  if (styled.length > 0) {
+    d.push('hair.protectiveStyles', styled.join(', '),
+      'Une coiffure protectrice est portée : la coiffure frotte aussi. Protection nocturne et coiffure protectrice se cumulent, elles ne se remplacent pas.');
+  }
+
+  return d.result();
+}
+
 // --- Point d'entrée --------------------------------------------------------
 
 /**
- * Retourne la profondeur d'un besoin. Pour un besoin hors D1, le résultat est
- * vide : l'absence de nuance signifie « pas encore approfondi », jamais
- * « aucun conseil à donner ».
+ * Retourne la profondeur d'un besoin. Pour un besoin non encore approfondi
+ * (D3 : cuir chevelu et barbe, et les besoins peau), le résultat est vide :
+ * l'absence de nuance signifie « pas encore traité », jamais « aucun conseil à
+ * donner ».
  */
 export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth {
   switch (need) {
+    // D1 — fibre.
     case 'hydrater_cheveux':
       return hydrationDepth(profile);
     case 'reduire_casse':
@@ -349,6 +554,17 @@ export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth
       return frizzDepth(profile);
     case 'demeler_cheveux':
       return detangleDepth(profile);
+    // D2 — coiffure.
+    case 'entretenir_tresses':
+      return braidsDepth(profile);
+    case 'entretenir_locks':
+      return locksCareDepth(profile);
+    case 'entretenir_perruque':
+      return wigCareDepth(profile);
+    case 'proteger_chaleur':
+      return heatDepth(profile);
+    case 'proteger_nuit':
+      return nightDepth(profile);
     default:
       return EMPTY;
   }

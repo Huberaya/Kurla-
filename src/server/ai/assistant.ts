@@ -59,7 +59,10 @@ export function catalogForPrompt(catalog: AvailableCatalogEntry[], fits: Map<str
     // CHANTIER D1 — le geste différencié selon la fibre déclarée. Sans ce
     // champ, le modèle reçoit le même contexte pour un 4C peu poreux et pour
     // un 2A très poreux, et ne peut pas rendre un conseil différent.
-    fitNuances: (fits.get(entry.slug)?.needSignals || []).flatMap((signal: any) => signal.nuances || [])
+    fitNuances: (fits.get(entry.slug)?.needSignals || []).flatMap((signal: any) => signal.nuances || []),
+    // CHANTIER D2 — ce que le profil ne déclare pas. Le modèle doit le savoir :
+    // une donnée absente qu'on lui présente comme connue devient une invention.
+    fitLimitations: (fits.get(entry.slug)?.needSignals || []).flatMap((signal: any) => signal.limitations || [])
   }));
 }
 
