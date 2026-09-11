@@ -32,6 +32,7 @@
  */
 
 import { isFormulationTarget } from './catalogTruth';
+import { inciListe } from './cosmeticCompliance';
 
 /** Les quatre temps d'une routine peau, dans l'ordre où ils s'appliquent. */
 export type GroupeEtapePeau = 'nettoyant' | 'traitement' | 'hydratant' | 'spf';
@@ -170,7 +171,12 @@ export function projeterFicheCiblePeau(product: any): FicheCiblePeau {
     concerns: enTableau(lireChamp(product, 'concerns')),
     skinTypes: enTableau(lireChamp(product, 'skinTypes', 'skin_types')),
     actifsAnnonces: enTableau(lireChamp(product, 'ingredients', 'keyIngredients', 'key_ingredients')),
-    formuleCible: String(lireChamp(product, 'inci') ?? ''),
+    // `inciListe` retire le marqueur « [Formulation cible] » posé par la
+    // migration B-08. Sans ce retrait, la page afficherait le marqueur en
+    // clair — « [Formulation cible] Aqua, Niacinamide… » — alors qu'elle
+    // dit déjà « Formule cible » dans son intitulé. La page reste ainsi
+    // identique avant et après l'exécution de la migration.
+    formuleCible: inciListe(product),
     prixCible: Number.isFinite(prix) && prix > 0 ? prix : null,
     benefitPrimary: String(lireChamp(product, 'benefitPrimary', 'benefit_primary') ?? ''),
     forWho: String(lireChamp(product, 'forWho', 'for_who') ?? ''),

@@ -40,6 +40,7 @@ import {
 } from '../src/lib/skinRangeTarget';
 import { normalizeWaitlistSource, WAITLIST_SOURCES, DEFAULT_WAITLIST_SOURCE } from '../src/lib/waitlistSources';
 import { ROUTE_META } from '../src/lib/routeMeta';
+import { MARQUEUR_CIBLE } from '../src/lib/cosmeticCompliance';
 
 let checks = 0;
 function ok(label: string, fn: () => void): void {
@@ -149,6 +150,18 @@ ok('aucune disponibilité ne fuit dans la projection', () => {
 ok('la fiche dit explicitement qu’elle n’est pas en vente', () => {
   assert.ok(/n’est pas en vente|n'est pas en vente|Aucun de ces soins n’est en vente/.test(AVERTISSEMENT_CIBLE));
   assert.equal(projetee.avertissement, AVERTISSEMENT_CIBLE);
+});
+
+ok('le marqueur de la migration B-08 ne s’affiche jamais en clair', () => {
+  // Une fois la migration exécutée, `inci` commence par « [Formulation
+  // cible] ». Le servir tel quel donnerait « [Formulation cible] Aqua,
+  // Niacinamide… » sous un titre qui dit déjà « Formule cible ». La page doit
+  // être identique avant et après la migration : c'est ce qui rend le SQL
+  // exécutable sans coordination avec un déploiement.
+  const marquee = projeterFicheCiblePeau({ ...cible, inci: `${MARQUEUR_CIBLE} Aqua, Niacinamide` });
+  assert.ok(!marquee.formuleCible.includes('['), `marqueur visible : ${marquee.formuleCible}`);
+  assert.equal(marquee.formuleCible, 'Aqua, Niacinamide');
+  assert.equal(projetee.formuleCible, cible.inci, 'une fiche non marquée reste inchangée');
 });
 
 // ── 3. Le rangement ─────────────────────────────────────────────────────────
