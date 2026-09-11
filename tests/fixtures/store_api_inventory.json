@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T17:21:03.243Z",
+  "generatedAt": "2026-09-11T11:41:50.764Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -153,6 +153,8 @@
     "getShipmentHistoryById/1",
     "getShippingAddresses/1",
     "getShippingRates/1",
+    "getSkinCatalogReadinessReport/0",
+    "getSkinRangeTargets/0",
     "getSourcingItem/1",
     "getStatusSummary/0",
     "getSupplierById/1",

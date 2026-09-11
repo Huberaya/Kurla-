@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 
@@ -19,13 +19,29 @@ import { TAXONOMY_REFERENCE, TAXONOMY_TERMS } from '../src/lib/taxonomyReference
  *     ne peut pas lire est une liste que personne ne respecte.
  */
 
-const MIGRATION = join(process.cwd(), 'supabase', 'migrations', '20260847000000_kurla_taxonomy_terms.sql');
+const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
+
+/**
+ * Toutes les migrations de vocabulaire, pas seulement la première.
+ *
+ * Le banc lisait un chemin codé en dur. Dès qu'un terme est ajouté par une
+ * migration ultérieure — ce qui est le seul moyen honnête, une migration déjà
+ * jouée ne se rejoue pas — le banc se mettait à comparer le code à un
+ * vocabulaire périmé. Il déclarait alors une divergence qui n'en était pas une,
+ * ou pire, masquait une divergence réelle.
+ */
+const MIGRATION_FILES = readdirSync(MIGRATIONS_DIR)
+  .filter(name => name.endsWith('.sql') && name.includes('taxonomy_terms'))
+  .sort()
+  .map(name => join(MIGRATIONS_DIR, name));
+
+assert.ok(MIGRATION_FILES.length >= 1, 'aucune migration de vocabulaire trouvée');
 
 async function runTaxonomyTests(): Promise<void> {
   // ---------------------------------------------------------------------
   // 1. Le code et la migration disent la même chose.
   // ---------------------------------------------------------------------
-  const sql = readFileSync(MIGRATION, 'utf8');
+  const sql = MIGRATION_FILES.map(file => readFileSync(file, 'utf8')).join('\n');
   const taxonomyBlock = sql.split('INSERT INTO public.kurla_taxonomies')[1].split('ON CONFLICT')[0];
   const sqlTaxonomies = Array.from(taxonomyBlock.matchAll(/\('([a-z_]+)',/g)).map(match => match[1]);
   assert.deepEqual(

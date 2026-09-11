@@ -23,6 +23,12 @@ export interface HairBeautyProfile {
   dryness: string;
   /** Fréquence des frisottis déclarée. Champ dédié : rien n'est déduit. */
   frizz: string;
+  /**
+   * Présence de pilosité faciale. Champ dédié, pour la même raison que
+   * `frizz` : le besoin `barbe` existait au vocabulaire sans qu'aucun champ
+   * ne permette de l'établir. Le déduire du genre aurait été une supposition.
+   */
+  facialHair: string;
   breakage: string;
   elasticity: string;
   scalpCondition: string;
@@ -206,6 +212,14 @@ export const FRIZZ_OPTIONS = [
   { value: 'rare', label: 'Rares' },
   { value: 'occasionnels', label: 'Occasionnels' },
   { value: 'frequents', label: 'Fréquents' },
+  { value: UNKNOWN, label: 'Je ne sais pas encore' }
+];
+
+export const FACIAL_HAIR_OPTIONS = [
+  { value: 'aucune', label: 'Aucune' },
+  { value: 'leger', label: 'Légère' },
+  { value: 'moderee', label: 'Modérée' },
+  { value: 'dense', label: 'Dense' },
   { value: UNKNOWN, label: 'Je ne sais pas encore' }
 ];
 
@@ -510,6 +524,7 @@ export function createEmptyBeautyProfile(): BeautyProfile {
       fiberCondition: UNKNOWN,
       dryness: UNKNOWN,
       frizz: UNKNOWN,
+      facialHair: UNKNOWN,
       breakage: UNKNOWN,
       elasticity: UNKNOWN,
       scalpCondition: UNKNOWN,
@@ -666,6 +681,7 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
       fiberCondition: safeString(hair.fiberCondition),
       dryness: safeString(hair.dryness),
       frizz: safeString(hair.frizz),
+      facialHair: safeString(hair.facialHair),
       breakage: safeString(hair.breakage),
       elasticity: safeString(hair.elasticity),
       scalpCondition: safeString(hair.scalpCondition),
@@ -727,7 +743,7 @@ function isKnown(value: unknown): boolean {
 }
 
 const hairLabels: Array<[string, string]> = [
-  ['hair.texturePatterns', 'motif(s) de texture'], ['hair.curlPattern', 'motif de boucle ou frisure'], ['hair.porosity', 'porosité'], ['hair.density', 'densité'], ['hair.strandThickness', 'épaisseur du cheveu'], ['hair.length', 'longueur'], ['hair.fiberCondition', 'état de la fibre'], ['hair.dryness', 'sécheresse'], ['hair.frizz', 'frisottis'], ['hair.breakage', 'casse'], ['hair.elasticity', 'élasticité'], ['hair.scalpCondition', 'état du cuir chevelu'], ['hair.scalpConcerns', 'signes du cuir chevelu'], ['hair.chemicalTreatments', 'traitements chimiques'], ['hair.coloring', 'coloration'], ['hair.protectiveStyles', 'styles protecteurs'], ['hair.washFrequency', 'fréquence de lavage'], ['hair.stylingHabits', 'habitudes de coiffage'], ['hair.availableTime', 'temps disponible'], ['hair.budget', 'budget']
+  ['hair.texturePatterns', 'motif(s) de texture'], ['hair.curlPattern', 'motif de boucle ou frisure'], ['hair.porosity', 'porosité'], ['hair.density', 'densité'], ['hair.strandThickness', 'épaisseur du cheveu'], ['hair.length', 'longueur'], ['hair.fiberCondition', 'état de la fibre'], ['hair.dryness', 'sécheresse'], ['hair.frizz', 'frisottis'], ['hair.facialHair', 'pilosité faciale'], ['hair.breakage', 'casse'], ['hair.elasticity', 'élasticité'], ['hair.scalpCondition', 'état du cuir chevelu'], ['hair.scalpConcerns', 'signes du cuir chevelu'], ['hair.chemicalTreatments', 'traitements chimiques'], ['hair.coloring', 'coloration'], ['hair.protectiveStyles', 'styles protecteurs'], ['hair.washFrequency', 'fréquence de lavage'], ['hair.stylingHabits', 'habitudes de coiffage'], ['hair.availableTime', 'temps disponible'], ['hair.budget', 'budget']
 ];
 // C0 INFRA — taxonomie peau figée P0 : 13 champs historiques + 9 champs diagnostic (skinType → ageRange)
 // Total 22 champs peau évalués pour confidence. `journal` et `reactionHistory` exclus (traçage, pas profil).

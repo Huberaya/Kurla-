@@ -76,11 +76,12 @@ const maximalProfile = normalizeBeautyProfile({
     curlPattern: 'spirales',
     dryness: 'forte',
     frizz: 'frequents',
+    facialHair: 'dense',
     breakage: 'frequente',
     scalpConcerns: ['demangeaisons'],
     protectiveStyles: ['tresses', 'locks', 'perruque'],
     texturePatterns: ['locks'],
-    stylingHabits: ['wash_and_go', 'chaleur']
+    stylingHabits: ['wash_and_go', 'chaleur', 'demelage']
   },
   skin: {
     spfUsage: 'jamais',

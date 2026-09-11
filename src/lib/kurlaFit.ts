@@ -39,9 +39,11 @@ export const RECOGNIZED_NEED_CODES = [
   'reduire_casse',
   'definir_boucles',
   'reduire_frisottis',
+  'demeler_cheveux',
   'cuir_chevelu',
   'apaiser_cuir_chevelu',
   'proteger_chaleur',
+  'barbe',
   'entretenir_tresses',
   'entretenir_locks',
   'entretenir_perruque',
@@ -146,6 +148,34 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
           addEvidence('hair.stylingHabits', 'Habitudes de coiffage', hair.stylingHabits.join(', '), 'l’usage d’outils chauffants crée le besoin');
           addEvidence('hair.fiberCondition', 'État de la fibre', hair.fiberCondition, 'il détermine le niveau de protection requis');
           reasons.push('Protection thermique reliée à l’usage déclaré d’outils chauffants, pas à une supposition sur le coiffage.');
+        }
+        return match;
+      }
+      case 'demeler_cheveux': {
+        /**
+         * Fondé sur l'habitude déclarée, pas sur la texture : un cheveu très
+         * bouclé n'appelle pas automatiquement un démêlant si la personne ne
+         * démêle pas.
+         */
+        const match = hair.stylingHabits.includes('demelage');
+        if (match) {
+          addEvidence('hair.stylingHabits', 'Habitudes de coiffage', hair.stylingHabits.join(', '), 'le démêlage déclaré crée le besoin');
+          addEvidence('hair.breakage', 'Casse', hair.breakage, 'elle détermine la prudence requise au démêlage');
+          reasons.push('Démêlage relié à l’habitude déclarée, la casse n’étant citée que comme niveau de précaution.');
+        }
+        return match;
+      }
+      case 'barbe': {
+        /**
+         * Champ dédié. Le besoin `barbe` figurait au vocabulaire contrôlé sans
+         * qu'aucun champ du profil ne permette de l'établir : tout produit
+         * « barbe » était compté au dénominateur sans jamais pouvoir être
+         * satisfait. Le déduire du genre aurait été une supposition.
+         */
+        const match = hasAny([hair.facialHair], ['leger', 'moderee', 'dense']);
+        if (match) {
+          addEvidence('hair.facialHair', 'Pilosité faciale', hair.facialHair, 'elle établit le besoin de soin de la barbe');
+          reasons.push('Soin de la barbe relié à la pilosité faciale déclarée, jamais déduit du genre.');
         }
         return match;
       }
