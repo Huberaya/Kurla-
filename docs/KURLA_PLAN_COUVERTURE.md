@@ -1648,6 +1648,51 @@ Banc `tests/kurla_auth_errors.test.ts`. Contrôle négatif vérifié par le code
 
 `npm run build` **exit 0** · `npm test` **exit 0, 114 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · inscription et connexion réelles testées contre la production.
 
+## COMPLÉMENT — RECOMMANDATIONS : ADÉQUATION AU STYLE PORTÉ
+
+### Le défaut, lu dans le code
+
+`kurlaFit.ts` :
+
+```ts
+const score = needs.length > 0 ? Math.round((needs.length - unmetNeeds.length) / needs.length * 100) : null;
+```
+
+Un **ratio booléen**. Chaque besoin compte pareil. Un produit portant un seul besoin couvert score 100 ; un produit pertinent sur deux besoins sur trois score 67. Le moteur sait dire « ce produit correspond », pas « c'est le bon conseil pour cette coiffure ».
+
+Deux chaînons manquaient, vérifiés par grep :
+- `protectiveStyle.ts` modélise le risque de traction, mais **ni `kurlaFit.ts` ni `recommendationEngine.ts` ne l'importent** ;
+- `outcomeEvidence.ts` déclare un signal **`buildup`** (« Résidus accumulés »), mais `learnIngredientWeights` ne lisait que `valence` : un résidu et une simple insatisfaction pesaient pareil.
+
+### Ce qui a été ajouté
+
+`src/lib/styleFit.ts` — n'invente aucune propriété cosmétique. Il n'utilise que le style déclaré (`hair.protectiveStyles`, `hair.texturePatterns`), le rôle du produit dans la routine (`routineStep`, déjà au catalogue) et les retours d'usage.
+
+- **Besoins centraux vs secondaires** : sous locks, `entretenir_locks` et `cuir_chevelu` dominent (+22), les autres restent utiles (+8).
+- **Erreurs de catégorie** nommées, pas seulement pénalisées (−45) : « Vous portez des locks : *definir_boucles* ne s'applique pas à ce style. » On ne définit pas des locks.
+- **Risque de résidu** (−18) pour les étapes sans rinçage complet sous locks, **avec la limite affichée** : le caractère occlusif n'est déclaré nulle part au catalogue, la mise en garde se fonde sur le rôle du produit, pas sur une propriété mesurée.
+- **Priorité cuir chevelu** (+12) pour `cleanse` et `scalp_treatment` : sous locks, c'est la seule zone réellement accessible et rinçable.
+- **`signalWeight`** : un retour `buildup` ou `product_heavy` compte double sous locks — ce mode d'échec ne se corrige pas en changeant de produit, il s'accumule.
+
+Câblé dans `buildRecommendations` sous un nouveau `AdjustmentKind: 'style'`, avec `limitation` ajouté à `Adjustment`. `EngineResult` expose `styleContext` et le résumé l'énonce.
+
+### Ce qui n'a PAS été fait
+
+Le **score de base reste un ratio booléen**. Cette couche réordonne ; elle ne remplace pas `calculateKurlaFit`, couvert par `tests/brand_test.test.ts`. Un besoin central pèse désormais plus, mais deux besoins centraux ne valent toujours pas le double d'un seul dans le score brut.
+
+### Vérification
+
+Banc comportemental `tests/kurla_style_fit.test.ts` — il exécute `buildRecommendations`, pas une réimplémentation :
+- sous locks, le nettoyant **précède** le définisseur de boucles ;
+- l'erreur de catégorie est **nommée** et cite le champ du profil ;
+- la mise en garde résidu porte sa **limite** ;
+- **sans style déclaré, aucun écart de style** (non-régression) ;
+- `buildup` pèse davantage sous locks (`locks=-4`, `aucun=-2`).
+
+Contrôle négatif vérifié par le code de sortie et le message lu : câblage retiré → `exit=1`, `le définisseur doit porter un écart négatif de style`. Fichier restauré (`diff -q` identique).
+
+`npm run build` **exit 0** · `npm test` **exit 0, 115 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

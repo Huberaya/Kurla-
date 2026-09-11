@@ -15,6 +15,7 @@
  */
 
 import { calculateKurlaFit, KurlaFitResult } from './kurlaFit';
+import { assessStyleFit, detectStyleContext, signalWeight, StyleContext } from './styleFit';
 import { BeautyProfile } from './beautyProfile';
 import { findConflicts, ConflictFinding, IncompatibilityRule, JurisdictionRestriction } from './ingredientGraph';
 import { assessProductCompliance } from './jurisdiction';
@@ -67,7 +68,8 @@ export type AdjustmentKind =
   | 'budget'
   | 'out_of_stock'
   | 'conflict'
-  | 'jurisdiction';
+  | 'jurisdiction'
+  | 'style';
 
 export interface Adjustment {
   kind: AdjustmentKind;
@@ -75,6 +77,11 @@ export interface Adjustment {
   reason: string;
   /** Preuve citable. Sans elle, l'ajustement n'est pas explicable. */
   evidenceId?: string;
+  /**
+   * Ce que KURLA ne peut pas établir. Un avertissement fondé sur le rôle d'un
+   * produit et non sur une propriété mesurée doit le dire.
+   */
+  limitation?: string;
 }
 
 export interface Recommendation {
@@ -102,6 +109,8 @@ export interface UsageCost {
 
 export interface EngineResult {
   recommendations: Recommendation[];
+  /** Style porté ayant influencé le classement. `aucun` si non déclaré. */
+  styleContext: StyleContext;
   /** Conflits détectés dans le panier recommandé. */
   conflicts: ConflictFinding[];
   /** Étapes de routine non couvertes par le Shelf ni par la recommandation. */
@@ -171,8 +180,15 @@ export interface LearnedWeight {
 /**
  * Pondérations apprises depuis les observations de l'utilisateur, agrégées par
  * ingrédient. Ce sont SES résultats, pas ceux d'une cohorte.
+ *
+ * `context` distingue la nature du signal : un « résidus accumulés » sous
+ * locks n'a pas le même poids qu'une simple insatisfaction, parce qu'il ne se
+ * corrige pas en changeant de produit au prochain achat — il s'accumule.
  */
-export function learnIngredientWeights(observations: Iterable<OutcomeObservation>): Map<string, LearnedWeight> {
+export function learnIngredientWeights(
+  observations: Iterable<OutcomeObservation>,
+  context: StyleContext = 'aucun'
+): Map<string, LearnedWeight> {
   const weights = new Map<string, LearnedWeight>();
   const sorted = Array.from(observations).sort(
     (a, b) => new Date(b.observedAt).getTime() - new Date(a.observedAt).getTime()
@@ -187,8 +203,9 @@ export function learnIngredientWeights(observations: Iterable<OutcomeObservation
       observationCount: 0,
       latestObservationId: observation.id
     };
-    if (observation.valence > 0) entry.positive += 1;
-    else if (observation.valence < 0) entry.negative += 1;
+    const weight = signalWeight(observation.signal, context);
+    if (observation.valence > 0) entry.positive += weight;
+    else if (observation.valence < 0) entry.negative += weight;
     entry.observationCount += 1;
     entry.net = entry.positive - entry.negative;
     weights.set(observation.ingredientId, entry);
@@ -256,7 +273,8 @@ function surplusStep(product: EngineProduct, shelf: ShelfItem[]): { step: Routin
  * ajustements : un score final sans trace n'est pas acceptable.
  */
 export function buildRecommendations(catalog: Iterable<EngineProduct>, context: EngineContext): EngineResult {
-  const weights = learnIngredientWeights(context.observations);
+  const styleContext = detectStyleContext(context.profile);
+  const weights = learnIngredientWeights(context.observations, styleContext);
   const avoided = new Set(context.avoidedIngredientIds || []);
   const recommendations: Recommendation[] = [];
 
@@ -302,6 +320,22 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
         kind: 'surplus',
         delta: -35,
         reason: `Vous avez déjà ${surplus.count} produits ouverts pour l’étape « ${surplus.step} ». Terminez-en un avant d’en ajouter.`
+      });
+    }
+
+    // --- Adéquation au style porté ----------------------------------------
+    // Le score de base est un ratio booléen : il ne distingue pas un besoin
+    // central d'un besoin marginal, et ne détecte pas les erreurs de
+    // catégorie. Cette couche réordonne sans jamais rendre recommandable un
+    // produit écarté par une règle de sécurité.
+    const styleFit = assessStyleFit(product, context.profile);
+    for (const adjustment of styleFit.adjustments) {
+      adjustments.push({
+        kind: 'style',
+        delta: adjustment.delta,
+        reason: adjustment.reason,
+        evidenceId: adjustment.evidence,
+        limitation: adjustment.limitation
       });
     }
 
@@ -450,12 +484,15 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
     summary = 'Aucun produit à recommander : votre étagère couvre déjà vos besoins, ou le catalogue disponible ne contient rien d’assez vérifiable pour vous.';
   } else {
     summary = `${available.length} produit(s) recommandé(s)${excludedCount > 0 ? `, ${excludedCount} écarté(s)` : ''}.`;
+    if (styleContext !== 'aucun' && styleContext !== 'autre_protege') {
+      summary += ` Classement établi pour le port de ${styleContext}.`;
+    }
     if (learnedCount > 0) {
       summary += ` ${learnedCount} recommandation(s) ont été modifiée(s) par vos propres retours d’usage.`;
     }
   }
 
-  return { recommendations: ranked, conflicts, uncoveredSteps, summary };
+  return { recommendations: ranked, conflicts, uncoveredSteps, summary, styleContext };
 }
 
 /**
