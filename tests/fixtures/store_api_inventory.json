@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "generatedAt": "2026-09-11T14:46:29.341Z",
+=======
+  "generatedAt": "2026-09-11T15:09:24.594Z",
+>>>>>>> e7f51c4 (Robustesse — la suite de tests ne pouvait pas se terminer)
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
