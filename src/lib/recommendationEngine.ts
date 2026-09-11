@@ -15,7 +15,7 @@
  */
 
 import { calculateKurlaFit, KurlaFitResult } from './kurlaFit';
-import { assessStyleFit, assessOpenEpisode, detectStyleContext, signalWeight, StyleContext } from './styleFit';
+import { assessStyleFit, assessOpenEpisode, assessWigFit, detectStyleContext, signalWeight, StyleContext, CareTarget } from './styleFit';
 import { ProtectiveStyleEpisode } from './protectiveStyle';
 import { BeautyProfile } from './beautyProfile';
 import { findConflicts, ConflictFinding, IncompatibilityRule, JurisdictionRestriction } from './ingredientGraph';
@@ -107,6 +107,12 @@ export interface Recommendation {
   unmetNeeds: string[];
   /** Coût d'usage réel quand le rendement est déclaré, sinon null. */
   usageCost: UsageCost | null;
+  /**
+   * CHANTIER C — sous perruque, l'objet de soin servi : la perruque, ou le
+   * cuir chevelu dessous. Un conseil qui ne dit pas lequel s'adresse à quoi ne
+   * peut pas être évalué par l'utilisateur.
+   */
+  careTarget?: CareTarget | null;
 }
 
 export interface UsageCost {
@@ -357,6 +363,18 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
       });
     }
 
+    // --- Perruque : deux objets de soin (chantier C) ---------------------
+    const wigFit = assessWigFit(product, context.profile);
+    for (const adjustment of wigFit.adjustments) {
+      adjustments.push({
+        kind: 'style',
+        delta: adjustment.delta,
+        reason: adjustment.reason,
+        evidenceId: adjustment.evidence,
+        limitation: adjustment.limitation
+      });
+    }
+
     // --- Risque de traction (chantier B) --------------------------------
     const tractionFit = assessOpenEpisode(product, context.protectiveEpisode);
     if (tractionFit) {
@@ -464,7 +482,8 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
       exclusionReason,
       baseReasons: fit?.reasons ?? [],
       unmetNeeds: fit?.unmetNeeds ?? [],
-      usageCost: computeUsageCost(product)
+      usageCost: computeUsageCost(product),
+      careTarget: wigFit.careTarget
     });
   }
 

@@ -324,3 +324,97 @@ export function assessOpenEpisode(
   if (!episode || !isOpenEpisode(episode)) return null;
   return assessTractionFit(product, assessTractionRisk(episode, now));
 }
+
+// ---------------------------------------------------------------------------
+// CHANTIER C — perruque : deux objets de soin, pas un
+// ---------------------------------------------------------------------------
+
+/**
+ * Sous perruque, il y a **deux** objets de soin et le moteur les confondait :
+ *
+ *  1. **la perruque** — fibre synthétique ou naturelle, lace, colles. C'est ce
+ *     que vise `entretenir_perruque`.
+ *  2. **le cuir chevelu et le cheveu dessous** — occlus, non lavés ni séchés
+ *     normalement, soumis à la tension du lace et de la colle sur les lisières.
+ *
+ * Recommander un shampooing pour perruque à quelqu'un dont le problème est un
+ * cuir chevelu qui démange sous un lace front est une erreur, et réciproquement.
+ * Le moteur doit dire **lequel des deux** il sert.
+ */
+export type CareTarget = 'la fibre' | 'la perruque' | 'le cuir chevelu sous la perruque' | 'le cuir chevelu';
+
+const WIG_TARGET_NEEDS: Record<string, CareTarget> = {
+  entretenir_perruque: 'la perruque',
+  cuir_chevelu: 'le cuir chevelu sous la perruque',
+  apaiser_cuir_chevelu: 'le cuir chevelu sous la perruque',
+  hydrater_cheveux: 'la fibre'
+};
+
+/**
+ * Étapes dont le produit reste **contre le cuir chevelu** sans ventilation.
+ *
+ * Le mécanisme diffère de celui des locks : sous locks le résidu reste dans la
+ * mèche ; sous perruque il reste plaqué contre le cuir chevelu, dans un milieu
+ * chaud et humide qui ne sèche pas. Ni l'un ni l'autre ne part au lavage
+ * suivant, puisque le lavage n'a pas lieu.
+ */
+const OCCLUDED_SCALP_STEPS = ['leave_in', 'seal_oil', 'scalp_treatment', 'styling_definer'];
+
+export const OCCLUSION_LIMITATION =
+  'Sous perruque, le cuir chevelu n’est ni lavé ni séché normalement. Le caractère occlusif de la formule n’étant déclaré nulle part au catalogue, cette mise en garde se fonde sur le rôle du produit et sur l’occlusion, pas sur une propriété mesurée.';
+
+export const WIG_CARE_TARGET_BONUS = 14;
+export const WIG_OCCLUSION_CAUTION = 16;
+
+export interface WigFitResult {
+  adjustments: StyleAdjustment[];
+  /** L'objet de soin servi, nommé. `null` si le produit ne sert aucun des deux. */
+  careTarget: CareTarget | null;
+}
+
+/**
+ * Évalue un produit pour une personne portant une perruque.
+ *
+ * Ne tranche pas entre les deux objets : les deux sont légitimes. Il les
+ * **nomme**, parce qu'un conseil qui ne dit pas s'il s'adresse à la perruque ou
+ * au cuir chevelu dessous est un conseil que l'utilisateur ne peut pas évaluer.
+ */
+export function assessWigFit(
+  product: { needs?: string[]; concerns?: string[]; routineStep?: string },
+  profile: BeautyProfile | undefined
+): WigFitResult {
+  if (detectStyleContext(profile) !== 'perruque') return { adjustments: [], careTarget: null };
+
+  const needs = Array.from(new Set([...(product.needs || []), ...(product.concerns || [])]));
+  const step = product.routineStep || '';
+  const adjustments: StyleAdjustment[] = [];
+
+  const served = needs.map(need => WIG_TARGET_NEEDS[need]).filter((target): target is CareTarget => Boolean(target));
+  const careTarget = served[0] ?? null;
+
+  if (careTarget) {
+    adjustments.push({
+      delta: WIG_CARE_TARGET_BONUS,
+      reason:
+        careTarget === 'la perruque'
+          ? 'Ce produit s’adresse à la perruque elle-même — fibre, lace, résidus de colle — pas au cuir chevelu dessous.'
+          : careTarget === 'le cuir chevelu sous la perruque'
+            ? 'Ce produit s’adresse au cuir chevelu sous la perruque, la zone occluse. Il ne traite pas la perruque elle-même.'
+            : 'Ce produit s’adresse à la fibre découverte, pas à la perruque ni au cuir chevelu occlus.',
+      evidence: `besoins déclarés = ${needs.join(', ')}`
+    });
+  }
+
+  if (OCCLUDED_SCALP_STEPS.includes(step)) {
+    adjustments.push({
+      delta: -WIG_OCCLUSION_CAUTION,
+      reason:
+        `Cette étape (${step.replaceAll('_', ' ')}) laisse un produit sur le cuir chevelu. Sous perruque, il reste plaqué dans un milieu chaud et humide qui ne sèche pas. ` +
+        'Préférez une texture fluide, en quantité mesurée, et retirez la perruque la nuit quand c’est possible.',
+      evidence: `routineStep = ${step}`,
+      limitation: OCCLUSION_LIMITATION
+    });
+  }
+
+  return { adjustments, careTarget };
+}

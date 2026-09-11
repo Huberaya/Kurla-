@@ -1791,6 +1791,42 @@ Contrôle négatif vérifié par le code de sortie et le message lu : branchemen
 
 `npm run build` **exit 0** · `npm test` **exit 0, 117 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
 
+## CHANTIER C — PERRUQUE : DEUX OBJETS DE SOIN, PAS UN
+
+### Le défaut
+
+`entretenir_perruque` vise **la perruque** — fibre, lace, colles. `cuir_chevelu` vise **ce qu'il y a dessous**, occlus. Le moteur les traitait comme deux besoins équivalents : recommander un shampooing pour perruque à quelqu'un dont le cuir chevelu démange sous un lace front est une erreur, et l'inverse aussi.
+
+### Ce qui a été ajouté
+
+`assessWigFit` nomme l'objet de soin servi et l'expose sur chaque recommandation (`Recommendation.careTarget`) :
+
+| Besoin | Objet nommé |
+| --- | --- |
+| `entretenir_perruque` | la perruque |
+| `cuir_chevelu`, `apaiser_cuir_chevelu` | le cuir chevelu sous la perruque |
+| `hydrater_cheveux` | la fibre |
+
+Un produit qui ne sert aucun des deux porte `careTarget: null`.
+
+**Occlusion** (−16) pour les étapes laissant un produit sur le cuir chevelu. Le mécanisme est **différent** de celui des locks et le code le dit : sous locks le résidu reste dans la mèche ; sous perruque il reste plaqué contre le cuir chevelu, dans un milieu chaud et humide qui ne sèche pas. Ni l'un ni l'autre ne part au lavage suivant, puisque le lavage n'a pas lieu. Limite affichée : le caractère occlusif n'est déclaré nulle part au catalogue.
+
+Un produit **rincé** (shampooing pour perruque) ne porte pas cette mise en garde — vérifié.
+
+### Vérification
+
+Banc `tests/kurla_wig_fit.test.ts`, comportemental sur `buildRecommendations` :
+- shampooing perruque → `careTarget: 'la perruque'` ; sérum → `'le cuir chevelu sous la perruque'` ; définisseur de boucles → `null` ;
+- le motif est **lisible dans la raison**, pas seulement dans un champ interne ;
+- occlusion signalée avec sa limite sur le sérum et le leave-in, **absente** sur le produit rincé ;
+- `definir_boucles` reste une erreur de catégorie sous perruque ;
+- `DEFAULT_MAX_WEAR_DAYS.wig = 14` **mord** : une perruque portée 20 jours priorise le cuir chevelu via le chantier B ;
+- sans perruque déclarée : aucun `careTarget`, aucune mise en garde d'occlusion.
+
+Contrôle négatif vérifié par le code de sortie : branchement retiré → `exit=1`. Fichier restauré (`diff -q` identique).
+
+`npm run build` **exit 0** · `npm test` **120 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** (lancé séparément : la chaîne `npm test` se termine par `tsc` avec `--max-old-space-size=3072`, et sur une machine à 1984 Mo le tueur OOM l'abat — 1200 Mo suffit).
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
