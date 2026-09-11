@@ -104,6 +104,7 @@ import * as returnsStore from './db/returnsStore';
 import * as adminStore from './db/adminStore';
 import * as catalogStore from './db/catalogStore';
 import * as skinCatalogStore from './db/skinCatalogStore';
+import * as skinEvidenceStore from './db/skinEvidenceStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as prospectStore from './db/prospectStore';
@@ -229,6 +230,8 @@ export class SupabaseServerStore {
   public getAdminCatalogProducts!: Curried<typeof catalogStore>['getAdminCatalogProducts'];
   public getCatalogSourcingReadinessReport!: Curried<typeof catalogStore>['getCatalogSourcingReadinessReport'];
   public getSkinCatalogReadinessReport!: Curried<typeof skinCatalogStore>['getSkinCatalogReadinessReport'];
+  public listSkinPhotoprotectionEvidence!: Curried<typeof skinEvidenceStore>['listSkinPhotoprotectionEvidence'];
+  public addSkinPhotoprotectionEvidence!: Curried<typeof skinEvidenceStore>['addSkinPhotoprotectionEvidence'];
   // CHANTIER 16A — fournisseurs. Les helpers purs (normalizeSupplierName,
   // supplierIdFromName) ne sont volontairement **pas** liés : bindDomain
   // curryfie le premier argument, une fonction pure liée deviendrait une
@@ -330,6 +333,7 @@ export class SupabaseServerStore {
   public inMemoryAdminCoupons: any[] = [];
   public inMemoryAdminSearchEvents: Array<{ id: string; query: string; resultCount: number; country?: string; userId?: string; createdAt: string }> = [];
   public inMemoryAdminAiUsageEvents: Array<{ id: string; requestType: string; succeeded: boolean; userId?: string; createdAt: string }> = [];
+  public inMemorySkinPhotoprotectionEvidence: any[] = [];
   // CHANTIER 8.3 — KURLA PROGRESSION (repli mémoire ; avec Supabase, la RPC
   // apply_loyalty_event est la seule source de vérité)
   public inMemoryLoyaltyAccounts: Map<string, LoyaltyAccountRecord> = new Map();
@@ -435,6 +439,10 @@ bindDomain(storeInstance, returnsStore);
 bindDomain(storeInstance, adminStore);
 bindDomain(storeInstance, catalogStore);
 bindDomain(storeInstance, skinCatalogStore);
+bindDomain(storeInstance, {
+  listSkinPhotoprotectionEvidence: skinEvidenceStore.listSkinPhotoprotectionEvidence,
+  addSkinPhotoprotectionEvidence: skinEvidenceStore.addSkinPhotoprotectionEvidence,
+});
 // Sous-ensemble explicite : voir le commentaire des déclarations ci-dessus.
 bindDomain(storeInstance, {
   listSuppliers: supplierStore.listSuppliers,
@@ -511,6 +519,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof adminStore>
   & Curried<typeof catalogStore>
   & Curried<typeof skinCatalogStore>
+  & Curried<typeof skinEvidenceStore>
   & Curried<typeof contentStore>
   & Curried<typeof inventoryStore>
   & Curried<typeof orderStore>

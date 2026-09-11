@@ -191,6 +191,29 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   }));
 
   /**
+   * C5 — pièces photoprotection rattachées au SKU. Les preuves sont
+   * administratives et ne sont jamais exposées au catalogue public.
+   */
+  app.get('/api/admin/catalog/skin-evidence', rateLimit('admin-catalog-skin-evidence', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const productId = typeof req.query.productId === 'string' ? req.query.productId.trim() : undefined;
+    const evidence = await serverDb.listSkinPhotoprotectionEvidence(productId);
+    res.json({ evidence, count: evidence.length });
+  }));
+
+  app.post('/api/admin/catalog/skin-evidence', rateLimit('admin-catalog-skin-evidence-write', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const evidence = await serverDb.addSkinPhotoprotectionEvidence(admin.id, req.body || {});
+      res.status(201).json({ evidence });
+    } catch (error) {
+      res.status(400).json({ error: safeApiError(error, 'Preuve photoprotection invalide ou non traçable.') });
+    }
+  }));
+
+  /**
    * CHANTIER 10 (bloc B3) — vocabulaires contrôlés, publics.
    *
    * Une liste fermée que le client ne peut pas lire est une liste que personne

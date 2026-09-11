@@ -153,10 +153,16 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         activeIngredients: p.active_ingredients || [],
         activeConcentrationsStatus: p.active_concentrations_status || 'not_provided',
         finish: p.skin_finish,
+        spfUvaEvidenceStatus: p.spf_uva_evidence_status || 'not_provided',
+        photoprotectionEvidenceStatus: p.photoprotection_evidence_status || 'not_provided',
         whitecastRisk: p.whitecast_risk,
         whitecastTestStatus: p.whitecast_test_status || 'not_provided',
         testedPhototypes: p.tested_phototypes || [],
+        testedLights: p.tested_lights || [],
+        visibleLightTestStatus: p.visible_light_test_status || 'not_provided',
+        visibleLightClaim: p.visible_light_claim === true,
         testedUndertones: p.tested_undertones || [],
+        undertoneEvidenceStatus: p.undertone_evidence_status || 'not_provided',
         inciVisibilityStatus: p.inci_visibility_status || 'not_provided',
         manufacturingStatus: p.manufacturing_status || 'not_provided',
         lotReference: p.lot_reference,
@@ -681,6 +687,12 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
         ? (source.activeConcentrationsStatus || source.active_concentrations_status)
         : 'not_provided',
       finish: text(source.finish || source.skinFinish || source.skin_finish, 240),
+      spfUvaEvidenceStatus: ['verified', 'pending', 'not_provided'].includes(source.spfUvaEvidenceStatus || source.spf_uva_evidence_status)
+        ? (source.spfUvaEvidenceStatus || source.spf_uva_evidence_status)
+        : 'not_provided',
+      photoprotectionEvidenceStatus: ['verified', 'pending', 'not_provided'].includes(source.photoprotectionEvidenceStatus || source.photoprotection_evidence_status)
+        ? (source.photoprotectionEvidenceStatus || source.photoprotection_evidence_status)
+        : 'not_provided',
       whitecastRisk: ['none', 'low', 'medium', 'high', 'not_tested'].includes(source.whitecastRisk || source.whitecast_risk)
         ? (source.whitecastRisk || source.whitecast_risk)
         : undefined,
@@ -688,7 +700,15 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
         ? (source.whitecastTestStatus || source.whitecast_test_status)
         : 'not_provided',
       testedPhototypes: array(source.testedPhototypes || source.tested_phototypes),
+      testedLights: array(source.testedLights || source.tested_lights),
+      visibleLightTestStatus: ['verified', 'pending', 'not_provided', 'not_applicable'].includes(source.visibleLightTestStatus || source.visible_light_test_status)
+        ? (source.visibleLightTestStatus || source.visible_light_test_status)
+        : 'not_provided',
+      visibleLightClaim: parseBoolean(source.visibleLightClaim ?? source.visible_light_claim, false),
       testedUndertones: array(source.testedUndertones || source.tested_undertones),
+      undertoneEvidenceStatus: ['verified', 'pending', 'not_provided'].includes(source.undertoneEvidenceStatus || source.undertone_evidence_status)
+        ? (source.undertoneEvidenceStatus || source.undertone_evidence_status)
+        : 'not_provided',
       inciVisibilityStatus: ['verified', 'pending', 'not_provided'].includes(source.inciVisibilityStatus || source.inci_visibility_status)
         ? (source.inciVisibilityStatus || source.inci_visibility_status)
         : 'not_provided',
@@ -878,10 +898,16 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         active_ingredients: normalized.activeIngredients,
         active_concentrations_status: normalized.activeConcentrationsStatus,
         skin_finish: normalized.finish || null,
+        spf_uva_evidence_status: normalized.spfUvaEvidenceStatus,
+        photoprotection_evidence_status: normalized.photoprotectionEvidenceStatus,
         whitecast_risk: normalized.whitecastRisk || null,
         whitecast_test_status: normalized.whitecastTestStatus,
         tested_phototypes: normalized.testedPhototypes,
+        tested_lights: normalized.testedLights,
+        visible_light_test_status: normalized.visibleLightTestStatus,
+        visible_light_claim: normalized.visibleLightClaim,
         tested_undertones: normalized.testedUndertones,
+        undertone_evidence_status: normalized.undertoneEvidenceStatus,
         inci_visibility_status: normalized.inciVisibilityStatus,
         manufacturing_status: normalized.manufacturingStatus,
         lot_reference: normalized.lotReference || null,

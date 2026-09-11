@@ -155,10 +155,16 @@ export interface Product {
   texture?: string;
   finish?: string;
   fragrance?: string;
+  spfUvaEvidenceStatus?: 'verified' | 'pending' | 'not_provided';
+  photoprotectionEvidenceStatus?: 'verified' | 'pending' | 'not_provided';
   whitecastRisk?: 'none' | 'low' | 'medium' | 'high' | 'not_tested';
   whitecastTestStatus?: 'verified' | 'pending' | 'not_provided';
   testedPhototypes?: string[];
+  testedLights?: string[];
+  visibleLightTestStatus?: 'verified' | 'pending' | 'not_provided' | 'not_applicable';
+  visibleLightClaim?: boolean;
   testedUndertones?: string[];
+  undertoneEvidenceStatus?: 'verified' | 'pending' | 'not_provided';
   inciVisibilityStatus?: 'verified' | 'pending' | 'not_provided';
   manufacturingStatus?: 'verified' | 'pending' | 'not_provided';
   lotReference?: string;

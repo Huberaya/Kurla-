@@ -74,9 +74,11 @@ Pour toute fiche identifiée comme SPF/solaire :
 - risque whitecast noté (`none`, `low`, `medium` ou `high`) ;
 - notation whitecast vérifiée ;
 - phototypes **IV, V et VI** effectivement testés ;
-- si produit teinté : sous-tons testés et renseignés.
+- conditions de lumière testées, dont une lumière du jour ;
+- statut lumière visible explicite : test vérifié si revendiquée ou si teinté, sinon `not_applicable` ;
+- si produit teinté : sous-tons testés et renseignés, avec preuve rattachée.
 
-Aucun “phototype safe”, “invisible” ou équivalent ne doit être déduit du nom du produit.
+Le dossier détaillé C5 est défini dans [`docs/C5_MELANIN_HPI_PHOTOPROTECTION.md`](C5_MELANIN_HPI_PHOTOPROTECTION.md). Aucun “phototype safe”, “invisible” ou équivalent ne doit être déduit du nom du produit.
 
 ## Porte d’acceptation
 

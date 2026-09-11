@@ -64,10 +64,15 @@ ok('un SPF doit prouver whitecast, phototypes IV–VI et sous-tons teintés', ()
     routineStep: 'SPF 50+',
     concerns: ['protection_solaire'],
     isTinted: true,
+    spfUvaEvidenceStatus: 'verified',
+    photoprotectionEvidenceStatus: 'verified',
     whitecastRisk: 'low',
     whitecastTestStatus: 'verified',
     testedPhototypes: ['IV', 'V', 'VI'],
+    testedLights: ['daylight_indirect', 'indoor_visible'],
+    visibleLightTestStatus: 'verified',
     testedUndertones: ['neutre', 'chaud', 'froid'],
+    undertoneEvidenceStatus: 'verified',
   };
   assert.equal(evaluateSkinMetadata(spf).complete, true);
   const missing = evaluateSkinMetadata({ ...spf, testedPhototypes: ['I', 'II', 'III'] });

@@ -77,10 +77,15 @@ export const SKIN_REQUIRED_METADATA: readonly SkinMetadataField[] = [
   { field: 'country_availability', label: 'pays autorisés', requiredFor: 'all' },
   { field: 'image_rights', label: 'packshot sous droits', requiredFor: 'all' },
   { field: 'stock', label: 'stock positif vérifié', requiredFor: 'all' },
+  { field: 'spf_uva_evidence_status', label: 'preuve SPF/UVA traçable et relue', requiredFor: 'spf' },
+  { field: 'photoprotection_evidence_status', label: 'dossier photoprotection rattaché au SKU', requiredFor: 'spf' },
   { field: 'whitecast_risk', label: 'risque whitecast noté', requiredFor: 'spf' },
   { field: 'whitecast_test_status', label: 'notation whitecast vérifiée', requiredFor: 'spf' },
   { field: 'tested_phototypes', label: 'phototypes IV–VI testés', requiredFor: 'spf' },
+  { field: 'tested_lights', label: 'lumières de test renseignées', requiredFor: 'spf' },
+  { field: 'visible_light_test_status', label: 'lumière visible : test ou non-applicable explicite', requiredFor: 'spf' },
   { field: 'tested_undertones', label: 'sous-tons testés si teinté', requiredFor: 'spf' },
+  { field: 'undertone_evidence_status', label: 'preuve sous-tons rattachée si teinté', requiredFor: 'spf' },
 ] as const;
 
 function read(product: any, camel: string, snake = camel): unknown {
@@ -214,6 +219,8 @@ function metadataPresence(product: any, field: string, isSpf: boolean): boolean 
     case 'country_availability': return array(product, 'countryAvailability', 'country_availability').length > 0;
     case 'image_rights': return hasTrustedImage(product);
     case 'stock': return hasPositiveStock(product);
+    case 'spf_uva_evidence_status': return !isSpf || hasVerifiedValue(product, 'spfUvaEvidenceStatus', 'spf_uva_evidence_status');
+    case 'photoprotection_evidence_status': return !isSpf || hasVerifiedValue(product, 'photoprotectionEvidenceStatus', 'photoprotection_evidence_status');
     case 'whitecast_risk': return isSpf && ['none', 'low', 'medium', 'high'].includes(text(product, 'whitecastRisk', 'whitecast_risk'));
     case 'whitecast_test_status': return !isSpf || hasVerifiedValue(product, 'whitecastTestStatus', 'whitecast_test_status');
     case 'tested_phototypes': {
@@ -221,7 +228,20 @@ function metadataPresence(product: any, field: string, isSpf: boolean): boolean 
       const phototypes = new Set(array(product, 'testedPhototypes', 'tested_phototypes').map(value => String(value).toUpperCase().replace('FITZPATRICK ', '')));
       return ['IV', 'V', 'VI'].every(value => phototypes.has(value));
     }
+    case 'tested_lights': {
+      if (!isSpf) return true;
+      const lights = array(product, 'testedLights', 'tested_lights').map(value => String(value).toLowerCase());
+      return lights.includes('daylight_indirect') || lights.includes('daylight_direct') || lights.includes('daylight');
+    }
+    case 'visible_light_test_status': {
+      if (!isSpf) return true;
+      const status = text(product, 'visibleLightTestStatus', 'visible_light_test_status');
+      return isTintedProduct(product) || boolean(product, 'visibleLightClaim', 'visible_light_claim')
+        ? status === 'verified'
+        : status === 'verified' || status === 'not_applicable';
+    }
     case 'tested_undertones': return !isSpf || !isTintedProduct(product) || array(product, 'testedUndertones', 'tested_undertones').length > 0;
+    case 'undertone_evidence_status': return !isSpf || !isTintedProduct(product) || hasVerifiedValue(product, 'undertoneEvidenceStatus', 'undertone_evidence_status');
     default: return false;
   }
 }
