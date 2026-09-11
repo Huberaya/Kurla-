@@ -65,9 +65,18 @@ async function main(): Promise<void> {
   // banc affiche alors exactement ce qui change, pour que la mise à jour de la
   // référence reste un acte conscient et non un réflexe.
   if (process.env.KURLA_UPDATE_FIXTURE === '1') {
-    const previous = existsSync(FIXTURE)
-      ? (JSON.parse(readFileSync(FIXTURE, 'utf8')) as { methods: string[] }).methods
-      : [];
+    // Un fichier de référence abîmé — marqueurs de conflit laissés par une
+    // fusion, par exemple — faisait échouer la régénération à la lecture,
+    // avant l'écriture : l'outil censé réparer le fichier était bloqué par
+    // le fichier. On le lit donc sans exiger qu'il soit valide.
+    let previous: string[] = [];
+    if (existsSync(FIXTURE)) {
+      try {
+        previous = (JSON.parse(readFileSync(FIXTURE, 'utf8')) as { methods: string[] }).methods;
+      } catch {
+        console.warn('[WARN] Inventaire illisible (conflit de fusion ou JSON tronqué) — régénéré depuis le code.');
+      }
+    }
     const removed = previous.filter(entry => !api.includes(entry));
     const added = api.filter(entry => !previous.includes(entry));
     writeFileSync(FIXTURE, `${JSON.stringify({ generatedAt: new Date().toISOString(), methods: api }, null, 2)}\n`);

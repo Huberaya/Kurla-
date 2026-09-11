@@ -2,25 +2,33 @@
  * BANC — la suite de tests doit pouvoir se terminer
  * =================================================
  *
- * `package.json` fixait `NODE_OPTIONS=--max-old-space-size=3072` pour la
- * vérification des types. Sur une machine de 2 Go, la limite dépasse la
- * mémoire physique : le processus ne rend jamais la main. Mesuré :
+ * Deux réglages, trouvés l'un après l'autre, empêchaient `npm test`
+ * d'aboutir. Ils ne produisaient pas d'échec : ils produisaient une
+ * attente sans fin, et une attente ne se lit pas comme une erreur.
  *
- *   3 072 Mo → aucune sortie après 241 s (tué)
- *   1 400 Mo → 0 erreur en 169 s
- *   1 200 Mo → tué (SIGABRT) en 44 s
+ * 1. `package.json` fixait `NODE_OPTIONS=--max-old-space-size=3072` —
+ *    3 Go — sur une machine de 2 Go. Mesuré avant correction :
  *
- * La vérification des types est la DERNIÈRE étape de `npm test`. Tout le
- * monde voyait donc « code 124 » après vingt minutes en croyant la suite
- * en échec, alors que les ~75 bancs passaient : on contournait à la main,
- * chacun de son côté, et personne ne voyait les vrais échecs.
+ *      3 072 Mo → aucune sortie après 241 s (tué)
+ *      1 400 Mo → 0 erreur en 169 s
+ *      1 200 Mo → tué (SIGABRT) en 44 s
  *
- * Conséquence directe et mesurée : deux inventaires de référence étaient
- * faux depuis plusieurs chantiers (routes admin et API du store) sans que
- * personne ne le voie — la suite n'allait jamais jusqu'à eux. Corriger la
- * mémoire a immédiatement révélé les deux.
+ * 2. `tsconfig.json` n'excluait aucun répertoire. Avec `allowJs`, `tsc`
+ *    analysait les 118 fichiers de `dist/` — son propre résultat de
+ *    build, 9,2 Mo de JS groupé — en plus des 537 du projet. D'où un
+ *    besoin mémoire au ras de la machine :
  *
- * Ce banc interdit le retour du réglage figé.
+ *      dist/ analysé → 655 fichiers, 169 s, ~1,4 Go de tas, blocage
+ *      dist/ exclu   → 536 fichiers,  30 s, 1 024 Mo suffisent
+ *
+ * La vérification des types ferme la suite : on voyait donc « code 124 »
+ * après vingt minutes en croyant la suite en échec, alors que les ~90
+ * bancs passaient. On contournait à la main, chacun de son côté, et les
+ * vrais échecs restaient invisibles — deux inventaires de référence
+ * (routes admin, API du store) étaient faux depuis plusieurs chantiers
+ * sans que personne ne le voie. Corriger la mémoire les a révélés.
+ *
+ * Ce banc interdit le retour des deux réglages.
  */
 
 import assert from 'node:assert/strict';
@@ -33,8 +41,10 @@ function ok(label: string, fn: () => void): void {
   console.log(`  \u2713 ${label}`);
 }
 
-const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const lanceur = readFileSync(new URL('../scripts/tsc.mjs', import.meta.url), 'utf8');
+const lire = (chemin: string) => readFileSync(new URL(chemin, import.meta.url), 'utf8');
+const pkg = JSON.parse(lire('../package.json'));
+const lanceur = lire('../scripts/tsc.mjs');
+const tsconfig = JSON.parse(lire('../tsconfig.json'));
 
 ok('aucune limite de mémoire n’est figée dans les scripts', () => {
   const chaines = [pkg.scripts?.test ?? '', pkg.scripts?.lint ?? ''];
@@ -45,14 +55,35 @@ ok('aucune limite de mémoire n’est figée dans les scripts', () => {
 });
 
 ok('la vérification des types passe par le lanceur adaptatif', () => {
-  assert.ok((pkg.scripts?.test ?? '').includes('scripts/tsc.mjs'),
-    'npm test doit appeler scripts/tsc.mjs');
   assert.equal(pkg.scripts?.lint, 'node scripts/tsc.mjs');
 });
 
-ok('le lanceur calcule la limite depuis la mémoire de la machine', () => {
-  assert.ok(lanceur.includes('os.totalmem'), 'la limite doit venir de la machine, pas d’une constante');
+ok('le type checking ferme la chaîne, il ne la coupe pas en deux', () => {
+  // La chaîne est un « && » : un banc qui échoue masque tout ce qui le suit.
+  // Placé au milieu, un défaut de typage cachait dix-sept bancs fonctionnels.
+  // En dernière position, les résultats fonctionnels restent toujours lisibles.
+  const test = (pkg.scripts?.test ?? '').trim();
+  assert.ok(test.endsWith('npm run lint'),
+    'npm test doit se terminer par la vérification des types');
+  assert.equal((test.match(/npm run lint/g) ?? []).length, 1,
+    'une seule passe de typage : la répéter double la durée pour rien');
+});
+
+ok('la limite se calcule sur la mémoire disponible, pas sur la totale', () => {
+  // Une machine qui annonce 2 Go peut n'avoir plus que 1,3 Go de libre
+  // une fois les autres processus lancés. Prendre 75 % du total conduit
+  // droit au tas saturé : le ramasse-miettes s'emballe, plus rien n'avance,
+  // et aucun signal d'erreur ne sort.
+  assert.ok(lanceur.includes('os.freemem'),
+    'la limite doit venir de la mémoire disponible au moment du lancement');
+  assert.ok(lanceur.includes('os.totalmem'), 'la taille de la machine reste un plafond');
   assert.ok(lanceur.includes('KURLA_TSC_MEMORY'), 'une surcharge doit rester possible en CI');
+});
+
+ok('un blocage sans fin est interrompu, pas subi', () => {
+  // Avant : vingt-cinq minutes d'attente puis un « code 124 » anonyme.
+  assert.ok(/KURLA_TSC_TIMEOUT/.test(lanceur), 'un délai doit être réglable');
+  assert.ok(lanceur.includes('SIGKILL'), 'le processus bloqué doit être coupé');
 });
 
 ok('un épuisement du tas est diagnostiqué, pas tué en silence', () => {
@@ -60,6 +91,25 @@ ok('un épuisement du tas est diagnostiqué, pas tué en silence', () => {
   // faute dans le code source au lieu de la chercher dans la mémoire.
   assert.ok(lanceur.includes('134'), 'le code d’abandon de V8 doit être reconnu');
   assert.ok(/Mémoire insuffisante/.test(lanceur), 'la cause doit être nommée');
+});
+
+ok('la suite construit ce qu’elle vérifie', () => {
+  // Le banc de prérendu lit dist/index.html. Sans build préalable, la suite
+  // s'arrêtait en ENOENT sur un dépôt frais — un échec d'environnement
+  // présenté comme un échec de code. npm exécute « pretest » avant « test ».
+  assert.ok(/npm run build/.test(pkg.scripts?.pretest ?? ''),
+    'un pretest doit produire dist/ avant les bancs qui le lisent');
+});
+
+ok('le build ne type-check pas son propre résultat', () => {
+  // Avec allowJs et sans exclude, tsc absorbait les 118 fichiers de dist/ :
+  // 9,2 Mo de JS groupé qui faisaient passer la passe de 30 s à 169 s et
+  // poussaient le tas au ras de la mémoire de la machine.
+  const exclus: string[] = tsconfig.exclude ?? [];
+  for (const repertoire of ['dist', 'build', 'node_modules']) {
+    assert.ok(exclus.includes(repertoire),
+      `tsconfig.json doit exclure « ${repertoire} » : sinon tsc analyse le build`);
+  }
 });
 
 console.log(`\n${checks} contrôles passés — suite exécutable : la vérification des types s’adapte à la machine\n`);
