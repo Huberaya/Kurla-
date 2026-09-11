@@ -1693,6 +1693,57 @@ Contrôle négatif vérifié par le code de sortie et le message lu : câblage r
 
 `npm run build` **exit 0** · `npm test` **exit 0, 115 PASS / 0 FAIL** · `tsc --noEmit` **exit 0**.
 
+## CHANTIER A — LES 3 BESOINS ORPHELINS
+
+### Le défaut
+
+```
+Vocabulaire contrôlé (taxonomyReference.ts) : 16 besoins
+RECOGNIZED_NEED_CODES (kurlaFit.ts)         : 13
+Orphelins : reduire_frisottis · apaiser_cuir_chevelu · proteger_chaleur
+```
+
+Un produit portant l'un de ces besoins le voyait compté au dénominateur de
+`(needs - unmetNeeds) / needs` sans jamais pouvoir être satisfait. Score
+plafonné à vie, silencieusement.
+
+Rien ne le détectait : `brand_test.test.ts` valide contre
+`RECOGNIZED_NEED_CODES`. **La liste se contrôlait elle-même.**
+
+### Ce qui a été fait
+
+Trois branches ajoutées, fondées uniquement sur des champs au vocabulaire vérifié :
+
+| Besoin | Fondé sur | Discriminant |
+| --- | --- | --- |
+| `reduire_frisottis` | `hair.frizz` (**champ ajouté**) | `rare` n'active pas ; sécheresse + porosité seules **n'activent pas** — les frisottis ne se déduisent pas |
+| `apaiser_cuir_chevelu` | `hair.scalpConcerns` | `sebum` **n'active pas** : le sébum appelle un lavage, pas un apaisant |
+| `proteger_chaleur` | `hair.stylingHabits` | `wash_and_go` seul n'active pas |
+
+Le champ `hair.frizz` est ajouté aux cinq endroits requis : interface, `FRIZZ_OPTIONS`, profil vide, normalisation, liste de confiance. Valeur invalide → `inconnu`.
+
+### Garde anti-récidive
+
+`tests/kurla_need_coverage.test.ts` compare le vocabulaire contrôlé à
+`RECOGNIZED_NEED_CODES`, **et** vérifie la présence réelle d'une branche `case`
+dans les sources. Un besoin ajouté au vocabulaire sans branche fait tomber la
+suite.
+
+Contrôle négatif vérifié par le code de sortie et le message lu : branche
+`proteger_chaleur` renommée → `exit=1`, `codes listés sans branche 'case' :
+proteger_chaleur`. Fichier restauré (`diff -q` identique).
+
+### Effet de bord assumé
+
+`brand_test.test.ts` exige qu'un profil maximal satisfasse chaque besoin
+reconnu. Il a **échoué** après l'ajout — comportement attendu, et preuve que ce
+banc sert. Son profil maximal a été complété (`frizz: 'frequents'`,
+`stylingHabits: ['wash_and_go', 'chaleur']`) : c'est son rôle.
+
+### Vérification
+
+`npm run build` **exit 0** · `npm test` **exit 0, 116 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** · 16/16 besoins reconnus, 0 orphelin.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

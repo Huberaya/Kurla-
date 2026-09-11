@@ -38,7 +38,10 @@ export const RECOGNIZED_NEED_CODES = [
   'hydrater_cheveux',
   'reduire_casse',
   'definir_boucles',
+  'reduire_frisottis',
   'cuir_chevelu',
+  'apaiser_cuir_chevelu',
+  'proteger_chaleur',
   'entretenir_tresses',
   'entretenir_locks',
   'entretenir_perruque',
@@ -106,6 +109,43 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
           addEvidence('hair.scalpCondition', 'État du cuir chevelu', hair.scalpCondition, 'il guide la tolérance du soin');
           if (!hair.scalpConcerns.includes(UNKNOWN)) addEvidence('hair.scalpConcerns', 'Signes du cuir chevelu', hair.scalpConcerns.join(', '), 'ils précisent la zone à traiter');
           reasons.push('Cuir chevelu relié à son état et aux signes déclarés, séparément des longueurs.');
+        }
+        return match;
+      }
+      case 'reduire_frisottis': {
+        /**
+         * Champ dédié `hair.frizz`, déclaré dans Hair ID. Aucun frisotti n'est
+         * déduit de la porosité ou de l'humidité : une déduction aurait été
+         * invérifiable par l'utilisateur.
+         */
+        const match = hasAny([hair.frizz], ['occasionnels', 'frequents']);
+        if (match) {
+          addEvidence('hair.frizz', 'Frisottis déclarés', hair.frizz, 'ils déterminent le besoin de contrôle');
+          addEvidence('hair.dryness', 'Sécheresse', hair.dryness, 'elle aggrave les frisottis sans en être la cause');
+          reasons.push('Contrôle des frisottis relié à la fréquence déclarée, la sécheresse n’étant citée que comme facteur aggravant.');
+        }
+        return match;
+      }
+      case 'apaiser_cuir_chevelu': {
+        /**
+         * Plus étroit que `cuir_chevelu` : celui-ci couvre tout état renseigné,
+         * celui-ci ne couvre que les signes d'irritation réels. `sebum` n'est
+         * pas une irritation : il appelle un lavage, pas un apaisant.
+         */
+        const signs = hair.scalpConcerns.filter(concern => ['demangeaisons', 'sensibilite', 'pellicules'].includes(concern));
+        const match = signs.length > 0;
+        if (match) {
+          addEvidence('hair.scalpConcerns', 'Signes du cuir chevelu', signs.join(', '), 'ils appellent un soin apaisant plutôt qu’un simple entretien');
+          reasons.push('Apaisement relié aux signes d’irritation déclarés, distingués du simple excès de sébum.');
+        }
+        return match;
+      }
+      case 'proteger_chaleur': {
+        const match = hair.stylingHabits.includes('chaleur');
+        if (match) {
+          addEvidence('hair.stylingHabits', 'Habitudes de coiffage', hair.stylingHabits.join(', '), 'l’usage d’outils chauffants crée le besoin');
+          addEvidence('hair.fiberCondition', 'État de la fibre', hair.fiberCondition, 'il détermine le niveau de protection requis');
+          reasons.push('Protection thermique reliée à l’usage déclaré d’outils chauffants, pas à une supposition sur le coiffage.');
         }
         return match;
       }
