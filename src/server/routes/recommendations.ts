@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import { Type } from '@google/genai';
 
 import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from '../../lib/ai/systemPrompt';
+import { estBesoinPeau } from '../../lib/skinTaxonomy';
 import { activeItems, deriveAvoidedIngredients } from '../../lib/shelf';
 import { intelligenceStore } from '../../lib/intelligenceStore';
 import { buildRecommendations, explainLearning, productIngredientIds } from '../../lib/recommendationEngine';
@@ -355,7 +356,16 @@ export function registerRecommendationRoutes(app: Express): void {
     const catalog = diagnosticBudget === undefined ? fullCatalog : fullCatalog.filter(entry => entry.price <= diagnosticBudget);
     const fits = new Map<string, any>();
     catalog.forEach(entry => { if (profile) fits.set(entry.slug, calculateKurlaFit(entry.product, profile)); });
-    const candidateSlugs = catalog.filter(entry => entry.needs.some(need => needs.includes(need))).slice(0, 5).map(entry => entry.slug);
+    // C-07 — `queryNeeds` ajoute « hydrater_cheveux » dès que le texte des
+    // réponses contient « cheveu ». Un diagnostic PEAU dont le champ libre
+    // mentionne les cheveux remontait donc des produits capillaires, qui
+    // devenaient les candidats proposés à l'IA. Un diagnostic peau ne retient
+    // que des produits porteurs d'un besoin peau.
+    const candidats = catalog.filter(entry => entry.needs.some(need => needs.includes(need)));
+    const candidatsDuRayon = diagnosticType === 'skin'
+      ? candidats.filter(entry => entry.needs.some(estBesoinPeau))
+      : candidats;
+    const candidateSlugs = candidatsDuRayon.slice(0, 5).map(entry => entry.slug);
 
     if (triage.review) {
       return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, generatedWithAI: false, source: 'fallback', sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });

@@ -217,11 +217,14 @@ export const SkinRangePage = () => {
             <FormulaireAttente />
           </div>
           <div className="flex flex-wrap gap-3 mt-6 pt-5 border-t border-[#E8E1DA]">
+            {/* C-07 — ce lien pointait vers /boutique?cat=peau, rayon qui ne
+                contient aucun produit publié. Le catalogue compte 63
+                références, toutes cheveux, accessoires ou kits : on le dit. */}
             <a
-              href="/boutique?cat=peau"
+              href="/boutique"
               className="px-5 py-2.5 rounded-full bg-[#111111] text-white text-xs font-bold hover:opacity-90"
             >
-              Ce qui est achetable aujourd’hui →
+              Le catalogue cheveux &amp; accessoires →
             </a>
             <a
               href="/peau/diagnostic"

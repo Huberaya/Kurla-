@@ -108,3 +108,34 @@ export type SkinProductMetadata = {
   whitecastRisk?: 'faible' | 'modere' | 'eleve';
   sansParfum?: boolean;
 };
+
+// ── Appartenance au rayon peau ──────────────────────────────────────────────
+//
+// Pourquoi ce discriminant existe, mesuré et pas théorique : le résultat du
+// diagnostic peau sélectionnait ses produits par
+// `(p.needs || []).some(n => /peau|tache|spf|hydrater|uniform/i.test(n))`.
+// Le besoin des produits cheveux s'appelle `hydrater_cheveux` : l'expression
+// le captait. Résultat, une personne qui venait de répondre à un questionnaire
+// sur son visage se voyait recommander un bonnet chauffant, du beurre de
+// karité et un flacon vaporisateur — 22 produits, tous cheveux ou
+// accessoires, aucun soin peau (le rayon en compte zéro).
+//
+// La règle est donc stricte et nominale : on appartient au rayon peau par sa
+// catégorie, ou par un besoin **peau** — jamais parce qu'un besoin cheveux
+// contient le mot « hydrater ».
+
+const VALEURS_BESOINS_PEAU: ReadonlySet<string> = new Set(SKIN_NEEDS.map(need => need.value));
+
+/** Vrai si le besoin appartient au vocabulaire peau. */
+export function estBesoinPeau(besoin: string): boolean {
+  const valeur = besoin.trim().toLowerCase();
+  if (valeur.endsWith('_cheveux')) return false;
+  return VALEURS_BESOINS_PEAU.has(valeur) || valeur.endsWith('_peau');
+}
+
+/** Vrai si le produit appartient au rayon peau. */
+export function estProduitPeau(produit: { category?: string; needs?: string[]; concerns?: string[] }): boolean {
+  if (produit?.category === 'peau') return true;
+  const besoins = [...(produit?.needs ?? []), ...(produit?.concerns ?? [])];
+  return besoins.some(estBesoinPeau);
+}

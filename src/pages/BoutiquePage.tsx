@@ -71,9 +71,12 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
     icon: Sun,
     title: 'La gamme peau s’étoffe',
     waitlistLabel: 'soins visage',
-    text: '15 besoins peau, filtre budget et SPF sans trace blanche sont prêts. La gamme s’enrichit chaque semaine — en attendant, votre diagnostic peau reste gratuit et vos filtres peau sont mémorisés.',
-    href: '/peau',
-    cta: 'Explorer le pôle peau',
+    // C-07 — l'ancien texte annonçait « la gamme s'enrichit chaque semaine ».
+    // Aucun soin peau n'a été publié depuis : la promesse d'un mouvement qui
+    // n'a pas lieu est une urgence fabriquée. On dit l'état réel.
+    text: 'Aucun soin peau n’est encore publié. Les seize fiches de la gamme KURLA sont en cours de formulation et visibles telles quelles — actifs retenus, formule cible, préoccupation visée. Votre diagnostic peau reste gratuit.',
+    href: '/peau/gamme',
+    cta: 'Voir la gamme en cours de formulation',
   },
   hommes: {
     icon: UserCheck,
