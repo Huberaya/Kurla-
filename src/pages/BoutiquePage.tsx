@@ -16,6 +16,7 @@ import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT,
 import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS, SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
+import { comparerProduits, pointsDeDivergence } from '../lib/productCompare';
 import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
 import { PEAU_KITS } from '../lib/peauKits';
 import { getCountryConfig, getStripeModeForCountry, COUNTRY_SCORES_SORTED } from '../lib/countryFulfillment';
@@ -95,6 +96,80 @@ const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: strin
     cta: 'Découvrir l’espace kids',
   },
 };
+
+/**
+ * Comparateur côte à côte.
+ *
+ * Le prix seul départage mal deux produits : un flacon de 400 ml à 18 € peut
+ * revenir moins cher à l'usage qu'un 250 ml à 12 €. Le coût par utilisation
+ * est calculé par `estimerUsage` (doses SCCS/1647/22) et n'est affiché que
+ * lorsqu'il est calculable — sinon la raison est dite à la place du chiffre.
+ *
+ * Aucun score, aucun « meilleur choix » : seuls les écarts sont marqués.
+ */
+function Comparateur({ produits, onRetirer }: { produits: Product[]; onRetirer: (id: string) => void }) {
+  const comparaison = useMemo(() => comparerProduits(produits), [produits]);
+  const divergences = pointsDeDivergence(comparaison);
+  const hypotheses = comparaison.hypotheses.filter(Boolean);
+
+  return (
+    <section className="mb-8 rounded-3xl border border-[#C8753D]/25 bg-[#F8F2EC] p-5">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-lg font-serif-title font-bold flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[#C8753D]" /> Comparer les produits
+          </h2>
+          <p className="text-xs text-[#111111]/60 mt-1">
+            {divergences.length > 0
+              ? `Ces produits diffèrent sur ${divergences.length} point${divergences.length > 1 ? 's' : ''} : ${divergences.join(', ').toLowerCase()}.`
+              : 'Ces produits se valent sur tous les critères affichés.'}
+          </p>
+        </div>
+        <button onClick={() => produits.forEach(p => onRetirer(p.id))} className="text-xs text-[#C8753D] hover:underline shrink-0">Effacer</button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[520px]">
+          <thead>
+            <tr>
+              <th scope="col" className="w-40 align-bottom pb-2 text-[10px] uppercase tracking-widest text-[#111111]/45 font-bold">Critère</th>
+              {produits.map(produit => (
+                <th key={produit.id} scope="col" className="align-bottom pb-2 pl-3 text-xs font-bold">
+                  <span className="block leading-tight">{produit.name}</span>
+                  <button onClick={() => onRetirer(produit.id)} aria-label={`Retirer ${produit.name}`} className="mt-1 text-[10px] font-normal text-[#111111]/45 hover:text-[#C8753D]">retirer</button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comparaison.lignes.map(ligne => (
+              <tr key={ligne.champ} className={`border-t border-[#E8E1DA] ${ligne.divergent ? 'bg-[#C8753D]/[0.06]' : ''}`}>
+                <th scope="row" className="py-2 pr-3 text-[11px] font-semibold align-top">
+                  {ligne.champ}
+                  {ligne.divergent && <span className="ml-1 text-[9px] font-bold text-[#C8753D]">diffère</span>}
+                </th>
+                {ligne.valeurs.map((valeur, index) => (
+                  <td key={`${ligne.champ}-${produits[index]?.id ?? index}`} className={`py-2 pl-3 text-[11px] align-top ${ligne.estimation ? 'text-[#111111]' : 'text-[#111111]/70'}`}>
+                    {valeur}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {hypotheses.length > 0 && (
+        <p className="mt-3 text-[10px] text-[#111111]/50 leading-relaxed">
+          Estimations : {hypotheses.join(' · ')}
+        </p>
+      )}
+      <p className="mt-1.5 text-[10px] text-[#111111]/45 leading-relaxed">
+        Uniquement les informations publiées, sans score automatique : deux produits ne se départagent pas seuls.
+      </p>
+    </section>
+  );
+}
 
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
   const { products, skinKits, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
@@ -877,7 +952,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           </div>
         </div>
 
-        {comparedProducts.length > 0 && <section className="mb-8 rounded-3xl border border-[#C8753D]/25 bg-[#F8F2EC] p-5"><div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Layers className="w-4 h-4 text-[#C8753D]" /> Comparer les produits</h2><p className="text-xs text-[#111111]/60 mt-1">Comparez uniquement les informations publiées, sans score automatique.</p></div><button onClick={() => setCompareIds([])} className="text-xs text-[#C8753D] hover:underline">Effacer</button></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{comparedProducts.map(product => <div key={product.id} className="rounded-2xl border border-[#E8E1DA] bg-[#FFFDF9] p-3"><div className="flex items-start justify-between gap-2"><h3 className="text-xs font-bold">{product.name}</h3><button onClick={() => toggleCompare(product.id)} aria-label={`Retirer ${product.name}`}><X className="w-3.5 h-3.5 text-[#111111]/50" /></button></div><dl className="mt-3 space-y-1 text-[11px] text-[#111111]/70"><div><dt className="font-semibold inline">Prix : </dt><dd className="inline">{product.price.toFixed(2)} €</dd></div><div><dt className="font-semibold inline">Texture : </dt><dd className="inline">{product.texture || 'Non renseignée'}</dd></div><div><dt className="font-semibold inline">Format : </dt><dd className="inline">{product.sizeLabel || 'Non renseigné'}</dd></div><div><dt className="font-semibold inline">Pays : </dt><dd className="inline">{product.countryAvailability?.join(', ') || 'Non renseignés'}</dd></div></dl></div>)}</div></section>}
+        {comparedProducts.length > 0 && <Comparateur produits={comparedProducts} onRetirer={toggleCompare} />}
 
         {/* C3 — KITS PEAU : AOV 14€ → 52€ */}
         {(activeCategory === 'peau' || activeCategory === 'kits' || activeCategory === 'tous') && (
