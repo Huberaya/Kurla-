@@ -92,6 +92,7 @@ import * as brandInvoiceStore from './db/brandInvoiceStore';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
+import * as pushSubscriptionStore from './db/pushSubscriptionStore';
 import * as supportStore from './db/supportStore';
 import * as adaptiveRoutineStore from './db/adaptiveRoutineStore';
 import * as aiSessionStore from './db/aiSessionStore';
@@ -152,6 +153,7 @@ export class SupabaseServerStore {
   public inMemoryNotifications: UserNotification[] = [];
   public inMemoryNotificationLogs: NotificationDeliveryLog[] = [];
   public inMemoryPreferences: Map<string, NotificationPreference> = new Map();
+  public inMemoryPushSubscriptions: import('./db/pushSubscriptionStore').PushSubscriptionRecord[] = [];
   public inMemoryShipments: Map<string, ShipmentDetails> = new Map();
   public inMemoryShippingAddresses: Map<string, ShippingAddressRecord[]> = new Map();
   public inMemoryShippingRates: ShippingRateRecord[] = [];
@@ -437,6 +439,7 @@ export class SupabaseServerStore {
 const storeInstance = new SupabaseServerStore();
 
 bindDomain(storeInstance, notificationsStore);
+bindDomain(storeInstance, pushSubscriptionStore);
 bindDomain(storeInstance, beautyProfileStore);
 bindDomain(storeInstance, familyStore);
 bindDomain(storeInstance, supportStore);
@@ -518,6 +521,7 @@ bindDomain(storeInstance, brandInvoiceStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
+  & Curried<typeof pushSubscriptionStore>
   & Curried<typeof beautyProfileStore>
   & Curried<typeof skinJournalStore>
   & Curried<typeof familyStore>

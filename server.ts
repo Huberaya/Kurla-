@@ -1711,6 +1711,45 @@ app.post('/api/notification-preferences', asyncRoute(async (req: AuthenticatedRe
   res.json({ preferences: updated });
 }));
 
+// 2b. Web Push. The subscription is user-owned; the VAPID private key never
+// leaves the server and is never returned by this route.
+app.get('/api/notifications/push/public-key', rateLimit('push-public-key', 60, 60_000), asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '';
+  if (!publicKey) {
+    res.status(503).json({ error: 'Notifications push indisponibles.', code: 'PUSH_NOT_CONFIGURED' });
+    return;
+  }
+  res.json({ publicKey });
+}));
+
+app.get('/api/notifications/push-subscriptions', rateLimit('push-subscriptions', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ subscriptions: await serverDb.getPushSubscriptions(user.id) });
+}));
+
+app.post('/api/notifications/push-subscriptions', rateLimit('push-subscription-save', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const subscription = await serverDb.savePushSubscription(user.id, req.body);
+    res.status(201).json({ subscription: { id: subscription.id, endpoint: subscription.endpoint, createdAt: subscription.createdAt } });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Abonnement push invalide.') });
+  }
+}));
+
+app.delete('/api/notifications/push-subscriptions', rateLimit('push-subscription-delete', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    await serverDb.deletePushSubscription(user.id, String(req.body?.endpoint || ''));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Suppression de l’abonnement push impossible.') });
+  }
+}));
+
 // 3. Shipments API: an order id is not a capability. Check order ownership first.
 app.get('/api/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);

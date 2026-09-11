@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T14:43:35.185Z",
+  "generatedAt": "2026-09-11T16:41:08.392Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -10,6 +10,7 @@
     "DELETE /api/family/members/:id",
     "DELETE /api/family/plans/:id",
     "DELETE /api/notifications/:id",
+    "DELETE /api/notifications/push-subscriptions",
     "DELETE /api/shelf/:itemId",
     "DELETE /api/shipping/addresses/:id",
     "DELETE /api/skin/journal/:entryId",
@@ -107,6 +108,8 @@
     "GET /api/mobile/capabilities",
     "GET /api/notification-preferences",
     "GET /api/notifications",
+    "GET /api/notifications/push-subscriptions",
+    "GET /api/notifications/push/public-key",
     "GET /api/orders",
     "GET /api/orders/track",
     "GET /api/outcomes",
@@ -258,6 +261,7 @@
     "POST /api/mobile/sync",
     "POST /api/notification-preferences",
     "POST /api/notifications/:id/read",
+    "POST /api/notifications/push-subscriptions",
     "POST /api/outcomes",
     "POST /api/products/:productId/questions",
     "POST /api/products/:productId/questions/:questionId/answers",

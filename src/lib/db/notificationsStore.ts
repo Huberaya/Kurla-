@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { RoutineTask } from '../adaptiveRoutine';
 import { emailService, EmailDeliveryResult, EmailMessage } from '../emailService';
 import { getSupabaseServerClient } from '../supabaseClient';
+import { sendPushNotification } from '../pushDelivery';
 import { ensureDatabaseSuccess } from './internal';
 
 import type {
@@ -103,6 +104,7 @@ export async function sendNotification(
             provider: 'supabase',
             createdAt
           });
+          await sendPushNotification(store, userId, { title, body: message, url: link, tag: type }).catch(error => console.error('[push] notification delivery skipped', error));
         }
         return persisted;
       } catch (err) {
@@ -121,6 +123,7 @@ export async function sendNotification(
       provider: 'memory',
       createdAt
     });
+    await sendPushNotification(store, userId, { title, body: message, url: link, tag: type }).catch(error => console.error('[push] notification delivery skipped', error));
     return notif;
   }
 

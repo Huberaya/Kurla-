@@ -33,6 +33,16 @@ export interface FetchProductsResponse {
  * catalog tables directly, which keeps validation notes and operational fields
  * on the server/admin side.
  */
+interface SsrProductContext {
+  initialProducts?: Product[];
+  initialProduct?: Product | null;
+}
+
+function ssrProductContext(): SsrProductContext | null {
+  if (typeof window !== 'undefined') return null;
+  return (globalThis as typeof globalThis & { __KURLA_SSR_CONTEXT?: SsrProductContext }).__KURLA_SSR_CONTEXT || null;
+}
+
 async function fetchPublicProducts(): Promise<{ products: Product[]; skinKits: SkinKitQuote[] }> {
   const response = await fetch('/api/products');
   const data = await response.json().catch(() => ({}));
@@ -81,13 +91,14 @@ export async function getProductBySlugOrIdFromSupabase(slugOrId: string): Promis
 }
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const initial = ssrProductContext()?.initialProducts || [];
+  const [products, setProducts] = useState<Product[]>(initial);
   const [skinKits, setSkinKits] = useState<SkinKitQuote[]>([]);
   const [brands, setBrands] = useState<SupabaseBrand[]>([]);
   const [categories, setCategories] = useState<SupabaseCategory[]>([]);
   const [source, setSource] = useState<'supabase' | 'fallback'>('fallback');
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [count, setCount] = useState(initial.length);
+  const [loading, setLoading] = useState(typeof window !== 'undefined' || initial.length === 0);
   const [error, setError] = useState<Error | null>(null);
 
   const loadData = useCallback(async () => {
@@ -108,9 +119,10 @@ export function useProducts() {
 }
 
 export function useProduct(slugOrId: string) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [source, setSource] = useState<'supabase' | 'fallback'>('fallback');
-  const [loading, setLoading] = useState(true);
+  const initialProduct = ssrProductContext()?.initialProduct || null;
+  const [product, setProduct] = useState<Product | null>(initialProduct);
+  const [source, setSource] = useState<'supabase' | 'fallback'>(initialProduct ? 'supabase' : 'fallback');
+  const [loading, setLoading] = useState(typeof window !== 'undefined' || !initialProduct);
   const [error, setError] = useState<Error | null>(null);
 
   const loadData = useCallback(async () => {

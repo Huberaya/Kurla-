@@ -47,30 +47,52 @@ const AbandonedCartReminder = lazy(() => import('./components/AbandonedCartRemin
 const PasswordRecoveryPanel = lazy(() => import('./components/PasswordRecoveryPanel').then(m => ({ default: m.PasswordRecoveryPanel })));
 import { CartItem, Product, ProductVariant } from './types';
 
+interface SsrRequestContext {
+  pathname: string;
+  search?: string;
+}
+
+function ssrRequestContext(): SsrRequestContext | null {
+  if (typeof window !== 'undefined') return null;
+  const context = (globalThis as typeof globalThis & { __KURLA_SSR_CONTEXT?: SsrRequestContext }).__KURLA_SSR_CONTEXT;
+  return context?.pathname ? context : null;
+}
+
+function initialLocationKey(): string {
+  if (typeof window !== 'undefined') return `${window.location.pathname}${window.location.search}`;
+  const context = ssrRequestContext();
+  return `${context?.pathname || '/'}${context?.search || ''}`;
+}
+
+function initialCartItems(): CartItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem('kurla_cart_items');
+    const parsed = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function AppContent() {
   const { user, session } = useAuth();
   // La clé inclut la query string : deux diagnostics différents partagent le
   // même pathname et doivent pourtant provoquer un nouveau rendu.
-  const [locationKey, setLocationKey] = useState(() => `${window.location.pathname}${window.location.search}`);
+  const [locationKey, setLocationKey] = useState(initialLocationKey);
   const pathname = locationKey.split('?')[0];
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('kurla_cart_items');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
   const initialCartRef = useRef<CartItem[]>(cartItems);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const [anonId] = useState<string>(() => {
-    let id = localStorage.getItem('kurla_anon_id');
+    if (typeof window === 'undefined') return 'ssr_anon';
+    let id = window.localStorage.getItem('kurla_anon_id');
     if (!id) {
       id = 'anon_' + Math.random().toString(36).substring(2, 11);
-      localStorage.setItem('kurla_anon_id', id);
+      window.localStorage.setItem('kurla_anon_id', id);
     }
     return id;
   });
@@ -195,7 +217,7 @@ function AppContent() {
 
     const context: RouteContext = {
       params: resolved.params,
-      search: new URLSearchParams(window.location.search),
+      search: new URLSearchParams(typeof window !== 'undefined' ? window.location.search : (ssrRequestContext()?.search || '')),
       onAddToCart: handleAddToCart,
     };
     const view = (

@@ -27,6 +27,8 @@ export interface EntityPage {
   imageUrl?: string;
   /** Ligne supplémentaire dans l'amorce : pour un produit, son prix. */
   priceLabel?: string;
+  /** Donnée publique déjà lue côté serveur pour éviter un écran de chargement SSR. */
+  initialProduct?: any;
 }
 
 /** Prix effectivement servi : la remise si elle est active et inférieure. */
@@ -146,6 +148,7 @@ export function productPagesFrom(products: any[], siteUrl: string = ''): EntityP
         ...(price !== null
           ? { priceLabel: `${price.toFixed(2).replace('.', ',')} € — ${AVAILABILITY_LABEL[availability]}` }
           : { priceLabel: AVAILABILITY_LABEL[availability] }),
+        initialProduct: product,
         jsonLd: {
           '@context': 'https://schema.org',
           '@type': 'Product',
