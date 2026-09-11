@@ -273,3 +273,47 @@ En attendant, la résolution vérifiée est : garder l'outillage de l'autre
 (`pretest`, `lint` via `scripts/tsc.mjs`, `test:suite-executable`) et y
 réinsérer son propre banc, **puis l'exécuter**. Un `package.json` reste JSON
 valide avec un chemin de banc faux — seul l'exécution le révèle. C'est arrivé.
+
+### Une dépendance importée mais jamais déclarée bloque toute la suite
+
+`src/lib/photoPilot.ts` importe `jpeg-js` et `pngjs`, `src/lib/pushDelivery.ts`
+importe `web-push`. Aucune des trois n'était dans `package.json`. Sur un dépôt
+frais, `npm install` ne peut pas les apporter : la suite mourait au **2ᵉ banc**
+(`test:authorization`) en `ERR_MODULE_NOT_FOUND`, sans atteindre un seul banc de
+domaine. Corrigé dans `3eb6873` — les trois sont déclarées.
+
+**Règle à retenir : un import n'est pas une déclaration.** Vérifier après tout
+nouvel import externe :
+
+```bash
+node -e "const d=require('./package.json');const s=new Set([...Object.keys(d.dependencies||{}),...Object.keys(d.devDependencies||{})]);console.log([...s].length+' déclarées')"
+```
+
+ou plus simplement : `rm -rf node_modules && npm install && npm test`. C'est le
+seul contrôle qui voit ce défaut — sur une machine où le paquet est déjà présent
+dans le cache, rien ne le signale.
+
+**Corrigé en parallèle des deux côtés.** Les mêmes trois paquets ont été
+déclarés indépendamment ici et dans `b98a1ca`, aux mêmes versions
+(`jpeg-js ^0.4.4`, `pngjs ^7.0.0`, `web-push ^3.6.7`), et `playwright` — qui
+n'était pas déclaré en `4adb3f4` — l'est désormais en `devDependencies`. La
+convergence des deux diagnostics est le meilleur signe que le défaut était réel.
+
+`@types/pngjs` et `@types/web-push` ont été ajoutés ici puis **retirés** :
+`tsc --noEmit` passe sans eux (mesuré, exit 0, 0 ligne d'erreur). Les garder
+aurait été une divergence sans bénéfice.
+
+**Doublon restant, mesuré et non corrigé** : `vite` figure à la fois dans
+`dependencies` (l.158) et dans `devDependencies` (l.176), à la même version
+`^6.2.3`. Présent depuis avant `4adb3f4`, donc antérieur aux deux correctifs.
+npm le tolère et le build fonctionne ; c'est une incohérence, pas une panne.
+Non corrigé ici parce que c'est de l'outillage de build et que le bénéfice ne
+justifie pas d'y toucher juste après un rebase.
+
+### Une clé dupliquée dans `package.json` ne se voit pas
+
+`test:need-depth` était déclaré deux fois. Un JSON à clé dupliquée **reste
+valide** — le parseur garde la dernière — donc toute assertion du type
+`'test:need-depth' in scripts` passait. Seul esbuild signalait le doublon, en
+warning, noyé dans la sortie du build. C'est en lisant le début du log de build
+que le doublon est apparu, pas en validant le JSON.
