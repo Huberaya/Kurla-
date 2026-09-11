@@ -1,5 +1,10 @@
 import { Product } from '../types';
 import { BeautyProfile, UNKNOWN } from './beautyProfile';
+import { NeedDepth, assessNeedDepth, type NeedNuance } from './needDepth';
+
+// Réexporté : `recommendationEngine` expose les nuances sur `Recommendation` et
+// importe déjà le reste de sa surface depuis ce module.
+export type { NeedNuance };
 
 export interface FitEvidence {
   field: string;
@@ -8,13 +13,42 @@ export interface FitEvidence {
   relation: string;
 }
 
+/**
+ * CHANTIER D1 — ce que le moteur sait d'un besoin, au-delà de « couvert ou
+ * non ». L'intensité et les nuances ne modifient pas l'éligibilité : un besoin
+ * reste pertinent selon les mêmes conditions qu'avant, il est seulement
+ * mesuré et conseillé plus finement.
+ */
+export interface NeedSignal {
+  code: string;
+  met: boolean;
+  /**
+   * Force du besoin, 0–100. Ne participe PAS au score : le chantier F décidera
+   * de la pondération. D1 fournit la mesure, pas la formule.
+   */
+  intensity: number;
+  /** Conseils différenciés, chacun rattaché à un champ déclaré du profil. */
+  nuances: NeedNuance[];
+}
+
 export interface KurlaFitResult {
   score: number | null;
   confidence: number;
   reasons: string[];
   evidence: FitEvidence[];
   unmetNeeds: string[];
+  needSignals: NeedSignal[];
 }
+
+/**
+ * Un besoin couvert part d'une base : il existe et il est servi. L'intensité
+ * exprime ensuite à quel point les signaux déclarés le rendent pressant. Sans
+ * cette base, un besoin couvert sans aucun signal fort aurait une intensité
+ * nulle et serait indiscernable d'un besoin non couvert.
+ */
+const BASE_INTENSITY = 50;
+
+const NO_DEPTH: NeedDepth = { intensity: 0, nuances: [] };
 
 function known(value: unknown): boolean {
   return typeof value === 'string' && value !== '' && value !== UNKNOWN;
@@ -310,8 +344,18 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     }
   };
 
+  const needSignals: NeedSignal[] = [];
+
   needs.forEach(need => {
-    if (!matchNeed(need)) unmetNeeds.push(need);
+    const met = matchNeed(need);
+    const depth = met ? assessNeedDepth(need, profile) : NO_DEPTH;
+    needSignals.push({
+      code: need,
+      met,
+      intensity: met ? Math.max(BASE_INTENSITY, depth.intensity) : 0,
+      nuances: depth.nuances
+    });
+    if (!met) unmetNeeds.push(need);
   });
 
   if (known(environment.climate) || known(environment.humidity) || known(environment.waterQuality)) {
@@ -319,6 +363,18 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     addEvidence('environment.humidity', 'Humidité', environment.humidity, 'elle peut modifier le comportement de la fibre');
     addEvidence('environment.waterQuality', 'Qualité de l’eau', environment.waterQuality, 'elle peut modifier le besoin de clarification');
   }
+
+  /**
+   * CHANTIER D1 — les nuances sont ajoutées aux raisons APRÈS les raisons par
+   * besoin, jamais avant. `recommendationsForSlugs` affiche `reasons[0]` : un
+   * conseil différencié placé en tête aurait remplacé l'explication de
+   * pertinence par un détail de geste.
+   */
+  needSignals.forEach(signal => {
+    signal.nuances.forEach(nuance => {
+      reasons.push(`${formatValue(signal.code)} — ${nuance.advice}`);
+    });
+  });
 
   const confidenceFields = [hair.porosity, hair.density, hair.fiberCondition, hair.dryness, hair.breakage, hair.scalpCondition, skin.sensitivity, skin.hyperpigmentationTendency, skin.hydration, skin.spfUsage];
   const knownConfidence = confidenceFields.filter(known).length;
@@ -330,6 +386,7 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     confidence,
     reasons: Array.from(new Set(reasons)),
     evidence,
-    unmetNeeds
+    unmetNeeds,
+    needSignals
   };
 }

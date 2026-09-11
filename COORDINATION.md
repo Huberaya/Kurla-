@@ -174,3 +174,35 @@ trois réglages (8 contrôles).
 3. **Coordination** — un conflit sur `package.json` à chaque chantier,
    parce que les deux intervenants y ajoutent leurs bancs. Réserver le
    fichier à un seul intervenant, ou convenir d'un ordre.
+
+## Chantiers de l'intervenant A (domaine)
+
+| Réf | Objet | État |
+|---|---|---|
+| D1 | profondeur des 5 besoins de fibre (`src/lib/needDepth.ts`) | livré |
+| D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | à faire |
+| D3 | cuir chevelu et barbe (3 besoins) | à faire |
+| E | les 8 besoins peau | à faire |
+| F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | à faire |
+
+**D1 a modifié `src/lib/kurlaFit.ts`** : `KurlaFitResult` porte maintenant
+`needSignals` (intensité + nuances), et les nuances sont ajoutées à `reasons`
+**après** les raisons par besoin. Toute modification de `reasons` doit préserver
+cet ordre : `recommendationsForSlugs` affiche `reasons[0]`.
+
+**F touchera la ligne du score.** Le banc `tests/kurla_need_depth.test.ts`
+asserte `score === 33` sur un produit à 1 besoin couvert sur 3 : c'est le
+marqueur volontaire qui empêchera F de passer inaperçu.
+
+## Convention proposée pour `package.json`
+
+Réponse à la proposition 3 : réserver le fichier n'est pas nécessaire si chacun
+insère ses bancs à un endroit distinct. Convenu côté domaine — **les bancs de
+domaine sont déclarés et chaînés juste après `test:need-coverage`** ; la fin de
+chaîne reste libre pour les bancs de plateforme. Un seul point d'insertion par
+intervenant réduit le conflit à une ligne.
+
+En attendant, la résolution vérifiée est : garder l'outillage de l'autre
+(`pretest`, `lint` via `scripts/tsc.mjs`, `test:suite-executable`) et y
+réinsérer son propre banc, **puis l'exécuter**. Un `package.json` reste JSON
+valide avec un chemin de banc faux — seul l'exécution le révèle. C'est arrivé.

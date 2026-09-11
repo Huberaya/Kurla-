@@ -1827,6 +1827,75 @@ Contrôle négatif vérifié par le code de sortie : branchement retiré → `ex
 
 `npm run build` **exit 0** · `npm test` **120 PASS / 0 FAIL** · `tsc --noEmit` **exit 0** (lancé séparément : la chaîne `npm test` se termine par `tsc` avec `--max-old-space-size=3072`, et sur une machine à 1984 Mo le tueur OOM l'abat — 1200 Mo suffit).
 
+## CHANTIER D1 — PROFONDEUR DES BESOINS DE FIBRE
+
+### Le défaut
+
+Chacune des 21 branches de `calculateKurlaFit` retournait un booléen. Concrètement,
+`hydrater_cheveux` était vrai de la même façon pour un 4C à porosité faible et pour un
+2A à porosité forte — alors que le geste conseillé est opposé. La porosité figurait bien
+dans les preuves affichées (`addEvidence('hair.porosity', …)`), mais elle ne changeait ni
+la décision ni le conseil rendu. KURLA savait lire le champ sans s'en servir.
+
+C'est la cause directe du retour utilisateur : les recommandations sont « tout juste »,
+KURLA n'est pas dans son rôle de conseiller.
+
+### Ce qui a été ajouté
+
+`src/lib/needDepth.ts` (nouveau) — pour les **5 besoins de fibre**
+(`hydrater_cheveux`, `reduire_casse`, `definir_boucles`, `reduire_frisottis`,
+`demeler_cheveux`), deux choses :
+
+- une **intensité** (0–100) mesurant à quel point les signaux déclarés rendent le besoin
+  pressant ;
+- des **nuances** : le geste conseillé, différencié selon la porosité, l'épaisseur, la
+  densité, l'élasticité, la texture, la coloration, les traitements chimiques, la longueur,
+  le style protecteur porté et l'humidité de l'air. **12 champs** portent aujourd'hui des
+  nuances.
+
+`src/lib/kurlaFit.ts` expose `needSignals` sur `KurlaFitResult`. Les nuances sont ajoutées
+aux `reasons` **après** les raisons par besoin : `recommendationsForSlugs` affiche
+`reasons[0]`, un détail de geste placé en tête aurait remplacé l'explication de pertinence.
+
+`Recommendation.needNuances` (`recommendationEngine.ts`) et `fitNuances`
+(`src/server/ai/assistant.ts`) remontent la profondeur jusqu'à l'écran et jusqu'au
+contexte du modèle.
+
+### Trois garde-fous explicites
+
+1. **Aucune éligibilité modifiée.** Le booléen d'origine reste seul responsable de
+   « ce besoin est-il pertinent ». Un besoin devenu conditionnel pourrait redevenir
+   orphelin — exactement le défaut réparé au chantier A. Le banc l'asserte : deux profils
+   qui ne diffèrent que par la porosité ont le même `unmetNeeds` et le même `score`.
+2. **Aucune nuance sans champ déclaré.** `depthBuilder.push` ignore une nuance dont le
+   champ vaut `inconnu`. Sur un profil peu renseigné, le besoin est couvert mais
+   `nuances` est vide : l'absence de conseil est préférable à un conseil inventé.
+3. **L'intensité ne touche pas au score.** Le score reste le ratio booléen. D1 fournit la
+   mesure ; le chantier F décidera de la pondération. Le banc asserte `score === 33` sur un
+   produit à 1 besoin couvert sur 3 : quand F atterrira, c'est cette assertion qu'il faudra
+   consciusement mettre à jour.
+
+### Ce que D1 ne dit pas
+
+Les nuances décrivent des gestes et des précautions. Elles ne promettent aucun résultat,
+n'établissent aucun diagnostic, et ne préjugent pas de la composition d'une fiche produit.
+Les 16 autres besoins reconnus renvoient une profondeur vide — D2 (coiffure) et D3 (cuir
+chevelu et barbe) ne sont pas faits, et le banc l'asserte plutôt que de le laisser croire.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. Banc comportemental : il exécute
+  `calculateKurlaFit` et `buildRecommendations`, pas une copie de leur logique.
+- **Contrôle négatif exécuté** : `assessNeedDepth` neutralisé à retourner vide → le banc
+  tombe, **exit 1**, `AssertionError: les deux profils doivent porter une nuance de
+  porosité`. Le banc ne passe donc pas à vide.
+- `npm test` — **exit 0**, **123 PASS, 0 FAIL** (122 avant D1, +1 banc), `tsc --noEmit` inclus.
+- `npm run test:brand-test` — **exit 0**, « 21 codes de besoins vivants » : le profil
+  maximal satisfait toujours chaque besoin reconnu.
+- `npm run build` — exit 0.
+- Une erreur réelle a été trouvée par `tsc` pendant ce chantier (`NeedNuance` importé sans
+  être réexporté) et corrigée. Les bancs seuls ne l'auraient pas vue.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

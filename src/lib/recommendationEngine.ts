@@ -14,7 +14,7 @@
  *     réordonne, elle n'autorise pas.
  */
 
-import { calculateKurlaFit, KurlaFitResult } from './kurlaFit';
+import { calculateKurlaFit, KurlaFitResult, NeedNuance } from './kurlaFit';
 import { assessStyleFit, assessOpenEpisode, assessWigFit, detectStyleContext, signalWeight, StyleContext, CareTarget } from './styleFit';
 import { ProtectiveStyleEpisode } from './protectiveStyle';
 import { BeautyProfile } from './beautyProfile';
@@ -113,6 +113,12 @@ export interface Recommendation {
    * peut pas être évalué par l'utilisateur.
    */
   careTarget?: CareTarget | null;
+  /**
+   * CHANTIER D1 — conseils différenciés, chacun rattaché à un champ déclaré du
+   * profil. Vide signifie « besoin non encore approfondi » (D2/D3), jamais
+   * « aucun conseil à donner ».
+   */
+  needNuances: NeedNuance[];
 }
 
 export interface UsageCost {
@@ -483,7 +489,8 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
       baseReasons: fit?.reasons ?? [],
       unmetNeeds: fit?.unmetNeeds ?? [],
       usageCost: computeUsageCost(product),
-      careTarget: wigFit.careTarget
+      careTarget: wigFit.careTarget,
+      needNuances: (fit?.needSignals || []).flatMap(signal => signal.nuances)
     });
   }
 
