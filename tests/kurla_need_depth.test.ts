@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { FIBRE_NEEDS, STYLE_NEEDS, assessNeedDepth } from '../src/lib/needDepth';
+import { FIBRE_NEEDS, STYLE_NEEDS, SCALP_NEEDS, assessNeedDepth } from '../src/lib/needDepth';
 import { RECOGNIZED_NEED_CODES, calculateKurlaFit } from '../src/lib/kurlaFit';
 import { normalizeBeautyProfile, BeautyProfile } from '../src/lib/beautyProfile';
 import { buildRecommendations, EngineProduct } from '../src/lib/recommendationEngine';
@@ -66,6 +66,16 @@ const RICH_STYLE = {
 
 const RICH_SKIN = { sensitivity: 'elevee', activeTolerance: 'faible' };
 
+/** Profil riche côté cuir chevelu et barbe : D3 lit d'autres champs encore. */
+const RICH_SCALP = {
+  scalpCondition: 'sec',
+  scalpConcerns: ['pellicules', 'demangeaisons'],
+  washFrequency: 'plusieurs_fois_semaine',
+  facialHair: 'dense'
+};
+
+const RICH_SCALP_SKIN = { sensitivity: 'elevee', activeTolerance: 'faible', acne: 'reguliere', hydration: 'seche' };
+
 function profileWith(
   hair: Record<string, unknown>,
   extra: { skin?: Record<string, unknown>; environment?: Record<string, unknown> } = {}
@@ -104,12 +114,27 @@ function engineProduct(partial: Partial<EngineProduct> & { id: string; name: str
  * l'utilisateur verrait deux fois la même phrase, produite par deux modules qui
  * ne se connaissent pas.
  */
+/**
+ * Formulations déjà produites ailleurs. D1–D3 ne doivent pas les redire :
+ * l'utilisateur verrait deux fois la même phrase, produite par des modules qui
+ * ne se connaissent pas.
+ *
+ * - les cinq premières viennent de `styleFit.ts`, qui alimente la même sortie
+ *   que le moteur ;
+ * - les trois dernières viennent de `needsHub.ts`, surface éditoriale distincte
+ *   (`NEEDS_HUB` n'est lu que par `needTexturePages.ts` et `NeedHubPage.tsx`).
+ *   Le doublon n'y serait pas visible au même endroit, mais KURLA ne doit pas
+ *   tenir deux fois le même discours médical.
+ */
 const RESERVED_BY_STYLE_FIT = [
   'texture fluide',
   'seule zone réellement accessible',
   'occlusif de la formule',
   'retirez la perruque la nuit',
-  'lavage clarifiant régulier'
+  'lavage clarifiant régulier',
+  'consultez un dermatologue',
+  'avis dermatologique',
+  'doivent être montrés à un dermatologue'
 ];
 
 async function runNeedDepthTests(): Promise<void> {
@@ -126,7 +151,14 @@ async function runNeedDepthTests(): Promise<void> {
   );
   const overlap = (STYLE_NEEDS as readonly string[]).filter(need => (FIBRE_NEEDS as readonly string[]).includes(need));
   assert.deepEqual(overlap, [], 'un besoin ne peut pas relever des deux chantiers');
-  const unlisted = [...FIBRE_NEEDS, ...STYLE_NEEDS].filter(need => !(RECOGNIZED_NEED_CODES as readonly string[]).includes(need));
+  assert.deepEqual(
+    [...SCALP_NEEDS].sort(),
+    ['apaiser_cuir_chevelu', 'barbe', 'cuir_chevelu'],
+    'D3 porte sur exactement trois besoins'
+  );
+  const allDeepened = [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS];
+  assert.equal(new Set(allDeepened).size, 13, 'les trois chantiers ne doivent pas se chevaucher');
+  const unlisted = allDeepened.filter(need => !(RECOGNIZED_NEED_CODES as readonly string[]).includes(need));
   assert.deepEqual(unlisted, [], 'un besoin approfondi hors vocabulaire reconnu serait un orphelin réintroduit');
 
   // === D1 — fibre =========================================================
@@ -266,10 +298,15 @@ async function runNeedDepthTests(): Promise<void> {
   assert.ok(signalOf(['proteger_chaleur'], richStyle, 'proteger_chaleur').limitations.some(text => /température/.test(text)),
     'ni l’outil ni sa température ne sont déclarés : KURLA ne doit pas inventer de réglage');
 
+  // Profil cuir chevelu et barbe : déclaré ici parce que le test
+  // anti-duplication ci-dessous en a besoin avant la section D3.
+  const richScalp = profileWith(RICH_SCALP, { skin: RICH_SCALP_SKIN, environment: { waterQuality: 'calcaire' } });
+
   // --- 11. D2 ne redit pas ce que styleFit établit déjà --------------------
   const duplicated: string[] = [];
-  for (const need of STYLE_NEEDS) {
-    const signal = signalOf([need], richStyle, need);
+  for (const need of [...STYLE_NEEDS, ...SCALP_NEEDS]) {
+    const profileForNeed = (SCALP_NEEDS as readonly string[]).includes(need) ? richScalp : richStyle;
+    const signal = signalOf([need], profileForNeed, need);
     for (const text of [...signal.nuances.map(n => n.advice), ...signal.limitations]) {
       for (const reserved of RESERVED_BY_STYLE_FIT) {
         if (text.includes(reserved)) duplicated.push(`${need} → « ${reserved} »`);
@@ -277,15 +314,75 @@ async function runNeedDepthTests(): Promise<void> {
     }
   }
   assert.deepEqual(duplicated, [],
-    `D2 reformule ce que styleFit.ts dit déjà : ${duplicated.join(' ; ')}`);
+    `D2/D3 reformulent ce que styleFit.ts ou needsHub.ts disent déjà : ${duplicated.join(' ; ')}`);
 
-  // --- 12. Frontière honnête : D3 et E ne sont pas faits -------------------
+  // === D3 — cuir chevelu et barbe =========================================
+
+  // --- 12. Chaque besoin D3 est approfondi ---------------------------------
+  for (const need of SCALP_NEEDS) {
+    const signal = signalOf([need], richScalp, need);
+    assert.equal(signal.met, true, `${need} doit être couvert par le profil cuir chevelu`);
+    assert.ok(signal.nuances.length > 0, `${need} doit produire au moins une nuance sur un profil renseigné`);
+  }
+
+  // --- 13. Cuir chevelu sec et cuir chevelu gras : conseils opposés ---------
+  const dryScalp = profileWith({ ...RICH_SCALP, scalpCondition: 'sec' });
+  const oilyScalp = profileWith({ ...RICH_SCALP, scalpCondition: 'gras' });
+  const fitDry = fitFor(['cuir_chevelu'], dryScalp);
+  const fitOily = fitFor(['cuir_chevelu'], oilyScalp);
+
+  assert.deepEqual(fitDry.unmetNeeds, fitOily.unmetNeeds,
+    'l’état du cuir chevelu ne doit pas changer l’éligibilité du besoin');
+  assert.equal(fitDry.score, fitOily.score);
+  const dryAdvice = adviceFor(dryScalp, 'cuir_chevelu', 'hair.scalpCondition');
+  const oilyAdvice = adviceFor(oilyScalp, 'cuir_chevelu', 'hair.scalpCondition');
+  assert.notEqual(dryAdvice, oilyAdvice, 'un cuir chevelu sec et un cuir chevelu gras reçoivent des conseils opposés');
+  assert.match(dryAdvice!, /manque d’eau/, 'un cuir chevelu sec doit être lu comme un manque d’eau');
+  assert.match(oilyAdvice!, /asséchant/, 'un cuir chevelu gras doit mettre en garde contre l’assèchement');
+
+  // --- 14. Des squames ne se lisent pas pareil selon le cuir chevelu --------
+  // La discrimination la plus utile de D3 : le même signe déclaré appelle deux
+  // lectures différentes.
+  const flakyDry = profileWith({ scalpCondition: 'sec', scalpConcerns: ['pellicules'] });
+  const flakyOily = profileWith({ scalpCondition: 'gras', scalpConcerns: ['pellicules'] });
+  const flakyDryAdvice = adviceFor(flakyDry, 'apaiser_cuir_chevelu', 'hair.scalpCondition');
+  const flakyOilyAdvice = adviceFor(flakyOily, 'apaiser_cuir_chevelu', 'hair.scalpCondition');
+  assert.notEqual(flakyDryAdvice, flakyOilyAdvice,
+    'des squames sur cuir chevelu sec et sur cuir chevelu gras ne se traitent pas de la même façon');
+  assert.match(flakyDryAdvice!, /desquame/, 'sur cuir chevelu sec, les squames peuvent venir de la sécheresse');
+  assert.match(flakyOilyAdvice!, /pas comme une simple sécheresse/, 'sur cuir chevelu gras, la sécheresse n’est pas la bonne lecture');
+
+  // --- 15. La barbe : le poil et la peau dessous ---------------------------
+  const denseBeard = profileWith({ facialHair: 'dense' }, { skin: { sensitivity: 'elevee', acne: 'reguliere' } });
+  const lightBeard = profileWith({ facialHair: 'leger' }, { skin: { sensitivity: 'faible', acne: 'aucune' } });
+  const fitDense = fitFor(['barbe'], denseBeard);
+  const fitLight = fitFor(['barbe'], lightBeard);
+
+  assert.deepEqual(fitDense.unmetNeeds, fitLight.unmetNeeds,
+    'la densité de la pilosité ne doit pas changer l’éligibilité du besoin');
+  assert.equal(fitDense.score, fitLight.score);
+  assert.ok(fitDense.needSignals[0].nuances.length > fitLight.needSignals[0].nuances.length,
+    'une barbe dense sur peau réactive avec imperfections doit produire plus de conseils');
+  assert.ok(fitDense.needSignals[0].nuances.some(n => /deux objets de soin/.test(n.advice)),
+    'sous la barbe il y a le poil et la peau dessous : cette distinction doit être dite');
+  assert.deepEqual(fitLight.needSignals[0].nuances, [],
+    'pilosité légère sur peau sans particularité déclarée : aucun geste différencié ne doit être inventé');
+
+  // --- 16. Limites D3 ------------------------------------------------------
+  assert.ok(signalOf(['apaiser_cuir_chevelu'], richScalp, 'apaiser_cuir_chevelu').limitations.some(text => /pas une cause/.test(text)),
+    'le profil déclare un signe, pas une cause : KURLA ne diagnostique pas et doit le dire');
+  assert.ok(signalOf(['barbe'], richScalp, 'barbe').limitations.some(text => /longueur de la barbe/.test(text)),
+    'la longueur de la barbe n’est déclarée nulle part : cela doit être dit');
+  assert.deepEqual(signalOf(['cuir_chevelu'], richScalp, 'cuir_chevelu').limitations, [],
+    'cuir_chevelu n’a pas de lacune de profil à déclarer');
+
+  // --- 17. Frontière honnête : E n'est pas fait ----------------------------
   const untouched = (RECOGNIZED_NEED_CODES as readonly string[])
-    .filter(need => !(FIBRE_NEEDS as readonly string[]).includes(need) && !(STYLE_NEEDS as readonly string[]).includes(need));
-  assert.equal(untouched.length, 11, '21 besoins reconnus moins 5 de fibre (D1) moins 5 de coiffure (D2)');
+    .filter(need => !([...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS] as readonly string[]).includes(need));
+  assert.equal(untouched.length, 8, '21 besoins reconnus moins 5 de fibre, 5 de coiffure et 3 de cuir chevelu');
   for (const need of untouched) {
-    assert.deepEqual(assessNeedDepth(need, richStyle), { intensity: 0, nuances: [], limitations: [] },
-      `${need} n’est traité ni par D1 ni par D2 : sa profondeur doit rester vide, pas simulée`);
+    assert.deepEqual(assessNeedDepth(need, richScalp), { intensity: 0, nuances: [], limitations: [] },
+      `${need} n’est traité par aucun chantier livré : sa profondeur doit rester vide, pas simulée`);
   }
 
   // --- 13. Chaque nuance cite un chemin réel du profil ----------------------
@@ -294,10 +391,13 @@ async function runNeedDepthTests(): Promise<void> {
     ['rich', rich], ['lowPorosity', lowPorosity], ['highPorosity', highPorosity],
     ['thick', thick], ['stiff', stiff], ['stretchy', stretchy],
     ['richStyle', richStyle], ['reactive', reactive], ['tolerant', tolerant],
-    ['bleached', bleached], ['natural', natural]
+    ['bleached', bleached], ['natural', natural],
+    ['richScalp', richScalp], ['dryScalp', dryScalp], ['oilyScalp', oilyScalp],
+    ['flakyDry', flakyDry], ['flakyOily', flakyOily],
+    ['denseBeard', denseBeard], ['lightBeard', lightBeard]
   ];
   for (const [label, profile] of profiles) {
-    for (const need of [...FIBRE_NEEDS, ...STYLE_NEEDS]) {
+    for (const need of [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS]) {
       for (const nuance of signalOf([need], profile, need).nuances) {
         checked.add(nuance.field);
         assert.notEqual(resolvePath(profile, nuance.field), undefined,
@@ -330,7 +430,7 @@ async function runNeedDepthTests(): Promise<void> {
     'la première raison doit rester l’explication de pertinence, pas un détail de geste');
 
   console.log(
-    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} besoins de fibre (D1) et ${STYLE_NEEDS.length} de coiffure (D2) approfondis, ${checked.size} champs porteurs de nuances, limites nommées sur la fibre de perruque, la fixation, le stade des locks et la température, aucune duplication de styleFit, éligibilité et score inchangés.`
+    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} de fibre (D1), ${STYLE_NEEDS.length} de coiffure (D2) et ${SCALP_NEEDS.length} de cuir chevelu et barbe (D3) — 13 besoins sur 21 — ${checked.size} champs porteurs de nuances, limites nommées sur la fibre de perruque, la fixation, le stade des locks, la température, le signe sans cause et la longueur de barbe, aucune duplication de styleFit ni de needsHub, éligibilité et score inchangés.`
   );
 }
 

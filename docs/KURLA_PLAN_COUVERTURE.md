@@ -1967,6 +1967,75 @@ F ne le redécouvre pas.
 - Discriminations assertées : sensibilité cutanée sous perruque, décoloration
   face à la chaleur — à chaque fois avec **même `unmetNeeds` et même `score`**.
 
+## CHANTIER D3 — CUIR CHEVEULU ET BARBE
+
+### Périmètre
+
+`cuir_chevelu`, `apaiser_cuir_chevelu`, `barbe` — trois besoins, dans
+`src/lib/needDepth.ts` comme D1 et D2. **13 besoins sur 21 sont maintenant
+approfondis** ; il reste les 8 besoins peau (chantier E).
+
+### Deux frontières, toutes les deux testées
+
+1. **`styleFit.ts`** établit déjà la priorité au cuir chevelu quand une coiffure
+   protecteur est portée, et `assessTractionFit` renvoie déjà vers un
+   professionnel sur signal d'escalade. D3 traite l'état **déclaré** du cuir
+   chevelu, indépendamment de toute coiffure.
+2. **`needsHub.ts`** porte déjà, pour ces besoins, un texte `seeDoctor`
+   (« consultez un dermatologue », « avis dermatologique », « doivent être
+   montrés à un dermatologue »). C'est une surface éditoriale distincte —
+   vérifié par grep : `NEEDS_HUB` n'est lu que par `needTexturePages.ts` et
+   `NeedHubPage.tsx`, jamais par le moteur — mais KURLA ne doit pas tenir deux
+   fois le même discours médical. Les trois formulations sont donc ajoutées à la
+   liste réservée du banc.
+
+### La discrimination la plus utile de D3
+
+Un même signe déclaré appelle deux lectures opposées selon l'état du cuir
+chevelu :
+
+| Signe déclaré | Cuir chevelu sec | Cuir chevelu gras |
+| --- | --- | --- |
+| `pellicules` | Un cuir chevelu qui manque d'eau **desquame aussi** : hydrater avant de traiter comme des pellicules | Cette combinaison **ne se traite pas comme une simple sécheresse** |
+
+Avant D3, `apaiser_cuir_chevelu` retournait `true` dans les deux cas avec le
+même texte. C'est exactement le défaut signalé par l'utilisateur : KURLA lisait
+le champ sans s'en servir.
+
+### Sous la barbe, deux objets de soin
+
+Même structure que le chantier C sur la perruque : sous la barbe il y a **le
+poil et la peau dessous**, et une réaction vient le plus souvent de la peau.
+D3 croise `hair.facialHair` avec `skin.sensitivity`, `skin.acne` et
+`skin.hydration` — quatre champs qui n'étaient jamais lus ensemble.
+
+### Limites ajoutées
+
+| Lacune | Ce qui est dit |
+| --- | --- |
+| Le profil déclare un signe, pas une cause | Squames et démangeaisons peuvent avoir plusieurs origines, que KURLA ne distingue pas et ne diagnostique pas |
+| Longueur de la barbe — **aucun champ n'existe** | Les conseils s'appuient sur les champs peau généraux |
+
+La première est importante : c'est la traduction technique de « pas de
+diagnostic médical ». KURLA conseille les gestes qui n'aggravent aucune des
+causes possibles, et le dit.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. 13 besoins sur 21, **25 champs**
+  porteurs de nuances, **8 besoins** encore non traités (asserté).
+- **Contrôle négatif exécuté** : les trois fonctions D3 neutralisées →
+  **exit 1**, `cuir_chevelu doit produire au moins une nuance`.
+- Discriminations assertées : cuir chevelu sec/gras, squames sur sec/gras,
+  barbe dense sur peau réactive/pilosité légère sur peau neutre — à chaque fois
+  avec **même `unmetNeeds` et même `score`**.
+- Un profil à pilosité légère sur peau sans particularité déclarée produit
+  **0 nuance** : asserté, pour que l'absence de conseil reste préférable à un
+  conseil inventé.
+- `npm test` — **exit 0**, **123 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Une erreur d'ordre de déclaration (`richScalp` utilisé avant initialisation)
+  a été trouvée à l'exécution du banc, pas à la lecture.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

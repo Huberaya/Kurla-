@@ -236,7 +236,7 @@ trois réglages (8 contrôles).
 |---|---|---|
 | D1 | profondeur des 5 besoins de fibre (`src/lib/needDepth.ts`) | livré |
 | D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | livré |
-| D3 | cuir chevelu et barbe (3 besoins) | à faire |
+| D3 | cuir chevelu et barbe (3 besoins) | livré |
 | E | les 8 besoins peau | à faire |
 | F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | à faire |
 
@@ -250,8 +250,12 @@ cet ordre : `recommendationsForSlugs` affiche `reasons[0]`.
 **rien** de `styleFit.ts` : le banc `tests/kurla_need_depth.test.ts` fait tomber
 la suite si une chaîne de D2 contient une formulation réservée à `styleFit`
 (`texture fluide`, `seule zone réellement accessible`, `occlusif de la formule`,
-`retirez la perruque la nuit`, `lavage clarifiant régulier`). **Si `styleFit.ts`
-est modifié, cette liste est à revoir.**
+`retirez la perruque la nuit`, `lavage clarifiant régulier`). **Si `styleFit.ts` ou `needsHub.ts`
+est modifié, cette liste est à revoir.** D3 a ajouté à la liste réservée les trois
+formulations médicales de `needsHub.ts` (`consultez un dermatologue`,
+`avis dermatologique`, `doivent être montrés à un dermatologue`) : `NEEDS_HUB`
+n'alimente que les pages éditoriales, jamais le moteur, mais KURLA ne doit pas
+tenir deux fois le même discours médical.
 
 **F touchera la ligne du score.** Le banc `tests/kurla_need_depth.test.ts`
 asserte `score === 33` sur un produit à 1 besoin couvert sur 3 : c'est le

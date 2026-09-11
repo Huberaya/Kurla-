@@ -81,12 +81,37 @@ export const STYLE_NEEDS = [
   'proteger_nuit'
 ] as const;
 
+/**
+ * CHANTIER D3 — cuir chevelu et barbe.
+ *
+ * Deux frontières tenues :
+ *
+ * - `styleFit.ts` établit déjà la priorité au cuir chevelu quand une coiffure
+ *   protecteur est portée, et `assessTractionFit` renvoie déjà vers un
+ *   professionnel sur signal d'escalade. D3 ne redit ni l'un ni l'autre : il
+ *   traite l'état **déclaré** du cuir chevelu, indépendamment de toute coiffure.
+ * - `needsHub.ts` porte déjà, pour ces besoins, un texte `seeDoctor` (« consultez
+ *   un dermatologue », « avis dermatologique »). C'est une surface éditoriale
+ *   distincte — `NEEDS_HUB` n'est lu que par `needTexturePages.ts` et
+ *   `NeedHubPage.tsx`, jamais par le moteur — mais D3 ne reformule pas ces
+ *   phrases pour autant. Le banc le vérifie.
+ */
+export const SCALP_NEEDS = [
+  'cuir_chevelu',
+  'apaiser_cuir_chevelu',
+  'barbe'
+] as const;
+
 export function isFibreNeed(need: string): boolean {
   return (FIBRE_NEEDS as readonly string[]).includes(need);
 }
 
 export function isStyleNeed(need: string): boolean {
   return (STYLE_NEEDS as readonly string[]).includes(need);
+}
+
+export function isScalpNeed(need: string): boolean {
+  return (SCALP_NEEDS as readonly string[]).includes(need);
 }
 
 const EMPTY: NeedDepth = { intensity: 0, nuances: [], limitations: [] };
@@ -533,13 +558,123 @@ function nightDepth(profile: BeautyProfile): NeedDepth {
   return d.result();
 }
 
+// === CHANTIER D3 — cuir chevelu et barbe ==================================
+
+function scalpAdvice(scalpCondition: string): string | null {
+  switch (scalpCondition) {
+    case 'sec':
+      return 'Cuir chevelu sec : il manque d’eau, pas de lavage. Un tensioactif doux et une hydratation du cuir chevelu passent avant tout produit « purifiant », qui aggraverait la sécheresse.';
+    case 'gras':
+      return 'Cuir chevelu à tendance grasse : la fréquence de lavage et la qualité du rinçage sont le levier principal. Un produit asséchant déclenche souvent davantage de sébum, pas moins.';
+    case 'sensible':
+      return 'Cuir chevelu sensible : un seul changement à la fois, puis plusieurs jours d’observation. Ce qui irrite est rarement identifiable quand plusieurs produits changent en même temps.';
+    case 'normal':
+      return 'Cuir chevelu équilibré : l’enjeu est de le rester. Changer de routine sans raison est le premier facteur de déséquilibre.';
+    default:
+      return null;
+  }
+}
+
+// --- cuir_chevelu ----------------------------------------------------------
+
+function scalpDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const water = profile.environment.waterQuality;
+  const overWashed = hair.scalpCondition === 'sec' && hair.washFrequency === 'plusieurs_fois_semaine';
+
+  if (hair.scalpCondition === 'sensible') d.raise(15);
+  if (overWashed) d.raise(15);
+  if (hair.scalpCondition === 'gras') d.raise(10);
+  if (water === 'calcaire') d.raise(10);
+  if (profile.skin.sensitivity === 'elevee') d.raise(10);
+
+  d.push('hair.scalpCondition', hair.scalpCondition, scalpAdvice(hair.scalpCondition));
+  if (overWashed) {
+    d.push('hair.washFrequency', hair.washFrequency,
+      'Cuir chevelu sec et lavages plusieurs fois par semaine : la fréquence peut entretenir la sécheresse qu’elle est censée traiter. Espacer est à tester avant d’ajouter un produit.');
+  }
+  d.push('environment.waterQuality', water, water === 'calcaire'
+    ? 'Eau calcaire déclarée : les dépôts minéraux restent sur le cuir chevelu après rinçage et peuvent être pris pour des squames. C’est une cause externe, qu’aucun soin du cuir chevelu ne corrige.'
+    : null);
+  d.push('skin.sensitivity', profile.skin.sensitivity, profile.skin.sensitivity === 'elevee'
+    ? 'Peau déclarée très sensible : le cuir chevelu est une peau et réagit généralement aux mêmes choses. Parfums et actifs concentrés sont à écarter ici aussi.'
+    : null);
+
+  return d.result();
+}
+
+// --- apaiser_cuir_chevelu --------------------------------------------------
+
+function scalpSootheDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const signs = hair.scalpConcerns.filter(concern => ['demangeaisons', 'sensibilite', 'pellicules'].includes(concern));
+
+  if (signs.length > 1) d.raise(20);
+  if (hair.scalpConcerns.includes('demangeaisons')) d.raise(10);
+  if (hair.scalpCondition === 'sensible') d.raise(10);
+  if (profile.skin.activeTolerance === 'faible') d.raise(10);
+
+  d.push('hair.scalpConcerns', signs.join(', '), signs.length > 1
+    ? 'Plusieurs signes d’irritation déclarés ensemble : ils ont souvent une cause commune. Traiter un seul signe conduit à ajouter des produits plutôt qu’à retirer celui qui ne convient pas.'
+    : null);
+  if (hair.scalpConcerns.includes('pellicules') && hair.scalpCondition === 'sec') {
+    d.push('hair.scalpCondition', hair.scalpCondition,
+      'Squames déclarées sur un cuir chevelu sec : un cuir chevelu qui manque d’eau desquame aussi. Hydrater avant de traiter comme des pellicules évite d’employer un produit inadapté.');
+  }
+  if (hair.scalpConcerns.includes('pellicules') && hair.scalpCondition === 'gras') {
+    d.push('hair.scalpCondition', hair.scalpCondition,
+      'Squames déclarées sur un cuir chevelu gras : cette combinaison ne se traite pas comme une simple sécheresse. Si elle persiste malgré une routine adaptée, elle sort du champ de ce conseil.');
+  }
+  d.push('skin.activeTolerance', profile.skin.activeTolerance, profile.skin.activeTolerance === 'faible'
+    ? 'Tolérance aux actifs déclarée faible : sur un cuir chevelu déjà irrité, un actif concentré aggrave au lieu d’apaiser. Commencer sans actif, puis introduire progressivement.'
+    : null);
+
+  d.limit('Le profil déclare un signe, pas une cause. Squames et démangeaisons peuvent avoir plusieurs origines, que KURLA ne distingue pas et ne diagnostique pas : ce conseil porte sur les gestes qui n’en aggravent aucune.');
+
+  return d.result();
+}
+
+// --- barbe -----------------------------------------------------------------
+
+function beardDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const hair = profile.hair;
+  const skin = profile.skin;
+  const acneic = skin.acne === 'occasionnelle' || skin.acne === 'reguliere';
+
+  if (hair.facialHair === 'dense') d.raise(15);
+  if (skin.sensitivity === 'elevee') d.raise(15);
+  if (acneic) d.raise(15);
+  if (skin.hydration === 'seche') d.raise(10);
+
+  d.push('hair.facialHair', hair.facialHair, hair.facialHair === 'dense'
+    ? 'Pilosité faciale dense : le produit atteint difficilement la peau sous la barbe. Appliquer en écartant les poils, en quantité suffisante pour atteindre la peau et pas seulement le poil.'
+    : null);
+  if (skin.sensitivity === 'elevee') {
+    d.push('skin.sensitivity', skin.sensitivity,
+      'Peau déclarée très sensible : sous la barbe il y a deux objets de soin, le poil et la peau dessous. Une réaction vient le plus souvent de la peau — c’est elle qu’il faut observer.');
+  }
+  if (acneic) {
+    d.push('skin.acne', skin.acne,
+      'Imperfections déclarées : une texture riche pour la barbe peut les aggraver dans cette zone. Un nettoyage qui atteint la peau et une texture légère passent avant l’entretien du poil.');
+  }
+  d.push('skin.hydration', skin.hydration, skin.hydration === 'seche'
+    ? 'Peau déclarée sèche : la peau sous la barbe se déshydrate et desquame, ce qui se voit en pellicules sur le poil. Traiter la peau règle ce que traiter le poil ne règle pas.'
+    : null);
+
+  d.limit('La longueur de la barbe n’est déclarée nulle part dans le profil, et la peau sous la barbe n’est pas décrite séparément du reste du visage. Ces conseils s’appuient donc sur les champs peau généraux.');
+
+  return d.result();
+}
+
 // --- Point d'entrée --------------------------------------------------------
 
 /**
- * Retourne la profondeur d'un besoin. Pour un besoin non encore approfondi
- * (D3 : cuir chevelu et barbe, et les besoins peau), le résultat est vide :
- * l'absence de nuance signifie « pas encore traité », jamais « aucun conseil à
- * donner ».
+ * Retourne la profondeur d'un besoin. Pour un besoin non encore approfondi —
+ * les 8 besoins peau, chantier E — le résultat est vide : l'absence de nuance
+ * signifie « pas encore traité », jamais « aucun conseil à donner ».
  */
 export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth {
   switch (need) {
@@ -565,6 +700,13 @@ export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth
       return heatDepth(profile);
     case 'proteger_nuit':
       return nightDepth(profile);
+    // D3 — cuir chevelu et barbe.
+    case 'cuir_chevelu':
+      return scalpDepth(profile);
+    case 'apaiser_cuir_chevelu':
+      return scalpSootheDepth(profile);
+    case 'barbe':
+      return beardDepth(profile);
     default:
       return EMPTY;
   }
