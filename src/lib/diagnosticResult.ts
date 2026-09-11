@@ -1,5 +1,6 @@
 import type { AIRecommendationResult, Product } from '../types';
 import { getProductTruth } from './catalogTruth';
+import { pickSkinKnowledgeProfile, type SkinKnowledgeProfile } from './knowledge/skin';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -48,6 +49,7 @@ export interface DiagnosticResultModel {
   };
   warnings: string[];
   summary: string;
+  skinKnowledgeProfile: SkinKnowledgeProfile | null;
 }
 
 const UNKNOWN = new Set(['', 'inconnu', 'inconnue', 'unknown', 'undefined', 'null']);
@@ -187,6 +189,14 @@ export function buildDiagnosticResultModel(input: {
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
   const routine = isSkin ? routineForSkin(answers, priorities) : routineForHair(result);
+  const skinKnowledgeProfile = isSkin ? pickSkinKnowledgeProfile({
+    acne: typeof answers.acne === 'string' ? answers.acne : undefined,
+    skinConcerns: Array.isArray(answers.skinConcerns) ? answers.skinConcerns.filter((value): value is string => typeof value === 'string') : undefined,
+    skinObjectives: Array.isArray(answers.skinObjectives) ? answers.skinObjectives.filter((value): value is string => typeof value === 'string') : undefined,
+    skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,
+    hydrationLevel: typeof answers.hydrationLevel === 'string' ? answers.hydrationLevel : undefined,
+    hyperpigmentationTendency: typeof answers.hyperpigmentationTendency === 'string' ? answers.hyperpigmentationTendency : undefined,
+  }) : null;
   const handles = new Set(result?.productHandles || []);
   const productsInResult = products.filter(product => handles.has(product.slug) || handles.has(product.id));
   const productCards = productsInResult.map(product => {
@@ -227,5 +237,6 @@ export function buildDiagnosticResultModel(input: {
       'Conseil cosmétique : ce résultat ne constitue pas un avis médical ni un diagnostic.',
     ].filter((warning, index, list) => list.indexOf(warning) === index),
     summary: result?.summary || (isSkin ? 'Résultat peau calculé à partir des réponses déclarées.' : 'Résultat calculé à partir des réponses déclarées.'),
+    skinKnowledgeProfile,
   };
 }
