@@ -3,6 +3,9 @@
 > « Construire ce qui est nécessaire maintenant, en préparant ce qui sera
 > nécessaire demain. » — la roadmap tient en une règle : **le code est prêt,
 > la donnée et les preuves sont le chemin.**
+>
+> **Plan d'exécution détaillé (chantiers, critères d'acceptation, jalons) :**
+> `PLAN_CHANTIERS_PLATEFORME_SOLID_2026-09-11.md` à la racine du dépôt.
 
 ---
 

@@ -30,6 +30,9 @@ valables comme traces historiques ; quand ils entrent en contradiction avec ce d
 | 12 | [roadmap-technique.md](./12-roadmap-technique.md) | Phases 1→7, priorités P0/P1/P2/P3, vision 3 ans |
 | 13 | [etat-final.md](./13-etat-final.md) | Ce qui a été consolidé dans cette session + état final |
 
+**Plan d'exécution (chantiers G/P/L/I/S, critères d'acceptation, jalons M1–M5) :**
+[`PLAN_CHANTIERS_PLATEFORME_SOLID_2026-09-11.md`](../../PLAN_CHANTIERS_PLATEFORME_SOLID_2026-09-11.md)
+
 ---
 
 ## Synthèse exécutive (5 minutes)

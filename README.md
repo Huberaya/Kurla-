@@ -31,6 +31,10 @@ du code à côté » :
 — architecture actuelle et cible, audit code, matrice Hair/Skin, IA, données,
 e-commerce, international, sécurité/RGPD, scalabilité, design system, roadmap.
 
+**Plan d'exécution : [`PLAN_CHANTIERS_PLATEFORME_SOLID_2026-09-11.md`](./PLAN_CHANTIERS_PLATEFORME_SOLID_2026-09-11.md)**
+— chantiers G (go-live) / P (peau) / L (boucle) / I (international) / S (scale),
+critères d'acceptation vérifiables, jalons M1–M5.
+
 ## Démarrer
 
 ```bash
