@@ -137,7 +137,8 @@
     "test:wig-fit": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_wig_fit.test.ts",
     "test:comparateur": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_comparateur.test.ts",
     "test:suite-executable": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_suite_executable.test.ts",
-    "test:dependances": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_dependances_declares.test.ts"
+    "test:dependances": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_dependances_declares.test.ts",
+    "verify:production": "node scripts/verifier-deploiement.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

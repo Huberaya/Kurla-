@@ -1144,6 +1144,13 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     productsCount: products.length,
     supabaseStatus: serverDb.getStatusSummary(),
     time: new Date().toISOString(),
+    // Quel build répond, exactement ? Sans ces deux champs, un déploiement
+    // peut être annoncé « en ligne » alors que l'alias sert encore
+    // l'ancien build — ou servir le nouveau sans qu'on puisse le prouver.
+    // `verifier-deploiement.mjs` attend ce commit avant de sonder quoi que
+    // ce soit d'autre.
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    deployment: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   });
 }));
 
