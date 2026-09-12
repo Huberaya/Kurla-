@@ -109,7 +109,7 @@ export function buildSkinKitQuotes(
     const reason = !allComponentsFound
       ? 'Prix indicatif : un ou plusieurs composants réels ne sont pas encore publiés dans le catalogue serveur.'
       : !allComponentsEligible
-        ? 'Prix réconcilié depuis le catalogue serveur, mais kit non achetable : au moins un composant reste indisponible ou non éligible.'
+        ? 'Prix réconcilié depuis le catalogue serveur, mais kit non achetable pendant C1 : au moins un composant reste indisponible, insuffisamment documenté ou non éligible.'
         : 'Prix réconcilié depuis les prix serveur des composants ; achat du kit suspendu pendant C1.';
 
     return {

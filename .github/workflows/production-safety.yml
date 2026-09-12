@@ -86,6 +86,9 @@ jobs:
       - name: Run real Supabase tests
         run: npm run test:realdb
 
+      - name: Audit the Skin and Catalog truth layer
+        run: npm run audit:truth -- --strict
+
   verify-production:
     name: Verify production alias after main deployment
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

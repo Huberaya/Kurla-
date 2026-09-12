@@ -12,6 +12,12 @@
  * - `isPubliclyListable` et `isCheckoutEligible` sont des portes dérivées.
  */
 
+import { scanCatalogClaims, type CatalogClaimScan } from './catalogClaims';
+import { evaluateSkinProductReadiness, type SkinProductReadiness } from './skinCommercialReadiness';
+import { hasDocumentedExternalPreorder, isInternalFormulationSource } from './preorderEvidence';
+
+export const CATALOG_TRUTH_VERSION = '2026-09-12.skin-catalog.v1';
+
 export type CatalogAdministrativeStatus =
   | 'draft'
   | 'pending_review'
@@ -40,6 +46,16 @@ export type CatalogTruth = {
   /** Explication lisible, sans exposer les détails internes de gouvernance. */
   availabilityMessage: string;
   blockers: string[];
+  /** Version du contrat de décision, utile pour auditer une release. */
+  truthVersion: string;
+  /** Résultat du crible déterministe des textes visibles. */
+  claimsClean: boolean;
+  claimHits: number;
+  /** Le contrat C1 peau est activé uniquement pour une fiche explicitement peau. */
+  skinGoverned: boolean;
+  skinReadiness?: SkinProductReadiness;
+  /** Null signifie qu'aucune précommande n'est déclarée. */
+  preorderDocumented: boolean | null;
 };
 
 /** Nom métier de la projection serveur consommée par toutes les surfaces. */
@@ -156,8 +172,11 @@ function hasMinimalCatalogProof(product: any): boolean {
   const images = product?.galleryImages || [];
   const countries = product?.countryAvailability || product?.country_availability || [];
   const hasCpnpBlock = requiresCosmeticCompliance(product) && readCatalogField(product, 'cpnp_ready') === false;
+  const preorderDeclared = isPreorder(product);
+  const preorderDocumented = !preorderDeclared || hasDocumentedExternalPreorder(product);
 
   return !hasPendingEvidence(product)
+    && preorderDocumented
     && !hasFormulationTargetMarker(product)
     && !hasPlaceholderMarker(product)
     && hasTrustedImageOwnership(product)
@@ -187,10 +206,49 @@ export function isFormulationTarget(product: any): boolean {
   return hasFormulationTargetMarker(product);
 }
 
+/**
+ * C1 n'est pas activé par le seul mot « peau » dans une fixture historique.
+ * Une fiche réelle porte au moins un identifiant peau, une taxonomie peau ou
+ * un objectif peau explicite. Cette règle évite de mélanger les anciens
+ * produits génériques avec le contrat Skin & Catalog.
+ */
+export function isSkinCatalogGoverned(product: any): boolean {
+  const category = String(product?.category || product?.department || '').trim().toLowerCase();
+  if (category !== 'peau') return false;
+  const id = String(product?.id || '').toLowerCase();
+  const skinTypes = product?.skinTypes ?? product?.skin_types;
+  const skinObjectives = product?.skinObjectives ?? product?.skin_objectives;
+  return id.startsWith('peau-')
+    || (Array.isArray(skinTypes) && skinTypes.length > 0)
+    || (Array.isArray(skinObjectives) && skinObjectives.length > 0)
+    || Boolean(product?.skinTaxonomyVersion ?? product?.skin_taxonomy_version)
+    || Boolean(product?.skinTextureCode ?? product?.skin_texture_code);
+}
+
+function skinReadiness(product: any): SkinProductReadiness | undefined {
+  return isSkinCatalogGoverned(product) ? evaluateSkinProductReadiness(product) : undefined;
+}
+
+function claimsFor(product: any): CatalogClaimScan {
+  return scanCatalogClaims(product as Record<string, unknown>);
+}
+
+function hasCatalogTextClaims(product: any): boolean {
+  return claimsFor(product).clean;
+}
+
+function hasSkinProof(product: any): boolean {
+  const readiness = skinReadiness(product);
+  if (!readiness) return true;
+  return readiness.commercialState === 'ready_to_buy' || readiness.commercialState === 'preorder_verified';
+}
+
 export function isCatalogPubliclyListable(product: any): boolean {
   return readCatalogField(product, 'is_active') === true
     && readCatalogField(product, 'catalog_status') === 'published'
-    && hasMinimalCatalogProof(product);
+    && hasMinimalCatalogProof(product)
+    && hasCatalogTextClaims(product)
+    && hasSkinProof(product);
 }
 
 function hasPositiveStock(product: any): boolean {
@@ -224,7 +282,12 @@ export function getCatalogTruth(product: any): CatalogTruth {
   const formulationTarget = hasFormulationTargetMarker(product);
   const placeholder = hasPlaceholderMarker(product);
   const pendingValidation = hasPendingEvidence(product);
-  const proofState: CatalogTruth['proofState'] = hasMinimalCatalogProof(product) ? 'compliant' : 'incomplete';
+  const preorderDeclared = isPreorder(product);
+  const preorderIsDocumented = preorderDeclared ? hasDocumentedExternalPreorder(product) : null;
+  const claims = claimsFor(product);
+  const governedBySkinContract = isSkinCatalogGoverned(product);
+  const skin = skinReadiness(product);
+  const proofState: CatalogTruth['proofState'] = hasMinimalCatalogProof(product) && claims.clean && hasSkinProof(product) ? 'compliant' : 'incomplete';
   const listable = isCatalogPubliclyListable(product);
   const blockers: string[] = [];
 
@@ -233,15 +296,25 @@ export function getCatalogTruth(product: any): CatalogTruth {
   if (formulationTarget) blockers.push('formulation cible : aucun produit fabriqué/achetable démontré');
   if (!formulationTarget && placeholder) blockers.push('visuel placeholder ou droits non établis');
   if (!formulationTarget && !placeholder && pendingValidation) blockers.push('preuves produit en attente de validation');
+  if (preorderDeclared && !preorderIsDocumented && !isInternalFormulationSource(product)) {
+    blockers.push('précommande externe non documentée : fournisseur, SKU fournisseur et source explicite requis');
+  }
+  if (!claims.clean) blockers.push(`allégations à revoir : ${claims.hits.map(hit => hit.ruleId).join(', ')}`);
+  if (skin && skin.commercialState === 'blocked') {
+    blockers.push(`contrat C1 peau incomplet : ${skin.blockers.map(blocker => blocker.field).join(', ')}`);
+  }
   if (published && !listable) blockers.push('ne satisfait pas la porte de publiabilité');
 
   let commercialState: CatalogCommercialState;
   if (formulationTarget) commercialState = 'formulation_target';
   else if (placeholder) commercialState = 'placeholder';
   else if (pendingValidation) commercialState = 'pending_validation';
+  else if (!claims.clean) commercialState = 'pending_validation';
+  else if (skin?.commercialState === 'blocked') commercialState = 'pending_validation';
   else if (!active || administrativeStatus === 'unavailable') commercialState = 'unavailable';
   else if (!published) commercialState = 'draft';
-  else if (isPreorder(product)) commercialState = 'preorder';
+  else if (preorderDeclared && preorderIsDocumented === true) commercialState = 'preorder';
+  else if (preorderDeclared) commercialState = 'pending_validation';
   else if (hasPositiveStock(product)) commercialState = 'available';
   else commercialState = 'unavailable';
 
@@ -281,6 +354,12 @@ export function getCatalogTruth(product: any): CatalogTruth {
     availabilityLabel,
     availabilityMessage,
     blockers: Array.from(new Set(blockers)),
+    truthVersion: CATALOG_TRUTH_VERSION,
+    claimsClean: claims.clean,
+    claimHits: claims.hits.length,
+    skinGoverned: governedBySkinContract,
+    skinReadiness: skin,
+    preorderDocumented: preorderIsDocumented,
   };
 }
 

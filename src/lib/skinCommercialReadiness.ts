@@ -6,6 +6,8 @@
  * précommande documentée et un SKU réellement achetable.
  */
 
+import { hasDocumentedExternalPreorder, isInternalFormulationSource } from './preorderEvidence';
+
 export const SKIN_FIRST_MARKET = 'FR';
 
 /**
@@ -166,13 +168,9 @@ function isTintedProduct(product: any): boolean {
 }
 
 function isInternalSource(product: any): boolean {
-  const source = text(product, 'sourceSupplier', 'source_supplier').toLowerCase();
   // Une précommande peut être réelle et documentée. Elle ne devient une cible
   // que si la provenance dit explicitement formulation interne/cible.
-  return source.includes('formulation interne')
-    || source.includes('formulation cible')
-    || source.includes('internal formulation')
-    || source.includes('internal formulation target');
+  return isInternalFormulationSource(product);
 }
 
 function isPreorder(product: any): boolean {
@@ -281,8 +279,12 @@ export function evaluateSkinProductReadiness(
   const metadata = evaluateSkinMetadata(product);
   const extraBlockers = [...(options.extraBlockers || [])];
   const internalSource = isInternalSource(product);
+  const preorderDeclared = isPreorder(product);
   if (internalSource && !extraBlockers.some(blocker => blocker.field === 'source_supplier')) {
     extraBlockers.push({ field: 'source_supplier', label: 'source_supplier = formulation interne / formulation cible' });
+  }
+  if (preorderDeclared && !internalSource && !hasDocumentedExternalPreorder(product)) {
+    extraBlockers.push({ field: 'preorder_evidence', label: 'précommande externe non documentée : fournisseur, SKU fournisseur et source explicite requis' });
   }
   const blockers = [...metadata.missing, ...extraBlockers].filter((blocker, index, all) =>
     all.findIndex(candidate => candidate.field === blocker.field) === index
