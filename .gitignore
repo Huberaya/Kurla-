@@ -16,3 +16,6 @@ playwright-report/
 
 # État de référence de la production, propre à chaque machine
 .kurla-etat-production.json
+
+# État de référence du schéma, propre à chaque machine
+.kurla-schema-production.json

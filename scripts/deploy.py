@@ -78,7 +78,37 @@ def verifier(sha: str) -> int:
     if resultat.returncode != 0:
         print("\nLa version est en ligne, mais elle ne répond pas correctement.")
         print("Corriger ou revenir en arrière avant toute annonce.")
-    return resultat.returncode
+        return resultat.returncode
+
+    return verifier_schema()
+
+
+def verifier_schema() -> int:
+    """Le schéma : Vercel déploie seul, les migrations s'appliquent à la main.
+
+    Rien ne signale l'écart entre les deux, et le code déployé peut
+    interroger une table que la base n'a pas — mesuré le 12/09/2026 avec
+    `photo_ai_analyses` et `push_subscriptions`, requêtées en production
+    sans jamais avoir été créées. Comme pour les endpoints, seuls les
+    écarts **nouveaux** bloquent : une migration en attente depuis
+    longtemps est un constat, pas une régression.
+    """
+    acces = os.environ.get("SUPABASE_URL", "").strip() and (
+        os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+        or os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    )
+    if not acces:
+        print("\nSchéma NON VÉRIFIÉ : SUPABASE_URL et une clé d'accès sont")
+        print("nécessaires. Une migration en attente ne se verrait pas —")
+        print("lancer scripts/verifier-schema.mjs à la main pour lever le doute.")
+        return 0
+
+    print("\nVérification du schéma…")
+    try:
+        return subprocess.run(["node", "scripts/verifier-schema.mjs"]).returncode
+    except (OSError, subprocess.SubprocessError) as erreur:
+        print(f"\nSchéma NON VÉRIFIÉ : la sonde n'a pas pu être lancée ({erreur}).")
+        return 1
 
 
 def main() -> None:
