@@ -148,8 +148,18 @@ try {
 const regressions = [];
 for (const r of bilan.resultats) {
   const avant = precedent[r.modele];
-  const maintenant = GRAVITE[r.classe] ?? 4;
-  if (avant !== undefined && maintenant >= 2 && maintenant > (GRAVITE[avant] ?? 0)) {
+  // `scripts/lib/sonde.mjs` garde un endpoint critique vide dans la classe
+  // "silence critique" afin que la sonde opérationnelle continue de l'alerter.
+  // Pour la comparaison de déploiement, une réponse explicitement expliquée
+  // reste toutefois le même état métier qu'un "vide expliqué". Sinon, un
+  // changement de classification dans la sonde ferait échouer chaque mise en
+  // ligne sans qu'aucune réponse de production n'ait changé.
+  const classeComparee = r.classe === 'silence critique' && r.explique
+    ? 'vide expliqué'
+    : r.classe;
+  const maintenant = GRAVITE[classeComparee] ?? 4;
+  const videNouveau = classeComparee === 'vide expliqué' && avant === 'ok';
+  if (avant !== undefined && ((maintenant >= 2 && maintenant > (GRAVITE[avant] ?? 0)) || videNouveau)) {
     regressions.push({ ...r, avant });
   }
 }
