@@ -73,7 +73,8 @@ base — c'est donc bien la même instance que celle que nous lisons.
 En base, les 16 fiches `peau-ess-*` existent toujours, avec leur marqueur de
 formulation (`source_supplier = « KURLA Skincare — formulation interne »`),
 mais elles sont toutes passées à `catalog_status = 'draft'` et
-`is_active = false`. Or la route ne sert que les fiches **publiées et
+`is_active = false`. **Toujours le cas au 12/09/2026**, après application des
+migrations : les deux sujets sont indépendants. Or la route ne sert que les fiches **publiées et
 actives** : les 16 sont donc filtrées, et la page est vide.
 
 Ce n'est pas un défaut de code : la route et ses filtres sont corrects
@@ -224,38 +225,26 @@ critique — parce qu'une gamme vide serait un état acceptable — alors il
 faut le dire explicitement et retirer la route de `CRITIQUES`, plutôt que
 de neutraliser la règle pour toutes les routes critiques.
 
-### Deux migrations en attente — à appliquer à la main (12/09/2026)
+### Migrations appliquées le 12/09/2026 — schéma conforme
 
-Le code en production interroge deux tables qui n'existent pas encore :
+Les deux migrations en attente ont été appliquées côté base. Vérifié :
+**133 objets présents, 0 manquant, 0 incertain**, plus aucune fonction RPC
+absente. Le code déployé et la base sont d'accord.
+
+Les deux tables concernées répondent :
 
 | Table | Migration | Requêtée par |
 |---|---|---|
 | `push_subscriptions` | `20260921000001_web_push_subscriptions.sql` | `src/lib/db/pushSubscriptionStore.ts` |
 | `photo_ai_analyses` | `20260921000002_photo_ai_pilot.sql` | `src/lib/db/photoAnalysisStore.ts` |
 
-Tout le reste est en place : 131 objets sur 133 sont présents, et les deux
-manquants proviennent des **deux migrations les plus récentes**, donc rien
-n'a été sauté avant elles. Vérifié aussi côté fonctions RPC : aucune
-manquante (les fonctions `RETURNS TRIGGER` ne sont pas exposées par
-PostgREST — les comparer à l'OpenAPI les ferait déclarer absentes à tort).
+Le fichier « à appliquer en un geste » a été retiré : il reprenait à
+l'identique les deux migrations, qui restent la source. `verifier-schema.mjs`
+est désormais le moyen de le vérifier, à chaque mise en ligne.
 
-**Pourquoi je ne les ai pas appliquées moi-même.** Avec les accès dont je
-dispose, c'est impossible, et je préfère le dire que de le contourner :
-PostgREST n'exécute pas de DDL, aucun exécuteur SQL n'est exposé
-(`/pg/query`, `/v1/sql`, `/sql` → 404 ; `rpc/exec_sql` → PGRST202), l'API
-de gestion Supabase exige un jeton de compte (401) et le port 5432 n'est
-pas joignable. Il faut donc un mot de passe de base ou un jeton de compte.
-
-**Comment faire, en un seul geste :** `supabase/a-appliquer/migrations-en-
-attente.sql` réunit les deux migrations à l'identique. Supabase > SQL
-Editor > coller > Run. Le script est idempotent (`CREATE TABLE IF NOT
-EXISTS`, `DROP POLICY IF EXISTS` puis `CREATE POLICY`) et ne contient
-aucun ordre destructif.
-
-**Vérifier ensuite :** `SUPABASE_URL=… SUPABASE_SECRET_KEY=… node
-scripts/verifier-schema.mjs` doit annoncer « 0 absente(s) ». Tant que ce
-n'est pas fait, la vérification le redira à chaque mise en ligne sans
-jamais la bloquer — l'écart est connu, pas nouveau.
+Le rappel reste utile : PostgREST n'exécute pas de DDL, donc aucune
+migration ne peut être appliquée depuis le code ni depuis ce dépôt. Toute
+migration suppose un mot de passe de base ou un jeton de compte Supabase.
 
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
