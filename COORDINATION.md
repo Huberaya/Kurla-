@@ -317,14 +317,30 @@ désormais un `supplier_sku` pour toute précommande externe
 champ**, alors que `supplier_id` et `source_supplier` sont renseignés sur les
 63. Comme les 63 portent le badge « preorder », tous étaient exclus d'un coup.
 
-**Deux positions, puis un arbitrage.** `d0d6115` proposait de considérer la
-source et le fournisseur comme suffisants, et le SKU comme une simple alerte ;
-`2777034` a restauré l'exigence des trois champs, au nom du contrat de
-livraison et de la contrainte « aucune précommande sans source externe,
-fournisseur et SKU ». **Le porteur du projet a tranché le 12/09/2026 en
-faveur de la première position.** La décision est appliquée et son motif est
-écrit dans `src/lib/preorderEvidence.ts` ; elle ne doit pas être rebasculée
-sans un nouvel arbitrage explicite.
+**ARRÊTER — décision arbitrée, appliquée trois fois.** `d0d6115` proposait
+de considérer la source et le fournisseur comme suffisants, et le SKU comme
+une simple alerte. `2777034`, puis `872d27a`, ont restauré l'exigence des
+trois champs au nom du contrat de livraison. **Le porteur du projet a tranché
+le 12/09/2026 en faveur de la première position, et l'a confirmé après le
+premier retour en arrière.** Ce n'est plus un sujet technique ouvert : c'est
+une décision de gestion prise, deux fois.
+
+À celle ou celui qui serait tenté de rebasculer : avant de le faire, relire
+la mesure ci-dessous et en référer au porteur du projet. Un troisième retour
+unilatéral remettrait la boutique à zéro produit pour la troisième fois, sans
+que personne ne l'ait décidé.
+
+Mesuré en production, trois fois, à chaque retour en arrière :
+
+- `0 produit publié sur 63` ne porte de `supplier_sku`, alors que
+  `supplier_id` et `source_supplier` sont renseignés sur les 63 ;
+- `/api/products` répond `count: 0` en 200, sans erreur — la boutique ne
+  vend plus rien et rien ne le signale comme une panne ;
+- **les fiches produit passent en 404** : le résolveur SEO cherche une entité
+  publiable et n'en trouve aucune. Vérifié : dès que le catalogue redevient
+  publiable, `/produit/<slug>` répond 200. Le routage n'a jamais été en
+  cause — j'ai perdu du temps à le croire, faute d'avoir vérifié que le
+  commit servi avait changé sous mes pieds.
 
 Les deux positions s'accordaient sur l'essentiel : aucun SKU ne doit être
 inventé, et la donnée reste réclamée. Elles ne diffèrent que sur le canal —
