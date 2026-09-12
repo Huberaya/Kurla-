@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { FIBRE_NEEDS, STYLE_NEEDS, SCALP_NEEDS, SKIN_NEEDS, assessNeedDepth } from '../src/lib/needDepth';
 import { RECOGNIZED_NEED_CODES, calculateKurlaFit } from '../src/lib/kurlaFit';
 import { normalizeBeautyProfile, BeautyProfile } from '../src/lib/beautyProfile';
@@ -589,7 +590,52 @@ async function runNeedDepthTests(): Promise<void> {
   assert.ok(!booleanRatio.reasons.some(reason => /Score pondéré/.test(reason)),
     'à poids égaux, aucune explication de pondération ne doit être produite');
 
-  // --- 29. Frontière : il ne reste plus de besoin non traité ---------------
+  // --- 29. La nature de la fibre de la perruque est déclarable ------------
+  // Constat à l'origine du champ : sans lui, la seule conduite honnête était de
+  // refuser tout conseil de chaleur sur perruque. La limite est donc devenue
+  // conditionnelle, et un conseil apparaît quand la fibre est renseignée.
+  const syntheticWig = profileWith({ protectiveStyles: ['perruque'], wigFiber: 'synthetique' });
+  const humanWig = profileWith({ protectiveStyles: ['perruque'], wigFiber: 'cheveux_humains' });
+  const unknownWig = profileWith({ protectiveStyles: ['perruque'] });
+
+  const syntheticSignal = signalOf(['entretenir_perruque'], syntheticWig, 'entretenir_perruque');
+  const humanSignal = signalOf(['entretenir_perruque'], humanWig, 'entretenir_perruque');
+  const unknownSignal = signalOf(['entretenir_perruque'], unknownWig, 'entretenir_perruque');
+
+  assert.ok(!syntheticSignal.limitations.some(text => /nature de la fibre/.test(text)),
+    'une fibre déclarée ne doit plus produire la limite correspondante');
+  assert.ok(unknownSignal.limitations.some(text => /nature de la fibre/.test(text)),
+    'une fibre non déclarée doit toujours produire la limite');
+  assert.notEqual(
+    syntheticSignal.nuances.find(n => n.field === 'hair.wigFiber')?.advice,
+    humanSignal.nuances.find(n => n.field === 'hair.wigFiber')?.advice,
+    'synthétique et cheveux humains appellent des conduites opposées face à la chaleur'
+  );
+  assert.match(syntheticSignal.nuances.find(n => n.field === 'hair.wigFiber')!.advice, /aucun outil chauffant/);
+  assert.match(humanSignal.nuances.find(n => n.field === 'hair.wigFiber')!.advice, /Protecteur thermique/);
+
+  // Le mode de fixation reste une limite inconditionnelle : aucun champ ne le décrit.
+  assert.ok(syntheticSignal.limitations.some(text => /mode de fixation/.test(text)),
+    'le mode de fixation n’a toujours aucun champ : la limite doit rester');
+
+  // --- 30. GARDE — tout champ lu par le moteur est déclarable --------------
+  // Défaut mesuré en cours de chantier : `hair.frizz`, `hair.facialHair`,
+  // `skin.skinType` et `skin.skinConcerns` étaient lus par le moteur et absents
+  // de l'éditeur. Le moteur produisait donc des conseils fondés sur des champs
+  // qu'aucun utilisateur ne pouvait renseigner. Cette garde interdit le retour
+  // de ce défaut, qui est invisible à l'exécution : un champ absent vaut
+  // « inconnu », donc aucune nuance, donc aucun test ne tombe.
+  const depthSource = await readFile('src/lib/needDepth.ts', 'utf8');
+  const editorSource = await readFile('src/components/BeautyProfileEditor.tsx', 'utf8');
+  const readFields = Array.from(new Set(
+    Array.from(depthSource.matchAll(/\.push\(\s*'([a-z]+\.[a-zA-Z.]+)'/g), match => match[1])
+  )).map(field => field.split('.').slice(0, 2).join('.'));
+  assert.ok(readFields.length >= 20, `la garde doit porter sur au moins 20 champs, trouvé ${readFields.length}`);
+  const notDeclarable = readFields.filter(field => !editorSource.includes(field));
+  assert.deepEqual(notDeclarable, [],
+    `champs lus par le moteur mais absents de l'éditeur, donc impossibles à déclarer : ${notDeclarable.join(', ')}`);
+
+  // --- 31. Frontière : il ne reste plus de besoin non traité ---------------
   const untouched = (RECOGNIZED_NEED_CODES as readonly string[])
     .filter(need => !([...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS] as readonly string[]).includes(need));
   assert.deepEqual(untouched, [], 'aucun besoin reconnu ne doit rester sans profondeur');
@@ -600,6 +646,7 @@ async function runNeedDepthTests(): Promise<void> {
     ['rich', rich], ['lowPorosity', lowPorosity], ['highPorosity', highPorosity],
     ['thick', thick], ['stiff', stiff], ['stretchy', stretchy],
     ['richStyle', richStyle], ['reactive', reactive], ['tolerant', tolerant],
+    ['syntheticWig', syntheticWig], ['humanWig', humanWig],
     ['bleached', bleached], ['natural', natural],
     ['richScalp', richScalp], ['dryScalp', dryScalp], ['oilyScalp', oilyScalp],
     ['flakyDry', flakyDry], ['flakyOily', flakyOily],

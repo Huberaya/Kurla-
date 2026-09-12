@@ -386,12 +386,15 @@ convergence des deux diagnostics est le meilleur signe que le défaut était ré
 `tsc --noEmit` passe sans eux (mesuré, exit 0, 0 ligne d'erreur). Les garder
 aurait été une divergence sans bénéfice.
 
-**Doublon restant, mesuré et non corrigé** : `vite` figure à la fois dans
-`dependencies` (l.158) et dans `devDependencies` (l.176), à la même version
-`^6.2.3`. Présent depuis avant `4adb3f4`, donc antérieur aux deux correctifs.
-npm le tolère et le build fonctionne ; c'est une incohérence, pas une panne.
-Non corrigé ici parce que c'est de l'outillage de build et que le bénéfice ne
-justifie pas d'y toucher juste après un rebase.
+**Doublon `vite`, corrigé depuis** : il figurait à la fois dans `dependencies` et
+dans `devDependencies`, à la même version `^6.2.3`. Il ne reste plus qu'en
+`devDependencies`, avec `@vitejs/plugin-react`. La note précédente jugeait le
+bénéfice insuffisant pour y toucher après un rebase ; elle avait tort sur un
+point, et c'est le seul qui compte : le déplacement est **sûr**, et ce n'est pas
+une hypothèse. `scripts/build-vercel.sh` appelle déjà `esbuild`, `tsx`,
+`typescript`, `autoprefixer` et `tailwindcss`, qui étaient **déjà** en
+`devDependencies` — donc les devDependencies sont bien installées au build
+Vercel. Vérifié : `npm install` frais réinstalle les deux, `npm run build` sort 0.
 
 ### Une clé dupliquée dans `package.json` ne se voit pas
 
@@ -400,3 +403,43 @@ valide** — le parseur garde la dernière — donc toute assertion du type
 `'test:need-depth' in scripts` passait. Seul esbuild signalait le doublon, en
 warning, noyé dans la sortie du build. C'est en lisant le début du log de build
 que le doublon est apparu, pas en validant le JSON.
+
+### Le chantier des trois constats ouverts — clos
+
+Trois constats rapportés à la fin de F sont traités. Détail dans
+`docs/KURLA_PLAN_COUVERTURE.md` §4G. Ce qui touche **vos** territoires :
+
+**1. `hair.wigFiber` existe.** `WIG_FIBER_OPTIONS` (`synthetique`,
+`cheveux_humains`, `mixte`, `sans_perruque`, `inconnu`). En JSONB, donc aucune
+migration. Si un de vos modules parle de chaleur sur perruque, lisez ce champ
+plutôt que de réécrire l'interdiction.
+
+**2. Ne retirez pas de champ de `BeautyProfileEditor.tsx`.** Le défaut mesuré :
+le moteur lisait `hair.frizz`, `hair.facialHair`, `skin.skinType` et
+`skin.skinConcerns`, l'éditeur ne les rendait pas. Un champ absent vaut
+« inconnu », donc aucune nuance, donc **aucun test ne tombe** — invisible à
+l'exécution. Une garde dans `tests/kurla_need_depth.test.ts` fait maintenant
+tomber la suite si un champ lu par `needDepth.ts` n'est pas déclarable.
+
+**3. Le contrat de statut des routes de paiement : 503, jamais 400.** Le
+checkout principal répondait 400 alors que `server.ts` annonce « chaque route de
+paiement répond 503 ». Aligné. Si vous ajoutez une route de paiement et que le
+client Stripe est `null`, répondez **503** avec `code: 'PAYMENT_NOT_CONFIGURED'`
+— `tests/kurla_stripe_no_key.test.ts` le vérifie statiquement sur toutes les
+branches `if (!stripe…)`. Exception : la branche `if (!sig || !stripe)` du
+webhook reste à 400, une signature absente est bien la faute de l'appelant.
+
+**4. Un contrat annoncé peut ne pas être asserté.**
+`tests/kurla_brand_invoice.test.ts` annonce « sans configuration de paiement, la
+route dit 503 » mais n'appelle ses routes qu'en non-authentifié : il n'asserte
+que des 401, la branche 503 ne s'exécute jamais. Le contrat est désormais
+vérifié par le nouveau banc. Règle générale : **un en-tête de banc ne prouve
+rien, seul le code de sortie fait foi** — et un `[PASS]` imprimé peut coexister
+avec `exit 1` si quelque chose échoue après (ici : `server.ts` s'auto-écoute sur
+le port 3000, d'où `KURLA_TEST_NO_SERVER=true` dans tout banc qui ouvre son
+propre écouteur).
+
+**Stripe n'est pas « à faire ».** L'intégration est écrite et anti-simulation. Ce
+qui manque est une clé réelle, que seul le propriétaire du compte peut produire.
+Jusque-là les routes refusent explicitement et `PeauC26FinalPanel` affiche
+FR82/BE76 en TEST — ce qui est la vérité, pas un oubli.

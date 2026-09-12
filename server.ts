@@ -561,9 +561,15 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
 
     const stripe = getStripeClient();
     if (!stripe) {
+      // 503 et non 400 : la requête du client est correcte, c'est le serveur
+      // qui n'a pas de clé. Les cinq autres routes de paiement répondent déjà
+      // 503 avec ce même `code` — c'était la seule déviation, alors que
+      // `server.ts` annonce « chaque route de paiement répond 503 ».
       console.error('[Stripe Checkout Error] Stripe client non configuré (STRIPE_SECRET_KEY manquant)');
-      return res.status(400).json({
-        error: 'Paiement Stripe non configuré sur le serveur. La clé STRIPE_SECRET_KEY est manquante.'
+      return res.status(503).json({
+        error: 'Paiement indisponible.',
+        code: 'PAYMENT_NOT_CONFIGURED',
+        note: 'Aucune clé Stripe n\u2019est configurée sur cet environnement. KURLA ne simule pas un encaissement : le panier est conservé, aucune commande n\u2019est créée.'
       });
     }
 

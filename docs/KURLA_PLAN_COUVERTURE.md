@@ -2194,6 +2194,138 @@ deux cas sont assertés.
 - Les deux bancs de contrat re-vérifiés séparément : `test:beauty-profile` et
   `test:public-api` → exit 0, « profil vide → scores null » toujours tenu.
 
+## 4G. LES TROIS CONSTATS OUVERTS — CLOS
+
+Trois constats étaient rapportés à la fin du chantier F. Les trois sont traités ici.
+Aucun des trois n'est une nouveauté de fonctionnalité : ce sont des écarts entre ce que
+le code affirmait et ce qu'il faisait.
+
+### Constat 1 — la fibre de la perruque n'était déclarable nulle part
+
+`entretenir_perruque` produisait une limitation inconditionnelle :
+
+> « La nature de la fibre de la perruque — synthétique ou cheveux humains — n'est
+> déclarée nulle part dans le profil. […] KURLA ne recommande donc aucun usage
+> d'outil chauffant sur la perruque. »
+
+C'était la seule conduite honnête possible, mais elle fermait le conseil pour
+tout le monde, y compris pour une utilisatrice portant une perruque en cheveux
+humains qui peut légitimement utiliser un fer.
+
+**Fait.** `hair.wigFiber` ajouté à `BeautyProfile` avec `WIG_FIBER_OPTIONS`
+(`synthetique`, `cheveux_humains`, `mixte`, `sans_perruque`, `inconnu`), valeur par
+défaut `inconnu`, normalisé par `normalizeBeautyProfile`, repris dans la liste de
+confiance. Le champ est en JSONB : **aucune migration de base n'est nécessaire.**
+
+La limitation est devenue **conditionnelle** : elle ne s'émet plus que si le champ
+est vide. Quand il est renseigné, une nuance remplace l'interdiction :
+
+| `wigFiber` | Conduite émise |
+| --- | --- |
+| `synthetique` | « aucun outil chauffant » — la fibre synthétique ne se répare pas |
+| `cheveux_humains` | chaleur possible, mais protecteur thermique et basse température obligatoires : la fibre ne reçoit plus de sébum |
+| `mixte` | traitée comme synthétique — c'est la partie synthétique qui fixe la limite |
+| `sans_perruque` + perruque portée | la **contradiction est nommée** plutôt que conseillée |
+
+La limitation sur le **mode de fixation** reste inconditionnelle : aucun champ ne le
+décrit, et ce serait inventer que de prétendre le contraire.
+
+### Constat 1 bis — l'éditeur ne rendait pas cinq champs que le moteur lit
+
+Découverte en cours de chantier, plus grave que le constat d'origine. Le moteur
+lit `hair.frizz`, `hair.facialHair`, `skin.skinType` et `skin.skinConcerns`.
+`BeautyProfileEditor.tsx` ne les rendait **pas**. Les vocabulaires
+(`FRIZZ_OPTIONS`, `FACIAL_HAIR_OPTIONS`, `SKIN_TYPE_OPTIONS`, `SKIN_CONCERN_OPTIONS`)
+étaient exportés et consommés uniquement par `beautyProfile.ts`.
+
+Conséquence : les nuances et limitations rattachées à ces quatre champs ne pouvaient
+**jamais** s'activer pour un utilisateur réel. Un champ absent vaut « inconnu », donc
+aucune nuance, donc aucun test ne tombe — le défaut est invisible à l'exécution.
+
+**Fait.** Les cinq champs (`wigFiber` inclus) sont rendus dans l'éditeur.
+
+**Garde ajoutée** (`tests/kurla_need_depth.test.ts`, section 30) : le banc extrait de
+`needDepth.ts` tous les chemins passés à `.push(…)`, les réduit à leurs deux premiers
+segments, et exige que chacun apparaisse dans `BeautyProfileEditor.tsx`. Contrôle
+négatif effectué : retirer le champ `wigFiber` de l'éditeur fait tomber la suite avec
+`champs lus par le moteur mais absents de l'éditeur, donc impossibles à déclarer : hair.wigFiber`.
+
+Dénombrement après coup : **35 champs porteurs de nuances** (34 avant), **13 limites
+nommées** (inchangé — une limite est devenue conditionnelle, aucune n'a été ajoutée
+ni retirée).
+
+### Constat 2 — `vite` déclaré deux fois
+
+`vite` et `@vitejs/plugin-react` figuraient dans `dependencies` **et**
+`devDependencies`. Un JSON accepte les clés dupliquées sans erreur : seul un
+*warning* d'esbuild le signale, et un parseur garde la dernière occurrence.
+
+**Fait.** Les deux paquets ne sont plus qu'en `devDependencies`. Le déplacement est
+sûr, et la preuve n'est pas une hypothèse : `scripts/build-vercel.sh` appelle déjà
+`esbuild`, `tsx`, `typescript`, `autoprefixer` et `tailwindcss`, qui étaient **déjà**
+en `devDependencies` — les devDependencies sont donc bien installées au build Vercel.
+`@vitejs/plugin-react` n'est importé que par `vite.config.ts`. Vérifié : `npm install`
+frais réinstalle les deux, `npm run build` sort 0 sans aucun warning de clé dupliquée.
+
+### Constat 3 — Stripe
+
+L'audit infirme le libellé du constat : **l'intégration Stripe n'était pas à écrire.**
+Elle est écrite, complète, et explicitement anti-simulation. `server.ts` annonce
+« chaque route de paiement répond déjà 503 explicitement (elle ne simule pas) », et
+`professionals.ts` porte le commentaire « Elle ne simule pas ».
+
+Ce qui manquait n'est pas du code : c'est **une clé réelle**, que seul le propriétaire
+du compte Stripe peut produire. Inventer une intégration ou un paiement factice
+aurait été exactement l'écart que ce dépôt s'interdit.
+
+**Un écart réel, mesuré et corrigé.** L'invariant annoncé était faux pour une route
+sur six :
+
+| Point d'appel de `getStripeClient()` | Avant | Après |
+| --- | --- | --- |
+| `server.ts:563` — checkout | **400** | **503** |
+| `server.ts:998` — vérification de paiement | 503 | 503 |
+| `brandContracts.ts:166` | 503 | 503 |
+| `membership.ts:121` | 503 | 503 |
+| `professionals.ts:582` | 503 | 503 |
+| `professionals.ts:674` | 503 | 503 |
+
+400 signifie « votre requête est mauvaise » : la faute était imputée au client alors
+qu'elle est côté serveur. La route répond maintenant 503 avec `code:
+'PAYMENT_NOT_CONFIGURED'` et une note explicite, comme les cinq autres. Le client
+(`CartDrawer.tsx`) traite `!res.ok` génériquement : le changement est sans effet de
+bord. La branche `if (!sig || !stripe)` du webhook reste à 400, et c'est correct —
+une signature absente **est** la faute de l'appelant.
+
+**Un second écart, dans un banc.** `tests/kurla_brand_invoice.test.ts` annonce en
+en-tête « 5. sans configuration de paiement, la route dit 503 — jamais un faux
+succès » et intitule sa section 6 ainsi, mais n'appelle les routes qu'en
+non-authentifié : il n'asserte que des 401. La branche 503 n'y est jamais exécutée.
+Le contrat annoncé n'était pas vérifié.
+
+**Banc ajouté** : `tests/kurla_stripe_no_key.test.ts` (`npm run test:stripe-no-key`).
+Il prouve la seule chose vérifiable sans clé, qui est celle qui compte — **sans clé,
+aucun chemin ne fabrique de succès** :
+
+1. `getStripeClient()` et `getStripeServerClient()` renvoient `null` ;
+2. le checkout répond **503** `PAYMENT_NOT_CONFIGURED`, ne renvoie **aucune** URL
+   Stripe, et **aucune commande n'est créée** (`serverDb.inMemoryOrders` reste vide) ;
+3. un panier vide reste **400** — là, c'est bien la faute du client ;
+4. le webhook désactivé répond 200 `webhook_disabled` sans rien marquer payé ;
+5. activé sans secret, il refuse en **nommant `STRIPE_WEBHOOK_SECRET`** ;
+6. `GET /api/stripe/status` annonce `stripeConfigured: false` ;
+7. **garde** : les six branches « pas de client Stripe » répondent toutes 503.
+
+Contrôle négatif effectué : remettre 400 au checkout fait tomber la suite avec
+`sans clé, le checkout doit dire 503, reçu 400`.
+
+**Ce qui reste à faire, et qui n'est pas faisable ici.** Renseigner
+`STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` sur Vercel, puis passer
+`STRIPE_WEBHOOK_ENABLED` à `true`. Jusque-là, les routes de paiement refusent
+explicitement, et `PeauC26FinalPanel.tsx` affiche la borne FR82/BE76 en « TEST » —
+ce qui est la vérité. Passer `stripeMode` en `live` exige une clé `sk_live_` et ne
+concerne que FR et BE.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

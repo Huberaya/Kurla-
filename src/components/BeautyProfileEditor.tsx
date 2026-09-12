@@ -12,6 +12,8 @@ import {
   BUDGET_OPTIONS,
   BREAKAGE_OPTIONS,
   CLIMATE_OPTIONS,
+  FACIAL_HAIR_OPTIONS,
+  FRIZZ_OPTIONS,
   COLORING_OPTIONS,
   CONDITION_OPTIONS,
   CURL_PATTERN_OPTIONS,
@@ -42,6 +44,9 @@ import {
   UNDERTONE_OPTIONS,
   WASH_FREQUENCY_OPTIONS,
   WATER_OPTIONS,
+  WIG_FIBER_OPTIONS,
+  SKIN_TYPE_OPTIONS,
+  SKIN_CONCERN_OPTIONS,
   ACNE_OPTIONS,
   HYDRATION_OPTIONS,
   createEmptyBeautyProfile,
@@ -334,6 +339,9 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
             <SelectField label="Longueur actuelle" help="La longueur influence le temps de séchage, le démêlage et la quantité de produit nécessaire." value={profile.hair.length} options={LENGTH_OPTIONS} onChange={value => setHair('length', value)} />
             <SelectField label="État général de la fibre" help="Décrivez l’état actuel de la fibre, notamment après chaleur, coloration ou traitement chimique." value={profile.hair.fiberCondition} options={CONDITION_OPTIONS} onChange={value => setHair('fiberCondition', value)} />
             <SelectField label="Niveau de sécheresse" help="La sécheresse est un ressenti et une observation de la fibre. Elle est distincte de la porosité." value={profile.hair.dryness} options={DRYNESS_OPTIONS} onChange={value => setHair('dryness', value)} />
+            <SelectField label="Frisottis" help="Les frisottis sont déclarés tels que vous les observez. Ils ne sont déduits ni de la porosité ni de l'humidité : une déduction ne serait pas vérifiable par vous." value={profile.hair.frizz} options={FRIZZ_OPTIONS} onChange={value => setHair('frizz', value)} />
+            <SelectField label="Pilosité faciale" help="Renseignée seulement si vous entretenez une barbe. Elle n'est jamais déduite du genre." value={profile.hair.facialHair} options={FACIAL_HAIR_OPTIONS} onChange={value => setHair('facialHair', value)} />
+            <SelectField label="Fibre de votre perruque" help="Une fibre synthétique ne supporte pas la chaleur, une fibre de cheveux humains la supporte. Sans cette information, KURLA ne peut recommander aucun outil chauffant sur perruque." value={profile.hair.wigFiber} options={WIG_FIBER_OPTIONS} onChange={value => setHair('wigFiber', value)} />
             <SelectField label="Niveau de casse" help="Indiquez la casse observée au coiffage ou au démêlage, sans chercher à l’interpréter médicalement." value={profile.hair.breakage} options={BREAKAGE_OPTIONS} onChange={value => setHair('breakage', value)} />
             <SelectField label="Élasticité" help="L’élasticité décrit la manière dont le cheveu s’étire puis revient. « Je ne sais pas » est préférable à une mesure improvisée." value={profile.hair.elasticity} options={ELASTICITY_OPTIONS} onChange={value => setHair('elasticity', value)} />
           </div>
@@ -385,6 +393,8 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <SelectField label="Profondeur de carnation" help="Cette information peut aider à contextualiser la visibilité d’un voile blanc ou d’une marque, mais ne résume jamais votre besoin cutané." value={profile.skin.toneDepth} options={TONE_OPTIONS} onChange={value => setSkin('toneDepth', value)} />
             <SelectField label="Sous-ton" help="Le sous-ton sert surtout à personnaliser certains choix de teinte et de fini. Il peut rester inconnu." value={profile.skin.undertone} options={UNDERTONE_OPTIONS} onChange={value => setSkin('undertone', value)} />
+            <SelectField label="Type de peau" help="Le type décrit un état global — il peut changer avec la saison ou un traitement. Il est distinct de la sensibilité." value={profile.skin.skinType} options={SKIN_TYPE_OPTIONS} onChange={value => setSkin('skinType', value)} />
+            <MultiField label="Préoccupations de peau" help="Sélectionnez ce qui vous concerne actuellement. Plusieurs réponses sont possibles, et aucune n'est obligatoire." values={profile.skin.skinConcerns} options={SKIN_CONCERN_OPTIONS} onToggle={value => toggleSkinList('skinConcerns', value)} />
             <SelectField label="Sensibilité" help="La sensibilité est votre tendance à ressentir inconfort, rougeur ou picotement. Une réaction persistante mérite un avis professionnel." value={profile.skin.sensitivity} options={SENSITIVITY_OPTIONS} onChange={value => setSkin('sensitivity', value)} />
             <SelectField label="Tendance à l’hyperpigmentation" help="Cette réponse concerne la façon dont la peau marque après une inflammation, pas une échelle de couleur." value={profile.skin.hyperpigmentationTendency} options={HYPERPIGMENTATION_OPTIONS} onChange={value => setSkin('hyperpigmentationTendency', value)} />
             <SelectField label="Acné ou imperfections" help="La fréquence des imperfections aide à hiérarchiser les besoins, sans diagnostic ni promesse de traitement." value={profile.skin.acne} options={ACNE_OPTIONS} onChange={value => setSkin('acne', value)} />

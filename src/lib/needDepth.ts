@@ -506,6 +506,15 @@ function wigCareDepth(profile: BeautyProfile): NeedDepth {
   d.push('skin.sensitivity', skin.sensitivity, skin.sensitivity === 'elevee'
     ? 'Peau déclarée très sensible, sous perruque : le cuir chevelu est occlus et tout ce qui est appliqué reste au contact prolongé. Introduire un produit à la fois, sur une zone réduite d’abord, permet d’identifier ce qui ne convient pas.'
     : null);
+
+  // La nature de la fibre change ce qu'il est permis de recommander. Tant que
+  // le champ manquait, la seule conduite honnête était de tout refuser ; elle
+  // est maintenant réservée au cas où la fibre n'est pas déclarée.
+  d.push('hair.wigFiber', hair.wigFiber, wigFiberAdvice(hair.wigFiber));
+  if (hair.wigFiber === 'sans_perruque') {
+    d.push('hair.protectiveStyles', hair.protectiveStyles.join(', '),
+      'Contradiction déclarée : une perruque est portée, mais la fibre est renseignée comme « sans perruque ». L’un des deux champs est inexact ; le corriger vaut mieux que de conseiller sur cette base.');
+  }
   d.push('skin.activeTolerance', skin.activeTolerance, skin.activeTolerance === 'faible'
     ? 'Tolérance aux actifs déclarée faible : sous occlusion, un actif pénètre davantage et irrite davantage. Les concentrations élevées sont les premières à écarter ici.'
     : null);
@@ -513,10 +522,33 @@ function wigCareDepth(profile: BeautyProfile): NeedDepth {
     ? 'Lavage espacé déclaré : la perruque et le cuir chevelu dessous ne suivent pas le même rythme. Les traiter comme un seul objet conduit à laver l’un trop souvent et l’autre pas assez.'
     : null);
 
-  d.limit('La nature de la fibre de la perruque — synthétique ou cheveux humains — n’est déclarée nulle part dans le profil. La différence est déterminante : une fibre synthétique ne supporte pas la chaleur. KURLA ne recommande donc aucun usage d’outil chauffant sur la perruque.');
-  d.limit('Le mode de fixation — lace collée, bonnet, clips — n’est pas déclaré non plus. Les conseils ci-dessus portent sur le cuir chevelu et la fibre, pas sur le retrait d’une colle.');
+  // Devenue conditionnelle depuis que `hair.wigFiber` existe : la limite ne
+  // subsiste que si le champ n'est pas renseigné.
+  if (!known(hair.wigFiber)) {
+    d.limit('La nature de la fibre de la perruque n’est pas renseignée. La différence est déterminante : une fibre synthétique ne supporte pas la chaleur. Tant que ce champ reste vide, KURLA ne recommande aucun usage d’outil chauffant sur la perruque.');
+  }
+  // Celle-ci reste inconditionnelle : aucun champ ne décrit le mode de fixation.
+  d.limit('Le mode de fixation — lace collée, bonnet, clips — n’est déclaré par aucun champ du profil. Les conseils ci-dessus portent sur le cuir chevelu et la fibre, pas sur le retrait d’une colle.');
 
   return d.result();
+}
+
+/**
+ * Ce que la nature de la fibre autorise. Le cas « mixte » est traité comme
+ * synthétique : c'est la partie synthétique qui fixe la limite thermique, pas
+ * la partie naturelle.
+ */
+function wigFiberAdvice(wigFiber: string): string | null {
+  switch (wigFiber) {
+    case 'synthetique':
+      return 'Perruque synthétique déclarée : aucun outil chauffant. La fibre synthétique ne se répare pas et la chaleur la marque de façon définitive. Le coiffage passe par l’eau tiède et le séchage à l’air.';
+    case 'cheveux_humains':
+      return 'Perruque en cheveux humains déclarée : la chaleur est possible, mais sur une fibre qui ne reçoit plus de sébum du cuir chevelu. Protecteur thermique et température basse ne sont pas une précaution optionnelle ici.';
+    case 'mixte':
+      return 'Fibre mixte déclarée : c’est la partie synthétique qui fixe la limite. Traiter l’ensemble comme du synthétique — pas d’outil chauffant — est la seule conduite qui ne risque pas d’abîmer la perruque.';
+    default:
+      return null;
+  }
 }
 
 // --- proteger_chaleur ------------------------------------------------------
