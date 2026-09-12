@@ -317,28 +317,26 @@ désormais un `supplier_sku` pour toute précommande externe
 champ**, alors que `supplier_id` et `source_supplier` sont renseignés sur les
 63. Comme les 63 portent le badge « preorder », tous étaient exclus d'un coup.
 
-**Décision — arbitrée par l'utilisateur.** Le fournisseur et sa source
-suffisent à documenter une précommande : ce sont deux informations dues au
-consommateur. Le SKU fournisseur est une référence commerciale interne ; il
-devient une **alerte de préparation au sourcing**
-(`evaluateCatalogSourcingReadiness`, qui le signalait déjà comme manquant) et
-non un blocage de mise en ligne. La règle est modifiée dans
-`src/lib/preorderEvidence.ts` — je touche donc à la couche de vérité, et je
-le signale explicitement.
+**Proposition concurrente non retenue.** `d0d6115` a proposé de considérer la
+source et le fournisseur comme suffisants et de transformer le SKU en simple
+alerte. Cette modification est incompatible avec le contrat de livraison et
+la contrainte explicite « aucune précommande sans source externe, fournisseur
+et SKU ». `2777034` restaure donc le blocage des trois champs manquants, sans
+compléter ni déduire de donnée.
 
-**Pourquoi pas compléter les données.** Aucun SKU réel n'existe :
-`docs/sourcing/C1_HERO_DOSSIER_COLLECTE.csv` est un modèle vide (0 SKU sur
-3, statut `blocked_missing_external_evidence`) et aucun import n'en contient.
-Les inventer aurait été une fabrication — précisément ce qui est interdit.
+**État réel vérifié.** L'audit Supabase lecture seule du 12/09/2026 confirme
+96 fiches, 63 publiées, **0 publiable**, 0 prête à acheter et 126 constats
+bloquants (63 publiées non listables + 63 sourcing incomplet). Aucun SKU réel
+n'est présent dans `docs/sourcing/C1_HERO_DOSSIER_COLLECTE.csv` : les inventer
+serait une fabrication. La boutique vide est donc un fail-closed explicite,
+mais le déploiement ne peut pas être déclaré accepté tant qu'un arbitrage
+métier n'a pas fourni les preuves ou rétrogradé les statuts administratifs.
 
-Épinglé dans `tests/kurla_catalog_truth.test.ts` : une précommande sans SKU
-mais fournisseur et source documentés reste en ligne.
-
-**Leçon, et elle vaut pour nous deux.** Tous les bancs passaient : ils
-exécutent la couche de vérité en mémoire, sur des fixtures complètes qui
-portent un SKU. Une règle qui vide le catalogue **réel** ne les fait donc
-jamais échouer. Seule une sonde sur la production l'a vu — encore fallait-il
-la lancer. Nos vérifications protègent le code et le schéma, pas les données.
+**Leçon, et elle vaut pour nous deux.** Tous les bancs passent avec des
+fixtures complètes ; ils ne remplacent pas l'audit des données de production.
+La sonde doit rester active et signaler le vide critique, même si la cause est
+un blocage de vérité légitime. Une mise en ligne ne peut être acceptée qu'après
+résolution des constats réels.
 
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
