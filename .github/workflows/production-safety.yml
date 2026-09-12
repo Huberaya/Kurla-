@@ -1,0 +1,110 @@
+name: KURLA production safety
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_realdb:
+        description: Run the destructive-safe Supabase integration suite against the configured staging project
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: production-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Typecheck, build and critical tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Confirm Node.js 22
+        run: node -e "if (!process.versions.node.startsWith('22.')) { throw new Error('Node.js 22 requis, trouvé ' + process.versions.node); }"
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Critical inventories
+        run: |
+          npm run test:route-inventory
+          npm run test:admin-route-inventory
+          npm run test:store-api-inventory
+
+      - name: Growth and funnel tests
+        run: |
+          npm run test:growth-control
+          npm run test:growth-funnel
+
+      - name: Production build
+        run: npm run build
+
+  real-supabase:
+    name: Real Supabase integration suite
+    if: github.event_name == 'workflow_dispatch' && inputs.run_realdb == true
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Confirm Node.js 22
+        run: node -e "if (!process.versions.node.startsWith('22.')) { throw new Error('Node.js 22 requis, trouvé ' + process.versions.node); }"
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run real Supabase tests
+        run: npm run test:realdb
+
+  verify-production:
+    name: Verify production alias after main deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Confirm Node.js 22
+        run: node -e "if (!process.versions.node.startsWith('22.')) { throw new Error('Node.js 22 requis, trouvé ' + process.versions.node); }"
+
+      - name: Wait for and verify production
+        env:
+          KURLA_PROD_URL: https://kurlabeauty.vercel.app
+        run: node scripts/verifier-deploiement.mjs --url "$KURLA_PROD_URL" --sha "$GITHUB_SHA" --attente 240
