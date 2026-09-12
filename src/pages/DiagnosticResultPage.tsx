@@ -1,42 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Clock3, Loader2, ShoppingBag, Sparkles, XCircle } from 'lucide-react';
-import type { AIRecommendationResult, Product } from '../types';
+import type { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { buildDiagnosticResultModel, type DiagnosticResultModel, type DiagnosticRoutineStep } from '../lib/diagnosticResult';
+import { readDiagnosticSession, type DiagnosticSession } from '../lib/diagnosticSession';
 
 interface DiagnosticResultPageProps {
   onAddToCart?: (product: Product) => void;
-}
-
-type StoredAnswers = Record<string, any>;
-
-const FALLBACK_RESULT: AIRecommendationResult = {
-  summary: 'Aucun résultat généré n’est disponible dans cette session.',
-  recommendedRoutine: 'Résultat à recalculer',
-  reason: 'Les réponses restent disponibles localement. Relancez le diagnostic pour obtenir une recommandation actualisée.',
-  steps: [],
-  warnings: ['Résultat de secours : aucun conseil personnalisé supplémentaire n’a été généré.'],
-  productHandles: [],
-  requiresHumanReview: false,
-  generatedWithAI: false,
-  source: 'fallback',
-};
-
-function readSession(): { answers: StoredAnswers; result: AIRecommendationResult; isSkin: boolean } {
-  let answers: StoredAnswers = {};
-  let result: AIRecommendationResult = FALLBACK_RESULT;
-  try {
-    const skinRaw = sessionStorage.getItem('kurla_diagnostic_answers_skin') || localStorage.getItem('kurla_skin_answers');
-    const legacyRaw = sessionStorage.getItem('kurla_diagnostic_answers');
-    if (skinRaw) answers = JSON.parse(skinRaw);
-    else if (legacyRaw) answers = JSON.parse(legacyRaw);
-  } catch { /* storage unavailable */ }
-  try {
-    const cached = sessionStorage.getItem('kurla_diagnostic_result');
-    if (cached) result = JSON.parse(cached);
-  } catch { /* invalid cache: keep explicit fallback */ }
-  const isSkin = Boolean(answers.skinType || answers.skinConcerns || answers.skinObjectives || answers.toneDepth || answers.hydrationLevel);
-  return { answers, result, isSkin };
 }
 
 function money(value: number | null): string {
@@ -72,9 +42,9 @@ function availabilityIcon(status: DiagnosticResultModel['products'][number]['ava
 
 export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAddToCart }) => {
   const { products, loading: productsLoading, source: catalogSource, error: catalogError } = useProducts();
-  const [stored, setStored] = useState<{ answers: StoredAnswers; result: AIRecommendationResult; isSkin: boolean } | null>(null);
+  const [stored, setStored] = useState<DiagnosticSession | null>(null);
 
-  useEffect(() => setStored(readSession()), []);
+  useEffect(() => setStored(readDiagnosticSession()), []);
 
   const model = useMemo(() => stored ? buildDiagnosticResultModel({ answers: stored.answers, result: stored.result, products, isSkin: stored.isSkin }) : null, [products, stored]);
 

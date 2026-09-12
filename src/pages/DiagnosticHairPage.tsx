@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
 import { HairDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
+import { markLatestDiagnostic } from '../lib/diagnosticSession';
 import { analytics } from '../lib/analytics';
 import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
 import { useAuth } from '../context/AuthContext';
@@ -58,6 +59,7 @@ export const DiagnosticHairPage: React.FC = () => {
         sessionStorage.setItem('kurla_diagnostic_answers', JSON.stringify(answers));
       } catch { /* sessionStorage indisponible */ }
       sessionStorage.setItem('kurla_diagnostic_result', JSON.stringify(data));
+      markLatestDiagnostic('hair');
       navigate('/diagnostic/resultat/hair-latest');
     } catch (e) {
       console.error(e);

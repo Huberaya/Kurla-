@@ -740,3 +740,34 @@ perruque la nuit », « lavage clarifiant régulier »), n’emploie aucun
 vocabulaire médical (la liste est dans les deux bancs), et le champ
 « Cuir chevelu » du profil affiché utilise le vocabulaire du diagnostic
 (`HAIR_SCALP_VALUES` dans `hairAdvisory.ts`).
+### Correction (13/09/2026) : la page résultat affichait les réponses PEAU sur un diagnostic CHEVEUX
+
+Signalé par le porteur : « quand je fais le diagnostic cheveux, j’ai les
+réponses d’un diagnostic de la peau ».
+
+**Cause** (pré-existante, révélée par l’usage du chemin cheveux) : les deux
+diagnostics écrivent des clés différentes — peau :
+`kurla_diagnostic_answers_skin` (sessionStorage) + `kurla_skin_answers`
+(**localStorage, persistant** — c’est le profil du parcours peau, consommé
+par la routine, l’assistant, la boutique) ; cheveux : `kurla_diagnostic_answers`
+(sessionStorage). La page résultat lisait la clé peau **en premier** : dès
+qu’un diagnostic peau avait été fait, le localStorage peau masquait les
+réponses fraîches du diagnostic cheveux dans le même onglet.
+
+**Correctif** : couche `src/lib/diagnosticSession.ts` —
+- chaque page de diagnostic écrit un marqueur `kurla_diagnostic_latest`
+  (`'skin'` | `'hair'`) à la soumission (`markLatestDiagnostic`) ;
+- `readDiagnosticSession()` : le marqueur choisit le pôle, le contenu des
+  réponses vérifie le pôle affiché (garde-fou : un fallback croisé ne peut
+  jamais faire afficher la peau sur du contenu cheveux), le résultat reste
+  le dernier généré (clé commune), secours explicite si absent/illisible ;
+- sans marqueur (session ancienne) : comportement hérité conservé.
+
+Aucune clé existante n’a été renommée ni vidée ; le localStorage peau
+(parcours peau) reste intact. Contrat verrouillé par le banc
+`tests/kurla_diagnostic_session.test.ts` (6 checks, chaîné après
+`test:hair-advisory`).
+
+**À vérifier côté usage** : le diagnostic cheveux ne pré-remplit pas ses
+réponses au retour « Modifier mes réponses » (le diagnostic peau si, via le
+localStorage) — écart de parcours, signalé, non corrigé ici.

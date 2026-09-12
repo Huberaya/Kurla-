@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, Droplets, Sun, Layers, Heart, Wind, Shield, Clock, Eye, Smile, Zap, Search, AlertCircle, Check, Info } from 'lucide-react';
 import { SkinDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
+import { markLatestDiagnostic } from '../lib/diagnosticSession';
 import { analytics } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -165,6 +166,7 @@ export const DiagnosticSkinPage: React.FC = () => {
         sessionStorage.setItem('kurla_diagnostic_answers_skin', JSON.stringify(payload));
         localStorage.setItem('kurla_skin_answers', JSON.stringify(payload));
       } catch { /* storage indisponible */ }
+      markLatestDiagnostic('skin');
       const res = await fetch('/api/ai/routine-result', {
         method: 'POST',
         headers: {
