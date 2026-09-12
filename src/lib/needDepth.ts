@@ -102,6 +102,35 @@ export const SCALP_NEEDS = [
   'barbe'
 ] as const;
 
+/**
+ * CHANTIER E — les huit besoins peau.
+ *
+ * Trois frontières tenues :
+ *
+ * - `skinRecommendation.ts` porte déjà `SKIN_INCOMPATIBILITIES` (rétinol×AHA,
+ *   rétinol×BHA, rétinol×vitamine C, AHA×BHA). C'est une autre surface — la
+ *   boutique et `skinRoutine.ts`, pas le moteur — mais E ne reformule aucune de
+ *   ces règles. Le banc le vérifie.
+ * - `skinMelaninEvidence.ts` porte les codes HPI et le périmètre phototype
+ *   IV/V/VI. E n'établit aucune revendication de photoprotection.
+ * - `needsHub.ts` porte un texte éditorial et un `seeDoctor` pour les 15 besoins
+ *   peau. E ne tient pas deux fois le même discours médical.
+ *
+ * Ce que E ajoute : la lecture croisée des champs déclarés. Le profil peau
+ * contient seize champs que le moteur lisait un par un, sans jamais les
+ * confronter — alors que c'est la confrontation qui produit le conseil utile.
+ */
+export const SKIN_NEEDS = [
+  'protection_solaire',
+  'taches_hyperpigmentation',
+  'imperfections_acne',
+  'peau_sensible',
+  'hydrater_peau',
+  'barriere_cutanee',
+  'eclat_teint_terne',
+  'maturite_rides'
+] as const;
+
 export function isFibreNeed(need: string): boolean {
   return (FIBRE_NEEDS as readonly string[]).includes(need);
 }
@@ -112,6 +141,10 @@ export function isStyleNeed(need: string): boolean {
 
 export function isScalpNeed(need: string): boolean {
   return (SCALP_NEEDS as readonly string[]).includes(need);
+}
+
+export function isSkinNeed(need: string): boolean {
+  return (SKIN_NEEDS as readonly string[]).includes(need);
 }
 
 const EMPTY: NeedDepth = { intensity: 0, nuances: [], limitations: [] };
@@ -669,12 +702,318 @@ function beardDepth(profile: BeautyProfile): NeedDepth {
   return d.result();
 }
 
+// === CHANTIER E — besoins peau ============================================
+
+/** Préoccupations déclarées, normalisées une fois pour toutes. */
+function concernsOf(profile: BeautyProfile): string[] {
+  return profile.skin.skinConcerns || [];
+}
+
+// --- protection_solaire ----------------------------------------------------
+
+function sunDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const climate = profile.environment.climate;
+
+  if (skin.spfUsage === 'jamais') d.raise(25);
+  if (skin.sunExposure === 'forte') d.raise(20);
+  if (skin.spfUsage === 'parfois') d.raise(10);
+  if (climate === 'chaud_sec' || climate === 'chaud_humide') d.raise(10);
+  if (skin.hyperpigmentationTendency === 'frequente') d.raise(15);
+
+  d.push('skin.spfUsage', skin.spfUsage, sunAdviceForUsage(skin.spfUsage));
+  d.push('skin.sunExposure', skin.sunExposure, skin.sunExposure === 'forte'
+    ? 'Exposition déclarée forte : c’est la régularité qui protège, pas l’indice. Une application unique le matin ne couvre pas une journée entière d’exposition.'
+    : null);
+  if (skin.hyperpigmentationTendency === 'frequente') {
+    d.push('skin.hyperpigmentationTendency', skin.hyperpigmentationTendency,
+      'Tendance à l’hyperpigmentation déclarée : l’exposition assombrit les marques existantes. La protection solaire agit ici avant tout actif dépigmentant, et pas après.');
+  }
+  d.push('skin.finishPreference', skin.finishPreference, known(skin.finishPreference)
+    ? `Fini préféré déclaré (${formatValue(skin.finishPreference)}) : un écran solaire qui ne convient pas au fini attendu n’est pas porté, donc il ne protège pas. Le choix du fini est un critère d’observance, pas un détail esthétique.`
+    : null);
+
+  d.limit('Le profil déclare la fréquence d’usage du SPF, jamais son indice. KURLA ne peut donc pas dire si la protection appliquée est suffisante, seulement si l’habitude déclarée l’est.');
+
+  return d.result();
+}
+
+function sunAdviceForUsage(usage: string): string | null {
+  switch (usage) {
+    case 'jamais':
+      return 'Aucune protection solaire déclarée : c’est le premier levier, devant tout autre soin peau. Introduire un écran quotidien compte davantage qu’ajouter un actif à une routine qui n’en a pas.';
+    case 'parfois':
+      return 'Protection solaire occasionnelle déclarée : l’irrégularité coûte plus que l’indice choisi. Un produit simple, porté tous les jours, protège mieux qu’un produit performant porté certains jours.';
+    case 'quotidien':
+      return 'Protection solaire quotidienne déjà déclarée : l’enjeu n’est plus l’installation de l’habitude mais la quantité appliquée et le renouvellement en cas d’exposition prolongée.';
+    default:
+      return null;
+  }
+}
+
+// --- taches_hyperpigmentation ----------------------------------------------
+
+function pigmentationDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+
+  if (skin.postInflammatoryMarks === 'frequentes') d.raise(20);
+  if (skin.acne === 'reguliere') d.raise(20);
+  if (skin.hyperpigmentationTendency === 'frequente') d.raise(15);
+  if (skin.spfUsage === 'jamais') d.raise(15);
+  if (skin.sensitivity === 'elevee') d.raise(10);
+
+  if (skin.acne === 'reguliere' || skin.acne === 'occasionnelle') {
+    d.push('skin.acne', skin.acne,
+      'Imperfections déclarées en plus des marques : l’inflammation est en amont de la tache. Traiter la marque sans traiter l’imperfection, c’est traiter la conséquence pendant que la cause en produit de nouvelles.');
+  }
+  if (skin.spfUsage === 'jamais' || skin.spfUsage === 'parfois') {
+    d.push('skin.spfUsage', skin.spfUsage,
+      'Protection solaire absente ou occasionnelle : l’exposition assombrit les marques installées. Sans elle, un actif dépigmentant travaille contre une cause toujours active.');
+  }
+  d.push('skin.postInflammatoryMarks', skin.postInflammatoryMarks, skin.postInflammatoryMarks === 'frequentes'
+    ? 'Marques post-inflammatoires fréquentes déclarées : elles s’estompent avec le temps et se stabilisent d’abord en évitant toute nouvelle inflammation — manipulation comprise — avant qu’aucun actif n’agisse.'
+    : null);
+  if (skin.sensitivity === 'elevee' || skin.activeTolerance === 'faible') {
+    d.push('skin.activeTolerance', skin.activeTolerance,
+      'Tolérance aux actifs faible ou peau réactive : les actifs dépigmentants sont irritants, et l’irritation elle-même produit de l’hyperpigmentation post-inflammatoire. Sur ce profil, aller lentement produit plus qu’aller fort.');
+  }
+
+  d.limit('La nature des taches n’est pas déclarée : marques post-inflammatoires, masque de grossesse et taches solaires ne se traitent pas de la même façon. KURLA ne les distingue pas et ne diagnostique pas.');
+
+  return d.result();
+}
+
+// --- imperfections_acne ----------------------------------------------------
+
+function acneDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const dryish = skin.hydration === 'seche' || skin.hydration === 'deshydratee';
+
+  if (skin.acne === 'reguliere') d.raise(20);
+  if (dryish) d.raise(15);
+  if (skin.activeTolerance === 'faible') d.raise(15);
+  if (skin.sensitivity === 'elevee') d.raise(10);
+
+  if (dryish) {
+    d.push('skin.hydration', skin.hydration,
+      'Imperfections et peau sèche ou déshydratée déclarées ensemble : l’erreur la plus fréquente est d’assécher davantage. Une peau déshydratée réagit mal aux traitements, et l’hydratation fait partie du traitement, pas du confort.');
+  }
+  d.push('skin.activeTolerance', skin.activeTolerance, skin.activeTolerance === 'faible'
+    ? 'Tolérance aux actifs déclarée faible : sur des imperfections, la tentation est d’empiler les actifs. Un seul à la fois, à fréquence progressive, donne un résultat lisible — et permet d’identifier ce qui ne convient pas.'
+    : null);
+  d.push('skin.skinType', skin.skinType, skin.skinType === 'grasse'
+    ? 'Type de peau gras déclaré : une texture riche n’est pas nécessairement le problème, et une texture trop asséchante déclenche souvent un retour de sébum.'
+    : null);
+  if (concernsOf(profile).includes('points_noirs')) {
+    d.push('skin.skinConcerns', concernsOf(profile).join(', '),
+      'Points noirs ou pores dilatés déclarés : ce n’est pas le même mécanisme que l’inflammation. Les deux peuvent coexister et n’appellent pas les mêmes gestes.');
+  }
+
+  d.limit('La sévérité des imperfections n’est déclarée nulle part : le profil indique une fréquence, pas une intensité. Au-delà d’un certain seuil, cela relève d’un avis médical que KURLA ne donne pas et n’évalue pas.');
+
+  return d.result();
+}
+
+// --- peau_sensible ---------------------------------------------------------
+
+function sensitiveDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const climate = profile.environment.climate;
+
+  if (skin.sensitivity === 'elevee') d.raise(20);
+  if (skin.activeTolerance === 'faible') d.raise(15);
+  if (climate === 'froid_sec') d.raise(10);
+  if (concernsOf(profile).includes('rougeurs')) d.raise(10);
+
+  d.push('skin.sensitivity', skin.sensitivity, sensitiveAdvice(skin.sensitivity));
+  d.push('skin.activeTolerance', skin.activeTolerance, skin.activeTolerance === 'faible'
+    ? 'Tolérance aux actifs déclarée faible : la prudence ne consiste pas à tout supprimer mais à ne changer qu’une chose à la fois. Sans cela, une réaction ne peut être attribuée à rien.'
+    : null);
+  d.push('environment.climate', climate, climate === 'froid_sec'
+    ? 'Climat froid et sec déclaré : il aggrave la réactivité indépendamment des produits. Une partie de ce qui est attribué à un cosmétique vient de l’air.'
+    : null);
+  if (concernsOf(profile).includes('rougeurs')) {
+    d.push('skin.skinConcerns', concernsOf(profile).join(', '),
+      'Rougeurs déclarées : elles apparaissent aussi après un geste mécanique — frottement, eau chaude, gommage. Retirer ce qui frotte avant d’ajouter un produit apaisant.');
+  }
+
+  d.limit('« Sensible » est auto-déclaré, pas mesuré, et une réactivité peut avoir plusieurs causes que le profil ne distingue pas. Les conseils portent sur ce qui n’aggrave aucune d’entre elles.');
+
+  return d.result();
+}
+
+function sensitiveAdvice(sensitivity: string): string | null {
+  switch (sensitivity) {
+    case 'elevee':
+      return 'Peau déclarée très réactive : un produit nouveau à la fois, sur une zone réduite, pendant plusieurs jours avant d’étendre. C’est la seule façon d’identifier ce qui ne convient pas.';
+    case 'moyenne':
+      return 'Sensibilité modérée déclarée : la vigilance porte surtout sur le cumul — plusieurs produits tolérés séparément ne le sont pas toujours ensemble.';
+    default:
+      return null;
+  }
+}
+
+// --- hydrater_peau ---------------------------------------------------------
+
+function skinHydrationDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const humidity = profile.environment.humidity;
+
+  if (skin.hydration === 'seche') d.raise(20);
+  if (skin.hydration === 'deshydratee') d.raise(20);
+  if (humidity === 'faible') d.raise(10);
+  if (profile.environment.climate === 'froid_sec') d.raise(10);
+
+  d.push('skin.hydration', skin.hydration, hydrationAdviceForSkinState(skin.hydration));
+  if ((skin.hydration === 'deshydratee' || skin.hydration === 'seche') && skin.skinType === 'grasse') {
+    d.push('skin.skinType', skin.skinType,
+      'Peau grasse et déshydratée ou sèche déclarées ensemble : ce n’est pas contradictoire, et c’est le cas le plus mal traité. Supprimer l’hydratation parce que la peau brille aggrave les deux problèmes à la fois.');
+  }
+  d.push('environment.humidity', humidity, humidity === 'faible'
+    ? 'Air sec déclaré : un humectant seul peut tirer l’eau vers l’extérieur au lieu de la retenir. Une couche occlusive légère par-dessus change le résultat sans changer de produit.'
+    : null);
+  d.push('skin.texturePreference', skin.texturePreference, known(skin.texturePreference)
+    ? `Texture préférée déclarée (${formatValue(skin.texturePreference)}) : une texture qui ne convient pas n’est pas appliquée régulièrement. C’est un critère d’observance, pas une préférence accessoire.`
+    : null);
+
+  return d.result();
+}
+
+/**
+ * La distinction sèche / déshydratée est la plus utile de ce besoin : les deux
+ * se ressemblent à l’œil et appellent des produits opposés.
+ */
+function hydrationAdviceForSkinState(state: string): string | null {
+  switch (state) {
+    case 'seche':
+      return 'Peau sèche déclarée : ce qui manque est du gras, pas de l’eau. Un apport lipidique — crème riche, baume — agit là où un gel hydratant ne suffira pas.';
+    case 'deshydratee':
+      return 'Peau déshydratée déclarée : ce qui manque est de l’eau, pas du gras. Un humectant sur peau humide agit là où une crème riche laisserait la sensation de tiraillement intacte.';
+    default:
+      return null;
+  }
+}
+
+// --- barriere_cutanee ------------------------------------------------------
+
+function barrierDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const concerns = concernsOf(profile);
+
+  if (skin.activeTolerance === 'faible') d.raise(20);
+  if (skin.sensitivity === 'elevee') d.raise(15);
+  if (concerns.includes('rougeurs')) d.raise(15);
+  if (profile.environment.climate === 'froid_sec') d.raise(10);
+
+  d.push('skin.activeTolerance', skin.activeTolerance, skin.activeTolerance === 'faible'
+    ? 'Tolérance aux actifs déclarée faible : une barrière fragilisée se répare d’abord en retirant, pas en ajoutant. Suspendre les actifs le temps que la peau se stabilise produit plus qu’ajouter un soin réparateur par-dessus.'
+    : null);
+  if (concerns.includes('rougeurs') || concerns.includes('sensibilite')) {
+    d.push('skin.skinConcerns', concerns.join(', '),
+      'Rougeurs ou réactivité déclarées : elles signalent une barrière perméable, donc une pénétration accrue de tout ce qui est appliqué. Les concentrations habituelles ne le restent pas sur cette peau.');
+  }
+  if (concerns.includes('secheresse') || skin.hydration === 'seche') {
+    d.push('skin.hydration', skin.hydration,
+      'Sécheresse déclarée avec barrière fragilisée : la perte en eau est une conséquence de la barrière, pas seulement un manque d’hydratation. Réparer la barrière règle une partie de la sécheresse que hydrater seul ne règle pas.');
+  }
+  d.push('environment.climate', profile.environment.climate, profile.environment.climate === 'froid_sec'
+    ? 'Climat froid et sec déclaré : il entretient la fragilité de la barrière. Tant qu’il dure, la peau ne se stabilisera pas au rythme qu’elle aurait en air tempéré.'
+    : null);
+
+  d.limit('L’état de la barrière n’est pas mesuré, il est déduit de signes déclarés — tiraillements, rougeurs, tolérance aux actifs. Une déduction, pas une mesure.');
+
+  return d.result();
+}
+
+// --- eclat_teint_terne -----------------------------------------------------
+
+function radianceDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const concerns = concernsOf(profile);
+  const dullness = concerns.includes('teint_terne');
+  const uneven = concerns.includes('teint_non_uniforme') || concerns.includes('grain_irregulier');
+
+  if (dullness) d.raise(15);
+  if (uneven) d.raise(15);
+  if (skin.hyperpigmentationTendency === 'frequente') d.raise(15);
+  if (skin.hydration === 'seche' || skin.hydration === 'deshydratee') d.raise(10);
+  if (skin.spfUsage === 'jamais') d.raise(10);
+
+  if (dullness && uneven) {
+    d.push('skin.skinConcerns', concerns.join(', '),
+      'Teint terne et teint non uniforme déclarés ensemble : ce sont deux problèmes distincts. Le terne relève de la lumière renvoyée par la surface, l’irrégularité de la répartition de la pigmentation — et les produits qui agissent sur l’un n’agissent pas sur l’autre.');
+  }
+  if (dullness && (skin.hydration === 'seche' || skin.hydration === 'deshydratee')) {
+    d.push('skin.hydration', skin.hydration,
+      'Teint terne sur peau sèche ou déshydratée : une partie du manque d’éclat vient de la déshydratation de surface. C’est la cause la moins coûteuse à corriger, et elle se corrige avant d’ajouter un actif éclaircissant.');
+  }
+  if (skin.hyperpigmentationTendency === 'frequente') {
+    d.push('skin.hyperpigmentationTendency', skin.hyperpigmentationTendency,
+      'Tendance à l’hyperpigmentation déclarée : un teint perçu comme terne est souvent un teint non uniforme. Chercher de l’éclat sans traiter l’uniformité donne un résultat partiel.');
+  }
+  if (skin.spfUsage === 'jamais') {
+    d.push('skin.spfUsage', skin.spfUsage,
+      'Aucune protection solaire déclarée : l’exposition entretient ce que l’on cherche à corriger. Aucun actif éclaircissant ne compense une exposition quotidienne sans protection.');
+  }
+
+  d.limit('L’« éclat » est une perception, pas une grandeur mesurée. KURLA ne peut vérifier aucune revendication d’éclat sur une fiche produit, seulement relier la demande aux champs déclarés.');
+
+  return d.result();
+}
+
+// --- maturite_rides --------------------------------------------------------
+
+function maturityDepth(profile: BeautyProfile): NeedDepth {
+  const d = depthBuilder();
+  const skin = profile.skin;
+  const concerns = concernsOf(profile);
+  const firmness = concerns.includes('fermete');
+  const lines = concerns.includes('rides');
+
+  if (firmness) d.raise(20);
+  if (skin.skinType === 'mature') d.raise(15);
+  if (lines) d.raise(10);
+  if (skin.sunExposure === 'forte' && skin.spfUsage === 'jamais') d.raise(20);
+  if (skin.hydration === 'seche' || skin.hydration === 'deshydratee') d.raise(10);
+
+  if (lines && (skin.hydration === 'seche' || skin.hydration === 'deshydratee')) {
+    d.push('skin.hydration', skin.hydration,
+      'Ridules déclarées sur peau sèche ou déshydratée : une partie des ridules visibles est due à la déshydratation et s’atténue en hydratant, ce qui n’est pas le cas des rides installées. Hydrater d’abord permet de voir lesquelles sont lesquelles.');
+  }
+  if (skin.sunExposure === 'forte' && skin.spfUsage === 'jamais') {
+    d.push('skin.sunExposure', skin.sunExposure,
+      'Exposition forte et aucune protection solaire déclarées : c’est le facteur modifiable le plus important du vieillissement cutané visible. Aucun actif ne compense une exposition non protégée.');
+  }
+  if (firmness) {
+    d.push('skin.skinConcerns', concerns.join(', '),
+      'Perte de fermeté déclarée : elle ne relève pas des mêmes produits que les rides de surface. Attendre d’un hydratant un effet sur la fermeté conduit à conclure à tort qu’aucun produit ne fonctionne.');
+  }
+  if (skin.activeTolerance === 'faible') {
+    d.push('skin.activeTolerance', skin.activeTolerance,
+      'Tolérance aux actifs déclarée faible : les actifs de référence sur la maturité sont aussi les plus irritants. Une introduction progressive, à faible fréquence, est la seule voie viable sur ce profil.');
+  }
+
+  d.limit('Aucune donnée d’âge n’est déclarée, et KURLA ne vérifie aucune revendication « anti-âge » sur une fiche produit : ce sont des affirmations de marque, pas des faits établis par KURLA.');
+
+  return d.result();
+}
+
 // --- Point d'entrée --------------------------------------------------------
 
 /**
- * Retourne la profondeur d'un besoin. Pour un besoin non encore approfondi —
- * les 8 besoins peau, chantier E — le résultat est vide : l'absence de nuance
- * signifie « pas encore traité », jamais « aucun conseil à donner ».
+ * Retourne la profondeur d'un besoin.
+ *
+ * Les 21 besoins du vocabulaire reconnu sont maintenant tous approfondis
+ * (D1 fibre, D2 coiffure, D3 cuir chevelu et barbe, E peau). Le `default`
+ * renvoie vide pour tout code hors vocabulaire : un besoin inconnu ne doit
+ * produire ni conseil ni limite inventés.
  */
 export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth {
   switch (need) {
@@ -707,6 +1046,23 @@ export function assessNeedDepth(need: string, profile: BeautyProfile): NeedDepth
       return scalpSootheDepth(profile);
     case 'barbe':
       return beardDepth(profile);
+    // E — peau.
+    case 'protection_solaire':
+      return sunDepth(profile);
+    case 'taches_hyperpigmentation':
+      return pigmentationDepth(profile);
+    case 'imperfections_acne':
+      return acneDepth(profile);
+    case 'peau_sensible':
+      return sensitiveDepth(profile);
+    case 'hydrater_peau':
+      return skinHydrationDepth(profile);
+    case 'barriere_cutanee':
+      return barrierDepth(profile);
+    case 'eclat_teint_terne':
+      return radianceDepth(profile);
+    case 'maturite_rides':
+      return maturityDepth(profile);
     default:
       return EMPTY;
   }

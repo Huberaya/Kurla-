@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { FIBRE_NEEDS, STYLE_NEEDS, SCALP_NEEDS, assessNeedDepth } from '../src/lib/needDepth';
+import { FIBRE_NEEDS, STYLE_NEEDS, SCALP_NEEDS, SKIN_NEEDS, assessNeedDepth } from '../src/lib/needDepth';
 import { RECOGNIZED_NEED_CODES, calculateKurlaFit } from '../src/lib/kurlaFit';
 import { normalizeBeautyProfile, BeautyProfile } from '../src/lib/beautyProfile';
 import { buildRecommendations, EngineProduct } from '../src/lib/recommendationEngine';
@@ -76,6 +76,24 @@ const RICH_SCALP = {
 
 const RICH_SCALP_SKIN = { sensitivity: 'elevee', activeTolerance: 'faible', acne: 'reguliere', hydration: 'seche' };
 
+/** Profil riche côté peau : chantier E. */
+const RICH_SKIN_PROFILE = {
+  spfUsage: 'jamais',
+  sunExposure: 'forte',
+  hyperpigmentationTendency: 'frequente',
+  postInflammatoryMarks: 'frequentes',
+  acne: 'reguliere',
+  sensitivity: 'elevee',
+  activeTolerance: 'faible',
+  hydration: 'seche',
+  skinType: 'grasse',
+  texturePreference: 'fluide',
+  finishPreference: 'mat',
+  skinConcerns: ['teint_terne', 'teint_non_uniforme', 'rougeurs', 'rides', 'fermete', 'points_noirs', 'secheresse']
+};
+
+const RICH_SKIN_ENV = { climate: 'froid_sec', humidity: 'faible' };
+
 function profileWith(
   hair: Record<string, unknown>,
   extra: { skin?: Record<string, unknown>; environment?: Record<string, unknown> } = {}
@@ -134,7 +152,13 @@ const RESERVED_BY_STYLE_FIT = [
   'lavage clarifiant régulier',
   'consultez un dermatologue',
   'avis dermatologique',
-  'doivent être montrés à un dermatologue'
+  'doivent être montrés à un dermatologue',
+  // `skinRecommendation.ts` — SKIN_INCOMPATIBILITIES. Autre surface (boutique
+  // et skinRoutine.ts), mais E ne doit pas reformuler ces règles d'association.
+  'Rétinol + AHA',
+  'Rétinol + BHA',
+  'Rétinol + vitamine C',
+  'AHA + BHA'
 ];
 
 async function runNeedDepthTests(): Promise<void> {
@@ -156,8 +180,14 @@ async function runNeedDepthTests(): Promise<void> {
     ['apaiser_cuir_chevelu', 'barbe', 'cuir_chevelu'],
     'D3 porte sur exactement trois besoins'
   );
-  const allDeepened = [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS];
-  assert.equal(new Set(allDeepened).size, 13, 'les trois chantiers ne doivent pas se chevaucher');
+  assert.deepEqual(
+    [...SKIN_NEEDS].sort(),
+    ['barriere_cutanee', 'eclat_teint_terne', 'hydrater_peau', 'imperfections_acne',
+      'maturite_rides', 'peau_sensible', 'protection_solaire', 'taches_hyperpigmentation'],
+    'E porte sur exactement huit besoins peau'
+  );
+  const allDeepened = [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS];
+  assert.equal(new Set(allDeepened).size, 21, 'les quatre chantiers couvrent les 21 besoins sans chevauchement');
   const unlisted = allDeepened.filter(need => !(RECOGNIZED_NEED_CODES as readonly string[]).includes(need));
   assert.deepEqual(unlisted, [], 'un besoin approfondi hors vocabulaire reconnu serait un orphelin réintroduit');
 
@@ -301,11 +331,14 @@ async function runNeedDepthTests(): Promise<void> {
   // Profil cuir chevelu et barbe : déclaré ici parce que le test
   // anti-duplication ci-dessous en a besoin avant la section D3.
   const richScalp = profileWith(RICH_SCALP, { skin: RICH_SCALP_SKIN, environment: { waterQuality: 'calcaire' } });
+  const richSkin = profileWith({}, { skin: RICH_SKIN_PROFILE, environment: RICH_SKIN_ENV });
 
   // --- 11. D2 ne redit pas ce que styleFit établit déjà --------------------
   const duplicated: string[] = [];
-  for (const need of [...STYLE_NEEDS, ...SCALP_NEEDS]) {
-    const profileForNeed = (SCALP_NEEDS as readonly string[]).includes(need) ? richScalp : richStyle;
+  for (const need of [...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS]) {
+    const profileForNeed = (SCALP_NEEDS as readonly string[]).includes(need) ? richScalp
+      : (SKIN_NEEDS as readonly string[]).includes(need) ? richSkin
+        : richStyle;
     const signal = signalOf([need], profileForNeed, need);
     for (const text of [...signal.nuances.map(n => n.advice), ...signal.limitations]) {
       for (const reserved of RESERVED_BY_STYLE_FIT) {
@@ -376,14 +409,118 @@ async function runNeedDepthTests(): Promise<void> {
   assert.deepEqual(signalOf(['cuir_chevelu'], richScalp, 'cuir_chevelu').limitations, [],
     'cuir_chevelu n’a pas de lacune de profil à déclarer');
 
-  // --- 17. Frontière honnête : E n'est pas fait ----------------------------
-  const untouched = (RECOGNIZED_NEED_CODES as readonly string[])
-    .filter(need => !([...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS] as readonly string[]).includes(need));
-  assert.equal(untouched.length, 8, '21 besoins reconnus moins 5 de fibre, 5 de coiffure et 3 de cuir chevelu');
-  for (const need of untouched) {
-    assert.deepEqual(assessNeedDepth(need, richScalp), { intensity: 0, nuances: [], limitations: [] },
-      `${need} n’est traité par aucun chantier livré : sa profondeur doit rester vide, pas simulée`);
+  // === E — besoins peau ====================================================
+
+  // --- 17. Chaque besoin peau est approfondi -------------------------------
+  for (const need of SKIN_NEEDS) {
+    const signal = signalOf([need], richSkin, need);
+    assert.equal(signal.met, true, `${need} doit être couvert par le profil peau`);
+    assert.ok(
+      signal.nuances.length > 0 || signal.limitations.length > 0,
+      `${need} doit produire au moins une nuance ou une limite`
+    );
   }
+
+  // --- 18. Sèche et déshydratée : deux besoins opposés ---------------------
+  // La discrimination centrale de E, homologue de sec/gras en D3.
+  const drySkin = profileWith({}, { skin: { hydration: 'seche' } });
+  const dehydratedSkin = profileWith({}, { skin: { hydration: 'deshydratee' } });
+  const fitDrySkin = fitFor(['hydrater_peau'], drySkin);
+  const fitDehydrated = fitFor(['hydrater_peau'], dehydratedSkin);
+
+  assert.deepEqual(fitDrySkin.unmetNeeds, fitDehydrated.unmetNeeds,
+    'sèche et déshydratée rendent toutes deux le besoin pertinent');
+  assert.equal(fitDrySkin.score, fitDehydrated.score);
+  const drySkinAdvice = adviceFor(drySkin, 'hydrater_peau', 'skin.hydration');
+  const dehydratedAdvice = adviceFor(dehydratedSkin, 'hydrater_peau', 'skin.hydration');
+  assert.notEqual(drySkinAdvice, dehydratedAdvice,
+    'une peau sèche et une peau déshydratée appellent des produits opposés');
+  assert.match(drySkinAdvice!, /manque est du gras/, 'une peau sèche manque de lipides');
+  assert.match(dehydratedAdvice!, /manque est de l’eau/, 'une peau déshydratée manque d’eau');
+
+  // --- 19. Grasse ET déshydratée : le cas le plus mal traité ---------------
+  const oilyDehydrated = profileWith({}, { skin: { hydration: 'deshydratee', skinType: 'grasse' } });
+  assert.ok(
+    signalOf(['hydrater_peau'], oilyDehydrated, 'hydrater_peau').nuances.some(n => n.field === 'skin.skinType'),
+    'une peau grasse et déshydratée doit être nommée comme telle, pas comme une contradiction'
+  );
+
+  // --- 20. Taches : l'imperfection est en amont ----------------------------
+  const marksWithAcne = profileWith({}, { skin: { postInflammatoryMarks: 'frequentes', acne: 'reguliere', spfUsage: 'quotidien' } });
+  const marksAlone = profileWith({}, { skin: { postInflammatoryMarks: 'frequentes', acne: 'aucune', spfUsage: 'quotidien' } });
+  const fitMarksAcne = fitFor(['taches_hyperpigmentation'], marksWithAcne);
+  const fitMarksAlone = fitFor(['taches_hyperpigmentation'], marksAlone);
+
+  assert.deepEqual(fitMarksAcne.unmetNeeds, fitMarksAlone.unmetNeeds,
+    'l’acné ne crée pas le besoin de traiter les marques, elle en change la lecture');
+  assert.equal(fitMarksAcne.score, fitMarksAlone.score);
+  assert.ok(fitMarksAcne.needSignals[0].nuances.some(n => n.field === 'skin.acne'),
+    'des marques avec imperfections actives doivent renvoyer à la cause');
+  assert.ok(!fitMarksAlone.needSignals[0].nuances.some(n => n.field === 'skin.acne'),
+    'sans imperfection déclarée, aucun conseil de ce type ne doit apparaître');
+  assert.ok(fitMarksAcne.needSignals[0].intensity > fitMarksAlone.needSignals[0].intensity,
+    'des marques entretenues par une inflammation active sont un besoin plus pressant');
+
+  // --- 21. Ridules : déshydratation ou rides installées --------------------
+  const linesDry = profileWith({}, { skin: { skinConcerns: ['rides'], hydration: 'seche' } });
+  const linesHydrated = profileWith({}, { skin: { skinConcerns: ['rides'], hydration: 'confortable' } });
+  assert.ok(
+    signalOf(['maturite_rides'], linesDry, 'maturite_rides').nuances.some(n => /déshydratation/.test(n.advice)),
+    'des ridules sur peau sèche doivent d’abord être lues comme une déshydratation'
+  );
+  assert.ok(
+    !signalOf(['maturite_rides'], linesHydrated, 'maturite_rides').nuances.some(n => /déshydratation/.test(n.advice)),
+    'sur une peau hydratée, cette lecture ne doit pas apparaître'
+  );
+
+  // --- 22. SPF : l'usage déclaré change le conseil -------------------------
+  const noSpf = profileWith({}, { skin: { spfUsage: 'jamais', sunExposure: 'faible' } });
+  const dailySpf = profileWith({}, { skin: { spfUsage: 'quotidien', sunExposure: 'forte' } });
+  assert.notEqual(
+    adviceFor(noSpf, 'protection_solaire', 'skin.spfUsage'),
+    adviceFor(dailySpf, 'protection_solaire', 'skin.spfUsage'),
+    'une personne qui ne met jamais de SPF et une personne qui en met tous les jours ne reçoivent pas le même conseil'
+  );
+
+  // --- 23. Limites E -------------------------------------------------------
+  assert.ok(signalOf(['protection_solaire'], richSkin, 'protection_solaire').limitations.some(t => /jamais son indice/.test(t)),
+    'le profil déclare la fréquence d’usage du SPF, pas son indice');
+  assert.ok(signalOf(['taches_hyperpigmentation'], richSkin, 'taches_hyperpigmentation').limitations.some(t => /nature des taches/.test(t)),
+    'la nature des taches n’est pas déclarée');
+  assert.ok(signalOf(['imperfections_acne'], richSkin, 'imperfections_acne').limitations.some(t => /sévérité/.test(t)),
+    'la sévérité des imperfections n’est pas déclarée');
+  assert.ok(signalOf(['eclat_teint_terne'], richSkin, 'eclat_teint_terne').limitations.some(t => /perception/.test(t)),
+    'l’éclat est une perception, pas une grandeur mesurée');
+  assert.ok(signalOf(['maturite_rides'], richSkin, 'maturite_rides').limitations.some(t => /anti-âge/.test(t)),
+    'KURLA ne vérifie aucune revendication anti-âge');
+  assert.ok(signalOf(['barriere_cutanee'], richSkin, 'barriere_cutanee').limitations.some(t => /déduit/.test(t)),
+    'l’état de la barrière est déduit, pas mesuré');
+  assert.ok(signalOf(['peau_sensible'], richSkin, 'peau_sensible').limitations.some(t => /auto-déclaré/.test(t)),
+    'la sensibilité est auto-déclarée, pas mesurée');
+
+  // --- 24. Les 21 besoins sont couverts, un code inconnu ne produit rien ---
+  const deepenedByChantier: Array<[string, BeautyProfile]> = [
+    ...(FIBRE_NEEDS as readonly string[]).map(need => [need, rich] as [string, BeautyProfile]),
+    ...(STYLE_NEEDS as readonly string[]).map(need => [need, richStyle] as [string, BeautyProfile]),
+    ...(SCALP_NEEDS as readonly string[]).map(need => [need, richScalp] as [string, BeautyProfile]),
+    ...(SKIN_NEEDS as readonly string[]).map(need => [need, richSkin] as [string, BeautyProfile])
+  ];
+  assert.equal(deepenedByChantier.length, 21, 'les 21 besoins reconnus doivent être couverts');
+  for (const [need, profile] of deepenedByChantier) {
+    const depth = assessNeedDepth(need, profile);
+    assert.ok(depth.nuances.length > 0 || depth.limitations.length > 0,
+      `${need} ne produit ni nuance ni limite sur un profil riche : il n’est pas réellement approfondi`);
+  }
+
+  // Un code hors vocabulaire ne doit rien produire : ni conseil, ni limite.
+  const unknownNeed = assessNeedDepth('blanchir_la_peau', richSkin);
+  assert.deepEqual(unknownNeed, { intensity: 0, nuances: [], limitations: [] },
+    'un besoin hors vocabulaire ne doit produire aucun conseil inventé');
+
+  // --- 25. Frontière honnête : il ne reste plus de besoin non traité -------
+  const untouched = (RECOGNIZED_NEED_CODES as readonly string[])
+    .filter(need => !([...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS] as readonly string[]).includes(need));
+  assert.deepEqual(untouched, [], 'aucun besoin reconnu ne doit rester sans profondeur');
 
   // --- 13. Chaque nuance cite un chemin réel du profil ----------------------
   const checked = new Set<string>();
@@ -394,10 +531,13 @@ async function runNeedDepthTests(): Promise<void> {
     ['bleached', bleached], ['natural', natural],
     ['richScalp', richScalp], ['dryScalp', dryScalp], ['oilyScalp', oilyScalp],
     ['flakyDry', flakyDry], ['flakyOily', flakyOily],
-    ['denseBeard', denseBeard], ['lightBeard', lightBeard]
+    ['denseBeard', denseBeard], ['lightBeard', lightBeard],
+    ['richSkin', richSkin], ['drySkin', drySkin], ['dehydratedSkin', dehydratedSkin],
+    ['oilyDehydrated', oilyDehydrated], ['marksWithAcne', marksWithAcne],
+    ['linesDry', linesDry], ['noSpf', noSpf], ['dailySpf', dailySpf]
   ];
   for (const [label, profile] of profiles) {
-    for (const need of [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS]) {
+    for (const need of [...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS]) {
       for (const nuance of signalOf([need], profile, need).nuances) {
         checked.add(nuance.field);
         assert.notEqual(resolvePath(profile, nuance.field), undefined,
@@ -405,7 +545,7 @@ async function runNeedDepthTests(): Promise<void> {
       }
     }
   }
-  assert.ok(checked.size >= 12, `au moins 12 champs distincts doivent porter des nuances, trouvé ${checked.size}`);
+  assert.ok(checked.size >= 24, `au moins 24 champs distincts doivent porter des nuances, trouvé ${checked.size}`);
 
   // --- 14. La profondeur atteint la recommandation --------------------------
   const leaveIn = engineProduct({ id: 'leave_in', name: 'Lait hydratant', needs: ['hydrater_cheveux'], routineStep: 'leave_in' });
@@ -430,7 +570,7 @@ async function runNeedDepthTests(): Promise<void> {
     'la première raison doit rester l’explication de pertinence, pas un détail de geste');
 
   console.log(
-    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} de fibre (D1), ${STYLE_NEEDS.length} de coiffure (D2) et ${SCALP_NEEDS.length} de cuir chevelu et barbe (D3) — 13 besoins sur 21 — ${checked.size} champs porteurs de nuances, limites nommées sur la fibre de perruque, la fixation, le stade des locks, la température, le signe sans cause et la longueur de barbe, aucune duplication de styleFit ni de needsHub, éligibilité et score inchangés.`
+    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} de fibre (D1), ${STYLE_NEEDS.length} de coiffure (D2), ${SCALP_NEEDS.length} de cuir chevelu et barbe (D3) et ${SKIN_NEEDS.length} peau (E) — les 21 besoins du vocabulaire, un code inconnu ne produisant rien — ${checked.size} champs porteurs de nuances, 13 limites nommées, aucune duplication de styleFit, needsHub ni skinRecommendation, éligibilité et score inchangés.`
   );
 }
 

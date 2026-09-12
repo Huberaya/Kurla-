@@ -237,8 +237,8 @@ trois réglages (8 contrôles).
 | D1 | profondeur des 5 besoins de fibre (`src/lib/needDepth.ts`) | livré |
 | D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | livré |
 | D3 | cuir chevelu et barbe (3 besoins) | livré |
-| E | les 8 besoins peau | à faire |
-| F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | à faire |
+| E | les 8 besoins peau | livré |
+| F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | **seul restant** |
 
 **D1 a modifié `src/lib/kurlaFit.ts`** : `KurlaFitResult` porte maintenant
 `needSignals` (intensité + nuances), et les nuances sont ajoutées à `reasons`
@@ -250,7 +250,13 @@ cet ordre : `recommendationsForSlugs` affiche `reasons[0]`.
 **rien** de `styleFit.ts` : le banc `tests/kurla_need_depth.test.ts` fait tomber
 la suite si une chaîne de D2 contient une formulation réservée à `styleFit`
 (`texture fluide`, `seule zone réellement accessible`, `occlusif de la formule`,
-`retirez la perruque la nuit`, `lavage clarifiant régulier`). **Si `styleFit.ts` ou `needsHub.ts`
+`retirez la perruque la nuit`, `lavage clarifiant régulier`). **E a ajouté `skinRecommendation.ts` aux modules réservés** : les quatre règles de
+`SKIN_INCOMPATIBILITIES` (rétinol×AHA, rétinol×BHA, rétinol×vitamine C, AHA×BHA)
+sont dans la liste du banc. E dit « retirer les actifs » ou « un seul à la fois »,
+jamais « ne pas mélanger X et Y ». **Si `SKIN_INCOMPATIBILITIES` change, la liste
+est à revoir.**
+
+**Si `styleFit.ts` ou `needsHub.ts`
 est modifié, cette liste est à revoir.** D3 a ajouté à la liste réservée les trois
 formulations médicales de `needsHub.ts` (`consultez un dermatologue`,
 `avis dermatologique`, `doivent être montrés à un dermatologue`) : `NEEDS_HUB`

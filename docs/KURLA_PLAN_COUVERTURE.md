@@ -2036,6 +2036,76 @@ causes possibles, et le dit.
 - Une erreur d'ordre de déclaration (`richScalp` utilisé avant initialisation)
   a été trouvée à l'exécution du banc, pas à la lecture.
 
+## CHANTIER E — LES HUIT BESOINS PEAU
+
+### Périmètre
+
+`protection_solaire`, `taches_hyperpigmentation`, `imperfections_acne`,
+`peau_sensible`, `hydrater_peau`, `barriere_cutanee`, `eclat_teint_terne`,
+`maturite_rides`.
+
+**Les 21 besoins du vocabulaire reconnu sont maintenant tous approfondis.**
+Un code hors vocabulaire ne produit plus rien du tout — ni conseil, ni limite —
+et le banc l'asserte (`blanchir_la_peau` renvoie une profondeur vide).
+
+### Trois frontières, toutes testées
+
+| Module | Ce qu'il possède déjà | Surface |
+| --- | --- | --- |
+| `skinRecommendation.ts` | `SKIN_INCOMPATIBILITIES` : rétinol×AHA, rétinol×BHA, rétinol×vitamine C, AHA×BHA | boutique, `skinRoutine.ts` |
+| `skinMelaninEvidence.ts` | codes HPI, périmètre phototype IV/V/VI | preuves de photoprotection |
+| `needsHub.ts` | texte éditorial et `seeDoctor` des 15 besoins peau | pages `/besoins/*` |
+
+Les quatre formulations d'incompatibilité rejoignent la liste réservée du banc.
+E dit « retirer les actifs » ou « un seul à la fois », jamais « ne pas mélanger
+X et Y ».
+
+### Ce que E ajoute : la lecture croisée
+
+Le profil peau contient **seize champs** que le moteur lisait **un par un**, sans
+jamais les confronter. Or c'est la confrontation qui produit le conseil utile :
+
+| Champs croisés | Ce que ça change |
+| --- | --- |
+| `hydration: seche` vs `deshydratee` | Manque de **gras** vs manque d'**eau** — produits opposés. Homologue exact du sec/gras de D3 |
+| `hydration` + `skinType: grasse` | Grasse **et** déshydratée : le cas le plus mal traité, où l'on supprime l'hydratation parce que la peau brille |
+| `postInflammatoryMarks` + `acne` | L'imperfection est **en amont** de la tache : traiter la marque sans traiter l'acné, c'est traiter la conséquence |
+| `postInflammatoryMarks` + `spfUsage` | L'exposition assombrit les marques : la protection passe **avant** l'actif dépigmentant |
+| `rides` + `hydration` | Une partie des ridules est une déshydratation et s'atténue en hydratant — pas les rides installées |
+| `sunExposure` + `spfUsage` | Le facteur modifiable principal du vieillissement visible |
+| `activeTolerance` + besoin dépigmentant / maturité | L'irritation **produit** de l'hyperpigmentation post-inflammatoire : aller fort aggrave |
+| `sensitivity` + `environment.climate` | Le froid sec aggrave la réactivité indépendamment des produits |
+
+### Treize limites nommées
+
+Sur les 21 besoins, **13 limites** sont maintenant dites plutôt que contournées.
+Les sept ajoutées par E :
+
+| Limite | Fondement |
+| --- | --- |
+| Le profil déclare la **fréquence** d'usage du SPF, jamais son **indice** | `SPF_OPTIONS` = `quotidien` / `parfois` / `jamais` |
+| La **nature** des taches n'est pas déclarée | Post-inflammatoire, masque de grossesse et tache solaire ne se traitent pas de la même façon |
+| La **sévérité** des imperfections n'est pas déclarée | `ACNE_OPTIONS` donne une fréquence, pas une intensité |
+| « Sensible » est **auto-déclaré**, pas mesuré | `SENSITIVITY_OPTIONS` |
+| L'état de la **barrière** est déduit de signes, pas mesuré | Aucun champ ne mesure la perte en eau |
+| L'**éclat** est une perception, pas une grandeur mesurée | KURLA ne peut vérifier aucune revendication d'éclat |
+| Aucune donnée d'**âge**, et aucune revendication « anti-âge » vérifiée | Ce sont des affirmations de marque |
+
+Les deux dernières sont la traduction directe de l'engagement de marque : KURLA
+ne reprend pas à son compte une revendication d'efficacité qu'elle ne vérifie
+pas.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. **21 besoins sur 21**, **34 champs**
+  porteurs de nuances, **13 limites**, un code inconnu ne produisant rien.
+- **Contrôle négatif exécuté** : les huit fonctions E neutralisées → **exit 1**,
+  `protection_solaire doit produire au moins une nuance ou une limite`.
+- Discriminations assertées : sèche/déshydratée, grasse+déshydratée, marques
+  avec et sans acné, ridules sur peau sèche/hydratée, SPF jamais/quotidien —
+  à chaque fois avec **même `unmetNeeds` et même `score`**.
+- `npm test` — **exit 0**, **125 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
