@@ -64,6 +64,9 @@ const preorder = verified({
   in_stock: false,
   stock_quantity: 0,
   badges: ['preorder'],
+  source_supplier: 'Fournisseur externe documenté',
+  supplier_id: 'supplier-fixture',
+  supplier_sku: 'SKU-PREORDER-FIXTURE',
 });
 const available = verified({ id: 'available', in_stock: true, stock_quantity: 2 });
 const unavailable = verified({ id: 'unavailable', in_stock: false, stock_quantity: 0 });
@@ -84,8 +87,36 @@ assert.equal(isCheckoutEligibleProduct(pendingValidation), false);
 
 assert.equal(getCatalogTruth(preorder).commercialState, 'preorder');
 assert.equal(getCatalogTruth(preorder).proofState, 'compliant');
+assert.equal(getCatalogTruth(preorder).preorderDocumented, true);
 assert.equal(isCatalogPubliclyListable(preorder), true);
 assert.equal(isCheckoutEligibleProduct(preorder), true);
+const undocumentedPreorder = verified({
+  id: 'preorder-undocumented',
+  is_preorder: true,
+  in_stock: false,
+  stock_quantity: 0,
+  badges: ['preorder'],
+});
+assert.equal(getCatalogTruth(undocumentedPreorder).commercialState, 'pending_validation');
+assert.equal(getCatalogTruth(undocumentedPreorder).preorderDocumented, false);
+assert.equal(isCheckoutEligibleProduct(undocumentedPreorder), false);
+const claimBlocked = verified({
+  id: 'claim-blocked',
+  claims_validation_status: 'pending',
+  description: 'Résultat garanti dès la première application.',
+});
+assert.equal(getCatalogTruth(claimBlocked).claimsClean, false);
+assert.equal(isCatalogPubliclyListable(claimBlocked), false);
+assert.equal(isCheckoutEligibleProduct(claimBlocked), false);
+const skinIncomplete = verified({
+  id: 'peau-ess-901',
+  category: 'peau',
+  skinTypes: ['mixte'],
+  skinObjectives: ['hydrater_peau'],
+});
+assert.equal(getCatalogTruth(skinIncomplete).skinGoverned, true);
+assert.equal(getCatalogTruth(skinIncomplete).commercialState, 'pending_validation');
+assert.equal(isCheckoutEligibleProduct(skinIncomplete), false);
 const publicPreorder = toPublicProduct(preorder);
 assert.equal(publicPreorder.availabilityState, 'preorder');
 assert.equal(publicPreorder.isPreorder, true);

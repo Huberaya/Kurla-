@@ -51,7 +51,16 @@ const target = verified({
 });
 const pending = verified({ id: 'pending', claims_validation_status: 'pending' });
 const available = verified({ id: 'available' });
-const preorder = verified({ id: 'preorder', is_preorder: true, in_stock: false, stock_quantity: 0, badges: ['preorder'] });
+const preorder = verified({
+  id: 'preorder',
+  is_preorder: true,
+  in_stock: false,
+  stock_quantity: 0,
+  badges: ['preorder'],
+  source_supplier: 'Fournisseur externe documenté',
+  supplier_id: 'supplier-fixture',
+  supplier_sku: 'SKU-C0-PREORDER',
+});
 
 assert.deepEqual(getProductTruth(target), getCatalogTruth(target));
 assert.equal(getCatalogTruth(target).commercialState, 'formulation_target');

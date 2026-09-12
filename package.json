@@ -149,7 +149,8 @@
     "test:dependances": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_dependances_declares.test.ts",
     "verify:production": "node scripts/verifier-deploiement.mjs",
     "test:schema": "KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true tsx tests/kurla_schema_declare.test.ts",
-    "verify:schema": "node scripts/verifier-schema.mjs"
+    "verify:schema": "node scripts/verifier-schema.mjs",
+    "audit:truth": "KURLA_STORE_MODE=server tsx scripts/audit-truth-layer.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

@@ -94,6 +94,8 @@ ok('une précommande externe documentée reste une précommande, pas une formula
     ...baseProduct,
     id: SKIN_HERO_SCOPE[1],
     sourceSupplier: 'Distributeur UE vérifié',
+    supplierId: 'supplier-fixture',
+    supplierSku: 'SKU-PEAU-002',
     isPreorder: true,
   });
   assert.equal(readiness.internalSource, false);
