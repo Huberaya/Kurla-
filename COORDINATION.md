@@ -653,3 +653,42 @@ planificateur externe pointé sur ce chemin avec
 **Si vous ajoutez une route**, `tests/route_inventory.test.ts` tombe : c'est
 voulu. Régénération consciente par `KURLA_UPDATE_FIXTURE=1`, qui affiche ce qui
 est ajouté et retiré.
+
+### Le résultat du diagnostic peau porte maintenant un conseil complet (13/09/2026)
+
+Constat qui a déclenché le chantier : la routine du résultat était identique
+pour tous les profils, ses justifications étaient génériques (voire
+placeholder), et la base de connaissance `knowledge/skin` n'était exploitée
+que par un bloc statique — un profil sans profil de connaissance reconnu ne
+recevait rien.
+
+Nouveau module : **`src/lib/knowledge/skinAdvisory.ts`** (couche « conseil »),
+branché dans `src/lib/diagnosticResult.ts` et rendu par
+`src/pages/DiagnosticResultPage.tsx` :
+
+- **Routine contextuelle** — chaque étape porte *pourquoi* (mécanisme lié au
+  besoin déclaré), *comment* (usage concret) et *à attendre* (horizon honnête,
+  zéro promesse). Elle s'adapte au type, à l'hydratation, à la sensibilité et
+  aux préoccupations (grasse ≠ sèche ≠ sensible ; HPI ≠ imperfections).
+- **Leçons** — 1 à 3 modules pédagogiques sélectionnés sur les préoccupations
+  (HPI, imperfections, hydratation, tolérance, SPF ISO 24444, exfoliation,
+  éclat, prévention, barrière, entretien), chacun avec sa source.
+- **Observations suivies** — J+7 / J+14 / J+30, questions concrètes et
+  spécifiques au thème principal ; la note de la boucle annonce la
+  réévaluation J+30 (L4) exactement comme elle se déclenche.
+- **Résumé personnalisé** — composé des réponses déclarées uniquement ;
+  inconnu = inconnu (jamais de déduction) ; un résumé IA, s'il existe, n'est
+  jamais écrasé.
+
+**Contrat verrouillé par le banc `tests/kurla_diagnostic_advisory.test.ts`**
+(chainé en fin de suite, zone plateforme) : richesse, adaptation au
+contexte, leçons sourcées, observations, résumé honnête, formulation,
+déterminisme. Si vous enrichissez `knowledge/skin` (HPI, sécheresse,
+imperfections), le plus court est d'ajouter le contenu dans `SKIN_LESSONS`
+/ la routine de `skinAdvisory.ts` plutôt que dans un bloc statique : le banc
+garde la surface cohérente.
+
+**À ne pas casser** : le conseil ne redit aucune phrase réservée (styleFit,
+needsHub médical, `SKIN_INCOMPATIBILITIES` — la liste est dans le banc),
+n'emploie aucun vocabulaire médical, et le parcours cheveux ne reçoit ni
+leçons ni observations.

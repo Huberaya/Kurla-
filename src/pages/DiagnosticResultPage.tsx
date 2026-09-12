@@ -48,11 +48,16 @@ function RoutineColumn({ title, steps }: { title: string; steps: DiagnosticRouti
     <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4">
       <h3 className="text-sm font-bold text-kurla-amber mb-3">{title}</h3>
       {steps.length === 0 ? <p className="text-xs text-kurla-cream/50">Aucune étape déclarée.</p> : (
-        <ol className="space-y-3">
+        <ol className="space-y-4">
           {steps.map(step => (
             <li key={`${title}-${step.label}-${step.action}`} className="flex gap-3 text-sm">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-kurla-copper/15 text-xs font-bold text-kurla-amber">{step.label}</span>
-              <div><p className="font-semibold">{step.action}</p><p className="mt-0.5 text-xs leading-relaxed text-kurla-cream/55">{step.why} <span className="text-kurla-amber">Conseil général.</span></p></div>
+              <div className="min-w-0">
+                <p className="font-semibold">{step.action}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">Pourquoi : </span>{step.why} <span className="text-kurla-cream/40">Conseil général.</span></p>
+                {step.how && <p className="mt-1 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">Comment : </span>{step.how}</p>}
+                {step.expect && <p className="mt-1 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">À attendre : </span>{step.expect}</p>}
+              </div>
             </li>
           ))}
         </ol>
@@ -123,6 +128,22 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
           <div className="rounded-3xl border border-amber-400/20 bg-[#171208] p-6"><SectionHeading number="2b" title="Ce qui reste inconnu" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.unknown.length ? model.unknown.map(item => <li key={item} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />{item}</li>) : <li>Aucun champ clé ne manque dans ce questionnaire.</li>}</ul></div>
         </section>
 
+        {model.lessons.length > 0 && (
+          <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="comprendre">
+            <SectionHeading number="2c" id="comprendre" title="Comprendre — vos priorités, expliquées" />
+            <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Sélectionnées sur ce que vous avez déclaré. Elles expliquent le « pourquoi » de la routine ci-dessous — et elles restent valables quel que soit le produit.</p>
+            <div className="space-y-4">
+              {model.lessons.map(lesson => (
+                <div key={lesson.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+                  <p className="text-sm font-semibold text-[#FFE0C6]">{lesson.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-kurla-cream/75">{lesson.lesson}</p>
+                  <p className="mt-3 text-[10px] uppercase tracking-wide text-kurla-amber">{lesson.source}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title="Vos 2 à 3 priorités" /><div className="flex flex-wrap gap-2">{model.priorities.length ? model.priorities.map(priority => <span key={priority} className="rounded-full border border-kurla-copper/40 bg-kurla-copper/15 px-4 py-2 text-sm font-semibold text-[#FFE0C6]">{priority}</span>) : <span className="text-sm text-kurla-cream/60">Aucune priorité assez précise pour personnaliser ce bloc.</span>}</div></section>
 
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title="Routine minimale matin / soir" /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title="Matin" steps={model.morning} /><RoutineColumn title="Soir" steps={model.evening} /><RoutineColumn title="À observer chaque semaine" steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>
@@ -139,7 +160,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
 
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="6" title="Pourquoi chaque étape ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><p className="mt-1 text-xs leading-relaxed text-kurla-cream/65">{step.why}</p><span className="mt-2 inline-block text-[10px] uppercase tracking-wide text-kurla-amber">Conseil général</span></div>)}</div></section>
 
-        <section className="mb-8 rounded-3xl border border-kurla-copper/30 bg-kurla-espresso p-6"><SectionHeading number="7" title="Suivi et prochaine observation" /><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-sm font-semibold">{model.followUp.firstObservation}</p></div><div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-sm font-semibold">{model.followUp.nextObservation}</p></div></div><div className="mt-4 flex flex-wrap gap-3"><a href={model.followUp.journalHref} className="rounded-full bg-kurla-copper px-5 py-2.5 text-sm font-bold hover:bg-kurla-cocoa">Ouvrir mon suivi</a><a href={model.followUp.shelfHref} className="rounded-full border border-kurla-cream/20 px-5 py-2.5 text-sm font-semibold hover:border-kurla-amber">Voir ma sélection</a></div></section>
+        <section className="mb-8 rounded-3xl border border-kurla-copper/30 bg-kurla-espresso p-6"><SectionHeading number="7" title="Suivi et prochaines observations" /><p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Trois questions concrètes, à répondre dans votre journal : ce sont elles qui pilotent l’ajustement de votre routine — pas une intuition.</p><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">Aujourd’hui</p><p className="mt-1 text-sm font-semibold leading-relaxed">{model.followUp.firstObservation}</p></div>{model.observations.length > 0 ? model.observations.map(obs => <div key={obs.day} className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">{obs.day}</p><p className="mt-1 text-sm leading-relaxed text-kurla-cream/75">{obs.question}</p></div>) : <div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">Prochaine étape</p><p className="mt-1 text-sm font-semibold">{model.followUp.nextObservation}</p></div>}</div>{model.advisoryLoop && <p className="mt-4 rounded-2xl border border-kurla-copper/20 bg-kurla-bark p-4 text-xs leading-relaxed text-kurla-cream/70"><span className="font-bold text-kurla-amber">Votre routine évolue avec vous. </span>{model.advisoryLoop}</p>}<div className="mt-4 flex flex-wrap gap-3"><a href={model.followUp.journalHref} className="rounded-full bg-kurla-copper px-5 py-2.5 text-sm font-bold hover:bg-kurla-cocoa">Ouvrir mon suivi</a><a href={model.followUp.shelfHref} className="rounded-full border border-kurla-cream/20 px-5 py-2.5 text-sm font-semibold hover:border-kurla-amber">Voir ma sélection</a></div></section>
 
         <div className="space-y-2 text-xs leading-relaxed text-kurla-cream/55"><p><strong className="text-kurla-cream/75">Source du résultat :</strong> {model.generatedWithAI ? 'Gemini a répondu à partir des réponses et du catalogue autorisé.' : 'fallback déterministe KURLA ou résultat mis en cache ; aucune mention d’aide IA n’est affichée.'}</p><p><strong className="text-kurla-cream/75">Catalogue :</strong> {catalogSource === 'supabase' ? 'catalogue serveur publié.' : 'catalogue serveur indisponible ou vide.'}</p>{model.warnings.map(warning => <p key={warning} className="flex gap-2"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-kurla-amber" />{warning}</p>)}</div>
         <div className="mt-8 flex flex-wrap gap-4"><a href={model.isSkin ? '/peau/diagnostic' : '/diagnostic'} className="inline-flex items-center gap-1 text-sm font-semibold text-kurla-amber hover:underline"><ArrowLeft className="h-4 w-4" /> Modifier mes réponses</a><a href="/boutique" className="inline-flex items-center gap-1 text-sm font-semibold text-kurla-amber hover:underline">Explorer la boutique <ArrowRight className="h-4 w-4" /></a></div>

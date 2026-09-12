@@ -1,6 +1,15 @@
 import type { AIRecommendationResult, Product } from '../types';
 import { getProductTruth } from './catalogTruth';
 import { pickSkinKnowledgeProfile, type SkinKnowledgeProfile } from './knowledge/skin';
+import {
+  ADVISORY_LOOP_NOTE,
+  buildSkinAdvisoryRoutine,
+  buildSkinAdvisorySummary,
+  pickSkinLessons,
+  pickSkinObservations,
+  type SkinLesson,
+  type SkinObservation,
+} from './knowledge/skinAdvisory';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -27,6 +36,10 @@ export interface DiagnosticRoutineStep {
   label: string;
   action: string;
   why: string;
+  /** Usage concret (quantité, ordre, fréquence) — couche conseil KURLA Skin. */
+  how?: string;
+  /** Horizon honnête, zéro promesse de résultat — couche conseil KURLA Skin. */
+  expect?: string;
 }
 
 export interface DiagnosticResultModel {
@@ -50,6 +63,12 @@ export interface DiagnosticResultModel {
   warnings: string[];
   summary: string;
   skinKnowledgeProfile: SkinKnowledgeProfile | null;
+  /** Leçons pédagogiques sélectionnées sur les préoccupations déclarées (peau uniquement). */
+  lessons: SkinLesson[];
+  /** Observations suivies J+7 / J+14 / J+30 (peau uniquement). */
+  observations: SkinObservation[];
+  /** Note sur la boucle de réévaluation J+30 (peau uniquement). */
+  advisoryLoop: string | null;
 }
 
 const UNKNOWN = new Set(['', 'inconnu', 'inconnue', 'unknown', 'undefined', 'null']);
@@ -144,25 +163,24 @@ function profileFields(answers: Record<string, unknown>, isSkin: boolean): Diagn
   return fields.map(([key, label, value]) => ({ key, label, value: Array.isArray(value) ? value.map(displayDiagnosticValue).join(', ') || 'Non renseigné' : displayDiagnosticValue(value), known: Array.isArray(value) ? value.length > 0 : isKnown(value) }));
 }
 
-function routineForSkin(answers: Record<string, unknown>, priorities: string[]): Pick<DiagnosticResultModel, 'morning' | 'evening' | 'weekly'> {
-  const sensitive = answers.sensitivity === 'elevee' || (Array.isArray(answers.sensitivities) && answers.sensitivities.includes('sensible'));
-  const hasImperfections = priorities.some(item => /imperfection/i.test(item));
-  const hasMarks = priorities.some(item => /tache|hpi|uniform/i.test(item));
-  return {
-    morning: [
-      { label: '1', action: 'Nettoyant doux', why: 'Base courte, sans sur-nettoyer.' },
-      { label: '2', action: hasMarks ? 'Soin ciblé documenté' : 'Hydratant / barrière', why: hasMarks ? 'Relie la routine à la priorité déclarée sans promettre un résultat médical.' : 'Soutient le confort déclaré.' },
-      { label: '3', action: 'SPF adapté au pays et aux preuves disponibles', why: 'Le SPF est le dernier geste ; aucune promesse « invisible » sans preuve whitecast.' },
-    ],
-    evening: [
-      { label: '1', action: 'Nettoyage doux', why: 'Retirer SPF et impuretés sans multiplier les étapes.' },
-      { label: '2', action: hasImperfections ? 'Actif imperfections à fréquence progressive' : hasMarks ? 'Actif HPI à fréquence progressive' : 'Hydratant / barrière', why: sensitive ? 'Peau sensible déclarée : introduire un seul changement à la fois.' : 'La fréquence doit rester ajustable selon la tolérance.' },
-      { label: '3', action: 'Crème barrière si besoin', why: 'Terminer par le confort plutôt que superposer les actifs.' },
-    ],
-    weekly: [
-      { label: 'Hebdo', action: 'Aucune exfoliation automatique', why: 'L’exfoliant n’est proposé que si la tolérance et la référence sont documentées.' },
-    ],
-  };
+/**
+ * Routine peau : produite par la couche conseil (`knowledge/skinAdvisory`),
+ * qui adapte chaque étape au contexte déclaré (type, hydratation, sensibilité,
+ * préoccupations) et porte pourquoi / comment / à attendre sur chaque étape.
+ * Le contrat est assuré par le banc `kurla_diagnostic_advisory`.
+ */
+function routineForSkin(answers: Record<string, unknown>): Pick<DiagnosticResultModel, 'morning' | 'evening' | 'weekly'> {
+  return buildSkinAdvisoryRoutine({
+    skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,
+    hydrationLevel: typeof answers.hydrationLevel === 'string' ? answers.hydrationLevel : undefined,
+    sensitivity: typeof answers.sensitivity === 'string' ? answers.sensitivity : undefined,
+    sensitivities: Array.isArray(answers.sensitivities) ? answers.sensitivities.filter((value): value is string => typeof value === 'string') : undefined,
+    skinConcerns: Array.isArray(answers.skinConcerns) ? answers.skinConcerns.filter((value): value is string => typeof value === 'string') : undefined,
+    skinObjectives: Array.isArray(answers.skinObjectives) ? answers.skinObjectives.filter((value): value is string => typeof value === 'string') : undefined,
+    hyperpigmentationTendency: typeof answers.hyperpigmentationTendency === 'string' ? answers.hyperpigmentationTendency : undefined,
+    spfUsage: typeof answers.spfUsage === 'string' ? answers.spfUsage : undefined,
+    acne: typeof answers.acne === 'string' ? answers.acne : undefined,
+  });
 }
 
 function routineForHair(result: AIRecommendationResult | null): Pick<DiagnosticResultModel, 'morning' | 'evening' | 'weekly'> {
@@ -188,7 +206,18 @@ export function buildDiagnosticResultModel(input: {
   const fields = profileFields(answers, isSkin);
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
-  const routine = isSkin ? routineForSkin(answers, priorities) : routineForHair(result);
+  const routine = isSkin ? routineForSkin(answers) : routineForHair(result);
+  const advisoryCtx = {
+    skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,
+    hydrationLevel: typeof answers.hydrationLevel === 'string' ? answers.hydrationLevel : undefined,
+    sensitivity: typeof answers.sensitivity === 'string' ? answers.sensitivity : undefined,
+    sensitivities: Array.isArray(answers.sensitivities) ? answers.sensitivities.filter((value): value is string => typeof value === 'string') : undefined,
+    skinConcerns: Array.isArray(answers.skinConcerns) ? answers.skinConcerns.filter((value): value is string => typeof value === 'string') : undefined,
+    skinObjectives: Array.isArray(answers.skinObjectives) ? answers.skinObjectives.filter((value): value is string => typeof value === 'string') : undefined,
+    hyperpigmentationTendency: typeof answers.hyperpigmentationTendency === 'string' ? answers.hyperpigmentationTendency : undefined,
+    spfUsage: typeof answers.spfUsage === 'string' ? answers.spfUsage : undefined,
+    acne: typeof answers.acne === 'string' ? answers.acne : undefined,
+  };
   const skinKnowledgeProfile = isSkin ? pickSkinKnowledgeProfile({
     acne: typeof answers.acne === 'string' ? answers.acne : undefined,
     skinConcerns: Array.isArray(answers.skinConcerns) ? answers.skinConcerns.filter((value): value is string => typeof value === 'string') : undefined,
@@ -236,7 +265,10 @@ export function buildDiagnosticResultModel(input: {
       ...(result?.warnings || []),
       'Conseil cosmétique : ce résultat ne constitue pas un avis médical ni un diagnostic.',
     ].filter((warning, index, list) => list.indexOf(warning) === index),
-    summary: result?.summary || (isSkin ? 'Résultat peau calculé à partir des réponses déclarées.' : 'Résultat calculé à partir des réponses déclarées.'),
+    summary: result?.summary || (isSkin ? buildSkinAdvisorySummary(advisoryCtx, priorities) : 'Résultat calculé à partir des réponses déclarées.'),
     skinKnowledgeProfile,
+    lessons: isSkin ? pickSkinLessons(advisoryCtx) : [],
+    observations: isSkin ? pickSkinObservations(advisoryCtx) : [],
+    advisoryLoop: isSkin ? ADVISORY_LOOP_NOTE : null,
   };
 }
