@@ -573,37 +573,9 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* Navigation — familles fonctionnelles + sous-onglets */}
         {(() => {
-          const navGroups = workspace === 'skin' ? [
+          const sharedNavGroups = [
             {
-              id: 'skin-overview', label: 'KURLA Skin', icon: LayoutDashboard,
-              tabs: [
-                { id: 'skin_overview', label: 'Vue d’ensemble peau', icon: TrendingUp },
-                { id: 'skin_readiness', label: 'Gates C1 / C5', icon: Shield },
-              ],
-            },
-            {
-              id: 'skin-catalog', label: 'Catalogue Skin', icon: Store,
-              tabs: [
-                { id: 'skin_catalog', label: 'Fiches peau', icon: Package },
-                { id: 'skin_batches', label: 'Kits & lots', icon: Boxes },
-              ],
-            },
-            {
-              id: 'skin-supply', label: 'Sourcing Skin', icon: Truck,
-              tabs: [
-                { id: 'skin_sourcing', label: 'Preuves & fournisseurs', icon: Truck },
-                { id: 'skin_demand', label: 'Demande peau', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
-              ],
-            },
-            {
-              id: 'skin-people', label: 'Professionnels', icon: Users,
-              tabs: [
-                { id: 'pros', label: 'Professionnels peau', icon: Users },
-              ],
-            },
-          ] : [
-            {
-              id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard,
+              id: 'overview', label: workspace === 'skin' ? 'Vue d’ensemble Skin' : "Vue d'ensemble Hair", icon: LayoutDashboard,
               tabs: [
                 { id: 'analytics', label: 'Tableau de bord commercial', icon: TrendingUp },
                 { id: 'growth', label: '🚀 Growth Command Center', icon: Target },
@@ -616,11 +588,11 @@ export const AdminDashboardPage: React.FC = () => {
                 { id: 'orders', label: 'Commandes', icon: ShoppingBag, badge: serverOrders.length },
                 { id: 'returns', label: 'Retours & Remboursements', icon: RotateCcw, badge: returnsList.length },
                 { id: 'support', label: 'Support Client', icon: MessageSquare, badge: supportTickets.length },
-                { id: 'pros', label: 'Certifications Pro', icon: Users },
+                { id: 'pros', label: workspace === 'skin' ? 'Professionnels peau & Hair' : 'Certifications Pro', icon: Users },
               ],
             },
             {
-              id: 'catalog', label: 'Catalogue & Stock', icon: Store,
+              id: 'catalog', label: workspace === 'skin' ? 'Catalogue Skin & Stock' : 'Catalogue Hair & Stock', icon: Store,
               tabs: [
                 { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
                 { id: 'catalog', label: 'Catalogue produits', icon: Package },
@@ -629,7 +601,7 @@ export const AdminDashboardPage: React.FC = () => {
               ],
             },
             {
-              id: 'supply', label: 'Approvisionnement', icon: Truck,
+              id: 'supply', label: workspace === 'skin' ? 'Approvisionnement Skin' : 'Approvisionnement Hair', icon: Truck,
               tabs: [
                 { id: 'demand', label: 'Demande précommandes', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
                 { id: 'suppliers', label: 'Fournisseurs & sourcing', icon: Truck },
@@ -642,6 +614,20 @@ export const AdminDashboardPage: React.FC = () => {
               ],
             },
           ];
+          const skinNavGroups = workspace === 'skin' ? [
+            {
+              id: 'skin-governance', label: 'Gouvernance Skin', icon: Shield,
+              tabs: [
+                { id: 'skin_overview', label: 'Vue d’ensemble peau', icon: TrendingUp },
+                { id: 'skin_readiness', label: 'Gates C1 / C5', icon: Shield },
+                { id: 'skin_catalog', label: 'Fiches peau', icon: Package },
+                { id: 'skin_batches', label: 'Kits & lots', icon: Boxes },
+                { id: 'skin_sourcing', label: 'Preuves & fournisseurs', icon: Truck },
+                { id: 'skin_demand', label: 'Demande peau', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
+              ],
+            },
+          ] : [];
+          const navGroups = [...sharedNavGroups, ...skinNavGroups];
           const activeGroup = navGroups.find(g => g.tabs.some(t => t.id === activeTab)) ?? navGroups[0];
           const GroupIcon = activeGroup.icon;
 
@@ -677,6 +663,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeGroup.tabs.map(tab => {
                   const Icon = tab.icon;
                   const active = activeTab === tab.id;
+                  const badge = 'badge' in tab && typeof tab.badge === 'number' ? tab.badge : undefined;
                   return (
                     <button
                       key={tab.id}
@@ -689,9 +676,9 @@ export const AdminDashboardPage: React.FC = () => {
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {tab.label}
-                      {typeof tab.badge === 'number' && tab.badge > 0 && (
+                      {typeof badge === 'number' && badge > 0 && (
                         <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-kurla-copper text-white' : 'bg-kurla-cream/10 text-kurla-cream/70'}`}>
-                          {tab.badge}
+                          {badge}
                         </span>
                       )}
                     </button>
@@ -765,7 +752,7 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 1: COMMERCIAL DASHBOARD ANALYTICS */}
-        {activeTab === 'analytics' && workspace === 'hair' && (
+        {activeTab === 'analytics' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
@@ -1118,8 +1105,9 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB DEMANDE PRÉCOMMANDES (sourcing premier lot) — KURLA Hair */}
-        {activeTab === 'demand' && workspace === 'hair' && (
+        {activeTab === 'demand' && (
           <div className="space-y-10">
+            {workspace === 'skin' && <PeauDemandStockGapPanel headers={adminHeaders} />}
           <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
@@ -1426,10 +1414,11 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 5: PRODUCT CATALOG — C20 peau publication TEST contrôlée */}
-        {activeTab === 'catalog' && workspace === 'hair' && (
+        {activeTab === 'catalog' && (
           <div className="space-y-10">
+            {workspace === 'skin' && <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />}
             <CatalogAdminPanel
-              scope="hair"
+              scope={workspace === 'skin' ? 'skin' : 'hair'}
               headers={adminHeaders}
               onSuccess={(message) => {
                 setActionSuccess(message);
@@ -1450,8 +1439,9 @@ export const AdminDashboardPage: React.FC = () => {
           <StrategyCockpitPanel headers={adminHeaders} />
         )}
 
-        {activeTab === 'cockpit' && workspace === 'hair' && (
+        {activeTab === 'cockpit' && (
           <div className="space-y-10">
+            {workspace === 'skin' && <PeauGatesCockpitPanel headers={adminHeaders} />}
             <OperationsCockpitPanel
               headers={adminHeaders}
               onSuccess={(message) => {
@@ -1463,8 +1453,13 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 5B: APPROVISIONNEMENT — C16 cahier + C22 P1 J0 5 mails + C22 P2 J+3/J+7 + 16B + A3 tampon + B2 kitting + matrice pays */}
-        {activeTab === 'suppliers' && workspace === 'hair' && (
+        {activeTab === 'suppliers' && (
           <div className="space-y-10">
+            {workspace === 'skin' && <>
+              <PeauSourcingCahierPanel />
+              <PeauJ0MailTrackingPanel headers={adminHeaders} />
+              <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
+            </>}
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <TamponOrderPanel />
             <FulfillmentContactPanel />
@@ -1496,8 +1491,9 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* TAB 5C: LOTS ET TRAÇABILITÉ — écran du chantier 16D */}
-        {activeTab === 'batches' && workspace === 'hair' && (
+        {activeTab === 'batches' && (
           <div className="space-y-10">
+            {workspace === 'skin' && <PeauKitsCoutServiPanel headers={adminHeaders} />}
             <BatchAdminPanel
               headers={adminHeaders}
               onSuccess={(message) => {
