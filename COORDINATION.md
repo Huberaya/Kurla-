@@ -304,6 +304,47 @@ appartient au catalogue.
 n'est donc datée, ce qui rend l'audit impossible. Il faudrait un trigger —
 donc une migration, donc à la main.
 
+### Panne du 12/09/2026 — le catalogue entier masqué par une règle sans données
+
+**Symptôme.** `/api/products` renvoyait `{"products":[],"count":0}` en 200 :
+la boutique ne servait plus rien, sans erreur, alors que la base comptait 63
+produits publiés. `/api/health` annonçait 64 produits. Rien ne signalait de
+panne.
+
+**Cause.** `3b68ac3` (industrialisation de la couche de vérité) exige
+désormais un `supplier_sku` pour toute précommande externe
+(`hasDocumentedExternalPreorder`). Or **0 produit publié sur 63 porte ce
+champ**, alors que `supplier_id` et `source_supplier` sont renseignés sur les
+63. Comme les 63 portent le badge « preorder », tous étaient exclus d'un coup.
+
+**Deux positions, puis un arbitrage.** `d0d6115` proposait de considérer la
+source et le fournisseur comme suffisants, et le SKU comme une simple alerte ;
+`2777034` a restauré l'exigence des trois champs, au nom du contrat de
+livraison et de la contrainte « aucune précommande sans source externe,
+fournisseur et SKU ». **Le porteur du projet a tranché le 12/09/2026 en
+faveur de la première position.** La décision est appliquée et son motif est
+écrit dans `src/lib/preorderEvidence.ts` ; elle ne doit pas être rebasculée
+sans un nouvel arbitrage explicite.
+
+Les deux positions s'accordaient sur l'essentiel : aucun SKU ne doit être
+inventé, et la donnée reste réclamée. Elles ne diffèrent que sur le canal —
+blocage de la mise en ligne, ou alerte de collecte. C'est un choix de
+gestion, pas un désaccord technique.
+
+**État réel vérifié.** L'audit Supabase lecture seule du 12/09/2026 confirme
+96 fiches, 63 publiées, **0 publiable**, 0 prête à acheter et 126 constats
+bloquants (63 publiées non listables + 63 sourcing incomplet). Aucun SKU réel
+n'est présent dans `docs/sourcing/C1_HERO_DOSSIER_COLLECTE.csv` : les inventer
+serait une fabrication. La boutique vide est donc un fail-closed explicite,
+mais le déploiement ne peut pas être déclaré accepté tant qu'un arbitrage
+métier n'a pas fourni les preuves ou rétrogradé les statuts administratifs.
+
+**Leçon, et elle vaut pour nous deux.** Tous les bancs passent avec des
+fixtures complètes ; ils ne remplacent pas l'audit des données de production.
+La sonde doit rester active et signaler le vide critique, même si la cause est
+un blocage de vérité légitime. Une mise en ligne ne peut être acceptée qu'après
+résolution des constats réels.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`

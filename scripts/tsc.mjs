@@ -46,33 +46,37 @@ const MO = 1024 * 1024;
 const PLANCHER = 1024;
 const PLAFOND = 4096;
 const GARDE_FOU_DEFAUT = 900;
+// Laissés de côté pour les autres processus de la machine.
+const RESERVE = 120;
+// De combien on remonte à chaque nouvel essai après un épuisement.
+const MAJORATION = 256;
 
-function limiteMemoire() {
+function limiteMemoire(majoration = 0) {
   const forcee = Number(process.env.KURLA_TSC_MEMORY);
   if (Number.isFinite(forcee) && forcee > 0) {
     return { valeur: Math.round(forcee), origine: 'KURLA_TSC_MEMORY' };
   }
   const totale = os.totalmem() / MO;
   const libre = os.freemem() / MO;
-  // On ne prend jamais plus que ce qui reste : une machine peut annoncer
-  // 2 Go au total et n'en avoir plus que 1,3 Go de libre une fois les
-  // autres processus lancés. Dépasser le disponible ne fait pas échouer
-  // plus vite — le ramasse-miettes s'emballe et plus rien n'avance.
-  const souhaitee = Math.min(totale * 0.75, libre * 0.85);
+  // Une réserve FIXE, pas un pourcentage. Mesuré le 12/09/2026 : 85 % du
+  // libre tombait à 1 111 Mo et faisait échouer la vérification, alors que
+  // la machine annonçait encore 1 307 Mo de libres et que la même commande
+  // passait à 1 172 Mo quelques heures plus tôt. Le projet avait grossi de
+  // dix-huit commits ; la part réservée, elle, n'avait aucune raison de
+  // grandir avec lui. Un pourcentage lie la marge au besoin, ce qui est
+  // exactement l'inverse de ce qu'il faut.
+  const disponible = Math.max(0, libre - RESERVE) + majoration;
+  const souhaitee = Math.min(totale * 0.8, disponible);
   const bornee = Math.min(PLAFOND, Math.max(PLANCHER, Math.round(souhaitee)));
   return {
     valeur: bornee,
     origine: `${Math.round(libre)} Mo libres sur ${Math.round(totale)} Mo`,
   };
 }
-
-const { valeur, origine } = limiteMemoire();
 const totalMo = Math.round(os.totalmem() / MO);
 const delai = Number(process.env.KURLA_TSC_TIMEOUT) > 0
   ? Number(process.env.KURLA_TSC_TIMEOUT)
   : GARDE_FOU_DEFAUT;
-
-console.log(`[tsc] --max-old-space-size=${valeur} (${origine})`);
 
 const args = [...process.argv.slice(2)];
 if (!args.includes('--noEmit')) args.push('--noEmit');
@@ -83,39 +87,85 @@ if (!args.includes('--noEmit')) args.push('--noEmit');
 const require = createRequire(import.meta.url);
 const binaireTsc = require.resolve('typescript/bin/tsc');
 
-const enfant = spawn(process.execPath, [`--max-old-space-size=${valeur}`, binaireTsc, ...args], {
-  stdio: 'inherit',
-  env: process.env,
-});
+function lancer(valeur, origine) {
+  return new Promise((resoudre) => {
+    console.log(`[tsc] --max-old-space-size=${valeur} (${origine})`);
+    const enfant = spawn(process.execPath, [`--max-old-space-size=${valeur}`, binaireTsc, ...args], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+    let termine = false;
+    // Sans cette coupure, on attend vingt-cinq minutes avant de voir un
+    // « code 124 » qui ne dit rien de la cause.
+    const gardeFou = setTimeout(() => {
+      if (termine) return;
+      console.error(
+        `\n[tsc] Aucun résultat après ${delai} s à ${valeur} Mo (machine : ${totalMo} Mo).\n` +
+        `      Une limite trop haute ne fait pas échouer tsc : elle le fait\n` +
+        `      tourner à vide. Réessayez plus bas ou forcez une valeur :\n` +
+        `        KURLA_TSC_MEMORY=1024 npm run lint\n`
+      );
+      enfant.kill('SIGKILL');
+      termine = true;
+      resoudre({ code: 1, signal: null, delaiDepasse: true });
+    }, delai * 1000);
 
-let termine = false;
-const gardeFou = setTimeout(() => {
-  if (termine) return;
-  // Sans cette coupure, on attend vingt-cinq minutes avant de voir un
-  // « code 124 » qui ne dit rien de la cause.
-  console.error(
-    `\n[tsc] Aucun résultat après ${delai} s à ${valeur} Mo (machine : ${totalMo} Mo).\n` +
-    `      Une limite trop haute ne fait pas échouer tsc : elle le fait\n` +
-    `      tourner à vide. Réessayez plus bas ou forcez une valeur :\n` +
-    `        KURLA_TSC_MEMORY=1024 npm run lint\n`
-  );
-  enfant.kill('SIGKILL');
-  termine = true;
-  process.exit(1);
-}, delai * 1000);
+    enfant.on('exit', (code, signal) => {
+      termine = true;
+      clearTimeout(gardeFou);
+      resoudre({ code, signal, delaiDepasse: false });
+    });
+  });
+}
 
-enfant.on('exit', (code, signal) => {
-  termine = true;
-  clearTimeout(gardeFou);
-  // 134 = SIGABRT : V8 a épuisé le tas. Sans ce message, on ne lit qu'un
-  // « Aborted » anonyme et on cherche la faute dans le code.
-  if (code === 134 || signal === 'SIGABRT') {
+/**
+ * Un épuisement du tas n'est pas un verdict : c'est un essai trop bas.
+ *
+ * Le besoin de TypeScript grandit avec le projet, alors que la mémoire libre
+ * d'une machine varie d'une minute à l'autre. Un calcul unique finit donc
+ * toujours par se tromper dans un sens ou dans l'autre, et il se trompe au
+ * pire moment — en fermant la suite après trois minutes de bancs verts, sur
+ * une panne qui n'a rien à voir avec le code.
+ *
+ * On remonte donc d'un cran et on recommence, tant que la machine a
+ * physiquement de quoi suivre. Deux essais suffisent : au-delà, ce n'est plus
+ * un réglage, c'est une fuite de mémoire ou un projet devenu trop gros pour
+ * la machine, et il vaut mieux le dire.
+ */
+const ESSAIS_MAX = 3;
+
+async function principal() {
+  let dernier = null;
+  for (let essai = 0; essai < ESSAIS_MAX; essai += 1) {
+    const { valeur, origine } = limiteMemoire(essai * MAJORATION);
+    const resultat = await lancer(valeur, origine);
+    dernier = { ...resultat, valeur, origine };
+
+    if (resultat.code === 0) process.exit(0);
+    if (resultat.delaiDepasse) process.exit(1);
+
+    const epuise = resultat.code === 134 || resultat.signal === 'SIGABRT';
+    if (!epuise) process.exit(resultat.code ?? 1);
+
+    const marge = os.freemem() / MO - valeur;
+    if (marge < MAJORATION) break;
     console.error(
-      `\n[tsc] Mémoire insuffisante à ${valeur} Mo (${origine}).\n` +
-      `      TypeScript a besoin d'environ 1 024 Mo sur ce projet.\n` +
-      `      Réessayez avec : KURLA_TSC_MEMORY=1536 npm run lint\n`
+      `\n[tsc] Mémoire insuffisante à ${valeur} Mo (${origine}) —` +
+      ` il restait ${Math.round(marge)} Mo de marge.\n` +
+      `      Nouvel essai à ${valeur + MAJORATION} Mo.\n`
     );
-    process.exit(1);
   }
-  process.exit(code ?? 0);
-});
+
+  const { valeur, origine, code, signal } = dernier;
+  console.error(
+    `\n[tsc] Mémoire insuffisante : ${valeur} Mo n'ont pas suffi (${origine}),` +
+    ` après ${ESSAIS_MAX} essais.\n` +
+    `      Le projet a probablement grandi au-delà de ce que cette machine\n` +
+    `      peut vérifier. Deux issues :\n` +
+    `        KURLA_TSC_MEMORY=1792 npm run lint   (si la machine suit)\n` +
+    `        réduire ce que tsconfig.json analyse, comme dist/ l'a déjà été\n`
+  );
+  process.exit(code === 134 || signal === 'SIGABRT' ? 1 : (code ?? 1));
+}
+
+await principal();
