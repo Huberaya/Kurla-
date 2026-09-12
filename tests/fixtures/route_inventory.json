@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T09:27:13.703Z",
+  "generatedAt": "2026-09-12T10:15:51.772Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -29,6 +29,7 @@
     "GET /api/admin/catalog/taxonomy",
     "GET /api/admin/catalog/vocabulary-audit",
     "GET /api/admin/content/compliance",
+    "GET /api/admin/conversion-funnel",
     "GET /api/admin/creators",
     "GET /api/admin/dashboard",
     "GET /api/admin/double-sourcing",

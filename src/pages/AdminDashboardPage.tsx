@@ -28,6 +28,7 @@ import { PeauC25ToutPanel } from '../components/PeauC25ToutPanel';
 import { PeauC26FinalPanel } from '../components/PeauC26FinalPanel';
 import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
 import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
+import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-kurla-cream' }) => (
   <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-1">
@@ -722,6 +723,9 @@ export const AdminDashboardPage: React.FC = () => {
               {metrics?.topZeroResultSearches?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Requêtes à examiner</h2><div className="flex flex-wrap gap-2">{metrics.topZeroResultSearches.map((item: any) => <span key={item.query} className="px-3 py-2 rounded-xl bg-kurla-ink text-xs text-kurla-amber">{item.query} · {item.count}</span>)}</div></div>}
               {metrics?.popularProducts?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{metrics.popularProducts.map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
             </div>}
+
+            {/* L3 — Funnel de conversion (diagnostic → routine → panier → payé) */}
+            <ConversionFunnelPanel headers={adminHeaders} />
 
             {/* Inventory Stock Alerts */}
             <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
