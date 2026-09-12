@@ -6,6 +6,8 @@ type CatalogAdminPanelProps = {
   headers: HeadersInit;
   onSuccess?: (message: string) => void;
   onOpenGuide?: () => void;
+  /** Workspace catalogue affiché par le dashboard admin. */
+  scope?: 'all' | 'hair' | 'skin';
 };
 
 type VariantDraft = {
@@ -122,7 +124,7 @@ function draftFromProduct(product: any): ProductDraft {
   };
 }
 
-export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide }) => {
+export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide, scope = 'all' }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [audiences, setAudiences] = useState<any[]>([]);
@@ -149,7 +151,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     setError('');
     try {
       const [catalogResponse, taxonomyResponse, importsResponse, suppliersResponse] = await Promise.all([
-        fetch('/api/admin/catalog/products', { headers }),
+        fetch(`/api/admin/catalog/products?scope=${scope}`, { headers }),
         fetch('/api/admin/catalog/taxonomy', { headers }),
         fetch('/api/admin/catalog/imports', { headers }),
         fetch('/api/admin/suppliers', { headers })
@@ -159,7 +161,8 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
       const importData = await importsResponse.json();
       const suppliersData = await suppliersResponse.json().catch(() => ({}));
       if (!catalogResponse.ok) throw new Error(catalog.error || 'Catalogue indisponible.');
-      setProducts(catalog.products || []);
+      const allProducts = catalog.products || [];
+      setProducts(scope === 'all' ? allProducts : allProducts.filter((product: any) => (scope === 'skin' ? product.category === 'peau' : product.category !== 'peau')));
       setCategories(taxonomy.categories || []);
       setAudiences(taxonomy.audiences || []);
       setImports(importData.imports || []);
@@ -181,7 +184,12 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     }
   };
 
-  useEffect(() => { loadCatalog(); }, []);
+  useEffect(() => { loadCatalog(); }, [scope]);
+
+  useEffect(() => {
+    if (draft.id) return;
+    setDraft(current => ({ ...current, category: scope === 'skin' ? 'peau' : scope === 'hair' ? 'cheveux' : current.category }));
+  }, [scope, draft.id]);
 
   const filteredProducts = useMemo(() => products.filter(product => `${product.name} ${product.brand || ''} ${product.slug}`.toLowerCase().includes(filter.toLowerCase())), [products, filter]);
   const supplierById = useMemo(() => {
@@ -208,7 +216,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
       throw new Error(parseError.message || 'Certifications JSON invalides.');
     }
     return {
-      ...(draft.id ? { id: draft.id } : {}), name: draft.name, slug: draft.slug, brand: draft.brand, category: draft.category, subCategory: draft.subCategory,
+      ...(draft.id ? { id: draft.id } : {}), name: draft.name, slug: draft.slug, brand: draft.brand, category: scope === 'skin' ? 'peau' : scope === 'hair' ? 'cheveux' : draft.category, subCategory: draft.subCategory,
       price: draft.price, originalPrice: draft.originalPrice || undefined, promotionPrice: draft.promotionPrice || undefined,
       promotionStartsAt: draft.promotionStartsAt || undefined, promotionEndsAt: draft.promotionEndsAt || undefined, isPromo: draft.isPromo,
       vatRate: draft.vatRate, priceIncludesVat: draft.priceIncludesVat, stockQuantity: draft.stockQuantity, isActive: draft.isActive,
@@ -339,7 +347,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
             <label className="space-y-1"><span className={labelClass()}>Nom *</span><input required value={draft.name} onChange={e => setField('name', e.target.value)} className={inputClass()} /></label>
             <label className="space-y-1"><span className={labelClass()}>Slug</span><input value={draft.slug} onChange={e => setField('slug', e.target.value)} className={inputClass()} placeholder="généré si vide" /></label>
             <label className="space-y-1"><span className={labelClass()}>Marque</span><input value={draft.brand} onChange={e => setField('brand', e.target.value)} className={inputClass()} /></label>
-            <label className="space-y-1"><span className={labelClass()}>Département *</span><select value={draft.category} onChange={e => setField('category', e.target.value)} className={inputClass()}><option value="cheveux">Cheveux</option><option value="peau">Peau</option></select></label>
+            <label className="space-y-1"><span className={labelClass()}>Département *</span><select value={scope === 'skin' ? 'peau' : scope === 'hair' ? 'cheveux' : draft.category} onChange={e => setField('category', e.target.value)} disabled={scope !== 'all'} className={inputClass()}><option value="cheveux">Cheveux</option><option value="peau">Peau</option></select></label>
             <label className="space-y-1"><span className={labelClass()}>Sous-catégorie</span><input value={draft.subCategory} onChange={e => setField('subCategory', e.target.value)} className={inputClass()} /></label>
             <label className="space-y-1"><span className={labelClass()}>Prix TTC *</span><input required type="number" min="0" step="0.01" value={draft.price} onChange={e => setField('price', e.target.value)} className={inputClass()} /></label>
             <label className="space-y-1"><span className={labelClass()}>Prix avant promotion</span><input type="number" min="0" step="0.01" value={draft.originalPrice} onChange={e => setField('originalPrice', e.target.value)} className={inputClass()} /></label>

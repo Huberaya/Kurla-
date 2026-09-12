@@ -30,8 +30,14 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const products = await serverDb.getAdminCatalogProducts();
-      res.json({ products, count: products.length });
+      const scope = typeof req.query.scope === 'string' ? req.query.scope : 'all';
+      const allProducts = await serverDb.getAdminCatalogProducts();
+      const products = scope === 'skin'
+        ? allProducts.filter((product: any) => product.category === 'peau')
+        : scope === 'hair'
+          ? allProducts.filter((product: any) => product.category !== 'peau')
+          : allProducts;
+      res.json({ products, count: products.length, scope });
     } catch (error) {
       console.error('[Catalog] admin list error:', error);
       res.status(500).json({ error: safeApiError(error, 'Impossible de charger le catalogue administrable.') });
