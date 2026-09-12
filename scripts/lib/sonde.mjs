@@ -99,18 +99,32 @@ export async function sonder(base, { modele, chemin }, delaiMs = DELAI_MS) {
     }
 
     if (json === null ? corps.trim().length === 0 : estVide(json)) {
-      // Un endpoint critique peut tout de même répondre par un état vide
-      // explicitement expliqué (ex. gamme en formulation). Le message de
-      // disponibilité prévaut sur la règle « critique » pour éviter un faux
-      // incident de production.
-      if (json !== null && expliqueSonVide(json)) {
-        return { modele, chemin, statut: reponse.status, classe: 'vide expliqué', duree };
-      }
+      const explique = json !== null && expliqueSonVide(json);
+      // L'explication est conservée pour être affichée : un vide énoncé se
+      // lit, on sait pourquoi la route ne renvoie rien.
+      const note = json && typeof json === 'object'
+        ? String(json.note ?? json.message ?? json.motif ?? json.raison ?? '').slice(0, 90)
+        : '';
+
       // Le gabarit, jamais le chemin résolu : `/api/products` est critique,
       // `/api/products/:productId/trust` ne l'est pas — les comparer par
       // préfixe rendait critique tout ce qui commence comme elles.
+      //
+      // Un endpoint critique vide reste une anomalie **même expliqué**.
+      // L'explication a failli primer (commit 5536585, dans l'intention
+      // louable d'éviter un faux incident) : mais un vide expliqué n'étant
+      // plus une anomalie, il sortait aussi de la surveillance, et la
+      // régression « 16 fiches visibles → 0 fiches » n'était plus détectée.
+      // C'est exactement la panne déjà subie le 11/09/2026.
+      //
+      // Le faux incident que craignait ce commit est traité ailleurs, et
+      // mieux : `verifier-deploiement.mjs` compare à un état de référence
+      // et ne bloque que sur les écarts nouveaux.
       if (CRITIQUES.includes(modele)) {
-        return { modele, chemin, statut: reponse.status, classe: 'silence critique', duree };
+        return { modele, chemin, statut: reponse.status, classe: 'silence critique', explique, note, duree };
+      }
+      if (explique) {
+        return { modele, chemin, statut: reponse.status, classe: 'vide expliqué', note, duree };
       }
       if (VIDES_ATTENDUS.includes(modele)) {
         return { modele, chemin, statut: reponse.status, classe: 'vide attendu', duree };
@@ -169,6 +183,13 @@ export async function sonderTout(base, options = {}) {
     proteges: [...groupe('protégé'), ...groupe('paramètre requis')],
     erreurs: [...groupe('erreur serveur'), ...groupe('délai dépassé'), ...groupe('réseau')],
   };
+}
+
+/** Le détail affiché pour une ligne de résultat. */
+export function detailDe(resultat) {
+  if (resultat.classe === 'ok') return resultat.taille ?? '';
+  if (resultat.note) return `« ${resultat.note} »`;
+  return resultat.detail ?? resultat.extrait ?? `statut ${resultat.statut}`;
 }
 
 export const MARQUES = {

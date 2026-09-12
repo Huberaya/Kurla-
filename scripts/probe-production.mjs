@@ -31,7 +31,7 @@
  * `ENDPOINTS` dans ce module.
  */
 
-import { sonderTout, MARQUES, resumer, ENDPOINTS, CRITIQUES, VIDES_ATTENDUS } from './lib/sonde.mjs';
+import { sonderTout, MARQUES, resumer, detailDe, ENDPOINTS, CRITIQUES, VIDES_ATTENDUS } from './lib/sonde.mjs';
 
 const args = process.argv.slice(2);
 const indice = (nom) => args.indexOf(nom);
@@ -51,7 +51,7 @@ process.stdout.write('\r'.padEnd(30) + '\r');
 
 console.log(`identifiant produit : ${bilan.productId || 'non résolu'}\n`);
 for (const r of bilan.resultats) {
-  const detail = r.classe === 'ok' ? r.taille : (r.detail ?? r.extrait ?? `statut ${r.statut}`);
+  const detail = detailDe(r);
   console.log(`${MARQUES[r.classe] ?? ' --   '} ${String(r.statut).padStart(3)}  ${r.chemin.padEnd(46)} ${detail}`);
 }
 

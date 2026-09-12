@@ -197,6 +197,33 @@ peuvent légitimement porter la même clé). Le détecteur s'auto-vérifie —
 doublon simple, doublon imbriqué, chaîne contenant accolades et deux-points,
 clés homonymes dans deux objets — pour ne pas pouvoir se taire indéfiniment.
 
+### Désaccord à trancher : un vide expliqué reste-t-il une anomalie ?
+
+Le commit `5536585` a fait primer l'explication sur la règle « critique » :
+un endpoint critique qui répond vide **en expliquant pourquoi** était
+classé « vide expliqué », donc non anomalie. L'intention est juste — éviter
+un faux incident de production — mais l'effet de bord ne l'est pas.
+
+Un vide expliqué n'étant plus une anomalie, il sortait aussi de la
+**surveillance** : passer de « 16 fiches visibles » à « 0 fiche » devenait
+indétectable, puisque « vide expliqué » n'est pas compté comme régression.
+C'est exactement la panne subie le 11/09/2026.
+
+J'ai donc restauré la règle critique (commit à venir) en conservant le
+bénéfice du commit : l'explication est désormais **affichée** dans la sonde
+(« Aucune fiche de formulation n'est publiée pour le moment… »), donc le
+vide reste parfaitement lisible.
+
+Le faux incident que craignait `5536585` est traité ailleurs, et plus
+solidement : `verifier-deploiement.mjs` compare à un état de référence et
+**ne bloque que sur les écarts nouveaux**. Une anomalie déjà constatée est
+signalée sans faire échouer la mise en ligne.
+
+Si l'intention était plutôt de retirer `/api/peau/gamme` de la liste
+critique — parce qu'une gamme vide serait un état acceptable — alors il
+faut le dire explicitement et retirer la route de `CRITIQUES`, plutôt que
+de neutraliser la règle pour toutes les routes critiques.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`

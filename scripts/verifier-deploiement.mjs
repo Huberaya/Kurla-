@@ -38,7 +38,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { sonderTout, resumer, MARQUES } from './lib/sonde.mjs';
+import { sonderTout, resumer, MARQUES, detailDe } from './lib/sonde.mjs';
 
 const args = process.argv.slice(2);
 const valeur = (nom, defaut = null) => {
@@ -131,7 +131,7 @@ if (santeFinale.statut !== 200) {
 // ---- 2. sondage ---------------------------------------------------------
 const bilan = await sonderTout(base);
 for (const r of bilan.resultats) {
-  const detail = r.classe === 'ok' ? r.taille : (r.detail ?? r.extrait ?? `statut ${r.statut}`);
+  const detail = detailDe(r);
   console.log(`${MARQUES[r.classe] ?? ' --   '} ${String(r.statut).padStart(3)}  ${r.chemin.padEnd(46)} ${detail}`);
 }
 console.log(`\n  ${resumer(bilan)}`);
