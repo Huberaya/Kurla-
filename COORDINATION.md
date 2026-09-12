@@ -540,7 +540,12 @@ Contrôle négatif effectué dans les deux sens — remettre les filtres commerc
 fait tomber la suite, et remettre `'draft'` en `'published'` dans le générateur
 aussi.
 
-**Reste une action manuelle**, comme pour les migrations : coller
-`supabase/a-appliquer/gamme-peau.sql` dans Supabase > SQL Editor. Il crée les 13
-fiches de `KURLA_SKIN_RANGE` (les 3 historiques vivent déjà en base). Idempotent.
-Sans ce SQL la route corrigée ne trouve toujours que les 3 historiques.
+**Aucune action en base n'a été nécessaire.** Mesuré après déploiement de
+`28f0097` : `/api/peau/gamme` renvoie `count=16`, sonde `exit 0` et `0 silence`,
+et le catalogue achetable reste à 63 produits dont **0** `peau-*`. Les 13 fiches
+existaient donc déjà en base, en brouillon — il ne manquait que la route.
+
+`supabase/a-appliquer/gamme-peau.sql` est commité à titre de référence
+reproductible (la donnée vit en TypeScript, le SQL en découle), **mais il ne
+faut pas le jouer pour rendre la gamme visible** : les 13 lignes existent, et le
+`ON CONFLICT DO UPDATE` écraserait toute correction faite à la main depuis.
