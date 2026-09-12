@@ -258,11 +258,16 @@ async function runNeedDepthTests(): Promise<void> {
   );
   assert.ok(sparseSignal.intensity >= 50, 'un besoin couvert n’a jamais une intensité nulle');
 
-  // --- 6. Le score reste le ratio booléen (marqueur pour le chantier F) ----
+  // --- 6. Sur des intensités uniformes, pondéré = booléen ------------------
+  // Ce profil ne déclare qu'une sécheresse moyenne : chaque besoin pèse la
+  // base, donc la pondération ne change rien. C'est le cas dégénéré, et il
+  // faut le tenir — sinon F aurait changé le score sans raison.
   const booleanRatio = fitFor(['hydrater_cheveux', 'reduire_casse', 'definir_boucles'], sparse);
   assert.deepEqual(booleanRatio.unmetNeeds, ['reduire_casse', 'definir_boucles']);
   assert.equal(booleanRatio.score, 33,
-    'le score est toujours le ratio booléen. Quand le chantier F pondérera les besoins, cette assertion est celle qu’il faudra consciusement mettre à jour.');
+    'à intensités égales, le score pondéré doit retomber sur le ratio booléen');
+  assert.deepEqual(booleanRatio.needWeights.map(w => w.weight), [50, 50, 50],
+    'sans signal fort déclaré, chaque besoin pèse le poids de référence');
 
   // === D2 — coiffure ======================================================
 
@@ -517,7 +522,74 @@ async function runNeedDepthTests(): Promise<void> {
   assert.deepEqual(unknownNeed, { intensity: 0, nuances: [], limitations: [] },
     'un besoin hors vocabulaire ne doit produire aucun conseil inventé');
 
-  // --- 25. Frontière honnête : il ne reste plus de besoin non traité -------
+  // === F — score pondéré ===================================================
+
+  // Deux profils qui ne diffèrent que par la gravité déclarée.
+  // A : hydratation pressante (sécheresse forte, porosité forte, cheveux longs),
+  //     casse non déclarée.
+  // B : casse à peine déclarée, hydratation non déclarée.
+  const pressingProfile = profileWith({ dryness: 'forte', porosity: 'forte', length: 'long' });
+  const marginalProfile = profileWith({ breakage: 'occasionnelle', dryness: 'faible' });
+  const TWO_NEEDS = ['hydrater_cheveux', 'reduire_casse'];
+
+  const fitPressing = fitFor(TWO_NEEDS, pressingProfile);
+  const fitMarginal = fitFor(TWO_NEEDS, marginalProfile);
+
+  // Les deux couvrent exactement UN besoin sur deux.
+  assert.equal(fitPressing.unmetNeeds.length, 1, 'un besoin couvert sur deux');
+  assert.equal(fitMarginal.unmetNeeds.length, 1, 'un besoin couvert sur deux');
+  assert.notDeepEqual(fitPressing.unmetNeeds, fitMarginal.unmetNeeds,
+    'et ce n’est pas le même : c’est précisément ce que le ratio booléen ne voyait pas');
+
+  // Sous l'ancienne formule, les deux valaient 50. La pondération les sépare.
+  assert.ok(fitPressing.score! > fitMarginal.score!,
+    `couvrir le besoin pressant (${fitPressing.score}) doit compter plus que couvrir le besoin marginal (${fitMarginal.score})`);
+  assert.equal(fitPressing.score, 66, '95 / (95 + 50) — vérifié au calcul, pas à l’intuition');
+  assert.equal(fitMarginal.score, 50, '50 / (50 + 50) — un besoin marginal couvert reste neutre');
+
+  // --- 26. Une couverture complète vaut toujours 100 -----------------------
+  // Spécifié par tests/beauty_profile.test.ts et tests/public_api.test.ts.
+  // Si cette assertion tombe, F a cassé un contrat existant.
+  for (const profile of [rich, richStyle, richScalp, richSkin, pressingProfile]) {
+    for (const need of RECOGNIZED_NEED_CODES) {
+      const single = fitFor([need], profile);
+      if (single.unmetNeeds.length === 0) {
+        assert.equal(single.score, 100,
+          `${need} entièrement couvert doit valoir 100, obtenu ${single.score}`);
+      }
+    }
+  }
+  const fullCover = fitFor(TWO_NEEDS, profileWith({ dryness: 'forte', breakage: 'frequente' }));
+  assert.deepEqual(fullCover.unmetNeeds, []);
+  assert.equal(fullCover.score, 100, 'une couverture complète vaut 100 quelle que soit la pondération');
+
+  // --- 27. Monotonie : couvrir un besoin de plus ne fait jamais baisser ----
+  const twoOfThree = fitFor(['hydrater_cheveux', 'reduire_casse', 'proteger_nuit'], pressingProfile);
+  assert.ok(twoOfThree.score! > fitPressing.score!,
+    `ajouter un besoin couvert ne doit pas faire baisser le score (${fitPressing.score} → ${twoOfThree.score})`);
+
+  // Aucun besoin couvert → 0, jamais négatif ni NaN.
+  const nothingMet = fitFor(['barbe'], profileWith({ dryness: 'forte' }));
+  assert.deepEqual(nothingMet.unmetNeeds, ['barbe']);
+  assert.equal(nothingMet.score, 0, 'aucun besoin couvert vaut 0');
+
+  // --- 28. La pondération est visible, pas seulement calculée --------------
+  assert.equal(fitPressing.needWeights.length, 2, 'chaque besoin déclaré porte son poids');
+  const pressingWeight = fitPressing.needWeights.find(w => w.code === 'hydrater_cheveux')!;
+  const marginalWeight = fitPressing.needWeights.find(w => w.code === 'reduire_casse')!;
+  assert.ok(pressingWeight.weight > marginalWeight.weight,
+    'le besoin pressant doit porter un poids supérieur');
+  assert.equal(pressingWeight.met, true);
+  assert.equal(marginalWeight.met, false);
+  const shareSum = fitPressing.needWeights.reduce((sum, w) => sum + w.share, 0);
+  assert.ok(shareSum >= 99 && shareSum <= 101, `les parts doivent sommer à 100, obtenu ${shareSum}`);
+
+  assert.ok(fitPressing.reasons.some(reason => /Score pondéré/.test(reason)),
+    'un score pondéré doit être expliqué, pas seulement calculé');
+  assert.ok(!booleanRatio.reasons.some(reason => /Score pondéré/.test(reason)),
+    'à poids égaux, aucune explication de pondération ne doit être produite');
+
+  // --- 29. Frontière : il ne reste plus de besoin non traité ---------------
   const untouched = (RECOGNIZED_NEED_CODES as readonly string[])
     .filter(need => !([...FIBRE_NEEDS, ...STYLE_NEEDS, ...SCALP_NEEDS, ...SKIN_NEEDS] as readonly string[]).includes(need));
   assert.deepEqual(untouched, [], 'aucun besoin reconnu ne doit rester sans profondeur');
@@ -570,7 +642,7 @@ async function runNeedDepthTests(): Promise<void> {
     'la première raison doit rester l’explication de pertinence, pas un détail de geste');
 
   console.log(
-    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} de fibre (D1), ${STYLE_NEEDS.length} de coiffure (D2), ${SCALP_NEEDS.length} de cuir chevelu et barbe (D3) et ${SKIN_NEEDS.length} peau (E) — les 21 besoins du vocabulaire, un code inconnu ne produisant rien — ${checked.size} champs porteurs de nuances, 13 limites nommées, aucune duplication de styleFit, needsHub ni skinRecommendation, éligibilité et score inchangés.`
+    `[PASS] Profondeur des besoins : ${FIBRE_NEEDS.length} de fibre (D1), ${STYLE_NEEDS.length} de coiffure (D2), ${SCALP_NEEDS.length} de cuir chevelu et barbe (D3) et ${SKIN_NEEDS.length} peau (E) — les 21 besoins du vocabulaire, un code inconnu ne produisant rien — ${checked.size} champs porteurs de nuances, 13 limites nommées, aucune duplication de styleFit, needsHub ni skinRecommendation, score pondéré par intensité avec couverture complète préservée à 100.`
   );
 }
 

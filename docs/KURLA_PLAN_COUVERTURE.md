@@ -2106,6 +2106,94 @@ pas.
   à chaque fois avec **même `unmetNeeds` et même `score`**.
 - `npm test` — **exit 0**, **125 PASS, 0 FAIL**, `tsc --noEmit` inclus.
 
+## CHANTIER F — LE SCORE PONDÉRÉ
+
+### Le défaut, mesuré
+
+```ts
+// avant
+const score = Math.round((needs.length - unmetNeeds.length) / needs.length * 100);
+```
+
+Chaque besoin comptait pareil, pressant ou marginal. Mesure sur un profil
+réaliste (4C, porosité forte, cheveux longs, très secs) :
+
+| Produit | Besoins couverts | Ancien ratio | Pondéré |
+| --- | --- | --- | --- |
+| A — couvre le besoin **pressant** (hydratation) | 1/2 | **50** | **66** |
+| B — couvre un besoin **marginal** (barbe) | 1/2 | **50** | **57** |
+| C — couvre les deux | 2/2 | 100 | 100 |
+
+**A et B étaient indiscernables.** C'est la traduction chiffrée du retour
+utilisateur : le moteur ne savait pas dire lequel des deux produits répondait le
+mieux à la personne.
+
+### La formule
+
+```ts
+// après
+poids(n) = couvert ? intensité(n) : POIDS_DE_REFERENCE   // 50
+score    = 100 × Σ poids(besoins couverts) / Σ poids(besoins déclarés)
+```
+
+L'intensité est celle que D1–E mesurent depuis les champs déclarés. Le poids de
+référence d'un besoin non couvert est la base, donc **un besoin couvert pèse
+toujours au moins autant qu'un besoin non couvert**.
+
+### Deux propriétés volontairement conservées
+
+1. **Une couverture complète vaut toujours 100.** Ce n'est pas un choix
+   esthétique : `tests/beauty_profile.test.ts` et `tests/public_api.test.ts`
+   l'assertent tous les deux. Et c'est juste — si tout ce qu'un produit promet
+   s'applique à cette personne, l'adéquation est entière. Le banc F vérifie
+   cette propriété sur **les 21 besoins × 5 profils**.
+2. **Couvrir un besoin de plus ne fait jamais baisser le score.** Le poids d'un
+   besoin couvert est déjà au dénominateur : l'ajouter au numérateur ne peut
+   qu'augmenter le rapport. Asserté.
+
+### Ce que F ne corrige pas, et le dit
+
+**Un produit qui ne déclare qu'un seul besoin, couvert, score toujours 100.**
+C'est cohérent — il tient tout ce qu'il promet — mais cela ne mesure pas
+l'**étendue** de ce qu'il couvre. L'étendue est un autre axe ; la confondre avec
+l'adéquation aurait été une erreur de modélisation. Le détail est exposé par
+`needWeights` (code, couvert, poids, part en %) pour que cette distinction reste
+visible plutôt qu'implicite.
+
+**L'écrêtage de l'intensité à 100 sature les profils très renseignés** : deux
+besoins également saturés pèsent alors pareil, ce qui ramène localement au
+comportement non pondéré. Le corriger demanderait une échelle non bornée, donc
+un changement de contrat sur `intensity`. Hors périmètre, sans effet mesuré à ce
+jour — écrit ici pour que ce ne soit pas redécouvert.
+
+### L'explicabilité
+
+Un score dont on ne voit pas la pondération n'est pas explicable. Quand la
+pondération change réellement quelque chose (au moins deux besoins, poids
+différents, au moins un besoin non couvert), une raison est produite :
+
+> Score pondéré : « hydrater cheveux » compte pour 42 % de l'adéquation au vu de
+> ce que vous déclarez, « barbe » pour 21 %. Tous les besoins ne pèsent pas le
+> même poids.
+
+À poids égaux, **aucune** raison de ce type n'est produite : pas de bruit. Les
+deux cas sont assertés.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. Le marqueur volontaire posé en D1
+  (`score === 33`) a joué son rôle : il a été **remplacé consciemment**, pas
+  contourné, par l'assertion du cas dégénéré (à intensités égales, le pondéré
+  retombe sur le ratio booléen).
+- **Contrôle négatif exécuté** : formule remise au ratio booléen → **exit 1**,
+  `couvrir le besoin pressant (50) doit compter plus que couvrir le besoin
+  marginal (50)`. C'est la preuve chiffrée du défaut, pas une assertion décorative.
+- Les valeurs assertées (`66`, `50`) ont été **calculées avant d'être écrites**
+  (95/(95+50) et 50/(50+50)), puis confirmées par l'exécution.
+- `npm test` — **exit 0**, **126 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Les deux bancs de contrat re-vérifiés séparément : `test:beauty-profile` et
+  `test:public-api` → exit 0, « profil vide → scores null » toujours tenu.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.

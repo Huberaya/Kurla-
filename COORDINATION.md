@@ -284,7 +284,7 @@ trois réglages (8 contrôles).
 | D2 | coiffure : tresses, locks, perruque, nuit, chaleur (5 besoins) | livré |
 | D3 | cuir chevelu et barbe (3 besoins) | livré |
 | E | les 8 besoins peau | livré |
-| F | score pondéré — touche `calculateKurlaFit`, à faire en dernier | **seul restant** |
+| F | score pondéré — touche `calculateKurlaFit` | livré |
 
 **D1 a modifié `src/lib/kurlaFit.ts`** : `KurlaFitResult` porte maintenant
 `needSignals` (intensité + nuances), et les nuances sont ajoutées à `reasons`
@@ -309,9 +309,13 @@ formulations médicales de `needsHub.ts` (`consultez un dermatologue`,
 n'alimente que les pages éditoriales, jamais le moteur, mais KURLA ne doit pas
 tenir deux fois le même discours médical.
 
-**F touchera la ligne du score.** Le banc `tests/kurla_need_depth.test.ts`
-asserte `score === 33` sur un produit à 1 besoin couvert sur 3 : c'est le
-marqueur volontaire qui empêchera F de passer inaperçu.
+**F est livré.** `calculateKurlaFit` calcule maintenant
+`100 × Σ poids(couverts) / Σ poids(déclarés)`, où le poids d'un besoin couvert
+est son intensité mesurée et celui d'un besoin non couvert le poids de
+référence (50). **Deux contrats à ne pas casser :** une couverture complète vaut
+100 (asserté par `beauty_profile.test.ts` et `public_api.test.ts`), et couvrir
+un besoin de plus ne fait jamais baisser le score. Toute modification du score
+doit conserver les deux.
 
 ## Convention proposée pour `package.json`
 

@@ -20,8 +20,8 @@
  * - Chaque nuance est rattachée à un champ déclaré. Si le champ vaut
  *   `inconnu`, la nuance n'existe pas : KURLA ne devine pas une caractéristique
  *   pour se donner un conseil à formuler.
- * - L'intensité ne participe PAS au score. Le chantier F décidera de la
- *   pondération. D1 fournit la mesure, pas la formule.
+ * - L'intensité produite ici **est** le poids du besoin dans le score, depuis
+ *   le chantier F. D1–E fournissent la mesure, F fournit la formule.
  *
  * Les nuances décrivent des gestes et des précautions. Elles ne promettent
  * aucun résultat, n'établissent aucun diagnostic, et ne préjugent pas de la
