@@ -116,6 +116,7 @@ import { registerStrategyRoutes } from './src/server/routes/strategy';
 import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
+import { registerRoutineComplementRoutes } from './src/server/routes/routineComplements';
 import {
   activateMembershipFromCheckoutSession,
   cancelMembershipFromSubscription,
@@ -1524,6 +1525,7 @@ app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: Authent
 registerFamilyRoutes(app);
 registerReferralRoutes(app);
 registerIntelligenceRoutes(app);
+registerRoutineComplementRoutes(app);
 registerChantierARoutes(app);
 registerProfessionalRoutes(app);
 registerRecommendationRoutes(app);

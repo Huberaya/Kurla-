@@ -11,6 +11,7 @@ import { useI18n } from '../lib/I18nProvider';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, getCartDispatchSummary, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchInfo, getNextBatchShortLabel } from '../lib/fulfillment';
 import { recommendAddOns } from '../lib/launchCatalog';
+import { RoutineComplementsSection } from './RoutineComplementsSection';
 import { useProducts } from '../services/productService';
 import { getStoredReferralCode } from '../lib/referralCapture';
 
@@ -455,7 +456,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             )}
 
             <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-kurla-amber font-bold mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> Complétez votre routine
+              <Truck className="w-3.5 h-3.5" /> Complétez votre panier — livraison offerte
             </p>
             <div className="space-y-2.5">
               {addOnData.addOns.map(({ product: p, crossesThreshold }) => (
@@ -489,6 +490,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               ))}
             </div>
           </div>
+        )}
+
+        {/* L1 — Complète votre routine : un produit par étape manquante,
+            jamais un carrousel, jamais un produit déjà possédé (Shelf). */}
+        {items.length > 0 && (
+          <RoutineComplementsSection
+            contextIds={items.map(item => item.product.id)}
+            onAdd={p => onAddItem?.(p)}
+          />
         )}
 
         {/* Footer Checkout Summary */}

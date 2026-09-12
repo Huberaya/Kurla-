@@ -77,12 +77,12 @@ n'attend que les preuves.**
 > qu'une boutique : une intelligence qui s'améliore avec chaque cliente.
 > **Durée : 4 semaines, démarrable dès M1** (ne dépend pas de P).
 
-| # | Chantier | Détail | Critères d'acceptation (DONE) |
-|---|----------|--------|--------------------------------|
-| **L1** | Cross-sell « complète votre routine » | Le moteur a déjà les données (`needs`/`routineStep`/complémentarité). Afficher sur fiche + panier : 3 produits qui **complètent la routine déclarée** (pas un carrousel générique), avec la raison | Sur un panier 1 produit, la section affiche ≥ 1 complément avec justification lisible ; 0 produit du panier déjà possédé (Shelf) recommandé |
-| **L2** | Réassort / réachat | Le Shelf détecte les produits ouverts. Ajouter : « il est temps de réappro » → ajout panier en 1 geste + historique de réassort dans le profil | Parcours : produit ouvert 28 j → notification → ajout panier ; le réassort apparaît dans l'historique |
-| **L3** | Dashboard de conversion | Les événements analytics existent (view_item_list, addToCart, beginCheckout) + cockpit traction C6. Assembler : **diagnostic → routine → panier → paiement** avec taux d'abandon par étape, séparable hair/peau | L'admin voit 4 étapes × 2 pôles avec % ; une chute de -20% sur une étape est visible sans requêter la base |
-| **L4** | Re-recommandation après feedback | La boucle existe (outcomes + abandons → poids réordonnés). Ajouter le **déclencheur** : à J+30 d'un diagnostic, une nouvelle recommandation si le profil a évolué (journal, outcomes, routine suivie) — et l'afficher comme évolution, pas comme spam | Une cliente qui a suivi sa routine + 1 outcome reçoit à J+30 une recommandation marquée « évolution » avec la raison ; 0 push si le profil n'a pas changé |
+| # | Chantier | Détail | Critères d'acceptation (DONE) | Statut |
+|---|----------|--------|--------------------------------|:-------:|
+| **L1** | Cross-sell « complète votre routine » | Le moteur a déjà les données (`needs`/`routineStep`/complémentarité). Afficher sur fiche + panier : 3 produits qui **complètent la routine déclarée** (pas un carrousel générique), avec la raison | Sur un panier 1 produit, la section affiche ≥ 1 complément avec justification lisible ; 0 produit du panier déjà possédé (Shelf) recommandé | **LIVRÉ** — banc 18/18 vert (route + fiche + panier, Shelf exclus, raisons) |
+| **L2** | Réassort / réachat | Le Shelf détecte les produits ouverts. Ajouter : « il est temps de réappro » → ajout panier en 1 geste + historique de réassort dans le profil | Parcours : produit ouvert 28 j → notification → ajout panier ; le réassort apparaît dans l'historique | À venir |
+| **L3** | Dashboard de conversion | Les événements analytics existent (view_item_list, addToCart, beginCheckout) + cockpit traction C6. Assembler : **diagnostic → routine → panier → paiement** avec taux d'abandon par étape, séparable hair/peau | L'admin voit 4 étapes × 2 pôles avec % ; une chute de -20% sur une étape est visible sans requêter la base | À venir |
+| **L4** | Re-recommandation après feedback | La boucle existe (outcomes + abandons → poids réordonnés). Ajouter le **déclencheur** : à J+30 d'un diagnostic, une nouvelle recommandation si le profil a évolué (journal, outcomes, routine suivie) — et l'afficher comme évolution, pas comme spam | Une cliente qui a suivi sa routine + 1 outcome reçoit à J+30 une recommandation marquée « évolution » avec la raison ; 0 push si le profil n'a pas changé | À venir |
 
 **Gate M3 (fin semaine 14) :** le dashboard L3 en place ; D30 de la cohorte
 mesurable (objectif C6 : ≥ 25% à M1+8 sem) ; L1/L2 testés sur 20 clientelles

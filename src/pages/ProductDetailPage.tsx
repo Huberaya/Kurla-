@@ -15,6 +15,7 @@ import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { findAlternatives, whitecastRisk as altWhitecastRisk, isSPFProduct as altIsSPF } from '../lib/skinAlternatives';
 import { SKIN_INGREDIENTS_15 } from '../lib/skinIngredients15';
 import { useProducts } from '../services/productService';
+import { RoutineComplementsSection } from '../components/RoutineComplementsSection';
 import { useAuth } from '../context/AuthContext';
 import {
   askProductQuestion,
@@ -409,6 +410,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-12">
+          {/* L1 — Complète votre routine : ce qui manque à l'étagère + au produit
+            affiché, avec la raison. Jamais un produit déjà possédé (Shelf). */}
+          <RoutineComplementsSection
+            contextIds={[product.id]}
+            onAdd={complement => { onAddToCart(complement); setActionMessage('Complément de routine ajouté au panier.'); }}
+          />
+
           <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<ShieldCheck className="w-5 h-5" />} title="Composition complète" />{linkedIngredients.length > 0 && (
             <div className="mb-6">
               <h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-3">Ingrédients reliés au référentiel</h3>
