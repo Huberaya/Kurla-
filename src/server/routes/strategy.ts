@@ -67,10 +67,15 @@ export function registerStrategyRoutes(app: Express): void {
       } catch { /* ignore */ }
       let productsWithoutCost = 0;
       try {
-        const { data } = await supabase.from('products').select('cost_price,unit_cost,purchase_price').limit(300);
-        productsWithoutCost = (data || []).filter((p: any) =>
-          p.cost_price == null && p.unit_cost == null && p.purchase_price == null).length;
-      } catch { /* colonnes peut-être absentes */ }
+        // Le prix de revient ne vit pas sur `products` (aucune colonne de coût
+        // dans le schéma, par conception : le coût est sourcé par lot fournisseur
+        // dans `product_batches`, CHANTIER 16D — soit sourcé, soit absent).
+        // « Sans prix de revient » = produit qui n'a encore aucun lot en base.
+        const { data: batchRows } = await supabase.from('product_batches').select('product_id').limit(10000);
+        const productsWithKnownCost = new Set((batchRows || []).map((b: any) => String(b.product_id)));
+        const { data: costSample } = await supabase.from('products').select('id').limit(300);
+        productsWithoutCost = (costSample || []).filter((p: any) => !productsWithKnownCost.has(String(p.id))).length;
+      } catch { /* table product_batches peut être absente avant migration */ }
 
       // ── Paiement ─────────────────────────────────────────────────────────
       const paymentsReady = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET) ? 1 : 0;
@@ -245,9 +250,23 @@ export function registerStrategyRoutes(app: Express): void {
           const kitIds = new Set(LAUNCH_KITS.map((k) => `launch-${k.id}`));
           const { data: prodRows } = await supabase
             .from('products')
-            .select('id, name, price, cost_price, unit_cost, purchase_price, badges')
+            .select('id, name, price, badges')
             .limit(2000);
           const dbProd = new Map((prodRows || []).map((p: any) => [p.id, p]));
+          // Coût servi réel (CHANTIER 16D) : le lot le plus récent non rejeté
+          // par produit, en centimes d'euro. C'est la seule source de coût du
+          // schéma — il n'y a volontairement pas de colonne de coût sur `products`.
+          const { data: batchCostRows } = await supabase
+            .from('product_batches')
+            .select('product_id, served_cost_cents, received_on')
+            .neq('status', 'rejected')
+            .order('received_on', { ascending: false })
+            .limit(10000);
+          const latestServedCostCents = new Map<string, number>();
+          for (const b of batchCostRows || []) {
+            const pid = String(b.product_id);
+            if (!latestServedCostCents.has(pid)) latestServedCostCents.set(pid, Number(b.served_cost_cents));
+          }
           for (const l of validLines) {
             const pid = String(l.product_id);
             const qty = Number(l.quantity || 0);
@@ -258,11 +277,13 @@ export function registerStrategyRoutes(app: Express): void {
             const name = db?.name || launch?.name || pid;
             const isKit = kitIds.has(pid) || (Array.isArray(db?.badges) && db?.badges.includes('kit'));
             const revenue = qty * unit;
-            // Marge : coût réel en base si présent, sinon cible catalogue (estimé)
-            const realCost = db?.cost_price ?? db?.unit_cost ?? db?.purchase_price;
+            // Marge : coût servi réel du lot le plus récent (centimes → euros)
+            // si sourcé, sinon cible catalogue (estimée — la vue la présente
+            // comme estimation).
+            const servedCostCents = latestServedCostCents.get(pid);
             let margin: number | null = null;
-            if (realCost != null && Number(realCost) > 0) {
-              margin = (unit - Number(realCost)) * qty;
+            if (servedCostCents != null && servedCostCents > 0) {
+              margin = (unit - servedCostCents / 100) * qty;
             } else if (launch) {
               margin = revenue * (launch.marginPct / 100);
             }

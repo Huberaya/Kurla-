@@ -176,7 +176,9 @@ export async function getVocabularyAudit(store: SupabaseServerStore): Promise<{
   const supabase = getSupabaseServerClient();
   let rows: any[] = [];
   if (supabase) {
-    const { data, error } = await supabase.from('products').select('id, title, concerns, hair_types, skin_types, skin_concerns, skin_objectives, country_availability');
+    // `name` est la colonne du schéma (pas de `title`) ; le champ `title` de la
+    // réponse API est conservé pour la forme, mais il est alimenté par `name`.
+    const { data, error } = await supabase.from('products').select('id, name, concerns, hair_types, skin_types, skin_concerns, skin_objectives, country_availability');
     ensureDatabaseSuccess('audit des vocabulaires produit', error);
     rows = data || [];
   } else {
@@ -201,7 +203,7 @@ export async function getVocabularyAudit(store: SupabaseServerStore): Promise<{
     unknownTotal += check.unknown.length;
     perProduct.push({
       productId: String(row.id),
-      title: String(row.title || row.id),
+      title: String(row.name || row.id),
       unknown: check.unknown
     });
   }

@@ -27,12 +27,27 @@
 - Re-login ensuite → **400** (utilisateur réellement supprimé)
 - Audit base : 0 user `kurla.glive.%`, 0 profil orphelin (`profiles.id NOT IN auth.users` = 0) → cascade complète et propre.
 
-## Résidu G1 (bloqué credentials, non bloqué code)
-Le banc `npm run test:realdb` (preflight + 5 bancs d'intégration) exige `SUPABASE_SERVICE_ROLE_KEY` : le preflight crée/supprime des users via l'admin API GoTrue, et les bancs vérifient les tables internes. La clé de management `vcp_`/`sbp_` est **401 sur GoTrue admin** (vérifié définitivement) — elle ne peut pas servir. **À faire dès réception de la service key : `npm run test:realdb` → 6/6 bancs verts.**
+## Les 6 bancs `test:realdb` — verts en prod (2026-09-12)
+Exécutés contre la base live avec `KURLA_STORE_MODE=server` + service role (Node 22, WebSocket natif requis par supabase-js) :
 
-## Statut G1
+| Banc | Résultat |
+|---|---|
+| `real_database_preflight` | ✅ Base réelle utilisable : création de compte, triggers et authentification vérifiés |
+| `supabase_integration` | ✅ Comptes A/B isolés, ressources privées protégées, rôle admin et mise à jour retour hors cache vérifiés |
+| `phase7_atomic_stock` | ✅ Course concurrente, rollback d'échec partiel, confirmation et remboursement idempotents validés |
+| `schema_query_contract` | ✅ 191 requêtes distinctes (254 sites dans le code) acceptées par la base réelle |
+| `chantier_b_professional` | ✅ chantiers b professional + service payment |
+| `chantier_7_ingredients` | ✅ 209 fiches ingrédient vérifiées servies depuis la base réelle |
+
+Base laissée propre : 0 produit/orphelin de test (`phase7-%`, `probe%`, `kurla.glive.%`, `kurla.integration.%` = 0).
+
+### Régressions réelles trouvées par les bancs (et corrigées)
+1. **PGRST203 sur `create_order_with_stock_reservation`** — la migration TVA (20260860) avait laissé l'ancienne signature 11 paramètres comme « relais de compatibilité » en surcharge de la version étendue 17 paramètres. PostgREST ne peut pas résoudre un appel nommé à 11 paramètres quand les deux coexistent → le banc Phase 7 (et tout appelant REST à 11 paramètres) échouait alors qu'aucun code n'était en cause. Le relais ne protégeait personne (il est créé dans la même migration que la version étendue : absent sur les bases où le repli applicatif 11 paramètres opère, inutile sur les autres). **Correction** : migration `20260923000000_drop_order_rpc_relay.sql` (supprime la surcharge 11 paramètres ; l'appel 11 renvoie désormais PGRST202, exactement ce que surveille le repli applicatif) + banc Phase 7 aligné sur le contrat courant (signature 17 paramètres).
+2. **3 requêtes sur colonnes inexistantes** (contrat de schéma) : `products.title` (la colonne s'appelle `name`) et `cost_price`/`unit_cost`/`purchase_price` (aucune colonne de coût sur `products` — par conception, le coût est sourcé par lot dans `product_batches`, CHANTIER 16D). **Correction** : code aligné sur le schéma réel ; la métrique « produits sans prix de revient » et la marge par produit lisent désormais `product_batches.served_cost_cents` (coût servi réel du lot le plus récent non rejeté), sinon cible catalogue estimée.
+
+## Statut G1 — COMPLÉTÉ
 | Critère | État |
 |---|---|
-| 0 migration en retard | ✅ (81/81 + audit objets, tour précédent) |
-| A/B RLS accès croisé | ✅ **ce rapport** |
-| 6 bancs `test:realdb` verts | ⏳ **bloque sur `SUPABASE_SERVICE_ROLE_KEY`** |
+| 0 migration en retard | ✅ (82 versions, 0 en retard, après migration 20260923) |
+| A/B RLS accès croisé | ✅ **ce rapport** (4/4 assertions + RGPD) |
+| 6 bancs `test:realdb` verts | ✅ (table ci-dessus) |

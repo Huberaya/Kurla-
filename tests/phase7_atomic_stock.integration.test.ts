@@ -76,7 +76,17 @@ async function main() {
     p_stripe_payment_intent_id: null,
     p_checkout_idempotency_key: checkoutKey,
     p_shipping_address: null,
-    p_created_at: new Date().toISOString()
+    p_created_at: new Date().toISOString(),
+    // Signature étendue (migration 20260860, devise/TVA) : c'est elle qui est
+    // le contrat courant. Le relais 11 paramètres n'existait plus (20260923) :
+    // en surcharge, il rendait l'appel 11 paramètres irresoluble par PostgREST
+    // (PGRST203) et le banc échouait alors qu'aucun code n'était en cause.
+    p_currency: 'EUR',
+    p_vat_country: null,
+    p_net_amount: null,
+    p_vat_amount: null,
+    p_vat_breakdown: null,
+    p_customer_vat_number: null
   });
 
   try {

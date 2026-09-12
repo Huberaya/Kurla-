@@ -5,7 +5,7 @@
 ## A. À fournir par le propriétaire du compte (bloquant M1)
 | # | Élément | Où le consommer | Blocage |
 |---|---|---|---|
-| A1 | **`SUPABASE_SERVICE_ROLE_KEY`** (`sb_secret_…`) | env `KURLA_STORE_MODE=server` ; prérequis des 6 bancs `test:realdb` + `scripts/verifier-schema.mjs` | **G1 final** (6 bancs) |
+| A1 | ~~**`SUPABASE_SERVICE_ROLE_KEY`** (`sb_secret_…`)~~ | env `KURLA_STORE_MODE=server` ; prérequis des 6 bancs `test:realdb` + `scripts/verifier-schema.mjs` | ✅ **RÉSOLU (2026-09-12)** : 6 bancs verts en prod, `docs/GO_LIVE_RLS_AB_REPORT.md` |
 | A2 | **Stripe live keys** : `STRIPE_SECRET_KEY` (`sk_live_…`) + `STRIPE_PUBLISHABLE_KEY` (`pk_live_…`) | `.env.example` (déjà câblé) ; Vercel env | **G2** (cycle 1 € payé→stock→remboursé→stock restauré) |
 | A3 | **Provider email live** : `EMAIL_PROVIDER` (resend/sendgrid/postmark) + `EMAIL_PROVIDER_API_KEY` + `EMAIL_FROM` | `src/lib/emailService.ts` (console **refusé** en prod, verrou par banc) | **G3** (4 emails réels) |
 | A4 | **Accès DNS `kurla-beauty.com`** (ou le faire soi-même) : enregistrements **SPF, DKIM, DMARC** du provider | délivrabilité + confiance des messageries | **G3** |
