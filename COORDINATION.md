@@ -317,12 +317,19 @@ désormais un `supplier_sku` pour toute précommande externe
 champ**, alors que `supplier_id` et `source_supplier` sont renseignés sur les
 63. Comme les 63 portent le badge « preorder », tous étaient exclus d'un coup.
 
-**Proposition concurrente non retenue.** `d0d6115` a proposé de considérer la
-source et le fournisseur comme suffisants et de transformer le SKU en simple
-alerte. Cette modification est incompatible avec le contrat de livraison et
-la contrainte explicite « aucune précommande sans source externe, fournisseur
-et SKU ». `2777034` restaure donc le blocage des trois champs manquants, sans
-compléter ni déduire de donnée.
+**Deux positions, puis un arbitrage.** `d0d6115` proposait de considérer la
+source et le fournisseur comme suffisants, et le SKU comme une simple alerte ;
+`2777034` a restauré l'exigence des trois champs, au nom du contrat de
+livraison et de la contrainte « aucune précommande sans source externe,
+fournisseur et SKU ». **Le porteur du projet a tranché le 12/09/2026 en
+faveur de la première position.** La décision est appliquée et son motif est
+écrit dans `src/lib/preorderEvidence.ts` ; elle ne doit pas être rebasculée
+sans un nouvel arbitrage explicite.
+
+Les deux positions s'accordaient sur l'essentiel : aucun SKU ne doit être
+inventé, et la donnée reste réclamée. Elles ne diffèrent que sur le canal —
+blocage de la mise en ligne, ou alerte de collecte. C'est un choix de
+gestion, pas un désaccord technique.
 
 **État réel vérifié.** L'audit Supabase lecture seule du 12/09/2026 confirme
 96 fiches, 63 publiées, **0 publiable**, 0 prête à acheter et 126 constats
