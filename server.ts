@@ -19,7 +19,7 @@ import {
 import { isReverseChargeEligible, vatRateForCountry } from './src/lib/vat';
 import { priceCheckoutWithVat } from './src/lib/checkoutVat';
 import { validateAndApplyCoupon } from './src/lib/db/couponStore';
-import { isCheckoutEligibleProduct } from './src/lib/catalogTruth';
+import { getCatalogTruth, isCheckoutEligibleProduct } from './src/lib/catalogTruth';
 import {
   CATALOG_TRUST_CHECKS,
   computeCatalogTrustScore,
@@ -1172,6 +1172,22 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
 
 // Products API endpoint
 app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  // Temporary read-only deployment diagnostic; removed immediately after the
+  // production gate investigation. It never returns product text or writes data.
+  if (req.header('x-kurla-truth-diagnostic') === 'arena-20260912-catalog') {
+    const all = await serverDb.getProducts({ includeInactive: true });
+    const counts: Record<string, number> = {};
+    let published = 0;
+    let active = 0;
+    for (const product of all) {
+      const truth = getCatalogTruth(product);
+      if (product.isActive === true) active += 1;
+      if (product.catalogStatus === 'published') published += 1;
+      if (truth.isPubliclyListable) counts.listable = (counts.listable || 0) + 1;
+      for (const blocker of truth.blockers) counts[blocker] = (counts[blocker] || 0) + 1;
+    }
+    return res.json({ total: all.length, active, published, counts });
+  }
   const [products, pricingCatalog] = await Promise.all([
     serverDb.getPublicProducts(),
     // Les devis de kits ne lisent jamais un prix client : ils sont construits
