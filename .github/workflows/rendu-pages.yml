@@ -1,0 +1,72 @@
+name: KURLA page rendering
+
+# Pourquoi ce fichier existe
+#
+# Le banc `e2e/smoke.spec.ts` ouvre chaque route publique dans un vrai
+# Chromium et échoue sur toute exception JavaScript, tout écran vide, toute
+# image cassée et tout cadre effondré. Il était écrit, complet — 48 tests —
+# et pourtant jamais exécuté nulle part : aucune action ne le lançait.
+#
+# Vérifié le 12/09/2026 :
+#
+#   .github/workflows/production-monitor.yml → endpoints, toutes les 15 min
+#   vercel.json                              → /api/cron/sonde, une fois par jour
+#   e2e/smoke.spec.ts                        → rendu des pages, RIEN
+#
+# Un écran blanc n'échoue à aucune sonde d'endpoint : le HTML est servi, les
+# API répondent, et l'utilisateur voit une page vide. Seul un navigateur le
+# voit. Ce banc est donc le seul à couvrir cette panne, et il ne tournait pas.
+#
+# Une précision utile, mesurée : ce banc ne peut PAS s'exécuter dans
+# l'environnement de développement de ce projet. Chromium exige neuf
+# bibliothèques système absentes (NSS, ATK, ALSA…) et leur installation
+# demande les droits d'administration, qui ne sont pas disponibles.
+# L'intégration continue est donc son seul lieu d'exécution — ce n'est pas un
+# confort, c'est une nécessité.
+#
+# Cadence : toutes les six heures. Les endpoints sont déjà sondés toutes les
+# quinze minutes par une action légère ; celui-ci installe un navigateur et
+# coûte quelques minutes, il ne justifie pas la même fréquence.
+#
+# À la main : bouton « Run workflow », ou
+#   gh workflow run rendu-pages.yml
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rendu-pages
+  cancel-in-progress: true
+
+jobs:
+  rendu:
+    name: Chaque page se rend dans un vrai navigateur
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Dépendances
+        run: npm ci --no-audit --no-fund
+
+      # `--with-deps` : les bibliothèques système de Chromium. Sans elles, le
+      # navigateur échoue au lancement sur neuf bibliothèques manquantes —
+      # panne déjà mesurée, et silencieuse si on ne lit pas les journaux.
+      - name: Navigateurs Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Rendu des pages en production
+        env:
+          SMOKE_BASE_URL: https://kurlabeauty.vercel.app
+        run: npm run test:smoke
