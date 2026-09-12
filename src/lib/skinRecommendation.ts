@@ -7,6 +7,7 @@
 
 import { BeautyProfile, UNKNOWN } from './beautyProfile';
 import { whitecastRisk, isSPFProduct } from './skinAlternatives';
+import { SKIN_ACTIVE_FILTERS } from './skinTaxonomy';
 import { Product } from '../types';
 
 // ── Incompatibilités actifs peau (même routine soir) ───────────────────────
@@ -21,10 +22,21 @@ export const SKIN_INCOMPATIBILITIES: SkinIncompatibility[] = [
   { pair: ['aha', 'bha'], reason: 'AHA + BHA même soir = double exfoliation. 1 seul par soir si peau sensible.', severity: 'deconseille' },
 ];
 
-function normalizeActif(a: string): string { return a.toLowerCase().trim().replace(/\s+/g, '_'); }
+// P3 FIX — le catalogue porte les formes françaises accentuées
+// (« Rétinol Encapsulé 0,3% », « Céramides NP ») et l'INCI les formes latines
+// (Retinol, Ceramide NP) : on compare sans accents des deux côtés, sinon le
+// moteur rate des actifs réels (rétinol non détecté → incompatibilités
+// bloquantes manquées).
+const stripAccents = (s: string): string => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+function normalizeActif(a: string): string {
+  return stripAccents(a).toLowerCase().trim().replace(/\s+/g, '_');
+}
 
 function actifsFromProduct(p: Product, extraActifs?: string[]): string[] {
-  const hay = `${(p.keyIngredients||[]).join(' ')} ${(p as any).inci||''} ${(p as any).metadata?.actifs?.join(' ')||''} ${(extraActifs||[]).join(' ')}`.toLowerCase();
+  const hay = stripAccents(
+    `${(p.keyIngredients||[]).join(' ')} ${(p as any).inci||''} ${(p as any).metadata?.actifs?.join(' ')||''} ${(extraActifs||[]).join(' ')}`
+  ).toLowerCase();
   const found: string[] = [];
   const map: Record<string,string[]> = {
     retinol: ['retinol', 'retinal', 'retinoate'],
@@ -32,8 +44,8 @@ function actifsFromProduct(p: Product, extraActifs?: string[]): string[] {
     bha: ['salicylic', 'bha', 'acide salicylique'],
     vitamine_c: ['ascorbic', 'vitamine c', 'vitamin c', 'ascorbyl'],
     niacinamide: ['niacinamide'],
-    ceramides: ['ceramide', 'céramide'],
-    acide_azelaic: ['azelaic', 'azélaïque'],
+    ceramides: ['ceramide'],
+    acide_azelaic: ['azelaic', 'azelaique'],
     acide_hyaluronique: ['hyaluronic', 'hyaluronate'],
     squalane: ['squalane'],
   };
@@ -103,9 +115,14 @@ export function scoreSkinProduct(product: Product, ctx: SkinScoringContext = {})
   // 1. Filtre actif demandé → boost si présent, malus si absent
   if (ctx.activeFilters?.actif) {
     const want = normalizeActif(ctx.activeFilters.actif);
-    const acts = actifsFromProduct(product, ctx.activeFilters?.actif ? [ctx.activeFilters.actif] : undefined);
-    if (acts.includes(want)) { score += 22; reasons.push(`Contient ${ctx.activeFilters.actif} recherché`); }
-    else { score -= 18; reasons.push(`Sans ${ctx.activeFilters.actif}`); }
+    // P3 — la raison est affichée sur la carte : libellé humain, pas l'identifiant.
+    const label = SKIN_ACTIVE_FILTERS.find(a => a.value === ctx.activeFilters!.actif)?.label ?? ctx.activeFilters.actif;
+    // P3 FIX — l'actif DEMANDÉ ne devait pas être injecté dans le haystack du
+    // produit : avant, chaque produit « contenait » l'actif recherché et le
+    // filtre niacinamide/… ne démarquait rien (boost +22 appliqué à tous).
+    const acts = actifsFromProduct(product);
+    if (acts.includes(want)) { score += 22; reasons.push(`Contient ${label} recherché`); }
+    else { score -= 18; reasons.push(`Sans ${label}`); }
   }
 
   // 2. Phototype V–VI → whitecast critique
@@ -166,7 +183,10 @@ export function scoreSkinProduct(product: Product, ctx: SkinScoringContext = {})
   // 10. Stock indisponible → exclu (géré en amont, mais on pénalise)
   if (!product.inStock) { score -= 40; reasons.push('Indisponible'); }
 
-  return { score: Math.max(0, Math.min(100, Math.round(score))), reasons: reasons.slice(0,4), incompatibilities };
+  // P3 — plus de troncature : les raisons sont la preuve du score.
+  // Borne naturelle = nombre de règles (≤ 9) ; l'interface choisit ce qu'elle
+  // affiche (2 sur la carte boutique).
+  return { score: Math.max(0, Math.min(100, Math.round(score))), reasons, incompatibilities };
 }
 
 // Trie un catalogue peau selon le score peau — stable, explicable

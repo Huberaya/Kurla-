@@ -325,8 +325,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   }, [products, supabaseBrands]);
 
   // Filter Products
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+  // P3 — retourne [liste triée, infos fit peau] : les raisons du score sont
+  // calculées une fois par produit et affichées sur la carte.
+  const [filteredProducts, skinFitInfo] = useMemo((): [Product[], Map<string, { score: number; reasons: string[] }>] => {
+    const list = products.filter(p => {
       // Main Category Filter
       if (activeCategory === 'cheveux' && p.category !== 'cheveux') return false;
       if (activeCategory === 'peau' && p.category !== 'peau') return false;
@@ -419,30 +421,38 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       }
 
       return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      // C2 peaufine — tri peau via scoreSkinProduct (incompat + whitecast + HPI + sansParfum)
-      const isPeauContext = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
-      if (isPeauContext && sortBy === 'fit') {
-        const cap = skinBudget !== 'tous' ? (SKIN_BUDGET_CAPS[skinBudget] ?? 9999) : undefined;
-        const ctx = {
-          activeFilters: {
-            actif: skinActif !== 'tous' ? skinActif : undefined,
-            phototype: skinPhototype !== 'tous' ? skinPhototype : undefined,
-            texture: skinTexture !== 'tous' ? skinTexture : undefined,
-            finish: skinFini !== 'tous' ? skinFini : undefined,
-            sansParfum: skinSansParfum || skinSensibilite !== 'tous',
-            spfInvisible: skinSansTrace,
-            budgetMax: cap,
-          },
-          hyperpigmentationBoost: Boolean(guidedSkin?.hyperpigmentationTendency === 'frequente' || (guidedSkin?.skinConcerns||[]).some((c:string)=>/taches|hyperpigmentation|teint_terne/i.test(c))),
-        } as any;
-        const sa = scoreSkinProduct(a as any, ctx).score;
-        const sb = scoreSkinProduct(b as any, ctx).score;
+    });
+    // P3 — peau fit : score et raisons calculés UNE fois par produit.
+    // (Le comparateur d'avant rappelait scoreSkinProduct 2× à chaque
+    // comparaison et jetait les raisons : rien n'était affiché.)
+    const skinContextActive = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
+    const fitInfo = new Map<string, { score: number; reasons: string[] }>();
+    if (skinContextActive && sortBy === 'fit') {
+      const cap = skinBudget !== 'tous' ? (SKIN_BUDGET_CAPS[skinBudget] ?? 9999) : undefined;
+      const ctx = {
+        activeFilters: {
+          actif: skinActif !== 'tous' ? skinActif : undefined,
+          phototype: skinPhototype !== 'tous' ? skinPhototype : undefined,
+          texture: skinTexture !== 'tous' ? skinTexture : undefined,
+          finish: skinFini !== 'tous' ? skinFini : undefined,
+          sansParfum: skinSansParfum || skinSensibilite !== 'tous',
+          spfInvisible: skinSansTrace,
+          budgetMax: cap,
+        },
+        hyperpigmentationBoost: Boolean(guidedSkin?.hyperpigmentationTendency === 'frequente' || (guidedSkin?.skinConcerns||[]).some((c:string)=>/taches|hyperpigmentation|teint_terne/i.test(c))),
+      } as any;
+      for (const p of list) {
+        const { score, reasons, incompatibilities } = scoreSkinProduct(p as any, ctx);
+        fitInfo.set(p.id, { score, reasons: [...reasons, ...incompatibilities.map(i => i.reason)] });
+      }
+      const byId = new Map(list.map(p => [p.id, p]));
+      const ordered = Array.from(byId.keys()).sort((aId, bId) => {
+        const sa = fitInfo.get(aId)!.score;
+        const sb = fitInfo.get(bId)!.score;
         if (sb !== sa) return sb - sa;
         // fallback phototype V–VI : SPF invisible d'abord (si scores égaux)
+        const a = byId.get(aId)!;
+        const b = byId.get(bId)!;
         const isSPFA = /spf|solair/i.test(`${a.name} ${a.description}`);
         const isSPFB = /spf|solair/i.test(`${b.name} ${b.description}`);
         if (skinPhototype === 'V' || skinPhototype === 'VI') {
@@ -450,14 +460,16 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
           if (!isSPFA && isSPFB) return 1;
         }
         return 0;
-      }
-      return 0; // default KURLA fit order
-    });
+      });
+      return [ordered.map(id => byId.get(id)!), fitInfo] as const;
+    }
+    return [list, fitInfo] as const;
   }, [
-    products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand, 
+    products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand,
     onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
     profile, hasKurlaProfile, skinSansParfum, skinSansTrace, skinBudget,
-    skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite
+    skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite,
+    needsDomainTab, guidedSkin, isProductCompatible
   ]);
 
   // Mesure de la page catalogue : sans elle, on sait qu'une commande est
@@ -1116,28 +1128,46 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </div>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
-            <Filter className="w-10 h-10 text-kurla-copper mx-auto mb-3 opacity-60" />
-            <h3 className="text-lg font-serif-title font-bold text-kurla-carbon mb-2">Aucun produit trouvé</h3>
-            <p className="text-xs text-kurla-carbon/70 max-w-md mx-auto mb-6">
-              Aucune référence ne correspond à vos filtres. Essayez d’élargir votre recherche.
-            </p>
-            <button
-              onClick={() => {
-                setSelectedNeedId(null);
-                setSelectedBrand('tous');
-                setOnlyAfroCommunity(false);
-                setSelectedCountry('tous');
-                setSearchQuery('');
-                setOnlyCompatible(false);
-                setActiveCategory('tous');
-                setActiveSubCategory('tous');
-              }}
-              className="px-5 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-semibold shadow-xs hover:bg-kurla-cocoa"
-            >
-              Voir tout le catalogue ({count})
-            </button>
-          </div>
+          (() => {
+            // P3 — état vide peau : dire VRAIMENT pourquoi (filtres précis sur un
+            // rayon en cours de constitution) et où aller, au lieu du « élargir
+            // votre recherche » générique.
+            const isPeauEmpty = activeCategory === 'peau' || needsDomainTab === 'peau' || Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
+            const hasSkinFilter = isPeauEmpty && (skinActif !== 'tous' || skinPhototype !== 'tous' || skinTexture !== 'tous' || skinFini !== 'tous' || skinSensibilite !== 'tous' || skinSansParfum || skinSansTrace || skinBudget !== 'tous');
+            return (
+              <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
+                <Filter className="w-10 h-10 text-kurla-copper mx-auto mb-3 opacity-60" />
+                <h3 className="text-lg font-serif-title font-bold text-kurla-carbon mb-2">
+                  {hasSkinFilter ? 'Aucune référence ne coche toutes ces cases' : 'Aucun produit trouvé'}
+                </h3>
+                <p className="text-xs text-kurla-carbon/70 max-w-md mx-auto mb-6">
+                  {hasSkinFilter
+                    ? 'Le rayon peau est en cours de constitution : cette combinaison exacte de filtres n’est pas encore référencée. Élargissez un filtre, ou regardez la gamme en cours de formulation.'
+                    : 'Aucune référence ne correspond à vos filtres. Essayez d’élargir votre recherche.'}
+                </p>
+                {hasSkinFilter && (
+                  <a href="/peau/gamme" className="mb-3 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-kurla-ivory border border-kurla-stone text-kurla-carbon text-xs font-semibold hover:border-kurla-copper">
+                    Voir la gamme en cours de formulation <ArrowRight className="w-4 h-4" />
+                  </a>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedNeedId(null);
+                    setSelectedBrand('tous');
+                    setOnlyAfroCommunity(false);
+                    setSelectedCountry('tous');
+                    setSearchQuery('');
+                    setOnlyCompatible(false);
+                    setActiveCategory('tous');
+                    setActiveSubCategory('tous');
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-kurla-copper text-white text-xs font-semibold shadow-xs hover:bg-kurla-cocoa"
+                >
+                  Voir tout le catalogue ({count})
+                </button>
+              </div>
+            );
+          })()
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
@@ -1230,6 +1260,23 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                     <p className="text-xs text-kurla-carbon/70 font-light line-clamp-2 mb-2">
                       {product.description}
                     </p>
+
+                    {/* P3 — pourquoi ce produit est devant : les raisons lues du
+                        score, jamais un chiffre inventé (tri « Fit » en peau). */}
+                    {(() => {
+                      const fit = skinFitInfo.get(product.id);
+                      if (activeCategory !== 'peau' || sortBy !== 'fit' || !fit || fit.reasons.length === 0) return null;
+                      return (
+                        <ul className="mb-2 space-y-1">
+                          {fit.reasons.slice(0, 2).map((reason, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] font-medium text-kurla-carbon/75">
+                              <CheckCircle2 className="w-3 h-3 text-kurla-copper mt-0.5 shrink-0" />
+                              <span>{reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
                     {isDropshipProduct(product as any) ? (
                       <p className="text-[10px] text-emerald-600 font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {TOOL_DISPATCH_SHORT}
