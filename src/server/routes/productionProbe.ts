@@ -8,7 +8,20 @@ import type { AuthenticatedRequest } from '../auth';
 import { sonderTout, resumer, detailDe } from '../../../scripts/lib/sonde.mjs';
 
 /**
- * SONDE HORAIRE — la dégradation entre deux déploiements.
+ * SONDE DE PRODUCTION — la dégradation entre deux déploiements.
+ *
+ * CADENCE, mesurée et non supposée : `0 * * * *` a été poussé dans
+ * `vercel.json` le 12/09/2026 et le déploiement n'a **pas** abouti — la
+ * production est restée sur le commit précédent plus de 8 minutes, alors que
+ * les déploiements précédents passaient en ~75 s, et la route répondait 404.
+ * C'est la limite du plan Hobby : « Hobby accounts are limited to daily cron
+ * jobs » (vercel.com/docs/cron-jobs/usage-and-pricing). Le plan est passé en
+ * quotidien.
+ *
+ * La route, elle, accepte n'importe quelle cadence : c'est un GET ordinaire.
+ * Pour la faire tourner à l'heure, deux chemins sans toucher au code — passer
+ * le projet en Pro et remettre `0 * * * *`, ou pointer un planificateur externe
+ * sur ce chemin avec l'en-tête `Authorization: Bearer <CRON_SECRET>`.
  *
  * `verifier-deploiement.mjs` sonde après chaque mise en ligne. Ce cron couvre
  * ce qu'il ne peut pas voir : une donnée modifiée à la main, un service tiers

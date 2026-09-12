@@ -101,7 +101,7 @@ try {
   const vercel = JSON.parse(await readFile('vercel.json', 'utf8'));
   const cron = (vercel.crons || []).find((entry: any) => entry.path === '/api/cron/sonde');
   assert.ok(cron, 'vercel.json doit déclarer le cron /api/cron/sonde');
-  assert.equal(cron.schedule, '0 * * * *', 'le cron doit être horaire');
+  assert.equal(cron.schedule, '0 8 * * *', 'quotidien : le plan Hobby rejette tout cron plus fréquent (mesuré le 12/09/2026)');
   // Le chemin doit exister : un cron qui vise une route absente renvoie 404 en
   // silence, ce qui est précisément le défaut que ce banc interdit.
   const routeInconnue = await fetch(`${base}/api/cron/sonde-inexistante`);
