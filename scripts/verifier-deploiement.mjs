@@ -108,9 +108,16 @@ while (Date.now() < limite) {
 }
 process.stdout.write(' '.repeat(60) + '\r');
 
-if (sha && servi !== sha && servi !== null) {
+if (sha && servi === null) {
+  // Ne pas avaler le cas en silence : sans commit exposé, la propagation
+  // n'est pas vérifiable et on risque de sonder l'ancien build en le
+  // prenant pour le nouveau. On le dit, et on continue — l'absence d'un
+  // champ d'exploitation ne doit pas bloquer une mise en ligne saine.
+  console.warn('\n  avertissement : /api/health n’expose pas son commit — la propagation');
+  console.warn('  n’est pas vérifiable, la version sondée peut être l’ancienne.');
+} else if (sha && servi !== sha) {
   console.error(`\nLe commit attendu n'est pas en ligne après ${attente} s (servi : ${servi}).`);
-  console.error('Vérifier l' + 'état du déploiement avant de conclure quoi que ce soit.');
+  console.error(`Attendu : ${sha}. Vérifier l’état du déploiement avant de conclure.`);
   process.exit(2);
 }
 

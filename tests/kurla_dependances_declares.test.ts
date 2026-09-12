@@ -99,6 +99,81 @@ for (const fichier of fichiers) {
   }
 }
 
+/**
+ * Un JSON à clé dupliquée reste valide : le parseur garde la dernière
+ * occurrence et ne dit rien. Mesuré ici avant correction, sur une clé
+ * `test:need-depth` déclarée deux fois dans `package.json` : toute
+ * assertion du type « cette clé existe » passait à côté, et seul esbuild
+ * signalait le doublon, en warning, noyé dans la sortie du build.
+ *
+ * On ne peut donc pas compter sur `JSON.parse` pour le voir — il l'absorbe.
+ * Ce petit analyseur parcourt le texte et signale toute clé répétée **au
+ * sein d'un même objet** (deux objets différents peuvent légitimement
+ * porter la même clé).
+ */
+function clefsEnDouble(texte: string): string[] {
+  const doublons: string[] = [];
+  const pile: { cles: Set<string>; chemin: string }[] = [];
+  let i = 0;
+
+  const sauterBlancs = () => { while (i < texte.length && /\s/.test(texte[i])) i += 1; };
+
+  function lireChaine(): string {
+    i += 1; // guillemet ouvrant
+    let sortie = '';
+    while (i < texte.length) {
+      const c = texte[i];
+      if (c === '\\') { sortie += texte[i] + texte[i + 1]; i += 2; continue; }
+      if (c === '"') { i += 1; return sortie; }
+      sortie += c;
+      i += 1;
+    }
+    return sortie;
+  }
+
+  function valeur(chemin: string): void {
+    sauterBlancs();
+    const c = texte[i];
+    if (c === '{') return objet(chemin);
+    if (c === '[') return tableau(chemin);
+    if (c === '"') { lireChaine(); return; }
+    while (i < texte.length && !/[\s,}\]]/.test(texte[i])) i += 1; // nombre, true, false, null
+  }
+
+  function objet(chemin: string): void {
+    i += 1; // accolade ouvrante
+    pile.push({ cles: new Set(), chemin });
+    for (;;) {
+      sauterBlancs();
+      if (i >= texte.length) return;
+      if (texte[i] === '}') { i += 1; break; }
+      if (texte[i] === ',') { i += 1; continue; }
+      const clef = lireChaine();
+      const courant = pile[pile.length - 1];
+      if (courant.cles.has(clef)) doublons.push(`${courant.chemin || 'racine'}.${clef}`);
+      else courant.cles.add(clef);
+      sauterBlancs();
+      if (texte[i] === ':') i += 1;
+      valeur(chemin ? `${chemin}.${clef}` : clef);
+    }
+    pile.pop();
+  }
+
+  function tableau(chemin: string): void {
+    i += 1; // crochet ouvrant
+    for (;;) {
+      sauterBlancs();
+      if (i >= texte.length) return;
+      if (texte[i] === ']') { i += 1; return; }
+      if (texte[i] === ',') { i += 1; continue; }
+      valeur(chemin);
+    }
+  }
+
+  valeur('');
+  return doublons;
+}
+
 let checks = 0;
 function ok(label: string, fn: () => void): void {
   fn();
@@ -125,6 +200,28 @@ ok('les dépendances déclarées sont toutes installées localement', () => {
   });
   assert.deepEqual(introuvables, [],
     `déclaré(s) dans package.json mais absent(s) de node_modules : ${introuvables.join(', ')}`);
+});
+
+ok('package.json n’a aucune clé déclarée deux fois', () => {
+  const doublons = clefsEnDouble(readFileSync(join(RACINE, 'package.json'), 'utf8'));
+  assert.deepEqual(doublons, [],
+    `clé(s) répétée(s) — JSON.parse garde la dernière sans rien dire : ${doublons.join(', ')}`);
+});
+
+ok('le détecteur de doublons voit juste (auto-vérification)', () => {
+  // Un garde-fou qui ne se teste pas lui-même peut se taire indéfiniment.
+  assert.deepEqual(clefsEnDouble('{"a":1,"a":2}'), ['racine.a'], 'doublon simple non vu');
+  assert.deepEqual(clefsEnDouble('{"scripts":{"x":1,"x":2}}'), ['scripts.x'], 'doublon imbriqué non vu');
+  assert.deepEqual(clefsEnDouble('{"a":1}'), [], 'faux positif sur un objet sain');
+  // Une chaîne peut contenir accolades, virgules et deux-points : elle ne
+  // doit pas être prise pour de la structure.
+  assert.deepEqual(
+    clefsEnDouble('{"a":"{\\"b\\":1, }","c":2}'), [],
+    'une valeur textuelle a été prise pour un objet'
+  );
+  // Deux objet frères peuvent porter la même clé sans que ce soit un doublon.
+  assert.deepEqual(clefsEnDouble('{"a":{"x":1},"b":{"x":2}}'), [],
+    'même clé dans deux objets différents : ce n’est pas un doublon');
 });
 
 console.log(`\n${checks} contrôles passés — dépendances : ce que le code importe, le projet l’installe\n`);
