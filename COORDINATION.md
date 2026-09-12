@@ -277,10 +277,27 @@ affichent des ingrédients sans INCI sourcé tout en s'annonçant « verified »
 
 `p2`, `p4`, `p5`, `p9`, `p10`, `p11`, `p13` et `launch-p28` (corrigé).
 
-Je n'ai pas touché aux sept autres : ce sont des fiches du catalogue, donc
-du territoire de l'autre intervenant, et le remède est le même pour tous —
-vider `ingredients` et passer le statut à `not_provided`. À faire en un
-seul geste sur accord, plutôt que l'un après l'autre.
+Les sept autres ont été corrigées depuis (p2, p4, p5, p9, p10, p11, p13) :
+même remède, appliqué en une seule opération. **Aucun produit ne s'annonce
+plus « vérifié » sans composition sourcée.** La répartition le confirmait :
+`verified` s'accompagne normalement d'un INCI (66 cas sur 74), les huit
+étaient bien l'anomalie.
+
+**Restent 8 produits affichant des ingrédients sans INCI** — mais le cas
+n'est plus le même, et je m'y suis arrêté :
+
+- **3 accessoires** (p7, p8, p16) : « 100 % Soie de Mûrier », « Satin de
+  Soie… ». C'est une *matière*, pas une composition cosmétique. Légitime.
+- **5 cosmétiques** (p1, p3, p6, p12, p15) : fiches de démonstration
+  retirées de la vente, dont le statut est **déjà `not_provided`** — elles
+  ne font donc aucune fausse allégation. Leur tort est d'afficher une
+  composition non sourcée, rien de plus.
+
+Je ne les ai pas vidées. p15 (« Black Girl Sunscreen SPF 30 ») est un vrai
+produit de marque dont la liste est peut-être **exacte, simplement non
+sourcée** : effacer une donnée peut-être vraie est pire que la laisser
+honnêtement étiquetée. La décision (sourcer ces cinq fiches, ou les vider)
+appartient au catalogue.
 
 À noter aussi : `products.updated_at` n'est pas mis à jour automatiquement
 (après ma correction, il est resté au 02/09). Aucune modification de fiche
