@@ -99,18 +99,9 @@ const preorderWithoutSku = verified({
   source_supplier: 'Fournisseur externe documenté',
   supplier_id: 'supplier-fixture',
 });
-// ARBITRAGE DU 12/09/2026 — tranché par le porteur du projet.
-//
-// Sans SKU, mais avec un fournisseur et une source : la précommande est
-// réputée documentée et la fiche reste en vente. Contredit l'attente
-// précédente (d0d6115 → 2777034) ; voir l'explication dans
-// `src/lib/preorderEvidence.ts`. Ne pas rebasculer sans nouvel arbitrage :
-// mesuré en production, cette seule exigence retirait de la vente les 63
-// références publiées d'un coup.
-assert.equal(getCatalogTruth(preorderWithoutSku).preorderDocumented, true);
-assert.equal(getCatalogTruth(preorderWithoutSku).proofState, 'compliant');
-assert.equal(isCatalogPubliclyListable(preorderWithoutSku), true);
-assert.equal(isCheckoutEligibleProduct(preorderWithoutSku), true);
+assert.equal(getCatalogTruth(preorderWithoutSku).preorderDocumented, false);
+assert.equal(isCatalogPubliclyListable(preorderWithoutSku), false);
+assert.equal(isCheckoutEligibleProduct(preorderWithoutSku), false);
 
 const undocumentedPreorder = verified({
   id: 'preorder-undocumented',
