@@ -102,6 +102,7 @@ assert.equal(getCatalogTruth(undocumentedPreorder).preorderDocumented, false);
 assert.equal(isCheckoutEligibleProduct(undocumentedPreorder), false);
 const claimBlocked = verified({
   id: 'claim-blocked',
+  claims_validation_status: 'pending',
   description: 'Résultat garanti dès la première application.',
 });
 assert.equal(getCatalogTruth(claimBlocked).claimsClean, false);

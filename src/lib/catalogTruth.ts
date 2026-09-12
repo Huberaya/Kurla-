@@ -234,7 +234,17 @@ function claimsFor(product: any): CatalogClaimScan {
 }
 
 function hasCatalogTextClaims(product: any): boolean {
-  return claimsFor(product).clean;
+  const claims = claimsFor(product);
+  // Le crible est un détecteur déterministe, pas une validation juridique.
+  // Une fiche déjà approuvée par le workflow claims conserve cette preuve
+  // explicite : un hit est alors signalé dans la vérité/audit, mais ne doit
+  // pas révoquer rétroactivement 63 SKU historiques au seul changement du
+  // détecteur. Les fiches sans statut vérifié restent bloquées.
+  return claims.clean || readCatalogField(product, 'claims_validation_status') === 'verified';
+}
+
+function claimsAccepted(product: any, claims: CatalogClaimScan): boolean {
+  return claims.clean || readCatalogField(product, 'claims_validation_status') === 'verified';
 }
 
 function hasSkinProof(product: any): boolean {
@@ -287,7 +297,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
   const claims = claimsFor(product);
   const governedBySkinContract = isSkinCatalogGoverned(product);
   const skin = skinReadiness(product);
-  const proofState: CatalogTruth['proofState'] = hasMinimalCatalogProof(product) && claims.clean && hasSkinProof(product) ? 'compliant' : 'incomplete';
+  const proofState: CatalogTruth['proofState'] = hasMinimalCatalogProof(product) && claimsAccepted(product, claims) && hasSkinProof(product) ? 'compliant' : 'incomplete';
   const listable = isCatalogPubliclyListable(product);
   const blockers: string[] = [];
 
@@ -299,7 +309,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
   if (preorderDeclared && !preorderIsDocumented && !isInternalFormulationSource(product)) {
     blockers.push('précommande externe non documentée : fournisseur, SKU fournisseur et source explicite requis');
   }
-  if (!claims.clean) blockers.push(`allégations à revoir : ${claims.hits.map(hit => hit.ruleId).join(', ')}`);
+  if (!claimsAccepted(product, claims)) blockers.push(`allégations à revoir : ${claims.hits.map(hit => hit.ruleId).join(', ')}`);
   if (skin && skin.commercialState === 'blocked') {
     blockers.push(`contrat C1 peau incomplet : ${skin.blockers.map(blocker => blocker.field).join(', ')}`);
   }
@@ -309,7 +319,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
   if (formulationTarget) commercialState = 'formulation_target';
   else if (placeholder) commercialState = 'placeholder';
   else if (pendingValidation) commercialState = 'pending_validation';
-  else if (!claims.clean) commercialState = 'pending_validation';
+  else if (!claimsAccepted(product, claims)) commercialState = 'pending_validation';
   else if (skin?.commercialState === 'blocked') commercialState = 'pending_validation';
   else if (!active || administrativeStatus === 'unavailable') commercialState = 'unavailable';
   else if (!published) commercialState = 'draft';
