@@ -99,6 +99,13 @@ export async function sonder(base, { modele, chemin }, delaiMs = DELAI_MS) {
     }
 
     if (json === null ? corps.trim().length === 0 : estVide(json)) {
+      // Un endpoint critique peut tout de même répondre par un état vide
+      // explicitement expliqué (ex. gamme en formulation). Le message de
+      // disponibilité prévaut sur la règle « critique » pour éviter un faux
+      // incident de production.
+      if (json !== null && expliqueSonVide(json)) {
+        return { modele, chemin, statut: reponse.status, classe: 'vide expliqué', duree };
+      }
       // Le gabarit, jamais le chemin résolu : `/api/products` est critique,
       // `/api/products/:productId/trust` ne l'est pas — les comparer par
       // préfixe rendait critique tout ce qui commence comme elles.
@@ -108,11 +115,7 @@ export async function sonder(base, { modele, chemin }, delaiMs = DELAI_MS) {
       if (VIDES_ATTENDUS.includes(modele)) {
         return { modele, chemin, statut: reponse.status, classe: 'vide attendu', duree };
       }
-      return {
-        modele, chemin, statut: reponse.status,
-        classe: json !== null && expliqueSonVide(json) ? 'vide expliqué' : 'silence',
-        duree,
-      };
+      return { modele, chemin, statut: reponse.status, classe: 'silence', duree };
     }
     return { modele, chemin, statut: reponse.status, classe: 'ok', taille: tailleDe(json), duree };
   } catch (erreur) {
