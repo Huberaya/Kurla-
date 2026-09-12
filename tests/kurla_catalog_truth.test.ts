@@ -68,24 +68,6 @@ const preorder = verified({
   supplier_id: 'supplier-fixture',
   supplier_sku: 'SKU-PREORDER-FIXTURE',
 });
-// Décision du 12/09/2026, épinglée ici pour qu'elle ne revienne pas en
-// silence. Mesuré en production : 0 produit publié sur 63 portait un
-// `supplier_sku`, alors que `supplier_id` et `source_supplier` étaient
-// renseignés sur les 63. Exiger le SKU a donc masqué l'intégralité du
-// catalogue — `/api/products` répondait `count: 0` en 200, sans erreur.
-// Le fournisseur et sa source suffisent à documenter une précommande ; le SKU
-// reste signalé comme manquant par la préparation au sourcing, qui est son
-// vrai canal. Une alerte, jamais un blocage de mise en ligne.
-const preorderSansSku = verified({
-  id: 'preorder-sans-sku',
-  is_preorder: true,
-  in_stock: false,
-  stock_quantity: 0,
-  badges: ['preorder'],
-  source_supplier: 'Distristar (grossiste marques afro US, Bobigny) — achat-revente',
-  supplier_id: 'sup-brands-wholesale',
-  supplier_sku: undefined,
-});
 const available = verified({ id: 'available', in_stock: true, stock_quantity: 2 });
 const unavailable = verified({ id: 'unavailable', in_stock: false, stock_quantity: 0 });
 
@@ -108,13 +90,19 @@ assert.equal(getCatalogTruth(preorder).proofState, 'compliant');
 assert.equal(getCatalogTruth(preorder).preorderDocumented, true);
 assert.equal(isCatalogPubliclyListable(preorder), true);
 assert.equal(isCheckoutEligibleProduct(preorder), true);
+const preorderWithoutSku = verified({
+  id: 'preorder-without-sku',
+  is_preorder: true,
+  in_stock: false,
+  stock_quantity: 0,
+  badges: ['preorder'],
+  source_supplier: 'Fournisseur externe documenté',
+  supplier_id: 'supplier-fixture',
+});
+assert.equal(getCatalogTruth(preorderWithoutSku).preorderDocumented, false);
+assert.equal(isCatalogPubliclyListable(preorderWithoutSku), false);
+assert.equal(isCheckoutEligibleProduct(preorderWithoutSku), false);
 
-// Sans SKU fournisseur, mais fournisseur et source documentés : la précommande
-// est réputée prouvée et la fiche reste en ligne. Voir la décision ci-dessus.
-assert.equal(getCatalogTruth(preorderSansSku).preorderDocumented, true);
-assert.equal(getCatalogTruth(preorderSansSku).proofState, 'compliant');
-assert.equal(isCatalogPubliclyListable(preorderSansSku), true);
-assert.equal(isCheckoutEligibleProduct(preorderSansSku), true);
 const undocumentedPreorder = verified({
   id: 'preorder-undocumented',
   is_preorder: true,
