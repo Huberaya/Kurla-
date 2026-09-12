@@ -566,3 +566,33 @@ existaient donc déjà en base, en brouillon — il ne manquait que la route.
 reproductible (la donnée vit en TypeScript, le SQL en découle), **mais il ne
 faut pas le jouer pour rendre la gamme visible** : les 13 lignes existent, et le
 `ON CONFLICT DO UPDATE` écraserait toute correction faite à la main depuis.
+
+### La sonde tourne en cron — et le plan Hobby a fixé la cadence
+
+`GET /api/cron/sonde` est en ligne (protégé par `CRON_SECRET`, déjà configurée :
+la route répond 401 et non 503). Elle réutilise `scripts/lib/sonde.mjs`, la même
+bibliothèque que la sonde à la main — pas une seconde lecture qui divergerait.
+
+**Le signal est le statut HTTP, pas une ligne de journal.** Un silence ou une
+erreur fait répondre 500, donc Vercel classe l'invocation en échec. C'est la
+leçon du 11/09/2026 : les notifications push échouaient dans un `.catch` qui se
+contentait de logger. Aucun tiers n'est requis — ni email, ni webhook, ni table.
+Une alerte par email exigerait une adresse destinataire qui n'existe dans aucune
+configuration actuelle ; l'inventer aurait créé un silence de plus.
+
+**Cadence : quotidienne, et c'est mesuré, pas supposé.** `0 * * * *` a été poussé
+(`c3c4cb0`) et le déploiement n'a **pas** abouti — production restée sur
+`3825ff6` plus de 8 minutes alors que les déploiements passent en ~75 s, et la
+route répondait 404. Limite du plan Hobby : une expression qui s'exécute plus
+d'une fois par jour fait échouer le déploiement
+(vercel.com/docs/cron-jobs/usage-and-pricing). Repassé à `0 8 * * *`, à l'écart
+de la rétention (07:00) ; `674949e` s'est déployé en 75 s.
+
+**Ne repoussez pas `0 * * * *` sans être passé en Pro.** La route, elle, accepte
+n'importe quelle cadence : pour l'horaire, soit Pro + `0 * * * *`, soit un
+planificateur externe pointé sur ce chemin avec
+`Authorization: Bearer <CRON_SECRET>`. Aucun changement de code dans les deux cas.
+
+**Si vous ajoutez une route**, `tests/route_inventory.test.ts` tombe : c'est
+voulu. Régénération consciente par `KURLA_UPDATE_FIXTURE=1`, qui affiche ce qui
+est ajouté et retiré.
