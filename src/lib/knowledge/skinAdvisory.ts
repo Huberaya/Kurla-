@@ -30,6 +30,9 @@
  * vocabulaire médical, et inconnu = inconnu (pas de déduction).
  */
 
+// Note de boucle L4 partagée avec le pôle cheveux (source unique : advisoryLoop.ts).
+export { ADVISORY_LOOP_NOTE } from './advisoryLoop';
+
 export interface SkinAdvisoryContext {
   skinType?: string;
   hydrationLevel?: string;
@@ -441,8 +444,4 @@ export function buildSkinAdvisorySummary(ctx: SkinAdvisoryContext, priorities: s
   return parts.join(' ');
 }
 
-/** Note sur la boucle de réévaluation (L4) — exacte sur le déclencheur réel. */
-export const ADVISORY_LOOP_NOTE =
-  'À J+30, KURLA réévalue votre routine à partir de vos retours et de votre journal. '
-  + 'Si votre profil a évolué — routine suivie, retours, observations — vous recevrez une recommandation d’évolution avec ses raisons. '
-  + 'Sinon, aucun push : votre routine reste valable.';
+

@@ -689,6 +689,54 @@ imperfections), le plus court est d'ajouter le contenu dans `SKIN_LESSONS`
 garde la surface cohérente.
 
 **À ne pas casser** : le conseil ne redit aucune phrase réservée (styleFit,
-needsHub médical, `SKIN_INCOMPATIBILITIES` — la liste est dans le banc),
-n'emploie aucun vocabulaire médical, et le parcours cheveux ne reçoit ni
-leçons ni observations.
+needsHub médical, `SKIN_INCOMPATIBILITIES` — la liste est dans le banc) et
+n'emploie aucun vocabulaire médical. (Le parcours cheveux, qui était resté
+sans conseil, a reçu le même traitement le 13/09 — voir section ci-dessous.)
+### Le résultat du diagnostic cheveux porte maintenant un conseil complet (13/09/2026)
+
+Même chantier, même standard, côté cheveux — le niveau référence de la
+plateforme, qui portait jusqu’ici la routine la plus sommaire (3 étapes
+génériques, justification placeholder « Étape issue du résultat calculé »).
+Le module peau sert de miroir ; rien n’a été dégradé d’un pôle pour
+s’aligner sur l’autre.
+
+Nouveau module : **`src/lib/knowledge/hairAdvisory.ts`** (couche « conseil »
+cheveux), branché dans `src/lib/diagnosticResult.ts` et rendu par la même
+`DiagnosticResultPage.tsx` (les titres de colonnes routine sont désormais
+portés par le modèle : « Matin / Soir » en peau, « Jour de lavage / Entre
+deux lavages / À faire chaque semaine » en cheveux) :
+
+- **Routine contextuelle** — *pourquoi / comment / à attendre* sur chaque
+  étape, adaptée à la texture, la coiffure usuelle, la priorité, la porosité
+  et le cuir chevelu (LCO et scellement sur cheveu texturé, textures légères
+  sur porosité faible, cycle eau/retwist sur locks, entretien aqueux sous
+  tresses et perruque, rituel enfant, zéro tension sur la priorité pousse).
+- **Leçons** — 1 à 3 modules pédagogiques sélectionnés sur les priorités
+  (fibre & casse, cuir chevelu, locks, perruques, protectrices, enfant,
+  pousse, définition, porosité, LCO, entretien), chacun sourcé sur la base
+  KURLA Cheveux. La leçon « pousse » est volontairement anti-commercial :
+  aucun produit n’accélère la pousse — c’est ce qui fait confiance.
+- **Observations suivies** — J+7 / J+14 / J+30 spécifiques au thème
+  principal (démêlage, cuir chevelu, locks, protectrice, perruque, enfant,
+  pousse, définition, général).
+- **Résumé personnalisé** — composé des réponses déclarées uniquement ;
+  inconnu = inconnu ; un résumé IA, s’il existe, n’est jamais écrasé.
+- **Boucle L4** — la note de réévaluation J+30 est désormais **commune aux
+  deux pôles** : `src/lib/knowledge/advisoryLoop.ts` (source unique,
+  réexportée par `skinAdvisory.ts`). Ne pas dupliquer ce texte.
+
+**Contrat verrouillé par le banc `tests/kurla_hair_advisory.test.ts`** (15
+checks, chaîné juste après `test:diagnostic-advisory` en fin de suite) :
+richesse, adaptation au contexte, leçons sourcées, observations, résumé
+honnête, formulation, séparation des pôles, déterminisme. Le banc peau
+(`kurla_diagnostic_advisory`) a été mis à jour en conséquence : son test «
+cheveux inchangé » est devenu un test de **séparation des deux pôles**
+(chaque pôle porte son advisory, sans contamination).
+
+**À ne pas casser** : le conseil ne redit aucune phrase réservée aux
+modules style/cuir chevelu (styleFit, needsHub — « texture fluide », « seule
+zone réellement accessible », « occlusif de la formule », « retirez la
+perruque la nuit », « lavage clarifiant régulier »), n’emploie aucun
+vocabulaire médical (la liste est dans les deux bancs), et le champ
+« Cuir chevelu » du profil affiché utilise le vocabulaire du diagnostic
+(`HAIR_SCALP_VALUES` dans `hairAdvisory.ts`).

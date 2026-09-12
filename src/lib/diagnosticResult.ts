@@ -10,6 +10,19 @@ import {
   type SkinLesson,
   type SkinObservation,
 } from './knowledge/skinAdvisory';
+import {
+  buildHairAdvisoryRoutine,
+  buildHairAdvisorySummary,
+  pickHairLessons,
+  pickHairObservations,
+  HAIR_FREQUENCY_VALUES,
+  HAIR_POROSITY_VALUES,
+  HAIR_PRIORITY_VALUES,
+  HAIR_SCALP_VALUES,
+  HAIR_STYLE_VALUES,
+  HAIR_TEXTURE_VALUES,
+  type HairAdvisoryContext,
+} from './knowledge/hairAdvisory';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -53,6 +66,8 @@ export interface DiagnosticResultModel {
   morning: DiagnosticRoutineStep[];
   evening: DiagnosticRoutineStep[];
   weekly: DiagnosticRoutineStep[];
+  /** Titres des colonnes routine — « Matin/Soir » en peau, cycle de lavage en cheveux. */
+  routineTitles: { morning: string; evening: string; weekly: string };
   products: DiagnosticResultProduct[];
   followUp: {
     firstObservation: string;
@@ -63,11 +78,11 @@ export interface DiagnosticResultModel {
   warnings: string[];
   summary: string;
   skinKnowledgeProfile: SkinKnowledgeProfile | null;
-  /** Leçons pédagogiques sélectionnées sur les préoccupations déclarées (peau uniquement). */
+  /** Leçons pédagogiques sélectionnées sur les priorités déclarées (peau et cheveux). */
   lessons: SkinLesson[];
-  /** Observations suivies J+7 / J+14 / J+30 (peau uniquement). */
+  /** Observations suivies J+7 / J+14 / J+30 (peau et cheveux). */
   observations: SkinObservation[];
-  /** Note sur la boucle de réévaluation J+30 (peau uniquement). */
+  /** Note sur la boucle de réévaluation J+30 (peau et cheveux, texte commun L4). */
   advisoryLoop: string | null;
 }
 
@@ -142,9 +157,21 @@ function whyFor(product: Product, priorities: string[]): string {
 
 function profileFields(answers: Record<string, unknown>, isSkin: boolean): DiagnosticProfileField[] {
   if (!isSkin) {
-    return [
-      ['texture', 'Texture'], ['porosity', 'Porosité'], ['priority', 'Besoin prioritaire'], ['budget', 'Budget']
-    ].map(([key, label]) => ({ key, label, value: displayDiagnosticValue(answers[key]), known: isKnown(answers[key]) }));
+    const hairFields: Array<[string, string, Record<string, string> | undefined, unknown]> = [
+      ['texture', 'Texture', HAIR_TEXTURE_VALUES, answers.texture],
+      ['style', 'Coiffure usuelle', HAIR_STYLE_VALUES, answers.style],
+      ['porosity', 'Porosité', HAIR_POROSITY_VALUES, answers.porosity],
+      ['scalp', 'Cuir chevelu', HAIR_SCALP_VALUES, answers.scalp],
+      ['priority', 'Besoin prioritaire', HAIR_PRIORITY_VALUES, answers.priority],
+      ['frequency', 'Fréquence de lavage', HAIR_FREQUENCY_VALUES, answers.frequency],
+      ['budget', 'Budget', undefined, answers.budget],
+    ];
+    return hairFields.map(([key, label, values, raw]) => ({
+      key,
+      label,
+      value: isKnown(raw) ? (values?.[String(raw)] || String(raw).replaceAll('_', ' ')) : 'Non renseigné',
+      known: isKnown(raw),
+    }));
   }
   const fields: Array<[string, string, unknown]> = [
     ['skinType', 'Type de peau', answers.skinType],
@@ -183,14 +210,14 @@ function routineForSkin(answers: Record<string, unknown>): Pick<DiagnosticResult
   });
 }
 
-function routineForHair(result: AIRecommendationResult | null): Pick<DiagnosticResultModel, 'morning' | 'evening' | 'weekly'> {
-  const steps = result?.steps?.slice(0, 6) || [];
-  const items = steps.length ? steps : ['Commencer par une routine courte.', 'Introduire un seul changement à la fois.', 'Observer la tolérance.'];
-  return {
-    morning: items.slice(0, 2).map((action, i) => ({ label: String(i + 1), action, why: 'Étape issue du résultat calculé.' })),
-    evening: items.slice(2, 4).map((action, i) => ({ label: String(i + 1), action, why: 'Étape issue du résultat calculé.' })),
-    weekly: items.slice(4).map((action, i) => ({ label: 'Hebdo', action, why: 'À ajuster selon les observations.' })),
-  };
+/**
+ * Routine cheveux : produite par la couche conseil (`knowledge/hairAdvisory`),
+ * qui adapte chaque étape au contexte déclaré (texture, coiffure, priorité,
+ * porosité, cuir chevelu) et porte pourquoi / comment / à attendre sur chaque
+ * étape. Le contrat est assuré par le banc `kurla_hair_advisory`.
+ */
+function routineForHair(ctx: HairAdvisoryContext): Pick<DiagnosticResultModel, 'morning' | 'evening' | 'weekly'> {
+  return buildHairAdvisoryRoutine(ctx);
 }
 
 export function buildDiagnosticResultModel(input: {
@@ -206,7 +233,16 @@ export function buildDiagnosticResultModel(input: {
   const fields = profileFields(answers, isSkin);
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
-  const routine = isSkin ? routineForSkin(answers) : routineForHair(result);
+  const hairAdvisoryCtx: HairAdvisoryContext = {
+    texture: typeof answers.texture === 'string' ? answers.texture : undefined,
+    style: typeof answers.style === 'string' ? answers.style : undefined,
+    priority: typeof answers.priority === 'string' ? answers.priority : undefined,
+    porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
+    scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
+    frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+    budget: typeof answers.budget === 'string' ? answers.budget : undefined,
+  };
+  const routine = isSkin ? routineForSkin(answers) : routineForHair(hairAdvisoryCtx);
   const advisoryCtx = {
     skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,
     hydrationLevel: typeof answers.hydrationLevel === 'string' ? answers.hydrationLevel : undefined,
@@ -254,10 +290,13 @@ export function buildDiagnosticResultModel(input: {
     morning: routine.morning,
     evening: routine.evening,
     weekly: routine.weekly,
+    routineTitles: isSkin
+      ? { morning: 'Matin', evening: 'Soir', weekly: 'À observer chaque semaine' }
+      : { morning: 'Jour de lavage', evening: 'Entre deux lavages', weekly: 'À faire chaque semaine' },
     products: productCards,
     followUp: {
-      firstObservation: 'J+0 · noter le confort et toute réaction',
-      nextObservation: 'J+7 · comparer la tolérance et la régularité',
+      firstObservation: isSkin ? 'J+0 · noter le confort et toute réaction' : 'J+0 · noter le confort du cuir chevelu et la tension du démêlage',
+      nextObservation: isSkin ? 'J+7 · comparer la tolérance et la régularité' : 'J+7 · comparer le démêlage (temps, tension, perte visible)',
       journalHref: isSkin ? '/peau/journal' : '/account/progress',
       shelfHref: isSkin ? '/account/shelf?cat=peau' : '/account/shelf',
     },
@@ -265,10 +304,10 @@ export function buildDiagnosticResultModel(input: {
       ...(result?.warnings || []),
       'Conseil cosmétique : ce résultat ne constitue pas un avis médical ni un diagnostic.',
     ].filter((warning, index, list) => list.indexOf(warning) === index),
-    summary: result?.summary || (isSkin ? buildSkinAdvisorySummary(advisoryCtx, priorities) : 'Résultat calculé à partir des réponses déclarées.'),
+    summary: result?.summary || (isSkin ? buildSkinAdvisorySummary(advisoryCtx, priorities) : buildHairAdvisorySummary(hairAdvisoryCtx)),
     skinKnowledgeProfile,
-    lessons: isSkin ? pickSkinLessons(advisoryCtx) : [],
-    observations: isSkin ? pickSkinObservations(advisoryCtx) : [],
-    advisoryLoop: isSkin ? ADVISORY_LOOP_NOTE : null,
+    lessons: isSkin ? pickSkinLessons(advisoryCtx) : pickHairLessons(hairAdvisoryCtx),
+    observations: isSkin ? pickSkinObservations(advisoryCtx) : pickHairObservations(hairAdvisoryCtx),
+    advisoryLoop: ADVISORY_LOOP_NOTE,
   };
 }

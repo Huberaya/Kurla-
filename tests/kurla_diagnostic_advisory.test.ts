@@ -20,7 +20,9 @@
  *  5. Résumé — composé des réponses déclarées, jamais inventé (inconnu = inconnu) ;
  *  6. Formulation — aucune phrase réservée aux autres modules, aucun vocabulaire
  *     médical ; le résumé IA, s’il existe, n’est jamais écrasé ;
- *  7. Cheveux inchangé — le parcours cheveux ne reçoit ni leçons ni observations ;
+ *  7. Deux pôles séparés — peau et cheveux portent chacun leur advisory,
+ *     sans contamination (le détail cheveux est verrouillé par le banc
+ *     kurla_hair_advisory) ;
  *  8. Déterminisme — mêmes réponses, même résultat.
  *
  * Exécution : KURLA_STORE_MODE=memory KURLA_TEST_NO_SERVER=true npx tsx tests/kurla_diagnostic_advisory.test.ts
@@ -37,6 +39,7 @@ import {
   pickSkinLessons,
   pickSkinObservations
 } from '../src/lib/knowledge/skinAdvisory';
+import { ADVISORY_LOOP_NOTE } from '../src/lib/knowledge/advisoryLoop';
 
 let checks = 0;
 const ok = async (label: string, fn: () => void | Promise<void>) => {
@@ -205,16 +208,28 @@ async function main() {
     assert.ok(model.lessons.length >= 1, 'les leçons restent présentes même avec un résumé IA');
   });
 
-  // --- 7. Cheveux inchangé ----------------------------------------------------
-  await ok('parcours cheveux : ni leçons ni observations, routine inchangée', () => {
+  // --- 7. Deux pôles séparés --------------------------------------------------
+  await ok('deux pôles séparés : chaque pôle porte son advisory, sans contamination', () => {
     const hairModel = buildDiagnosticResultModel({
-      answers: { texture: 'boucle', priority: 'hydrater_cheveux', budget: 'moins_40' },
+      answers: { texture: 'crepue', style: 'naturel', priority: 'hydratation', porosity: 'forte', scalp: 'normal', frequency: '1x_semaine', budget: '40_70' },
       result: null, products: [], isSkin: false
     });
-    assert.deepEqual(hairModel.lessons, [], 'le parcours cheveux ne reçoit pas les leçons peau');
-    assert.deepEqual(hairModel.observations, [], 'le parcours cheveux ne reçoit pas les observations peau');
-    assert.equal(hairModel.advisoryLoop, null, 'le parcours cheveux ne reçoit pas la note de boucle');
-    for (const step of ALL_STEPS(hairModel)) assert.ok(step.why.length > 0, `étape cheveux sans justification : ${step.action}`);
+    // Le pôle cheveux porte désormais son propre conseil (banc kurla_hair_advisory).
+    assert.ok(hairModel.lessons.length >= 1 && hairModel.lessons.length <= 3, 'cheveux : 1 à 3 leçons');
+    for (const lesson of hairModel.lessons) {
+      assert.ok(lesson.key.startsWith('hair_lesson_'), `leçon non-cheveux dans le pôle cheveux : ${lesson.key}`);
+      assert.ok(lesson.title.length > 0 && lesson.lesson.length > 40 && lesson.source.length > 0, 'leçon cheveux incomplète');
+    }
+    assert.equal(hairModel.observations.length, 3, 'cheveux : 3 observations datées');
+    assert.equal(hairModel.advisoryLoop, ADVISORY_LOOP_NOTE, 'cheveux : même note de boucle L4 que la peau');
+    for (const step of ALL_STEPS(hairModel)) {
+      assert.ok(step.why.length >= 40 && step.how && step.how.length >= 40 && step.expect && step.expect.length >= 40, `étape cheveux incomplète : ${step.action}`);
+    }
+    assert.equal(hairModel.routineTitles.morning, 'Jour de lavage', 'titres de colonnes spécifiques au cycle de lavage');
+    // Et la peau ne reçoit aucun contenu cheveux.
+    for (const lesson of modelMarks.lessons) assert.ok(!lesson.key.startsWith('hair_lesson_'), 'leçon cheveux contaminant le pôle peau');
+    assert.equal(modelMarks.routineTitles.morning, 'Matin', 'titres peau inchangés');
+    assert.ok(!ALL_TEXT(hairModel).join('\n').toLowerCase().includes('hpi'), 'contenu HPI (peau) dans le conseil cheveux');
   });
 
   // --- 8. Déterminisme -------------------------------------------------------
