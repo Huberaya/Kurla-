@@ -82,6 +82,11 @@ def verifier(sha: str) -> int:
 
 
 def main() -> None:
+    # Sans cela, les lignes du parent attendent la sortie du processus et
+    # le journal arrive après celui de la sonde : on croit lire la
+    # vérification avant la mise en ligne.
+    sys.stdout.reconfigure(line_buffering=True)
+
     token = os.environ.get("VERCEL_TOKEN", "").strip()
     if not token:
         raise SystemExit("VERCEL_TOKEN n'est pas défini dans l'environnement.")

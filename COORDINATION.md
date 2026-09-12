@@ -155,6 +155,48 @@ Dernier passage (11/09/2026) : 5 ok · 1 silence critique (`/api/peau/gamme`,
 les 16 fiches en brouillon — voir ci-dessus) · 2 vides expliqués · 1 vide
 attendu · 0 erreur.
 
+### Les mises en ligne se vérifient maintenant
+
+`deploy.py` s'arrêtait sur « READY » et rendait la main. Le 11/09/2026, la
+production a été annoncée en ligne alors que **toute l'API répondait 500** :
+la page d'accueil continuait de répondre 200, les bancs étaient verts, et
+personne n'a rien vu avant une sonde manuelle une heure plus tard.
+
+Un déploiement qu'on ne vérifie pas n'est pas un déploiement. `deploy.py`
+termine désormais par `scripts/verifier-deploiement.mjs`, **dont le code de
+sortie devient celui de la mise en ligne** :
+
+1. il attend que l'alias serve **le commit attendu** — `/api/health` expose
+   maintenant son `commit` et son `deployment`, ce qui permet de prouver
+   quelle version répond (mesuré : `VERCEL_GIT_COMMIT_SHA` est bien
+   disponible à l'exécution). Sans cela on sonde l'ancien build en croyant
+   valider le nouveau ;
+2. il sonde les endpoints publics, avec la logique factorisée dans
+   `scripts/lib/sonde.mjs`, partagée avec `probe-production.mjs` pour
+   qu'elles ne divergent pas ;
+3. il compare à `.kurla-etat-production.json` et **ne bloque que sur les
+   régressions**. Une anomalie antérieure au déploiement (les 16 fiches
+   peau en brouillon) est signalée, elle ne le fait pas échouer : sinon
+   l'alarme finirait par ne plus être écoutée. Une régression ne réécrit
+   pas l'état de référence — elle ne doit pas devenir la norme.
+
+Trois chemins testés : sain (0), régression détectée (1), propagation non
+confirmée (2).
+
+### Une clé JSON en double passe inaperçue
+
+`{"a": 1, "a": 2}` est un JSON **valide** : le parseur garde la dernière
+occurrence et ne dit rien. D'où une conséquence pratique relevée sur ce
+dépôt : toute assertion du type « cette clé existe dans les scripts » passait
+à côté d'un doublon — seul esbuild le signalait, en warning noyé dans la
+sortie du build.
+
+Le banc des dépendances analyse donc désormais le texte de `package.json` et
+signale toute clé répétée **au sein d'un même objet** (deux objets frères
+peuvent légitimement porter la même clé). Le détecteur s'auto-vérifie —
+doublon simple, doublon imbriqué, chaîne contenant accolades et deux-points,
+clés homonymes dans deux objets — pour ne pas pouvoir se taire indéfiniment.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`
@@ -213,14 +255,18 @@ trois réglages (8 contrôles).
 | — | suite de tests exécutable de bout en bout | livré |
 | — | panne de production : dépendances non déclarées | livré |
 | — | sonde anti-silences + banc « dépendances déclarées » | livré |
+| — | déploiement auto-vérifié (commit servi, régressions) | livré |
+| — | détection des clés JSON déclarées deux fois | livré |
 
 ## Propositions pour la suite (robustesse)
 
 1. **Silences** — outillé : `scripts/probe-production.mjs` classe les
-   réponses et exige qu'un vide soit énoncé. Reste à l'exécuter
-   régulièrement (un cron Vercel ferait l'affaire) et à étendre la liste
-   d'endpoints sondés. Le silence restant est un problème de données, pas
-   de code : les 16 fiches peau en brouillon.
+   réponses et exige qu'un vide soit énoncé. La mise en ligne se vérifie
+   désormais d'elle-même. Reste le cas d'une dégradation **entre** deux
+   déploiements (données modifiées à la main, service tiers en panne) :
+   un cron Vercel qui lance la sonde toutes les heures le couvrirait.
+   Le silence restant est un problème de données, pas de code : les 16
+   fiches peau en brouillon.
 2. **Durée de la suite** — réglé : 1 min 52 au lieu de 25 min. Reste à
    décider si l'on veut une suite « rapide » pour la boucle courte.
 3. **Coordination** — un conflit sur `package.json` à chaque chantier,
