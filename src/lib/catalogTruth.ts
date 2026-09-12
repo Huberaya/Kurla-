@@ -238,7 +238,7 @@ function hasCatalogTextClaims(product: any): boolean {
   // Le crible est un détecteur déterministe, pas une validation juridique.
   // Une fiche déjà approuvée par le workflow claims conserve cette preuve
   // explicite : un hit est alors signalé dans la vérité/audit, mais ne doit
-  // pas révoquer rétroactivement 63 SKU historiques au seul changement du
+  // pas révoquer rétroactivement des SKU historiques au seul changement du
   // détecteur. Les fiches sans statut vérifié restent bloquées.
   return claims.clean || readCatalogField(product, 'claims_validation_status') === 'verified';
 }
