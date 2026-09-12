@@ -95,7 +95,8 @@ while (Date.now() < limite) {
   const etat = await sante(base);
   servi = etat.json?.commit ?? null;
   if (etat.statut === 200) {
-    const attendu = !sha || servi === sha || servi === null;
+    const commitCorrespond = !sha || servi === sha || (typeof servi === 'string' && servi.startsWith(sha));
+    const attendu = commitCorrespond || servi === null;
     if (attendu) {
       console.log(`  servi par ${servi ?? 'commit inconnu'} (${etat.json?.deployment ?? 'déploiement non identifié'}) après ${tours} vérification(s)`);
       break;
@@ -115,7 +116,7 @@ if (sha && servi === null) {
   // champ d'exploitation ne doit pas bloquer une mise en ligne saine.
   console.warn('\n  avertissement : /api/health n’expose pas son commit — la propagation');
   console.warn('  n’est pas vérifiable, la version sondée peut être l’ancienne.');
-} else if (sha && servi !== sha) {
+} else if (sha && !(typeof servi === 'string' && servi.startsWith(sha))) {
   console.error(`\nLe commit attendu n'est pas en ligne après ${attente} s (servi : ${servi}).`);
   console.error(`Attendu : ${sha}. Vérifier l’état du déploiement avant de conclure.`);
   process.exit(2);

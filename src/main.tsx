@@ -6,10 +6,12 @@ import {installApiFailureInterceptor} from './lib/apiDiagnostics';
 import {initAnalytics} from './lib/analytics';
 import {captureAttribution} from './lib/attribution';
 import {captureReferralCode} from './lib/referralCapture';
+import {initBrowserMonitoring} from './lib/browserMonitoring';
 
 // Le diagnostic d'erreur API reste synchrone : un déploiement sans backend
 // doit être nommé comme tel, pas affiché comme un NOT_FOUND brut.
 installApiFailureInterceptor();
+try { initBrowserMonitoring(); } catch { /* monitoring never blocks the app */ }
 
 // Le reste (analytics, attribution, parrainage) est différé après le premier
 // paint — 3 scripts tiers au démarrage = LCP pénalisé pour zéro valeur perçue.

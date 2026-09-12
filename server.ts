@@ -127,6 +127,9 @@ import { normalizeWaitlistSource } from './src/lib/waitlistSources';
 import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
 import { emailService } from './src/lib/emailService';
 import { computeEmailHealth } from './src/lib/emailHealth';
+import { captureServerException, initServerMonitoring, isServerMonitoringEnabled } from './src/server/monitoring';
+
+initServerMonitoring();
 
 // Init Supabase — lancée au chargement du module mais ne bloque plus
 // l'écoute HTTP. 1–2 s de réseau au cold start ne doivent pas retarder le
@@ -1147,6 +1150,10 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     brand: 'KURLA Beauty',
     geminiEnabled: !!process.env.GEMINI_API_KEY,
     stripeEnabled: !!process.env.STRIPE_SECRET_KEY,
+    monitoring: {
+      provider: 'sentry',
+      configured: isServerMonitoringEnabled()
+    },
     productsCount: products.length,
     supabaseStatus: serverDb.getStatusSummary(),
     time: new Date().toISOString(),
@@ -1155,7 +1162,7 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     // l'ancien build — ou servir le nouveau sans qu'on puisse le prouver.
     // `verifier-deploiement.mjs` attend ce commit avant de sonder quoi que
     // ce soit d'autre.
-    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     deployment: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   });
 }));
@@ -2686,6 +2693,12 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     path: req.path,
     error: error?.message || String(error)
   }));
+  captureServerException(error, {
+    requestId,
+    method: req.method,
+    path: req.path,
+    status: 500
+  });
   if (res.headersSent) return next(error);
 
   if (error?.type === 'entity.too.large' || error?.status === 413) {
