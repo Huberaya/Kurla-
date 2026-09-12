@@ -304,6 +304,42 @@ appartient au catalogue.
 n'est donc datée, ce qui rend l'audit impossible. Il faudrait un trigger —
 donc une migration, donc à la main.
 
+### Panne du 12/09/2026 — le catalogue entier masqué par une règle sans données
+
+**Symptôme.** `/api/products` renvoyait `{"products":[],"count":0}` en 200 :
+la boutique ne servait plus rien, sans erreur, alors que la base comptait 63
+produits publiés. `/api/health` annonçait 64 produits. Rien ne signalait de
+panne.
+
+**Cause.** `3b68ac3` (industrialisation de la couche de vérité) exige
+désormais un `supplier_sku` pour toute précommande externe
+(`hasDocumentedExternalPreorder`). Or **0 produit publié sur 63 porte ce
+champ**, alors que `supplier_id` et `source_supplier` sont renseignés sur les
+63. Comme les 63 portent le badge « preorder », tous étaient exclus d'un coup.
+
+**Décision — arbitrée par l'utilisateur.** Le fournisseur et sa source
+suffisent à documenter une précommande : ce sont deux informations dues au
+consommateur. Le SKU fournisseur est une référence commerciale interne ; il
+devient une **alerte de préparation au sourcing**
+(`evaluateCatalogSourcingReadiness`, qui le signalait déjà comme manquant) et
+non un blocage de mise en ligne. La règle est modifiée dans
+`src/lib/preorderEvidence.ts` — je touche donc à la couche de vérité, et je
+le signale explicitement.
+
+**Pourquoi pas compléter les données.** Aucun SKU réel n'existe :
+`docs/sourcing/C1_HERO_DOSSIER_COLLECTE.csv` est un modèle vide (0 SKU sur
+3, statut `blocked_missing_external_evidence`) et aucun import n'en contient.
+Les inventer aurait été une fabrication — précisément ce qui est interdit.
+
+Épinglé dans `tests/kurla_catalog_truth.test.ts` : une précommande sans SKU
+mais fournisseur et source documentés reste en ligne.
+
+**Leçon, et elle vaut pour nous deux.** Tous les bancs passaient : ils
+exécutent la couche de vérité en mémoire, sur des fixtures complètes qui
+portent un SKU. Une règle qui vide le catalogue **réel** ne les fait donc
+jamais échouer. Seule une sonde sur la production l'a vu — encore fallait-il
+la lancer. Nos vérifications protègent le code et le schéma, pas les données.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`
