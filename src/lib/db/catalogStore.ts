@@ -319,14 +319,24 @@ export async function getPublicProducts(store: SupabaseServerStore): Promise<any
     // 63 produits au lieu de 96, et donc zéro cible — l'endpoint répondait
     // correctement mais à vide, sans qu'aucune erreur ne le signale.
     //
-    // L'absence de ce filtre n'est pas une brèche : ce qui sort est filtré
-    // deux fois (statut publié et marqueur de formulation) puis reprojeté
-    // sans visuel ni disponibilité par `projeterFicheCiblePeau`.
+    // Aucun filtre d'état commercial non plus, et c'est le correctif :
+    // `catalog_status = 'published'` et `is_active` décrivent une mise sur le
+    // marché. Une formule cible n'est PAS sur le marché — le générateur la pose
+    // en `draft` + inactive, et `tests/kurla_catalog_truth.test.ts` l'exige.
+    // Exiger ici un état commercial revenait à demander à une fiche d'être
+    // vendue pour pouvoir être lue : mesuré le 12/09/2026, `/api/peau/gamme`
+    // répondait `count=0` en production, seul silence critique de la sonde.
+    //
+    // Le seul filtre légitime est l'identité — `estFicheCiblePeau`. C'est aussi
+    // lui qui protège : le marqueur de formulation cible qu'il exige est celui
+    // que `hasMinimalCatalogProof` rejette, donc ces fiches ne peuvent pas
+    // devenir achetables par ce chemin.
+    //
+    // L'absence de filtre commercial n'est pas une brèche : ce qui sort est
+    // reprojeté sans visuel ni disponibilité par `projeterFicheCiblePeau`.
     const produits = await getProducts(store, { includeInactive: true });
     return trierFichesCibles(
       produits
-        .filter(produit => (produit.catalogStatus ?? produit.catalog_status) === 'published')
-        .filter(produit => produit.isActive !== false)
         .filter(estFicheCiblePeau)
         .map(projeterFicheCiblePeau)
     );

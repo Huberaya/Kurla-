@@ -506,3 +506,41 @@ propre écouteur).
 qui manque est une clé réelle, que seul le propriétaire du compte peut produire.
 Jusque-là les routes refusent explicitement et `PeauC26FinalPanel` affiche
 FR82/BE76 en TEST — ce qui est la vérité, pas un oubli.
+
+### La gamme peau était vide à cause d'une contradiction entre deux exigences
+
+Mesuré le 12/09/2026 : `/api/peau/gamme` répondait `count=0` en production — le
+seul silence critique de la sonde. Ce n'était pas une donnée manquante.
+
+Deux exigences se contredisaient :
+
+- `getSkinRangeTargets` exigeait `catalog_status = 'published'` **et**
+  `is_active <> false` — des états de **mise sur le marché** ;
+- `scripts/generate-skin-range-sql.ts` pose les fiches en `draft` et inactives,
+  et `tests/kurla_catalog_truth.test.ts` l'exige explicitement (« la gamme
+  interne doit être générée en brouillon », « doit être inactive »).
+
+Une formule cible n'est pas sur le marché. Lui demander un état commercial pour
+pouvoir être lue la condamnait à ne jamais être servie. Il y avait aussi une
+contradiction interne : `getProducts(store, { includeInactive: true })` va
+chercher les lignes inactives, puis le filtre `isActive !== false` les rejetait
+aussitôt.
+
+**Correctif porté sur la route, pas sur les données** — aucun statut n'est
+basculé, `kurla_catalog_truth` reste vert. `getSkinRangeTargets` ne filtre plus
+que sur l'identité (`estFicheCiblePeau`). C'est suffisant et c'est ce qui
+protège : le marqueur de formulation cible qu'exige `estFicheCiblePeau` est
+celui que `hasMinimalCatalogProof` rejette (`catalogTruth.ts:161`), donc ces
+fiches ne peuvent pas devenir achetables par ce chemin.
+
+**Si vous touchez à `getSkinRangeTargets` ou à `hasMinimalCatalogProof`, lisez
+`tests/kurla_gamme_peau_sql.test.ts`** : il rejoue le SQL généré dans les
+prédicats de l'application, et sert une cible en brouillon via le store mémoire.
+Contrôle négatif effectué dans les deux sens — remettre les filtres commerciaux
+fait tomber la suite, et remettre `'draft'` en `'published'` dans le générateur
+aussi.
+
+**Reste une action manuelle**, comme pour les migrations : coller
+`supabase/a-appliquer/gamme-peau.sql` dans Supabase > SQL Editor. Il crée les 13
+fiches de `KURLA_SKIN_RANGE` (les 3 historiques vivent déjà en base). Idempotent.
+Sans ce SQL la route corrigée ne trouve toujours que les 3 historiques.
