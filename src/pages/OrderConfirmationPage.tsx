@@ -126,7 +126,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ se
             <a href="/boutique" className="px-5 py-3 rounded-full bg-kurla-carbon text-white text-xs font-semibold inline-flex items-center justify-center gap-2">
               <ShoppingBag className="w-4 h-4" /> Retour à la boutique
             </a>
-            <a href={`/suivi-commande?order=${encodeURIComponent(result.order.id)}`} className="px-5 py-3 rounded-full bg-kurla-copper text-white text-xs font-semibold">
+            <a href={result?.order ? `/suivi-commande?order=${encodeURIComponent(result.order.id)}` : '/suivi-commande'} className="px-5 py-3 rounded-full bg-[#C8753D] text-white text-xs font-semibold">
               Suivre ma commande
             </a>
             <a href="/account" className="px-5 py-3 rounded-full border border-kurla-copper text-kurla-copper text-xs font-semibold">

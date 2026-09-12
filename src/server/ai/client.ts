@@ -7,7 +7,7 @@ import { GoogleGenAI } from '@google/genai';
  * déterministe au lieu de tomber. Aucun appel réseau n'a lieu à l'import.
  */
 export function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
   return new GoogleGenAI({
     apiKey,

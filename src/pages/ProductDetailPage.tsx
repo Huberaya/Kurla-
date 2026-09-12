@@ -26,6 +26,7 @@ import {
 } from '../services/marketplaceService';
 import { ArchetypeRatingsPanel } from '../components/product/ArchetypeRatingsPanel';
 import { ProductVerificationPanel } from '../components/product/ProductVerificationPanel';
+import { ProductCommunityQuestions } from '../components/product/ProductCommunityQuestions';
 import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
@@ -450,6 +451,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
           <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><div className="flex items-center justify-between gap-3 mb-4"><SectionTitle icon={<Mail className="w-5 h-5" />} title="Questions & réponses" /><span className="text-xs text-kurla-cream/50">{trust.questionsCount} réponse(s)</span></div>{trust.questions.length ? <div className="space-y-3">{trust.questions.map(item => <div key={item.id} className="rounded-xl border border-kurla-cream/10 p-3"><p className="text-xs font-semibold">Q. {item.question}</p>{item.answer && <p className="text-xs text-kurla-cream/70 mt-2">R. {item.answer}</p>}</div>)}</div> : <p className="text-sm text-kurla-cream/60">Aucune question publiée pour le moment.</p>}{user ? <div className="mt-6 pt-5 border-t border-kurla-cream/10 space-y-2"><textarea value={question} onChange={event => setQuestion(event.target.value)} placeholder="Posez une question sur la formule, l’usage ou la livraison" rows={3} className="w-full rounded-xl border border-kurla-cream/15 bg-black/20 px-3 py-2 text-xs text-kurla-cream placeholder:text-kurla-cream/35 focus:border-kurla-copper focus:outline-none resize-none" /><button disabled={busy || question.trim().length < 5} onClick={() => withAction(() => askProductQuestion(product.id, question, session?.access_token))} className="inline-flex items-center gap-2 rounded-full bg-kurla-copper px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"><Send className="w-3.5 h-3.5" /> Poser ma question</button></div> : <p className="mt-5 text-xs text-kurla-cream/60">Connectez-vous pour poser une question à l’équipe.</p>}</section>
         </div>
+
+        <ProductCommunityQuestions productId={product.id} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <ArchetypeRatingsPanel productId={product.id} />

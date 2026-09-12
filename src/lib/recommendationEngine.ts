@@ -119,6 +119,8 @@ export interface Recommendation {
    * « aucun conseil à donner ».
    */
   needNuances: NeedNuance[];
+  /** CHANTIER D2 — ce que le profil ne déclare pas, dit plutôt qu'estimé. */
+  needLimitations: string[];
 }
 
 export interface UsageCost {
@@ -507,7 +509,8 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
       unmetNeeds: fit?.unmetNeeds ?? [],
       usageCost: computeUsageCost(product),
       careTarget: wigFit.careTarget,
-      needNuances: (fit?.needSignals || []).flatMap(signal => signal.nuances)
+      needNuances: (fit?.needSignals || []).flatMap(signal => signal.nuances),
+      needLimitations: (fit?.needSignals || []).flatMap(signal => signal.limitations)
     });
   }
 

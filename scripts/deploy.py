@@ -19,6 +19,10 @@ import time
 import urllib.error
 import urllib.request
 
+# Alias de production. L'URL propre au déploiement, elle, est protégée par
+# le SSO Vercel et répond 302 : on ne peut sonder que l'alias.
+ALIAS_PRODUCTION = "https://kurlabeauty.vercel.app"
+
 PROJECT_ID = "prj_NOZH3rg95ppmyvKy5KAeCbBxCFtl"
 REPO_ID = 1322277927
 API = "https://api.vercel.com"
@@ -43,7 +47,76 @@ def request(method: str, path: str, body=None, token: str = ""):
         raise SystemExit(f"Vercel a refusé la requête ({e.code}) : {detail}")
 
 
+def verifier(sha: str) -> int:
+    """Vérifie que la version mise en ligne répond réellement.
+
+    Le 11/09/2026, un déploiement a été annoncé « READY » puis déclaré
+    réussi alors que **toute** l'API répondait 500 : un module importé
+    sans être déclaré empêchait le serveur de démarrer. La page
+    d'accueil, elle, répondait 200, et tous les bancs étaient verts —
+    rien ne trahissait la panne avant une sonde manuelle, une heure
+    plus tard.
+
+    Un déploiement qu'on ne vérifie pas n'est pas un déploiement. La
+    vérification est donc systématique, et son code de sortie devient
+    celui de la mise en ligne.
+    """
+    url = os.environ.get("KURLA_PROD_URL", "").strip() or ALIAS_PRODUCTION
+    commande = ["node", "scripts/verifier-deploiement.mjs", "--url", url]
+    if sha:
+        commande += ["--sha", sha[:7]]
+
+    print("\nVérification après mise en ligne…")
+    try:
+        resultat = subprocess.run(commande)
+    except (OSError, subprocess.SubprocessError) as erreur:
+        print(f"\nNON VÉRIFIÉ : la sonde n'a pas pu être lancée ({erreur}).")
+        print("La version est peut-être en ligne, peut-être à terre :")
+        print("la vérifier à la main avant toute annonce.")
+        return 1
+
+    if resultat.returncode != 0:
+        print("\nLa version est en ligne, mais elle ne répond pas correctement.")
+        print("Corriger ou revenir en arrière avant toute annonce.")
+        return resultat.returncode
+
+    return verifier_schema()
+
+
+def verifier_schema() -> int:
+    """Le schéma : Vercel déploie seul, les migrations s'appliquent à la main.
+
+    Rien ne signale l'écart entre les deux, et le code déployé peut
+    interroger une table que la base n'a pas — mesuré le 12/09/2026 avec
+    `photo_ai_analyses` et `push_subscriptions`, requêtées en production
+    sans jamais avoir été créées. Comme pour les endpoints, seuls les
+    écarts **nouveaux** bloquent : une migration en attente depuis
+    longtemps est un constat, pas une régression.
+    """
+    acces = os.environ.get("SUPABASE_URL", "").strip() and (
+        os.environ.get("SUPABASE_SECRET_KEY", "").strip()
+        or os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    )
+    if not acces:
+        print("\nSchéma NON VÉRIFIÉ : SUPABASE_URL et une clé d'accès sont")
+        print("nécessaires. Une migration en attente ne se verrait pas —")
+        print("lancer scripts/verifier-schema.mjs à la main pour lever le doute.")
+        return 0
+
+    print("\nVérification du schéma…")
+    try:
+        return subprocess.run(["node", "scripts/verifier-schema.mjs"]).returncode
+    except (OSError, subprocess.SubprocessError) as erreur:
+        print(f"\nSchéma NON VÉRIFIÉ : la sonde n'a pas pu être lancée ({erreur}).")
+        return 1
+
+
 def main() -> None:
+    # Sans cela, les lignes du parent attendent la sortie du processus et
+    # le journal arrive après celui de la sonde : on croit lire la
+    # vérification avant la mise en ligne.
+    sys.stdout.reconfigure(line_buffering=True)
+
     token = os.environ.get("VERCEL_TOKEN", "").strip()
     if not token:
         raise SystemExit("VERCEL_TOKEN n'est pas défini dans l'environnement.")
@@ -70,9 +143,11 @@ def main() -> None:
         if state in ("READY", "ERROR", "CANCELED"):
             if state == "READY":
                 print(f"  en ligne : https://{current.get('url')}")
-            return
+                return verifier(sha)
+            return 1
     print("  délai d'attente dépassé")
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

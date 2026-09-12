@@ -93,6 +93,7 @@ import { registerSourcingRoutes } from './src/server/routes/sourcing';
 import { registerProspectRoutes } from './src/server/routes/prospects';
 import { registerSourcingStrategyRoutes } from './src/server/routes/sourcingStrategy';
 import { registerRetentionNudgeRoutes } from './src/server/routes/retentionNudges';
+import { registerProductionProbeRoutes } from './src/server/routes/productionProbe';
 import { registerOperationsCockpitRoutes } from './src/server/routes/operationsCockpit';
 import { registerBatchRoutes } from './src/server/routes/batches';
 import { registerAiAssistantRoutes } from './src/server/routes/aiAssistant';
@@ -113,6 +114,8 @@ import { registerEditorialComplianceRoutes } from './src/server/routes/editorial
 import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGraphAdmin';
 import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
 import { registerStrategyRoutes } from './src/server/routes/strategy';
+import { registerGrowthControlRoutes } from './src/server/routes/growthControl';
+import { registerFunnelEventRoutes } from './src/server/routes/funnelEvents';
 import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerConversionFunnelRoutes } from './src/server/routes/conversionFunnel';
 import { registerCommunityRoutes } from './src/server/routes/community';
@@ -127,6 +130,9 @@ import { normalizeWaitlistSource } from './src/lib/waitlistSources';
 import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
 import { emailService } from './src/lib/emailService';
 import { computeEmailHealth } from './src/lib/emailHealth';
+import { captureServerException, initServerMonitoring, isServerMonitoringEnabled } from './src/server/monitoring';
+
+initServerMonitoring();
 
 // Init Supabase — lancée au chargement du module mais ne bloque plus
 // l'écoute HTTP. 1–2 s de réseau au cold start ne doivent pas retarder le
@@ -561,9 +567,15 @@ app.post('/api/stripe/create-checkout-session', rateLimit('checkout', 20, 60_000
 
     const stripe = getStripeClient();
     if (!stripe) {
+      // 503 et non 400 : la requête du client est correcte, c'est le serveur
+      // qui n'a pas de clé. Les cinq autres routes de paiement répondent déjà
+      // 503 avec ce même `code` — c'était la seule déviation, alors que
+      // `server.ts` annonce « chaque route de paiement répond 503 ».
       console.error('[Stripe Checkout Error] Stripe client non configuré (STRIPE_SECRET_KEY manquant)');
-      return res.status(400).json({
-        error: 'Paiement Stripe non configuré sur le serveur. La clé STRIPE_SECRET_KEY est manquante.'
+      return res.status(503).json({
+        error: 'Paiement indisponible.',
+        code: 'PAYMENT_NOT_CONFIGURED',
+        note: 'Aucune clé Stripe n\u2019est configurée sur cet environnement. KURLA ne simule pas un encaissement : le panier est conservé, aucune commande n\u2019est créée.'
       });
     }
 
@@ -1141,9 +1153,20 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     brand: 'KURLA Beauty',
     geminiEnabled: !!process.env.GEMINI_API_KEY,
     stripeEnabled: !!process.env.STRIPE_SECRET_KEY,
+    monitoring: {
+      provider: 'sentry',
+      configured: isServerMonitoringEnabled()
+    },
     productsCount: products.length,
     supabaseStatus: serverDb.getStatusSummary(),
     time: new Date().toISOString(),
+    // Quel build répond, exactement ? Sans ces deux champs, un déploiement
+    // peut être annoncé « en ligne » alors que l'alias sert encore
+    // l'ancien build — ou servir le nouveau sans qu'on puisse le prouver.
+    // `verifier-deploiement.mjs` attend ce commit avant de sonder quoi que
+    // ce soit d'autre.
+    commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    deployment: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   });
 }));
 
@@ -1191,7 +1214,20 @@ app.get('/api/products/:productId', rateLimit('product-single', 120, 60_000), as
 // deux garde-fous vérifiés par le banc `kurla_gamme_peau_cible`.
 app.get('/api/peau/gamme', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const fiches = await serverDb.getSkinRangeTargets();
-  res.json({ fiches, count: fiches.length, availabilityState: 'formulation_target' });
+  res.json({
+    fiches,
+    count: fiches.length,
+    availabilityState: 'formulation_target',
+    // Un 200 à vide ne se lit pas comme une panne : seize fiches sont
+    // restées invisibles plusieurs jours parce que la route répondait
+    // correctement, mais à rien — d'abord un filtre trop strict, puis des
+    // fiches repassées en brouillon. Le vide doit donc être énoncé, comme
+    // /api/professionals le fait déjà. La sonde `probe-production.mjs`
+    // traite un vide non expliqué comme un silence.
+    note: fiches.length === 0
+      ? 'Aucune fiche de formulation n’est publiée pour le moment. La gamme peau KURLA est en cours de formulation : rien n’est encore rendu public.'
+      : undefined
+  });
 }));
 
 // Customer-facing trust data is deliberately separated from the catalogue
@@ -1203,7 +1239,18 @@ app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRe
     serverDb.getProductReviews(product.id),
     serverDb.getProductQuestions(product.id)
   ]);
-  res.json({ reviews, questions, verifiedReviewCount: reviews.length, questionsCount: questions.length });
+  // Même règle que /api/professionals et /api/peau/gamme : une absence est
+  // énoncée. Un produit sans avis renvoie « aucun avis vérifié », pas trois
+  // tableaux vides qu'on ne peut pas distinguer d'une panne de lecture.
+  res.json({
+    reviews,
+    questions,
+    verifiedReviewCount: reviews.length,
+    questionsCount: questions.length,
+    note: reviews.length === 0 && questions.length === 0
+      ? 'Aucun avis vérifié et aucune question publiée pour ce produit. KURLA n’affiche que des avis contrôlés.'
+      : undefined
+  });
 }));
 
 /**
@@ -1536,6 +1583,7 @@ registerSourcingRoutes(app);
 registerProspectRoutes(app);
 registerSourcingStrategyRoutes(app);
 registerRetentionNudgeRoutes(app);
+registerProductionProbeRoutes(app);
 registerOperationsCockpitRoutes(app);
 registerBatchRoutes(app);
 registerAiAssistantRoutes(app);
@@ -1554,6 +1602,8 @@ registerEditorialComplianceRoutes(app);
 registerIngredientGraphRoutes(app);
 registerIngredientNavRoutes(app);
 registerStrategyRoutes(app);
+registerGrowthControlRoutes(app);
+registerFunnelEventRoutes(app);
 registerLaunchTractionRoutes(app);
 registerConversionFunnelRoutes(app);
 registerCommunityRoutes(app);
@@ -1729,6 +1779,45 @@ app.post('/api/notification-preferences', asyncRoute(async (req: AuthenticatedRe
 
   const updated = await serverDb.updateNotificationPreferences(user.id, prefs);
   res.json({ preferences: updated });
+}));
+
+// 2b. Web Push. The subscription is user-owned; the VAPID private key never
+// leaves the server and is never returned by this route.
+app.get('/api/notifications/push/public-key', rateLimit('push-public-key', 60, 60_000), asyncRoute(async (_req: AuthenticatedRequest, res: Response) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '';
+  if (!publicKey) {
+    res.status(503).json({ error: 'Notifications push indisponibles.', code: 'PUSH_NOT_CONFIGURED' });
+    return;
+  }
+  res.json({ publicKey });
+}));
+
+app.get('/api/notifications/push-subscriptions', rateLimit('push-subscriptions', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  res.json({ subscriptions: await serverDb.getPushSubscriptions(user.id) });
+}));
+
+app.post('/api/notifications/push-subscriptions', rateLimit('push-subscription-save', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const subscription = await serverDb.savePushSubscription(user.id, req.body);
+    res.status(201).json({ subscription: { id: subscription.id, endpoint: subscription.endpoint, createdAt: subscription.createdAt } });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Abonnement push invalide.') });
+  }
+}));
+
+app.delete('/api/notifications/push-subscriptions', rateLimit('push-subscription-delete', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    await serverDb.deletePushSubscription(user.id, String(req.body?.endpoint || ''));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: safeApiError(error, 'Suppression de l’abonnement push impossible.') });
+  }
 }));
 
 // 3. Shipments API: an order id is not a capability. Check order ownership first.
@@ -2626,6 +2715,12 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     path: req.path,
     error: error?.message || String(error)
   }));
+  captureServerException(error, {
+    requestId,
+    method: req.method,
+    path: req.path,
+    status: 500
+  });
   if (res.headersSent) return next(error);
 
   if (error?.type === 'entity.too.large' || error?.status === 413) {

@@ -108,6 +108,9 @@ export async function purgeExpiredBeautyProfilePhotos(
       }
     }
 
+    const expiredIds = new Set(expired.map(photo => photo.id));
+    for (const photo of expired) store.inMemoryBeautyProfilePhotoBytes.delete(photo.id);
+    store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => !(item.userId === userId && expiredIds.has(item.photoId)));
     const remaining = photos.filter(photo => !isExpired(photo));
     if (remaining.length === 0) store.inMemoryBeautyProfilePhotos.delete(userId);
     else store.inMemoryBeautyProfilePhotos.set(userId, remaining);

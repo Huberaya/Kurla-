@@ -1,0 +1,31 @@
+name: KURLA production monitor
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe production endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout probe
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Confirm Node.js 22
+        run: node -e "if (!process.versions.node.startsWith('22.')) { throw new Error('Node.js 22 requis, trouvé ' + process.versions.node); }"
+
+      - name: Probe production strictly
+        env:
+          KURLA_PROD_URL: https://kurlabeauty.vercel.app
+        run: node scripts/probe-production.mjs --url "$KURLA_PROD_URL" --strict

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Smartphone, Download, Share, PlusSquare, WifiOff, Bell, Store, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { isPushSupported, subscribeToPush, unsubscribeFromPush } from '../lib/pushNotifications';
 
 /**
  * PAGE « APPLICATION » — transformer la plateforme en application, visible.
@@ -35,9 +37,13 @@ function isStandalone(): boolean {
 }
 
 export const ApplicationPage: React.FC = () => {
+  const { session } = useAuth();
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [standalone, setStandalone] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState('');
 
   useEffect(() => {
     setStandalone(isStandalone());
@@ -53,6 +59,27 @@ export const ApplicationPage: React.FC = () => {
       window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    navigator.serviceWorker.ready.then(registration => registration.pushManager.getSubscription().then(subscription => setPushEnabled(Boolean(subscription)))).catch(() => {});
+  }, []);
+
+  const togglePush = async () => {
+    if (!session?.access_token || pushBusy) return;
+    setPushBusy(true);
+    setPushMessage('');
+    const result = pushEnabled
+      ? await unsubscribeFromPush(session.access_token)
+      : await subscribeToPush(session.access_token);
+    if (result.ok) {
+      setPushEnabled(!pushEnabled);
+      setPushMessage(pushEnabled ? 'Notifications désactivées.' : 'Notifications activées sur cet appareil.');
+    } else {
+      setPushMessage('message' in result ? result.message : 'Les notifications push n’ont pas pu être activées.');
+    }
+    setPushBusy(false);
+  };
 
   const install = async () => {
     if (!installEvent) return;
@@ -142,11 +169,19 @@ export const ApplicationPage: React.FC = () => {
               <p className="text-xs text-[#5A4638]">L’application s’ouvre sans réseau. Honnêtement : la coquille seulement — vos données et le catalogue exigent une connexion, et nous ne mettons jamais vos données personnelles en cache sur l’appareil.</p>
             </div>
             <div>
-              <Bell className="w-5 h-5 text-kurla-copper mb-2" />
-              <p className="text-sm font-bold mb-1">À venir</p>
-              <p className="text-xs text-[#5A4638]">Rappels de routine et notifications (avec votre accord explicite, jamais par défaut) — prévus avec le passage sur les stores.</p>
+              <Bell className="w-5 h-5 text-[#C8753D] mb-2" />
+              <p className="text-sm font-bold mb-1">Notifications contrôlées</p>
+              <p className="text-xs text-[#5A4638]">Les notifications push Web sont activables depuis cette page, avec accord explicite. Elles restent dépendantes de la configuration VAPID du serveur.</p>
             </div>
           </div>
+        </div>
+
+        {/* Notifications push */}
+        <div className="rounded-3xl bg-white border border-[#E8E1DA] p-6 sm:p-8 mb-10">
+          <h2 className="font-bold text-lg mb-3 flex items-center gap-2"><Bell className="w-5 h-5 text-[#C8753D]" /> Notifications push</h2>
+          <p className="text-sm text-[#5A4638] mb-4">Les rappels restent désactivés par défaut. Vous choisissez cet appareil, et vous pouvez retirer l’autorisation depuis cette page ou les réglages du navigateur.</p>
+          {!session ? <p className="text-xs text-[#8A7364]">Connectez-vous pour activer les notifications liées à votre compte.</p> : !isPushSupported() ? <p className="text-xs text-[#8A7364]">Ce navigateur ne prend pas en charge les notifications push Web.</p> : <button type="button" onClick={() => void togglePush()} disabled={pushBusy} className="inline-flex items-center gap-2 rounded-full bg-[#C8753D] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{pushBusy ? 'Mise à jour…' : pushEnabled ? 'Désactiver les notifications' : 'Activer les notifications'}</button>}
+          {pushMessage && <p className="mt-3 text-xs text-[#5A4638]" role="status">{pushMessage}</p>}
         </div>
 
         {/* Roadmap stores */}
@@ -155,8 +190,7 @@ export const ApplicationPage: React.FC = () => {
             <Store className="w-5 h-5 text-kurla-copper" /> Et l’App Store / le Play Store ?
           </h2>
           <p className="text-sm text-[#5A4638] mb-4">
-            C’est l’étape suivante, déjà cadrée : le même code sera empaqueté avec Capacitor pour
-            les deux stores. Ce qui la déclenche n’est pas technique, ce sont deux comptes :
+            KURLA est déjà installable comme application PWA. Dans ce dépôt, aucun projet iOS ou Android natif n’est présent : il ne faut donc pas prétendre qu’un binaire App Store ou Play Store est déjà construit. Le passage natif doit empaqueter cette application existante, sans recréer un produit parallèle.
           </p>
           <ul className="space-y-2 text-sm text-[#5A4638]">
             <li className="flex gap-2"><ArrowRight className="w-4 h-4 text-kurla-copper shrink-0 mt-0.5" /> <span><strong>Google Play</strong> : compte développeur (25 $ une fois) — publication en quelques jours.</span></li>

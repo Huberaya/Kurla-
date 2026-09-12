@@ -23,12 +23,33 @@ export interface NeedSignal {
   code: string;
   met: boolean;
   /**
-   * Force du besoin, 0–100. Ne participe PAS au score : le chantier F décidera
-   * de la pondération. D1 fournit la mesure, pas la formule.
+   * Force du besoin, 0–100. Depuis le chantier F, c'est **le poids** du besoin
+   * dans le score : voir `NeedWeight` et la formule pondérée plus bas.
    */
   intensity: number;
   /** Conseils différenciés, chacun rattaché à un champ déclaré du profil. */
   nuances: NeedNuance[];
+  /**
+   * CHANTIER D2 — ce que le profil ne déclare pas et sans quoi le conseil
+   * serait une supposition. Dit, pas estimé.
+   */
+  limitations: string[];
+}
+
+/**
+ * CHANTIER F — le poids d'un besoin dans le score.
+ *
+ * Exposé plutôt que seulement calculé : un score dont on ne peut pas voir la
+ * pondération n'est pas explicable, et l'explicabilité est la raison d'être de
+ * ce moteur.
+ */
+export interface NeedWeight {
+  code: string;
+  met: boolean;
+  /** Intensité mesurée si le besoin est couvert, poids de référence sinon. */
+  weight: number;
+  /** Ce que ce besoin pèse réellement dans le score, en pourcentage. */
+  share: number;
 }
 
 export interface KurlaFitResult {
@@ -38,17 +59,27 @@ export interface KurlaFitResult {
   evidence: FitEvidence[];
   unmetNeeds: string[];
   needSignals: NeedSignal[];
+  /** CHANTIER F — détail de la pondération qui produit `score`. */
+  needWeights: NeedWeight[];
 }
 
 /**
- * Un besoin couvert part d'une base : il existe et il est servi. L'intensité
- * exprime ensuite à quel point les signaux déclarés le rendent pressant. Sans
- * cette base, un besoin couvert sans aucun signal fort aurait une intensité
- * nulle et serait indiscernable d'un besoin non couvert.
+ * Un besoin couvert part d'une base : il existe et il est servi. Les signaux
+ * déclarés s'y **ajoutent** ensuite.
+ *
+ * Un `Math.max(base, signaux)` avait été écrit d'abord : il écrasait toute
+ * différence en dessous de la base — une peau déclarée réactive sous perruque
+ * et une peau tolérante tombaient toutes les deux à 50. Le banc l'a montré.
+ *
+ * Limite mesurée, maintenant que F consomme l'intensité : l'écrêtage à 100
+ * sature les profils très renseignés. Deux besoins également saturés pèsent
+ * alors pareil, ce qui ramène localement au comportement non pondéré. Corriger
+ * cela demanderait une échelle non bornée, donc un changement de contrat sur
+ * `intensity` — hors périmètre, et sans effet mesuré à ce jour.
  */
 const BASE_INTENSITY = 50;
 
-const NO_DEPTH: NeedDepth = { intensity: 0, nuances: [] };
+const NO_DEPTH: NeedDepth = { intensity: 0, nuances: [], limitations: [] };
 
 function known(value: unknown): boolean {
   return typeof value === 'string' && value !== '' && value !== UNKNOWN;
@@ -352,8 +383,9 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     needSignals.push({
       code: need,
       met,
-      intensity: met ? Math.max(BASE_INTENSITY, depth.intensity) : 0,
-      nuances: depth.nuances
+      intensity: met ? Math.min(100, BASE_INTENSITY + depth.intensity) : 0,
+      nuances: depth.nuances,
+      limitations: depth.limitations
     });
     if (!met) unmetNeeds.push(need);
   });
@@ -374,12 +406,74 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     signal.nuances.forEach(nuance => {
       reasons.push(`${formatValue(signal.code)} — ${nuance.advice}`);
     });
+    signal.limitations.forEach(limitation => {
+      reasons.push(`${formatValue(signal.code)} — ${limitation}`);
+    });
   });
 
   const confidenceFields = [hair.porosity, hair.density, hair.fiberCondition, hair.dryness, hair.breakage, hair.scalpCondition, skin.sensitivity, skin.hyperpigmentationTendency, skin.hydration, skin.spfUsage];
   const knownConfidence = confidenceFields.filter(known).length;
   const confidence = Math.round((knownConfidence / confidenceFields.length) * 100);
-  const score = needs.length > 0 ? Math.round((needs.length - unmetNeeds.length) / needs.length * 100) : null;
+
+  /**
+   * CHANTIER F — SCORE PONDÉRÉ.
+   *
+   * Avant : `(needs - unmetNeeds) / needs * 100`. Chaque besoin comptait
+   * pareil, qu'il soit pressant ou marginal pour cette personne. Couvrir un
+   * besoin anecdotique rapportait exactement autant que couvrir le besoin
+   * central — d'où des classements que l'utilisateur jugeait « tout juste ».
+   *
+   * Maintenant : chaque besoin pèse son **intensité mesurée** (D1–E) s'il est
+   * couvert, et un poids de référence s'il ne l'est pas. Deux propriétés
+   * deliberately conservées :
+   *
+   * - **Une couverture complète vaut toujours 100.** C'est spécifié par
+   *   `tests/beauty_profile.test.ts` et `tests/public_api.test.ts` : si tout ce
+   *   qu'un produit promet s'applique à cette personne, l'adéquation est
+   *   entière. La pondération ne doit pas punir un produit qui tient toutes
+   *   ses promesses.
+   * - **Couvrir un besoin de plus ne fait jamais baisser le score.** Le poids
+   *   d'un besoin couvert est déjà au dénominateur : l'ajouter au numérateur
+   *   ne peut qu'augmenter le rapport.
+   *
+   * Ce que F ne corrige PAS, et le dit : un produit qui ne déclare qu'un seul
+   * besoin, couvert, score toujours 100. C'est cohérent — il tient tout ce
+   * qu'il promet — mais cela ne mesure pas l'**étendue** de ce qu'il couvre.
+   * L'étendue est un autre axe, exposé par `needWeights`, pas un défaut du
+   * score.
+   */
+  const needWeights: NeedWeight[] = needSignals.map(signal => ({
+    code: signal.code,
+    met: signal.met,
+    weight: signal.met ? signal.intensity : BASE_INTENSITY,
+    share: 0
+  }));
+  const totalWeight = needWeights.reduce((sum, entry) => sum + entry.weight, 0);
+  const coveredWeight = needWeights.reduce((sum, entry) => sum + (entry.met ? entry.weight : 0), 0);
+  needWeights.forEach(entry => {
+    entry.share = totalWeight > 0 ? Math.round((entry.weight / totalWeight) * 100) : 0;
+  });
+  const score = needs.length > 0 && totalWeight > 0
+    ? Math.round((coveredWeight / totalWeight) * 100)
+    : null;
+
+  // La pondération n'est utile que si elle se voit. Elle n'est expliquée que
+  // lorsqu'elle change réellement quelque chose : au moins deux besoins, dont
+  // les poids diffèrent.
+  const distinctWeights = new Set(needWeights.map(entry => entry.weight));
+  if (needWeights.length > 1 && distinctWeights.size > 1 && unmetNeeds.length > 0) {
+    const pressing = needWeights
+      .filter(entry => entry.met && entry.weight > BASE_INTENSITY)
+      .sort((a, b) => b.weight - a.weight)[0];
+    const marginal = needWeights
+      .filter(entry => !entry.met)
+      .sort((a, b) => a.weight - b.weight)[0];
+    if (pressing && marginal) {
+      reasons.push(
+        `Score pondéré : « ${formatValue(pressing.code)} » compte pour ${pressing.share} % de l’adéquation au vu de ce que vous déclarez, « ${formatValue(marginal.code)} » pour ${marginal.share} %. Tous les besoins ne pèsent pas le même poids.`
+      );
+    }
+  }
 
   return {
     score,
@@ -387,6 +481,7 @@ export function calculateKurlaFit(product: Pick<Product, 'category' | 'needs'> &
     reasons: Array.from(new Set(reasons)),
     evidence,
     unmetNeeds,
-    needSignals
+    needSignals,
+    needWeights
   };
 }

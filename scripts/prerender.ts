@@ -6,26 +6,25 @@
  * métadonnées de la route (titre, description, canonique, Open Graph, robots,
  * JSON-LD) et dont le corps contient une amorce de contenu (<h1> + description).
  *
- * Pourquoi ce niveau, et pas un rendu React complet :
+ * Le corps est rendu avec `renderToPipeableStream` et attend `onAllReady` : les
+ * routes lazy sont donc résolues avant l'écriture, au lieu de laisser un
+ * fallback Suspense ou une simple amorce `<h1>`. Les données publiques déjà
+ * lues pour une fiche produit sont injectées dans un contexte serveur minimal ;
+ * les routes privées sans session ne reçoivent jamais de données inventées.
  *
- * 1. Nos pages lisent leurs données dans des `useEffect` au montage. Un
- *    `renderToString` n'exécute pas les effets : il produirait des squelettes de
- *    chargement, pas du contenu. Un vrai SSR de contenu exigerait de charger les
- *    données au build — c'est-à-dire de brancher le build sur Supabase et sur les
- *    pages générées du graphe, qui sont l'objet du sous-chantier 7.4.
- * 2. Ce prérendu utilise uniquement `routeMeta.ts` (données pures, aucun React,
- *    aucun navigateur). Il ne peut donc pas casser parce qu'une page touche
- *    `window` ou `localStorage` : c'est le point de fragilité qu'on évite.
+ * Les composants qui exigent encore une API navigateur pendant leur rendu sont
+ * conservés avec une amorce explicite et signalés dans la sortie du build. Cela
+ * permet une migration progressive sans transformer un échec SSR en page vide.
+ * Le client reste compatible avec `createRoot` : il reprend la navigation dès
+ * que le bundle est chargé.
  *
  * Ce que ça change réellement : un moteur qui n'exécute pas JavaScript reçoit
- * désormais, pour chaque route, un `<title>`, une description, un canonique et un
- * `<h1>` distincts — au lieu du titre unique d'`index.html`. C'est la condition
- * pour que 7.1 et 7.2 aient un effet mesurable.
- *
- * Le contenu amorce est remplacé dès le montage par React (`createRoot` vide le
- * conteneur). Si le JS échoue, l'amorce reste : c'est un filet, pas une page
- * parallèle.
+ * le corps React complet des pages rendables, avec un `<title>`, une description,
+ * un canonique, un JSON-LD et un `<h1>` distincts — au lieu d'un simple seed.
  */
+import React from 'react';
+import { renderToPipeableStream } from 'react-dom/server';
+import { Writable } from 'node:stream';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { ROUTE_META } from '../src/lib/routeMeta';
@@ -34,7 +33,9 @@ import { EN_ROUTE_CONTENT, englishBasePaths, localizeRouteMeta } from '../src/li
 import { localizedPath, splitLocale, type Locale } from '../src/lib/i18n';
 import { buildNeedTexturePages } from '../src/lib/needTexturePages';
 import { fetchIngredientPages, fetchProductPages } from './seoEntities';
+import type { EntityPage } from './seoEntities';
 import { applyContentSeed, applySeoHead } from '../src/lib/seoHead';
+import App from '../src/App';
 
 const SITE_URL = (
   process.env.SITEMAP_BASE_URL ||
@@ -167,6 +168,57 @@ export function buildRouteHtml(
   return html;
 }
 
+interface SsrContext {
+  pathname: string;
+  search: string;
+  initialProduct?: any;
+  initialProducts?: any[];
+}
+
+/**
+ * Rendu React serveur du corps complet, y compris les composants lazy.
+ *
+ * `renderToPipeableStream` est utilisé plutôt que `renderToString` : ce dernier
+ * remplace chaque Suspense par son fallback et reproduisait donc la coquille de
+ * chargement sur les pages publiques. `onAllReady` attend les chunks lazy avant
+ * d'écrire le conteneur racine.
+ */
+async function renderReactBody(context: SsrContext): Promise<string> {
+  (globalThis as typeof globalThis & { __KURLA_SSR_CONTEXT?: SsrContext }).__KURLA_SSR_CONTEXT = context;
+  let html = '';
+  let stream: ReturnType<typeof renderToPipeableStream> | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    html = await new Promise<string>((resolve, reject) => {
+      const writable = new Writable({
+        write(chunk, _encoding, callback) {
+          html += chunk.toString();
+          callback();
+        }
+      });
+      writable.once('finish', () => resolve(html));
+      stream = renderToPipeableStream(React.createElement(App), {
+        onAllReady() { stream?.pipe(writable); },
+        onShellError(error) { reject(error); },
+        onError(error) { console.error(`[SSR] ${context.pathname}:`, error instanceof Error ? error.message : String(error)); }
+      });
+      timer = setTimeout(() => {
+        stream?.abort();
+        reject(new Error(`SSR timeout for ${context.pathname}`));
+      }, 15_000);
+    });
+    return html;
+  } finally {
+    if (timer) clearTimeout(timer);
+    delete (globalThis as typeof globalThis & { __KURLA_SSR_CONTEXT?: SsrContext }).__KURLA_SSR_CONTEXT;
+  }
+}
+
+function applyReactBody(html: string, body: string): string {
+  return html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${body}</div>`);
+}
+
 async function main(): Promise<void> {
   const template = await readFile('dist/index.html', 'utf8');
   /**
@@ -187,7 +239,16 @@ async function main(): Promise<void> {
 
   let written = 0;
   for (const route of routes) {
-    const html = buildRouteHtml(template, route, SITE_URL);
+    let html = buildRouteHtml(template, route, SITE_URL);
+    try {
+      const body = await renderReactBody({ pathname: route.path, search: '' });
+      html = applyReactBody(html, body);
+    } catch (error) {
+      // Une page privée ou un composant encore navigateur-dépendant ne doit
+      // pas supprimer son fichier HTML : on conserve le seed explicite et le
+      // build signale la route à corriger au lieu d'inventer son contenu.
+      console.error(`[SSR] seed conservé pour ${route.path}:`, error instanceof Error ? error.message : String(error));
+    }
     const file = route.path === '/'
       ? 'dist/index.html'
       : join('dist', route.path.slice(1), 'index.html');
@@ -218,7 +279,13 @@ async function main(): Promise<void> {
       changefreq: 'monthly',
       priority: 0.7,
     };
-    const html = buildRouteHtml(template, meta, SITE_URL, 'fr', page);
+    let html = buildRouteHtml(template, meta, SITE_URL, 'fr', page);
+    try {
+      const body = await renderReactBody({ pathname: page.path, search: '', initialProduct: (page as EntityPage).initialProduct });
+      html = applyReactBody(html, body);
+    } catch (error) {
+      console.error(`[SSR] seed conservé pour ${page.path}:`, error instanceof Error ? error.message : String(error));
+    }
     const file = join('dist', page.path.replace(/^\//, ''), 'index.html');
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, html, 'utf8');
@@ -241,7 +308,13 @@ async function main(): Promise<void> {
       title: copy.title,
       description: copy.description,
     };
-    const html = buildRouteHtml(template, meta, SITE_URL, 'en');
+    let html = buildRouteHtml(template, meta, SITE_URL, 'en');
+    try {
+      const body = await renderReactBody({ pathname: meta.path, search: '' });
+      html = applyReactBody(html, body);
+    } catch (error) {
+      console.error(`[SSR] seed conservé pour ${meta.path}:`, error instanceof Error ? error.message : String(error));
+    }
     const file = join('dist', meta.path.slice(1), 'index.html');
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, html, 'utf8');
@@ -251,7 +324,7 @@ async function main(): Promise<void> {
 
   console.log(
     `[SEO] prérendu : ${written} pages (${routes.length} statiques + ${english} anglaises + ${needTextureEntities.length} besoin×texture + ${entities.length - needTextureEntities.length} ingrédients/produits) ` +
-    `avec <head> et amorce de contenu. Base : ${SITE_URL}.`
+    `avec <head> et corps React SSR (fallback seed uniquement si signalé). Base : ${SITE_URL}.`
   );
 }
 

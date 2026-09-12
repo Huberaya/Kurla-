@@ -29,6 +29,14 @@ export interface HairBeautyProfile {
    * ne permette de l'établir. Le déduire du genre aurait été une supposition.
    */
   facialHair: string;
+  /**
+   * Nature de la fibre d'une perruque. Champ ajouté parce que son absence
+   * bloquait un conseil : une fibre synthétique ne supporte pas la chaleur,
+   * une fibre de cheveux humains la supporte. Sans ce champ, KURLA devait
+   * refuser tout conseil de chaleur sur perruque — la bonne conduite, mais une
+   * capacité perdue.
+   */
+  wigFiber: string;
   breakage: string;
   elasticity: string;
   scalpCondition: string;
@@ -220,6 +228,14 @@ export const FACIAL_HAIR_OPTIONS = [
   { value: 'leger', label: 'Légère' },
   { value: 'moderee', label: 'Modérée' },
   { value: 'dense', label: 'Dense' },
+  { value: UNKNOWN, label: 'Je ne sais pas encore' }
+];
+
+export const WIG_FIBER_OPTIONS = [
+  { value: 'synthetique', label: 'Synthétique' },
+  { value: 'cheveux_humains', label: 'Cheveux humains' },
+  { value: 'mixte', label: 'Mélange des deux' },
+  { value: 'sans_perruque', label: 'Je ne porte pas de perruque' },
   { value: UNKNOWN, label: 'Je ne sais pas encore' }
 ];
 
@@ -525,6 +541,7 @@ export function createEmptyBeautyProfile(): BeautyProfile {
       dryness: UNKNOWN,
       frizz: UNKNOWN,
       facialHair: UNKNOWN,
+      wigFiber: UNKNOWN,
       breakage: UNKNOWN,
       elasticity: UNKNOWN,
       scalpCondition: UNKNOWN,
@@ -682,6 +699,7 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
       dryness: safeString(hair.dryness),
       frizz: safeString(hair.frizz),
       facialHair: safeString(hair.facialHair),
+      wigFiber: safeString(hair.wigFiber),
       breakage: safeString(hair.breakage),
       elasticity: safeString(hair.elasticity),
       scalpCondition: safeString(hair.scalpCondition),
@@ -743,7 +761,7 @@ function isKnown(value: unknown): boolean {
 }
 
 const hairLabels: Array<[string, string]> = [
-  ['hair.texturePatterns', 'motif(s) de texture'], ['hair.curlPattern', 'motif de boucle ou frisure'], ['hair.porosity', 'porosité'], ['hair.density', 'densité'], ['hair.strandThickness', 'épaisseur du cheveu'], ['hair.length', 'longueur'], ['hair.fiberCondition', 'état de la fibre'], ['hair.dryness', 'sécheresse'], ['hair.frizz', 'frisottis'], ['hair.facialHair', 'pilosité faciale'], ['hair.breakage', 'casse'], ['hair.elasticity', 'élasticité'], ['hair.scalpCondition', 'état du cuir chevelu'], ['hair.scalpConcerns', 'signes du cuir chevelu'], ['hair.chemicalTreatments', 'traitements chimiques'], ['hair.coloring', 'coloration'], ['hair.protectiveStyles', 'styles protecteurs'], ['hair.washFrequency', 'fréquence de lavage'], ['hair.stylingHabits', 'habitudes de coiffage'], ['hair.availableTime', 'temps disponible'], ['hair.budget', 'budget']
+  ['hair.texturePatterns', 'motif(s) de texture'], ['hair.curlPattern', 'motif de boucle ou frisure'], ['hair.porosity', 'porosité'], ['hair.density', 'densité'], ['hair.strandThickness', 'épaisseur du cheveu'], ['hair.length', 'longueur'], ['hair.fiberCondition', 'état de la fibre'], ['hair.dryness', 'sécheresse'], ['hair.frizz', 'frisottis'], ['hair.facialHair', 'pilosité faciale'], ['hair.wigFiber', 'fibre de la perruque'], ['hair.breakage', 'casse'], ['hair.elasticity', 'élasticité'], ['hair.scalpCondition', 'état du cuir chevelu'], ['hair.scalpConcerns', 'signes du cuir chevelu'], ['hair.chemicalTreatments', 'traitements chimiques'], ['hair.coloring', 'coloration'], ['hair.protectiveStyles', 'styles protecteurs'], ['hair.washFrequency', 'fréquence de lavage'], ['hair.stylingHabits', 'habitudes de coiffage'], ['hair.availableTime', 'temps disponible'], ['hair.budget', 'budget']
 ];
 // C0 INFRA — taxonomie peau figée P0 : 13 champs historiques + 9 champs diagnostic (skinType → ageRange)
 // Total 22 champs peau évalués pour confidence. `journal` et `reactionHistory` exclus (traçage, pas profil).

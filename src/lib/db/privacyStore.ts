@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from '../supabaseClient';
 import { intelligenceStore } from '../intelligenceStore';
 import { getBeautyProfile, getBeautyProfileHistory, getBeautyProfilePhotos } from './beautyProfileStore';
+import { listPhotoAiAnalyses } from './photoAnalysisStore';
 import { getFamilyDashboard } from './familyStore';
 import { getSupportTicketsByUser } from './supportStore';
 import { getLoyaltyOverview } from './loyaltyStore';
@@ -45,6 +46,7 @@ export const PERSONAL_TABLES: Array<[string, string]> = [
   ['beauty_profiles', 'user_id'],
   ['beauty_profile_history', 'user_id'],
   ['beauty_profile_photos', 'user_id'],
+  ['photo_ai_analyses', 'user_id'],
   ['skin_journal_entries', 'user_id'],
   ['skin_observance_days', 'user_id'],
   ['family_members', 'space_id'],
@@ -120,11 +122,12 @@ export interface UserDataExport {
 export async function exportUserData(store: SupabaseServerStore, userId: string): Promise<UserDataExport> {
   const supabase = getSupabaseServerClient();
   const exportErrors: string[] = [];
-  const [profile, history, photos, skinJournal, skinObservance, shelf, outcomes, protective, washDay, loyalty, familyMembers, tickets] =
+  const [profile, history, photos, photoAiAnalyses, skinJournal, skinObservance, shelf, outcomes, protective, washDay, loyalty, familyMembers, tickets] =
     await Promise.all([
       getBeautyProfile(store, userId).catch(() => undefined),
       getBeautyProfileHistory(store, userId).catch(() => []),
       getBeautyProfilePhotos(store, userId).catch(() => []),
+      listPhotoAiAnalyses(store, userId).catch(() => []),
       getSkinJournalEntries(store, userId).catch(() => []),
       getSkinObservance(store, userId).catch(() => []),
       intelligenceStore.getShelf(userId).catch(() => []),
@@ -154,6 +157,7 @@ export async function exportUserData(store: SupabaseServerStore, userId: string)
       // leur métadonnée. Le membre qui veut le fichier peut le demander ; un
       // export JSON ne doit pas embarquer de binaire.
       beautyProfilePhotos: (photos ?? []).map(photo => ({ id: photo.id, mimeType: photo.mimeType, consentAt: photo.consentAt, uploadedAt: photo.createdAt })),
+      photoAiAnalyses,
       skinJournal,
       skinObservance,
       shelf,
@@ -229,7 +233,10 @@ export async function deleteUserData(store: SupabaseServerStore, userId: string)
   // --- Repli mémoire : les collections personnelles sont vidées. ---
   store.inMemoryBeautyProfiles.delete(userId);
   store.inMemoryBeautyProfileHistory.delete(userId);
+  const deletedPhotoIds = new Set((store.inMemoryBeautyProfilePhotos.get(userId) || []).map(photo => photo.id));
   store.inMemoryBeautyProfilePhotos.delete(userId);
+  for (const photoId of deletedPhotoIds) store.inMemoryBeautyProfilePhotoBytes.delete(photoId);
+  store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => item.userId !== userId);
   store.inMemorySkinJournal.delete(userId);
   store.inMemorySkinObservance.delete(userId);
   store.inMemoryFamilyMembers.delete(userId);

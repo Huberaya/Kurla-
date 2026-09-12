@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T16:06:55.395Z",
+  "generatedAt": "2026-09-11T22:27:11.469Z",
   "routes": [
     {
       "method": "GET",
@@ -289,6 +289,51 @@
       "callers": [
         "src/components/BatchAdminPanel.tsx:111",
         "src/components/PeauKitsCoutServiPanel.tsx:28"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/growth/campaigns/:id",
+      "file": "src/server/routes/growthControl.ts:170",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/GrowthControlCenterPanel.tsx:81"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/growth/command-center",
+      "file": "src/server/routes/growthControl.ts:92",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/GrowthControlCenterPanel.tsx:55"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/growth/markets/:id",
+      "file": "src/server/routes/growthControl.ts:188",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/GrowthControlCenterPanel.tsx:85"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/growth/tasks",
+      "file": "src/server/routes/growthControl.ts:142",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/GrowthControlCenterPanel.tsx:90"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/growth/tasks/:id",
+      "file": "src/server/routes/growthControl.ts:154",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/GrowthControlCenterPanel.tsx:77"
       ]
     },
     {

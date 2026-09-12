@@ -50,10 +50,58 @@ export function initAnalytics(): void {
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 
-/** Envoie un événement à tous les fournisseurs configurés. Sans effet sinon. */
+let funnelSessionId: string | null = null;
+function randomEventId(prefix: string): string {
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return `${prefix}_${crypto.randomUUID()}`;
+  } catch { /* fallback */ }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function getFunnelSessionId(): string {
+  if (funnelSessionId) return funnelSessionId;
+  try {
+    funnelSessionId = sessionStorage.getItem('kurla_funnel_session') || randomEventId('session');
+    sessionStorage.setItem('kurla_funnel_session', funnelSessionId);
+  } catch {
+    funnelSessionId = randomEventId('session');
+  }
+  return funnelSessionId;
+}
+
+/**
+ * Copie first-party minimale du funnel. Elle ne contient ni compte, ni email,
+ * ni photo : uniquement un identifiant de session éphémère, le chemin et les
+ * paramètres e-commerce utiles au pilotage. L'échec est toujours silencieux.
+ */
+function sendFirstPartyFunnelEvent(name: string, props: Record<string, string | number | boolean>): void {
+  if (typeof window === 'undefined') return;
+  const body = JSON.stringify({
+    eventId: randomEventId('event'),
+    eventName: name,
+    sessionId: getFunnelSessionId(),
+    path: window.location.pathname,
+    props
+  });
+  try {
+    const blob = new Blob([body], { type: 'application/json' });
+    if (navigator.sendBeacon?.('/api/events/funnel', blob)) return;
+  } catch { /* fallback fetch */ }
+  try {
+    void fetch('/api/events/funnel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch { /* analytics never blocks the app */ }
+}
+
+/** Envoie un événement aux fournisseurs configurés et au funnel first-party. */
 export function trackEvent(name: string, params: EventParams = {}): void {
   if (typeof window === 'undefined') return;
   const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined));
+  sendFirstPartyFunnelEvent(name, clean);
   try { window.gtag?.('event', name, clean); } catch { /* noop */ }
   try { (window as any).plausible?.(name, { props: clean }); } catch { /* noop */ }
 }
@@ -64,6 +112,7 @@ export function trackEvent(name: string, params: EventParams = {}): void {
 // Sans ces événements, ni la conversion, ni le CAC, ni le taux
 // diagnostic→achat ne sont mesurables.
 export const analytics = {
+  pageView: () => trackEvent('page_view'),
   // ── Bas de funnel (transaction) ──
   beginCheckout: (value?: number, currency = 'EUR') =>
     trackEvent('begin_checkout', { currency, value }),

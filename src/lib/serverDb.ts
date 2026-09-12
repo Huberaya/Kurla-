@@ -93,6 +93,9 @@ import * as brandInvoiceStore from './db/brandInvoiceStore';
 import * as beautyProfileStore from './db/beautyProfileStore';
 import * as familyStore from './db/familyStore';
 import * as notificationsStore from './db/notificationsStore';
+import * as pushSubscriptionStore from './db/pushSubscriptionStore';
+import * as photoAnalysisStore from './db/photoAnalysisStore';
+import * as growthStore from './db/growthStore';
 import * as supportStore from './db/supportStore';
 import * as adaptiveRoutineStore from './db/adaptiveRoutineStore';
 import * as aiSessionStore from './db/aiSessionStore';
@@ -154,6 +157,7 @@ export class SupabaseServerStore {
   public inMemoryRestockEvents: RestockEvent[] = [];
   public inMemoryNotificationLogs: NotificationDeliveryLog[] = [];
   public inMemoryPreferences: Map<string, NotificationPreference> = new Map();
+  public inMemoryPushSubscriptions: import('./db/pushSubscriptionStore').PushSubscriptionRecord[] = [];
   public inMemoryShipments: Map<string, ShipmentDetails> = new Map();
   public inMemoryShippingAddresses: Map<string, ShippingAddressRecord[]> = new Map();
   public inMemoryShippingRates: ShippingRateRecord[] = [];
@@ -198,6 +202,12 @@ export class SupabaseServerStore {
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
   public inMemoryBeautyProfilePhotos: Map<string, BeautyProfilePhoto[]> = new Map();
+  public inMemoryBeautyProfilePhotoBytes: Map<string, Uint8Array> = new Map();
+  public inMemoryPhotoAiAnalyses: import('./db/types').PhotoAiAnalysisRecord[] = [];
+  public inMemoryGrowthTasks: import('./growthControl').GrowthTask[] = [];
+  public inMemoryGrowthCampaigns: import('./growthControl').GrowthCampaign[] = [];
+  public inMemoryGrowthMarkets: import('./growthControl').GrowthMarket[] = [];
+  public inMemoryGrowthFunnelEvents: import('./db/growthStore').GrowthFunnelEvent[] = [];
   public inMemorySkinJournal: Map<string, SkinJournalEntry[]> = new Map();
   public inMemorySkinObservance: Map<string, SkinObservanceDay[]> = new Map();
   public inMemoryFamilySpaces: Map<string, any> = new Map();
@@ -440,6 +450,9 @@ export class SupabaseServerStore {
 const storeInstance = new SupabaseServerStore();
 
 bindDomain(storeInstance, notificationsStore);
+bindDomain(storeInstance, pushSubscriptionStore);
+bindDomain(storeInstance, photoAnalysisStore);
+bindDomain(storeInstance, growthStore);
 bindDomain(storeInstance, beautyProfileStore);
 bindDomain(storeInstance, familyStore);
 bindDomain(storeInstance, supportStore);
@@ -521,6 +534,9 @@ bindDomain(storeInstance, brandInvoiceStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
+  & Curried<typeof pushSubscriptionStore>
+  & Curried<typeof photoAnalysisStore>
+  & Curried<typeof growthStore>
   & Curried<typeof beautyProfileStore>
   & Curried<typeof skinJournalStore>
   & Curried<typeof familyStore>

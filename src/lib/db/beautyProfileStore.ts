@@ -111,6 +111,18 @@ export async function getBeautyProfilePhoto(store: SupabaseServerStore, userId: 
     return (store.inMemoryBeautyProfilePhotos.get(userId) || []).find(photo => photo.id === photoId);
   }
 
+export async function getBeautyProfilePhotoBytes(store: SupabaseServerStore, userId: string, photoId: string): Promise<Uint8Array | undefined> {
+    const photo = await getBeautyProfilePhoto(store, userId, photoId);
+    if (!photo) return undefined;
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase.storage.from('beauty-profile-photos').download(photo.storagePath);
+      ensureDatabaseSuccess('lecture du contenu de la photo du profil beauté', error);
+      return data ? new Uint8Array(await data.arrayBuffer()) : undefined;
+    }
+    return store.inMemoryBeautyProfilePhotoBytes.get(photoId);
+  }
+
 export async function deleteBeautyProfilePhoto(store: SupabaseServerStore, userId: string, photoId: string): Promise<void> {
     const photo = await getBeautyProfilePhoto(store, userId, photoId);
     if (!photo) return;
@@ -122,6 +134,8 @@ export async function deleteBeautyProfilePhoto(store: SupabaseServerStore, userI
       ensureDatabaseSuccess('suppression de la photo du journal', error);
     }
     store.inMemoryBeautyProfilePhotos.set(userId, (store.inMemoryBeautyProfilePhotos.get(userId) || []).filter(item => item.id !== photoId));
+    store.inMemoryBeautyProfilePhotoBytes.delete(photoId);
+    store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => !(item.userId === userId && item.photoId === photoId));
   }
 
 export async function getBeautyProfilePhotos(store: SupabaseServerStore, userId: string): Promise<BeautyProfilePhoto[]> {
@@ -175,7 +189,14 @@ export async function uploadBeautyProfilePhoto(store: SupabaseServerStore, userI
 
     const photos = store.inMemoryBeautyProfilePhotos.get(userId) || [];
     photos.unshift(photo);
-    store.inMemoryBeautyProfilePhotos.set(userId, photos.slice(0, 10));
+    const retained = photos.slice(0, 10);
+    const evicted = photos.slice(10);
+    store.inMemoryBeautyProfilePhotos.set(userId, retained);
+    store.inMemoryBeautyProfilePhotoBytes.set(photo.id, new Uint8Array(buffer));
+    for (const oldPhoto of evicted) {
+      store.inMemoryBeautyProfilePhotoBytes.delete(oldPhoto.id);
+      store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => item.photoId !== oldPhoto.id);
+    }
     return photo;
   }
 
@@ -192,7 +213,10 @@ export async function deleteBeautyProfilePhotos(store: SupabaseServerStore, user
       const { error } = await supabase.from('beauty_profile_photos').delete().eq('user_id', userId);
       ensureDatabaseSuccess('suppression des métadonnées photo du profil', error);
     }
+    const photoIds = (store.inMemoryBeautyProfilePhotos.get(userId) || []).map(photo => photo.id);
     store.inMemoryBeautyProfilePhotos.delete(userId);
+    for (const photoId of photoIds) store.inMemoryBeautyProfilePhotoBytes.delete(photoId);
+    store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => item.userId !== userId);
   }
 
 export async function deleteBeautyProfile(store: SupabaseServerStore, userId: string): Promise<void> {
@@ -210,7 +234,10 @@ export async function deleteBeautyProfile(store: SupabaseServerStore, userId: st
     }
     store.inMemoryBeautyProfiles.delete(userId);
     store.inMemoryBeautyProfileHistory.delete(userId);
+    const photoIds = (store.inMemoryBeautyProfilePhotos.get(userId) || []).map(photo => photo.id);
     store.inMemoryBeautyProfilePhotos.delete(userId);
+    for (const photoId of photoIds) store.inMemoryBeautyProfilePhotoBytes.delete(photoId);
+    store.inMemoryPhotoAiAnalyses = store.inMemoryPhotoAiAnalyses.filter(item => item.userId !== userId);
     store.inMemorySkinJournal.delete(userId);
     store.inMemorySkinObservance.delete(userId);
   }

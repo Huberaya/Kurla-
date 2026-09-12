@@ -1896,6 +1896,436 @@ chevelu et barbe) ne sont pas faits, et le banc l'asserte plutôt que de le lais
 - Une erreur réelle a été trouvée par `tsc` pendant ce chantier (`NeedNuance` importé sans
   être réexporté) et corrigée. Les bancs seuls ne l'auraient pas vue.
 
+## CHANTIER D2 — PROFONDEUR DES BESOINS DE COIFFURE
+
+### Périmètre et frontière
+
+`entretenir_tresses`, `entretenir_locks`, `entretenir_perruque`,
+`proteger_chaleur`, `proteger_nuit` — cinq besoins, dans `src/lib/needDepth.ts`
+comme D1.
+
+**La frontière avec `styleFit.ts` est la contrainte principale de ce chantier.**
+`assessStyleFit`, `assessTractionFit` et `assessWigFit` établissent déjà
+l'occlusion sous perruque, les résidus sans rinçage complet, la priorité au cuir
+chevelu, la texture fluide, le risque de traction et ses durées de port. D2 ne
+redit rien de cela : il ajoute ce qui dépend des **autres** champs déclarés —
+fréquence de lavage, temps disponible, longueur, densité, épaisseur, porosité,
+coloration, traitements chimiques, sensibilité cutanée, tolérance aux actifs.
+
+Cette frontière est **testée**, pas seulement déclarée : le banc collecte toutes
+les chaînes produites par D2 et fait tomber la suite si l'une d'elles contient
+une formulation réservée à `styleFit.ts` (`texture fluide`,
+`seule zone réellement accessible`, `occlusif de la formule`,
+`retirez la perruque la nuit`, `lavage clarifiant régulier`). Sans ce contrôle,
+deux modules qui ne se connaissent pas finiraient par dire la même phrase à
+l'utilisateur.
+
+### Ce que D2 ajoute : les limites
+
+D2 introduit `limitations` sur `NeedSignal`, à côté des nuances. Une limite
+n'est pas un conseil atténué : c'est **l'absence d'une donnée sans laquelle le
+conseil serait une supposition**. Quatre lacunes réelles du profil sont nommées :
+
+| Lacune | Conséquence dite à l'utilisateur |
+| --- | --- |
+| Nature de la fibre de la perruque (synthétique / cheveux humains) — **aucun champ n'existe** | Une fibre synthétique ne supporte pas la chaleur : KURLA ne recommande aucun outil chauffant sur la perruque |
+| Mode de fixation (lace collée, bonnet, clips) — **aucun champ n'existe** | Les conseils portent sur le cuir chevelu et la fibre, pas sur le retrait d'une colle |
+| Stade des locks (démarrage / installées) — **aucun champ n'existe** | Les besoins diffèrent ; le conseil reste général faute de cette information |
+| Outil chauffant et sa température — **aucun champ n'existe** | KURLA n'indique pas de réglage ; les conseils portent sur la fréquence et la préparation |
+
+Les deux premières sont vérifiées par grep sur `beautyProfile.ts` : ni
+`wigType`, ni `synthetic`, ni `human_hair`, ni `lace` n'y existent comme champ.
+`perruque` n'est qu'une valeur de `PROTECTIVE_STYLE_OPTIONS`, libellée
+« Perruque / lace ».
+
+Une limite est **inconditionnelle** : elle apparaît même quand aucune nuance
+n'est possible. Le banc l'asserte sur une perruque portée sans aucun autre champ
+déclaré — 0 nuance, 2 limites.
+
+### Un défaut trouvé par le banc, pas par la lecture
+
+L'intensité était calculée par `Math.max(BASE_INTENSITY, signaux)`. Conséquence
+mesurée : une peau déclarée réactive sous perruque et une peau tolérante
+tombaient **toutes les deux à 50** — la base écrasait toute différence en
+dessous d'elle. Remplacé par `Math.min(100, base + signaux)`.
+
+**Limite connue, laissée au chantier F** : l'écrêtage à 100 sature les profils
+très renseignés, qui deviennent indiscernables entre eux. Tant que F ne consomme
+pas l'intensité, cela ne produit aucune erreur visible. C'est écrit ici pour que
+F ne le redécouvre pas.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. 5 besoins de fibre + 5 de coiffure,
+  **19 champs** porteurs de nuances, 11 besoins reconnus encore non traités
+  (asserté, pas supposé).
+- **Deux contrôles négatifs exécutés** : (1) les cinq fonctions D2 neutralisées →
+  **exit 1** ; (2) les quatre appels `d.limit()` neutralisés → **exit 1**,
+  `les deux lacunes du profil doivent être nommées`. Les assertions sur les
+  limites ne sont donc pas décoratives.
+- `npm test` — **exit 0**, **123 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Discriminations assertées : sensibilité cutanée sous perruque, décoloration
+  face à la chaleur — à chaque fois avec **même `unmetNeeds` et même `score`**.
+
+## CHANTIER D3 — CUIR CHEVEULU ET BARBE
+
+### Périmètre
+
+`cuir_chevelu`, `apaiser_cuir_chevelu`, `barbe` — trois besoins, dans
+`src/lib/needDepth.ts` comme D1 et D2. **13 besoins sur 21 sont maintenant
+approfondis** ; il reste les 8 besoins peau (chantier E).
+
+### Deux frontières, toutes les deux testées
+
+1. **`styleFit.ts`** établit déjà la priorité au cuir chevelu quand une coiffure
+   protecteur est portée, et `assessTractionFit` renvoie déjà vers un
+   professionnel sur signal d'escalade. D3 traite l'état **déclaré** du cuir
+   chevelu, indépendamment de toute coiffure.
+2. **`needsHub.ts`** porte déjà, pour ces besoins, un texte `seeDoctor`
+   (« consultez un dermatologue », « avis dermatologique », « doivent être
+   montrés à un dermatologue »). C'est une surface éditoriale distincte —
+   vérifié par grep : `NEEDS_HUB` n'est lu que par `needTexturePages.ts` et
+   `NeedHubPage.tsx`, jamais par le moteur — mais KURLA ne doit pas tenir deux
+   fois le même discours médical. Les trois formulations sont donc ajoutées à la
+   liste réservée du banc.
+
+### La discrimination la plus utile de D3
+
+Un même signe déclaré appelle deux lectures opposées selon l'état du cuir
+chevelu :
+
+| Signe déclaré | Cuir chevelu sec | Cuir chevelu gras |
+| --- | --- | --- |
+| `pellicules` | Un cuir chevelu qui manque d'eau **desquame aussi** : hydrater avant de traiter comme des pellicules | Cette combinaison **ne se traite pas comme une simple sécheresse** |
+
+Avant D3, `apaiser_cuir_chevelu` retournait `true` dans les deux cas avec le
+même texte. C'est exactement le défaut signalé par l'utilisateur : KURLA lisait
+le champ sans s'en servir.
+
+### Sous la barbe, deux objets de soin
+
+Même structure que le chantier C sur la perruque : sous la barbe il y a **le
+poil et la peau dessous**, et une réaction vient le plus souvent de la peau.
+D3 croise `hair.facialHair` avec `skin.sensitivity`, `skin.acne` et
+`skin.hydration` — quatre champs qui n'étaient jamais lus ensemble.
+
+### Limites ajoutées
+
+| Lacune | Ce qui est dit |
+| --- | --- |
+| Le profil déclare un signe, pas une cause | Squames et démangeaisons peuvent avoir plusieurs origines, que KURLA ne distingue pas et ne diagnostique pas |
+| Longueur de la barbe — **aucun champ n'existe** | Les conseils s'appuient sur les champs peau généraux |
+
+La première est importante : c'est la traduction technique de « pas de
+diagnostic médical ». KURLA conseille les gestes qui n'aggravent aucune des
+causes possibles, et le dit.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. 13 besoins sur 21, **25 champs**
+  porteurs de nuances, **8 besoins** encore non traités (asserté).
+- **Contrôle négatif exécuté** : les trois fonctions D3 neutralisées →
+  **exit 1**, `cuir_chevelu doit produire au moins une nuance`.
+- Discriminations assertées : cuir chevelu sec/gras, squames sur sec/gras,
+  barbe dense sur peau réactive/pilosité légère sur peau neutre — à chaque fois
+  avec **même `unmetNeeds` et même `score`**.
+- Un profil à pilosité légère sur peau sans particularité déclarée produit
+  **0 nuance** : asserté, pour que l'absence de conseil reste préférable à un
+  conseil inventé.
+- `npm test` — **exit 0**, **123 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Une erreur d'ordre de déclaration (`richScalp` utilisé avant initialisation)
+  a été trouvée à l'exécution du banc, pas à la lecture.
+
+## CHANTIER E — LES HUIT BESOINS PEAU
+
+### Périmètre
+
+`protection_solaire`, `taches_hyperpigmentation`, `imperfections_acne`,
+`peau_sensible`, `hydrater_peau`, `barriere_cutanee`, `eclat_teint_terne`,
+`maturite_rides`.
+
+**Les 21 besoins du vocabulaire reconnu sont maintenant tous approfondis.**
+Un code hors vocabulaire ne produit plus rien du tout — ni conseil, ni limite —
+et le banc l'asserte (`blanchir_la_peau` renvoie une profondeur vide).
+
+### Trois frontières, toutes testées
+
+| Module | Ce qu'il possède déjà | Surface |
+| --- | --- | --- |
+| `skinRecommendation.ts` | `SKIN_INCOMPATIBILITIES` : rétinol×AHA, rétinol×BHA, rétinol×vitamine C, AHA×BHA | boutique, `skinRoutine.ts` |
+| `skinMelaninEvidence.ts` | codes HPI, périmètre phototype IV/V/VI | preuves de photoprotection |
+| `needsHub.ts` | texte éditorial et `seeDoctor` des 15 besoins peau | pages `/besoins/*` |
+
+Les quatre formulations d'incompatibilité rejoignent la liste réservée du banc.
+E dit « retirer les actifs » ou « un seul à la fois », jamais « ne pas mélanger
+X et Y ».
+
+### Ce que E ajoute : la lecture croisée
+
+Le profil peau contient **seize champs** que le moteur lisait **un par un**, sans
+jamais les confronter. Or c'est la confrontation qui produit le conseil utile :
+
+| Champs croisés | Ce que ça change |
+| --- | --- |
+| `hydration: seche` vs `deshydratee` | Manque de **gras** vs manque d'**eau** — produits opposés. Homologue exact du sec/gras de D3 |
+| `hydration` + `skinType: grasse` | Grasse **et** déshydratée : le cas le plus mal traité, où l'on supprime l'hydratation parce que la peau brille |
+| `postInflammatoryMarks` + `acne` | L'imperfection est **en amont** de la tache : traiter la marque sans traiter l'acné, c'est traiter la conséquence |
+| `postInflammatoryMarks` + `spfUsage` | L'exposition assombrit les marques : la protection passe **avant** l'actif dépigmentant |
+| `rides` + `hydration` | Une partie des ridules est une déshydratation et s'atténue en hydratant — pas les rides installées |
+| `sunExposure` + `spfUsage` | Le facteur modifiable principal du vieillissement visible |
+| `activeTolerance` + besoin dépigmentant / maturité | L'irritation **produit** de l'hyperpigmentation post-inflammatoire : aller fort aggrave |
+| `sensitivity` + `environment.climate` | Le froid sec aggrave la réactivité indépendamment des produits |
+
+### Treize limites nommées
+
+Sur les 21 besoins, **13 limites** sont maintenant dites plutôt que contournées.
+Les sept ajoutées par E :
+
+| Limite | Fondement |
+| --- | --- |
+| Le profil déclare la **fréquence** d'usage du SPF, jamais son **indice** | `SPF_OPTIONS` = `quotidien` / `parfois` / `jamais` |
+| La **nature** des taches n'est pas déclarée | Post-inflammatoire, masque de grossesse et tache solaire ne se traitent pas de la même façon |
+| La **sévérité** des imperfections n'est pas déclarée | `ACNE_OPTIONS` donne une fréquence, pas une intensité |
+| « Sensible » est **auto-déclaré**, pas mesuré | `SENSITIVITY_OPTIONS` |
+| L'état de la **barrière** est déduit de signes, pas mesuré | Aucun champ ne mesure la perte en eau |
+| L'**éclat** est une perception, pas une grandeur mesurée | KURLA ne peut vérifier aucune revendication d'éclat |
+| Aucune donnée d'**âge**, et aucune revendication « anti-âge » vérifiée | Ce sont des affirmations de marque |
+
+Les deux dernières sont la traduction directe de l'engagement de marque : KURLA
+ne reprend pas à son compte une revendication d'efficacité qu'elle ne vérifie
+pas.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. **21 besoins sur 21**, **34 champs**
+  porteurs de nuances, **13 limites**, un code inconnu ne produisant rien.
+- **Contrôle négatif exécuté** : les huit fonctions E neutralisées → **exit 1**,
+  `protection_solaire doit produire au moins une nuance ou une limite`.
+- Discriminations assertées : sèche/déshydratée, grasse+déshydratée, marques
+  avec et sans acné, ridules sur peau sèche/hydratée, SPF jamais/quotidien —
+  à chaque fois avec **même `unmetNeeds` et même `score`**.
+- `npm test` — **exit 0**, **125 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+
+## CHANTIER F — LE SCORE PONDÉRÉ
+
+### Le défaut, mesuré
+
+```ts
+// avant
+const score = Math.round((needs.length - unmetNeeds.length) / needs.length * 100);
+```
+
+Chaque besoin comptait pareil, pressant ou marginal. Mesure sur un profil
+réaliste (4C, porosité forte, cheveux longs, très secs) :
+
+| Produit | Besoins couverts | Ancien ratio | Pondéré |
+| --- | --- | --- | --- |
+| A — couvre le besoin **pressant** (hydratation) | 1/2 | **50** | **66** |
+| B — couvre un besoin **marginal** (barbe) | 1/2 | **50** | **57** |
+| C — couvre les deux | 2/2 | 100 | 100 |
+
+**A et B étaient indiscernables.** C'est la traduction chiffrée du retour
+utilisateur : le moteur ne savait pas dire lequel des deux produits répondait le
+mieux à la personne.
+
+### La formule
+
+```ts
+// après
+poids(n) = couvert ? intensité(n) : POIDS_DE_REFERENCE   // 50
+score    = 100 × Σ poids(besoins couverts) / Σ poids(besoins déclarés)
+```
+
+L'intensité est celle que D1–E mesurent depuis les champs déclarés. Le poids de
+référence d'un besoin non couvert est la base, donc **un besoin couvert pèse
+toujours au moins autant qu'un besoin non couvert**.
+
+### Deux propriétés volontairement conservées
+
+1. **Une couverture complète vaut toujours 100.** Ce n'est pas un choix
+   esthétique : `tests/beauty_profile.test.ts` et `tests/public_api.test.ts`
+   l'assertent tous les deux. Et c'est juste — si tout ce qu'un produit promet
+   s'applique à cette personne, l'adéquation est entière. Le banc F vérifie
+   cette propriété sur **les 21 besoins × 5 profils**.
+2. **Couvrir un besoin de plus ne fait jamais baisser le score.** Le poids d'un
+   besoin couvert est déjà au dénominateur : l'ajouter au numérateur ne peut
+   qu'augmenter le rapport. Asserté.
+
+### Ce que F ne corrige pas, et le dit
+
+**Un produit qui ne déclare qu'un seul besoin, couvert, score toujours 100.**
+C'est cohérent — il tient tout ce qu'il promet — mais cela ne mesure pas
+l'**étendue** de ce qu'il couvre. L'étendue est un autre axe ; la confondre avec
+l'adéquation aurait été une erreur de modélisation. Le détail est exposé par
+`needWeights` (code, couvert, poids, part en %) pour que cette distinction reste
+visible plutôt qu'implicite.
+
+**L'écrêtage de l'intensité à 100 sature les profils très renseignés** : deux
+besoins également saturés pèsent alors pareil, ce qui ramène localement au
+comportement non pondéré. Le corriger demanderait une échelle non bornée, donc
+un changement de contrat sur `intensity`. Hors périmètre, sans effet mesuré à ce
+jour — écrit ici pour que ce ne soit pas redécouvert.
+
+### L'explicabilité
+
+Un score dont on ne voit pas la pondération n'est pas explicable. Quand la
+pondération change réellement quelque chose (au moins deux besoins, poids
+différents, au moins un besoin non couvert), une raison est produite :
+
+> Score pondéré : « hydrater cheveux » compte pour 42 % de l'adéquation au vu de
+> ce que vous déclarez, « barbe » pour 21 %. Tous les besoins ne pèsent pas le
+> même poids.
+
+À poids égaux, **aucune** raison de ce type n'est produite : pas de bruit. Les
+deux cas sont assertés.
+
+### Vérification
+
+- `npm run test:need-depth` — **exit 0**. Le marqueur volontaire posé en D1
+  (`score === 33`) a joué son rôle : il a été **remplacé consciemment**, pas
+  contourné, par l'assertion du cas dégénéré (à intensités égales, le pondéré
+  retombe sur le ratio booléen).
+- **Contrôle négatif exécuté** : formule remise au ratio booléen → **exit 1**,
+  `couvrir le besoin pressant (50) doit compter plus que couvrir le besoin
+  marginal (50)`. C'est la preuve chiffrée du défaut, pas une assertion décorative.
+- Les valeurs assertées (`66`, `50`) ont été **calculées avant d'être écrites**
+  (95/(95+50) et 50/(50+50)), puis confirmées par l'exécution.
+- `npm test` — **exit 0**, **126 PASS, 0 FAIL**, `tsc --noEmit` inclus.
+- Les deux bancs de contrat re-vérifiés séparément : `test:beauty-profile` et
+  `test:public-api` → exit 0, « profil vide → scores null » toujours tenu.
+
+## 4G. LES TROIS CONSTATS OUVERTS — CLOS
+
+Trois constats étaient rapportés à la fin du chantier F. Les trois sont traités ici.
+Aucun des trois n'est une nouveauté de fonctionnalité : ce sont des écarts entre ce que
+le code affirmait et ce qu'il faisait.
+
+### Constat 1 — la fibre de la perruque n'était déclarable nulle part
+
+`entretenir_perruque` produisait une limitation inconditionnelle :
+
+> « La nature de la fibre de la perruque — synthétique ou cheveux humains — n'est
+> déclarée nulle part dans le profil. […] KURLA ne recommande donc aucun usage
+> d'outil chauffant sur la perruque. »
+
+C'était la seule conduite honnête possible, mais elle fermait le conseil pour
+tout le monde, y compris pour une utilisatrice portant une perruque en cheveux
+humains qui peut légitimement utiliser un fer.
+
+**Fait.** `hair.wigFiber` ajouté à `BeautyProfile` avec `WIG_FIBER_OPTIONS`
+(`synthetique`, `cheveux_humains`, `mixte`, `sans_perruque`, `inconnu`), valeur par
+défaut `inconnu`, normalisé par `normalizeBeautyProfile`, repris dans la liste de
+confiance. Le champ est en JSONB : **aucune migration de base n'est nécessaire.**
+
+La limitation est devenue **conditionnelle** : elle ne s'émet plus que si le champ
+est vide. Quand il est renseigné, une nuance remplace l'interdiction :
+
+| `wigFiber` | Conduite émise |
+| --- | --- |
+| `synthetique` | « aucun outil chauffant » — la fibre synthétique ne se répare pas |
+| `cheveux_humains` | chaleur possible, mais protecteur thermique et basse température obligatoires : la fibre ne reçoit plus de sébum |
+| `mixte` | traitée comme synthétique — c'est la partie synthétique qui fixe la limite |
+| `sans_perruque` + perruque portée | la **contradiction est nommée** plutôt que conseillée |
+
+La limitation sur le **mode de fixation** reste inconditionnelle : aucun champ ne le
+décrit, et ce serait inventer que de prétendre le contraire.
+
+### Constat 1 bis — l'éditeur ne rendait pas cinq champs que le moteur lit
+
+Découverte en cours de chantier, plus grave que le constat d'origine. Le moteur
+lit `hair.frizz`, `hair.facialHair`, `skin.skinType` et `skin.skinConcerns`.
+`BeautyProfileEditor.tsx` ne les rendait **pas**. Les vocabulaires
+(`FRIZZ_OPTIONS`, `FACIAL_HAIR_OPTIONS`, `SKIN_TYPE_OPTIONS`, `SKIN_CONCERN_OPTIONS`)
+étaient exportés et consommés uniquement par `beautyProfile.ts`.
+
+Conséquence : les nuances et limitations rattachées à ces quatre champs ne pouvaient
+**jamais** s'activer pour un utilisateur réel. Un champ absent vaut « inconnu », donc
+aucune nuance, donc aucun test ne tombe — le défaut est invisible à l'exécution.
+
+**Fait.** Les cinq champs (`wigFiber` inclus) sont rendus dans l'éditeur.
+
+**Garde ajoutée** (`tests/kurla_need_depth.test.ts`, section 30) : le banc extrait de
+`needDepth.ts` tous les chemins passés à `.push(…)`, les réduit à leurs deux premiers
+segments, et exige que chacun apparaisse dans `BeautyProfileEditor.tsx`. Contrôle
+négatif effectué : retirer le champ `wigFiber` de l'éditeur fait tomber la suite avec
+`champs lus par le moteur mais absents de l'éditeur, donc impossibles à déclarer : hair.wigFiber`.
+
+Dénombrement après coup : **35 champs porteurs de nuances** (34 avant), **13 limites
+nommées** (inchangé — une limite est devenue conditionnelle, aucune n'a été ajoutée
+ni retirée).
+
+### Constat 2 — `vite` déclaré deux fois
+
+`vite` et `@vitejs/plugin-react` figuraient dans `dependencies` **et**
+`devDependencies`. Un JSON accepte les clés dupliquées sans erreur : seul un
+*warning* d'esbuild le signale, et un parseur garde la dernière occurrence.
+
+**Fait.** Les deux paquets ne sont plus qu'en `devDependencies`. Le déplacement est
+sûr, et la preuve n'est pas une hypothèse : `scripts/build-vercel.sh` appelle déjà
+`esbuild`, `tsx`, `typescript`, `autoprefixer` et `tailwindcss`, qui étaient **déjà**
+en `devDependencies` — les devDependencies sont donc bien installées au build Vercel.
+`@vitejs/plugin-react` n'est importé que par `vite.config.ts`. Vérifié : `npm install`
+frais réinstalle les deux, `npm run build` sort 0 sans aucun warning de clé dupliquée.
+
+### Constat 3 — Stripe
+
+L'audit infirme le libellé du constat : **l'intégration Stripe n'était pas à écrire.**
+Elle est écrite, complète, et explicitement anti-simulation. `server.ts` annonce
+« chaque route de paiement répond déjà 503 explicitement (elle ne simule pas) », et
+`professionals.ts` porte le commentaire « Elle ne simule pas ».
+
+Ce qui manquait n'est pas du code : c'est **une clé réelle**, que seul le propriétaire
+du compte Stripe peut produire. Inventer une intégration ou un paiement factice
+aurait été exactement l'écart que ce dépôt s'interdit.
+
+**Un écart réel, mesuré et corrigé.** L'invariant annoncé était faux pour une route
+sur six :
+
+| Point d'appel de `getStripeClient()` | Avant | Après |
+| --- | --- | --- |
+| `server.ts:563` — checkout | **400** | **503** |
+| `server.ts:998` — vérification de paiement | 503 | 503 |
+| `brandContracts.ts:166` | 503 | 503 |
+| `membership.ts:121` | 503 | 503 |
+| `professionals.ts:582` | 503 | 503 |
+| `professionals.ts:674` | 503 | 503 |
+
+400 signifie « votre requête est mauvaise » : la faute était imputée au client alors
+qu'elle est côté serveur. La route répond maintenant 503 avec `code:
+'PAYMENT_NOT_CONFIGURED'` et une note explicite, comme les cinq autres. Le client
+(`CartDrawer.tsx`) traite `!res.ok` génériquement : le changement est sans effet de
+bord. La branche `if (!sig || !stripe)` du webhook reste à 400, et c'est correct —
+une signature absente **est** la faute de l'appelant.
+
+**Un second écart, dans un banc.** `tests/kurla_brand_invoice.test.ts` annonce en
+en-tête « 5. sans configuration de paiement, la route dit 503 — jamais un faux
+succès » et intitule sa section 6 ainsi, mais n'appelle les routes qu'en
+non-authentifié : il n'asserte que des 401. La branche 503 n'y est jamais exécutée.
+Le contrat annoncé n'était pas vérifié.
+
+**Banc ajouté** : `tests/kurla_stripe_no_key.test.ts` (`npm run test:stripe-no-key`).
+Il prouve la seule chose vérifiable sans clé, qui est celle qui compte — **sans clé,
+aucun chemin ne fabrique de succès** :
+
+1. `getStripeClient()` et `getStripeServerClient()` renvoient `null` ;
+2. le checkout répond **503** `PAYMENT_NOT_CONFIGURED`, ne renvoie **aucune** URL
+   Stripe, et **aucune commande n'est créée** (`serverDb.inMemoryOrders` reste vide) ;
+3. un panier vide reste **400** — là, c'est bien la faute du client ;
+4. le webhook désactivé répond 200 `webhook_disabled` sans rien marquer payé ;
+5. activé sans secret, il refuse en **nommant `STRIPE_WEBHOOK_SECRET`** ;
+6. `GET /api/stripe/status` annonce `stripeConfigured: false` ;
+7. **garde** : les six branches « pas de client Stripe » répondent toutes 503.
+
+Contrôle négatif effectué : remettre 400 au checkout fait tomber la suite avec
+`sans clé, le checkout doit dire 503, reçu 400`.
+
+**Ce qui reste à faire, et qui n'est pas faisable ici.** Renseigner
+`STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` sur Vercel, puis passer
+`STRIPE_WEBHOOK_ENABLED` à `true`. Jusque-là, les routes de paiement refusent
+explicitement, et `PeauC26FinalPanel.tsx` affiche la borne FR82/BE76 en « TEST » —
+ce qui est la vérité. Passer `stripeMode` en `live` exige une clé `sk_live_` et ne
+concerne que FR et BE.
+
 ## 5. MATRICE DE TRAÇABILITÉ
 
 Chaque fonctionnalité apparaît **une seule fois** dans la colonne « chantier principal ». Deux fonctions sont reprises en second lieu, explicitement signalé.
