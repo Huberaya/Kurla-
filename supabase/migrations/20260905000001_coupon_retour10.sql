@@ -10,6 +10,6 @@ insert into public.coupons
 values
   ('RETOUR10',
    'Reprenez votre commande : 10 € de réduction sur les articles (dès 49 € d’achat). Offre de relance panier.',
-   'fixed', 10, 'EUR', 49,
+   'fixed_amount', 10, 'EUR', 49,
    now(), null, 500, 0, true)
 on conflict (code) do nothing;

@@ -64,7 +64,10 @@ export async function validateAndApplyCoupon(
     return { error: `Ce code nécessite un minimum de ${(minCents / 100).toFixed(2)} € d’articles.` };
   }
 
-  const type = row.discount_type === 'fixed' ? 'fixed' : 'percentage';
+  // Le schéma (et le formulaire admin) stockent 'fixed_amount' ; 'fixed' est
+  // accepté pour la robustesse. Ne jamais traiter un montant fixe comme un
+  // pourcentage : la remise serait fausse à la caisse.
+  const type = row.discount_type === 'fixed_amount' || row.discount_type === 'fixed' ? 'fixed' : 'percentage';
   let discountCents = type === 'fixed'
     ? Math.round(Number(row.discount_value) * 100)
     : Math.round(itemsSubtotalCents * (Number(row.discount_value) / 100));
