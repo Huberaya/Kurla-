@@ -19,3 +19,6 @@ playwright-report/
 
 # État de référence du schéma, propre à chaque machine
 .kurla-schema-production.json
+
+# État local de la CLI Supabase (linked project, cache) — propre à chaque machine
+supabase/.temp/
