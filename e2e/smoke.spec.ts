@@ -59,10 +59,27 @@ test('la navigation boutique → fiche produit fonctionne', async ({ page }) => 
   if ((await firstProduct.count()) > 0) {
     await firstProduct.click();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(800);
+    // Une attente fixe de 800 ms ne mesure pas l'affichage : elle mesure le
+    // temps qu'on a bien voulu laisser. Sur un démarrage à froid, la fiche
+    // produit n'était tout simplement pas encore rendue, et le banc échouait
+    // sans qu'aucune exception ne l'explique. On attend donc le contenu, avec
+    // une borne, et on distingue `textContent` (le DOM) d'`innerText` (le
+    // rendu visible) : une divergence entre les deux signale un contenu
+    // présent mais invisible, ce qu'un délai fixe ne peut pas révéler.
+    await page
+      .waitForFunction(() => (document.querySelector('#root')?.textContent || '').trim().length > 40, undefined, { timeout: 10_000 })
+      .catch(() => {});
     expect(page.url()).toContain('/produit/');
-    const rootText = (await page.locator('#root').innerText()).trim();
-    expect(rootText.length, 'fiche produit vide').toBeGreaterThan(40);
+    const mesures = await page.evaluate(() => {
+      const racine = document.querySelector('#root');
+      return {
+        dom: (racine?.textContent || '').trim().length,
+        visible: (racine as HTMLElement | null)?.innerText?.trim().length ?? -1,
+      };
+    });
+    console.log(`[fiche produit] dom=${mesures.dom} visible=${mesures.visible} url=${page.url()}`);
+    expect(mesures.dom, 'fiche produit vide (DOM)').toBeGreaterThan(40);
+    expect(mesures.visible, 'fiche produit rendue mais invisible (innerText)').toBeGreaterThan(40);
   }
   expect(errors, `exceptions JS : ${errors.join(' | ')}`).toEqual([]);
 });
