@@ -32,7 +32,7 @@
  */
 
 import { writeFileSync, readFileSync } from 'node:fs';
-import { tablesDeclarees, tablesRequetees, fichiers } from './lib/schema.mjs';
+import { tablesDeclarees, tablesRequetees, fonctionsDeclarees, objetsExposes, fichiers } from './lib/schema.mjs';
 
 const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '');
 const cle = process.env.SUPABASE_SECRET_KEY
@@ -90,6 +90,19 @@ async function presente(nom) {
   return `incertaine:${dernier}`;
 }
 
+// Les fonctions RPC aussi : une migration qui ajoute une fonction sans être
+// appliquée ne se verrait par aucune autre vérification.
+let exposes = new Set();
+try {
+  exposes = await objetsExposes(url, cle);
+} catch (erreur) {
+  console.log(`  fonctions non vérifiées : ${erreur.message}`);
+}
+const fonctions = fonctionsDeclarees();
+const fonctionsManquantes = [...fonctions.entries()]
+  .filter(([nom]) => !exposes.has(`rpc/${nom}`))
+  .map(([nom, meta]) => ({ nom, ...meta }));
+
 const aVerifier = [...new Set([...declarees.keys(), ...requetees.keys()])].sort();
 const manquantes = [];
 const traitees = [];
@@ -123,6 +136,14 @@ if (manquantes.length === 0) {
   console.log('  aucune table manquante : le code déployé et la base sont d’accord.');
 }
 
+if (fonctionsManquantes.length > 0) {
+  console.log(`\n— FONCTION(S) RPC NON APPLIQUÉE(S) — ${fonctionsManquantes.length} :`);
+  for (const { nom, fichier } of fonctionsManquantes) {
+    console.log(`  ${nom}`);
+    console.log(`      migration : supabase/migrations/${fichier}`);
+  }
+}
+
 // Un écart n'a pas la même gravité selon qu'une migration existe ou non.
 // Sans migration, c'est une requête écrite à la main sur une table que rien
 // ne crée — probablement une vue ou une table oubliée, à vérifier, mais ce
@@ -147,9 +168,10 @@ try {
 // Au premier passage, il n'y a rien à comparer : tout serait « nouveau » et
 // l'outil bloquerait sans jamais établir de référence. On constate, on
 // enregistre, et c'est le passage suivant qui jugera.
+const manquantesToutes = [...manquantes, ...fonctionsManquantes.map((f) => f.nom)];
 const nouvelles = connues === null
   ? []
-  : enAttente.filter(({ table }) => !connues.includes(table));
+  : manquantesToutes.filter((nom) => !connues.includes(nom));
 
 if (enAttente.length > 0) {
   console.log(`\n— MIGRATION(S) NON APPLIQUÉE(S) — ${enAttente.length} table(s) absente(s) alors qu'une migration les déclare :`);
@@ -186,7 +208,7 @@ if (bloquant) {
   writeFileSync(cheminEtat, JSON.stringify({
     maj: new Date().toISOString(),
     presentes: traitees.length,
-    manquantes: manquantes,
+    manquantes: manquantesToutes,
   }, null, 2) + '\n');
   if (connues === null) {
     console.log(`\n  premier passage : cet état devient la référence (${cheminEtat})`);

@@ -77,3 +77,38 @@ export function tablesRequetees() {
   }
   return requetees;
 }
+
+/**
+ * Fonctions déclarées par les migrations, **hors fonctions de trigger**.
+ *
+ * Une fonction `RETURNS TRIGGER` n'est pas exposée par PostgREST : la
+ * comparer à l'OpenAPI de production la ferait déclarer manquante à tort.
+ * Mesuré : `handle_new_user`, `enforce_batch_allocation`,
+ * `create_account_notifications` et `set_launch_leads_updated_at` sont
+ * toutes les quatre des triggers, présents et fonctionnels.
+ */
+export const MOTIF_FONCTION = /create\s+(?:or\s+replace\s+)?function\s+(?:public\s*\.\s*)?"?([a-zA-Z_][a-zA-Z0-9_]*)"?\s*\(([^)]*)\)\s*returns\s+([a-zA-Z_][a-zA-Z0-9_ "\[\].]*)/gi;
+
+export function fonctionsDeclarees() {
+  const fonctions = new Map();
+  for (const fichier of fichiers('supabase/migrations').filter((f) => f.endsWith('.sql'))) {
+    const source = sansCommentaires(readFileSync(fichier, 'utf8'));
+    for (const [, nom, , retour] of source.matchAll(MOTIF_FONCTION)) {
+      const typeRetour = retour.trim().toLowerCase();
+      if (typeRetour.startsWith('trigger')) continue;
+      if (!fonctions.has(nom)) fonctions.set(nom, { fichier: fichier.split('/').pop(), retour: typeRetour });
+    }
+  }
+  return fonctions;
+}
+
+/** Noms de schémas et d'objets exposés par l'API REST de production. */
+export async function objetsExposes(url, cle) {
+  const reponse = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/`, {
+    headers: { apikey: cle, Authorization: `Bearer ${cle}` },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!reponse.ok) throw new Error(`OpenAPI inaccessible (${reponse.status})`);
+  const document = await reponse.json();
+  return new Set(Object.keys(document?.paths ?? {}).map((p) => p.replace(/^\//, '').split('?')[0]));
+}
