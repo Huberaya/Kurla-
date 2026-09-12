@@ -168,6 +168,20 @@ function AppContent() {
     setCartItems(prev => prev.filter(i => !(i.product.id === productId && i.variantId === variantId)));
   };
 
+  // L2 — ajout panier global en 1 geste (réassort étagère, notifications…).
+  // Le page émettrice porte déjà l'objet produit ; App ne fait que l'ajouter,
+  // la mesure (analytics) et ouvrir le panier comme tout autre ajout.
+  useEffect(() => {
+    const onCartAdd = (event: Event) => {
+      const detail = (event as CustomEvent<{ product?: Product; variant?: ProductVariant }>).detail;
+      if (detail?.product?.id) handleAddToCart(detail.product, detail.variant);
+    };
+    window.addEventListener('kurla:cart:add', onCartAdd);
+    return () => window.removeEventListener('kurla:cart:add', onCartAdd);
+  // handleAddToCart est stable (state setter fonctionnel) : l'écoute ne se
+  // recrée pas à chaque rendu.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Une erreur d'infrastructure (API absente du domaine, passerelle en panne)
   // est remontée par l'intercepteur : elle est affichée telle quelle, car un
   // code d'hébergeur brut ne dit rien à l'utilisateur.

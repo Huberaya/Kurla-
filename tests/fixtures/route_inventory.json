@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T00:55:58.389Z",
+  "generatedAt": "2026-09-12T09:27:13.703Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -144,6 +144,7 @@
     "GET /api/search",
     "GET /api/shelf",
     "GET /api/shelf/replenishment",
+    "GET /api/shelf/replenishment/history",
     "GET /api/shipments/:orderId",
     "GET /api/shipments/:orderId/history",
     "GET /api/shipping/addresses",
@@ -283,6 +284,7 @@
     "POST /api/search-events",
     "POST /api/service-payments/:paymentId/confirm",
     "POST /api/shelf",
+    "POST /api/shelf/replenishment/record",
     "POST /api/shelf/verdict",
     "POST /api/shipping/addresses",
     "POST /api/skin/journal",

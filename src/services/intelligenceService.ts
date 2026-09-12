@@ -339,11 +339,54 @@ export interface ReplenishmentSignalResponse {
   message: string;
 }
 
+export interface RestockCycleSignalResponse {
+  itemId: string;
+  label: string;
+  openedAt: string | null;
+  daysSinceOpened: number | null;
+  shouldNotify: boolean;
+  message: string;
+}
+
+export interface RestockEventResponse {
+  id: string;
+  userId: string;
+  shelfItemId?: string;
+  productId?: string;
+  productName?: string;
+  source: string;
+  createdAt: string;
+}
+
 export async function getReplenishment(
   token: string,
   weeklyUsagePercent = 10
-): Promise<{ weeklyUsagePercent: number | null; signals: ReplenishmentSignalResponse[]; due: ReplenishmentSignalResponse[]; limitations: string[] }> {
+): Promise<{
+  weeklyUsagePercent: number | null;
+  signals: ReplenishmentSignalResponse[];
+  due: ReplenishmentSignalResponse[];
+  cycleDue: RestockCycleSignalResponse[];
+  limitations: string[];
+}> {
   return request(`/api/shelf/replenishment?weeklyUsagePercent=${encodeURIComponent(weeklyUsagePercent)}`, token);
+}
+
+/** L2 — trace un réassort effectué depuis le flux étagère. */
+export async function recordRestock(
+  token: string,
+  input: { shelfItemId?: string; productId?: string; productName?: string; source?: string }
+): Promise<{ event: RestockEventResponse }> {
+  return request('/api/shelf/replenishment/record', token, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+/** L2 — historique des réassorts du profil (plus récent d'abord). */
+export async function getRestockHistory(
+  token: string
+): Promise<{ events: RestockEventResponse[]; count: number }> {
+  return request('/api/shelf/replenishment/history', token);
 }
 
 export interface ReturnInsightPrompt {

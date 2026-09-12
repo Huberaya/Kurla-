@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, AlertTriangle, Barcode, Check, Loader2, Package, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Barcode, Check, Loader2, Package, Plus, RefreshCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { lookupProductByBarcode, normalizeBarcode, type BarcodeProduct } from '../lib/barcodeLookup';
 import { useAuth } from '../context/AuthContext';
 import { WhyItMatters } from '../components/account/WhyItMatters';
@@ -16,12 +16,19 @@ import { OUTCOME_SIGNAL_LABELS, OUTCOME_SIGNALS, OutcomeSignal } from '../lib/ou
 import {
   addShelfItem,
   deleteShelfItem,
+  getReplenishment,
+  getRestockHistory,
   getShelf,
   getShelfVerdict,
   recordOutcome,
+  recordRestock,
+  ReplenishmentSignalResponse,
+  RestockCycleSignalResponse,
+  RestockEventResponse,
   ShelfVerdictResponse,
   updateShelfItem
 } from '../services/intelligenceService';
+import { useProducts } from '../services/productService';
 import { isSkinShelfItem, estimateDaysLeft, isRestockAlert, progressColor, openedLabel, skinShelfStepForRole } from '../lib/skinShelf';
 import { PEAU_KITS } from '../lib/peauKits';
 
@@ -97,6 +104,13 @@ export const ShelfPage: React.FC = () => {
 
   // C4.1 — filtre étagère peau vs cheveux (?cat=peau)
   const [shelfCat, setShelfCat] = useState<'tous' | 'peau' | 'cheveux'>('tous');
+  // L2 — réassort : signaux (due par % restant, cycleDue par date d'ouverture)
+  // + historique des réassorts effectués. Chargement best effort : un échec du
+  // flux réassort ne doit pas masquer l'étagère elle-même.
+  const { products } = useProducts();
+  const [replenishment, setReplenishment] = useState<{ due: ReplenishmentSignalResponse[]; cycleDue: RestockCycleSignalResponse[] } | null>(null);
+  const [restockHistory, setRestockHistory] = useState<RestockEventResponse[]>([]);
+  const [restockAddedIds, setRestockAddedIds] = useState<string[]>([]);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const cat = sp.get('cat');
@@ -111,12 +125,18 @@ export const ShelfPage: React.FC = () => {
       return;
     }
     try {
-      const [loadedItems, loadedVerdict] = await Promise.all([
+      const [loadedItems, loadedVerdict, loadedReplenishment, loadedHistory] = await Promise.all([
         getShelf(token),
-        getShelfVerdict(token, [...HAIR_STEPS, ...SKIN_STEPS])
+        getShelfVerdict(token, [...HAIR_STEPS, ...SKIN_STEPS]),
+        getReplenishment(token).catch(() => null),
+        getRestockHistory(token).catch(() => null)
       ]);
       setItems(loadedItems);
       setVerdict(loadedVerdict);
+      if (loadedReplenishment) {
+        setReplenishment({ due: loadedReplenishment.due || [], cycleDue: loadedReplenishment.cycleDue || [] });
+      }
+      if (loadedHistory) setRestockHistory(loadedHistory.events || []);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger ton étagère.');
@@ -143,6 +163,46 @@ export const ShelfPage: React.FC = () => {
 
   const skinItems = useMemo(() => items.filter(isSkinShelfItem), [items]);
   const restockAlerts = useMemo(() => skinItems.filter(isRestockAlert), [skinItems]);
+
+  // L2 — ligne de réassort : l'article, la raison lue, et l'action en 1 geste
+  // (ajout panier + trace dans l'historique). Un article hors catalogue est
+  // dit comme tel, jamais remplacé par un produit approché.
+  const restockRow = (signal: { itemId: string; label: string; message: string }, index: number) => {
+    const shelfItem = items.find(i => i.id === signal.itemId);
+    const product = shelfItem?.productId ? products.find(p => p.id === shelfItem.productId) : undefined;
+    const added = restockAddedIds.includes(signal.itemId);
+    return (
+      <div key={`${signal.itemId}-${index}`} className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-kurla-stone">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-kurla-carbon truncate">{signal.label}</p>
+          <p className="text-[11px] text-kurla-carbon/60 mt-0.5 leading-snug">{signal.message}</p>
+        </div>
+        {product ? (
+          added ? (
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+              <Check className="w-3.5 h-3.5" /> Ajouté
+            </span>
+          ) : (
+            <button
+              onClick={async () => {
+                // La trace d'abord : même si l'ajout échoue, le réassort voulu est noté.
+                try {
+                  await recordRestock(token, { shelfItemId: shelfItem?.id, productId: product.id, productName: product.name, source: 'shelf' });
+                } catch { /* jamais bloquant */ }
+                window.dispatchEvent(new CustomEvent('kurla:cart:add', { detail: { product } }));
+                setRestockAddedIds(current => [...current, signal.itemId]);
+              }}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-kurla-copper text-white text-[11px] font-bold hover:bg-kurla-cocoa"
+            >
+              <Plus className="w-3.5 h-3.5" /> Ajouter au panier
+            </button>
+          )
+        ) : (
+          <span className="shrink-0 text-[10px] text-kurla-carbon/40 whitespace-nowrap">Produit non référencé</span>
+        )}
+      </div>
+    );
+  };
 
   const stopCameraScan = useCallback(() => {
     cameraStreamRef.current?.getTracks().forEach(track => track.stop());
@@ -444,6 +504,44 @@ export const ShelfPage: React.FC = () => {
                 </ul>
               </div>
             )}
+          </section>
+        )}
+
+        {/* L2 — Réassort : le signal devient une action en 1 geste, et l'action
+            laisse sa trace dans l'historique. (Complément de l'alerte J-7 peau
+            au-dessus : celle-là estime les jours restants, celle-ci couvre aussi
+            le cycle d'ouverture des articles sans consommation déclarée.) */}
+        {replenishment && (replenishment.due.length > 0 || replenishment.cycleDue.length > 0) && (
+          <section className="mb-8 p-6 rounded-3xl bg-kurla-ivory border border-kurla-copper/40">
+            <h2 className="font-bold text-sm mb-1 flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-kurla-copper" /> Réassort à prévoir
+            </h2>
+            <p className="text-xs text-kurla-carbon/60 mb-4 leading-relaxed">
+              Articles bientôt à court ou dont le cycle d'ouverture est écoulé. L'ajout au panier trace ton réassort dans l'historique.
+            </p>
+            <div className="space-y-2.5">
+              {replenishment.due.map((signal, index) => restockRow(signal, index))}
+              {replenishment.cycleDue.map((signal, index) => restockRow(signal, index + 100))}
+            </div>
+          </section>
+        )}
+
+        {/* L2 — Historique des réassorts : ce qui a été réellement réapprovisionné. */}
+        {restockHistory.length > 0 && (
+          <section className="mb-8 p-6 rounded-3xl bg-kurla-sand border border-kurla-stone">
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600" /> Mes réassorts
+            </h2>
+            <ul className="space-y-1.5">
+              {restockHistory.map(event => (
+                <li key={event.id} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-kurla-carbon/80 font-medium truncate">{event.productName || 'Soin de ton étagère'}</span>
+                  <span className="text-kurla-carbon/45 whitespace-nowrap">
+                    {new Date(event.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

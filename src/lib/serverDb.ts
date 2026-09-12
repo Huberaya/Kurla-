@@ -83,6 +83,7 @@ import type {
 export * from './db/types';
 export { toPublicProduct };
 import type { CreatorAttribution } from './creatorProgram';
+import type { RestockEvent } from './db/replenishmentStore';
 import { bindDomain, Curried } from './db/bind';
 import * as ingredientLinkStore from './db/ingredientLinkStore';
 import * as taxonomyStore from './db/taxonomyStore';
@@ -150,6 +151,7 @@ export class SupabaseServerStore {
   public inMemoryStripeEvents: StripeEventLog[] = [];
   public inMemoryStatusHistory: OrderStatusHistoryEntry[] = [];
   public inMemoryNotifications: UserNotification[] = [];
+  public inMemoryRestockEvents: RestockEvent[] = [];
   public inMemoryNotificationLogs: NotificationDeliveryLog[] = [];
   public inMemoryPreferences: Map<string, NotificationPreference> = new Map();
   public inMemoryShipments: Map<string, ShipmentDetails> = new Map();

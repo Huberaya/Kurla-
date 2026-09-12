@@ -322,3 +322,57 @@ export function evaluateReplenishment(
       : `${label} : environ ${remaining} % restant, aucune action nécessaire.`
   };
 }
+
+/**
+ * L2 — réassort par cycle d'ouverture.
+ *
+ * Signal complémentaire au réassort par % restant : certains membres ne
+ * déclarent jamais leur consommation. Pour eux, l'unique fait exploitable est
+ * la date d'ouverture. Passé un seuil (28 jours par défaut, le cycle type d'un
+ * soin quotidien), on propose le réassort — sans estimer de % restant, que
+ * KURLA ne peut pas deviner.
+ */
+export const RESTOCK_REMINDER_DEFAULT_DAYS = 28;
+
+export interface RestockCycleSignal {
+  itemId: string;
+  label: string;
+  openedAt: string | null;
+  daysSinceOpened: number | null;
+  shouldNotify: boolean;
+  message: string;
+}
+
+export function evaluateRestockCycle(
+  item: ShelfItem,
+  options: { reminderDays?: number; now?: Date } = {}
+): RestockCycleSignal {
+  const label = item.freeLabel || item.productId || 'Produit';
+  const reminderDays = options.reminderDays ?? RESTOCK_REMINDER_DEFAULT_DAYS;
+  const now = options.now ?? new Date();
+  const opened = item.openedAt ? new Date(item.openedAt) : null;
+
+  if (!opened || Number.isNaN(opened.getTime()) || (item.status !== 'in_use' && item.status !== 'owned')) {
+    return {
+      itemId: item.id,
+      label,
+      openedAt: item.openedAt ?? null,
+      daysSinceOpened: null,
+      shouldNotify: false,
+      message: 'Ouverture non déclarée : KURLA ne peut pas dater le réassort. Elle ne devine pas.',
+    };
+  }
+
+  const daysSinceOpened = Math.floor((now.getTime() - opened.getTime()) / 86_400_000);
+  const shouldNotify = daysSinceOpened >= reminderDays;
+  return {
+    itemId: item.id,
+    label,
+    openedAt: item.openedAt ?? null,
+    daysSinceOpened,
+    shouldNotify,
+    message: shouldNotify
+      ? `${label} est ouvert depuis ${daysSinceOpened} jours : il est temps de prévoir le réassort.`
+      : `${label} est ouvert depuis ${daysSinceOpened} jours, rien à faire pour l'instant.`,
+  };
+}

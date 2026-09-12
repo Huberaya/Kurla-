@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import { Type } from '@google/genai';
 
 import { intelligenceStore } from '../../lib/intelligenceStore';
+import { listRestockEvents, recordRestockEvent, runShelfReplenishmentAlerts } from '../../lib/db/replenishmentStore';
 import { professionalStore } from '../../lib/professionalStore';
 import { serverDb } from '../../lib/serverDb';
 import { returnInsightPrompt } from '../../lib/returnInsight';
@@ -159,37 +160,52 @@ export function registerChantierARoutes(app: Express): void {
   }));
 
   /**
-   * Réassort prédictif. Sans consommation déclarée, la réponse dit qu'elle ne
-   * peut pas estimer — elle ne devine pas.
+   * Réassort prédictif (L2). Deux signaux, jamais superposés sans raison :
+   * % restant + consommation déclarée (« Bientôt à court ») ; date d'ouverture
+   * ≥ 28 j pour qui ne déclare aucune consommation (« Temps de réappro »).
+   * Les notifications sont dédupliquées côté store : l'appel est idempotent.
+   * Sans consommation déclarée, la réponse dit qu'elle ne peut pas estimer —
+   * elle ne devine pas.
    */
   app.get('/api/shelf/replenishment', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const user = await requireUser(req, res);
     if (!user) return;
     const weeklyUsagePercent = Number(req.query.weeklyUsagePercent ?? 10);
-    const { signals, due } = await intelligenceStore.evaluateShelfReplenishment(user.id, weeklyUsagePercent);
-
-    // Branche le réassort sur les notifications existantes. La clé de déduplication
-    // empêche de renvoyer la même alerte à chaque appel.
-    for (const signal of due) {
-      await serverDb.sendNotification(
-        user.id,
-        'replenishment',
-        'Bientôt à court',
-        signal.message,
-        '/account/shelf',
-        undefined,
-        `replenishment:${signal.itemId}`
-      );
-    }
+    const result = await runShelfReplenishmentAlerts(serverDb, user.id, weeklyUsagePercent);
 
     res.json({
       weeklyUsagePercent: Number.isFinite(weeklyUsagePercent) ? weeklyUsagePercent : null,
-      signals,
-      due,
-      limitations: signals.filter(signal => signal.daysUntilEmpty === null).length > 0
+      signals: result.signals,
+      due: result.due,
+      cycleDue: result.cycleDue,
+      limitations: result.signals.filter(signal => signal.daysUntilEmpty === null).length > 0
         ? ['Certains articles n’ont pas de consommation déclarée : aucune date de fin n’est estimée pour eux.']
         : []
     });
+  }));
+
+  /**
+   * L2 — trace d'un réassort effectué depuis le flux étagère. C'est l'événement
+   * qui alimente l'historique du profil ; l'ordre fera le reste à la commande.
+   */
+  app.post('/api/shelf/replenishment/record', rateLimit('restock-record', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const event = await recordRestockEvent(serverDb, user.id, {
+      shelfItemId: req.body?.shelfItemId,
+      productId: req.body?.productId,
+      productName: req.body?.productName,
+      source: typeof req.body?.source === 'string' && req.body.source ? req.body.source : 'shelf'
+    });
+    res.status(201).json({ event });
+  }));
+
+  /** L2 — historique des réassorts du profil (plus récent d'abord). */
+  app.get('/api/shelf/replenishment/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const events = await listRestockEvents(serverDb, user.id);
+    res.json({ events, count: events.length });
   }));
 
   /**
