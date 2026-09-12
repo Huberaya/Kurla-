@@ -1,0 +1,57 @@
+palier,nom,pays,type,gammes_couvertes,modele,conformite_ue,moq_declare,contact,verification,source
+1-France,BLACKETIQUE SASU,FR,Grossiste B2B multi-marques,Soins capillaires + SKINCARE COREENNE,Stock France,Produits deja sur marche UE -> KURLA distributeur (art.2e),a demander,01 84 80 62 40 / WhatsApp 07 52 08 23 61 / info@blacketique.com / 3 rue Magnier Bedu B12 95410 Groslay / SIRET 979 710 829 00024,VERIFIE site + page haircare ; ecart 35 vs 50 marques a trancher ; non recoupe RCS,blacketique.com
+1-France,Distristar,FR,Grossiste B2B,Soins capillaires (source de nos 21 ref KURLA),Stock France,Produits deja sur marche UE -> distributeur,a demander,01 48 91 04 64 / info@distristar.com / 17-19 rue Eugene Henaff 93000 Bobigny,VERIFIE ; ATTENTION catalogue contient deferisants TCB -> ecarter,distristar.com
+1-France,Cosmetic 99,FR,Grossiste B2B,Soins capillaires,Stock France,Distributeur,a demander,Epinay-sur-Seine (93),Europages - a recouper RCS,europages.fr
+1-France,Malik Afro Cosmetiques,FR,Grossiste B2B,"Cheveux, corps, extensions, maquillage",Stock France + livraison mondiale,Distributeur,a demander,Paris - 25 ans d'activite,Europages + destockplus - a recouper RCS,europages.fr
+1-France,JET BEAUTY,FR,Grossiste B2B,"Cosmetiques afro, natural hair, extensions","Stock France, livraison Europe",Distributeur,a demander,Montereau - creee 2020,Europages - a recouper RCS,europages.fr
+1-France,DB MARKET,FR,Grossiste B2B,"Cantu, black cosmetics",Stock France,Distributeur,a demander,Saint-Martin-sur-le-Pre - creee 2025,"Europages - TRES RECENTE, prudence",europages.fr
+1-France,MELINADESTOCK,FR,Fabricant-revendeur,Grandes marques,Showroom 400 m2 Aubervilliers,Distributeur,a demander,Aubervilliers - 30 ans,Europages,europages.fr
+1-France,SOCADE,FR,Grossiste B2B,"Hygiene, entretien, beaute",Stock France,Distributeur,a demander,Aubervilliers - creee 1989,Europages,europages.fr
+1-France,MUSOYA,FR,Marque francaise + distributeur,Natural hair afro/crepu/frise/lockse,"Fabricant + distributeur, livraison Europe",Fabricant UE = PR (art.4.3),a demander,Paris,Europages,europages.fr
+1-France,LissCreation,FR,Faconnier marque blanche,"Capillaire : shampoings, masques, lissage sans formol",Private label,ISO 22716 + CE + CPNP enregistre + DOSSIER PIF FOURNI,200 unites/SKU (declare sur site),+33 6 74 53 08 95 / info@lisscreation.com / 137 av Anatole France 94600 Choisy-le-Roi,VERIFIE sur site ; production 4-8 semaines,lisscreation.com/en/white-label
+1-France,MY.LAB / STARTEC,FR,Faconnier marque blanche,"Capillaire, 96% naturel",Private label,CE 1223/2009 + CPNP declares,des 6 unites (declare),Cavaillon (84) / SIRET 49950066800060,VERIFIE tours precedents,site fabricant
+1-France,Carmel Cosmetics Labs,FR/Maroc,Faconnier marque blanche,CHEVEUX CREPUS - seul a le dire explicitement,Private label,A DEMANDER ; Maroc hors UE -> KURLA PR sauf mandataire UE (art.4.4),a demander,Ait Melloul - 50-99 salaries,Europages ; QUESTION CLE : mandataire UE ?,europages.fr
+1-France,Remanence Brands,FR,Faconnier,-,Private label,ISO 22716 declare,a demander,Sud France,Tours precedents,-
+1-France,Dom Labs,FR,Faconnier,-,Private label,a demander,a demander,Lyon,Tours precedents,-
+1-France,Laboratoire Eurotel,FR,Faconnier,-,Private label,a demander,a demander,-,Tours precedents,-
+1-France,Naturare,FR,Dropship,Cosmetiques bio francais,"Dropship, 48h France",Distributeur,a demander,-,LISTE TIERCE 2024 - non contacte,gerard-levoyer.fr
+1-France,Balqis France,FR,Dropship,Cosmetiques,Dropship sans stock,Distributeur,a demander,-,LISTE TIERCE 2024 - non contacte,gerard-levoyer.fr
+1-France,Grossiste dropshipping cosmetique & lithotherapie,FR,Dropship,Cosmetiques naturels + lithotherapie,"Dropship colis discrets, reserve pros",Distributeur,a demander,-,VERIFIE site - non contacte,grossiste-dropshipping-cosmetique-lithotherapie.fr
+2-Europe,B. Futurist B.V.,NL,Grossiste B2B,Produits afro,Stock UE,Distributeur,a demander,Capelle aan den IJssel - 50-99 salaries,Europages - plus gros profil UE identifie,europages.fr
+2-Europe,Exotic City,BE,Grossiste B2B,Produits africains et asiatiques,"Stock UE, livraison mondiale",Distributeur,a demander,Alleur - creee 2006 - 20-49 sal.,Europages - se dit 1er grossiste africain/asiatique d'Europe,europages.fr
+2-Europe,HQ Cosmetics BV,NL,Grossiste B2B,"Beaute, peau, capillaire, parapharmacie",Stock UE,Distributeur,a demander,Puth,Europages,europages.fr
+2-Europe,Dancohr Cosmetics B.V.,NL,Fabricant familial,"Beaute, soins peau",Stock UE,Fabricant UE = PR,a demander,Weert - depuis 1975,Europages,europages.fr
+2-Europe,Calcagni Diffusion,IT,Grossiste B2B,Beaute et cosmetique,"Stock UE, livraison mondiale",Distributeur,a demander,Gallarate - depuis 1995 - 100-199 salaries,Europages,europages.fr
+2-Europe,KM Afro Lux SRL (Fuuta-Shop),LU,Grossiste B2B,Produits afro,Stock UE,Distributeur,a demander,Troisvierges - 50-99 salaries,Europages,europages.fr
+2-Europe,Contiments Beauty,NL,Grossiste B2B,Capillaire,Stock UE,Distributeur,a demander,Vriezenveen,Europages,europages.fr
+2-Europe,Afro-Gemeos Lda,PT,Grossiste B2B,Produits afro,Stock UE,Distributeur,a demander,Vialonga,Europages,europages.fr
+2-Europe,Top Beauty Cosmetics SL,ES,Grossiste B2B,Beaute,Stock UE,Distributeur,a demander,A Coruna,Europages,europages.fr
+2-Europe,AfroPassion Group,DE,Grossiste B2B,Produits afro,Stock UE,Distributeur,a demander,Augsbourg,Europages,europages.fr
+2-Europe,Purfet Hair,BE,Grossiste B2B,Capillaire,Stock UE,Distributeur,a demander,Malines,Europages,europages.fr
+2-Europe,Chierici Afro,IT,Grossiste B2B,Produits afro,Stock UE,Distributeur,a demander,Fornovo di Taro,Europages,europages.fr
+2-Europe,Cosmetic Lab Ltd.,LV,Faconnier marque blanche,"Skincare, bodycare, haircare, solide, bebe, homme, couleur","White label, 3000+ formules",ISO 22716 GMP + COSMOS Organic + NATRUE,500 unites (declare sur site),sales@cosmeticlab.eu / +371 66051000 / Riga,VERIFIE sur site ; depuis 2005 ; export 20+ pays,cosmeticlab.eu
+2-Europe,Galvagni Kosmetikmanufaktur,DE,Faconnier marque blanche,"Peau, corps, capillaire",Private label,a demander,12 unites (DECLARATIF agregateur),Bad Mergentheim,MOQ SOURCE AGREGATEUR ACCIO - A CONFIRMER,fr.accio.com
+2-Europe,Individual Cosmetics,DE,Faconnier marque blanche,Soins de la peau,Private label,a demander,25 unites (DECLARATIF agregateur),Knüllwald-Remsfeld,MOQ SOURCE AGREGATEUR ACCIO - A CONFIRMER,fr.accio.com
+2-Europe,Trat Development GmbH,DE,Faconnier marque blanche,"Peau haute performance, clean beauty",Private label petites series,a demander,des 20 kg (DECLARATIF agregateur),-,MOQ SOURCE AGREGATEUR ACCIO - A CONFIRMER,fr.accio.com
+2-Europe,Szaidel Cosmetics,DE,Faconnier,"Capillaire, corps, levres, bebe, naturel/bio",Private label,NaTrue + Ecocert declares,10 000 pcs (DECLARATIF agregateur),Bruchmuhlbach-Miesau - 60 ans,MOQ SOURCE AGREGATEUR ACCIO - A CONFIRMER,fr.accio.com
+2-Europe,Skinovators,DE,Faconnier,"Peau, maquillage, vegan et bio",Private label 400+ formules,a demander,10 000 pcs (DECLARATIF agregateur),Hessisch Lichtenau,MOQ SOURCE AGREGATEUR ACCIO - A CONFIRMER,fr.accio.com
+2-Europe,Nortempresa,PT,Faconnier,Parfums et cosmetiques,Private label,ISO 22716 declare,a demander,-,Europages,europages.fr
+2-Europe,Cosmetics Margo,CZ,Faconnier / grossiste,Marque blanche,Private label,a demander,a demander,Prague 9 - creee 2015,Europages,europages.fr
+2-Europe,Nova Engel / Grupo Engel,ES,Dropship,Parfumerie + cosmetique + capillaire,"Dropship : 800+ marques, 30000+ refs, API REST + CSV + XML, expedition anonyme, 24/48h",Distributeur,Depot 500 EUR non remboursable (portefeuille),-,VERIFIE sur site (FAQ),novaengel.com
+2-Europe,BigBuy,ES,Dropship,Generaliste,"Dropship stock Europe 24h, a votre image",Distributeur,a demander,-,VERIFIE liste - non contacte,gerard-levoyer.fr
+2-Europe,Octopia,FR,Dropship,"20000+ produits, 1300 marques","Dropship, account manager dedie",Distributeur,a demander,-,VERIFIE liste - non contacte,gerard-levoyer.fr
+2-Europe,Cosmetix Club,-,Dropship,Maquillage,Dropshipping SANS MOQ,Distributeur,sans MOQ declare,-,VERIFIE liste - non contacte,minea.com
+3-Monde,Colorful Black,FR (canal UE),Revendeur officiel,"Cantu, Mielle Organics, Shea Moisture, Les Secrets de Loly",DETAIL uniquement - page revendeurs 404,Produits deja sur marche FR -> une PR UE existe,-,7 rue Poissonniere 75002 Paris,VERIFIE : revendeur officiel FR. B2B NON PROUVE (404). Ne pas ecrire qu'ils vendent en gros,colorfulblack.com
+3-Monde,JunYi Beauty,CN,Fabricant accessoires,"Brosses, peignes",Import direct,PAS de CPNP (non cosmetique) ; CE si electrique,a demander,Dongguan - depuis 1999,"VERIFIE : BSCI, FSC, GRS ; clients Conair/BaByliss/Denman/ghd",tours precedents
+3-Monde,Vickky,CN,Fabricant accessoires,"Peignes, brosses",Import direct,PAS de CPNP ; CE si electrique,"300+ peignes, 1000-3000/style",vickkybeauty.com - Huzhou,"VERIFIE : 2M+ unites/an, echantillons 5-10j",tours precedents
+3-Monde,Taihu Snow Silk,CN,Fabricant textile,Bonnets/taies satin,Import direct,PAS de CPNP ; OEKO-TEX 100 a exiger,a demander,-,"VERIFIE : soie murier 6A, OEKO-TEX 100, echantillons 5-7j",tours precedents
+3-Monde,Sino-Silk,CN,Fabricant textile,Textile satin,Import direct,PAS de CPNP ; OEKO-TEX 100 a exiger,a demander,-,"VERIFIE : OEKO-TEX SH015 230473, ISO 9001, Sedex",tours precedents
+3-Monde,Taiki Europe,FR (relais CN),Fabricant accessoires,Accessoires,Import direct,PAS de CPNP,5000 pieces/reference = HORS PORTEE,+33 1 41 22 05 20,VERIFIE - a ecarter en annee 1,tours precedents
+3-Monde,SENIMPEX,FR,Importateur matieres premieres,"Huiies vegetales africaines, karite",Import matiere premiere,ATTENTION : import matiere premiere hors UE -> KURLA importateur,a demander,Montivilliers - creee 2020,Europages,europages.fr
+3-Monde,AFRICROPS! GmbH,DE,Importateur matieres premieres,Matieres agricoles africaines,Stock UE,Distributeur si deja importe,a demander,Berlin,Europages,europages.fr
+3-Monde,Afro Wholesale,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,Londres,CLASSE PALIER 3 MALGRE GEOGRAPHIE EUROPEENNE,tours precedents
+3-Monde,Ethica Fashion Store,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,Londres,CLASSE PALIER 3,europages.fr
+3-Monde,Eapol Wholesale,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,"Hockley, Birmingham",CLASSE PALIER 3,europages.fr
+3-Monde,A&F Supplies,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,Preston,CLASSE PALIER 3,europages.fr
+3-Monde,Grow Afro Ltd,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,Coventry,CLASSE PALIER 3,europages.fr
+3-Monde,Headlines,GB,Grossiste B2B,Produits afro,ATTENTION POST-BREXIT : pays tiers,IMPORT = KURLA PERSONNE RESPONSABLE (art.4.5),a demander,Londres,CLASSE PALIER 3,europages.fr
