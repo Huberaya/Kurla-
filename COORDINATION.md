@@ -246,6 +246,47 @@ Le rappel reste utile : PostgREST n'exécute pas de DDL, donc aucune
 migration ne peut être appliquée depuis le code ni depuis ce dépôt. Toute
 migration suppose un mot de passe de base ou un jeton de compte Supabase.
 
+### Ce que l'accès Supabase permet, mesuré le 12/09/2026
+
+Question tranchée par l'épreuve, pas par supposition :
+
+| Opération | Possible ? | Comment |
+|---|---|---|
+| Lire (REST) | **oui** | `GET /rest/v1/…` |
+| Modifier des lignes (DML) | **oui** | `PATCH /rest/v1/products?id=eq.…` → 200 |
+| Créer une table, appliquer une migration (DDL) | **non** | aucune voie : voir ci-dessus |
+
+Les écritures étant possibles, les corrections de **données** peuvent être
+faites depuis ici. Les **migrations**, jamais : elles restent à la main.
+
+### launch-p28 corrigé — et sept produits au même régime
+
+`launch-p28` (Tropic Isle Living, huile de pousse) affichait trois
+ingrédients génériques inventés — « Beurre de Karité, Huile de Ricin, Huile
+de Coco » — alors que sa fiche dit déjà « Composition non sourçable, retiré
+de la vente ». Corrigé : `ingredients = []` et
+`ingredient_verification_status = 'not_provided'`.
+
+Ce statut n'est pas anodin : il alimente le **Trust Score public** comme
+contrôle décisif « Composition vérifiée » (`src/lib/catalogTrustScore.ts`).
+Un produit sans composition sourcée affichait donc une vérification
+qu'il n'a pas.
+
+**Le cas n'est pas isolé.** Huit produits, tous retirés de la vente,
+affichent des ingrédients sans INCI sourcé tout en s'annonçant « verified » :
+
+`p2`, `p4`, `p5`, `p9`, `p10`, `p11`, `p13` et `launch-p28` (corrigé).
+
+Je n'ai pas touché aux sept autres : ce sont des fiches du catalogue, donc
+du territoire de l'autre intervenant, et le remède est le même pour tous —
+vider `ingredients` et passer le statut à `not_provided`. À faire en un
+seul geste sur accord, plutôt que l'un après l'autre.
+
+À noter aussi : `products.updated_at` n'est pas mis à jour automatiquement
+(après ma correction, il est resté au 02/09). Aucune modification de fiche
+n'est donc datée, ce qui rend l'audit impossible. Il faudrait un trigger —
+donc une migration, donc à la main.
+
 ### La suite ne se terminait pas — et elle met maintenant 1 min 52
 
 Trois réglages, trouvés l'un après l'autre, empêchaient `npm test`
