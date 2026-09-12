@@ -26,7 +26,8 @@ export type NudgeKind =
   | 'wash_day_due'
   | 'protective_style_removal'
   | 'review_request'
-  | 'reorder_reminder';
+  | 'reorder_reminder'
+  | 'profile_evolution';
 
 export interface NudgeShelfItem {
   id: string;
@@ -56,6 +57,25 @@ export interface NudgeProtectiveEpisode {
 export interface NudgeObservation {
   shelfItemId?: string;
   productId?: string;
+}
+
+/**
+ * L4 — Re-recommandation après feedback.
+ *
+ * À J+30 du premier diagnostic, si le profil a ÉVOLUÉ depuis (feedback recueillis,
+ * routine suivie, journal rempli), une seule notification propose de revoir les
+ * recommandations, présentées comme évolution du profil — pas comme relance
+ * commerciale. Aucun signal après le diagnostic → aucun nud (0 push).
+ */
+export interface NudgeEvolution {
+  /** Date du premier diagnostic (beauty_profiles.created_at). */
+  diagnosticAt?: string | null;
+  /** Feedback recueillis (outcome_observations). */
+  outcomes?: Array<{ observedAt?: string | null }>;
+  /** Tâches de routine terminées (routine_tasks.completed_at). */
+  routineCompletedTasks?: Array<{ completedAt?: string | null }>;
+  /** Entrées du journal peau (beauty_profiles.profile.skin.journal). */
+  journalEntries?: Array<{ date?: string | null }>;
 }
 
 /**
@@ -98,6 +118,8 @@ export interface NudgeInput {
   productReviews?: NudgeReview[];
   /** Décalage en jours avant la date max de port pour commencer à alerter. */
   protectiveWarnBeforeDays?: number;
+  /** L4 — profil et signaux d'évolution depuis le diagnostic. */
+  evolution?: NudgeEvolution | null;
 }
 
 export interface Nudge {
@@ -124,6 +146,11 @@ export const REVIEW_REQUEST_AFTER_DAYS = 7;
 export const REORDER_MIN_DAYS = 45;
 /** Jusqu'à combien de jours on propose le réassort (après, c'est une perte sèche). */
 export const REORDER_MAX_DAYS = 110;
+/**
+ * L4 — délai après le premier diagnostic avant de proposer la
+ * re-recommandation « évolution ». Une seule fois par diagnostic (clé stable).
+ */
+export const PROFILE_EVOLUTION_AFTER_DAYS = 30;
 
 /** Statuts représentant une commande effectivement payée. */
 const PAID_STATUSES = new Set(['paid', 'processing', 'packed', 'shipped', 'delivered']);
@@ -209,6 +236,50 @@ function pushCommercialNudges(input: NudgeInput, now: Date, nudges: Nudge[]): vo
       });
     }
   }
+}
+
+/**
+ * L4 — Re-recommandation à J+30 du diagnostic, uniquement si le profil a
+ * évolué depuis. Le message cite les signaux qui ont alimenté le moteur
+ * (la « raison ») et renvoie vers l'espace KURLA ID où les recommandations
+ * recalées sont affichées. La clé de dédoublonnage est stable par date de
+ * diagnostic : une seule notification par diagnostic, jamais de spam.
+ */
+function pushProfileEvolutionNudge(input: NudgeInput, now: Date, nudges: Nudge[]): void {
+  const evolution = input.evolution;
+  const diagnosticAt = evolution?.diagnosticAt;
+  if (!diagnosticAt) return;
+
+  const ageDays = daysBetween(diagnosticAt, now);
+  if (ageDays < PROFILE_EVOLUTION_AFTER_DAYS) return;
+
+  const diagnosticMs = new Date(diagnosticAt).getTime();
+  const afterDiagnostic = (value?: string | null): boolean => {
+    if (!value) return false;
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) && ms > diagnosticMs;
+  };
+
+  const outcomeCount = (evolution?.outcomes ?? []).filter((o) => afterDiagnostic(o.observedAt)).length;
+  const routineCount = (evolution?.routineCompletedTasks ?? []).filter((t) => afterDiagnostic(t.completedAt)).length;
+  const journalCount = (evolution?.journalEntries ?? []).filter((e) => afterDiagnostic(e.date)).length;
+
+  // 0 push si le profil n'a pas changé : pas un seul signal après le diagnostic.
+  if (outcomeCount + routineCount + journalCount === 0) return;
+
+  const parts: string[] = [];
+  if (routineCount > 0) parts.push(`ta routine suivie (${routineCount} étape${routineCount > 1 ? 's' : ''} terminée${routineCount > 1 ? 's' : ''})`);
+  if (outcomeCount > 0) parts.push(`tes retours (${outcomeCount} retour${outcomeCount > 1 ? 's' : ''})`);
+  if (journalCount > 0) parts.push(`ton journal (${journalCount} entrée${journalCount > 1 ? 's' : ''})`);
+
+  nudges.push({
+    kind: 'profile_evolution',
+    dedupeKey: `nudge:profile-evolution:${input.userId}:${diagnosticAt.slice(0, 10)}`,
+    title: 'Évolution de votre profil — nouvelle recommandation',
+    message: `Depuis votre diagnostic, ${parts.join(', ')} a${parts.length > 1 ? 'nt' : ''} alimenté le moteur KURLA. Vos recommandations ont été recalées en conséquence : découvrez ce qui a changé dans votre profil.`,
+    link: '/account/kurla-id',
+    refId: input.userId,
+  });
 }
 
 function daysBetween(fromIso: string, to: Date): number {
@@ -306,6 +377,9 @@ export function computeNudges(input: NudgeInput, now: Date = new Date()): Nudge[
 
   // Relances commerciales (clients ayant commandé) : avis J+7 et réassort.
   pushCommercialNudges(input, now, nudges);
+
+  // L4 — Re-recommandation « évolution » à J+30 du diagnostic, si profil changé.
+  pushProfileEvolutionNudge(input, now, nudges);
 
   return nudges;
 }

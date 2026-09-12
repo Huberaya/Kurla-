@@ -2,11 +2,15 @@ import { notificationExists, sendNotification } from './notificationsStore';
 import { intelligenceStore } from '../intelligenceStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import { getProducts } from './catalogStore';
+import { getBeautyProfile } from './beautyProfileStore';
+import { getAdaptiveRoutineState } from './adaptiveRoutineStore';
 
 import type { SupabaseServerStore } from '../serverDb';
 import {
+  NudgeEvolution,
   NudgeInput,
   NudgeOrder,
+  PROFILE_EVOLUTION_AFTER_DAYS,
   computeNudges,
 } from '../retentionNudges';
 
@@ -63,6 +67,26 @@ async function listOrderingUserIds(limit: number): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Utilisateurs ayant un profil beauté (au moins un diagnostic complété) — la
+ * base du déclencheur L4 « re-recommandation à J+30 ».
+ */
+async function listBeautyProfileUserIds(store: SupabaseServerStore, limit: number): Promise<string[]> {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('beauty_profiles').select('user_id').limit(limit);
+      if (error) return [];
+      const ids = new Set<string>();
+      for (const row of (data || []) as any[]) if (row?.user_id) ids.add(String(row.user_id));
+      return Array.from(ids);
+    } catch {
+      return [];
+    }
+  }
+  return Array.from(store.inMemoryBeautyProfiles.keys()).slice(0, limit);
 }
 
 /**
@@ -132,6 +156,7 @@ function buildInput(userId: string, data: {
   observations: any[];
   orders?: NudgeOrder[];
   productReviews?: Array<{ productId?: string }>;
+  evolution?: NudgeEvolution | null;
 }): NudgeInput {
   // Un cycle par défaut (jamais de lavage enregistré) n'est pas exploitable :
   // on ne doit pas déclencher de nud « wash day dû » sans historique.
@@ -167,6 +192,7 @@ function buildInput(userId: string, data: {
     })),
     orders: data.orders ?? [],
     productReviews: data.productReviews ?? [],
+    evolution: data.evolution ?? null,
   };
 }
 
@@ -178,13 +204,15 @@ export async function runRetentionNudges(
   const result: RetentionRunResult = { usersScanned: 0, nudgesCreated: 0, nudgesByKind: {}, perUser: [] };
 
   // Union des utilisateurs à relancer : ceux de la boucle routine (étagère,
-  // wash-day, coiffure) ET ceux qui ont commandé (avis + réassort).
+  // wash-day, coiffure), ceux qui ont commandé (avis + réassort) et ceux qui
+  // ont un profil beauté (L4 : re-recommandation « évolution » à J+30).
   const limit = options.limitUsers ?? 5000;
-  const [routineUsers, orderingUsers] = await Promise.all([
+  const [routineUsers, orderingUsers, profileUsers] = await Promise.all([
     intelligenceStore.listActiveLoopUserIds(limit),
     listOrderingUserIds(limit),
+    listBeautyProfileUserIds(store, limit),
   ]);
-  const userIds = Array.from(new Set([...routineUsers, ...orderingUsers])).slice(0, limit);
+  const userIds = Array.from(new Set([...routineUsers, ...orderingUsers, ...profileUsers])).slice(0, limit);
 
   // Catalogue mis en cache une seule fois par run (catégorie/slug des produits).
   for (const userId of userIds) {
@@ -192,14 +220,40 @@ export async function runRetentionNudges(
 
     let data;
     try {
-      const [shelf, washCycle, episodes, observations, commercial] = await Promise.all([
+      const [shelf, washCycle, episodes, observations, commercial, profileRecord] = await Promise.all([
         intelligenceStore.getShelf(userId),
         intelligenceStore.getWashDayCycle(userId),
         intelligenceStore.getProtectiveStyles(userId),
         intelligenceStore.getOutcomes(userId),
         loadCommercialData(store, userId),
+        getBeautyProfile(store, userId),
       ]);
-      data = { shelf, washCycle, episodes, observations, orders: commercial.orders, productReviews: commercial.productReviews };
+
+      // L4 — signaux d'évolution depuis le diagnostic. Les tâches de routine
+      // ne se chargent que si le seuil de 30 jours est atteint (économie de
+      // requêtes pour les profils récents, qui ne déclencheront pas).
+      let evolution: NudgeEvolution | null = null;
+      if (profileRecord?.createdAt) {
+        const ageDays = (now.getTime() - new Date(profileRecord.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        let completedTasks: Array<{ completedAt?: string }> = [];
+        if (ageDays >= PROFILE_EVOLUTION_AFTER_DAYS) {
+          try {
+            const routineState = await getAdaptiveRoutineState(store, userId);
+            completedTasks = routineState.tasks;
+          } catch {
+            // Une routine illisible ne bloque pas le run : le signal « routine
+            // suivie » est simplement absent (jamais inventé).
+          }
+        }
+        evolution = {
+          diagnosticAt: profileRecord.createdAt,
+          outcomes: observations.map((obs) => ({ observedAt: obs.observedAt })),
+          routineCompletedTasks: completedTasks,
+          journalEntries: profileRecord.profile?.skin?.journal ?? []
+        };
+      }
+
+      data = { shelf, washCycle, episodes, observations, orders: commercial.orders, productReviews: commercial.productReviews, evolution };
     } catch (err) {
       // Un utilisateur illisible ne doit pas faire échouer tout le run.
       console.error(`[Retention] lecture impossible pour ${userId}:`, (err as Error)?.message);

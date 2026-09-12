@@ -12,6 +12,13 @@ import {
   normalizeBeautyProfile,
 } from '../../lib/beautyProfile';
 import { serverDb } from '../../lib/serverDb';
+import { intelligenceStore } from '../../lib/intelligenceStore';
+import {
+  MINIMUM_OBSERVATIONS_FOR_ADJUSTMENT,
+  learnIngredientWeights,
+  learnedOutcomeAdjustmentsForProduct,
+  type LearnedWeight,
+} from '../../lib/recommendationEngine';
 import { asyncRoute, isUuid, rateLimit, safeApiError } from '../http';
 import { PHOTO_AIPD, PHOTO_RETENTION_DAYS } from '../../lib/photoAipd';
 import { requireUser } from '../auth';
@@ -189,35 +196,62 @@ export function registerBeautyProfileRoutes(app: Express): void {
     try {
       const record = await serverDb.getBeautyProfile(user.id);
       if (!record) return res.json({ recommendations: [], message: 'Complétez votre profil pour calculer KURLA Fit.' });
-      const products = await serverDb.getProducts();
-      const routineState = await serverDb.getAdaptiveRoutineState(user.id);
+      const [products, routineState, observations] = await Promise.all([
+        serverDb.getProducts(),
+        serverDb.getAdaptiveRoutineState(user.id),
+        intelligenceStore.getOutcomes(user.id)
+      ]);
+      // L4 — la boucle PROFILE → FEEDBACK → LEARN se referme sur la vue
+      // cliente : les pondérations apprises depuis SES observations
+      // réordonnent le KURLA Fit (même règle et même seuil que le moteur).
+      const learnedWeights: Map<string, LearnedWeight> =
+        observations.length > 0 ? learnIngredientWeights(observations) : new Map<string, LearnedWeight>();
       const recentFeedback = routineState.feedback.slice(0, 30);
       const hasSafetySignal = recentFeedback.some(item => item.signal === 'reaction' || item.signal === 'scalp_itchy');
       const affectedLabels = recentFeedback
         .filter(item => item.signal === 'reaction' || item.signal === 'product_heavy')
         .map(item => item.productLabel?.toLowerCase())
         .filter((label): label is string => !!label);
+      let adjustedProducts = 0;
       const recommendations = hasSafetySignal ? [] : products
         .filter((product: any) => !affectedLabels.some(label => `${product.name} ${product.brand || ''}`.toLowerCase().includes(label)))
-        .map((product: any) => ({
-          product: {
-            id: product.id,
-            slug: product.slug,
-            name: product.name,
-            brand: product.brand,
-            price: product.price,
-            image: product.image,
-            category: product.category,
-            description: product.description
-          },
-          fit: calculateKurlaFit(product, record.profile)
-        }))
+        .map((product: any) => {
+          const fit = calculateKurlaFit(product, record.profile);
+          const learned = learnedOutcomeAdjustmentsForProduct(product, learnedWeights);
+          if (learned.length > 0) adjustedProducts += 1;
+          const delta = learned.reduce((sum, adjustment) => sum + adjustment.delta, 0);
+          return {
+            product: {
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              brand: product.brand,
+              price: product.price,
+              image: product.image,
+              category: product.category,
+              description: product.description
+            },
+            fit: {
+              ...fit,
+              score: fit.score === null ? null : Math.max(0, Math.min(100, Math.round(fit.score + delta))),
+              // Les raisons apprises d'abord : c'est le signal le plus récent
+              // de la boucle (le feedback de la cliente prime le profil statique).
+              reasons: [...learned.map(adjustment => adjustment.reason), ...fit.reasons],
+              learned: learned.length > 0
+            }
+          };
+        })
         .filter(item => item.fit.score !== null)
         .sort((a, b) => (b.fit.score || 0) - (a.fit.score || 0))
         .slice(0, 8);
       res.json({
         recommendations,
         confidence: record.confidence,
+        learning: {
+          observationCount: observations.length,
+          adjustedProducts,
+          minimumObservationsPerIngredient: MINIMUM_OBSERVATIONS_FOR_ADJUSTMENT
+        },
         routineAdaptation: hasSafetySignal
           ? 'Une réaction ou des démangeaisons ont été signalées : aucune nouvelle recommandation produit n’est proposée avant observation ou avis professionnel.'
           : affectedLabels.length > 0

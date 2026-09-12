@@ -54,7 +54,7 @@ interface BeautyProfileEditorProps {
 
 interface Recommendation {
   product: { id: string; slug: string; name: string; brand: string; price: number; image?: string; category?: string; description?: string };
-  fit: { score: number | null; confidence: number; reasons: string[]; evidence: { field: string; label: string; value: string; relation: string }[]; unmetNeeds: string[] };
+  fit: { score: number | null; confidence: number; reasons: string[]; evidence: { field: string; label: string; value: string; relation: string }[]; unmetNeeds: string[]; learned?: boolean };
 }
 
 const fieldClass = 'w-full px-3.5 py-3 rounded-xl bg-kurla-ivory border border-kurla-stone text-xs text-kurla-carbon focus:outline-none focus:border-kurla-copper';
@@ -467,7 +467,7 @@ export const BeautyProfileEditor: React.FC<BeautyProfileEditorProps> = ({ focus 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {recommendations.slice(0, 4).map(recommendation => (
                   <article key={recommendation.product.id} className="p-4 rounded-2xl bg-kurla-ivory border border-kurla-stone">
-                    <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase text-kurla-copper font-bold">{recommendation.product.brand}</p><h3 className="text-sm font-bold mt-1">{recommendation.product.name}</h3></div><span className="text-lg font-bold text-kurla-copper">{recommendation.fit.score}%</span></div>
+                    <div className="flex items-start justify-between gap-3"><div>{recommendation.fit.learned && <span className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full px-2 py-0.5">Évolution · recalée sur vos retours</span>}<p className="text-[10px] uppercase text-kurla-copper font-bold">{recommendation.product.brand}</p><h3 className="text-sm font-bold mt-1">{recommendation.product.name}</h3></div><span className="text-lg font-bold text-kurla-copper">{recommendation.fit.score}%</span></div>
                     <p className="text-[11px] text-kurla-carbon/60 mt-2">Confiance des données utilisées : {recommendation.fit.confidence}%</p>
                     {recommendation.fit.reasons.slice(0, 2).map(reason => <p key={reason} className="text-xs text-kurla-carbon/75 mt-2">• {reason}</p>)}
                     {recommendation.fit.evidence.slice(0, 3).map(item => <p key={`${item.field}-${item.value}`} className="text-[11px] text-kurla-carbon/55 mt-1"><strong>{item.label} :</strong> {item.value} — {item.relation}.</p>)}

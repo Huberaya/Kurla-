@@ -241,6 +241,39 @@ export function learnIngredientWeights(
   return weights;
 }
 
+/**
+ * Ajustements issus des pondérations apprises pour UN produit, depuis
+ * l'agrégat par ingrédient. Même règle où qu'elle s'applique (moteur complet,
+ * KURLA Fit) : sous MINIMUM_OBSERVATIONS_FOR_ADJUSTMENT, le signal est du
+ * bruit et ne réordonne rien. Chaque ajustement porte sa raison et sa preuve.
+ */
+export function learnedOutcomeAdjustmentsForProduct(
+  product: Pick<EngineProduct, 'ingredientIds' | 'keyIngredients'>,
+  weights: Map<string, LearnedWeight>
+): Adjustment[] {
+  const adjustments: Adjustment[] = [];
+  for (const ingredientId of productIngredientIds(product)) {
+    const weight = weights.get(ingredientId);
+    if (!weight || weight.observationCount < MINIMUM_OBSERVATIONS_FOR_ADJUSTMENT) continue;
+    if (weight.net < 0) {
+      adjustments.push({
+        kind: 'negative_outcome',
+        delta: -NEGATIVE_OUTCOME_PENALTY,
+        reason: `Cet ingrédient (${ingredientId}) a produit ${weight.negative} retour(s) défavorable(s) et ${weight.positive} favorable(s) dans votre historique.`,
+        evidenceId: weight.latestObservationId
+      });
+    } else if (weight.net > 0) {
+      adjustments.push({
+        kind: 'positive_outcome',
+        delta: POSITIVE_OUTCOME_BONUS,
+        reason: `Cet ingrédient (${ingredientId}) a produit ${weight.positive} retour(s) favorable(s) dans votre historique.`,
+        evidenceId: weight.latestObservationId
+      });
+    }
+  }
+  return adjustments;
+}
+
 // ---------------------------------------------------------------------------
 // Moteur
 // ---------------------------------------------------------------------------
@@ -256,7 +289,7 @@ const POSITIVE_OUTCOME_BONUS = 15;
  * l'analyse d'étagère doivent résoudre les actifs exactement de la même façon,
  * sinon ils ne détectent pas les mêmes conflits.
  */
-export function productIngredientIds(product: EngineProduct): string[] {
+export function productIngredientIds(product: Pick<EngineProduct, 'ingredientIds' | 'keyIngredients'>): string[] {
   if (product.ingredientIds && product.ingredientIds.length > 0) return product.ingredientIds;
   // Repli sur les libellés déclarés, normalisés : mieux que rien, mais ce ne
   // sont pas des entités résolues.
@@ -444,24 +477,8 @@ export function buildRecommendations(catalog: Iterable<EngineProduct>, context: 
     }
 
     // --- Pondérations apprises -------------------------------------------
-    for (const ingredientId of ingredients) {
-      const weight = weights.get(ingredientId);
-      if (!weight || weight.observationCount < MINIMUM_OBSERVATIONS_FOR_ADJUSTMENT) continue;
-      if (weight.net < 0) {
-        adjustments.push({
-          kind: 'negative_outcome',
-          delta: -NEGATIVE_OUTCOME_PENALTY,
-          reason: `Cet ingrédient (${ingredientId}) a produit ${weight.negative} retour(s) défavorable(s) et ${weight.positive} favorable(s) dans votre historique.`,
-          evidenceId: weight.latestObservationId
-        });
-      } else if (weight.net > 0) {
-        adjustments.push({
-          kind: 'positive_outcome',
-          delta: POSITIVE_OUTCOME_BONUS,
-          reason: `Cet ingrédient (${ingredientId}) a produit ${weight.positive} retour(s) favorable(s) dans votre historique.`,
-          evidenceId: weight.latestObservationId
-        });
-      }
+    for (const adjustment of learnedOutcomeAdjustmentsForProduct(product, weights)) {
+      adjustments.push(adjustment);
     }
 
     // --- Budget -----------------------------------------------------------

@@ -628,6 +628,14 @@ export const CustomerAccountPage: React.FC = () => {
                           <Check className="w-3.5 h-3.5" />
                         </button>
                       )}
+                      {n.link && (
+                        <a
+                          href={n.link}
+                          className="px-2.5 py-1.5 rounded-full bg-kurla-ink hover:bg-kurla-bark text-kurla-amber text-xs font-semibold border border-kurla-cream/15"
+                        >
+                          Voir
+                        </a>
+                      )}
                       <button
                         onClick={() => handleDeleteNotif(n.id)}
                         className="p-1.5 rounded-full bg-kurla-ink hover:bg-rose-950 text-rose-400 border border-rose-500/30 text-xs"
