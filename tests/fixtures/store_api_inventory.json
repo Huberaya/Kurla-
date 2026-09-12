@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T22:27:13.110Z",
+  "generatedAt": "2026-09-12T00:18:37.530Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -113,6 +113,7 @@
     "getFamilyDashboard/1",
     "getFamilyProducts/2",
     "getGrowthAttribution/0",
+    "getGrowthFunnelMetrics/0",
     "getIngredientCatalog/0",
     "getIngredientGraphCoverage/0",
     "getIngredientProvenance/1",
@@ -253,6 +254,7 @@
     "recordCatalogValidation/6",
     "recordCreatorAttribution/1",
     "recordEmailDelivery/4",
+    "recordGrowthFunnelEvent/1",
     "recordIngredientProvenance/3",
     "recordMobileSyncAction/1",
     "recordReturnEvent/1",

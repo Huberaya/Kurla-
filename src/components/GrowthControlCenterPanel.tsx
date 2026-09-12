@@ -110,7 +110,10 @@ export function GrowthControlCenterPanel({ headers }: Props) {
 
     {notice && <div className="text-xs rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 px-3 py-2">{notice}</div>}
 
-    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-10 gap-2">
+      <Metric label="Visites 30 j" value={num(real.traffic)} note="événements first-party" />
+      <Metric label="Sessions 30 j" value={num(real.uniqueSessions)} note="sessions anonymes" />
+      <Metric label="Diagnostics" value={num(real.diagnosticStarts)} note={`complétion ${pct(real.diagnosticCompletionRatePct)}`} />
       <Metric label="Clients réels" value={num(real.clients)} note="clients uniques payants" />
       <Metric label="Commandes réelles" value={num(real.orders)} note="statuts encaissés" />
       <Metric label="CA réel" value={eur(real.revenueEur)} note="hors hypothèses" />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T22:27:13.617Z",
+  "generatedAt": "2026-09-12T00:18:37.854Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -254,6 +254,7 @@
     "POST /api/dossier-shares",
     "POST /api/endorsements",
     "POST /api/endorsements/:endorsementId/apply",
+    "POST /api/events/funnel",
     "POST /api/family/members",
     "POST /api/family/plans",
     "POST /api/family/spaces",

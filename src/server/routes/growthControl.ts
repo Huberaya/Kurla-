@@ -29,7 +29,11 @@ function dateIsValid(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-async function realGrowthMetrics(campaigns: Awaited<ReturnType<typeof serverDb.listGrowthCampaigns>>, attribution: Awaited<ReturnType<typeof serverDb.getGrowthAttribution>>) {
+async function realGrowthMetrics(
+  campaigns: Awaited<ReturnType<typeof serverDb.listGrowthCampaigns>>,
+  attribution: Awaited<ReturnType<typeof serverDb.getGrowthAttribution>>,
+  funnel: Awaited<ReturnType<typeof serverDb.getGrowthFunnelMetrics>>
+) {
   const metrics = await serverDb.getAdminAnalyticsMetrics();
   const trackedCampaigns = campaigns.filter(campaign => campaign.actualClients !== null && campaign.actualSpendEur !== null);
   const attributedClients = attribution.reduce((sum, campaign) => sum + Number(campaign.orders || 0), 0);
@@ -64,12 +68,19 @@ async function realGrowthMetrics(campaigns: Awaited<ReturnType<typeof serverDb.l
     cacEur: actualCac,
     marginEur: Number(metrics.estimatedMargin || 0),
     marginRatePct: metrics.estimatedMarginRate === null || metrics.estimatedMarginRate === undefined ? null : Number(metrics.estimatedMarginRate),
-    traffic: null,
-    diagnosticStarts: null,
-    diagnosticCompletionRatePct: null,
+    traffic: funnel.pageViews,
+    uniqueSessions: funnel.uniqueSessions,
+    diagnosticStarts: funnel.diagnosticStarts,
+    diagnosticCompletionRatePct: funnel.diagnosticCompletionRatePct,
+    funnel,
     nextRung: { clients: nextRung.clients, targetNewClients, maxCacEur: nextRung.maxCacEur, aovEur: nextRung.aovEur },
     calculator: plan,
-    unknowns: ['visiteurs', 'diagnostics', ...(actualCac === null ? ['CAC réel consolidé'] : []), 'conversion visite→commande']
+    unknowns: [
+      ...(funnel.pageViews === 0 ? ['visiteurs'] : []),
+      ...(funnel.diagnosticStarts === 0 ? ['diagnostics'] : []),
+      ...(actualCac === null ? ['CAC réel consolidé'] : []),
+      ...(funnel.pageViews === 0 ? ['conversion visite→commande'] : [])
+    ]
   };
 }
 
@@ -97,11 +108,12 @@ export function registerGrowthControlRoutes(app: Express): void {
       const tasks = seeded.tasks;
       const campaigns = seeded.campaigns;
       const attribution = await serverDb.getGrowthAttribution();
+      const funnel = await serverDb.getGrowthFunnelMetrics(30);
       const measuredCampaigns = campaigns.map(campaign => {
         const measured = attribution.find(row => row.campaign === campaign.trackingCampaign);
         return { ...campaign, measuredOrders: measured?.orders || 0, measuredRevenueEur: measured?.revenueEur || 0, measuredChannel: measured?.channel || null };
       });
-      const real = await realGrowthMetrics(campaigns, attribution);
+      const real = await realGrowthMetrics(campaigns, attribution, funnel);
       const markets = seeded.markets;
       const alerts = computeAlerts(real, campaigns, tasks);
       const decisionRecommended = alerts.some(alert => alert.level === 'red')

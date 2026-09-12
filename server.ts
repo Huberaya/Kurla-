@@ -114,6 +114,7 @@ import { registerIngredientGraphRoutes } from './src/server/routes/ingredientGra
 import { registerIngredientNavRoutes } from './src/server/routes/ingredients';
 import { registerStrategyRoutes } from './src/server/routes/strategy';
 import { registerGrowthControlRoutes } from './src/server/routes/growthControl';
+import { registerFunnelEventRoutes } from './src/server/routes/funnelEvents';
 import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
@@ -1561,6 +1562,7 @@ registerIngredientGraphRoutes(app);
 registerIngredientNavRoutes(app);
 registerStrategyRoutes(app);
 registerGrowthControlRoutes(app);
+registerFunnelEventRoutes(app);
 registerLaunchTractionRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);

@@ -207,3 +207,94 @@ export async function getGrowthAttribution(store: SupabaseServerStore): Promise<
   }
   return [...byCampaign.values()].sort((a, b) => b.revenueEur - a.revenueEur);
 }
+
+export type GrowthFunnelEventName =
+  | 'page_view' | 'view_item' | 'view_item_list' | 'diagnostic_start'
+  | 'diagnostic_complete' | 'select_promotion' | 'add_to_cart'
+  | 'begin_checkout' | 'purchase' | 'generate_lead' | 'sign_up'
+  | 'search' | 'ai_assistant_message';
+
+export interface GrowthFunnelEvent {
+  id: string;
+  eventName: GrowthFunnelEventName;
+  sessionId: string;
+  path: string;
+  props: Record<string, string | number | boolean>;
+  occurredAt: string;
+}
+
+export interface GrowthFunnelMetrics {
+  source: 'persisted_funnel_events' | 'memory_funnel_events';
+  sinceDays: number;
+  pageViews: number;
+  uniqueSessions: number;
+  diagnosticStarts: number;
+  diagnosticCompletes: number;
+  diagnosticCompletionRatePct: number | null;
+  recommendationViews: number;
+  addToCarts: number;
+  checkouts: number;
+  leads: number;
+  eventCount: number;
+}
+
+export async function recordGrowthFunnelEvent(store: SupabaseServerStore, event: GrowthFunnelEvent): Promise<GrowthFunnelEvent> {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { data, error } = await supabase.from('growth_funnel_events').upsert({
+      id: event.id,
+      event_name: event.eventName,
+      session_id: event.sessionId,
+      path: event.path,
+      props: event.props,
+      occurred_at: event.occurredAt
+    }, { onConflict: 'id', ignoreDuplicates: true }).select('*').maybeSingle();
+    ensureDatabaseSuccess('enregistrement de l’événement funnel', error);
+    if (data) return {
+      id: String(data.id), eventName: data.event_name, sessionId: String(data.session_id),
+      path: String(data.path), props: data.props || {}, occurredAt: String(data.occurred_at)
+    };
+    return event;
+  }
+  const existing = store.inMemoryGrowthFunnelEvents.find(item => item.id === event.id);
+  if (existing) return existing;
+  store.inMemoryGrowthFunnelEvents.push(event);
+  return event;
+}
+
+export async function getGrowthFunnelMetrics(store: SupabaseServerStore, sinceDays = 30): Promise<GrowthFunnelMetrics> {
+  const since = new Date(Date.now() - Math.max(1, Math.min(365, sinceDays)) * 24 * 60 * 60 * 1000);
+  let events: GrowthFunnelEvent[];
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { data, error } = await supabase.from('growth_funnel_events')
+      .select('id,event_name,session_id,path,props,occurred_at')
+      .gte('occurred_at', since.toISOString())
+      .order('occurred_at', { ascending: false })
+      .limit(100000);
+    ensureDatabaseSuccess('lecture des événements funnel', error);
+    events = (data || []).map(row => ({
+      id: String(row.id), eventName: row.event_name, sessionId: String(row.session_id),
+      path: String(row.path), props: row.props || {}, occurredAt: String(row.occurred_at)
+    }));
+  } else {
+    events = store.inMemoryGrowthFunnelEvents.filter(event => new Date(event.occurredAt) >= since);
+  }
+  const count = (names: GrowthFunnelEventName[]) => events.filter(event => names.includes(event.eventName)).length;
+  const diagnosticStarts = count(['diagnostic_start']);
+  const diagnosticCompletes = count(['diagnostic_complete']);
+  return {
+    source: supabase ? 'persisted_funnel_events' : 'memory_funnel_events',
+    sinceDays: Math.max(1, Math.min(365, sinceDays)),
+    pageViews: count(['page_view']),
+    uniqueSessions: new Set(events.map(event => event.sessionId)).size,
+    diagnosticStarts,
+    diagnosticCompletes,
+    diagnosticCompletionRatePct: diagnosticStarts > 0 ? Math.round((diagnosticCompletes / diagnosticStarts) * 1000) / 10 : null,
+    recommendationViews: count(['select_promotion']),
+    addToCarts: count(['add_to_cart']),
+    checkouts: count(['begin_checkout']),
+    leads: count(['generate_lead', 'sign_up']),
+    eventCount: events.length
+  };
+}

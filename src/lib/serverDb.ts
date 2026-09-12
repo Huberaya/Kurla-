@@ -205,6 +205,7 @@ export class SupabaseServerStore {
   public inMemoryGrowthTasks: import('./growthControl').GrowthTask[] = [];
   public inMemoryGrowthCampaigns: import('./growthControl').GrowthCampaign[] = [];
   public inMemoryGrowthMarkets: import('./growthControl').GrowthMarket[] = [];
+  public inMemoryGrowthFunnelEvents: import('./db/growthStore').GrowthFunnelEvent[] = [];
   public inMemorySkinJournal: Map<string, SkinJournalEntry[]> = new Map();
   public inMemorySkinObservance: Map<string, SkinObservanceDay[]> = new Map();
   public inMemoryFamilySpaces: Map<string, any> = new Map();

@@ -108,6 +108,12 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
+  // Les navigations internes sont des pages vues réelles : sans cet effet,
+  // une SPA ne mesure que son premier chargement.
+  useEffect(() => {
+    try { analytics.pageView(); } catch { /* le funnel ne bloque jamais la navigation */ }
+  }, [locationKey]);
+
   // Panier : réseau différé après le paint (rIC), jamais bloquant le hero
   useEffect(() => {
     let cancelled = false;
