@@ -186,6 +186,82 @@ export const HAIR_PROBLEM_CARDS: ProblemCard[] = [
     attendre: '2–3 mois : c’est là que la rétention devient visible (moins de longueur perdue au lavage, le contour tient).',
     source: 'StatPearls & European Journal of Dermatology (2016) via Live Science ; Koyama et al., ePlasty (2016)',
   },
+  {
+    key: 'prob_hair_enfant',
+    title: 'La tête de votre enfant : la méthode, pas la bagarre',
+    confidence: 'institution',
+    fact: 'Le cuir chevelu de l’enfant est plus fin que le vôtre et ses follicules sont encore en cours de développement : la tension y travaille en premier, et les premiers signes apparaissent au contour et aux tempes. Les pédiatres le documentent : détendu tôt, le cheveu repousse. Et un enfant ne dit pas toujours « ça tire » — le confort du jour 1 est votre alarme à vous deux.',
+    faire: [
+      'Apprendre à votre enfant le mot : « dis-moi si ça tire » — les recommandations pédiatriques l’expliquent explicitement.',
+      'La rotation 1:1 : 4 semaines de coiffures à tension, 4 semaines détendues — le protocole de prévention pédiatrique.',
+      'Démêler par méthode : doigts d’abord, des pointes vers la racine, avec le produit en barrière — jamais dans le sens du nœud.',
+      'Satin la nuit (bonnet ou taie) : l’enfant frotte plus que vous — école, jeu, sommeil.',
+    ],
+    eviter: [
+      'La coiffure « juste un peu serrée » : le contour de l’enfant est la première ligne de défense — détendre, pas attendre.',
+      'Bun ou queue serrés chaque jour : le risque n°1 documenté chez l’enfant.',
+      'Le défrisage : les experts pédiatriques recommandent d’envisager de l’éviter — à tout le moins, 10–12 semaines minimum entre applications.',
+    ],
+    attendre: 'La tête d’un enfant pardonne vite quand on détend à temps : les signaux du contour (tiraillement, rougeur) retombent en quelques semaines. Le repère : votre enfant ne se plaint plus, et le contour ne s’effine pas.',
+    source: 'Rev. traction pédiatrique (Pediatric Dermatology, 2021) ; Traya (2026) — scalp enfant ; guides démêlage enfants (Fro Babies, Mustela)',
+  },
+  {
+    key: 'prob_hair_barbe',
+    title: 'La barbe : la coupe décide de tout',
+    confidence: 'institution',
+    fact: 'Votre barbe n’est pas le cheveu de votre crâne : plus grossier, elle répond au signal hormonal à l’opposé (elle pousse quand le crâne s’affine). Elle a deux problèmes à elle : la peau dessous (les squames sous la barbe, c’est la peau sèche — le sébum ne voyage pas la longueur) et la coupe (le système multi-lames coupe le poil sous la surface : la pointe pique — c’est le mécanisme du poil incarné).',
+    faire: [
+      'Tailler/raser dans le sens du grain : moins de fourches, moins d’irritation, moins de poils incarnés.',
+      'Eau chaude avant le passage (le poil gonfle → moins de pointe biseautée) et lame unique ou trimmer — pas multi-lames.',
+      'Hydrater la peau d’abord, la barbe ensuite : les squames sous la barbe sont la peau, pas la barbe.',
+      'Taille légère toutes les 4–6 semaines : la fourche monte le long de la fibre, la barbe comprise.',
+    ],
+    eviter: [
+      'Raser à contre-grain « pour un rendu plus net » : c’est le plus court qui plante la pointe sous la peau.',
+      'Le rasage sec : la pointe biseautée est un poil incarné en préparation.',
+      'Les cires lourdes en couche : elles assèchent la longueur, comme sur une tête bouclée.',
+    ],
+    attendre: 'Une zone irritée se calme en ~3 semaines sans rasage (durée documentée) ; le confort de la barbe (les démangeaisons) s’installe en quelques semaines de routine peau + fibre.',
+    source: 'Révision NIH — pseudofolliculitis barbae (2019, PMC6585396) ; American Academy of Dermatology — 6 tips razor bumps ; guides de taille (2024–2026)',
+  },
+  {
+    key: 'prob_hair_defrisee',
+    title: 'Le cheveu défrisé : le timing est un protocole',
+    confidence: 'recherche',
+    fact: 'Le relaxeur change la forme de façon permanente (il casse les liaisons permanentes, pas celles de l’eau) : la repousse revient en texture naturelle, et la ligne de démarcation est le point fragile. Une étude l’a mesuré : cheveu défrisé = squames, casse et perte significativement plus fréquentes que le naturel — surtout quand on re-traitre trop tôt. Appliquer le relaxeur sur du cheveu déjà traité, c’est l’une des façons les plus rapides de casser la fibre.',
+    faire: [
+      'La règle des 8–12 semaines : pas de nouvelle application avant ≈ 2,5 cm de repousse — le standard professionnel.',
+      'Protéger le cuir chevelu : base/barrière avant application et test sur une mèche — le cuir chevelu brûle en premier.',
+      'À la ligne de démarcation : démêler la repousse avant retouche, travailler par mèches — c’est là que la fibre casse sous la tension.',
+      'Équilibre protéine/hydratation : la fibre défrisée est hautement poreuse — le test d’élasticité dit lequel des deux manque.',
+    ],
+    eviter: [
+      'La retouche à 4 semaines : la cause majeure documentée de casse.',
+      'La chaleur en plus du chimique : le double dommage sur la même fibre.',
+      'Le mythe « no-lye = moins de dommage » : les deux cassent les mêmes liaisons — ce qui change, c’est l’irritation du cuir chevelu et les dépôts de calcium.',
+    ],
+    attendre: 'Le cuir chevelu se remet en quelques jours entre deux applications ; la fibre se remet en quelques mois de soins bien timing. Le repère : la ligne de démarcation ne casse plus au peignage.',
+    source: 'JAMA Dermatology Reviews — « Safety of chemical hair relaxers » (2024) ; étude casse/perte (2019, ResearchGate) ; guides de timing professionnels (2025–2026)',
+  },
+  {
+    key: 'prob_hair_locks',
+    title: 'Les locks : le scalp est une pièce close',
+    confidence: 'communaute',
+    fact: 'La lock n’est pas fabriquée, elle pousse : la cuticule (les « tuiles de toit ») se soulève par friction et emprisonne les ≈ 100 cheveux que vous perdez par jour. Deux conséquences : la lock rétrécit de 10–30 % (elle semble s’élargir au lieu de s’allonger — la longueur réelle se voit après 12–18 mois), et ce qu’on y met y reste : silicones, huile minérale, pétrolatum, cires s’accumulent sous la lock.',
+    faire: [
+      'Produits sans résidu uniquement : sans silicone, sans huile minérale, sans pétrolatum, sans cire — ce qui locke, locke.',
+      'Laver aux doigts (pas aux ongles), sur le cuir chevelu, et sécher complètement après chaque lavage — une lock à moitié humide sent en quelques jours.',
+      'Deep cleanse (detox) tous les 3–6 mois : libérer ce qui s’est accumulé, même en lavant bien.',
+      'Contrôler la tension du retight : la racine des locks n’est pas exemptée de la règle du confort du jour 1.',
+    ],
+    eviter: [
+      'Le mythe « les locks ne se lavent pas » : résidu + humidité dans la lock, c’est l’odeur et le cuir chevelu qui en paient le prix.',
+      'Les cires lourdes « pour lock plus vite » : elles accélèrent le résidu, pas la lock.',
+      'Le retight serré chaque semaine : la racine d’une lock est un follicule sous tension, comme le reste de la tête.',
+    ],
+    attendre: 'La phase « teen » (débouclage, rétrécissement) est normale jusqu’à 6–12 mois ; la lock mature arrive à 12–24 mois, stabilisée en 3–5 ans. Le repère : la lock tient sa forme toute seule, et le cuir chevelu est propre entre deux lavages.',
+    source: 'Guides lockage (Welly 2025, Dreadlockulture 2026) — mécanisme ; Dollylocks (2025) — résidus, séchage complet ; timelines (Shun Salon 2025, r/Dreadlocks)',
+  },
 ];
 
 /**
@@ -231,12 +307,18 @@ export function pickHairProblemCards(ctx: HairAdvisoryContext, max = 2): Problem
 
   const hasCasse = priority === 'casse';
   const hasCuirChevelu = priority === 'cuir_chevelu' || ['sec', 'demangeaisons', 'pellicules', 'irritation'].includes(scalp);
-  const hasTension = ['braids', 'twists', 'locks'].includes(style) || texture === 'protective';
+  const hasEnfant = style === 'enfant' || priority === 'demelage_enfant';
+  const hasDefrisee = texture === 'defrisee';
+  const hasLocks = texture === 'locksee' || style === 'locks';
+  const hasTension = ['braids', 'twists'].includes(style) || texture === 'protective';
   const hasPousse = priority === 'pousse';
 
   const wanted: string[] = [];
   if (hasCasse) wanted.push('prob_hair_casse');
   if (hasCuirChevelu) wanted.push('prob_hair_cuir_chevelu');
+  if (hasEnfant) wanted.push('prob_hair_enfant');
+  if (hasDefrisee) wanted.push('prob_hair_defrisee');
+  if (hasLocks) wanted.push('prob_hair_locks');
   if (hasTension) wanted.push('prob_hair_tension');
   if (hasPousse) wanted.push('prob_hair_pousse');
 

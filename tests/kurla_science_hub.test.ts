@@ -80,7 +80,7 @@ function check(label: string): void {
 
 async function runScienceHubTests(): Promise<void> {
   // --- 1. Cartes cheveux : complètes, sourcées, vocabulaire connu --------
-  assert.equal(HAIR_SCIENCE_CARDS.length, 13, 'le pôle cheveux compte 13 cartes');
+  assert.equal(HAIR_SCIENCE_CARDS.length, 30, 'le pôle cheveux compte 30 cartes');
   for (const card of HAIR_SCIENCE_CARDS) {
     for (const field of ['key', 'title', 'fact', 'mechanism', 'source'] as const) {
       assert.ok(String(card[field]).trim().length > 0, `carte cheveux ${card.key} : champ « ${field} » vide`);
@@ -205,9 +205,9 @@ async function runScienceHubTests(): Promise<void> {
 
   // --- 14. Cartes « moyens » : complètes, sourcées, protocoles intacts ---
   const allProblemCards = [...SKIN_PROBLEM_CARDS, ...HAIR_PROBLEM_CARDS];
-  assert.equal(allProblemCards.length, 8, '8 cartes moyens : 4 peau + 4 cheveux');
+  assert.equal(allProblemCards.length, 12, '12 cartes moyens : 4 peau + 8 cheveux');
   const problemKeys = new Set(allProblemCards.map(card => card.key));
-  assert.equal(problemKeys.size, 8, 'doublon de clé dans les cartes moyens');
+  assert.equal(problemKeys.size, 12, 'doublon de clé dans les cartes moyens');
   for (const card of allProblemCards) {
     for (const field of ['key', 'title', 'fact', 'attendre', 'source'] as const) {
       assert.ok(String(card[field]).trim().length > 0, `carte moyens ${card.key} : champ « ${field} » vide`);
@@ -216,7 +216,7 @@ async function runScienceHubTests(): Promise<void> {
     assert.ok(card.faire.length >= 3 && card.faire.every(item => item.trim().length > 0), `carte moyens ${card.key} : « faire » incomplet (< 3 gestes vides)`);
     assert.ok(card.eviter.length >= 2 && card.eviter.every(item => item.trim().length > 0), `carte moyens ${card.key} : « éviter » incomplet (< 2 interdits)`);
   }
-  check('cartes moyens : 8 protocoles complets et sourcés (faire ≥ 3, éviter ≥ 2, délai honnête)');
+  check('cartes moyens : 12 protocoles complets et sourcés (faire ≥ 3, éviter ≥ 2, délai honnête)');
 
   // --- 15. Cartes moyens : vocabulaire et phrases réservées ----------------
   for (const card of allProblemCards) {
@@ -251,6 +251,22 @@ async function runScienceHubTests(): Promise<void> {
   assert.deepEqual(pickSkinProblemCards({ ...tachesCtx }), skinDeterministic, 'picker peau non déterministe');
   check('pickers moyens : inconnu = inconnu (0 carte vierge), contextuel, borné, déterministe');
 
+  // --- 17b. Les 4 pôles creusés : savoirs + moyens détectés --------------
+  const kidCards = pickHairScienceInsights({ style: 'enfant' });
+  assert.ok(kidCards.some(item => item.key === 'sci_kid_scalp'), 'enfant : le fait scalp enfant doit être choisi');
+  const relaxCards = pickHairScienceInsights({ texture: 'defrisee' });
+  assert.ok(relaxCards.some(item => item.key === 'sci_relax_bonds'), 'défrisé : le fait liaisons permanentes doit être choisi');
+  const locksCards = pickHairScienceInsights({ texture: 'locksee' });
+  assert.ok(locksCards.some(item => item.key === 'sci_locks_mecanisme'), 'locks : le fait mécanisme doit être choisi');
+  assert.ok(pickHairProblemCards({ style: 'enfant' }).some(c => c.key === 'prob_hair_enfant'), 'enfant : carte moyen enfant');
+  assert.ok(pickHairProblemCards({ texture: 'defrisee' }).some(c => c.key === 'prob_hair_defrisee'), 'défrisé : carte moyen défrisage');
+  assert.ok(pickHairProblemCards({ texture: 'locksee' }).some(c => c.key === 'prob_hair_locks'), 'locks : carte moyen locks');
+  for (const theme of HAIR_SCIENCE_THEMES) {
+    assert.ok(HAIR_SCIENCE_CARDS.length >= 30, 'cheveux : base enrichie (30 cartes)');
+    assert.ok(theme.label.length > 0, `thème « ${theme.theme} » sans intitulé`);
+  }
+  check('4 pôles creusés : enfants, barbe, défrisage, locks — savoirs et moyens détectés');
+
   // --- 17. Wiring : le modèle du résultat porte les cartes moyens ---------
   const skinProblemModel = buildDiagnosticResultModel({ answers: skinAnswers, result: null, products: [], isSkin: true });
   assert.equal(skinProblemModel.problemCards[0].key, 'prob_skin_taches', 'peau : taches déclarées → carte taches dans le résultat');
@@ -260,7 +276,7 @@ async function runScienceHubTests(): Promise<void> {
   check('wiring : DiagnosticResultModel.problemCards présent côté peau et côté cheveux');
 
   console.log(
-    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 10 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) ; 8 cartes « moyens » (faire/éviter/s'attendre) sourcées, inconnu = inconnu — ${checks.length} checks.`
+    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 9 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) ; 12 cartes « moyens » (faire/éviter/s'attendre) sourcées, 4 pôles creusés (enfants, barbe, défrisage, locks), inconnu = inconnu — ${checks.length} checks.`
   );
 }
 

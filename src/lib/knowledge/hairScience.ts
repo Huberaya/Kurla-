@@ -38,7 +38,7 @@ export interface ScienceInsight {
   confidence: ScienceConfidence;
 }
 
-export type HairScienceTheme = 'fibre' | 'eau' | 'environnement' | 'coiffures' | 'savoirs';
+export type HairScienceTheme = 'fibre' | 'eau' | 'environnement' | 'coiffures' | 'savoirs' | 'enfants' | 'barbe' | 'chimique' | 'locks';
 
 export interface HairScienceCard extends ScienceInsight {
   theme: HairScienceTheme;
@@ -171,6 +171,160 @@ export const HAIR_SCIENCE_CARDS: HairScienceCard[] = [
     source: 'Newsweek — entretien avec Lorraine Massey (2022) ; synthèse des analyses de formules (Grokipedia, 2026)',
     confidence: 'communaute',
   },
+  {
+    key: 'sci_kid_scalp',
+    theme: 'enfants',
+    title: 'La tête d’un enfant est plus sensible que vous ne le pensez',
+    fact: 'Le cuir chevelu de votre enfant est plus fin que le vôtre, et ses follicules sont encore en cours de développement : la tension y travaille en premier, et les premiers signes apparaissent au contour et aux tempes. La bonne nouvelle documentée par les pédiatres : si on détend tôt, le cheveu repousse. Laisser faire « quelques jours de plus », ce n’est pas un plan.',
+    mechanism: 'Les revues de dermatologie pédiatrique stratifient le risque : le niveau le plus haut, c’est le cheveu naturel porté serré **souvent** — pas la longueur des coiffures, c’est la fréquence du serrage.',
+    source: 'Rev. traction pédiatrique (Pediatric Dermatology, 2021) ; Traya (2026) — scalp enfant',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_kid_speech',
+    theme: 'enfants',
+    title: 'Un enfant ne dit pas toujours « ça tire » : apprenez-lui le mot',
+    fact: 'Les recommandations pédiatriques sont explicites : **enseigner à l’enfant à dire que c’est trop serré** pendant la coiffure. Un enfant qui ne peut pas formuler l’inconfort a besoin d’un adulte qui lit les signaux — le confort du jour 1 (pas de pique, pas de tirage) reste votre alarme à tous les deux.',
+    mechanism: 'La douleur est le signal « trop serré » documenté ; chez l’enfant, elle est moins exprimée et plus tardive — d’où le contrôle au moment de la coiffure, pas après.',
+    source: 'Rev. traction pédiatrique (Pediatric Dermatology, 2021) — « teach children to communicate when something is too tight »',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_kid_rotation',
+    theme: 'enfants',
+    title: 'La rotation 1:1 : 4 semaines tendues, 4 semaines détendues',
+    fact: 'Le protocole de prévention pédiatrique est chiffré : alterner **4 semaines de coiffures à tension et 4 semaines détendues** (ratio 1:1), détendre le contour avant de coiffer, et ne pas mettre de rouleaux la nuit. C’est le même principe que pour l’adulte — appliqué avant que le contour ne signale.',
+    mechanism: 'Le follicule tiré en permanence s’use ; la rotation lui donne des cycles sans traction — le risque mesuré diminue avec le ratio, pas avec la coiffure elle-même.',
+    source: 'Rev. traction pédiatrique (Pediatric Dermatology, 2021) — « 1:1 ratio, e.g. braids for 4 weeks then 4 weeks in natural style »',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_kid_demelage',
+    theme: 'enfants',
+    title: 'Le démêlage d’enfant est une méthode, pas une bagarre',
+    fact: 'Les guides des cheveux d’enfant se ressur tous les mêmes points : doigts d’abord pour défaire, puis peigne **des pointes vers la racine** (le sens inverse reserre les nœuds et casse), conditionneur en barrière avant de peigner, section par section. Le satin (bonnet ou taie) la nuit compte autant : l’enfant frotte plus que vous (école, jeu, sommeil).',
+    mechanism: 'La fibre d’enfant est plus fine et plus fragile que l’adulte : le nœud tire plus de fibres à la fois, et la cuticule fine s’use plus vite au frottement.',
+    source: 'Guides démêlage enfants (Fro Babies, 2020–2021 ; Mustela, 2018) ; Mustela — « la peau du nourrisson continue de se développer jusqu’à 2 ans »',
+    confidence: 'communaute',
+  },
+  {
+    key: 'sci_kid_pellicules',
+    theme: 'enfants',
+    title: 'Les « pellicules » de votre enfant ne sont souvent pas des pellicules',
+    fact: 'Les squames du cuir chevelu sont **très peu fréquentes chez le jeune enfant** (le pic arrive vers la puberté) : avant 12 mois, le suintement est presque toujours la « coussette » (cradle cap), qui est autre chose. Et si des squames apparaissent, l’agent documenté est une levure présente sur **tous** les cuirs chevelus, nourrie par le sébum — pas un manque d’hygiène. Laver plus fort, c’est aggraver.',
+    mechanism: 'La levure (Malassezia) vit naturellement sur le cuir chevelu ; elle s’active quand le sébum la nourrit — d’où le pic hormonal de la puberté, et d’où l’aggravation par les lavages décappants.',
+    source: 'BabyCenter (2025) — « dandruff is very uncommon in young children » ; Tucokids (2025) — Malassezia, « not a hygiene issue »',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_beard_fibre',
+    theme: 'barbe',
+    title: 'Votre barbe n’est pas le cheveu de votre crâne',
+    fact: 'Les follicules de la barbe répondent au signal hormonal (androgènes/DHT) en **épaississant** — cheveu terminal, plus grossier, plus de couches de cuticule, phase de croissance plus longue — pendant que les follicules du crâne, eux, se miniaturisent sous le même signal. C’est pour ça que la barbe pousse pendant que le crâne s’affine, et c’est pour ça qu’une routine de crâne ne s’applique pas telle quelle à la barbe.',
+    mechanism: 'Le même message chimique, des récepteurs différents : la face épaissit, le crâne s’affine — la réponse dépend du follicule, pas de la dose.',
+    source: 'Littérature clinique greffe (Kopelman, 2026) — follicules barbe : anagen plus long, cuticules plus nombreuses ; Cynsmith (2024)',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_beard_sebum',
+    theme: 'barbe',
+    title: 'Une barbe longue est sèche en longueur par construction',
+    fact: 'Les glandes sébacées restent à la **racine**, avec une production fixe : au-delà de quelques millimètres, **le sébum ne couvre plus la longueur** — les pointes vivent sèches, et la peau **sous** la barbe (qui squame) est sèche elle aussi. La barbe a donc deux peaux à entretenir : la peau dessous, la fibre au-dessus.',
+    mechanism: 'Le sébum voyage le long de la fibre comme sur un cheveu ; la barbe est trop longue pour la production de ses racines — la même logique que le cheveu texturé, en version courte.',
+    source: 'Wise Beards (2018) ; Live Bearded (2019) ; One Society (2026) — production sébacée fixe vs longueur',
+    confidence: 'expertise',
+  },
+  {
+    key: 'sci_beard_incarnes',
+    theme: 'barbe',
+    title: 'Le poil incarné : c’est la coupe qui décide, pas la peau',
+    fact: 'La cause principale du poil incarné, c’est **le rasage lui-même** — et le mécanisme est documenté : le système multi-lames lève le poil et le coupe **sous** la surface de la peau, la pointe pique ; le rasage **sec** produit des pointes biseautées qui pénètrent ; le rasage **à contre-grain** augmente le risque ; les lames obtuses étirent avant de couper. L’eau chaude avant le passage fait gonfler le poil et réduit la pointe biseautée. Arrêter de raser la zone irritée : l’amélioration vient en environ 12 semaines.',
+    mechanism: 'Le poil qui repousse est une aiguille microscopique : plus sa pointe est courte, biseautée et plantée sous la surface, plus il pénètre — chaque paramètre de coupe est un paramètre de risque.',
+    source: 'Révision NIH — pseudofolliculitis barbae (2019, PMC6585396) ; American Academy of Dermatology — 6 tips razor bumps',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_beard_trim',
+    theme: 'barbe',
+    title: '« Couper à contre-grain pour un rendu plus net » est un mythe',
+    fact: 'Le contre-grain donne un rendu plus court, oui — au prix de plus d’irritation, plus de poils incarnés et plus de fourches. Avec le grain, la barbe se porte plus proprement : moins de fourches, moins d’irritation, et le « net » se fait à la ligne, pas à la contre-direction. Et la barbe a des **directions** (le menton pousse vers le haut) : le grain n’est pas un, il s’observe par zone. La fourche, elle, se coupe — toutes les 4 à 6 semaines, pas plus souvent.',
+    mechanism: 'La fourche = cuticule usée qui s’ouvre ; le contre-grain usure la cuticule et laisse des pointes qui s’élèvent — le grain suit la fibre au lieu de la défier.',
+    source: 'Brazy Kuts (2024) ; Glossy Locks (2026) ; Stubble & Stache (2026) — fourches, directions, fréquence',
+    confidence: 'expertise',
+  },
+  {
+    key: 'sci_relax_bonds',
+    theme: 'chimique',
+    title: 'Le défrisage change la forme à vie — jusqu’au cheveu pousse',
+    fact: '« L’eau écrit la boucle, le séchage la fixe » — et le chimique, lui, **réécrit la forme définitivement** : le relaxeur casse les liaisons disulfures (les liaisons permanentes de la fibre) et les convertit en liens plus faibles (lanthionine). Le cheveu traité ne reprendra jamais sa texture — seule la repousse la porte. C’est pour ça que votre cheveu défrisé a deux natures : la repousse en coil, et la longueur en lisse.',
+    mechanism: 'Contrairement aux liaisons hydrogène (eau, chaleur, réversibles), les liaisons disulfures tiennent la forme permanente : une fois cassées et reformées, le changement est irréversible sur la longueur traitée.',
+    source: 'JAMA Dermatology Reviews — « Safety of chemical hair relaxers » (2024) ; chimie cosmétique standard (liaisons disulfures → lanthionine)',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_relax_scalp',
+    theme: 'chimique',
+    title: 'Le cuir chevelu est le premier à brûler — et la « no-lye » n’est pas moins dure',
+    fact: 'Les relaxeurs lye (hydroxyde de sodium) sont d’une alcalinité extrême : c’est eux qui irritent et brûlent le cuir chevelu le plus vite. Les no-lye (calcium) irritent moins **mais laissent des dépôts de calcium** dans la fibre — ce n’est pas « moins de dommage », c’est un autre dommage. Une étude mesurée le résultat : cheveux défrisés = squames, casse et perte **significativement plus fréquentes** que sur cheveu naturel. La protection du cuir chevelu (base avant application, temps de pose) est le geste qui change tout.',
+    mechanism: 'La fibre supporte le chimique mieux que le cuir chevelu : la peau n’a pas de couche cuticulaire, le chimique l’atteint directement — d’où la brûlure, et d’où la barrière à la racine.',
+    source: 'JAMA Dermatology Reviews (2024) ; étude casse/perte/squames (2019, ResearchGate — P=0,046 / 0,023 / 0,020) ; Salons (2011) — lye vs no-lye',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_relax_timing',
+    theme: 'chimique',
+    title: 'La retouche à 4 semaines est la cause n°1 de casse documentée',
+    fact: 'Le standard professionnel est de **8 à 12 semaines** entre deux applications — avec **au moins ≈ 2,5 cm de repousse**. Appliquer le relaxeur sur du cheveu **déjà traité** est décrit par les professionnels comme « l’une des façons les plus rapides de casser la fibre ». Et la ligne de démarcation (repousse en coil / longueur lissée) est le point fragile : c’est là que la tension et la casse se concentrent.',
+    mechanism: 'La fibre défrisée est déjà affaiblie (liaisons re-formées plus fragiles) : un second passage sur la même longueur ajoute de l’usure à l’usure — d’où la casse à la ligne de démarcation.',
+    source: 'Shun Salon (2025) — 8–12 semaines, 10–12 pour cheveu fin ; Kabelly (2026) — retouche 4 semaines = cause majeure ; max 4–6 applications/an',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_relax_porosite',
+    theme: 'chimique',
+    title: 'Le cheveu défrisé est hautement poreux par construction',
+    fact: 'La cuticule du cheveu défrisé est ouverte par le chimique : la fibre **perd l’eau plus vite et l’absorbe aussi plus vite** — c’est de la porosité forte par définition, pas par accident. D’où l’équilibre qui fait toute la différence : ni trop de protéines (la fibre devient rigide et casse nette sans s’étirer), ni trop d’eau (elle s’étire sans revenir). Le test d’élasticité — étirer une mèche humide et observer — dit lequel des deux manque.',
+    mechanism: 'La cuticule ouverte = les écailles ne se referment plus sur la fibre : l’eau entre et sort, et la kératine interne s’échappe partiellement — le test d’élasticité mesure la réponse de la fibre à ce déséquilibre.',
+    source: 'Guides haute porosité (Natures Natural Hair, 2025) — équilibre protéine/hydratation, test d’élasticité ; JAMA Dermatology Reviews (2024) — cuticule',
+    confidence: 'expertise',
+  },
+  {
+    key: 'sci_locks_mecanisme',
+    theme: 'locks',
+    title: 'Une lock n’est pas fabriquée : elle pousse',
+    fact: 'Le lockage est un phénomène physique : les écailles de la cuticule — comme des tuiles de toit — se soulèvent par **friction** (oreiller, vêtements, vent, doigts) et accrochent les fibres voisines ; les **≈ 100 cheveux que vous perdez par jour** restent prisonniers à l’intérieur et compactent le cœur de la lock. Le coil serré locke plus vite (il s’enroule sur lui-même), la cuticule ouverte aussi. Il n’y a **aucun produit qui remplace le temps** — les « crèmes de lockage » accélèrent, elles ne causent pas.',
+    mechanism: 'La lock est de la feutrage capillaire : friction → cuticule levée → accroche → les cheveux morts emprisonnés compactionnent — le même processus qu’une pelote de laine qui se feutre, en version fibre.',
+    source: 'Welly (2025) — mécanisme de matting naturel ; Dreadlockulture (2026) ; Dreadlocks Extension (2025)',
+    confidence: 'communaute',
+  },
+  {
+    key: 'sci_locks_temps',
+    theme: 'locks',
+    title: 'La timeline honnête des locks : 12 mois pour la forme, 3–5 ans pour la stabilité',
+    fact: 'Les repères documentés : **1–3 mois** — « budding » (les premières boucles se forment) ; **3–6 mois** — la phase « teen » (débouclage, rétrécissement, fourches : c’est normal, ce n’est pas un échec) ; **6–12 mois** — locks définies (cheveu 4C, routine régulière) ; **12–24 mois** — locks matures ; **3–5 ans** — stabilisation complète. La texture, la méthode (freeform, twist, palm rolling, backcombing) et la régularité pilotent le rythme — le cheveu court locke plus vite que le long.',
+    mechanism: 'La lock mûrit par compaction progressive : le cheveu pousse, se ré-enroule, emprisonne les cheveux morts — chaque cycle ajoute de la densité ; la stabilité finale, c’est quand la lock tient sa forme sans intervention.',
+    source: 'Shun Salon (2025) — timelines par méthode ; r/Dreadlocks (retours communautaires concordants)',
+    confidence: 'communaute',
+  },
+  {
+    key: 'sci_locks_scalp',
+    theme: 'locks',
+    title: 'Un scalp en locks est une pièce close : ce qu’on y met reste',
+    fact: 'Sous une lock, rien ne s’échappe facilement : **les silicones, le pétrolatum, l’huile minérale et les cires s’accumulent** — c’est le « résidu », l’ennemi n°1 des locks (odeur, cuir chevelu bouché, locks qui ne lockent plus pareil). Les gestes documentés : shampoing **sans résidu** (le critère est le résidu, pas la marque), lavage **aux doigts, pas aux ongles**, **séchage complet après chaque lavage** (une lock à moitié humide sent en quelques jours), et un **deep cleanse tous les 3–6 mois** pour libérer ce qui s’est accumulé.',
+    mechanism: 'La lock compactionne tout ce qui entre : un produit insoluble reste prisonnier du même mécanisme qui locke la fibre — la « pièce close » n’a pas d’évacuation, d’où le nettoyage en profondeur périodique.',
+    source: 'Dollylocks (2025) — résidus, séchage complet, detox 3–6 mois ; Locs Essentials (2023) ; StyleCraze (2026)',
+    confidence: 'communaute',
+  },
+  {
+    key: 'sci_locks_shrinkage',
+    theme: 'locks',
+    title: 'Une lock qui rétrécit n’est pas une lock qui ne pousse pas',
+    fact: 'Le rétrécissement des locks est **mesuré : 10 à 30 %** (au backcombing : 7″ → 5,6″ ; 3″ → 2,4″) — et il se poursuit pendant que la lock pousse : c’est pour ça que les locks **semblent s’élargir** au lieu de s’allonger. La longueur réelle se voit **après 12–18 mois**, quand la lock est assez lourde pour tirer vers le bas. Les sections grosses rétrécissent plus que les fines — et le retight (resserrage) reste une tension racinaire comme les autres : la règle du confort du jour 1 s’applique à la racine des locks.',
+    mechanism: 'La lock s’allonge par la racine et se raccourcit par le ré-enroulement — les deux processus se superposent : l’effet visible net est l’élargissement, pas l’allongement, jusqu’à la maturité.',
+    source: 'Dreadhead HQ — shrinkage mesuré (10–30 %, 7″→5,6″) ; r/Dreadlocks — poids et maturité 12–18 mois',
+    confidence: 'communaute',
+  },
+
 ];
 
 export const HAIR_SCIENCE_THEMES: { theme: HairScienceTheme; label: string; intro: string }[] = [
@@ -179,6 +333,10 @@ export const HAIR_SCIENCE_THEMES: { theme: HairScienceTheme; label: string; intr
   { theme: 'environnement', label: 'Environnement & protection', intro: 'Soleil, sébum, pellicules : ce que la peau et le cheveu font entre deux soins.' },
   { theme: 'coiffures', label: 'Coiffures & tension', intro: 'Ce que les cliniciens documentent sur la tension, la friction et le confort d’une coiffure.' },
   { theme: 'savoirs', label: 'Savoirs & tests', intro: 'Typing, porosité, méthodes : ce qui est utile, ce qui est perfectible, et pourquoi.' },
+  { theme: 'enfants', label: 'Enfants', intro: 'Ce que la dermatologie pédiatrique documente sur les têtes fragiles — et les gestes qui changent tout.' },
+  { theme: 'barbe', label: 'Barbe & hommes', intro: 'Votre barbe n’est pas le cheveu de votre crâne : sa fibre, son sébum et ses poils incarnés.' },
+  { theme: 'chimique', label: 'Défrisage & chimiques', intro: 'Ce que le relaxeur fait vraiment à la fibre, au cuir chevelu — et le timing qui sauve.' },
+  { theme: 'locks', label: 'Locks', intro: 'Le lockage est un phénomène physique mesuré : son mécanisme, sa timeline et son scalp.' },
 ];
 
 /**
@@ -196,6 +354,7 @@ export function pickHairScienceInsights(ctx: HairAdvisoryContext, max = 3): Scie
   const isCoily = texture === 'crepue';
   const isCurly = texture === 'frisee' || priority === 'definition';
   const isLocked = texture === 'locksee' || style === 'locks';
+  const isRelaxed = texture === 'defrisee';
   const isProtective = texture === 'protective' || style === 'braids' || style === 'twists';
   const isWig = style === 'wig';
   const isKid = style === 'enfant' || priority === 'demelage_enfant';
@@ -207,10 +366,11 @@ export function pickHairScienceInsights(ctx: HairAdvisoryContext, max = 3): Scie
   if (isBreakage) wanted.push('sci_tempes_fines', 'sci_section_plate', 'sci_shrinkage');
   else if (isGrowth) wanted.push('sci_tempes_fines', 'sci_friction', 'sci_liaisons');
   else if (isScalp) wanted.push('sci_pellicules', 'sci_tension', 'sci_friction');
-  else if (isLocked) wanted.push('sci_liaisons', 'sci_section_plate', 'sci_tension');
+  else if (isLocked) wanted.push('sci_locks_mecanisme', 'sci_locks_shrinkage', 'sci_locks_scalp');
+  else if (isRelaxed) wanted.push('sci_relax_bonds', 'sci_relax_timing', 'sci_relax_scalp');
   else if (isWig) wanted.push('sci_tension', 'sci_friction', 'sci_pellicules');
   else if (isProtective) wanted.push('sci_tension', 'sci_friction', 'sci_pellicules');
-  else if (isKid) wanted.push('sci_friction', 'sci_sebum', 'sci_liaisons');
+  else if (isKid) wanted.push('sci_kid_scalp', 'sci_kid_demelage', 'sci_kid_rotation');
   else if (isCurly) wanted.push('sci_shrinkage', 'sci_liaisons', 'sci_typing');
   if (porosity === 'forte' || porosity === 'faible') wanted.unshift('sci_porosite_test');
   if (wanted.length === 0) wanted.push('sci_typing', 'sci_sebum', 'sci_liaisons');

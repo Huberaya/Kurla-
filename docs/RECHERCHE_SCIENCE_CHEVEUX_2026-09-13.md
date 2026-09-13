@@ -542,3 +542,127 @@ du problème. Miroir exact peau/cheveux, mêmes verrous de vocabulaire.
 
 Cheveux (4) : casse · cuir chevelu · tension/coiffures · pousse.
 Peau (4) : taches · imperfections · sécheresse · sensibilité.
+
+---
+---
+
+# PIÈCE 4 — Quatre pôles creusés : enfants, barbe/hommes, défrisage, locks (5ᵉ vague, 13/09/2026)
+
+Mêmes règles : sourcée ou absente, zéro vocabulaire médical dans le
+discours public, zéro mention cancer. Niveaux [R]/[I]/[C]/[E].
+
+## P4.1 — Enfants
+
+- [R] **Revu de la traction chez l'enfant** (Pediatric Dermatology, 2021,
+  Wiley) : stratification du risque (niveau 1 = cheveu naturel + queues/
+  chignons serrés **fréquents** ; niveau 2 = perruques sous bonnets coton,
+  etc.) ; stratégies documentées : **rotation 1:1** (4 semaines tressé /
+  4 semaines détendu), détendre le contour, **ne pas mettre de rouleaux la
+  nuit**, « teach children to communicate when something is too tight
+  or painful during hairstyling » — **enseigner à l'enfant à dire que ça
+  tire** est une recommandation explicite ; « consider **deferring**
+  relaxing children's hair ».
+- [I] Traya (2026) : le cuir chevelu de l'enfant est **plus fin**, les
+  follicules **en cours de développement** — une coiffure « anodine » portée
+  au quotidien peut endommager ; premiers signes au **contour et aux
+  tempes** ; **réversible si détendu tôt** ; l'enfant « may not articulate
+  discomfort » ; garçons concernés aussi (top knots, buns).
+- [C] Guides démêlage enfants (Fro Babies, Mustela, 2018–2021) : doigts
+  d'abord, **des pointes vers la racine** (sens inverse = nœuds serrés +
+  casse), conditionneur en barrière, section par section, satin/bonnet la
+  nuit ; « baby's skin continues to develop until the age of two » (Mustela).
+- [I] Pellicules de l'enfant (BabyCenter, 2025 ; Tucokids, 2025) : les
+  « pellicules » sont **très peu fréquentes chez le jeune enfant** (pic à la
+  puberté) ; **avant 12 mois, le suintement = « cradle cap »** (coussette),
+  autre chose ; agent documenté = *Malassezia* (levure présente sur tous
+  les cuirs chevelus, nourrie par le sébum) ; **laver trop avec des produits
+  agressifs aggrave** ; « not a hygiene issue ».
+
+## P4.2 — Barbe / hommes
+
+- [R] La barbe n'est pas le cheveu du crâne : les follicules faciaux
+  répondent aux androgènes/DHT en **épaississant** (cheveu terminal plus
+  grossier, plus de couches de cuticule, anagen plus long) pendant que les
+  follicules du crâne sensibles au DHT se **miniaturisent** — le même
+  signal hormonal, deux réponses opposées (Kopelman 2026, littérature
+  clinique greffe ; Cynsmith 2024).
+- [R] **Poils incarnés / PFB** (révision NIH, 2019, PMC6585396 ; AAD) : le
+  **rasage est le déclencheur principal** ; mécanisme documenté : le
+  système multi-lames **lève le poil et le coupe sous la surface** → la
+  pointe pique la peau ; le **rasage sec produit des pointes biseautées**
+  qui pénètrent ; **à contre-grain = plus de PFB** ; l'eau chaude fait
+  gonfler le poil → moins de pointe biseautée ; les lames obtuses étirent
+  avant de couper ; **arrêter de raser la zone → amélioration en ~12
+  semaines** ; lame unique ou trimmer < multi-lames.
+- [I] Sébum et longueur de barbe (Wise Beards 2018, Live Bearded 2019, One
+  Society 2026) : les glandes sébacées restent à la **racine** avec une
+  production fixe ; au-delà de quelques millimètres, **le sébum ne couvre
+  plus la longueur** → pointes sèches, démangeaisons, squames **sous la
+  barbe** (la peau dessous est sèche, pas la barbe) ; l'huile (jojoba ≈
+  sébum) compense.
+- [I] Taille du grain (Brazy Kuts 2024, Glossy Locks 2026, Stubble &
+  Stache 2026) : **avec le grain = moins de fourches, moins
+  d'irritation, moins de poils incarnés** (barbe longue) ; le menton pousse
+  **vers le haut** (directions différentes par zone) ; taille légère toutes
+  les **4–6 semaines** ; lavage barbe **1–2×/semaine** doux ; la fourche
+  se coupe, ne se répare pas.
+
+## P4.3 — Défrisage / chimiques
+
+- [R] **Mécanisme** (JAMA Dermatology Reviews — « Safety of chemical hair
+  relaxers », 2024) : les relaxeurs lye (hydroxyde de sodium/potassium) et
+  no-lye (calcium/guanidine) **cassent les liaisons disulfures** — contrairement
+  aux liaisons hydrogène (eau/chaleur), le changement est **permanent jusqu'au
+  cheveu pousse** ; lye = alcalinité extrême → irritation/brûlure du
+  cuir chevelu ; no-lye = **moins d'irritation mais dépôts de calcium** ;
+  les lissages « kératine » **recroisent le cortex** (autre mécanisme).
+- [R] Étude (2019, ResearchGate) : femmes au cheveu défrisé vs naturel dans
+  les 3 mois précédant l'étude — **squames significativement plus
+  fréquentes (P=0,046), casse (P=0,023), perte (P=0,020)** ; « the
+  rearrangement of disulfide bonds does not occur without structural damage
+  to the shaft » (résistance à la traction réduite).
+- [R] Liaisons disulfures → **lanthionine** (liens plus faibles, irréversibles
+  — chimie cosmétique standard, plusieurs sources concordantes).
+- [I] **Timing professionnel** (Shun Salon 2025, Kabelly 2026) : **8–12
+  semaines** entre applications (cheveu fin 10–12, épais 8–10) ; **au moins
+  ≈ 2,5 cm de repousse** avant retouche ; **appliquer sur cheveu déjà traité
+  = « l'une des façons les plus rapides de casser »** ; retouche à 4 semaines
+  = cause majeure documentée de casse ; **ligne de démarcation** (repousse vs
+  traité) = point de tension et de casse ; **max 4–6 applications/an** ;
+  **enfants : 10–12 semaines minimum** (et la revue pédiatrique recommande
+  d'envisager d'éviter le défrisage — voir P4.1).
+- [I] Porosité / équilibre (guides haute porosité, 2025–2026) : la fibre
+  défrisée est **hautement poreuse par construction** (cuticule ouverte) ;
+  équilibre protéine/hydratation ; **test d'élasticité** : cassure nette
+  sans étirement = trop de protéines (rigide) ; étirement sans retour = trop
+  d'eau (mou).
+
+## P4.4 — Locks
+
+- [C] **Mécanisme de lockage** (Welly 2025, Dreadlockulture 2026,
+  Dreadlocks Extension 2025) : la lock n'est **pas fabriquée, elle pousse** —
+  les écailles de cuticule (« tuiles de toit ») se soulèvent par **friction**
+  (oreiller coton, vêtements, vent, doigts) et accrochent les voisines ;
+  les **≈ 100 cheveux tombés par jour** restent prisonniers à l'intérieur et
+  compactent le cœur ; **le coil serré locke plus vite** (s'enroule sur lui-
+  même) ; cuticule ouverte (porosité forte) = lock plus rapide ; **aucun
+  produit ne remplace le temps** (« freeforming » = lock naturel).
+- [C] **Timeline** (Shun Salon 2025, Reddit r/Dreadlocks) : **budding 1–3
+  mois → teen (débouclage, rétrécissement, phase « rebelle ») → lock défini
+  6–12 mois (4C avec routine régulière) → mature 12–24 mois → stabilisation
+  complète 3–5 ans** ; texture, méthode (freeform, twist, palm roll,
+  backcombing, crochet) et régularité pilotent le rythme ; cheveu court
+  locke plus vite.
+- [C] **Scalp & résidus** (Dollylocks 2025, Locs Essentials 2023,
+  StyleCraze 2026) : ce qu'on met **reste** sous la lock — **silicones,
+  pétrolatum, huile minérale, cires** = les ingrédients qui s'accumulent ;
+  shampoing **sans résidu** (résidu = le critère, pas la marque) ;
+  **laver aux doigts, pas aux ongles** ; **sécher complètement après chaque
+  lavage** (une lock à moitié humide sent en quelques jours) ; **deep
+  cleanse / detox tous les 3–6 mois** ; odeur = signaux (résidu + humidité).
+- [C] **Rétrécissement** (Dreadhead HQ) : **10–30 % de shrinkage** au
+  backcombing (mesuré : 7″ → 5,6″ ; 3″ → 2,4″) ; la lock **pousse et
+  se rétrécit en même temps** → elle semble **s'élargir** plutôt que
+  s'allonger ; la longueur réelle se voit **après 12–18 mois** (+ le poids
+  tire vers le bas) ; sections plus grosses = plus de shrinkage ; retight
+  = tension racinaire (règle du jour 1 applicable).

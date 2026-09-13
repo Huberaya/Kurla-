@@ -1237,3 +1237,55 @@ diagnostic ne pouvait ni les lire ni les juger. Or la consigne est
 la 3ᵉ vague, déjà bancés), aucune nouvelle route (compteur de prérendu
 inchangé), rien dans le moteur.
 
+### 5ᵉ vague — 4 pôles creusés : enfants, barbe/hommes, défrisage, locks
+
+Consigne : « 5ᵉ vague de fouille sur un pôle précis » — 4 chantiers
+demandés : **enfants, barbe/hommes, cheveux défrisés/chimiques, locks**.
+
+**Fait** :
+
+- `docs/RECHERCHE_SCIENCE_CHEVEUX_2026-09-13.md` : **Pièce 4** (124 lignes)
+  — enfants (revue traction **Pediatric Dermatology 2021** : rotation 1:1,
+  « teach children to communicate », défriser les enfants = à envisager
+  d'éviter ; scalp enfant plus fin ; pellicules = rare chez le jeune enfant,
+  coussette avant 12 mois) · barbe (fibre DHT opposée au crâne ; **PFB
+  NIH 2019** : multi-lames coupe sous la surface, sec = pointe biseautée,
+  contre-grain = +risque, arrêt = ~12 semaines ; sébum fixe à la racine ;
+  grain + 4–6 semaines) · défrisage (**JAMA Dermatology Reviews 2024** :
+  disulfures → lanthionine, lye vs no-lye = dépôts de calcium ; étude 2019
+  P=0,046/0,023/0,020 ; **8–12 semaines + ≈ 2,5 cm de repousse**, max
+  4–6 applications/an, ligne de démarcation) · locks (matting = feutrage
+  cuticulaire mesuré ; ≈ 100 cheveux/jour emprisonnés ; timeline budding →
+  teen → mature 12–24 mois ; **résidus = pièce close**, detox 3–6 mois,
+  séchage complet ; **shrinkage 10–30 %** mesuré).
+- `hairScience.ts` : 13 → **30 cartes savoirs**, 5 → **9 thèmes**
+  (+ enfants 5, barbe 4, défrisage 4, locks 4) — la page `/cheveux/science`
+  les affiche sans aucun changement de code.
+- `problemCards.ts` : 8 → **12 cartes moyens** (+ enfant, barbe, défrisage,
+  locks).
+- **Wiring diagnostics** : le picker détecte maintenant les 3 pôles
+  déclarables — `style: enfant` / `demelage_enfant` → enfant,
+  `texture: defrisee` → défrisage, `texture: locksee` / `style: locks` →
+  locks (les locks remplacent la carte tension comme fait « ouvrir les
+  yeux » ; la carte tension reste pour braids/twists).
+- **Barbe : surface publique uniquement** — le diagnostic cheveux n'a pas
+  de champ barbe ; la carte moyen barbe s'affiche sur la page publique,
+  pas dans un résultat (inconnu = inconnu).
+- Banc `kurla_science_hub` : 17 → **18 checks** (30 cartes, 12 moyens,
+  4 pôles détectés par les pickers).
+
+**Pièges mesurés** :
+
+- insertion Python des cartes : l'ancrage avant `HAIR_SCIENCE_THEMES`
+  place les cartes **hors du tableau** (`];` déjà passé) — vérifier
+  `cartes dans le tableau == cartes totales` après toute insertion
+  d'un lot ; une erreur de regex de correction a fait disparaître la
+  ligne `export const HAIR_SCIENCE_THEMES` (rétablie, vérifiée au banc).
+- **recyclage sandbox 12× et 13×** en pleine vague 5 (ce turn) : `.node22`
+  **et** le tarball `/tmp` supprimés ; `node_modules` à 0. Repli validé :
+  **node système v20.20.2 tient toute la chaîne** (lint + suite 154 ✓ ce
+  matin), donc plus besoin du tarball si le réseau Node est indispo.
+- le `hasTension` du picker moyen ne doit plus matcher `locks` (les locks
+  ont leur carte ; sinon un locks+braids prendrait tension au lieu de
+  locks — ordre du `wanted` : enfant/défrisage/locks **avant** tension).
+
