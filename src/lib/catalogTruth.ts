@@ -34,6 +34,45 @@ export type CatalogCommercialState =
   | 'available'
   | 'unavailable';
 
+/**
+ * Provenance du pays d'origine.
+ *
+ * Ce type existe parce qu'un `origin_country` vide et un `origin_country`
+ * faux sont indistinguables sans statut. Le premier est un manque honnête,
+ * le second est un fait inventé. On ne confond pas les deux.
+ */
+export type OriginProvenance = {
+  /** Pays déclaré, `null` si inconnu. Jamais déduit de la nationalité d'une marque. */
+  country: string | null;
+  /**
+   * `not_provided` : jamais demandé · `pending` : demandé, pas de réponse ·
+   * `declared` : affirmé par le fournisseur, non recoupé ·
+   * `verified` : recoupé sur une pièce (étiquette, PIF, contrat, CPNP).
+   */
+  status: 'verified' | 'declared' | 'pending' | 'not_provided';
+  /** Pièce qui source le fait. La base l'exige dès que `status = 'verified'`. */
+  source: string | null;
+};
+
+const ORIGIN_STATUSES = ['verified', 'declared', 'pending', 'not_provided'] as const;
+
+/**
+ * Lit la provenance du pays d'origine.
+ *
+ * Un `verified` sans source est rétrogradé en `declared` : on préfère
+ * sous-déclarer la confiance plutôt que laisser passer un fait non sourcé.
+ */
+export function originProvenanceOf(product: any): OriginProvenance {
+  const rawCountry = readCatalogField(product, 'origin_country');
+  const country = typeof rawCountry === 'string' && rawCountry.trim() !== '' ? rawCountry.trim() : null;
+  const rawStatus = readCatalogField(product, 'origin_country_status');
+  const rawSource = readCatalogField(product, 'origin_country_source');
+  const source = typeof rawSource === 'string' && rawSource.trim() !== '' ? rawSource.trim() : null;
+  const declared = ORIGIN_STATUSES.includes(rawStatus as any) ? (rawStatus as OriginProvenance['status']) : 'not_provided';
+  const status = declared === 'verified' && !source ? 'declared' : declared;
+  return { country, status, source };
+}
+
 export type CatalogTruth = {
   administrativeStatus: CatalogAdministrativeStatus;
   /** Les preuves minimales sont conformes, indépendamment du stock et du workflow. */
@@ -56,6 +95,13 @@ export type CatalogTruth = {
   skinReadiness?: SkinProductReadiness;
   /** Null signifie qu'aucune précommande n'est déclarée. */
   preorderDocumented: boolean | null;
+  /**
+   * Provenance du pays d'origine. Champ RAPPORTÉ, jamais bloquant : un
+   * distributeur revendant des produits déjà mis sur le marché UE n'a pas
+   * d'obligation de personne responsable (règl. 1223/2009 art. 2e). Le rendre
+   * bloquant viderait la boutique pour un champ qui n'est pas exigé de nous.
+   */
+  originProvenance: OriginProvenance;
 };
 
 /** Nom métier de la projection serveur consommée par toutes les surfaces. */
@@ -294,6 +340,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
   const pendingValidation = hasPendingEvidence(product);
   const preorderDeclared = isPreorder(product);
   const preorderIsDocumented = preorderDeclared ? hasDocumentedExternalPreorder(product) : null;
+  const originProvenance = originProvenanceOf(product);
   const claims = claimsFor(product);
   const governedBySkinContract = isSkinCatalogGoverned(product);
   const skin = skinReadiness(product);
@@ -314,6 +361,9 @@ export function getCatalogTruth(product: any): CatalogTruth {
     blockers.push(`contrat C1 peau incomplet : ${skin.blockers.map(blocker => blocker.field).join(', ')}`);
   }
   if (published && !listable) blockers.push('ne satisfait pas la porte de publiabilité');
+  // Volontairement absent de `blockers` : la provenance de l'origine est un
+  // écart de sourcing à suivre, pas une faute de conformité. Elle est exposée
+  // par `originProvenance` et par la sonde, jamais par la porte de publication.
 
   let commercialState: CatalogCommercialState;
   if (formulationTarget) commercialState = 'formulation_target';
@@ -370,6 +420,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
     skinGoverned: governedBySkinContract,
     skinReadiness: skin,
     preorderDocumented: preorderIsDocumented,
+    originProvenance,
   };
 }
 

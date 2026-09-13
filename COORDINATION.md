@@ -826,3 +826,31 @@ depuis `src/lib/db/*Store.ts`** — la garder locale au module.
 `ALERT_WEBHOOK_URL` (un secret de dépôt, optionnel — l'issue GitHub suffit
 à défaut). Sans eux, le repli `journal_audit` s'applique : c'est un journal
 daté et interrogeable, pas un agrégateur d'erreurs.
+
+## Provenance du pays d'origine — migration appliquée (13/09/2026)
+
+`supabase/migrations/20260924000000_origin_provenance.sql`, appliquée sur
+`qzwgsarfdegqtfdnqiql` via Management API (8 instructions, toutes vérifiées).
+
+Deux colonnes sur `public.products` :
+
+- `origin_country_status TEXT NOT NULL DEFAULT 'not_provided'`
+  — `verified` | `declared` | `pending` | `not_provided`
+- `origin_country_source TEXT` — la pièce qui source le fait
+
+Trois contraintes, **testées par contrôle négatif** (chacune a réellement
+refusé une écriture, violation 23514) :
+
+- `products_origin_country_status_check` — statut hors liste refusé
+- `products_origin_country_requires_status` — un pays sans statut refusé
+- `products_origin_verified_requires_source` — `verified` sans source refusé
+
+⚠️ **Piège à ne pas reproduire** : ne pas ajouter `origin_country_status` à
+`VERIFIED_FIELDS` dans `src/lib/catalogTruth.ts`. Ce tableau alimente
+`hasPendingEvidence` → `hasMinimalCatalogProof` → `isCatalogPubliclyListable`.
+Comme `origin_country` est NULL sur les **96 fiches**, l'ajouter dépublie les
+63 produits publiés d'un coup. `tests/kurla_origin_provenance.test.ts` le
+verrouille par une assertion comportementale (ligne 69) et une garde statique.
+
+État mesuré après migration : 96 fiches à `not_provided`, 0 avec un pays.
+**Aucune valeur de pays n'a été inventée.**

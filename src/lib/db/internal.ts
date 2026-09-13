@@ -144,6 +144,8 @@ export function toPublicProduct(product: any): any {
     allergens: product.allergens || [],
     containsFragrance: product.containsFragrance,
     originCountry: product.originCountry,
+    originCountryStatus: product.originCountryStatus,
+    originCountrySource: product.originCountrySource,
     certifications: product.certifications || [],
     returnsPolicy: product.returnsPolicy,
     shippingInfo: { ...(product.shippingInfo || product.shippingPolicy || {}), countries: product.countryAvailability || [] },

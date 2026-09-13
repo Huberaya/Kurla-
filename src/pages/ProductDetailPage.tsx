@@ -42,6 +42,27 @@ function valueOrMissing(value?: string | null): string {
   return value?.trim() ? value : missing;
 }
 
+/**
+ * Mention de provenance du pays d'origine.
+ *
+ * Un pays « déclaré » par un fournisseur n'est pas un fait établi : le dire
+ * explicitement évite de présenter une affirmation commerciale comme une
+ * vérification. Quand le pays est inconnu, on ne fabrique rien — pas même à
+ * partir de la nationalité de la marque, qui ne dit rien du lieu de fabrication.
+ */
+function originProvenanceNote(status?: Product['originCountryStatus'], source?: string | null): string | null {
+  switch (status) {
+    case 'verified':
+      return source?.trim() ? `Vérifié — ${source.trim()}` : 'Vérifié';
+    case 'declared':
+      return 'Déclaré par le fournisseur, non recoupé sur pièce';
+    case 'pending':
+      return 'Demandé au fournisseur, en attente de réponse';
+    default:
+      return null;
+  }
+}
+
 function ageBandLabel(value?: Product['recommendedAgeBand']): string {
   switch (value) {
     case 'baby': return 'Bébé';
@@ -192,6 +213,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
   const targetTypes = [...(product.targetHairTypes || []), ...(product.targetSkinTypes || [])];
   const certifications = product.certifications || [];
+  const originNote = originProvenanceNote(product.originCountryStatus, product.originCountrySource);
   // KURLA SKIN — helpers peau
   const isSkinProduct = product.category === 'peau';
   const haySkin = `${product.name} ${product.description} ${(product.badges||[]).join(' ')} ${(product.keyIngredients||[]).join(' ')} ${product.inci||''}`.toLowerCase();
@@ -443,7 +465,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
             </div>
           )}{compositionKind(product) === 'cible' ? (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">Composition visée</h3><p className="text-[11px] leading-relaxed text-kurla-amber/90 mb-2">Produit en précommande, non encore fabriqué. Voici la formulation demandée au laboratoire — la composition définitive sera celle de l’étiquette du produit livré.</p><p className="text-sm leading-relaxed text-kurla-cream/80 break-words">{inciListe(product)}</p></>) : compositionKind(product) === 'accessoire' ? (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">Composition</h3><p className="text-sm leading-relaxed text-kurla-cream/80">{inciListe(product) || 'Accessoire — aucun ingrédient cosmétique.'}</p></>) : (<><h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-2">INCI</h3><p className="text-sm leading-relaxed text-kurla-cream/80 break-words">{valueOrMissing(product.inci)}</p></>)}<h3 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mt-6 mb-2">Rôle des ingrédients principaux</h3>{product.ingredientRoles?.length ? <ul className="space-y-2">{product.ingredientRoles.map((item, index) => <li key={`${item.name}-${index}`} className="text-xs text-kurla-cream/75"><strong className="text-kurla-cream">{item.name}</strong> · {item.role}</li>)}</ul> : <p className="text-xs text-kurla-cream/60">{missing}</p>}<div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><div><strong className="text-kurla-cream">Allergènes déclarés</strong><p className="text-kurla-cream/65 mt-1">{product.allergens?.length ? product.allergens.join(', ') : missing}</p></div><div><strong className="text-kurla-cream">Parfum</strong><p className="text-kurla-cream/65 mt-1">{product.containsFragrance === undefined ? missing : product.containsFragrance ? 'Présent' : 'Non ajouté'}</p></div></div></section>
 
-          <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<Globe2 className="w-5 h-5" />} title="Origine, certifications & livraison" /><div className="space-y-4 text-sm"><div><span className="text-xs text-kurla-cream/50 block">Pays d’origine</span><span>{valueOrMissing(product.originCountry)}</span></div><div><span className="text-xs text-kurla-cream/50 block mb-2">Certifications vérifiables</span>{certifications.length ? <div className="space-y-2">{certifications.map((cert, index) => <div key={`${cert.name}-${index}`} className="rounded-xl border border-kurla-cream/10 p-3"><div className="flex justify-between gap-2"><span>{cert.name}</span><span className={`text-[10px] ${cert.status === 'verified' ? 'text-emerald-300' : 'text-amber-300'}`}>{cert.status === 'verified' ? 'Vérifiée' : 'À vérifier'}</span></div>{cert.verificationUrl && cert.status === 'verified' ? <a className="text-xs text-kurla-amber hover:underline" href={cert.verificationUrl} target="_blank" rel="noreferrer">Voir la preuve</a> : <p className="text-[10px] text-kurla-cream/50 mt-1">Preuve publique non renseignée</p>}</div>)}</div> : <p className="text-xs text-kurla-cream/60">{missing}</p>}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><span className="text-xs text-kurla-cream/50 block">Pays livrés</span><span>{availableCountries.length ? availableCountries.join(', ') : missing}</span></div><div><span className="text-xs text-kurla-cream/50 block">Délai indicatif</span><span>{valueOrMissing(shipping.deliveryEstimate)}</span></div></div><div><span className="text-xs text-kurla-cream/50 block">Frais</span><span>{shipping.deliveryFee === undefined ? missing : `${shipping.deliveryFee.toFixed(2)} €`}</span></div><div><span className="text-xs text-kurla-cream/50 block">Retours</span><span>{valueOrMissing(shipping.returnsPolicy || product.returnsPolicy)}</span></div></div></section>
+          <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6"><SectionTitle icon={<Globe2 className="w-5 h-5" />} title="Origine, certifications & livraison" /><div className="space-y-4 text-sm"><div><span className="text-xs text-kurla-cream/50 block">Pays d’origine</span><span>{valueOrMissing(product.originCountry)}</span>{originNote ? <span className="block text-[10px] text-kurla-cream/50 mt-1">{originNote}</span> : null}</div><div><span className="text-xs text-kurla-cream/50 block mb-2">Certifications vérifiables</span>{certifications.length ? <div className="space-y-2">{certifications.map((cert, index) => <div key={`${cert.name}-${index}`} className="rounded-xl border border-kurla-cream/10 p-3"><div className="flex justify-between gap-2"><span>{cert.name}</span><span className={`text-[10px] ${cert.status === 'verified' ? 'text-emerald-300' : 'text-amber-300'}`}>{cert.status === 'verified' ? 'Vérifiée' : 'À vérifier'}</span></div>{cert.verificationUrl && cert.status === 'verified' ? <a className="text-xs text-kurla-amber hover:underline" href={cert.verificationUrl} target="_blank" rel="noreferrer">Voir la preuve</a> : <p className="text-[10px] text-kurla-cream/50 mt-1">Preuve publique non renseignée</p>}</div>)}</div> : <p className="text-xs text-kurla-cream/60">{missing}</p>}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><span className="text-xs text-kurla-cream/50 block">Pays livrés</span><span>{availableCountries.length ? availableCountries.join(', ') : missing}</span></div><div><span className="text-xs text-kurla-cream/50 block">Délai indicatif</span><span>{valueOrMissing(shipping.deliveryEstimate)}</span></div></div><div><span className="text-xs text-kurla-cream/50 block">Frais</span><span>{shipping.deliveryFee === undefined ? missing : `${shipping.deliveryFee.toFixed(2)} €`}</span></div><div><span className="text-xs text-kurla-cream/50 block">Retours</span><span>{valueOrMissing(shipping.returnsPolicy || product.returnsPolicy)}</span></div></div></section>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">

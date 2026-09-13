@@ -15,7 +15,29 @@ import {
 } from './internal';
 import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
 import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
-import { getCatalogTruth } from '../catalogTruth';
+import { getCatalogTruth, type OriginProvenance } from '../catalogTruth';
+
+/** Statuts de provenance acceptés, alignés sur la contrainte de base. */
+const ORIGIN_STATUS_VALUES: string[] = ['verified', 'declared', 'pending', 'not_provided'];
+
+/**
+ * Résout le statut de provenance du pays d'origine.
+ *
+ * Deux rétrogradations, toutes deux dans le sens de la prudence :
+ *  - une valeur sans statut est une AFFIRMATION, donc `declared`, jamais
+ *    `verified` ;
+ *  - un `verified` sans pièce qui le source retombe en `declared`. La base
+ *    refuserait l'écriture (contrainte `products_origin_verified_requires_source`) ;
+ *    on tranche ici plutôt que de faire échouer l'import.
+ */
+function resolveOriginStatus(rawStatus: unknown, rawCountry: unknown, rawSource: unknown): OriginProvenance['status'] {
+  const hasCountry = typeof rawCountry === 'string' && rawCountry.trim() !== '';
+  const hasSource = typeof rawSource === 'string' && rawSource.trim() !== '';
+  if (!ORIGIN_STATUS_VALUES.includes(rawStatus as string)) return hasCountry ? 'declared' : 'not_provided';
+  const status = rawStatus as OriginProvenance['status'];
+  if (status === 'verified' && !hasSource) return 'declared';
+  return status;
+}
 import { CORRECTED_PRODUCT_NEEDS } from '../productNeedsCorrection';
 import { estFicheCiblePeau, projeterFicheCiblePeau, trierFichesCibles, type FicheCiblePeau } from '../skinRangeTarget';
 
@@ -182,6 +204,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         allergens: p.allergens || [],
         containsFragrance: p.contains_fragrance,
         originCountry: p.origin_country,
+        originCountryStatus: p.origin_country_status,
+        originCountrySource: p.origin_country_source,
         certifications: p.certifications || [],
         returnsPolicy: p.returns_policy,
         shippingPolicy: p.shipping_policy || {},
@@ -787,6 +811,8 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
       badgesProvided,
       containsFragrance: typeof source.containsFragrance === 'boolean' ? source.containsFragrance : undefined,
       originCountry: text(source.originCountry, 80),
+      originCountryStatus: resolveOriginStatus(source.originCountryStatus, source.originCountry, source.originCountrySource),
+      originCountrySource: text(source.originCountrySource, 300),
       returnsPolicy: text(source.returnsPolicy, 3000),
       shippingPolicy: source.shippingPolicy && typeof source.shippingPolicy === 'object' ? source.shippingPolicy : {},
       lastImportedAt: new Date().toISOString()
@@ -973,6 +999,8 @@ export async function saveCatalogProduct(store: SupabaseServerStore, adminId: st
         allergens: normalized.allergens,
         contains_fragrance: normalized.containsFragrance ?? null,
         origin_country: normalized.originCountry || null,
+        origin_country_status: normalized.originCountryStatus,
+        origin_country_source: normalized.originCountrySource || null,
         returns_policy: normalized.returnsPolicy || null,
         shipping_policy: normalized.shippingPolicy,
         last_imported_at: normalized.lastImportedAt,

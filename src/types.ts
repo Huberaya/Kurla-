@@ -177,6 +177,13 @@ export interface Product {
   allergens?: string[];
   containsFragrance?: boolean;
   originCountry?: string;
+  /**
+   * Provenance du pays d'origine. `undefined` côté client signifie que la
+   * projection ne porte pas encore le champ : ce n'est pas un pays inconnu,
+   * c'est une absence de donnée de provenance.
+   */
+  originCountryStatus?: 'verified' | 'declared' | 'pending' | 'not_provided';
+  originCountrySource?: string;
   certifications?: ProductCertification[];
   quality?: CatalogQuality;
   shippingInfo?: ProductShippingInfo;
