@@ -23,6 +23,9 @@ import {
   HAIR_TEXTURE_VALUES,
   type HairAdvisoryContext,
 } from './knowledge/hairAdvisory';
+import { pickHairScienceInsights } from './knowledge/hairScience';
+import { pickSkinScienceInsights } from './knowledge/skinScience';
+import type { ScienceInsight } from './knowledge/hairScience';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -82,6 +85,8 @@ export interface DiagnosticResultModel {
   lessons: SkinLesson[];
   /** Observations suivies J+7 / J+14 / J+30 (peau et cheveux). */
   observations: SkinObservation[];
+  /** Savoirs « ouvrir les yeux » — faits sourcés choisis pour le profil (peau et cheveux). */
+  scienceInsights: ScienceInsight[];
   /** Note sur la boucle de réévaluation J+30 (peau et cheveux, texte commun L4). */
   advisoryLoop: string | null;
 }
@@ -308,6 +313,7 @@ export function buildDiagnosticResultModel(input: {
     skinKnowledgeProfile,
     lessons: isSkin ? pickSkinLessons(advisoryCtx) : pickHairLessons(hairAdvisoryCtx),
     observations: isSkin ? pickSkinObservations(advisoryCtx) : pickHairObservations(hairAdvisoryCtx),
+    scienceInsights: isSkin ? pickSkinScienceInsights(advisoryCtx) : pickHairScienceInsights(hairAdvisoryCtx),
     advisoryLoop: ADVISORY_LOOP_NOTE,
   };
 }

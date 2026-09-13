@@ -135,6 +135,24 @@ export const ROUTE_META: RouteMeta[] = [
     priority: 0.7,
   },
   {
+    path: '/cheveux/science',
+    title: 'La science de votre cheveu texturé — base de savoirs | KURLA',
+    description:
+      'Ce que la trichoscopie afro et la biophysique documentent sur les boucles 3B à 4C : section plate, sébum, liaison, tension — chaque fait sourcé, chaque source citée.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
+    path: '/peau/science',
+    title: 'La science des peaux riches en mélanine — base de savoirs | KURLA',
+    description:
+      'SPF naturel, hyperpigmentation post-inflammatoire, lumière visible, barrière et parfum : ce que la recherche mesure pour les phototypes IV à VI — chaque fait sourcé, chaque source citée.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 0.7,
+  },
+  {
     path: '/peau',
     title: 'KURLA SKIN — Diagnostic peau & routines pour peaux riches en mélanine',
     description:

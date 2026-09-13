@@ -1091,3 +1091,75 @@ dépendance `useMemo` retirée).
 
 Les seuils suivent la distribution **mesurée** du catalogue publié :
 < 8 € 16 % · 8-12 € 21 % · 12-20 € 43 % · 20-35 € 3 % · 35-60 € 8 % · ≥ 60 € 10 %.
+
+---
+
+---
+
+## 13/09/2026 (2ᵉ passage) — Base de savoirs « ouvrir les yeux » (cheveux + peau)
+
+**Consigne** : fouille des connaissances mondiales (recherches, publications,
+thèses) sur les chevelures et peaux noires/métisses/mélaninées ; analyse des
+concurrents et adoption de leurs modèles d'analyse (jamais leurs contenus) ;
+but : l'utilisateur ne reçoit pas seulement des réponses — on lui ouvre les
+yeux sur ce dont il ne pense pas, et on lui donne les moyens de prendre soin
+de **ses cheveux, de sa peau et des problèmes de sa peau**.
+
+**Fait** (tout vert, suite complète + lint) :
+
+1. **Fouille sourcée** — `docs/RECHERCHE_SCIENCE_CHEVEUX_2026-09-13.md`
+   (428 lignes, 2 pièces : cheveux 7 sections + peau S1–S7) ;
+   `docs/ANALYSE_CONCURRENCE_CHEVEUX_2026-09-13.md` (acteurs cheveux + pôle
+   peau). Règle tenue : **sourcée ou absente, jamais inventée** — chaque
+   chiffre cité a sa publication.
+2. **2 modules de savoirs** — `src/lib/knowledge/hairScience.ts`
+   (13 cartes : fibre, eau, environnement, coiffures, savoirs) et
+   `src/lib/knowledge/skinScience.ts` (10 cartes : soleil, taches, barrière,
+   sensibilité, savoirs). Chaque carte : fait + mécanisme + source + niveau
+   de confiance (recherche / institution / communauté / expertise).
+3. **« Ouvrir les yeux » dans les résultats** — section 2d
+   « Ce que la science dit de votre cheveu/peau — 3 choses à savoir » dans
+   `DiagnosticResultPage`, alimentée par `pickHairScienceInsights()` /
+   `pickSkinScienceInsights()` (déterministes, contextuels sur le profil :
+   casse, cuir chevelu, HPI, SPF, sensibilité, sécheresse… ; 2–3 faits,
+   jamais de doublon ; ≥ 2 sur profil vierge).
+4. **2 pages publiques** — `/cheveux/science` + `/peau/science`
+   (`HairSciencePage`, `SkinSciencePage`), indexables, groupées par thème,
+   avec note de méthode. Miroir exact des deux pôles.
+
+**Contrats verrouillés par le banc `tests/kurla_science_hub.test.ts`
+(13 checks, dans la chaîne avant lint)** :
+
+- chaque carte complète et sourcée (corps + source non vides, confiance et
+  thème connus) ;
+- 0 mot médical dans les 23 cartes (corps et sources) ;
+- corps des cartes **peau** : ni « cancer », ni « traitement », ni
+  « dermatologues », ni « xérose » (les noms d'institutions cités en source
+  restent propres) ;
+- aucune des 12 phrases réservées aux autres modules ;
+- thèmes sans orphelin / fantôme ; clés uniques ;
+- pickers déterministes, bornés (2–3), sans doublon, contextuels (le besoin
+  principal d'abord), ≥ 2 faits sur profil vierge ;
+- wiring : `DiagnosticResultModel.scienceInsights` présent côté peau et
+  côté cheveux.
+
+**Pièges mesurés** :
+
+- les pickers lisent le **vocabulaire officiel** des diagnostics (valeurs de
+  `contextFlags` de `skinAdvisory.ts` et `HairAdvisoryContext`) :
+  `teint_non_uniforme` (pas `teint_irregulier`), `sensibilite`/`sensible`
+  (pas `parfum`), `spfUsage !== 'quotidien'`. Un libellé inventé côté picker
+  ne ferait jamais match — le banc vérifie les chemins contextuels.
+- le banc de prérendu compte les routes statiques : **+2** ici (33 → 35),
+  la liste est commentée par chantier — l'ajouter au compteur et aux
+  commentaires, pas au hasard.
+- le titre de source « Traction Alopecia » contient un mot médical :
+  reformulé en langage courant (la source reste identifiable par
+  auteurs/année/journal). Même règle que le corps des cartes.
+- « Skin Cancer Foundation » est une institution : **zéro mention cancer
+  côté peau** — la source est citée sans ce nom (Kaidbey 1979 / Photoaging
+  in Skin of Color suffisent).
+
+**Ce qui n'a pas changé** : `recommendations.ts`, les phrases réservées,
+l'advisory des deux pôles, la session/préfill, le catalogue et les
+départements (travail de l'autre intervenant, intouché).

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Clock3, Loader2, ShoppingBag, Sparkles, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, Loader2, ShoppingBag, Sparkles, XCircle } from 'lucide-react';
 import type { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { buildDiagnosticResultModel, type DiagnosticResultModel, type DiagnosticRoutineStep } from '../lib/diagnosticResult';
@@ -114,6 +114,28 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
           </section>
         )}
 
+        {model.scienceInsights.length > 0 && (
+          <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="science">
+            <SectionHeading number="2d" id="science" title={model.isSkin ? 'Ce que la science dit de votre peau — 3 choses à savoir' : 'Ce que la science dit de votre cheveu — 3 choses à savoir'} />
+            <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Choisis d’après ce que vous avez déclaré. Chaque fait est sourcé : ce n’est pas une intuition d’IA, c’est ce que la recherche documente — expliqué en français, sans jargon.</p>
+            <div className="space-y-4">
+              {model.scienceInsights.map(insight => (
+                <div key={insight.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-kurla-amber" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[#FFE0C6]">{insight.title}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-kurla-cream/75">{insight.fact}</p>
+                      <p className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wide text-kurla-amber">{scienceConfidenceLabel(insight.confidence)}<span className="normal-case tracking-normal text-kurla-cream/45">— {insight.source}</span></p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <a href={model.isSkin ? '/peau/science' : '/cheveux/science'} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-kurla-amber hover:underline">La base de savoirs complète — tous les faits, avec leurs sources <ArrowRight className="h-3.5 w-3.5" /></a>
+          </section>
+        )}
+
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title="Vos 2 à 3 priorités" /><div className="flex flex-wrap gap-2">{model.priorities.length ? model.priorities.map(priority => <span key={priority} className="rounded-full border border-kurla-copper/40 bg-kurla-copper/15 px-4 py-2 text-sm font-semibold text-[#FFE0C6]">{priority}</span>) : <span className="text-sm text-kurla-cream/60">Aucune priorité assez précise pour personnaliser ce bloc.</span>}</div></section>
 
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>
@@ -137,6 +159,16 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
     </div>
   );
 };
+
+function scienceConfidenceLabel(confidence: string): string {
+  switch (confidence) {
+    case 'recherche': return 'Sourcé — recherche publiée';
+    case 'institution': return 'Recommandation professionnelles';
+    case 'communaute': return 'Données de la communauté spécialisée';
+    case 'expertise': return 'Expertise formulateurs';
+    default: return 'Sourcé';
+  }
+}
 
 function SectionHeading({ number, id, title }: { number: string; id?: string; title: string }) {
   return <h2 id={id} className="mb-4 flex items-center gap-3 font-serif-title text-xl font-bold"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-kurla-copper text-xs font-sans text-white">{number}</span>{title}</h2>;

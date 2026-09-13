@@ -46,6 +46,8 @@ const SavedPage = lazy(() => import('../pages/SavedPage').then(m => ({ default: 
 const KidsModulePage = lazy(() => import('../pages/KidsModulePage').then(m => ({ default: m.KidsModulePage })));
 const ProtectiveStylesPage = lazy(() => import('../pages/ProtectiveStylesPage').then(m => ({ default: m.ProtectiveStylesPage })));
 const MelaninSkinPage = lazy(() => import('../pages/MelaninSkinPage').then(m => ({ default: m.MelaninSkinPage })));
+const HairSciencePage = lazy(() => import('../pages/HairSciencePage').then(m => ({ default: m.HairSciencePage })));
+const SkinSciencePage = lazy(() => import('../pages/SkinSciencePage').then(m => ({ default: m.SkinSciencePage })));
 const SkinLandingPage = lazy(() => import('../pages/SkinLandingPage').then(m => ({ default: m.SkinLandingPage })));
 const SkinComparePage = lazy(() => import('../pages/SkinComparePage').then(m => ({ default: m.SkinComparePage })));
 const SkinGuidePage = lazy(() => import('../pages/SkinGuidePage').then(m => ({ default: m.SkinGuidePage })));
@@ -124,6 +126,8 @@ export const ROUTES: RouteEntry[] = [
   { path: '/kids', render: () => <KidsModulePage /> },
   { path: '/protective-styles', render: () => <ProtectiveStylesPage /> },
   { path: '/melanin-skin', render: () => <MelaninSkinPage /> },
+  { path: '/cheveux/science', render: () => <HairSciencePage /> },
+  { path: '/peau/science', render: () => <SkinSciencePage /> },
   { path: '/peau', render: () => <SkinLandingPage /> },
   { path: '/peau/diagnostic', render: () => <DiagnosticSkinPage /> },
   { path: '/peau/diagnostic/resultats', render: ({ onAddToCart }) => <DiagnosticResultPage onAddToCart={onAddToCart} /> },

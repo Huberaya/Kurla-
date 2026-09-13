@@ -89,8 +89,11 @@ function runPrerenderTests(): void {
   // `/peau/guide` et `/peau/comparer` deviennent indexables — `/peau/journal`
   // et `/peau/diagnostic/resultats` ne le sont pas, à juste titre : ce sont
   // des écrans privés.
+  // 35 : la base de savoirs « ouvrir les yeux ». `/cheveux/science` et
+  // `/peau/science` deviennent indexables — les faits sourcés de la
+  // recherche sont le pilier SEO de la promesse « sourcée ou absente ».
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 33, `Attendu 33 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 35, `Attendu 35 routes statiques, obtenu ${staticPublic.length}.`);
   assert.ok(
     staticPublic.some(route => route.path === '/ingredients'),
     'La recherche d’ingrédients doit être prérendue : c’est un pilier SEO.'
