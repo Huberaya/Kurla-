@@ -1293,3 +1293,50 @@ demandés : **enfants, barbe/hommes, cheveux défrisés/chimiques, locks**.
 - Consigne : la routine en premier, ensuite « Pourquoi cette routine ? », puis le reste.
 - Nouvel ordre des sections (ids d'ancres inchangés) : **1** routine → **2** Pourquoi cette routine ? (titre « Pourquoi chaque étape ? » renommé) → **3** profil déclaré → **3b** profil peau mélaninée → **4/4b** certain/inconnu → **5** comprendre (phrase « routine ci-dessous » → « routine en tête de page ») → **6** science → **7** moyens → **8** priorités → **9** produits → **10** suivi.
 - Piège vécu : déplacer un bloc par suppressions successives d'offsets calculés avant la 1ʳ suppression = offsets périmés, bloc dupliqué + section voisine tronquée. Solution sûre : 1 passage d'assemblage (retirer les blocs → réinsérer au bon endroit → renuméroter en UN seul re.sub avec une map, pas de remplacements en chaîne).
+
+### Rien ne surveillait le contenu (chantier du 13/09/2026)
+
+Le schéma était vérifié **à la main** (`scripts/verifier-schema.mjs`), les
+endpoints l'étaient toutes les quinze minutes — et **le contenu, par rien**.
+C'est pourtant là que les deux pannes les plus coûteuses sont arrivées :
+
+  · 16 fiches repassées en `draft` → `/api/peau/gamme` vide pendant plusieurs
+    jours, sans qu'aucun déploiement ne change ;
+  · une règle exigeant le SKU fournisseur → 63 produits en base, **0 servi**.
+
+La sonde attrape un vide total. Elle ne voit ni « 63 → 40 », ni un prix tombé
+à zéro, ni une fiche publiée mais inactive.
+
+**`scripts/lib/donnees.mjs` + `scripts/verifier-donnees.mjs`** — sept
+invariants, chacun portant la raison pour laquelle il existe (un contrôle
+dont on a oublié la justification finit par être désactivé) :
+
+  produits publiés et actifs · produits réellement servis par /api/products ·
+  fiches de la gamme peau visibles · produits publiés sans prix · sans
+  fournisseur déclaré · publiés mais inactifs · sans date de mise à jour.
+
+Deux règles, qui sont toute la valeur du contrôle :
+
+  1. **la baisse se voit**, y compris lente : la comparaison se fait au
+     **maximum connu**, jamais à l'observation précédente. 63 → 60 → 57 → 54
+     passerait inaperçu marche par marche (≈ 5 %), le cumul (14 %) est vu.
+     Le maximum ne décroît jamais ;
+  2. **ce qui n'a pas pu être lu n'est pas conforme** : `non_verifiable`
+     existe, il n'est jamais compté parmi les succès et il fait échouer le
+     contrôle. `0` est un compte, `null` est une absence de compte.
+
+**Nouvelle action `donnees-schema.yml`** — une fois par nuit (`0 4 * * *`) :
+schéma puis données, avec l'alerte du premier chantier en cas d'échec. La
+référence des maximums vit dans le cache de l'action (`actions/cache`) ; sans
+elle, chaque exécution repartirait de zéro et ne verrait jamais de baisse.
+
+**Le dépôt n'avait AUCUN secret configuré.** `SUPABASE_URL` et
+`SUPABASE_SECRET_KEY` étaient référencés par le travail `real-supabase` de
+`production-safety.yml` sans jamais avoir été créés : ce travail n'aurait
+rien pu vérifier. Les deux secrets ont été ajoutés par l'API (valeurs
+chiffrées côté GitHub, jamais dans le dépôt). **À revoir côté porteur** : les
+supprimer ou les faire tourner si cette configuration ne convient pas.
+`VITE_SUPABASE_PUBLISHABLE_KEY`, réclamé par `real-supabase`, reste manquant —
+je n'ai pas cette valeur.
+
+Banc `tests/kurla_controle_donnees.test.ts` (16 vérifications, chaîné).

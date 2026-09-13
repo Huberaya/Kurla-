@@ -1,0 +1,91 @@
+name: KURLA données et schéma
+
+# Pourquoi cette action
+# =====================
+#
+# Les pannes les plus coûteuses de ce projet n'étaient pas dans le code :
+# elles étaient dans les données, et rien ne les surveillait.
+#
+#   · 16 fiches repassées en `draft` → `/api/peau/gamme` vide pendant
+#     plusieurs jours, sans qu'aucun déploiement ne change ;
+#   · une règle exigeant le SKU fournisseur → 63 produits en base, **0 servi**.
+#
+# La sonde d'endpoints (`production-monitor.yml`, toutes les 15 min) attrape
+# une route vide ou cassée. Elle ne voit ni « 63 → 40 », ni un prix tombé à
+# zéro, ni une fiche publiée mais inactive. `scripts/verifier-donnees.mjs`
+# énonce ces invariants et les vérifie contre la base et l'API publique.
+#
+# `scripts/verifier-schema.mjs` fait la même chose pour le schéma : le code
+# déployé et la base doivent être d'accord. Il était jusqu'ici lancé à la
+# main, ce qui signifie : jamais.
+#
+# Cadence : une fois par nuit. La dérive des données est lente ; la quinzaine
+# de minutes de la sonde ne se justifie pas ici.
+#
+# La référence des maximums connus vit dans le cache de l'action : sans elle,
+# chaque exécution repartirait de zéro et ne verrait jamais de baisse.
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: donnees-schema
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Données et schéma conformes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Référence des maximums connus
+        uses: actions/cache@v4
+        with:
+          path: .kurla-donnees-production.json
+          # Le suffixe date la référence : sans lui, un cache restauré après
+          # quinze jours comparerait la production à un état oublié.
+          key: kurla-donnees-${{ github.run_id }}
+          restore-keys: |
+            kurla-donnees-
+
+      - name: Schéma — le code et la base sont-ils d'accord ?
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: node scripts/verifier-schema.mjs
+
+      - name: Données — les invariants tiennent-ils ?
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          KURLA_PROD_URL: https://kurlabeauty.vercel.app
+        run: node scripts/verifier-donnees.mjs
+
+      - name: Alerter — les données ont bougé sans qu'on le sache
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node scripts/alerter.mjs \
+            --source "Contrôle des données et du schéma (toutes les nuits)" \
+            --gravite majeure \
+            --detail "Un invariant ne tient plus, ou une vérification n'a pas pu être faite. Une baisse n'est pas forcément une panne : vérifier si le changement est voulu avant de corriger."
