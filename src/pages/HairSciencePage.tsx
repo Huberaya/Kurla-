@@ -1,6 +1,8 @@
 import React from 'react';
 import { BookOpen, FlaskConical, Sparkles } from 'lucide-react';
 import { HAIR_SCIENCE_CARDS, HAIR_SCIENCE_THEMES, SCIENCE_CONFIDENCE_LABELS } from '../lib/knowledge/hairScience';
+import { HAIR_PROBLEM_CARDS } from '../lib/knowledge/problemCards';
+import { ProblemCardsSection } from '../components/ProblemCardsSection';
 import { localizedPath } from '../lib/i18n';
 import { useI18n } from '../lib/I18nProvider';
 
@@ -76,6 +78,9 @@ export const HairSciencePage: React.FC = () => {
             </div>
           </section>
         ))}
+
+        {/* Les moyens : protocoles par problème (publics, sourcés) */}
+        <ProblemCardsSection cards={HAIR_PROBLEM_CARDS} diagnosticHref="/diagnostic/cheveux" poleLabel="cheveux" />
 
         {/* Note de méthode */}
         <div className="rounded-3xl border border-kurla-stone bg-kurla-ivory p-6 sm:p-8">

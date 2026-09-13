@@ -20,6 +20,8 @@ export const Footer: React.FC = () => {
         { label: t('footer.diagHair'), path: '/diagnostic/cheveux' },
         { label: t('footer.diagSkin'), path: '/diagnostic/peau' },
         { label: t('footer.routines'), path: '/routines' },
+        { label: t('footer.scienceHair'), path: '/cheveux/science' },
+        { label: t('footer.scienceSkin'), path: '/peau/science' },
         { label: t('footer.shopBundles'), path: '/boutique' },
         { label: t('footer.ingredients'), path: '/ingredients' },
       ],

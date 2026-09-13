@@ -2,6 +2,8 @@ import React from 'react';
 import { BookOpen, FlaskConical, Sparkles } from 'lucide-react';
 import { SKIN_SCIENCE_CARDS, SKIN_SCIENCE_THEMES } from '../lib/knowledge/skinScience';
 import { SCIENCE_CONFIDENCE_LABELS } from '../lib/knowledge/hairScience';
+import { SKIN_PROBLEM_CARDS } from '../lib/knowledge/problemCards';
+import { ProblemCardsSection } from '../components/ProblemCardsSection';
 import { localizedPath } from '../lib/i18n';
 import { useI18n } from '../lib/I18nProvider';
 
@@ -79,6 +81,9 @@ export const SkinSciencePage: React.FC = () => {
             </div>
           </section>
         ))}
+
+        {/* Les moyens : protocoles par problème (publics, sourcés) */}
+        <ProblemCardsSection cards={SKIN_PROBLEM_CARDS} diagnosticHref="/diagnostic/peau" poleLabel="peau" />
 
         {/* Note de méthode */}
         <div className="rounded-3xl border border-kurla-stone bg-kurla-ivory p-6 sm:p-8">

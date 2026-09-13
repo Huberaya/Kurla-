@@ -1210,3 +1210,30 @@ KURLA n'en donne que pour ce qui est déclaré.
 - les délais « s'attendre » sont calés sur les durées mesurées (mois à
   années pour les taches, semaines pour la barrière, 2–3 mois pour la
   rétention) — jamais de promesse d'effet (garde existante des leçons).
+
+### 4ᵉ vague — « les moyens » rendus publics + découverte
+
+Constat : les protocoles (cartes moyens) n'existaient que **dans le
+résultat du diagnostic** — un visiteur qui n'avait pas encore passé le
+diagnostic ne pouvait ni les lire ni les juger. Or la consigne est
+« donner les moyens de prendre soin de sa peau et de ses problèmes » à
+**l'utilisateur du site**, pas seulement au client du diagnostic.
+
+**Fait** :
+
+- `src/components/ProblemCardsSection.tsx` — section « Les moyens : un
+  protocole par problème » (thème clair, cartes faire/éviter/s'attendre +
+  source + badge confiance + CTA diagnostic). **Un seul composant, deux
+  surfaces** (page publique = les 4 protocoles du pôle ; résultat = ceux
+  du profil déclaré, inconnu = inconnu) : zéro contenu dupliqué.
+- `/cheveux/science` et `/peau/science` : la section « moyens » s'insère
+  entre les savoirs et la note de méthode.
+- **Découverte** : le footer (colonne Plateforme) gagne « Savoirs Cheveux »
+  + « Savoirs Peau » (`footer.scienceHair` / `footer.scienceSkin`, FR + EN —
+  la traduction est du chrome de navigation, pas du corps de page : la
+  règle hreflang de chantier 7.5 n'est pas touchée).
+
+**Ce qui n'a pas changé** : aucun nouveau fait (les protocoles sont ceux de
+la 3ᵉ vague, déjà bancés), aucune nouvelle route (compteur de prérendu
+inchangé), rien dans le moteur.
+
