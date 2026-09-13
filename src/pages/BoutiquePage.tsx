@@ -18,6 +18,7 @@ import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS, SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
 import { comparerProduits, pointsDeDivergence } from '../lib/productCompare';
 import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
+import { PRICE_BANDS, PRICE_BAND_ALL, isPriceBandId, matchesPriceBand, type PriceBandId } from '../lib/priceBands';
 import { PEAU_KITS } from '../lib/peauKits';
 import { getCountryConfig, getStripeModeForCountry, COUNTRY_SCORES_SORTED } from '../lib/countryFulfillment';
 
@@ -215,6 +216,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     if (q) setSearchQuery(q);
     const budget = sp.get('budget');
     if (budget) setSkinBudget(budget);
+    // Palier de prix : un lien partage (?prix=prix_10) doit appliquer le filtre.
+    // L'identifiant est valide avant usage — une valeur inconnue dans une URL
+    // ne doit pas produire un etat incoherent.
+    const prix = sp.get('prix');
+    if (prix && isPriceBandId(prix)) setPriceBand(prix);
     const spf = sp.get('spf');
     if (spf === 'invisible') setSkinSansTrace(true);
     // C2 — 5 filtres peau depuis URL (?actif=niacinamide&phototype=V&texture=gel&fini=mat&sensibilite=sensible)
@@ -238,6 +244,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const [selectedCountry, setSelectedCountry] = useState<string>('tous');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'fit' | 'price-asc' | 'price-desc' | 'rating'>('fit');
+  // Palier de prix — s'applique a TOUT le catalogue, pas seulement a la peau.
+  // Ne pas confondre avec `skinBudget`, qui est le budget mensuel du profil
+  // beaute reutilise comme plafond sur les fiches peau.
+  const [priceBand, setPriceBand] = useState<PriceBandId>(PRICE_BAND_ALL);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   // KURLA SKIN — filtres dédiés peau (page 4) + C2 5 filtres manquants
   const [skinSansParfum, setSkinSansParfum] = useState(false);
@@ -271,6 +281,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     setOrDel('budget', skinBudget);
     if (skinSansParfum) sp.set('sansParfum', 'true'); else sp.delete('sansParfum');
     if (skinSansTrace) sp.set('spf', 'invisible'); else if (sp.get('spf') === 'invisible') sp.delete('spf');
+    if (priceBand !== PRICE_BAND_ALL) sp.set('prix', priceBand); else sp.delete('prix');
     const next = window.location.pathname + (sp.toString() ? `?${sp.toString()}` : '');
     const curr = window.location.pathname + window.location.search;
     if (next !== curr) window.history.replaceState({}, '', next);
@@ -341,6 +352,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
       // Subcategory Tag Filter
       if (activeSubCategory !== 'tous' && (p as any).subCategoryTag !== activeSubCategory) return false;
+
+      // Palier de prix — hors du bloc peau : un client qui regarde les
+      // accessoires ou les cheveux doit pouvoir dire « pas plus de X € ».
+      if (!matchesPriceBand(p.price, priceBand)) return false;
 
       // Need Filter — CHANTIER 2 : utilise la correction + alias (demeler, barbe) pour que chaque besoin affiche VRAIMENT ses outils
       if (selectedNeedId) {
@@ -466,7 +481,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     return [list, fitInfo] as const;
   }, [
     products, activeCategory, activeSubCategory, selectedNeedId, selectedBrand,
-    onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy,
+    onlyAfroCommunity, onlyCompatible, selectedCountry, searchQuery, sortBy, priceBand,
     profile, hasKurlaProfile, skinSansParfum, skinSansTrace, skinBudget,
     skinActif, skinPhototype, skinTexture, skinFini, skinSensibilite,
     needsDomainTab, guidedSkin, isProductCompatible
@@ -813,6 +828,18 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <option value="INT">🌎 International</option>
             </select>
 
+            {/* Palier de prix — repond a « je n'ai que X € », sur tout le catalogue */}
+            <select
+              value={priceBand}
+              onChange={(e) => setPriceBand(isPriceBandId(e.target.value) ? e.target.value : PRICE_BAND_ALL)}
+              aria-label="Filtrer par palier de prix"
+              className="px-3 py-2 bg-kurla-ivory border border-kurla-stone rounded-xl text-xs font-medium text-kurla-carbon focus:outline-none focus:border-kurla-copper"
+            >
+              {PRICE_BANDS.map((band) => (
+                <option key={band.id} value={band.id}>{band.id === PRICE_BAND_ALL ? '💶 Tous les prix' : `💶 ${band.label}`}</option>
+              ))}
+            </select>
+
             {/* Sort By Dropdown */}
             <select
               value={sortBy}
@@ -944,11 +971,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             )}
 
             {/* Active Filters Summary Reset */}
-            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || onlyCompatible || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous' || skinActif!=='tous' || skinPhototype!=='tous' || skinTexture!=='tous' || skinFini!=='tous' || skinSensibilite!=='tous' || skinSansParfum || skinSansTrace || skinBudget!=='tous') && (
+            {(selectedNeedId || selectedBrand !== 'tous' || onlyAfroCommunity || onlyCompatible || selectedCountry !== 'tous' || searchQuery || activeSubCategory !== 'tous' || skinActif!=='tous' || skinPhototype!=='tous' || skinTexture!=='tous' || skinFini!=='tous' || skinSensibilite!=='tous' || skinSansParfum || skinSansTrace || skinBudget!=='tous' || priceBand!==PRICE_BAND_ALL) && (
               <button
                 onClick={() => {
                   setSelectedNeedId(null);
                   setSelectedBrand('tous');
+                  setPriceBand(PRICE_BAND_ALL);
                   setOnlyAfroCommunity(false);
                   setSelectedCountry('tous');
                   setSearchQuery('');

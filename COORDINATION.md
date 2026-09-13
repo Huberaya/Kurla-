@@ -1048,3 +1048,46 @@ Banc `tests/kurla_limitation_adresse.test.ts` (12 vérifications, chaîné) :
 ordre des sources, falsification sans effet, deux visiteurs deux seaux
 malgré la même socket, purge des seaux expirés, et `/api/health` qui rend la
 clé visible.
+
+## Paliers de prix triables (13/09/2026)
+
+Le tri « € Prix croissant » existait déjà. Ce qui manquait : répondre à
+**« je n'ai que 10 € »**.
+
+Un filtre budget existait (`skinBudget`), mais il était **enfermé dans
+`if (skinContextActive)`** de `BoutiquePage` — donc invisible dès qu'on
+regardait les accessoires ou les cheveux. Or 28 des 63 produits publiés sont
+des accessoires à partir de 4,90 € : c'était précisément là que le filtre
+manquait le plus.
+
+**`src/lib/priceBands.ts`** — 5 paliers en **plafonds inclusifs**
+(10 / 20 / 35 / 60 € / tous), dérivés du prix et jamais stockés : une colonne
+`price_tier` deviendrait fausse dès la première modification de prix.
+
+Branché dans `BoutiquePage` **hors du bloc peau**, avec la boucle complète :
+état → filtre → URL (`?prix=prix_10`, valeur validée) → réinitialisation.
+
+⚠️ **Ne pas confondre avec `skinBudget`** : `moins_40` / `40_70` / `70_100`
+sont des **budgets mensuels du profil beauté** (`beautyProfile.ts`),
+réutilisés comme plafonds produit via `SKIN_BUDGET_CAPS` (14/28/45 €). Les
+identifiants de `priceBands` sont volontairement différents (`prix_…`) pour
+qu'aucune collision ne soit possible. `skinBudget` est laissé en place.
+
+### Deux bugs réels trouvés en testant
+
+1. **`Number(null)` vaut 0.** Un produit **sans prix** passait donc le filtre
+   « Moins de 10 € » et s'affichait comme un produit à 0 €. Corrigé : `null`,
+   `undefined` et chaîne vide sont rejetés **avant** `Number()`.
+2. **Une garde statique qui passait à vide.** Le fichier contient **8**
+   occurrences de `}, [` ; la garde cherchait depuis la première (position
+   13621) alors que le vrai bloc de dépendances est à 28107. Elle matchait
+   `priceBand,` sur la ligne de **déclaration** de l'état. Le contrôle
+   négatif — retirer la dépendance du `useMemo` — **ne faisait pas tomber le
+   banc**. Corrigé en ancrant sur la ligne réelle des dépendances.
+
+`tests/kurla_paliers_prix.test.ts` — 7 contrats, 3 contrôles négatifs
+vérifiés (filtre remis dans le bloc peau, garde-fou prix absent retiré,
+dépendance `useMemo` retirée).
+
+Les seuils suivent la distribution **mesurée** du catalogue publié :
+< 8 € 16 % · 8-12 € 21 % · 12-20 € 43 % · 20-35 € 3 % · 35-60 € 8 % · ≥ 60 € 10 %.
