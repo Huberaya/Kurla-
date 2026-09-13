@@ -692,6 +692,7 @@ garde la surface cohérente.
 needsHub médical, `SKIN_INCOMPATIBILITIES` — la liste est dans le banc) et
 n'emploie aucun vocabulaire médical. (Le parcours cheveux, qui était resté
 sans conseil, a reçu le même traitement le 13/09 — voir section ci-dessous.)
+
 ### Le résultat du diagnostic cheveux porte maintenant un conseil complet (13/09/2026)
 
 Même chantier, même standard, côté cheveux — le niveau référence de la
@@ -771,3 +772,57 @@ Aucune clé existante n’a été renommée ni vidée ; le localStorage peau
 **À vérifier côté usage** : le diagnostic cheveux ne pré-remplit pas ses
 réponses au retour « Modifier mes réponses » (le diagnostic peau si, via le
 localStorage) — écart de parcours, signalé, non corrigé ici.
+
+### Un incident ne réveillait personne (chantier du 13/09/2026)
+
+Trois mesures, prises avant d'écrire une ligne :
+
+1. **Le signal s'arrêtait au tableau de bord.** La sonde tournait toutes les
+   15 minutes (`production-monitor.yml`), le rendu des pages toutes les 6
+   heures (`rendu-pages.yml`) — tous deux échouaient correctement, et c'est
+   tout. Personne n'était prévenu : une panne de nuit se découvrait le
+   matin, en ouvrant GitHub par hasard.
+2. **`/api/health` annonçait `orderCount: 0` avec 39 commandes en base.** La
+   valeur venait du cache du processus (`getStatusSummary()` →
+   `inMemoryOrders.length`), pas de la base.
+3. **`monitoring.configured: false`.** Sentry n'étant pas configuré,
+   `captureServerException` s'arrêtait sur un `return` : une erreur serveur
+   sortait dans la sortie standard du conteneur et disparaissait avec lui.
+
+Ce qui a été fait :
+
+- **`scripts/lib/alerte.mjs` + `scripts/alerter.mjs`** — deux destinations,
+  dans cet ordre : `ALERT_WEBHOOK_URL` (POST JSON, temps réel), sinon une
+  **issue GitHub** ouverte avec le jeton déjà présent dans chaque exécution
+  (`permissions: issues: write`) et notifiée par courriel. Aucune des deux
+  disponible → **échec 3**, pas un succès : une alerte qui n'est pas partie
+  ne doit pas rassurer.
+- **Dédoublonnage par empreinte** — une panne qui dure six heures produit
+  vingt-quatre exécutions ; sans empreinte, vingt-quatre issues. Avec : une
+  seule issue, commentée à chaque récidive.
+- **Branché sur les trois workflows**, avec la permission `issues: write`
+  (sans elle, l'API répond 403 et le signal meurt dans le journal).
+- **`src/lib/db/incidentStore.ts`** — le repli d'erreurs : quand Sentry est
+  absent, l'incident est écrit dans `audit_logs` (table existante, aucune
+  migration à appliquer). Borné : une empreinte par (message, méthode,
+  chemin), dix minutes de carence, quarante écritures par processus.
+- **`/api/health` honnête** — `commandes: { compte, source }` lu en base ;
+  **un compte non lu est `null`, jamais `0`** ; `monitoring.destination` dit
+  où vont les erreurs ; `monitoring.incidents24h` rend le nombre d'erreurs
+  sondable. `getStatusSummary()` s'appelle maintenant
+  `produitsEnMemoire` / `commandesEnMemoire` : le nom dit d'où vient le
+  chiffre (un test de `supabase.test.ts` a été mis à jour en conséquence).
+- **Banc `tests/kurla_alerte_incident.test.ts`** — 27 vérifications, chaîné
+  dans `npm test` (zone plateforme, après `test:dependances`).
+
+**Piège découvert — à lire avant d'ajouter un module de domaine :**
+`bindDomain` recopie **toutes** les entrées d'un module sur le store. Une
+constante exportée devient donc une « méthode » de l'API publique, avec
+l'arité de la longueur de sa chaîne : `ACTION_INCIDENT` était apparu dans
+l'inventaire comme `ACTION_INCIDENT/14`. **Ne pas exporter de constante
+depuis `src/lib/db/*Store.ts`** — la garder locale au module.
+
+**Reste à faire, et je n'ai pas la main** : `SENTRY_DSN` (compte Sentry) et
+`ALERT_WEBHOOK_URL` (un secret de dépôt, optionnel — l'issue GitHub suffit
+à défaut). Sans eux, le repli `journal_audit` s'applique : c'est un journal
+daté et interrogeable, pas un agrégateur d'erreurs.

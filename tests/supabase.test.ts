@@ -242,7 +242,11 @@ async function runTests() {
 
   // 13. Verify Status Summary
   const status = serverDb.getStatusSummary();
-  console.log(`\n[PASS] Database status summary: Supabase Configured=${status.supabaseConfigured}, Products=${status.productCount}, Orders=${status.orderCount}.`);
+  // Les champs s'appellent maintenant `produitsEnMemoire` / `commandesEnMemoire`
+  // (chantier « un incident réveille quelqu'un », 13/09/2026) : ce sont les
+  // caches du processus, pas les totaux de la base. Pour le nombre réel de
+  // commandes, appeler `serverDb.compterCommandes()`.
+  console.log(`\n[PASS] Database status summary: Supabase Configured=${status.supabaseConfigured}, Products (mémoire)=${status.produitsEnMemoire}, Orders (mémoire)=${status.commandesEnMemoire}.`);
 
   console.log(`\nLocal suites completed (${phase2PassedCount}/${phase2Results.length} Phase 2 checks executed, ${phase3PassedCount}/${phase3Results.length} Phase 3, ${phase4PassedCount}/${phase4Results.length} Phase 4, ${phase5PassedCount}/${phase5Results.length} Phase 5 passed). Run npm run test:integration for real Supabase A/B authorization.`);
 }

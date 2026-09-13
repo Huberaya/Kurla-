@@ -62,6 +62,28 @@ if (bilan.silences.length > 0) {
   console.log('vérifier si la base contient bien les données attendues.');
 }
 
+// Ce que `/api/health` dit de ses propres erreurs.
+//
+// Ajouté le 13/09/2026 : la production répondait `monitoring.configured:
+// false` — les erreurs serveur n'allaient nulle part — et personne ne le
+// voyait, parce que ce champ ne se lisait qu'en allant chercher la réponse
+// à la main. Une information que rien n'affiche n'existe pas.
+const sante = bilan.resultats.find((r) => r.modele === '/api/health');
+const surveillance = sante?.json?.monitoring;
+if (surveillance) {
+  const incidents = surveillance.incidents24h;
+  const nombre = incidents === null || incidents === undefined ? 'inconnu (lecture impossible)' : `${incidents}`;
+  if (!surveillance.configured) {
+    console.log('\n— remontée des erreurs —');
+    console.log(`  Sentry n'est pas configuré : les erreurs serveur sont consignées en repli (${surveillance.destination}).`);
+    console.log(`  Incidents sur 24 h : ${nombre}. Une erreur dans un journal que personne ne lit n'est pas une alerte :`);
+    console.log('  renseigner SENTRY_DSN, ou brancher ALERT_WEBHOOK_URL sur les bancs.');
+  } else if (typeof incidents === 'number' && incidents > 0) {
+    console.log('\n— remontée des erreurs —');
+    console.log(`  ${incidents} incident(s) serveur sur 24 h (destination : ${surveillance.destination}).`);
+  }
+}
+
 const bloquant = bilan.erreurs.length > 0
   || bilan.silences.some((s) => s.classe === 'silence critique')
   || (strict && bilan.silences.length > 0);

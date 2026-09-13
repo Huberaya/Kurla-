@@ -131,7 +131,20 @@ export async function sonder(base, { modele, chemin }, delaiMs = DELAI_MS) {
       }
       return { modele, chemin, statut: reponse.status, classe: 'silence', duree };
     }
-    return { modele, chemin, statut: reponse.status, classe: 'ok', taille: tailleDe(json), duree };
+    // La charge utile de `/api/health` est conservée : elle porte l'état de
+    // la remontée d'erreurs et le nombre d'incidents récents, que la sonde
+    // affiche et que rien d'autre ne montre. Les autres endpoints ne sont
+    // pas retenus — on ne garde pas des catalogues entiers en mémoire pour
+    // le plaisir de les avoir.
+    return {
+      modele,
+      chemin,
+      statut: reponse.status,
+      classe: 'ok',
+      taille: tailleDe(json),
+      duree,
+      json: modele === '/api/health' ? json : undefined
+    };
   } catch (erreur) {
     const duree = Date.now() - debut;
     const classe = erreur?.name === 'TimeoutError' ? 'délai dépassé' : 'réseau';

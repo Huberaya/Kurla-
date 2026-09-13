@@ -130,7 +130,7 @@ import { normalizeWaitlistSource } from './src/lib/waitlistSources';
 import { DISPATCH_SENTENCE } from './src/lib/preorderPromise';
 import { emailService } from './src/lib/emailService';
 import { computeEmailHealth } from './src/lib/emailHealth';
-import { captureServerException, initServerMonitoring, isServerMonitoringEnabled } from './src/server/monitoring';
+import { captureServerException, destinationDesErreurs, etatDuRepli, initServerMonitoring, isServerMonitoringEnabled } from './src/server/monitoring';
 
 initServerMonitoring();
 
@@ -1147,7 +1147,12 @@ app.get('/api/stripe/status', (req: Request, res: Response) => {
 
 // Health check endpoint
 app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-  const products = await serverDb.getProducts();
+  const depuis24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [products, commandes, incidents] = await Promise.all([
+    serverDb.getProducts(),
+    serverDb.compterCommandes(),
+    serverDb.compterIncidentsRecents(depuis24h)
+  ]);
   res.json({
     status: 'ok',
     brand: 'KURLA Beauty',
@@ -1155,9 +1160,26 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     stripeEnabled: !!process.env.STRIPE_SECRET_KEY,
     monitoring: {
       provider: 'sentry',
-      configured: isServerMonitoringEnabled()
+      configured: isServerMonitoringEnabled(),
+      // CHANTIER « un incident réveille quelqu'un », 13/09/2026.
+      //
+      // Avant : `configured: false` et rien d'autre. Traduction : les erreurs
+      // serveur partaient dans un journal que personne ne relit. Le repli
+      // (`journal_audit`) les écrit maintenant dans `audit_logs`, et ce
+      // compteur rend le nombre d'erreurs **sondable** : il voyage dans une
+      // réponse HTTP, la sonde le lit, l'alerte part.
+      destination: destinationDesErreurs(),
+      incidents24h: incidents.compte,
+      incidentsSource: incidents.source,
+      repli: etatDuRepli()
     },
     productsCount: products.length,
+    // Le nombre réel de commandes, lu en base. `compte` est `null` — jamais
+    // `0` — quand la lecture a échoué : un 0 faux se lit comme « aucune
+    // commande », alors qu'il veut dire « on n'a pas pu compter ».
+    commandes,
+    // Les compteurs ci-dessous sont ceux du processus (caches mémoire), pas
+    // ceux de la base : c'est précisément la confusion que `commandes` corrige.
     supabaseStatus: serverDb.getStatusSummary(),
     time: new Date().toISOString(),
     // Quel build répond, exactement ? Sans ces deux champs, un déploiement
@@ -2706,7 +2728,13 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
 
 // Last-resort error boundary for async routes. Critical database errors are
 // logged and returned as 5xx instead of being converted into fake success.
-app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+//
+// Asynchrone depuis le 13/09/2026 : `captureServerException` écrit l'incident
+// en base quand Sentry est absent, et l'attendre **avant** de répondre est ce
+// qui le rend durable. Répondre d'abord, sur une plateforme serverless, c'est
+// laisser la plateforme couper le processus avant la fin de l'écriture —
+// l'incident partirait avec lui.
+app.use(async (error: any, req: Request, res: Response, next: NextFunction) => {
   const requestId = (req as Request & { requestId?: string }).requestId;
   console.error(JSON.stringify({
     event: 'http_unhandled_error',
@@ -2715,12 +2743,22 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     path: req.path,
     error: error?.message || String(error)
   }));
-  captureServerException(error, {
-    requestId,
-    method: req.method,
-    path: req.path,
-    status: 500
-  });
+  try {
+    await captureServerException(error, {
+      requestId,
+      method: req.method,
+      path: req.path,
+      status: 500
+    });
+  } catch (reportingError) {
+    // Consigner un incident ne doit jamais en créer un second, ni retarder
+    // la réponse 500 que le client attend.
+    console.error(JSON.stringify({
+      event: 'incident_report_failed',
+      requestId,
+      error: reportingError instanceof Error ? reportingError.message : String(reportingError)
+    }));
+  }
   if (res.headersSent) return next(error);
 
   if (error?.type === 'entity.too.large' || error?.status === 413) {

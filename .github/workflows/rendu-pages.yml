@@ -36,8 +36,10 @@ on:
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
+# `issues: write` : l'alerte ouvre une issue quand elle n'a pas de webhook.
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: rendu-pages
@@ -70,3 +72,21 @@ jobs:
         env:
           SMOKE_BASE_URL: https://kurlabeauty.vercel.app
         run: npm run test:smoke
+
+      # Un écran blanc ne fait échouer aucune sonde d'endpoint : le HTML est
+      # servi, les API répondent. Seul ce banc le voit — et sans cette étape,
+      # il le voit seul. L'alerte fait le reste.
+      - name: Alerter — une page vide réveille quelqu'un
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node scripts/alerter.mjs \
+            --source "Rendu des pages (toutes les 6 h)" \
+            --gravite majeure \
+            --detail "Une page publique ne se rend pas : écran vide, exception JavaScript, image cassée ou cadre effondré. Voir les journaux de l'exécution."

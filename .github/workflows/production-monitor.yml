@@ -5,8 +5,11 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch:
 
+# `issues: write` : sans cette permission, l'alerte ne peut pas ouvrir son
+# issue et le signal meurt dans le journal de l'exécution.
 permissions:
   contents: read
+  issues: write
 
 jobs:
   probe:
@@ -29,3 +32,26 @@ jobs:
         env:
           KURLA_PROD_URL: https://kurlabeauty.vercel.app
         run: node scripts/probe-production.mjs --url "$KURLA_PROD_URL" --strict
+
+      # Un banc rouge dans un tableau de bord que personne n'ouvre n'est pas
+      # une alerte : c'est un constat différé. Ce pas porte le signal jusqu'à
+      # un humain — issue GitHub notifiée par courriel, ou webhook si le
+      # secret ALERT_WEBHOOK_URL est renseigné.
+      #
+      # Sans destination disponible, le programme échoue volontairement
+      # (code 3) : une alerte qui n'est pas partie ne doit pas se terminer
+      # en succès.
+      - name: Alerter — une panne réveille quelqu'un
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node scripts/alerter.mjs \
+            --source "Sonde de production (toutes les 15 min)" \
+            --gravite critique \
+            --detail "Un endpoint est en erreur, muet, ou rendu vide sans l'expliquer. Reproduire à la main : KURLA_PROD_URL=https://kurlabeauty.vercel.app node scripts/probe-production.mjs --strict"

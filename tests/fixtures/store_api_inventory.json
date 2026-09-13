@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T14:41:47.783Z",
+  "generatedAt": "2026-09-12T23:55:10.385Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -20,6 +20,9 @@
     "checkProductVocabulary/1",
     "claimEventForProcessing/2",
     "compareRfqResponses/1",
+    "compterCommandes/0",
+    "compterIncidentsRecents/1",
+    "consignerIncident/1",
     "countCreatorStandingInputs/1",
     "countersignBrandContract/2",
     "createAiSession/6",

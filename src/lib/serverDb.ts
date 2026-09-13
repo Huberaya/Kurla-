@@ -123,6 +123,7 @@ import * as journeyStore from './db/journeyStore';
 import * as membershipStore from './db/membershipStore';
 import * as textureGapStore from './db/textureGapStore';
 import * as skinJournalStore from './db/skinJournalStore';
+import * as incidentStore from './db/incidentStore';
 import { mapRefundRow } from './db/refundSupport';
 import type { MembershipEventRecord } from './db/membershipStore';
 import type { SkinJournalEntry, SkinObservanceDay } from './db/skinJournalStore';
@@ -425,13 +426,26 @@ export class SupabaseServerStore {
     }
   }
 
-  public getStatusSummary(): { supabaseConfigured: boolean; productCount: number; orderCount: number } {
+  /**
+   * Ce que **ce processus** détient en mémoire — pas ce que contient la base.
+   *
+   * CHANTIER « un incident réveille quelqu'un », 13/09/2026 : ces deux
+   * valeurs s'appelaient `productCount` et `orderCount` et voyageaient dans
+   * `/api/health` sous la clé `supabaseStatus`. Elles y annonçaient
+   * `orderCount: 0` alors que la base comptait 39 commandes, parce que les
+   * commandes ne sont pas préchargées au démarrage : le cache est vide, le
+   * nombre est juste, le nom mentait.
+   *
+   * Le nom dit maintenant d'où vient le chiffre. Pour le nombre réel, lire
+   * `serverDb.compterCommandes()`.
+   */
+  public getStatusSummary(): { supabaseConfigured: boolean; produitsEnMemoire: number; commandesEnMemoire: number } {
     return {
       // This is the backend status: a public VITE key is not enough for the
       // privileged store or server-side token verification.
       supabaseConfigured: isSupabaseServerConfigured(),
-      productCount: this.inMemoryProducts.length,
-      orderCount: this.inMemoryOrders.length
+      produitsEnMemoire: this.inMemoryProducts.length,
+      commandesEnMemoire: this.inMemoryOrders.length
     };
   }
 }
@@ -531,6 +545,7 @@ bindDomain(storeInstance, taxonomyStore);
 bindDomain(storeInstance, communityStore);
 bindDomain(storeInstance, brandContractStore);
 bindDomain(storeInstance, brandInvoiceStore);
+bindDomain(storeInstance, incidentStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -566,4 +581,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof brandContractStore>
   & Curried<typeof brandInvoiceStore>
   & Curried<typeof prospectStore>
-  & Curried<typeof sourcingStrategyStore>;
+  & Curried<typeof sourcingStrategyStore>
+  & Curried<typeof incidentStore>;
