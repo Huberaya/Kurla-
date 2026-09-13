@@ -1008,3 +1008,43 @@ fonctionner ; les nouveaux départements sont disponibles à l'écriture.
 ⚠️ `as const` sur `CATALOG_DEPARTMENTS` rend le type de `slug` strict : une
 liste de comparaison doit être typée `string[]`, sinon `npm run lint` échoue
 (alors que `npm test` passe — le lint est une étape distincte de la chaîne).
+
+### Le compteur de débit était le même pour toute la planète (13/09/2026)
+
+Mesuré en production avant de coder :
+
+  · 21 requêtes vers `/api/coupons/validate` (limite annoncée 20/min) sous une
+    même adresse déclarée → 1 seul 429, le 21ᵉ. Le compteur fonctionnait ;
+  · puis **une** requête avec une adresse déclarée différente → **encore 429**.
+
+La clé n'était donc pas celle du visiteur. `TRUST_PROXY` valant `false`,
+`requestAddress()` renvoyait `req.ip`, c'est-à-dire l'adresse du proxy Vercel
+: **un seul seau pour tous les visiteurs**. Conséquences réelles : 300
+requêtes/min pour l'ensemble du trafic sur `/api`, et 20/min sur la création
+de session de paiement — une seule machine peut bloquer tous les paiements du
+site, une minute à la fois.
+
+Correction (`src/server/http.ts`, `adresseClient()`), avec l'ordre suivant :
+
+  1. **`x-real-ip`** — posé par la plateforme, jamais par le client ;
+  2. sinon la **dernière** entrée de `x-forwarded-for` — celle que notre
+     proxy a vue. Croire la première, c'est permettre à n'importe qui de
+     changer de seau en falsifiant un en-tête ;
+  3. sinon la socket, en le **nommant** (`source: 'socket'`) : derrière un
+     proxy, ce repli est partagé.
+
+`/api/health` rapporte `limitation: { cle, source, partagee, seaux }` : si
+`source` vaut `socket` en production, la correction ne s'applique pas, et
+cela se voit sans refaire la mesure.
+
+**Ce qui reste, et que je ne peux pas faire** : le compteur est **local au
+processus**. Multi-instance, chaque instance compte pour soi — la limite
+réelle est « limite × nombre d'instances ». Le partager exige un compteur
+externe (Redis type Upstash, ou le pare-feu de l'hébergeur). Aucune table
+utilisable n'existe en base pour en tenir lieu, et je n'ai pas les droits
+`CREATE TABLE` : `partagee: false` le dit au lieu de le laisser croire.
+
+Banc `tests/kurla_limitation_adresse.test.ts` (12 vérifications, chaîné) :
+ordre des sources, falsification sans effet, deux visiteurs deux seaux
+malgré la même socket, purge des seaux expirés, et `/api/health` qui rend la
+clé visible.

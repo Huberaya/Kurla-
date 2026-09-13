@@ -19,14 +19,61 @@ export interface RateLimitBucket {
 
 export const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
+/**
+ * D'où vient l'adresse qui sert de clé au compteur.
+ *
+ *   · `x-real-ip`      : posé par la plateforme, jamais par le client ;
+ *   · `x-forwarded-for` : la **dernière** entrée, celle que notre propre
+ *     proxy a vue. Les précédentes sont déclarées par le client : les croire,
+ *     c'est permettre de changer de seau à chaque requête ;
+ *   · `socket`         : repli. Derrière un proxy, c'est l'adresse du proxy —
+ *     donc **la même pour tous les visiteurs**.
+ */
+export type SourceAdresse = 'x-real-ip' | 'x-forwarded-for' | 'socket';
+
+export interface AdresseClient {
+  cle: string;
+  source: SourceAdresse;
+}
+
+/** Taille à partir de laquelle on purge les seaux expirés. */
+export const SEUIL_PURGE = 10_000;
+
+function entete(req: Request, nom: string): string {
+  const brut = req.headers[nom];
+  const valeur = Array.isArray(brut) ? brut[0] : brut;
+  return typeof valeur === 'string' ? valeur.trim() : '';
+}
+
+/** Une même adresse doit donner une même clé, quelle que soit sa forme. */
+function normaliserAdresse(valeur: string): string {
+  const nettoye = valeur.trim().replace(/^\[|\]$/g, '');
+  // « 1.2.3.4:5678 » → « 1.2.3.4 » : le port d'origine n'identifie pas un client.
+  if (/^\d{1,3}(\.\d{1,3}){3}:\d+$/.test(nettoye)) return nettoye.split(':')[0];
+  return nettoye.toLowerCase();
+}
+
+export function adresseClient(req: Request): AdresseClient {
+  const reel = entete(req, 'x-real-ip');
+  if (reel) return { cle: normaliserAdresse(reel), source: 'x-real-ip' };
+
+  const chaine = entete(req, 'x-forwarded-for');
+  const dernier = chaine.split(',').map((partie) => partie.trim()).filter(Boolean).pop();
+  if (dernier) return { cle: normaliserAdresse(dernier), source: 'x-forwarded-for' };
+
+  return { cle: normaliserAdresse(req.ip || req.socket.remoteAddress || 'unknown'), source: 'socket' };
+}
+
+/** Conservée pour les appelants historiques : même valeur, même règle. */
 export function requestAddress(req: Request): string {
-  return req.ip || req.socket.remoteAddress || 'unknown';
+  return adresseClient(req).cle;
 }
 
 export function rateLimit(name: string, maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
-    const key = `${name}:${requestAddress(req)}`;
+    const { cle } = adresseClient(req);
+    const key = `${name}:${cle}`;
     const current = rateLimitBuckets.get(key);
     const bucket = !current || current.resetAt <= now
       ? { count: 0, resetAt: now + windowMs }
@@ -34,9 +81,14 @@ export function rateLimit(name: string, maxRequests: number, windowMs: number) {
     bucket.count += 1;
     rateLimitBuckets.set(key, bucket);
 
-    // Keep this process-local fallback bounded. A multi-instance deployment
-    // should place a shared limiter at the edge as well.
-    if (rateLimitBuckets.size > 10000) {
+    // Le compteur est **local au processus**. Multi-instance, chaque instance
+    // compte pour soi : la limite réelle est donc « limite × nombre
+    // d'instances ». Le partager exige un compteur externe (Redis) — aucun
+    // n'est configuré à ce jour, et `/api/health` le dit (`limitation`).
+    //
+    // Borné : sans plafond, une adresse par visiteur finirait par remplir la
+    // mémoire d'un processus longue durée.
+    if (rateLimitBuckets.size > SEUIL_PURGE) {
       for (const [bucketKey, value] of rateLimitBuckets) {
         if (value.resetAt <= now) rateLimitBuckets.delete(bucketKey);
       }

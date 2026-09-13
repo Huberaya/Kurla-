@@ -28,11 +28,13 @@ import {
 import { verifyVatNumber } from './src/lib/viesVerification';
 import { fromCents, toCents } from './src/lib/currency';
 import {
+  adresseClient,
   asyncRoute,
   getAnonymousId,
   getAppUrl,
   isUuid,
   rateLimit,
+  rateLimitBuckets,
   safeApiError,
   securityHeaders,
 } from './src/server/http';
@@ -1200,6 +1202,20 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
     // `0` — quand la lecture a échoué : un 0 faux se lit comme « aucune
     // commande », alors qu'il veut dire « on n'a pas pu compter ».
     commandes,
+    // La limitation du débit, telle qu'elle s'applique **à l'appelant de
+    // cette réponse**. Champ ajouté le 13/09/2026 après une mesure de
+    // production : le compteur était unique pour tous les visiteurs
+    // (`source: 'socket'` — l'adresse du proxy), si bien que 300 requêtes
+    // par minute suffisaient à bloquer le site **pour tout le monde**, et
+    // qu'une seule machine pouvait bloquer tous les paiements (20/min sur le
+    // checkout). Le dire ici, c'est permettre de le voir sans refaire la
+    // mesure : `source: 'socket'` signifie « la correction ne s'applique
+    // pas », `partagee: false` signifie « chaque instance compte pour soi ».
+    limitation: {
+      ...adresseClient(req),
+      partagee: false,
+      seaux: rateLimitBuckets.size
+    },
     // Les compteurs ci-dessous sont ceux du processus (caches mémoire), pas
     // ceux de la base : c'est précisément la confusion que `commandes` corrige.
     supabaseStatus: serverDb.getStatusSummary(),
