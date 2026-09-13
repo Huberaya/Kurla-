@@ -1,0 +1,19 @@
+name: Mesure limitation (temporaire)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mesure:
+    name: Une autre adresse source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Adresse de l'exécuteur
+        run: echo "exécuteur = $(curl -s https://api.ipify.org)"
+      - name: Même endpoint, autre adresse
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' https://kurlabeauty.vercel.app/api/professional-applications)
+            echo "appel $i depuis l'exécuteur : $code"
+          done
