@@ -1289,3 +1289,7 @@ demandés : **enfants, barbe/hommes, cheveux défrisés/chimiques, locks**.
   ont leur carte ; sinon un locks+braids prendrait tension au lieu de
   locks — ordre du `wanted` : enfant/défrisage/locks **avant** tension).
 
+## Réorganisation de la page de réponse du diagnostic (2026-09-13)
+- Consigne : la routine en premier, ensuite « Pourquoi cette routine ? », puis le reste.
+- Nouvel ordre des sections (ids d'ancres inchangés) : **1** routine → **2** Pourquoi cette routine ? (titre « Pourquoi chaque étape ? » renommé) → **3** profil déclaré → **3b** profil peau mélaninée → **4/4b** certain/inconnu → **5** comprendre (phrase « routine ci-dessous » → « routine en tête de page ») → **6** science → **7** moyens → **8** priorités → **9** produits → **10** suivi.
+- Piège vécu : déplacer un bloc par suppressions successives d'offsets calculés avant la 1ʳ suppression = offsets périmés, bloc dupliqué + section voisine tronquée. Solution sûre : 1 passage d'assemblage (retirer les blocs → réinsérer au bon endroit → renuméroter en UN seul re.sub avec une map, pas de remplacements en chaîne).
