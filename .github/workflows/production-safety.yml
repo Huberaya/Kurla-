@@ -4,6 +4,16 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Une exécution par nuit, en plus de chaque push.
+  #
+  # Pourquoi : un push ne voit que le code qu'il apporte. Une nuit voit ce
+  # qui a bougé sans lui — une table disparue, un fournisseur tiers tombé,
+  # une donnée modifiée à la main. La sonde d'endpoints tourne déjà toutes
+  # les quinze minutes ; celle-ci exécute les ~130 bancs, ce qui est
+  # infiniment plus lent et infiniment plus profond. D'où une fois par nuit,
+  # pas une fois par heure.
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       run_realdb:
@@ -150,3 +160,52 @@ jobs:
             --source "Vérification du déploiement" \
             --gravite critique \
             --detail "Le commit poussé n'a pas été servi, ou la production a régressé juste après la mise en ligne. Vérifier /api/health et le tableau de bord Vercel."
+
+  suite-complete:
+    name: Suite complète — les ~130 bancs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Confirm Node.js 22
+        run: node -e "if (!process.versions.node.startsWith('22.')) { throw new Error('Node.js 22 requis, trouvé ' + process.versions.node); }"
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      # Pourquoi ce travail existe
+      #
+      # Le dépôt compte ~130 bancs. Ce travail les exécute tous ; le travail
+      # « validate », lui, n'en lance que quelques-uns, pour répondre vite.
+      # Autrement dit : avant ce travail, un banc qui casse ne le faisait
+      # savoir à personne — sauf à la personne qui pensait à taper « npm
+      # test » à la main. Mesuré le 13/09/2026, 17 bancs n'étaient même
+      # atteints par aucune commande.
+      #
+      # Le dépôt est public : les minutes d'intégration continue sont
+      # gratuites. Rien ne justifiait donc de garder la suite à la main.
+      - name: Run the full test suite
+        run: npm test
+
+      - name: Alerter — la suite complète a échoué
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node scripts/alerter.mjs \
+            --source "Suite complète (npm test)" \
+            --gravite critique \
+            --detail "Un des ~130 bancs a échoué. Le banc de rendu est à part (rendu-pages.yml) ; tout le reste passe par ici. Reproduire : npm test"

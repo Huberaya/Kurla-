@@ -854,3 +854,49 @@ verrouille par une assertion comportementale (ligne 69) et une garde statique.
 
 État mesuré après migration : 96 fiches à `not_provided`, 0 avec un pays.
 **Aucune valeur de pays n'a été inventée.**
+
+### 17 bancs n'étaient exécutés par personne (chantier du 13/09/2026)
+
+Le mal du banc de rendu n'était pas local, il était systémique. `e2e/smoke.spec.ts`
+avait 48 tests complets et aucune action ne le lançait : on l'a découvert des
+semaines plus tard. En cherchant la même chose côté bancs, mesure du 13/09/2026 :
+
+| | |
+|---|---|
+| fichiers `tests/*.test.ts` | 141 |
+| **jamais atteints par aucune commande** | **17** |
+| dont lanceur déclaré mais non chaîné | 12 (`test:cosing`, `test:incompat`, `test:regulatory`, `test:ingredient-nav`, `test:ingredient-sources`, `test:outreach`, `test:purchasing`, `test:prospects`, `test:retention-nudges`, `test:retention-run`, `test:assortiment`, `test:barcode`) |
+| dont aucun lanceur du tout | 5 (`kurla_c4_diagnostic_result`, `kurla_c4_skin_journey`, `kurla_c4_skin_shelf`, `kurla_personal_space`, `push_notifications`) |
+
+**Tous passaient.** Aucun n'était cassé : ils étaient absents. C'est le pire
+des deux, parce qu'un banc cassé se signale et qu'un banc absent donne la
+même impression de couverture qu'un banc vert.
+
+Trois états, et un seul acceptable pour chacun :
+
+1. **exécuté** — atteint, transitivement, par une porte d'entrée de
+   `package.json` ;
+2. **module** — nommé `*.test.ts` mais importé ailleurs : 4 fichiers
+   (`phase3_cart_orders`, `phase4_webhook_stock`, `rls_two_users`,
+   `supabase_auth`, tous importés par `tests/supabase.test.ts`). Le nom est
+   un piège de lecture ; la liste est fermée et vérifiée ;
+3. **base réelle** — 6 bancs qui exigent une base vivante et ne tournent
+   qu'à la demande (`npm run test:realdb`).
+
+**Banc `tests/kurla_bancs_orphelins.test.ts`** (chaîné dans `npm test`) : il
+échoue si un fichier `*.test.ts` n'entre dans aucun des trois cas, si un
+lanceur `test:*` n'est jamais appelé, ou si la liste des modules s'allonge
+sans qu'on l'assume.
+
+**Et la suite tourne maintenant toute seule** : nouveau travail
+`suite-complete` dans `production-safety.yml` — `npm test` complet sur chaque
+push, plus une exécution par nuit (`0 3 * * *`) pour voir ce qui bouge sans
+qu'un push ne l'apporte. Le dépôt est public, les minutes sont gratuites :
+rien ne justifiait de garder 130 bancs à la main. En échec, l'alerte du
+chantier précédent ouvre son issue.
+
+**Piège de mesure, à ne pas refaire** : lancer un banc avec `npx tsx` au lieu
+du binaire du projet (`./node_modules/.bin/tsx`, ou `npm run test:xxx`).
+`npx` a résolu un autre `tsx`, hors du projet, et cinq bancs ont « échoué »
+en `ERR_MODULE_NOT_FOUND` — une panne d'outil prise pour une panne de code.
+Relancés avec le bon binaire : tous verts.
