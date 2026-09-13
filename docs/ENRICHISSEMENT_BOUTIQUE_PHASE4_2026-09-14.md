@@ -1,0 +1,97 @@
+# Enrichissement boutique — phase 4 (2026-09-14)
+
+**Objectif** : intégrer dans la base KURLA les produits candidats réels identifiés pendant
+le travail de sourcing (phases 1–3), **sans rien publier** et sans toucher aux 16 fiches
+cibles existantes.
+
+## 1. Principe de sécurité (intacte)
+
+- 26 fiches créées en **`catalog_status = 'draft'`** + **`is_active = false`** →
+  **jamais publiquement listables** : la garde `isCatalogPubliclyListable`
+  (`src/lib/catalogTruth.ts:357`) exige `catalog_status = 'published'` **et**
+  `is_active = true` **et** preuves minimales. Les 2 conditions sont donc fermées.
+- **Aucune migration** nécessaire : `draft` est un statut existant du schéma.
+- Statuts de vérification **honnêtes** sur chaque fiche :
+  `ingredient_verification_status = not_provided` (INCI non obtenue),
+  `claims_validation_status = not_provided` (allégations non vérifiées),
+  `brand_verification_status = not_provided` (marque connue, autorisation non obtenue).
+- `supplier_authorization_status = not_contacted` + note `supplier_authorization_note`
+  précisant l'email préparé (numéro de la phase 3) — le suivi fournisseur suit le
+  cycle existant `not_contacted → contacted → authorized/refused`.
+- **Prix** : uniquement des prix publics constatés cette session (pharmacies FR, sites
+  officiels, revendeurs FR). Colonne `price` NOT NULL respectée — **aucune fiche sans
+  prix constaté**, aucun prix inventé, aucun prix 0.
+- Les 16 fiches cibles `peau-ess-001..016` sont **inchangées** (vérifié).
+
+## 2. Les 26 fiches créées (prefix `src-`)
+
+| id | Marque | Produit | Prix € | Besoin(s) | Canal B2B visé (email phase 3) |
+|---|---|---|---|---|---|
+| src-lrp-001 | La Roche-Posay | Anthelios Fluide Invisible SPF50+ — 40ml | 22,90 | #30 SPF invisible | n°10 grosiste dermo |
+| src-lrp-002 | La Roche-Posay | Hyalu B5 Sérum — 30ml | 31,99 | #2/#24 hydratation | n°10 |
+| src-lrp-003 | La Roche-Posay | Hyalu B5 Sérum Yeux — 15ml | 23,03 | #18 cernes | n°10 |
+| src-lrp-004 | La Roche-Posay | Retinol B3 Sérum — 30ml | 41,30 | #34/#37 (écarté #50 grossesse) | n°10 |
+| src-lrp-005 | La Roche-Posay | Pure Vitamin C12 Sérum — 30ml | 42,10 | #12/#36/#37 vitamine C | n°10 |
+| src-lrp-006 | La Roche-Posay | Anthelios Stick Lèvres SPF50+ — 4,7g | 9,90 | #43 bâtonnet SPF lèvres | n°10 |
+| src-lrp-007 | La Roche-Posay | Cicaplast Baume B5+ — 100ml | 13,39 | #4/#7/#25 barrière | n°10 |
+| src-euc-001 | Eucerin | UreaRepair Plus Émollient 10% Urée — 400ml | 16,99 | #40/#41 urée 10–20 % | n°10 |
+| src-euc-002 | Eucerin | Sun Pigment Control Gel-Crème Teinté SPF50+ — 50ml | 12,59 | #15/#16 SPF teinté anti-taches | n°10 |
+| src-avene-001 | Avène | Solaire Stick Lèvres SPF50+ — 3g | 6,59 | #43 | n°10 |
+| src-bio-001 | Bioderma | Sensibio Huile Micellaire — 150ml | 11,99 | #45 démaquiller | n°10 |
+| src-ducray-001 | Ducray | Kelual DS Shampoing Antipelliculaire — 100ml | 11,89 | #44 cuir chevelu | n°10 |
+| src-klorane-001 | Klorane | Shampoing Antipelliculaire — 200ml | 5,99 | #44 cuir chevelu | n°10 |
+| src-isdin-001 | Isdin | Eryfotona Ageless Teinté SPF50 — 100ml | 91,19 | #15 SPF teinté oxydes de fer | n°10 (prix à confirmer) |
+| src-isdin-002 | Isdin | Stick Invisible SPF50 | 14,99 | #33 réapplication | n°10 |
+| src-loreal-001 | L'Oréal Paris | True Match Fond de Teint — 30ml | 18,99 | #47 teintes 8+ (48 teintes) | n°10 |
+| src-inoya-001 | IN'OYA | SUN'OYA Fluide Solaire SPF50+ — 50ml | 18,90 | #30/#10 SPF peaux noires (FR) | n°7 |
+| src-weleda-001 | Weleda | Déodorant Solide 24H Sensitive — 50g | 11,50 | #42 déo sans alcool | n°8 |
+| src-weleda-002 | Weleda | Lait Corps Nourrissant à l'Argousier — 200ml | 15,00 | #41 corps | n°8 |
+| src-cosmo-001 | Cosmo Naturel | Lait Corps au Karité Bio — 500ml | 9,67 | #41 corps karité FR bio | n°9 |
+| src-cosrx-001 | COSRX | BHA Blackhead Power Liquid | 18,99 | #13/#19/#21 BHA | n°1–2 K-beauty |
+| src-cosrx-002 | COSRX | Acne Pimple Master Patch — 24 patchs | 5,79 | #22 picking (patch occlusif) | n°1–2 |
+| src-isntree-001 | Isntree | Chestnut BHA 2% Clear Liquid — 100ml | 21,95 | #13/#19 BHA 2 % | n°1–2 |
+| src-to-001 | The Ordinary | Azelaic Acid Suspension 10% — 30ml | 13,50 | #9/#16/#27 azélaïque | n°10 (à identifier) |
+| src-to-002 | The Ordinary | Niacinamide 10% + Zinc 1% — 30ml | 13,50 | #11/#23 niacinamide | n°10 (à identifier) |
+| src-inkey-001 | The INKEY List | Super Solutions Sérum Azélaïque 10% — 30ml | 18,40 | #9/#27 azélaïque | n°10 (à identifier) |
+
+Champs communs : `badges = [sourcing en cours]`, `source_supplier = « Candidat — [marque] »`,
+`supplier_id = NULL` (les fournisseurs ne sont pas encore des lignes `suppliers` vérifiées —
+table vide aujourd'hui, on ne crée pas de fournisseur fictif).
+
+## 3. CSV latéral sur les 100 lignes du registre
+
+`docs/sourcing/MARQUES_CANDIDATES_100_PRODUITS_2026-09-14.csv` — **fichier additif**,
+indexé sur les refs `PEAU-001..100` du registre du 2ᵉ agent (que l'on ne réécrit pas).
+**46 mappings**, **35/100 refs** avec au moins un candidat à prix public constaté.
+Les 65 refs restantes restent **sans candidate** (pas de prix public constaté cette
+session → aucune donnée inventée). Colonne `variante` documente chaque écart de
+concentration/texture par rapport au cahier des charges. 2 shampoings cuir chevelu
+(src-ducray-001, src-klorane-001) portés en lignes `SANS-REF` (le registre peau du
+2ᵉ agent ne couvre pas le cuir chevelu).
+
+## 4. En attente de prix (pas de fiche créée)
+
+Ces produits candidats sont identifiés mais **sans prix public constaté cette session**
+→ aucune fiche tant qu'un prix ne sera pas observé (règle `price` NOT NULL honnête) :
+CeraVe Crème hydratante, CeraVe Crème Yeux, Eucerin Anti-Pigment Correcteur,
+Avène Cicalfate+, COSRX Snail 96 Mucin.
+
+## 5. Avant toute publication d'une fiche (checklist, rien n'est publié)
+
+1. Réponse fournisseur (email phase 3 envoyé) → `supplier_authorization_status = authorized`
+   + ligne `suppliers` + document d'autorisation dans `supplier_documents`.
+2. INCI complète obtenue → `ingredients`/`inci` + `ingredient_verification_status = verified`.
+3. Dossiers CPNP / personne responsable UE vérifiés pour le marché visé.
+4. Prix d'achat revendeur constaté (le prix public reste une donnée de référence, pas un prix de vente).
+5. Visuel de la fiche + `images_validation_status`.
+6. Puis seulement : `catalog_status = published` + `is_active = true` (garde
+   `isCatalogPubliclyListable` re-vérifiée automatiquement).
+
+## 6. Garanties vérifiées à la création
+
+- `published` = **63** avant et après insertion (inchangé).
+- `draft` : 16 → 42 (+26). `unavailable` : 17 (inchangé).
+- Les 26 fiches : `is_active = false`, `brand_verification_status = not_provided`,
+  prix entre 5,79 € et 91,19 € (tous constatés).
+- Site prod : aucune fiche nouvelle visible (les drafts ne sont ni listés, ni vendus,
+  ni référencés comme publia — la route gamme cible sert toujours les 16 fiches cibles).

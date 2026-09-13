@@ -1,0 +1,47 @@
+ref_registre;marque_candidat;produit_candidat;format;prix_public_eur;source_prix_public;variante;fiche_boutique_id;note
+PEAU-004;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);non — correspondance directe;src-bio-001;Correspond à l'étape « Huile nettoyante démaquillante » (hautement tolérante, démaquillant yeux inclus).
+PEAU-014;COSRX;BHA Blackhead Power Liquid;format standard;18.99;revendeur K-beauty FR (18,99 €);non;src-cosrx-001;BHA 2 % pores et imperfections — correspondance directe.
+PEAU-014;Isntree;Chestnut BHA 2 % Clear Liquid;100 ml;21.95;revendeur K-beauty FR (21,95 €);non;src-isntree-001;BHA 2 % — 2ᵉ candidat (marque officielle à confirmer).
+PEAU-020;The Ordinary;Niacinamide 10 % + Zinc 1 %;30 ml;13.5;theordinary.com FR (13,50 €);variante — 10 % contre 5 % visé;src-to-002;"Sérum niacinamide ; concentration au-dessus de la cible 5 % (à doser)."
+PEAU-021;The Ordinary;Azelaic Acid Suspension 10 %;30 ml;13.5;theordinary.com FR (13,50 €);non;src-to-001;Acide azélaïque 10 % — correspondance directe.
+PEAU-021;The INKEY List;Super Solutions Sérum Azélaïque 10 %;30 ml;18.4;LookFantastic FR (18,40 €);non;src-inkey-001;Acide azélaïque 10 % — 2ᵉ candidat.
+PEAU-022;La Roche-Posay;Pure Vitamin C12 Sérum;30 ml;42.1;pharmacie FR (40,65–42,10 €);variante — vitamine C 12 %;src-lrp-005;"Sérum vitamine C stabilisée ; prix premium à négocier en revende."
+PEAU-023;La Roche-Posay;Retinol B3 Sérum;30 ml;41.3;pharmacie FR (31,99–41,30 €);variante — usage progressif;src-lrp-004;Rétinol doux progressif — correspond à l'usage progressif visé.
+PEAU-024;La Roche-Posay;Hyalu B5 Sérum;30 ml;31.99;pharmacie FR (31,99–41,61 €);variante — multi-poids à confirmer;src-lrp-002;Sérum acide hyaluronique + B5.
+PEAU-029;The Ordinary;Niacinamide 10 % + Zinc 1 %;30 ml;13.5;theordinary.com FR (13,50 €);variante — 10 %;src-to-002;Marques post-imperfections (niacinamide + zinc).
+PEAU-030;La Roche-Posay;Hyalu B5 Sérum Yeux;15 ml;23.03;pharmacie FR (23,03–28,59 €);variante — sans caféine;src-lrp-003;"Sérum contour des yeux hydratant (B5) ; cible caféine = variante acceptable."
+PEAU-032;The Ordinary;Niacinamide 10 % + Zinc 1 %;30 ml;13.5;theordinary.com FR (13,50 €);variante — 10 %;src-to-002;Régulateur de brillance (zinc 1 %).
+PEAU-033;La Roche-Posay;Pure Vitamin C12 Sérum;30 ml;42.1;pharmacie FR (40,65–42,10 €);variante — vitamine C au lieu de réglisse;src-lrp-005;Sérum éclat.
+PEAU-034;La Roche-Posay;Hyalu B5 Sérum;30 ml;31.99;pharmacie FR (31,99–41,61 €);variante;src-lrp-002;Hydratation intense (acide hyaluronique).
+PEAU-037;COSRX;Acne Pimple Master Patch (lot 24);24 patchs;5.79;revendeur K-beauty FR (5,79–12,99 €);variante — patch occlusif au lieu d'un soin salicylique;src-cosrx-002;Soin localisé imperfections (protection occlusive, picking).
+PEAU-041;Eucerin;UreaRepair Plus Émollient 10 % Urée;400 ml;16.99;pharmacie FR (16,99–18,89 €);variante — corps/pieds très secs au lieu de crème pieds;src-euc-001;Urée 10 % — convient aux pieds très secs (variante d'usage).
+PEAU-045;La Roche-Posay;Cicaplast Baume B5+;100 ml;13.39;Redcare FR (13,39 €);variante — baume barrière au lieu de crème céramides;src-lrp-007;Crème barrière réparatrice (B5 + céramides dans la formule).
+PEAU-047;La Roche-Posay;Cicaplast Baume B5+;100 ml;13.39;Redcare FR (13,39 €);variante;src-lrp-007;Crème apaisante haute tolérance.
+PEAU-048;Weleda;Lait Corps Nourrissant à l'Argousier;200 ml;15.0;weleda.fr (15,00 €);non;src-weleda-002;Lait corps 24 h — candidat 1.
+PEAU-048;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (19,34 €/L);variante — karité bio au lieu de glycérine;src-cosmo-001;Lait corps — candidat 2, meilleur prix au litre.
+PEAU-049;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (19,34 €/L);variante — lait au lieu de beurre;src-cosmo-001;Beurre/karité corps — variante texture (lait).
+PEAU-050;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — SPF ajouté;src-lrp-006;Baume lèvres réparateur + SPF.
+PEAU-050;Avène;Solaire Stick Lèvres SPF50+;3 g;6.59;pharmacie FR (5,83–8,50 €);variante — SPF ajouté;src-avene-001;Baume lèvres — 2ᵉ candidat, moins cher.
+PEAU-067;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (19,34 €/L);variante — lait au lieu de masque;src-cosmo-001;Soin nourrissant corps.
+PEAU-068;La Roche-Posay;Hyalu B5 Sérum Yeux;15 ml;23.03;pharmacie FR (23,03–28,59 €);variante — sérum au lieu de crème, sans caféine;src-lrp-003;Soin contour des yeux hydratant.
+PEAU-071;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);variante — huile mono-phase au lieu de biphasé;src-bio-001;Démaquillant yeux doux (hautement tolérante).
+PEAU-073;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — non teinté, SPF ajouté;src-lrp-006;Baume lèvres (cible teintée = variante).
+PEAU-076;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — SPF ajouté;src-lrp-006;Stick lèvres nourrissant.
+PEAU-076;Avène;Solaire Stick Lèvres SPF50+;3 g;6.59;pharmacie FR (5,83–8,50 €);variante — SPF ajouté;src-avene-001;2ᵉ candidat.
+PEAU-078;Eucerin;UreaRepair Plus Émollient 10 % Urée;400 ml;16.99;pharmacie FR (16,99–18,89 €);non;src-euc-001;Zones très sèches — correspondance directe.
+PEAU-078;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (19,34 €/L);non;src-cosmo-001;Crème corps riche — 2ᵉ candidat.
+PEAU-081;Weleda;Lait Corps Nourrissant à l'Argousier;200 ml;15.0;weleda.fr (15,00 €);variante — parfum naturel (huiles essentielles), non « sans parfum »;src-weleda-002;Lait corps apaisant — attention allégation sans parfum : à vérifier au dossier allergènes.
+PEAU-082;La Roche-Posay;Cicaplast Baume B5+;100 ml;13.39;Redcare FR (13,39 €);variante;src-lrp-007;Soin apaisant (zones rasées, barrière).
+PEAU-083;Weleda;Déodorant Solide 24H Sensitive;50 g;11.5;weleda.fr (11,50 €);non — sans alcool ni sels d'aluminium;src-weleda-001;Déodorant doux sans sels d'aluminium — correspondance directe.
+PEAU-091;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);non;src-bio-001;Huile démaquillante (compatible make-up waterproof).
+PEAU-092;La Roche-Posay;Pure Vitamin C12 Sérum;30 ml;42.1;pharmacie FR (40,65–42,10 €);non;src-lrp-005;Sérum antioxydant mat, sous SPF.
+PEAU-093;La Roche-Posay;Anthelios Fluide Invisible SPF50+;40 ml;22.9;pharmacie FR (22,90 €);variante — SPF50+ au lieu de SPF30;src-lrp-001;Crème de jour invisible — candidat 1.
+PEAU-093;Eucerin;Sun Pigment Control Gel-Crème Teinté SPF50+;50 ml;12.59;pharmacie FR (12,59–16,50 €);variante — teinté;src-euc-002;SPF de jour teinté anti-taches — candidat 2.
+PEAU-093;Isdin;Eryfotona Ageless Teinté SPF50;100 ml;91.19;revendeur FR (91,19 € — à confirmer);variante — teinté, prix premium;src-isdin-001;SPF teinté oxydes de fer (CI 77491/77492/77499) — candidat 3.
+PEAU-095;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — lèvres;src-lrp-006;Stick SPF zones sensibles — candidat 1.
+PEAU-095;Isdin;Stick Invisible SPF50;8 g (à confirmer);14.99;revendeur FR (14,99 €);non;src-isdin-002;Stick SPF50 invisible — candidat 2.
+PEAU-097;La Roche-Posay;Hyalu B5 Sérum;30 ml;31.99;pharmacie FR (31,99–41,61 €);variante — sérum au lieu d'hydratant;src-lrp-002;Hydratant acide hyaluronique.
+PEAU-099;IN'OYA;SUN'OYA Fluide Solaire SPF50+;50 ml;18.9;inoaya.com (18,90 €);non;src-inoya-001;SPF50+ sans parfum, labo FR, 0 white marks — correspondance directe.
+PEAU-100;La Roche-Posay;Cicaplast Baume B5+;100 ml;13.39;Redcare FR (13,39 €);non — B5 = panthénol 5 %;src-lrp-007;Soin panthénol apaisant — correspondance directe.
+SANS-REF-1;Ducray;Kelual DS Shampoing Antipelliculaire;100 ml;11.89;pharmacie FR (11,69–13,38 €);—;src-ducray-001;"Cuir chevelu (besoin #44) — pas de ligne correspondante dans le registre peau du 2ᵉ agent ; voir registre cheveux."
+SANS-REF-2;Klorane;Shampoing Antipelliculaire;200 ml;5.99;L'Oréal/revendeurs FR (5,99–8,99 €);—;src-klorane-001;Cuir chevelu (besoin #44) — 2ᵉ candidat.
