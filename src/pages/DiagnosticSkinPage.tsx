@@ -288,6 +288,7 @@ export const DiagnosticSkinPage: React.FC = () => {
     { id: 'cernes', label: 'Cernes / poches', desc: '' },
     { id: 'protection_solaire', label: 'Protection solaire', desc: 'Sans trace blanche' },
     { id: 'sensibilite', label: 'Sensibilité / réactivité', desc: '' },
+    { id: 'port_maquillage', label: 'Je porte du maquillage (quotidien ou souvent)', desc: 'Démaquillage, pores, imperfections' },
     { id: 'teint_non_uniforme', label: 'Teint non uniforme', desc: 'Uniformiser' },
   ];
   const objectiveOptions = [

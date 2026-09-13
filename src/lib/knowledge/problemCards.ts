@@ -147,6 +147,25 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'Dr Sheth’s (2026) — fenêtre post-douche mesurée ; Hazelwood (2025) ; Anatomy Naturals (2026)',
   },
   {
+    key: 'prob_skin_maquillage',
+    title: 'Maquillage et peau : bien le retirer, bien le choisir, tester honnêtement',
+    confidence: 'institution',
+    fact: 'Le maquillage longue tenue est un film, pas une tache : il ne part qu’avec la phase huileuse, et le frottement laisse des marques. Et « ne bouche pas les pores » est une allégation, pas une garantie — le test qui compte, c’est votre propre peau sur 4–6 semaines.',
+    faire: [
+      'Deux temps le soir : huile de nettoyage, baume (ou biphasique pour les yeux), laissée agir 20 secondes et essuyée doucement — puis la mousse douce.',
+      'Les yeux d’abord, sans frotter : le démaquant posé quelques secondes, essuyé d’un mouvement doux vers le bas.',
+      'Si la peau est à imperfections : textures légères, aucun suspect obstruant dans les 7 premiers ingrédients, et patch test quelques jours (derrière l’oreille ou mâchoire) avant le visage entier.',
+      'Au moins une soirée par semaine sans maquillage : c’est elle qui montre ce que la peau fait vraiment.',
+    ],
+    eviter: [
+      'Répéter les passes jusqu’au coton propre : au moment où ce n’est plus de la dissolution, c’est de l’abrasion — et sur peau mélaninée, le frottement est une cause documentée de marques.',
+      'Le waterproof tous les jours si la peau est à imperfections : le film + le rituel de retrait doublent l’irritation.',
+      'Prendre le label « ne bouche pas les pores » comme critère unique : c’est une allégation du fabricant, sans définition ni test officiels.',
+    ],
+    attendre: 'Le maquillage se teste sur 4–6 semaines : un pore bouché met des semaines à devenir bouton. Si les imperfections continuent après 6 semaines de retrait régulier + base changée, la cause est probablement ailleurs (stress, routine, cycle) — c’est une information, pas un échec.',
+    source: 'SELF (2019, avec porte-parole FDA) — aucune définition officielle du label ; Medical News Today (2023) ; Quench Botanics (2026) — solubilité lipidique du film',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -363,6 +382,7 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   const hasMelasme = concerns.includes('taches_hormonales');
   const hasGrainDePoulet = concerns.includes('grain_de_poulet');
   const hasSecheresseCorps = concerns.includes('secheresse_corps');
+  const hasMaquillage = concerns.includes('port_maquillage');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
@@ -373,6 +393,7 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   if (hasMelasme) wanted.push('prob_skin_taches_hormonales');
   if (hasGrainDePoulet) wanted.push('prob_skin_grain_de_poulet');
   if (hasSecheresseCorps) wanted.push('prob_skin_secheresse_corps');
+  if (hasMaquillage) wanted.push('prob_skin_maquillage');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 

@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps' | 'maquillage';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -178,6 +178,33 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'Dr Sheth’s (2026) — fenêtre post-douche (« three-minute rule ») ; Hazelwood (2025) ; Anatomy Naturals (2026)',
     confidence: 'institution',
   },
+  {
+    key: 'sci_skin_spf_quantite',
+    theme: 'soleil',
+    title: 'Le SPF de l’étiquette ne vaut que si la quantité est là — les mathématiques',
+    fact: 'Le chiffre de la bouteille est mesuré avec une application précise : 2 mg par cm². On met la moitié, et un SPF 30 tombe autour de 5–10 ; le quart, autour de 2–3. La protection n’est pas linéaire — mettre moins ne donne pas « un peu de protection », ça réduit drastiquement ce qu’on reçoit. Le repère simple : deux longueurs de doigt pour le visage, une pour le cou, et les oreilles (la zone oubliée de tout le monde). Si la bouteille dure des mois, c’est le signal : on en met trop peu.',
+    mechanism: 'La réapplication, elle, est un fait : toutes les 2 h en extérieur, et juste après la transpiration, la baignade ou la serviette — et non, un SPF 50 ne dure pas plus longtemps qu’un SPF 30, il protège juste un peu plus par application.',
+    source: 'AAD (réapplication 2 h, quantité visage/cou/oreilles) ; skn.coach (2026) — calculs 2 mg/cm² ; surfacesunscreen (2026)',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_skin_maquillage_demaquillage',
+    theme: 'maquillage',
+    title: 'Démaquillage : la phase huileuse avant le frottement',
+    fact: 'Le maquillage longue tenue et waterproof forme un film (résines siliconées, cires) que l’eau et la mousse ne dissolvent pas — le film est gras, il ne se dissout que par du gras : une huile, un baume ou un biphasique, laissés agir 20 secondes, essuyés doucement. Si le coton part encore marqué après deux ou trois passes, ce n’est plus de la dissolution — c’est de l’abrasion, et c’est précisément le geste qui irrite et marque les peaux mélaninées.',
+    mechanism: 'D’où la logique des deux temps : l’huile d’abord (dissout maquillage, SPF et sébum), la mousse douce ensuite (transpiration, résidus solubles dans l’eau). L’eau micellaire suffit sur un maquillage léger — pas sur du waterproof ni un SPF haut.',
+    source: 'Quench Botanics (2026) — solubilité lipidique des formules filmogènes ; Colineal (2026) ; SYNC Beauty (2026)',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_skin_maquillage_pores',
+    theme: 'maquillage',
+    title: 'Le label « ne bouche pas les pores » : ce qu’il garantit vraiment — et ce qu’il ne garantit pas',
+    fact: 'Il n’existe aucune définition officielle : les autorités (l’FDA notamment) n’ont aucune définition standardisée ni test obligatoire pour la mention « non-clog » — c’est une allégation du fabricant, pas une garantie. Ce qui est documenté, en revanche, ce sont les suspects : isopropyl myristate, isopropyl palmitate, dérivés de lanoline, huile de coco ou de cacao hauts dans la formule — et les moins suspects : dimethicone, glycérine, niacinamide, squalane. Et « naturel » ne veut rien dire : plusieurs huiles très naturelles bouchent.',
+    mechanism: 'Les repères qui tiennent : la liste INCI (les suspects dans les 7 premiers ingrédients sont les seuls à surveiller) et votre propre peau — un patch test quelques jours derrière l’oreille ou sur la mâchoire, puis la réponse sur 4–6 semaines.',
+    source: 'SELF (2019, avec porte-parole FDA) — aucune définition officielle du label ; Medical News Today (2023, relu médicalement) ; Skin&Me (2024)',
+    confidence: 'institution',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -189,6 +216,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'rasage', label: 'Rasage & poils incarnés', intro: 'Pourquoi les poils incarnés touchent massivement les peaux mélaninées — et comment le cycle se coupe.' },
   { theme: 'hormones', label: 'Taches hormonales (« masque de grossesse »)', intro: 'Le pattern, ses déclencheurs — et la protection que les études mesurent.' },
   { theme: 'corps', label: 'Corps — texture et sécheresse', intro: 'Le « grain de poulet », les coudes et les mollets : ce que le corps demande — et le geste des 3 minutes.' },
+  { theme: 'maquillage', label: 'Maquillage — démaquiller et choisir', intro: 'Le film des formules longue tenue, le frottement qui marque — et ce que le label « non-clog » ne dit pas.' },
 ];
 
 /**
@@ -217,18 +245,21 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   const melasma = concerns.includes('taches_hormonales');
   const bodyTexture = concerns.includes('grain_de_poulet');
   const bodyDry = concerns.includes('secheresse_corps');
+  const makeup = concerns.includes('port_maquillage');
 
   const wanted: string[] = [];
   if (melasma) wanted.push('sci_skin_melasme_mecanisme', 'sci_skin_melasme_lumiere');
   if (shaving) wanted.push('sci_skin_rasage_mecanisme', 'sci_skin_rasage_arret');
   if (bodyTexture) wanted.push('sci_skin_corps_grain', 'sci_skin_corps_minutes');
   if (bodyDry) wanted.push('sci_skin_corps_minutes', 'sci_skin_corps_grain');
+  if (makeup) wanted.push('sci_skin_maquillage_demaquillage', 'sci_skin_maquillage_pores');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
   if (lowSpf) wanted.unshift('sci_skin_spf', 'sci_skin_ipd');
   if (sensitive) wanted.push('sci_skin_parfum', 'sci_skin_barriere');
   if (dry) wanted.push('sci_skin_barriere', 'sci_skin_lavage');
   if (wanted.length === 0) wanted.push('sci_skin_spf', 'sci_skin_hpi', 'sci_skin_aging');
+  if (lowSpf && wanted.length < 3) wanted.push('sci_skin_spf_quantite'); // complément de pratique, sans jamais déplacer un besoin déclaré
   wanted.push('sci_skin_fitzpatrick'); // repère utile, glissé en fin de file
 
   const byKey = new Map(SKIN_SCIENCE_CARDS.map(card => [card.key, card]));

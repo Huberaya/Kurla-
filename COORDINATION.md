@@ -1422,3 +1422,10 @@ avec contrôle négatif dans les deux sens.## Vague 1 peau — poils incarnés (
 - Vocabulaire : « kératose » et « eczéma » sont dans MEDICAL_RE → « grain de poulet » + mécanisme kératine / « peaux réactives » ; zéro rétinoïde (banni) → protocole 100 % grand public (acides doux, urée, céramides, timing post-douche).
 - Priorités picker (peau, borné à 2) : taches → imperfections → poils incarnés → taches hormonales → grain de poulet → corps sec → sécheresse visage → sensibilité.
 - Suite du backlog : 45+46 (maquillage) → 33 (quantité SPF) → les 6 partiels (victimes rapides).
+## Vague 4 peau — maquillage + quantité SPF (besoins n°45–46 + n°33, 13/09/2026)
+- Sources : PIÈCE 8 (maquillage : solubilité lipidique du film — Quench Botanics 2026 ; label sans définition officielle — SELF 2019 avec porte-parole FDA, Medical News Today 2023 ; patch test 4–6 sem — VerywellHealth 2026) + PIÈCE 9 (SPF : 2 mg/cm², moitié de dose → SPF 30 ≈ 5–10 — skn.coach 2026 ; réappli 2 h AAD).
+- Livré : 3 cartes savoirs (`sci_skin_spf_quantite` thème soleil ; `sci_skin_maquillage_demaquillage` + `sci_skin_maquillage_pores` thème `maquillage`) · 1 carte moyen `prob_skin_maquillage` · préoccupation `port_maquillage` (« Je porte du maquillage (quotidien ou souvent) ») · 19 cartes savoirs peau / 17 cartes moyens · banc 22 checks.
+- Piège vécu : la source « Skin&Me (2024, dermatologue consultant) » a déclenché MEDICAL_RE (`dermatologue`) — les sources des cartes passent aussi la regex.
+- Règle du picker quantité SPF : glissée en fin de file **seulement si `wanted.length < 3`** quand le SPF est non quotidien — elle ne déplace jamais un besoin déclaré (profil SPF+taches garde ses 3 cartes habituelles).
+- Vocabulaire : « comédogène » banni (motif `comedo`) → « qui bouche les pores » / « non-clog » ; le label est présenté comme allégation du fabricant (pas de définition ni test officiels).
+- Suite du backlog : 6 ⚠️ partiels (victimes rapides : barrière, cernes, picking, sébum, prévention, teinte) → 17+42+43 (trio frottement) → 48… déjà fait ; 8 (saisonnier) → 50 (grossesse, en dernier).

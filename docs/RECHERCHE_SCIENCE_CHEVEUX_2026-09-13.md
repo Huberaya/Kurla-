@@ -804,3 +804,69 @@ recherches croisées).
 Règle de publication : « kératose » est dans la regex médicale → jamais dans le rendu
 (le « grain de poulet » + le mécanisme kératine suffisent) ; « eczéma » aussi banni →
 « peaux réactives » ; pas de rétinoïdes (bannis) → protocole 100 % grand public.
+
+# PIÈCE 8 — Pôle peau : maquillage (démaquillage + pores) (besoins n°45–46, 13/09/2026)
+
+Contexte : besoins n°45 (« démaquiller sans frotter ») et n°46 (« non comédogène :
+ce que dit l'étiquette ») de `docs/BESOINS_PEAU_50_2026-09-13.md` — construits en un
+seul pôle (la relation maquillage ↔ peau). Fouille du 13/09/2026 (2 recherches).
+
+## N°45 — Démaquillage
+- [I] **Le film des formules longue tenue** (Quench Botanics 2026 ; Colineal 2026 ;
+  Alibaba product-insights 2026) : le mascara waterproof et les bases « 24 h » sont
+  des résines siliconées et des copolymères acryliques — **résistants aux
+  tensioactifs doux, dissous par la phase huileuse** (solubilité lipidique : « oil
+  dissolves oil »). Micellaire seul = insuffisant sur waterproof/SPF haut ; le
+  repère terrain : tampon encore marqué après 2–3 passes = on ne dissout plus, on
+  **frotte** (abrasion mécanique des cils et de la peau).
+- [I] **Les résidus s'accumulent** (Alibaba 2026) : silicones et cires résiduelles
+  s'accumulent au racine des cils et à la surface ; tensioactifs résiduels +
+  film = perturbation de la barrière (TEWL ↑) sur une peau délicate.
+- [I/C] **Le rituel documenté** (Quench Botanics 2026 ; SYNC Beauty 2026 ;
+  r/SkincareAddiction 2025) : **double nettoyage** — huile/baume/biphasique
+  d'abord (dissout maquillage, SPF, sébum), mousse douce ensuite (transpiration,
+  résidus hydrosolubles) ; **laisser agir 20 s** sur l'œil avant d'essuyer,
+  mouvements doux vers le bas ; le micellaire reste suffisant sur maquillage léger.
+- **Lien peau mélaninée** : frottement + résidus = irritation = HPI (mécanisme déjà
+  documenté par la carte `sci_skin_friction` du pôle pigmentation) — le démaquillage
+  est un levier de prévention des taches, pas seulement de confort.
+
+## N°46 — « Non comédogène » et pores
+- [R] **Le label n'est pas régulé** (SELF 2019, avec porte-parole FDA ; Medical
+  News Today 2023, relu médicalement) : **aucune définition fédérale ni règle
+  cosmétique** pour le terme « non-clog » ; aucune définition standardisée, pas de
+  test rigoureux obligatoire → « n'importe quelle entreprise peut l'utiliser sans
+  preuve ». Les échelles de comédogénicité sont « qualitatives, pas quantitatives »
+  (Dr Bunimovich, SELF).
+- [I] **Ce qui est documenté** (SELF 2019 ; Medical News Today 2023 ; Quimivita
+  2026 ; Skin&Me 2024, dermatologue consultant) : à fort potentiel obstruant —
+  isopropyl myristate, isopropyl palmitate, ethylhexyl palmitate, dérivés de
+  lanoline, **huiles « naturelles » (coco, cacao, avocat, amande, olive)**, laurique/
+  myristique ; à faible potentiel — dimethicone (les silicones n'ont pas bonne
+  réputation mais ne colmatent pas, à condition de bien démaquiller), glycérine,
+  niacinamide, squalane, acide hyaluronique. Règle pratique (Dr Bunimovich) :
+  un suspect **hors des 7 premiers ingrédients** est très probablement sans objet.
+- [I] **Le test fiable** (VerywellHealth 2026 ; Skin&Me 2024) : **patch test**
+  (derrière l'oreille ou mâchoire) quelques jours à une semaine ; **la texture ne
+  dit rien** (une texture riche peut ne pas colmater, une texture légère peut
+  colmater) ; « trust your skin over the label » — le test décisif est sa propre
+  peau sur 4–6 semaines (un pore bouché met des semaines à devenir bouton).
+
+# PIÈCE 9 — Quantité et réapplication du SPF (besoin n°33, 13/09/2026)
+
+- [R] **La dose de référence** (AAD via surfacesunscreen 2026 ; skn.coach 2026) :
+  le SPF de l'étiquette est mesuré à **2 mg/cm²** ; face + oreilles + cou = ~1/2
+  cuillère à café (règle des 3 doigts, AAD) ; face seule ~1/4 (règle des 2 doigts).
+- [R] **La protection n'est pas linéaire** (skn.coach 2026 ; skinaa 2026) :
+  **moitié de la dose → SPF 30 ≈ SPF 5–10, SPF 50 ≈ SPF 7–15** ; quart → 2–3.
+  « La personne qui se brûle avec son SPF 50 avait en réalité un SPF 10 ou moins. »
+- [R] **Réapplication** (AAD) : **toutes les 2 h en extérieur**, immédiatement
+  après transpiration / baignade / serviette ; **aucune exception pour les hauts
+  SPF** (SPF 50 ≠ SPF 30 en durée, juste un peu plus par application).
+- [I] **Les signaux terrain** (skn.coach 2026 ; r/SkincareAddiction 2024) : une
+  bouteille de 50 ml qui dure des mois = sous-application ; le SPF d'une crème
+  hydratante est presque toujours sous-dosé en usage réel.
+
+Règle de publication : « comédogène/comédones » est dans MEDICAL_RE (motif
+`comedo`) → « qui bouche les pores » / « non-clog » dans le rendu ; le label est
+cité comme « ne bouche pas les pores ».
