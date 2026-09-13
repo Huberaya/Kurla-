@@ -1434,3 +1434,66 @@ avec contrôle négatif dans les deux sens.## Vague 1 peau — poils incarnés (
 - Livré : 2 cartes savoirs thème `frottement` (`sci_skin_frottement_plis`, `sci_skin_leveres_habitudes`) · 2 cartes moyens (`prob_skin_assombrissement_plis`, `prob_skin_leveres`) · 2 préoccupations (« Assombrissement des plis (cou, aisselles, cuisses) », « Lèvres qui se gercent ou foncent ») · 21 cartes savoirs peau / 19 cartes moyens · banc 23 checks.
 - **Limite honnête (décision éditoriale)** : l'assombrissement plis soudain/épaissi/non réactif peut avoir une cause interne (les sources nomment acanthosis nigricans / glycémie) → la carte moyens le dit une fois, sans nommer le motif, sans alerter : « en parler à un professionnel de santé ». Jamais de diagnostic, jamais de rassurance à la place.
 - Piège évité : le cwd de l'append doc — vérifié après chaque `cat >>` (tail + wc -l) : un append silencieux raté laisse croire que la pièce existe.
+
+
+## Chaîne de sourcing peau chargée en base (13/09/2026)
+
+Les 100 produits peau ne sont plus seulement dans un CSV : ils sont en base,
+rattachés à un fournisseur, avec un email préparé. **Aucune modification de
+code** — uniquement des données.
+
+### Ce qui a été créé
+
+| Table | Avant | Après |
+|---|---|---|
+| `suppliers` | 8 | **10** — `sup-blacketique-sas`, `sup-eolys-beaute`, canal `affiliation` |
+| `sourcing_prospects` | 25 | **28** — `prosp-blacketique`, `prosp-eolys`, `prosp-ankorstore` |
+| `sourcing_items` | 3 | **7** — 4 besoins `wave='vague-peau-1'`, statut `in_rfq` |
+| `rfqs` | 1 | **5** — 4 emails en `draft` avec leur corps dans `content` |
+| `sourcing_product_candidates` | 21 | **121** — les 100 produits du registre, `governance_status='blocked'` |
+
+⚠️ **Première utilisation réelle de la migration `20260925000000`** : le canal
+`affiliation` était impossible à déclarer avant. Contrôle négatif refait :
+`supplier_type='telepathie'` toujours bloqué `23514`.
+
+### Le mécanisme réutilisé, pas recréé
+
+Le pipeline existait déjà : `blocked → waiting_inci → in_progress → ready →
+published` (`CANDIDATE_GOVERNANCE` dans `src/lib/prospectSeed.ts`). Les 21
+candidats du chantier cheveux l'utilisaient déjà, tous `blocked`.
+
+Les 100 produits peau y entrent **au même état `blocked`**, avec
+`inci_received=false` et `visuals_received=false`. C'est cohérent : aucune
+marque n'est vérifiée pour ces lignes.
+
+⚠️ **`required_documents` est un tableau de CODES** (`responsible_person`,
+`cpnp_notification`, `certificate_of_analysis`), pas du texte libre. Piège
+rencontré : y écrire une phrase produit `22P02 malformed array literal`.
+
+⚠️ **`json.dumps` ne produit pas des littéraux SQL** : les guillemets doubles
+sont lus comme des identifiants de colonne (`42703`). Utiliser des
+simple-quotes avec doublement des apostrophes.
+
+### Les 4 emails sont dans le dashboard admin
+
+Visibles via `GET /api/admin/sourcing/items?wave=vague-peau-1`, qui calcule
+`rfqCount` et `sentCount`. État actuel : **4 demandes, 0 envoyée**.
+L'envoi se fait par `POST /api/admin/sourcing/rfqs/:rfqId/send` →
+`markRfqSent`. Les contraintes `rfq_sent_needs_date` et
+`rfq_sent_needs_supplier` interdisent de marquer « envoyé » sans date ni
+fournisseur.
+
+⚠️ **Ces endpoints enregistrent l'envoi, ils n'envoient rien** : il n'y a pas
+de boîte mail. L'envoi réel reste manuel.
+
+### La boutique n'a pas bougé
+
+**63 produits publiés avant, 63 après.** Aucune fiche produit n'a été créée.
+
+Le garde de publiabilité (`hasMinimalCatalogProof`) exige **une marque, une
+composition, une image et un pays de livraison**. Pour 90 des 100 produits,
+aucun de ces quatre champs n'est disponible honnêtement. Créer ces fiches
+aurait reproduit les 16 fiches « (Démo) ».
+
+Le passage en boutique se fera **au fil des réponses fournisseur**, en faisant
+passer chaque candidat de `blocked` à `published`.
