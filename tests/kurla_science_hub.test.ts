@@ -12,6 +12,7 @@ import {
   SKIN_SCIENCE_THEMES,
   pickSkinScienceInsights,
 } from '../src/lib/knowledge/skinScience';
+import { SKIN_PROBLEM_CARDS, HAIR_PROBLEM_CARDS, pickSkinProblemCards, pickHairProblemCards } from '../src/lib/knowledge/problemCards';
 import { buildDiagnosticResultModel } from '../src/lib/diagnosticResult';
 import type { HairAdvisoryContext } from '../src/lib/knowledge/hairAdvisory';
 import type { SkinAdvisoryContext } from '../src/lib/knowledge/skinAdvisory';
@@ -201,8 +202,65 @@ async function runScienceHubTests(): Promise<void> {
   for (const level of CONFIDENCE_OK) assert.ok(SCIENCE_CONFIDENCE_LABELS[level], `label de confiance manquant : ${level}`);
   check('labels de confiance : les 4 niveaux sont libellés');
 
+
+  // --- 14. Cartes « moyens » : complètes, sourcées, protocoles intacts ---
+  const allProblemCards = [...SKIN_PROBLEM_CARDS, ...HAIR_PROBLEM_CARDS];
+  assert.equal(allProblemCards.length, 8, '8 cartes moyens : 4 peau + 4 cheveux');
+  const problemKeys = new Set(allProblemCards.map(card => card.key));
+  assert.equal(problemKeys.size, 8, 'doublon de clé dans les cartes moyens');
+  for (const card of allProblemCards) {
+    for (const field of ['key', 'title', 'fact', 'attendre', 'source'] as const) {
+      assert.ok(String(card[field]).trim().length > 0, `carte moyens ${card.key} : champ « ${field} » vide`);
+    }
+    assert.ok(CONFIDENCE_OK.includes(card.confidence), `carte moyens ${card.key} : confiance inconnue`);
+    assert.ok(card.faire.length >= 3 && card.faire.every(item => item.trim().length > 0), `carte moyens ${card.key} : « faire » incomplet (< 3 gestes vides)`);
+    assert.ok(card.eviter.length >= 2 && card.eviter.every(item => item.trim().length > 0), `carte moyens ${card.key} : « éviter » incomplet (< 2 interdits)`);
+  }
+  check('cartes moyens : 8 protocoles complets et sourcés (faire ≥ 3, éviter ≥ 2, délai honnête)');
+
+  // --- 15. Cartes moyens : vocabulaire et phrases réservées ----------------
+  for (const card of allProblemCards) {
+    const text = `${card.title}. ${card.fact}. ${card.faire.join(' ')} ${card.eviter.join(' ')} ${card.attendre} ${card.source}`;
+    const match = text.match(MEDICAL_RE);
+    assert.ok(!match, `carte moyens ${card.key} : vocabulaire médical « ${match?.[0]} »`);
+    for (const phrase of RESERVED_PHRASES) {
+      assert.ok(!text.toLowerCase().includes(phrase.toLowerCase()), `carte moyens ${card.key} : phrase réservée « ${phrase} »`);
+    }
+  }
+  for (const card of SKIN_PROBLEM_CARDS) {
+    const body = `${card.title}. ${card.fact}. ${card.faire.join(' ')} ${card.eviter.join(' ')} ${card.attendre}`;
+    const match = body.match(SKIN_BODY_BAN_RE);
+    assert.ok(!match, `carte moyens peau ${card.key} : mot interdit dans le corps « ${match?.[0]} »`);
+  }
+  check('cartes moyens : 0 mot médical, 0 phrase réservée, corps peau sans mot interdit');
+
+  // --- 16. Pickers moyens : inconnu = inconnu, contextuel, borné ----------
+  assert.deepEqual(pickSkinProblemCards({}), [], 'peau vierge : pas de problème déclaré = pas de carte inventée');
+  assert.deepEqual(pickHairProblemCards({}), [], 'cheveux vierge : pas de problème déclaré = pas de carte inventée');
+  const tachesCtx = { hyperpigmentationTendency: 'frequente', skinConcerns: ['taches', 'secheresse'], skinType: 'seche' } as SkinAdvisoryContext;
+  const tachesCards = pickSkinProblemCards(tachesCtx);
+  assert.equal(tachesCards[0].key, 'prob_skin_taches', 'taches déclarées : la carte taches doit être première');
+  assert.ok(tachesCards.some(c => c.key === 'prob_skin_secheresse'), 'sécheresse déclarée : sa carte doit être choisie');
+  assert.equal(tachesCards.length, 2, 'borné à 2 cartes maximum');
+  const casseCtx = { texture: 'crepue', priority: 'casse', style: 'braids', scalp: 'pellicules' } as HairAdvisoryContext;
+  const casseCards = pickHairProblemCards(casseCtx);
+  assert.deepEqual(casseCards.map(c => c.key), ['prob_hair_casse', 'prob_hair_cuir_chevelu'], 'casse + cuir chevelu : les deux cartes, dans l’ordre déclaré');
+  const pousseCards = pickHairProblemCards({ texture: 'crepue', priority: 'pousse' });
+  assert.deepEqual(pousseCards.map(c => c.key), ['prob_hair_pousse'], 'pousse seule : une seule carte, rien d’inventé');
+  const skinDeterministic = pickSkinProblemCards(tachesCtx);
+  assert.deepEqual(pickSkinProblemCards({ ...tachesCtx }), skinDeterministic, 'picker peau non déterministe');
+  check('pickers moyens : inconnu = inconnu (0 carte vierge), contextuel, borné, déterministe');
+
+  // --- 17. Wiring : le modèle du résultat porte les cartes moyens ---------
+  const skinProblemModel = buildDiagnosticResultModel({ answers: skinAnswers, result: null, products: [], isSkin: true });
+  assert.equal(skinProblemModel.problemCards[0].key, 'prob_skin_taches', 'peau : taches déclarées → carte taches dans le résultat');
+  assert.ok(skinProblemModel.problemCards.length >= 1 && skinProblemModel.problemCards.length <= 2, 'peau : 1 à 2 cartes moyens dans le résultat');
+  const hairProblemModel = buildDiagnosticResultModel({ answers: hairAnswers, result: null, products: [], isSkin: false });
+  assert.equal(hairProblemModel.problemCards[0].key, 'prob_hair_casse', 'cheveux : casse déclarée → carte casse dans le résultat');
+  check('wiring : DiagnosticResultModel.problemCards présent côté peau et côté cheveux');
+
   console.log(
-    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 10 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) — ${checks.length} checks.`
+    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 10 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) ; 8 cartes « moyens » (faire/éviter/s'attendre) sourcées, inconnu = inconnu — ${checks.length} checks.`
   );
 }
 

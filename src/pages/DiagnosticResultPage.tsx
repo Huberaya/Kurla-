@@ -136,6 +136,36 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
           </section>
         )}
 
+        {model.problemCards.length > 0 && (
+          <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="moyens">
+            <SectionHeading number="2e" id="moyens" title="Vos problèmes — les moyens : faire, éviter, s’attendre" />
+            <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Un protocole pour chaque problème que vous avez déclaré. Les gestes viennent de la littérature (source en bas de chaque carte) — et les délais sont honnêtes : ce qui est mesuré, on le dit ; ce qui ne l’est pas, on ne le promet pas.</p>
+            <div className="space-y-4">
+              {model.problemCards.map(card => (
+                <div key={card.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 sm:p-5">
+                  <p className="text-sm font-semibold text-[#FFE0C6]">{card.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-kurla-cream/75">{card.fact}</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-xl bg-kurla-espresso p-3">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Faire</p>
+                      <ul className="space-y-2 text-xs leading-relaxed text-kurla-cream/75">{card.faire.map(item => <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />{item}</li>)}</ul>
+                    </div>
+                    <div className="rounded-xl bg-kurla-espresso p-3">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-rose-300">Éviter</p>
+                      <ul className="space-y-2 text-xs leading-relaxed text-kurla-cream/75">{card.eviter.map(item => <li key={item} className="flex gap-2"><XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-300" />{item}</li>)}</ul>
+                    </div>
+                    <div className="rounded-xl bg-kurla-espresso p-3">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-kurla-amber">S’attendre</p>
+                      <p className="flex gap-2 text-xs leading-relaxed text-kurla-cream/75"><Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-kurla-amber" />{card.attendre}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[10px] uppercase tracking-wide text-kurla-amber">{scienceConfidenceLabel(card.confidence)}<span className="normal-case tracking-normal text-kurla-cream/45"> — {card.source}</span></p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title="Vos 2 à 3 priorités" /><div className="flex flex-wrap gap-2">{model.priorities.length ? model.priorities.map(priority => <span key={priority} className="rounded-full border border-kurla-copper/40 bg-kurla-copper/15 px-4 py-2 text-sm font-semibold text-[#FFE0C6]">{priority}</span>) : <span className="text-sm text-kurla-cream/60">Aucune priorité assez précise pour personnaliser ce bloc.</span>}</div></section>
 
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>

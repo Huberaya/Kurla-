@@ -1163,3 +1163,50 @@ de **ses cheveux, de sa peau et des problèmes de sa peau**.
 **Ce qui n'a pas changé** : `recommendations.ts`, les phrases réservées,
 l'advisory des deux pôles, la session/préfill, le catalogue et les
 départements (travail de l'autre intervenant, intouché).
+
+### 3ᵉ vague — « les moyens » : protocoles par problème déclaré
+
+Consigne : « aller encore plus loin dans nos recommandations… donner les
+moyens pour prendre soin de sa peau et **les problèmes de sa peau** ».
+La 2ᵉ vague disait « pourquoi » (les faits) ; cette vague dit
+« quoi faire, quoi éviter, quand s'attendre à quoi » — pour chaque
+problème déclaré au diagnostic.
+
+**Fait** :
+
+- `docs/RECHERCHE_SCIENCE_CHEVEUX_2026-09-13.md` : **Pièce 3** (116 lignes)
+  — croissance (5 mm/mois origine africaine, EJD 2016), massage (Koyama
+  2016, +8 % sur 24 semaines), chaleur (seuil 185 °C / 220 °C, étude
+  Journal of Cosmetology & Trichology + PubMed 21635854), taches (picking =
+  facteur aggravant n°1, sur-exfoliation = facteur déclenchant, niacinamide /
+  azélaïque), points noirs (oxydation, 2 % salicylique, extraction DIY
+  contre-indiquée), eau chaude (> 40 °C = perte d'eau mesurée), patch test
+  (24–48 h, un produit à la fois).
+- `src/lib/knowledge/problemCards.ts` : **8 cartes « moyens »** (4 peau :
+  taches, imperfections, sécheresse, sensibilité · 4 cheveux : casse, cuir
+  chevelu, tension/coiffures, pousse) — FAIT sourcé / FAIRE (3–4) / ÉVITER
+  (2–3) / S'ATTENDRE (délai honnête).
+- Section **2e** du résultat : « Vos problèmes — les moyens : faire,
+  éviter, s'attendre » (1 à 2 cartes, par problème déclaré).
+- Banc `kurla_science_hub` : 13 → **17 checks** (protocoles complets,
+  vocabulaire, pickers, wiring 2 pôles).
+
+**Règle tenue, et c'est la nouveauté du verrou** : **pas de problème
+déclaré, pas de carte** (`inconnu = inconnu` — le banc vérifie que le
+profil vierge reçoit 0 carte, pas 2 inventées). C'est l'inverse de ce que
+font les quiz concurrents : ils vendent un protocole à tout le monde ;
+KURLA n'en donne que pour ce qui est déclaré.
+
+**Pièges mesurés** :
+
+- le champ `do` est un mot-clé TS/JS : les protocoles s'appellent
+  `faire` / `eviter` / `attendre` (français, donc lisible aussi).
+- « acné » → « boutons » dans les corps de cartes (vocabulaire du site) ;
+  « pimple patch » → « patch anti-bouton » ; les sources peuvent garder le
+  titre original des publications.
+- la carte pousse dit ce que la physique dit : 5 mm/mois, aucun produit ne
+  change ce chiffre — le levier honnête est la rétention (casse). C'est
+  aussi la meilleure différenciation face aux « produits pousse » du marché.
+- les délais « s'attendre » sont calés sur les durées mesurées (mois à
+  années pour les taches, semaines pour la barrière, 2–3 mois pour la
+  rétention) — jamais de promesse d'effet (garde existante des leçons).

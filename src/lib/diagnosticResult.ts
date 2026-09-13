@@ -24,6 +24,7 @@ import {
   type HairAdvisoryContext,
 } from './knowledge/hairAdvisory';
 import { pickHairScienceInsights } from './knowledge/hairScience';
+import { pickHairProblemCards, pickSkinProblemCards, type ProblemCard } from './knowledge/problemCards';
 import { pickSkinScienceInsights } from './knowledge/skinScience';
 import type { ScienceInsight } from './knowledge/hairScience';
 
@@ -87,6 +88,8 @@ export interface DiagnosticResultModel {
   observations: SkinObservation[];
   /** Savoirs « ouvrir les yeux » — faits sourcés choisis pour le profil (peau et cheveux). */
   scienceInsights: ScienceInsight[];
+  /** Cartes « moyens » — protocole (faire / éviter / s'attendre) pour chaque problème déclaré (peau et cheveux). */
+  problemCards: ProblemCard[];
   /** Note sur la boucle de réévaluation J+30 (peau et cheveux, texte commun L4). */
   advisoryLoop: string | null;
 }
@@ -314,6 +317,7 @@ export function buildDiagnosticResultModel(input: {
     lessons: isSkin ? pickSkinLessons(advisoryCtx) : pickHairLessons(hairAdvisoryCtx),
     observations: isSkin ? pickSkinObservations(advisoryCtx) : pickHairObservations(hairAdvisoryCtx),
     scienceInsights: isSkin ? pickSkinScienceInsights(advisoryCtx) : pickHairScienceInsights(hairAdvisoryCtx),
+    problemCards: isSkin ? pickSkinProblemCards(advisoryCtx) : pickHairProblemCards(hairAdvisoryCtx),
     advisoryLoop: ADVISORY_LOOP_NOTE,
   };
 }

@@ -426,3 +426,119 @@ Améliorations du conseil existant (non régressif) :
 - Leçon sécheresse : « crème sur peau humide » devient le geste nommé
   (règle des 3 minutes).
 - Leçon sensibilité : « lisez l'INCI, le label ne suffit pas ».
+
+---
+---
+
+# PIÈCE 3 — Les moyens : problèmes et protocoles de soin (2ᵉ vague, 13/09/2026)
+
+Constat : la Pièce 2 dit « pourquoi » (les faits). Cette pièce dit « quoi
+faire, quoi éviter, quand s'attendre à quoi » pour chaque problème déclaré
+au diagnostic. Mêmes règles : sourcée ou absente, zéro vocabulaire médical,
+zéro mention cancer côté peau (les mots interdits restent citables en source).
+
+## P3.1 — Croissance des cheveux : génétique, pas actionnable
+
+- [R] Vitesse moyenne mondiale : **0,35 mm/j ≈ 13 mm/mois** (15 cm/an) —
+  StatPearls, via Live Science (2023).
+- [R] **Chez les personnes d'origine africaine : ≈ 5 mm/mois** ; les
+  différences raciales sont génétiques, pas environnementales — étude 2016,
+  European Journal of Dermatology, citée par Live Science (Sally-Ann Tarver,
+  trichologiste, Cotswold Trichology).
+  → Conséquence produit : **aucun produit ne change la vitesse**. Ce qui se
+  « gagne » en longueur, c'est ce qu'on **arrête de casser** (les leviers
+  cassure = leviers pousse).
+- [R] Massage du cuir chevelu : Koyama et al., **ePlasty 2016** — 4 min/jour,
+  9 hommes, 24 semaines → épaisseur du cheveu **0,085 → 0,092 mm (+8 %)**,
+  mécanisme = étirement des cellules du derme (pas seulement la circulation).
+  Petit échantillon : le bénéfice est réel, modeste, et c'est un **adjoint**,
+  pas un traitement de fond.
+
+## P3.2 — Chaleur sur cheveu texturé : le seuil mesuré
+
+- [R] Étude Journal of Cosmetology & Trichology (lissage 50 passages sur
+  cheveu naturel bouclé serré) : à **365 °F (≈ 185 °C)** — aucun changement
+  global de la boucle ; à **428 °F (≈ 220 °C)** — **37,5 % des sujets ne
+  retrouvent pas leur pattern naturel**, seuls 25 % des cheveux sortent sans
+  dommage. (Cité par Dyson, 2024.)
+- [R] PubMed 21635854 : les lisseurs opèrent **au-dessus de 200 °C** et
+  dégradent la kératine (conversion α-hélice → β-feuillet, protéines
+  dépolymérisées) ; la casse au peignage augmente significativement ;
+  **un pré-traitement polymère (protecteur) réduit nettement la casse**.
+  → Règle produit : la chaleur utile se situe **≤ ≈ 185 °C**, avec protecteur,
+  et le séchage à l'air reste le geste de référence.
+
+## P3.3 — Taches (HPI) : les facteurs qu'on contrôle
+
+- [R] Asian Acne Board 2016 (voir Pièce 2) : excoriation = facteur
+  modifiable n°1 ; 58,2 % des patients ont des taches, 22,3 % ≥ 5 ans.
+- [I] The Inkey List (2026, PIH) : « picking or squeezing blemishes
+  dramatically worsens this response by intensifying the inflammation and
+  pushing it deeper » — chaque intervention **re-déclenche** l'inflammation
+  et approfondit la réponse pigmentaire.
+- [I] Waverly DermSpa (2026) : la sur-exfoliation est **un facteur
+  déclenchant** du PIH (pas seulement un facteur aggravant) ; chaleur et
+  frottement répétés (masque, vêtements serrés, serviette) contribuent ;
+  « pimple patches » = stratégie documentée « mains loin ».
+- [R] Actifs cités pour accélérer la résolution du PIH (LearnSkin, 2021 —
+  revue) : photoprotection + **niacinamide** (bloque le transfert des
+  mélanosomes), **acide azélaïque** (anti-inflammatoire + antipigmentaire),
+  acide ascorbique, extraits de réglisse. « Plusieurs mois à plusieurs
+  années » sans intervention (déjà Pièce 2).
+- [I] Niacinamide 4–5 % : essai sur 8 semaines (cité Dot & Key, 2025) ;
+  azélaïque 15 % gel 2×/j pendant 16 semaines : étude pilote (Journal of
+  Drugs in Dermatology, cité LiveTinted 2026) — réduit l'inflammation active
+  ET les taches qu'elle laisse.
+  → Règle produit : un seul actif ciblé, fréquence progressive, SPF tous les
+  jours — la régularité fait la différence, pas l'intensité.
+
+## P3.4 — Imperfections / points noirs : l'oxydation et la douceur
+
+- [I] La Roche-Posay (conseils consommateurs, 2026) : le point noir est un
+  pore bouché qui **s'oxyde à l'air** (ce n'est pas de la saleté) ;
+  l'extraction DIY « peut transformer un petit problème en grosse éruption » ;
+  pas de gommages agressifs ; l'acide salicylique est l'exfoliant « dissolvant
+  doux » documenté.
+- [I] DermApproved (2026) : la concentration OTC standard est **2 %
+  salicylique** ; peau sensible ou débutante : démarrer à **0,5–1 %** ;
+  « l'assiduité à une concentration supportable dépasse la dose agressive
+  qu'on ne peut pas maintenir ».
+- [I] The Inkey List (2026) : introduire l'actif **2–3×/semaine et monter la
+  fréquence sur 2–4 semaines** — la fréquence progressive est le protocole
+  commun à toutes les sources.
+
+## P3.5 — Sécheresse : l'eau chaude est un facteur mesuré
+
+- [R] Barco & Giménez-Arnau 2008 + PubMed 30286269 (Pièce 2) : seuil 10–13 %
+  d'eau, lipides désorganisés.
+- [I] Doctor Guide (2026, synthèse consos) : « les études montrent que se
+  laver à **plus de 40 °C** réduit les facteurs naturels d'hydratation et
+  augmente la perte d'eau transepidermique » — l'eau chaude retire les
+  lipides, l'eau tiède est le standard ; **hydrater immédiatement après** le
+  lavage (déjà Pièce 2 : règle des 3 minutes, Draelos/Gutman 2019).
+
+## P3.6 — Sensibilité : le patch test et l'ordre d'introduction
+
+- [I] Consensus des guides spécialisés sensibles (DermasPharma 2026, The
+  Inkey List 2026, Glimmer Goddess 2026) :
+  - **un seul produit nouveau à la fois**, testé 24–48 h (derrière l'oreille
+    ou creux du coude), réaction attendue y compris **différée** ;
+  - après le test : introduction **à fréquence réduite** (soir d'abord),
+    **1 semaine minimum** avant le produit suivant ;
+  - si réaction : on ne « réhabitue » pas — l'exposition répétée au parfum
+    sensibilise davantage (déjà Pièce 2, NACDG/Vanicream) : le produit est
+    écarté.
+- [I] Tenir un journal (quel produit, quand, où) = la seule façon
+  d'identifier le déclencheur — correspond exactement à l'architecture
+  journal KURLA.
+
+## P3.7 — Ce que cette pièce change dans le produit
+
+Nouvelle surface : **cartes « moyens »** (1 par problème déclaré, max 2 par
+diagnostic) : `FAIT (le pourquoi, sourcé) / FAIRE (3–4 gestes) / ÉVITER
+(2–3 interdits) / S'ATTENDRE (délai honnête)`. Elles complètent sans
+redire les leçons (qui expliquent la routine) : elles donnent le protocole
+du problème. Miroir exact peau/cheveux, mêmes verrous de vocabulaire.
+
+Cheveux (4) : casse · cuir chevelu · tension/coiffures · pousse.
+Peau (4) : taches · imperfections · sécheresse · sensibilité.
