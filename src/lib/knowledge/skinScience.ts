@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -160,6 +160,24 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'Essai randomisé en double aveugle, 68 patientes (2014, PubMed 24313385) ; Polena et al. (J Cosmet Dermatol, 2025) ; revue J Drugs Dermatol (2026)',
     confidence: 'recherche',
   },
+  {
+    key: 'sci_skin_corps_grain',
+    theme: 'corps',
+    title: 'Le « grain de poulet » n’est pas de la saleté : c’est de la kératine bouchée',
+    fact: 'Petits boutons rugueux sur les bras, les cuisses ou les fesses, plus marqués en hiver : c’est un bouchon de kératine — la protéine du cheveu et de l’ongle — qui bloque l’entrée du follicule. C’est génétique (ça court dans les familles), très fréquent, sans danger et non contagieux — et ça ne se « gomme » pas : le frottement irrite, les acides doux dissolvent.',
+    mechanism: 'Dans une comparaison contrôlée, 12 semaines d’acide lactique à 10 % ont réduit les boutons d’environ 66 % contre ~52 % pour l’acide salicylique à 5 % — et l’urée (10–20 %) à la fois dissout le bouchon et attire l’eau. L’amélioration mesurable apparaît en 4–6 semaines d’usage régulier.',
+    source: 'DermApproved (2026) — comparaison contrôlée des acides ; SkinscienceHub (2026) ; Forefront Dermatology (2026)',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_skin_corps_minutes',
+    theme: 'corps',
+    title: 'La peau du corps a moins de glandes à sébum que le visage — la « règle des minutes » y compte encore plus',
+    fact: 'Les jambes, les bras et les coudes fabriquent très peu de sébum : une fois les lipides emportés par la douche chaude et le savon, la peau ne se ressource pas toute seule. Appliquer la crème sur peau encore humide, dans les 3 minutes qui suivent la douche, emprisonne l’eau à la surface — c’est mesurable, et c’est le geste qui change le plus pour les mollets et les coudes.',
+    mechanism: 'Douches tièdes courtes (5–10 min), tamponner sans frotter, crème riche (céramides, urée) sur peau humide, puis une couche fine d’huile ou de beurre sur les zones les plus sèches : le même principe que la règle des minutes du visage, appliqué là où la peau a le plus besoin.',
+    source: 'Dr Sheth’s (2026) — fenêtre post-douche (« three-minute rule ») ; Hazelwood (2025) ; Anatomy Naturals (2026)',
+    confidence: 'institution',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -170,6 +188,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'savoirs', label: 'Vieillissement & repères', intro: 'Comment vieillit vraiment une peau riche en mélanine, et les échelles qu’il faut savoir lire.' },
   { theme: 'rasage', label: 'Rasage & poils incarnés', intro: 'Pourquoi les poils incarnés touchent massivement les peaux mélaninées — et comment le cycle se coupe.' },
   { theme: 'hormones', label: 'Taches hormonales (« masque de grossesse »)', intro: 'Le pattern, ses déclencheurs — et la protection que les études mesurent.' },
+  { theme: 'corps', label: 'Corps — texture et sécheresse', intro: 'Le « grain de poulet », les coudes et les mollets : ce que le corps demande — et le geste des 3 minutes.' },
 ];
 
 /**
@@ -196,10 +215,14 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
 
   const shaving = concerns.includes('poils_incarnes');
   const melasma = concerns.includes('taches_hormonales');
+  const bodyTexture = concerns.includes('grain_de_poulet');
+  const bodyDry = concerns.includes('secheresse_corps');
 
   const wanted: string[] = [];
   if (melasma) wanted.push('sci_skin_melasme_mecanisme', 'sci_skin_melasme_lumiere');
   if (shaving) wanted.push('sci_skin_rasage_mecanisme', 'sci_skin_rasage_arret');
+  if (bodyTexture) wanted.push('sci_skin_corps_grain', 'sci_skin_corps_minutes');
+  if (bodyDry) wanted.push('sci_skin_corps_minutes', 'sci_skin_corps_grain');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
   if (lowSpf) wanted.unshift('sci_skin_spf', 'sci_skin_ipd');

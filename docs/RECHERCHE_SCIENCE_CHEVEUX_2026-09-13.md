@@ -756,3 +756,51 @@ protection d'abord ». Fouille du 13/09/2026 (3 recherches).
 - **Décision RGPD** : la détection passe par une préoccupation déclarée
   (« Taches récentes ou qui varient (cycle, grossesse, soleil) ») — KURLA stocke le
   pattern de taches, **jamais un statut de grossesse** ; aucune question médicale.
+
+# PIÈCE 7 — Pôle peau : corps (grain de poulet + sécheresse) (besoins n°40–41, 13/09/2026)
+
+Contexte : besoins n°40 et n°41 de `docs/BESOINS_PEAU_50_2026-09-13.md` — construits
+ensemble (même famille : texture + lipides du corps). Fouille du 13/09/2026 (2
+recherches croisées).
+
+## N°40 — « Grain de poulet » (petits boutons rugueux, bras/cuisses/fesses)
+- [I→R] **Mécanisme** (Forefront Dermatology 2026 ; Dermatology Seattle 2025 ;
+  ubiehealth 2026) : accumulation de **kératine** qui bouche l'entrée du follicule →
+  petits boutons rugueux ; **génétique, court dans les familles**, très fréquent,
+  bénin, non contagieux, **pas lié à l'hygiène** ; plus marqué en peau sèche et en
+  hiver (baisse d'humidité) ; associé aux peaux réactives/atopiques.
+- [R] **Ce qui agit — comparaison contrôlée** (DermApproved 2026, essai cité) :
+  **12 semaines, acide lactique 10 % ≈ −66 % de lésions vs acide salicylique 5 % ≈
+  −52 %** (le lactique pique/odeure plus) ; **urée 10–20 %** = dissout le bouchon
+  **et** attire l'eau (double action) ; acide glycolique en réserve ; l'amélioration
+  mesurable apparaît en **4–6 semaines** (SkinscienceHub 2026).
+- [I] **Ce qui aggrave** (DermApproved 2026 ; Dermatology Seattle 2025) :
+  **le gommage mécanique irrite et rougit** (les boutons sont un problème de chimie,
+  pas de force) ; douches chaudes/longues ; savons décapers ; frottement des vêtements ;
+  « piquer » les boutons ; les cures qui promettent la guérison définitive n'existent
+  pas (génétique → gestion, pas éradication).
+- [I] **Protocole documenté** (Dermatology Seattle 2025 ; SkinscienceHub 2026) :
+  exfoliant chimique doux **2–3×/semaine** + hydratation **quotidienne** (urée,
+  lactique, céramides) ; le nettoyant acide en douche = préparation, pas soin
+  (rincé trop vite) ; visage = formules plus douces que le corps.
+
+## N°41 — Corps sec et rêche (coudes, genoux, mollets)
+- [R/I] **Pourquoi le corps sèche plus vite que le visage** (Dr Sheth's 2026 —
+  « your body skin dries out faster than your face ») : jambes, bras, coudes =
+  **très peu de glandes sébacées** ; une fois les lipides emportés par eau chaude +
+  savon, la peau ne se ressource pas seule ; l'hiver et le chauffage accélèrent.
+- [R/I] **La fenêtre post-douche — « three-minute rule »** (Dr Sheth's 2026 :
+  « les dermatologues appellent ça la fenêtre post-douche ; appliquer sur peau humide
+  emprisonne l'eau dans la couche de surface avant évaporation — **mesurable** ;
+  c'est surtout le corps ») : crème riche (céramides, glycéryle, urée) **dans les
+  3 minutes, sur peau humide** ; tamponner, ne pas frotter ; douches tièdes 5–10 min
+  (Hazelwood 2025) ; huile/beurre en couche fine sur coudes/mollets (Anatomy
+  Naturals 2026 : émulsion d'abord, huile ensuite — ou huile seule sur peau humide).
+- [I] **Délais** (Dr Sheth's 2026) : tiraillements calmés en jours ; squames lissées
+  en **1–2 semaines** ; zones rugueuses foncées estompées en **4–8 semaines** —
+  « la crème la moins chère appliquée au bon moment bat la crème chère appliquée trop
+  tard ».
+
+Règle de publication : « kératose » est dans la regex médicale → jamais dans le rendu
+(le « grain de poulet » + le mécanisme kératine suffisent) ; « eczéma » aussi banni →
+« peaux réactives » ; pas de rétinoïdes (bannis) → protocole 100 % grand public.

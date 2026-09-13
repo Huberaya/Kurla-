@@ -280,6 +280,8 @@ export const DiagnosticSkinPage: React.FC = () => {
     { id: 'imperfections', label: 'Imperfections / boutons', desc: '' },
     { id: 'points_noirs', label: 'Points noirs / pores', desc: '' },
     { id: 'grain_irregulier', label: 'Grain irrégulier', desc: '' },
+    { id: 'grain_de_poulet', label: 'Petits boutons rugueux (bras, cuisses, fesses)', desc: '« Grain de poulet », plus marqué en hiver' },
+    { id: 'secheresse_corps', label: 'Corps sec et rêche (coudes, genoux, mollets)', desc: 'Squames, tiraillements' },
     { id: 'cicatrices', label: 'Cicatrices post-acné', desc: '' },
     { id: 'rides', label: 'Rides / ridules', desc: '' },
     { id: 'fermete', label: 'Perte de fermeté', desc: '' },

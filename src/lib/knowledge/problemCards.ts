@@ -109,6 +109,44 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'Essai randomisé en double aveugle (2014, PubMed 24313385) ; GoodRx (2025) ; Baliña & Graupe (acide azélaïque) ; guides peaux (2026)',
   },
   {
+    key: 'prob_skin_grain_de_poulet',
+    title: 'Grain de poulet : dissoudre le bouchon, pas frotter',
+    confidence: 'recherche',
+    fact: 'Ces petits boutons rugueux (bras, cuisses, fesses) sont des bouchons de kératine sur l’entrée du follicule — génétique, fréquent, sans danger, et pas une question d’hygiène. Le frottement (gants, gommages) irrite et les rougit ; ce qui les réduit, c’est la chimie douce et la régularité.',
+    faire: [
+      'Un lait ou un gel avec un acide doux (acide lactique, acide glycolique) ou de l’urée (10–20 %), 2–3×/semaine sur la zone — la régularité bat la concentration.',
+      'Hydratez chaque jour, de préférence juste après la douche sur peau humide : l’hydratation est la moitié du travail.',
+      'Lavez avec un nettoyant doux (pas de savon décaper) et préférez les douches tièdes courtes.',
+      'Vêtements non serrés sur la zone, et rien à « piquer » : chaque pointille prépare une marque.',
+    ],
+    eviter: [
+      'Les gants de gommage et les exfoliations mécaniques agressives : ce qui est documenté, c’est qu’ils irritent et rougissent les boutons.',
+      'Les douches brûlantes et longues : la sécheresse d’hiver est le principal facteur de poussée.',
+      'Les « cures » qui promettent d’enlever le grain de poulet « définitivement » : c’est génétique — on le gère, on ne l’arrache pas.',
+    ],
+    attendre: 'Amélioration mesurable en 4–6 semaines d’usage régulier, lissage réel en 8–12 semaines ; ça peut revenir si on arrête (c’est une gestion, pas une cure) — et c’est plus marqué en hiver sec.',
+    source: 'DermApproved (2026) — comparaison contrôlée (lactique 10 % ≈ 66 % vs salicylique 5 % ≈ 52 % sur 12 sem) ; SkinscienceHub (2026) ; Dermatology Seattle (2025)',
+  },
+  {
+    key: 'prob_skin_secheresse_corps',
+    title: 'Corps sec : la règle des 3 minutes et les zones oubliées',
+    confidence: 'institution',
+    fact: 'Coudes, genoux, mollets, cuisses : la peau du corps a très peu de glandes à sébum, donc elle sèche vite — et l’hiver, l’eau chaude et le savon font le reste. Le tiraillement et les squames, c’est une barrière qui manque de lipides, pas une peau à décaper.',
+    faire: [
+      'Crème riche (céramides, beurre de karité, urée) dans les 3 minutes après la douche, sur peau encore humide — c’est le geste le plus rentable documenté.',
+      'Sur les zones les plus sèches (coudes, genoux), une couche fine d’huile ou de beurre après la crème : le duo émulsion puis corps gras.',
+      'Douches tièdes 5–10 minutes, nettoyant doux sans parfum, tamponner sans frotter.',
+      'En hiver, un humidificateur dans la chambre et des vêtements en coton plutôt qu’en fibres synthétiques serrées.',
+    ],
+    eviter: [
+      'Appliquer la crème sur peau parfaitement sèche, des heures après la douche : l’eau à sceller a déjà évaporée.',
+      'Les savons décapers et les douches brûlantes : ils emportent les lipides que la peau ne refabriquerait pas.',
+      'Se gratter « pour soulager » : le tiraillement se calme avec la crème, pas avec la grattaille.',
+    ],
+    attendre: 'Le tiraillement se calme en quelques jours ; les squames lissent en 1–2 semaines ; les zones rugueuses et foncées mettent 4–8 semaines à s’estomper — la régularité fait la différence, pas le prix de la crème.',
+    source: 'Dr Sheth’s (2026) — fenêtre post-douche mesurée ; Hazelwood (2025) ; Anatomy Naturals (2026)',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -323,6 +361,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   const hasImperfections = concerns.includes('imperfections') || concerns.includes('points_noirs') || objectives.includes('reduire_imperfections') || ['occasionnelle', 'reguliere'].includes(acne);
   const hasPoilsIncarnes = concerns.includes('poils_incarnes');
   const hasMelasme = concerns.includes('taches_hormonales');
+  const hasGrainDePoulet = concerns.includes('grain_de_poulet');
+  const hasSecheresseCorps = concerns.includes('secheresse_corps');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
@@ -331,6 +371,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   if (hasImperfections) wanted.push('prob_skin_imperfections');
   if (hasPoilsIncarnes) wanted.push('prob_skin_poils_incarnes');
   if (hasMelasme) wanted.push('prob_skin_taches_hormonales');
+  if (hasGrainDePoulet) wanted.push('prob_skin_grain_de_poulet');
+  if (hasSecheresseCorps) wanted.push('prob_skin_secheresse_corps');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 
