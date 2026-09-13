@@ -74,12 +74,8 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
           <p><strong className="text-kurla-cream">Profil cosmétique, pas diagnostic médical.</strong> Cette page aide à organiser des gestes de soin. Elle ne remplace pas l’avis d’un médecin ou d’un dermatologue.</p>
         </div>
 
-        <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="1" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>
-
-        <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="2" title="Pourquoi cette routine ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><p className="mt-1 text-xs leading-relaxed text-kurla-cream/65">{step.why}</p></div>)}</div></section>
-
         <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6" aria-labelledby="profil-declare">
-          <SectionHeading number="3" id="profil-declare" title="Votre profil déclaré" />
+          <SectionHeading number="1" id="profil-declare" title="Votre profil déclaré" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {model.profileFields.map(field => <div key={field.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-3"><p className="text-[11px] uppercase tracking-wide text-kurla-cream/45">{field.label}</p><p className="mt-1 text-sm font-semibold">{field.value}</p></div>)}
           </div>
@@ -88,7 +84,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
 
         {model.skinKnowledgeProfile && (
           <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="skin-knowledge-profile">
-            <SectionHeading number="3b" id="skin-knowledge-profile" title="Ce que ta peau mélaninée exige" />
+            <SectionHeading number="1b" id="skin-knowledge-profile" title="Ce que ta peau mélaninée exige" />
             <h2 className="mt-1 text-xl font-semibold text-[#FFE0C6]">{model.skinKnowledgeProfile.name}</h2>
             <p className="mt-3 text-sm leading-relaxed text-kurla-cream/75">{model.skinKnowledgeProfile.description}</p>
             <ul className="mt-4 space-y-2 text-sm text-kurla-cream/80">
@@ -98,14 +94,20 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
         )}
 
         <section className="mb-6 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-emerald-400/20 bg-[#101710] p-6"><SectionHeading number="4" title="Ce qui est certain" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.certain.length ? model.certain.map(item => <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{item}</li>) : <li>Aucune réponse exploitable n’a été conservée.</li>}</ul></div>
-          <div className="rounded-3xl border border-amber-400/20 bg-[#171208] p-6"><SectionHeading number="4b" title="Ce qui reste inconnu" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.unknown.length ? model.unknown.map(item => <li key={item} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />{item}</li>) : <li>Aucun champ clé ne manque dans ce questionnaire.</li>}</ul></div>
+          <div className="rounded-3xl border border-emerald-400/20 bg-[#101710] p-6"><SectionHeading number="2" title="Ce qui est certain" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.certain.length ? model.certain.map(item => <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{item}</li>) : <li>Aucune réponse exploitable n’a été conservée.</li>}</ul></div>
+          <div className="rounded-3xl border border-amber-400/20 bg-[#171208] p-6"><SectionHeading number="2b" title="Ce qui reste inconnu" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.unknown.length ? model.unknown.map(item => <li key={item} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />{item}</li>) : <li>Aucun champ clé ne manque dans ce questionnaire.</li>}</ul></div>
         </section>
+
+        <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>
+
+
+        <section className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title="Pourquoi cette routine ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><p className="mt-1 text-xs leading-relaxed text-kurla-cream/65">{step.why}</p></div>)}</div></section>
+
 
         {model.lessons.length > 0 && (
           <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="comprendre">
             <SectionHeading number="5" id="comprendre" title="Comprendre — vos priorités, expliquées" />
-            <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Sélectionnées sur ce que vous avez déclaré. Elles expliquent le « pourquoi » de la routine en tête de page — et elles restent valables quel que soit le produit.</p>
+            <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Sélectionnées sur ce que vous avez déclaré. Elles expliquent le « pourquoi » de la routine ci-dessus — et elles restent valables quel que soit le produit.</p>
             <div className="space-y-4">
               {model.lessons.map(lesson => (
                 <div key={lesson.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">

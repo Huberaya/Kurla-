@@ -1339,4 +1339,7 @@ supprimer ou les faire tourner si cette configuration ne convient pas.
 `VITE_SUPABASE_PUBLISHABLE_KEY`, réclamé par `real-supabase`, reste manquant —
 je n'ai pas cette valeur.
 
-Banc `tests/kurla_controle_donnees.test.ts` (16 vérifications, chaîné).
+Banc `tests/kurla_controle_donnees.test.ts` (16 vérifications, chaîné).## Précision d'ordre — profil + certain/inconnu AVANT la routine (2026-09-13)
+- Consigne : « dans la logique votre profil déclaré et la section (4 et 4b) doivent venir avant la routine ».
+- Ordre définitif : **1** profil déclaré → **1b** profil peau mélaninée → **2/2b** certain/inconnu → **3** routine → **4** Pourquoi cette routine ? → **5** comprendre (phrase « routine en tête de page » → « routine ci-dessus ») → **6** science → **7** moyens → **8** priorités → **9** produits → **10** suivi. Ids d'ancres inchangés.
+- Piège : l'assertion de propreté de couture doit être bornée à la zone éditée — le fichier contient des `\n\n\n` préexistants légitimes (entre priorités/produits/suivi), une assertion globale faussement positive.
