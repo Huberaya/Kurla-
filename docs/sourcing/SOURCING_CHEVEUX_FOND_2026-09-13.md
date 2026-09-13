@@ -345,6 +345,31 @@ la propriété intellectuelle.
 
 ---
 
+## 4bis. Fichiers d'exécution
+
+Ce dossier est l'analyse. L'exécution passe par deux fichiers :
+
+| Fichier | Contenu |
+|---|---|
+| **`REGISTRE_CHEVEUX_2026-09-13.csv`** | 31 pistes × 11 colonnes, même schéma que `REGISTRE_FOURNISSEURS_2026-09-13.csv` pour rester comparable. Une colonne `verification` distingue VÉRIFIÉ / DÉCLARATIF / NON VÉRIFIÉ ligne par ligne. |
+| **`EMAILS_SOURCING_CHEVEUX_2026-09-13.md`** | 7 emails prêts à envoyer, en 3 campagnes. La campagne A (recoupement Distristar) passe avant les autres. |
+
+Répartition du registre :
+
+| Palier | Pistes |
+|---|---|
+| 1 — Stock déjà UE (distributeur) | 4 |
+| 2 — Marques françaises et européennes | 10 |
+| 3 — Mèches, extensions, perruques | 7 |
+| 4 — Matières premières (karité) | 7 |
+| 5 — Dropship et affiliation | 3 |
+
+⚠️ **12 des 31 pistes sont NON VÉRIFIÉES** — identité légale non établie.
+Elles sont dans le registre pour ne pas être perdues, pas pour être
+contactées telles quelles.
+
+---
+
 ## 5. Ce que ce dossier ne dit pas
 
 - **Aucun fournisseur n'a été contacté.** Pas de boîte mail, pas de mandat.
