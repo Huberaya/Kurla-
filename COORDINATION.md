@@ -769,9 +769,9 @@ Aucune clé existante n’a été renommée ni vidée ; le localStorage peau
 `tests/kurla_diagnostic_session.test.ts` (6 checks, chaîné après
 `test:hair-advisory`).
 
-**À vérifier côté usage** : le diagnostic cheveux ne pré-remplit pas ses
-réponses au retour « Modifier mes réponses » (le diagnostic peau si, via le
-localStorage) — écart de parcours, signalé, non corrigé ici.
+**Écart de parcours signalé ici, corrigé le 13/09/2026** : le retour
+« Modifier mes réponses » pré-remplit désormais les réponses des deux pôles
+— voir section « Pré-remplissage aligné » ci-dessous.
 
 ### Un incident ne réveillait personne (chantier du 13/09/2026)
 
@@ -932,3 +932,32 @@ sont dans ce cas ; bloquer viderait la boutique sans fondement.
 
 `tests/kurla_cpnp_guard.test.ts` — 8 contrats. Contrôle négatif : réinjecter le
 garde inerte fait tomber le banc (exit 1).
+### Pré-remplissage aligné : « Modifier mes réponses » recharge vos réponses (13/09/2026)
+
+Consigne du porteur : aligner le diagnostic cheveux sur le comportement du
+diagnostic peau. **Précision honnête** : le diagnostic peau ne pré-remplissait
+pas non plus son formulaire (le localStorage peau sert de *profil* pour la
+routine, l’assistant et la boutique — pas de pré-remplissage). Le
+comportement « même » a donc été établi des deux côtés : **au retour sur le
+diagnostic, les réponses précédentes sont pré-remplies, pour la peau comme
+pour les cheveux.**
+
+Implémentation (dans `src/lib/diagnosticSession.ts`, banc partagé) :
+- source du pré-remplissage : la clé de session du pôle (dernier diagnostic
+  dans l’onglet), sinon la clé persistante du pôle — `kurla_diagnostic_answers`
+  / `kurla_hair_answers` (cheveux, nouvelle clé écrite au submit) et
+  `kurla_diagnostic_answers_skin` / `kurla_skin_answers` (peau, existante) ;
+- `mergeStoredAnswers(défauts, brut)` : ne reprend que les clés qui existent
+  dans les défauts du formulaire, avec contrôle de type (string / string[]).
+  Clé inconnue, JSON corrompu ou type inversé → écartée, défaut conservé. Le
+  payload stocké étant produit par le formulaire lui-même, chaque valeur est
+  par construction une option du formulaire — aucun vocabulaire dupliqué ;
+- les deux pages initialisent leur état par
+  `mergeStoredAnswers(DÉFAUTS, readStoredPrefill(pôle))` ;
+- le phototype (peau) n’est pas restauré : son consentement est réaffiché à
+  chaque diagnostic, volontairement.
+
+Contract verrouillé dans `tests/kurla_diagnostic_session.test.ts`
+(6 checks session + 4 checks pré-remplissage : peau puis cheveux, priorité
+session > persistant, garde-fous clé/type/JSON corrompu, payload peau
+string + string[]).

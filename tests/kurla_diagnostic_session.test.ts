@@ -38,7 +38,7 @@ const local = new MemStorage();
 (globalThis as Record<string, unknown>).sessionStorage = session;
 (globalThis as Record<string, unknown>).localStorage = local;
 
-const { markLatestDiagnostic, readDiagnosticSession } = await import('../src/lib/diagnosticSession');
+const { markLatestDiagnostic, readDiagnosticSession, storeHairAnswers, readStoredPrefill, mergeStoredAnswers } = await import('../src/lib/diagnosticSession');
 
 let checks = 0;
 const ok = async (label: string, fn: () => void) => {
@@ -128,5 +128,53 @@ await ok('le marqueur est écrit dans sessionStorage par les deux pôles', () =>
   markLatestDiagnostic('hair');
   assert.equal(session.getItem('kurla_diagnostic_latest'), 'hair', 'le dernier appel écrase le précédent');
 });
+
+  // --- Pré-remplissage (comportement commun aux deux pôles) ------------------
+  const HAIR_DEFAULTS = { texture: 'crepue', style: 'naturel', priority: 'hydratation', porosity: 'forte', scalp: 'sec', frequency: '1x_semaine', budget: '40_70', email: '' };
+
+  await ok('pré-remplissage cheveux : le dernier diagnostic rechargé est pré-rempli', () => {
+    reset();
+    storeHairAnswers({ texture: 'frisee', style: 'braids', priority: 'casse', porosity: 'faible', scalp: 'demangeaisons', frequency: '2x_semaine', budget: '70_100', email: 'test@exemple.fr' });
+    const raw = readStoredPrefill('hair');
+    assert.ok(raw, 'les réponses stockées sont lues');
+    const merged = mergeStoredAnswers(HAIR_DEFAULTS, raw);
+    assert.equal(merged.texture, 'frisee', 'la texture déclarée est pré-remplie');
+    assert.equal(merged.priority, 'casse', 'la priorité déclarée est pré-remplie');
+    assert.equal(merged.email, 'test@exemple.fr', 'l’email déclaré est pré-rempli');
+  });
+
+  await ok('pré-remplissage : la session prime sur le persistant du pôle', () => {
+    reset();
+    local.setItem('kurla_hair_answers', JSON.stringify({ ...HAIR_DEFAULTS, texture: 'locksee' }));
+    session.setItem('kurla_diagnostic_answers', JSON.stringify({ ...HAIR_DEFAULTS, texture: 'crepue' }));
+    const merged = mergeStoredAnswers(HAIR_DEFAULTS, readStoredPrefill('hair'));
+    assert.equal(merged.texture, 'crepue', 'le dernier diagnostic de l’onglet prime');
+  });
+
+  await ok('pré-remplissage : garde-fous clé + type (aucune donnée égarée)', () => {
+    reset();
+    // clé inconnue du formulaire + type inversé + champ manquant
+    const raw = JSON.stringify({ texture: 'defrisee', champInvente: 'x', budget: ['premium'], scalp: 'pellicules' });
+    const merged = mergeStoredAnswers(HAIR_DEFAULTS, raw);
+    assert.equal(merged.texture, 'defrisee', 'valeur valide pré-remplie');
+    assert.equal(merged.scalp, 'pellicules', 'valeur valide pré-remplie');
+    assert.equal(merged.budget, '40_70', 'type inversé → défaut conservé');
+    assert.equal((merged as Record<string, unknown>).champInvente, undefined, 'clé inconnue → écartée');
+
+    // JSON corrompu → défauts intacts
+    assert.deepEqual(mergeStoredAnswers(HAIR_DEFAULTS, 'JSON cassé{'), HAIR_DEFAULTS, 'JSON corrompu → défauts');
+    // rien stocké → défauts intacts
+    assert.deepEqual(mergeStoredAnswers(HAIR_DEFAULTS, null), HAIR_DEFAULTS, 'rien stocké → défauts');
+  });
+
+  await ok('pré-remplissage peau : mêmes règles sur le payload peau (string et string[])', () => {
+    reset();
+    local.setItem('kurla_skin_answers', JSON.stringify({ skinType: 'grasse', skinConcerns: ['imperfections', 'points_noirs'], email: 'test@exemple.fr', champInvente: 'x' }));
+    const skinDefaults = { skinType: 'mixte', skinConcerns: ['inconnu'], email: '' };
+    const merged = mergeStoredAnswers(skinDefaults, readStoredPrefill('skin'));
+    assert.equal(merged.skinType, 'grasse', 'la réponse peau stockée est pré-remplie');
+    assert.deepEqual(merged.skinConcerns, ['imperfections', 'points_noirs'], 'les listes valides sont pré-remplies');
+    assert.equal((merged as Record<string, unknown>).champInvente, undefined, 'clé inconnue → écartée (peau)');
+  });
 
 console.log(`\n${checks} checks session diagnostic validés.`);

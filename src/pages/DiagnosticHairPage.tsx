@@ -2,9 +2,21 @@ import React, { useState } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
 import { HairDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
-import { markLatestDiagnostic } from '../lib/diagnosticSession';
+import { markLatestDiagnostic, mergeStoredAnswers, readStoredPrefill, storeHairAnswers } from '../lib/diagnosticSession';
 import { analytics } from '../lib/analytics';
 import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
+
+/** Défauts du formulaire cheveux — source des réponses avant tout diagnostic. */
+const HAIR_DEFAULTS: HairDiagnosticAnswers = {
+  texture: 'crepue',
+  style: 'naturel',
+  priority: 'hydratation',
+  porosity: 'forte',
+  scalp: 'sec',
+  frequency: '1x_semaine',
+  budget: '40_70',
+  email: ''
+};
 import { useAuth } from '../context/AuthContext';
 
 export const DiagnosticHairPage: React.FC = () => {
@@ -13,16 +25,8 @@ export const DiagnosticHairPage: React.FC = () => {
   React.useEffect(() => { try { analytics.diagnosticStart('hair'); } catch { /* noop */ } }, []);
   const [loading, setLoading] = useState(false);
 
-  const [answers, setAnswers] = useState<HairDiagnosticAnswers>({
-    texture: 'crepue',
-    style: 'naturel',
-    priority: 'hydratation',
-    porosity: 'forte',
-    scalp: 'sec',
-    frequency: '1x_semaine',
-    budget: '40_70',
-    email: ''
-  });
+  // Pré-remplissage : les réponses du dernier diagnostic cheveux (miroir du parcours peau).
+  const [answers, setAnswers] = useState<HairDiagnosticAnswers>(() => mergeStoredAnswers(HAIR_DEFAULTS, readStoredPrefill('hair')));
 
   const handleNext = () => {
     if (step < 8) {
@@ -59,6 +63,7 @@ export const DiagnosticHairPage: React.FC = () => {
         sessionStorage.setItem('kurla_diagnostic_answers', JSON.stringify(answers));
       } catch { /* sessionStorage indisponible */ }
       sessionStorage.setItem('kurla_diagnostic_result', JSON.stringify(data));
+      storeHairAnswers(answers);
       markLatestDiagnostic('hair');
       navigate('/diagnostic/resultat/hair-latest');
     } catch (e) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowRight, ArrowLeft, ShieldAlert, Droplets, Sun, Layers, Heart, Wind, Shield, Clock, Eye, Smile, Zap, Search, AlertCircle, Check, Info } from 'lucide-react';
 import { SkinDiagnosticAnswers } from '../types';
 import { navigate } from '../lib/router';
-import { markLatestDiagnostic } from '../lib/diagnosticSession';
+import { markLatestDiagnostic, mergeStoredAnswers, readStoredPrefill } from '../lib/diagnosticSession';
 import { analytics } from '../lib/analytics';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,6 +20,33 @@ import {
  */
 
 const UNKNOWN = 'inconnu';
+
+/** Défauts du formulaire peau — source des réponses avant tout diagnostic. */
+const SKIN_DEFAULTS: SkinDiagnosticAnswers = {
+  skinType: 'mixte',
+  priority: 'taches',
+  spfUsage: 'recherche',
+  sensitivity: 'moyenne',
+  routine: 'simple',
+  budget: '40_70',
+  email: '',
+  hydrationLevel: UNKNOWN,
+  toneDepth: UNKNOWN,
+  undertone: UNKNOWN,
+  hyperpigmentationTendency: UNKNOWN,
+  acne: UNKNOWN,
+  skinConcerns: [UNKNOWN],
+  skinObjectives: [UNKNOWN],
+  sensitivities: [UNKNOWN],
+  sunExposure: UNKNOWN,
+  currentRoutine: UNKNOWN,
+  texturePreference: UNKNOWN,
+  finishPreference: UNKNOWN,
+  ageRange: UNKNOWN,
+  climate: UNKNOWN,
+  reactionHistory: '',
+  preferences: [UNKNOWN],
+};
 
 export const DiagnosticSkinPage: React.FC = () => {
   const { session } = useAuth();
@@ -42,31 +69,8 @@ export const DiagnosticSkinPage: React.FC = () => {
   const [phototype, setPhototype] = useState<Fitzpatrick | null>(null);
   const [phototypeConsent, setPhototypeConsent] = useState(false);
 
-  const [answers, setAnswers] = useState<SkinDiagnosticAnswers>({
-    skinType: 'mixte',
-    priority: 'taches',
-    spfUsage: 'recherche',
-    sensitivity: 'moyenne',
-    routine: 'simple',
-    budget: '40_70',
-    email: '',
-    hydrationLevel: UNKNOWN,
-    toneDepth: UNKNOWN,
-    undertone: UNKNOWN,
-    hyperpigmentationTendency: UNKNOWN,
-    acne: UNKNOWN,
-    skinConcerns: [UNKNOWN],
-    skinObjectives: [UNKNOWN],
-    sensitivities: [UNKNOWN],
-    sunExposure: UNKNOWN,
-    currentRoutine: UNKNOWN,
-    texturePreference: UNKNOWN,
-    finishPreference: UNKNOWN,
-    ageRange: UNKNOWN,
-    climate: UNKNOWN,
-    reactionHistory: '',
-    preferences: [UNKNOWN],
-  });
+  // Pré-remplissage : les réponses du dernier diagnostic peau (même comportement que les cheveux).
+  const [answers, setAnswers] = useState<SkinDiagnosticAnswers>(() => mergeStoredAnswers(SKIN_DEFAULTS, readStoredPrefill('skin')));
 
   // sync step 1 when switching mode mid-flow (if user changed URL)
   useEffect(() => { if (step > totalSteps) setStep(totalSteps); }, [totalSteps, step]);

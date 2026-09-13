@@ -27,6 +27,7 @@ const MARKER_KEY = 'kurla_diagnostic_latest';
 const SKIN_SESSION_KEY = 'kurla_diagnostic_answers_skin';
 const SKIN_STORAGE_KEY = 'kurla_skin_answers';
 const HAIR_KEY = 'kurla_diagnostic_answers';
+const HAIR_STORAGE_KEY = 'kurla_hair_answers';
 const RESULT_KEY = 'kurla_diagnostic_result';
 
 export const FALLBACK_RESULT: AIRecommendationResult = {
@@ -124,4 +125,48 @@ export function readDiagnosticSession(): DiagnosticSession {
   if (cached) result = { ...FALLBACK_RESULT, ...(cached as unknown as AIRecommendationResult) };
 
   return { answers, result, isSkin: pole === 'skin', pole };
+}
+
+/**
+ * Pré-remplissage des diagnostics (« Modifier mes réponses »).
+ *
+ * Les deux pôles partagent le même comportement (13/09/2026) : au retour
+ * sur le diagnostic, les réponses précédentes sont pré-remplies. La source
+ * est la clé de session (dernier diagnostic dans l’onglet), sinon la clé
+ * persistante du pôle (kurla_hair_answers / kurla_skin_answers — écrites au
+ * submit, c’est l’état exact du formulaire).
+ *
+ * Robustesse : mergeStoredAnswers ne reprend que les clés qui existent dans
+ * les défauts du formulaire, avec contrôle de type (string / string[]).
+ * Clé inconnue, JSON corrompu ou type inversé → écartée, défaut conservé.
+ * Le payload stocké étant produit par le formulaire lui-même, chaque valeur
+ * est par construction une option du formulaire — pas de vocabulaire à
+ * dupliquer ici.
+ */
+
+/** Persistance des réponses cheveux pour pré-remplissage (miroir du parcours peau). */
+export function storeHairAnswers(answers: object): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(HAIR_STORAGE_KEY, JSON.stringify(answers));
+  } catch { /* stockage indisponible */ }
+}
+
+/** Réponses stockées du pôle — session d’abord, puis persistant du pôle. */
+export function readStoredPrefill(pole: DiagnosticPole): string | null {
+  if (pole === 'skin') return sessionGet(SKIN_SESSION_KEY) ?? localGet(SKIN_STORAGE_KEY);
+  return sessionGet(HAIR_KEY) ?? localGet(HAIR_STORAGE_KEY);
+}
+
+/** Fusion stockée → défauts du formulaire (garde-fou clé + type). */
+export function mergeStoredAnswers<T extends object>(defaults: T, raw: string | null): T {
+  const parsed = safeParse(raw);
+  if (!parsed) return defaults;
+  const merged: Record<string, unknown> = { ...(defaults as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(parsed)) {
+    const def = (defaults as Record<string, unknown>)[key];
+    if (def === undefined) continue; // clé inconnue du formulaire → écartée
+    if (typeof def === 'string' && typeof value === 'string') merged[key] = value;
+    else if (Array.isArray(def) && Array.isArray(value) && value.every(v => typeof v === 'string')) merged[key] = value;
+  }
+  return merged as T;
 }
