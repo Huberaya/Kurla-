@@ -91,7 +91,7 @@ async function runScienceHubTests(): Promise<void> {
   check(`cheveux : ${HAIR_SCIENCE_CARDS.length} cartes complètes et sourcées, confiance et thèmes connus`);
 
   // --- 2. Cartes peau : complètes, sourcées, vocabulaire connu ------------
-  assert.equal(SKIN_SCIENCE_CARDS.length, 24, 'le pôle peau compte 24 cartes (rasage, hormones, corps, maquillage, frottement + prévention, teinte, saisonnier)');
+  assert.equal(SKIN_SCIENCE_CARDS.length, 25, 'le pôle peau compte 25 cartes (rasage, hormones, corps, maquillage, frottement + prévention, teinte, saisonnier, grossesse)');
   for (const card of SKIN_SCIENCE_CARDS) {
     for (const field of ['key', 'title', 'fact', 'mechanism', 'source'] as const) {
       assert.ok(String(card[field]).trim().length > 0, `carte peau ${card.key} : champ « ${field} » vide`);
@@ -313,6 +313,16 @@ async function runScienceHubTests(): Promise<void> {
   assert.ok(maquillageTeinte.some(item => item.key === 'sci_skin_teinte'), 'maquillage déclaré : la carte teinte doit être choisie');
   assert.ok(pickSkinScienceInsights({ skinConcerns: ['secheresse'] } as SkinAdvisoryContext).some(item => item.key === 'sci_skin_saisonnier'), 'sécheresse déclarée : la carte saisonnière doit être glissée');
   check('vague de fin : cernes, picking, prévention, teinte et saisonnier détectés');
+
+  // --- 17i. N°50 : grossesse — carte publique, formulation non catégorique ---
+  const grossesse = SKIN_SCIENCE_CARDS.find(card => card.key === 'sci_skin_grossesse');
+  assert.ok(grossesse, 'la carte grossesse est absente du pôle peau');
+  assert.ok(grossesse!.source.length > 40, 'carte grossesse sans source');
+  const grossesseText = (grossesse!.fact + ' ' + grossesse!.mechanism).toLowerCase();
+  assert.ok(!grossesseText.includes('interdit'), 'carte grossesse : formulation catégorique (« interdit »)');
+  assert.ok(grossesseText.includes('sage-femme'), 'carte grossesse : la référence au professionnel est absente');
+  assert.ok(!/totalement sûr|sans danger|sans risque/i.test(grossesseText), 'carte grossesse : promesse de sécurité totale');
+  check('n°50 grossesse : carte publique sourcée, zéro formulation catégorique, le reste va au professionnel');
 
   // --- 17. Wiring : le modèle du résultat porte les cartes moyens ---------
   const skinProblemModel = buildDiagnosticResultModel({ answers: skinAnswers, result: null, products: [], isSkin: true });

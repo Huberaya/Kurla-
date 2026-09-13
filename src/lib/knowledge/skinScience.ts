@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps' | 'maquillage' | 'frottement';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps' | 'maquillage' | 'frottement' | 'grossesse';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -250,6 +250,15 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'Réordonnance de faits documentés — UVA constant (pôle soleil), fenêtre post-douche (pôle corps), transpiration et frottement (pôle frottement)',
     confidence: 'expertise',
   },
+  {
+    key: 'sci_skin_grossesse',
+    theme: 'grossesse',
+    title: 'Grossesse et allaitement : ce qui se met de côté, ce qui reste — et à qui demander le reste',
+    fact: 'La routine ne se renverse pas : ce qui se met de côté, ce sont généralement un ou deux produits, pas tout. La prudence documentée vise d’abord les dérivés de la vitamine A (l’actif anti-âge que KURLA introduit progressivement) : la forme avalée a des risques documentés pour le bébé, la forme posée sur la peau n’en apporte qu’une petite partie dans le sang — et comme « pas de dommage prouvé » n’est pas « sécurité prouvée », les professionnels recommandent de la mettre de côté dès le projet de bébé et jusqu’à la fin de l’allaitement. Même logique pour les exfoliants concentrés : les gommages en institut et les acides salicyliques qu’on laisse en place au-dessus de 2 % s’arrêtent ; les produits en rinçage à faible dose restent dans les bornes acceptées.',
+    mechanism: 'Ce qui reste, c’est le gros de la routine — et c’est documenté : nettoyant doux, crème et céramides, acide hyaluronique, vitamine C, niacinamide, acide azélaïque, et surtout votre écran 30+, pilier quotidien. Si le « masque de grossesse » (taches hormonales) arrive pendant la période — jusqu’à 7 femmes sur 10 —, les règles de la carte taches s’appliquent à l’identique : protection quotidienne, écran teinté, azélaïque ou niacinamide, sans acide concentré. Et si vous aviez continué un sérum sans savoir : les études sur l’usage posé n’ont pas montré de risque accru à dose cosmétique — on arrête, et on en parle à la sage-femme ou au médecin. Pour le détail de votre situation — vos produits exacts, votre historique —, la référence n’est pas cette page : votre sage-femme, votre médecin ou votre pharmacien ; toutes les professionnelles ne suivent pas les mêmes règles, et leur avis sur votre liste fait foi.',
+    source: 'ACOG (précaution dérivés de la vitamine A, du projet de conception à la fin de l’allaitement) ; AAD (ingrédients à éviter en grossesse et allaitement, via Parents.com 2024 — experte AAD) ; Murase et al. (2017, Int J Women’s Dermatol — azélaïque, glycolique, vitamine C) ; revue des données d’usage posé (DermMythBuster 2025) ; getskinscore (2026) ; mumgerie (2026)',
+    confidence: 'institution',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -263,6 +272,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'corps', label: 'Corps — texture et sécheresse', intro: 'Le « grain de poulet », les coudes et les mollets : ce que le corps demande — et le geste des 3 minutes.' },
   { theme: 'maquillage', label: 'Maquillage — démaquiller et choisir', intro: 'Le film des formules longue tenue, le frottement qui marque — et ce que le label « non-clog » ne dit pas.' },
   { theme: 'frottement', label: 'Frottement & assombrissements', intro: 'Plis, aisselles, lèvres : la peau qui s’assombrit pour se protéger — et les gestes qui retournent le mouvement.' },
+  { theme: 'grossesse', label: 'Grossesse & allaitement', intro: 'Ce qui se met de côté, ce qui reste — la prudence documentée, sans alarmer. Et à qui demander pour le reste.' },
 ];
 
 /**

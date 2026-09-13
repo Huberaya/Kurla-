@@ -987,3 +987,76 @@ médical → le rendu dit « cause interne » sans nommer ; la limite est dite u
 - Produits cités = vrais produits du kit peau (vérifié au banc `kurla_skin_knowledge`) :
   Nettoyant doux sans parfum · Gel acide hyaluronique · Exfoliant AHA/BHA 1×/sem ·
   SPF 50 invisible fluide.
+
+# PIÈCE 12 — Besoin n°50 : peau enceinte / allaitement (fouille du 13/09/2026)
+
+**Garde-fous (fixés dans `BESOINS_PEAU_50`) : zéro vocabulaire médical, jamais d'affirmation
+catégorique (« interdit » / « totalement sûr » bannis), le reste va au professionnel de
+santé. RGPD : pas de nouvelle question de diagnostic (état de grossesse = donnée sensible ;
+le besoin éducatif est couvert par une carte publique sur /peau/science, sans stocker
+l'état — minimisation).**
+
+## Écarter — dérivés de la vitamine A (les actifs « anti-âge »)
+- [I] **ACOG** : évitement par précaution de tous les dérivés de la vitamine A (orale ET
+  topique, sur ordonnance ET grand public) **depuis le projet de conception jusqu'à la fin
+  de l'allaitement**. Raison : la forme orale a des malformations documentées ; la forme
+  topique n'apporte qu'une faible part dans le sang (< 2 % d'exposition systémique,
+  études) et **aucun signal clair de malformation n'a été mesuré à dose cosmétique** — mais
+  « pas de dommage prouvé » ≠ « sécurité prouvée » : la recommandation reste l'évitement.
+  (DermMythBuster 2025, revue des données topiques ; ACOG cité par getskinscore 2026 et
+  safemama 2026.)
+- [I] **AAD** : les dérivés topiques de la vitamine A sont nommément sur la liste des
+  ingrédients à éviter pendant la grossesse ET l'allaitement (Parents.com 2024, experte
+  AAD : « on exercise an abundance of caution… advise avoidance during pregnancy and
+  breastfeeding »).
+- **Réassurance en cas d'exposition (gros signal d'usage)** : si on a continué à utiliser
+  un sérum sans savoir qu'on était enceinte — ne pas paniquer : les études sur l'exposition
+  topique du 1ᵉ trimestre n'ont pas montré d'excès de malformations à dose cosmétique
+  (cohorts petites) ; on arrête et on en parle à la sage-femme ou au médecin. (DermMythBuster
+  2025 ; getskinscore 2026.)
+- **Allaitement** : même règle — absorption minime mais pas de données de sécurité
+  suffisantes → on s'en tient à l'évitement préventif ; pas d'application sur les seins
+  (exposition directe de l'enfant). (DermMythBuster 2025 ; limerickinc 2023.)
+
+## Écarter — acides exfoliants concentrés / en leave-on
+- [I] **ACOG** : l'acide salicylique en **rinçage à 2 % ou moins est accepté** (il figure
+  parmi les options grandes commandes pour l'acné de grossesse) ; en revanche les
+  **peeling concentrés (type 20 %) et les sérums leave-on > 2 % sont à écarter** — la
+  famille de l'aspirine a des liens documentés avec des complications en fin de grossesse
+  à forte dose orale. (getskinscore 2026 ; mumgerie 2026 ; safemama 2026.)
+- **Traduction KURLA** : l'Exfoliant AHA/BHA 1×/sem (BHA leave-on) se met de côté pendant
+  la période ; la douce exfoliation AHA à faible dose (glycolique/lactique ≤ 10 %) reste
+  dans les bornes acceptées. L'exfoliation n'est pas une urgence : c'est l'actif le plus
+  « cessable » de la routine.
+
+## Ce qui reste — le gros de la routine
+- [I] **Murase et al. (2017, Int J Women's Dermatol)** : revue — acide azélaïque, acide
+  glycolique, vitamine C documentés comme utilisables pendant la grossesse (acné et
+  mélasme).
+- [I] Parents.com 2024 (experte AAD) : acide hyaluronique « safe during pregnancy and
+  breastfeeding » ; niacinamide, vitamine C, azélaïque cités en alternance par toutes les
+  sources 2025–2026 (getskinscore, mumgerie, amvital, bellabnaturals).
+- Crèmes, céramides, glycérine : « most basic hydration and barrier-care ingredients can
+  remain » (bellabnaturals 2026) ; le nettoyant doux sans parfum et le SPF 50 restent les
+  piliers — **le SPF n'est jamais mis de côté** (c'est l'anti-âge n°1 et la protection du
+  « masque de grossesse »).
+- **Le masque de grossesse pendant la grossesse** : le pattern touche jusqu'à 7 femmes sur
+  10 (déjà dans `sci_skin_melasme_mecanisme`, GoodRx 2025/StatPearls 2023) ; les règles de
+  la carte taches hormonales s'appliquent à l'identique : SPF quotidien, écran teinté,
+  azélaïque/niacinamide — sans acide concentré ni dérivé de la vitamine A.
+
+## Le geste KURLA (règle non catégorique)
+- « Toutes les professionnelles ne suivent pas les mêmes règles » (experte AAD via
+  Parents.com 2026-2024) → la référence pour le détail de la situation (les produits
+  exacts, l'historique de santé) : **sage-femme, médecin, pharmacien**. La carte dit ce
+  que la littérature documente, jamais « vous pouvez » / « vous ne pouvez pas » au singulier.
+- Formulation retenue : « on met de côté » / « reste dans les bornes acceptées » /
+  « documenté » — jamais « interdit », jamais « totalement sûr ».
+
+## Décision architecture
+- **1 carte savoirs** `sci_skin_grossesse` + **nouveau thème `grossesse`** (11ᵉ, section
+  dédiée sur /peau/science) — visible par toutes, sans question sensible.
+- **Pas de question au diagnostic** (RGPD minimisation — l'état de grossesse ne modifie
+  aucune autre recommandation détectable : elle n'agit que sur la carte elle-même, qui est
+  publique). **Pas de carte moyens** — le « protocole » EST la carte (écarter X, garder Y,
+  demander au professionnel).

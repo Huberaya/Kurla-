@@ -1570,4 +1570,9 @@ candidats peau restent à `governance_status='blocked'`, avec
 `inci_received=false` et `visuals_received=false` — état cohérent, aucune
 marque n'étant vérifiée pour ces lignes.
 
-Aucune modification de code dans ce chantier : uniquement des données.
+Aucune modification de code dans ce chantier : uniquement des données.## N°50 peau — grossesse & allaitement (livré 2026-09-13)
+- Sources : PIÈCE 12 de `docs/RECHERCHE_SCIENCE_CHEVEUX_2026-09-13.md` — ACOG (précaution dérivés de la vitamine A, du projet de conception à la fin de l'allaitement) ; AAD (via Parents.com 2024, experte AAD : « abundance of caution ») ; Murase et al. 2017 (azélaïque, glycolique, vitamine C documentés) ; revue des données d'usage posé (DermMythBuster 2025 : « pas de dommage prouvé » ≠ « sécurité prouvée » ; réassurance en cas d'exposition sans le savoir) ; getskinscore/mumgerie 2026 (salicylique : rinçage ≤ 2 % accepté, gommages concentrés et leave-on > 2 % à écarter).
+- Livré : 1 carte savoirs `sci_skin_grossesse` (confiance institution) + 11ᵉ thème `grossesse` (section dédiée sur /peau/science, auto-parcours) · 25 cartes savoirs peau / 21 moyens / 4 profils · banc 25 checks (dont : zéro formulation catégorique, référence au professionnel présente, source ≥ 40 car.).
+- **Décision RGPD (garde-fou du dossier des 50 besoins)** : pas de question de diagnostic sur l'état de grossesse — donnée sensible, et elle ne modifie aucune autre recommandation détectable : le besoin est éducatif et la carte est publique. Pas de carte moyens : le « protocole » est la carte elle-même (écarter la vitamine A et les gommages concentrés, garder le gros de la routine + le SPF, le reste va à la sage-femme / médecin / pharmacien).
+- **Garde-fous tenus** : jamais « interdit », jamais « totalement sûr » ; « on met de côté » / « reste dans les bornes acceptées » ; réassurance documentée en cas d'exposition sans le savoir (pas de panique, on arrête, on en parle) ; le SPF n'est jamais mis de côté.
+- **50 besoins peau : TOUS LIVRÉS** (vagues 1–5 + vague de fin + n°50). Le dossier `BESOINS_PEAU_50` est clos.
