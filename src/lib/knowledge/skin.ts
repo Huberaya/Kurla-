@@ -47,6 +47,20 @@ export const SKIN_KNOWLEDGE: Record<string, SkinTypeInfo> = {
     ingredientsToAvoid: ['Alcool dénaturé en haut de liste', 'Gommages physiques à gros grains abrasifs', 'Parfums synthétiques forts'],
     keyProducts: ['SPF 50 invisible fluide', 'Sérum niacinamide 5%', 'Nettoyant doux sans parfum']
   },
+  'melanin-oily': {
+    type: 'Peau Mélaninée Grasse',
+    name: 'Peau Riche en Mélanine Grasse : Ni Décaper, Ni Sauter l’Hydratation',
+    description: 'La peau grasse a une réputation de « peau à décaper » — et c’est précisément l’erreur qui la fait produire encore plus. Le sébum en excès masque souvent une peau déshydratée sous la couche, qui compense en sécrétant davantage et marque plus vite : l’objectif n’est pas d’assécher, c’est d’équilibrer.',
+    melaninKeyPoints: [
+      'Nettoyez sans décaper : un nettoyage doux, deux fois par jour maximum — le décapi provoque un sébum de compensation, et l’irritation laisse des taches sur peau mélaninée.',
+      'Ne sautez JAMAIS l’hydratation, même grasse : une texture légère (gel) suffit ; la déshydratation est ce qui fait sécréter plus et marquer plus vite.',
+      'Les points noirs, c’est de l’oxydation pas de la saleté : du salicylique à 2 % (0,5–1 % si peau réactive) en usage cadencé, pas d’extraction à la main — chaque micro-écorchure prépare une tache.',
+      'L’écran 30+ en fini invisible tous les jours : la version fluide se porte aussi bien sur peau grasse que sur peau sèche — et c’est l’étape que les peaux grasses sautent le plus.',
+    ],
+    recommendedIngredients: ['Nettoyant doux sans parfum', 'Gel hydratant léger (acide hyaluronique)', 'Salicylique 2 % en usage cadencé', 'SPF 30+ fini invisible fluide'],
+    ingredientsToAvoid: ['Les savons et gommages « décapi » à effet mat immédiat', 'L’alcool dénaturé haut en liste (assèche, puis compense)', 'Couper l’hydratation « parce que c’est gras »'],
+    keyProducts: ['Nettoyant doux sans parfum', 'Gel acide hyaluronique', 'Exfoliant AHA/BHA 1×/sem', 'SPF 50 invisible fluide'],
+  },
   'melanin-dry': {
     type: 'Peau Mélaninée Sèche / Déshydratée',
     name: 'Peau Sèche à Teint Terne',
@@ -125,6 +139,9 @@ export function pickSkinKnowledgeProfile(answers: SkinKnowledgeAnswers | null | 
     || (answers.hyperpigmentationTendency && MARK_PRONE.includes(answers.hyperpigmentationTendency))
   ) {
     return profile('melanin-pigmentation');
+  }
+  if (answers.skinType === 'grasse') {
+    return profile('melanin-oily');
   }
   if (
     (answers.skinType && DRY_SKIN_TYPES.includes(answers.skinType))

@@ -926,3 +926,64 @@ de `docs/BESOINS_PEAU_50_2026-09-13.md` — même famille de mécanisme (frictio
 Règle de publication : « acanthosis nigricans » / « insuline » restent du vocabulaire
 médical → le rendu dit « cause interne » sans nommer ; la limite est dite une fois
 (carte moyens), jamais transformée en alarme.
+
+# PIÈCE 11 — Vague de fin : cernes, picking, prévention, teinte, saisonnier, profil grasse
+# (besoins n°18, n°22, n°37, n°47, n°8 + complétion n°23, 13/09/2026)
+
+## N°18 — Cernes (fouille du 13/09/2026)
+- [I] **Les 3 familles** (DermApproved 2026) : pigmentaires (marron, mélanine dans une peau
+  très fine), vasculaires (bleu-violet, vaisseaux vus à travers la peau — « among the
+  thinnest on the whole body »), structurelles (ombre du sillon lacrymal — **aucun
+  produit ne change l'anatomie**). **2 tests maison** : étirer la peau latéralement
+  (la couleur reste = pigment ; elle pâlit = vasculaire) + appuyer (blanchit =
+  vasculaire).
+- [I] **Ce qui est documenté** (DermApproved 2026 ; NBC News 2026 avec dermatologues ;
+  Wederm 2026 ; Cleveland Clinic 2025) : la tendance pigmentaire sous l'œil est
+  **plus fréquente en peaux foncées** et souvent héréditaire ; soleil + âge (peau qui
+  s'amincit) + déshydratation + sommeil ; caféine = vasoconstriction **temporaire**
+  (« cosmetic and short-lived, not a permanent fix for thin skin ») ; pigments :
+  vitamine C, niacinamide, épaississement cutané sur des mois ; SPF essentiel.
+- **Lecture KURLA** : la carte moyens pose d'abord le test des 3 familles (l'erreur
+  n°1 est de chercher « la crème » pour un cerne structurel), puis les gestes par
+  famille, avec la limite honnête : le structurel reste — et ce n'est pas un défaut
+  à corriger par un produit.
+
+## N°22 — Picking / s'arracher les boutons
+- [R] Déjà acquis P2 : **l'excoriation est le facteur aggravant modifiable n°1 de la
+  HPI** (Asian Acne Board 2016, PubMed 26813513 — 58,2 % des acnés laissent des HPI ;
+  review SAGE 2024). Chaque intervention (pincer, percer) = inflammation relancée =
+  pigment relancé. La carte moyens est une carte d'habitude, pas de produit : patch
+  occlusif, routine douce, identification des moments, « le produit ne gagne pas
+  contre le geste ».
+
+## N°37 — Prévention (carte réordonnance)
+- Réorganisation des 15 actifs gardés (`skinIngredients15`) : le SPF est le seul
+  anti-âge documenté (le pôle soleil l'établit), la vitamine C = antioxydant matin,
+  les dérivés de la vitamine A = usage progressif soir, l'exfoliation = 1–3×/sem.
+  L'erreur n°1 en peau mélaninée n'est pas l'actif manquant mais le sur-dosage
+  simultané (irritation → taches). Confiance « expertise » (réordonnance, pas fait
+  nouveau).
+
+## N°47 — Teinte de maquillage (carte pratique)
+- Pratique standard des maquilleuses : test **frontière visage/cou** (pas le dos de
+  la main — autre peau, autre exposition), en **lumière naturelle** (les éclairages
+  boutiques flattent), sous-ton d'abord (chaud/neutre/froid) puis profondeur ; une
+  base qui grise sur le visage = mauvais sous-ton, pas mauvaise profondeur. Recoupement
+  avec la question sous-ton déjà posée au diagnostic (`answers.undertone`).
+
+## N°8 — Saisonnier (carte réordonnance)
+- Hiver : TEWL ↑ (froid, air sec, chauffage) → texture plus riche + règle des 3
+  minutes (pôle corps) ; été : UV + transpiration + frottement → quantité/réappli
+  SPF (carte quantité), maquillage non-clog, aisselles sèches. **Ce qui ne change
+  jamais : le SPF** (UVA constant en hiver — le « repos hivernal » du SPF est l'erreur
+  qui fonde les taches de l'été) et le nettoyant doux.
+
+## N°23 — Complétion du profil « grasse »
+- 4ᵉ profil `melanin-oily` dans `skin.ts` : la peau grasse n'a pas besoin d'être
+  « décapée » — le sébum en excès masque souvent une déshydratation (la peau sèche
+  sur-hydratée compense en sécrétant plus, cf. point mélanine du profil
+  pigmentation) ; on nettoie sans décaper, on hydrate en texture légère, on traite
+  les points noirs au salicylique 2 %, on garde le SPF fini invisible.
+- Produits cités = vrais produits du kit peau (vérifié au banc `kurla_skin_knowledge`) :
+  Nettoyant doux sans parfum · Gel acide hyaluronique · Exfoliant AHA/BHA 1×/sem ·
+  SPF 50 invisible fluide.

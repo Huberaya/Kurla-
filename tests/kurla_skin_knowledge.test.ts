@@ -43,6 +43,7 @@ const MEDICAL_TERMS = ['traitement', 'médicament', 'prescription', 'ordonnance'
   assert.ok(SKIN_KNOWLEDGE['melanin-acne'], 'profil acnéique absent de la base');
   assert.ok(SKIN_KNOWLEDGE['melanin-pigmentation']);
   assert.ok(SKIN_KNOWLEDGE['melanin-dry']);
+  assert.ok(SKIN_KNOWLEDGE['melanin-oily'], 'profil grasse absent de la base');
   ok('trois profils : imperfections, taches, sécheresse — les manques sont comblés');
 }
 
@@ -71,6 +72,8 @@ const MEDICAL_TERMS = ['traitement', 'médicament', 'prescription', 'ordonnance'
 {
   assert.equal(pickSkinKnowledgeProfile({ skinConcerns: ['taches'] })?.key, 'melanin-pigmentation');
   assert.equal(pickSkinKnowledgeProfile({ skinObjectives: ['attenuer_taches'] })?.key, 'melanin-pigmentation');
+  assert.equal(pickSkinKnowledgeProfile({ skinType: 'grasse' })?.key, 'melanin-oily');
+  assert.equal(pickSkinKnowledgeProfile({ skinType: 'grasse', skinConcerns: ['taches'] })?.key, 'melanin-pigmentation');
   assert.equal(pickSkinKnowledgeProfile({ hyperpigmentationTendency: 'frequente' })?.key, 'melanin-pigmentation');
   ok('taches, objectif « atténuer » ou HPI fréquente ⇒ profil taches');
 }
@@ -111,7 +114,7 @@ const MEDICAL_TERMS = ['traitement', 'médicament', 'prescription', 'ordonnance'
     assert.ok(profile.ingredientsToAvoid.length >= 2, `${key} : moins de 2 choses à éviter`);
     assert.ok(profile.keyProducts.length >= 2, `${key} : moins de 2 produits cités`);
   }
-  ok('les trois profils portent description, points mélanine, actifs, évitements et produits');
+  ok('les quatre profils portent description, points mélanine, actifs, évitements et produits');
 }
 
 // ——— 10. Les produits cités existent au catalogue ———

@@ -279,6 +279,7 @@ export const DiagnosticSkinPage: React.FC = () => {
     { id: 'rougeurs', label: 'Rougeurs / irritations', desc: '' },
     { id: 'poils_incarnes', label: 'Poils incarnés / irritations du rasage', desc: 'Visage, cou, aisselles' },
     { id: 'imperfections', label: 'Imperfections / boutons', desc: '' },
+    { id: 'picking', label: 'Je perce ou tripote (boutons, peau)', desc: 'Une habitude à surveiller' },
     { id: 'points_noirs', label: 'Points noirs / pores', desc: '' },
     { id: 'grain_irregulier', label: 'Grain irrégulier', desc: '' },
     { id: 'grain_de_poulet', label: 'Petits boutons rugueux (bras, cuisses, fesses)', desc: '« Grain de poulet », plus marqué en hiver' },

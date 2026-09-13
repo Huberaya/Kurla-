@@ -223,6 +223,33 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'kolorshairandskin (2026) — enzymes de la salive ; pharmeasy (2026) ; alanna (2022)',
     confidence: 'institution',
   },
+  {
+    key: 'sci_skin_prevention',
+    theme: 'savoirs',
+    title: 'Prévenir en peau mélaninée : le pigment d’abord, la routine sans excès ensuite',
+    fact: 'En peau mélaninée, le premier signe du temps n’est pas le ride mais la tache — d’où l’ordre de la prévention : l’écran 30+ (le seul anti-âge documenté), un antioxydant le matin (vitamine C), et une barrière saine (exfoliation douce 1–3×/semaine, rien de plus). Les dérivés de la vitamine A, eux, s’introduisent le soir, progressivement, et seulement si la barrière le supporte.',
+    mechanism: 'Les 15 actifs du vocabulaire KURLA ne sont pas des rivaux : chacun a son créneau (antioxydant le matin, exfoliation cadencée, barrière au quotidien). L’erreur qui coûte des taches en peau mélaninée n’est presque jamais l’actif manquant — c’est le sur-dosage simultané, dont l’irritation commune fait plus de pigment que n’importe quel actif n’en efface.',
+    source: 'Réordonnance des actifs à rôle documenté (pôle moyens) — vitamine C, niacinamide, azélaïque, salicylique 2 % ; pôle soleil (le SPF comme anti-âge)',
+    confidence: 'expertise',
+  },
+  {
+    key: 'sci_skin_teinte',
+    theme: 'maquillage',
+    title: 'Trouver sa teinte : la frontière visage/cou, la lumière naturelle — pas le dos de la main',
+    fact: 'Le dos de la main n’est pas le visage : autre exposition, autre teinte — c’est pourquoi un échantillon « parfait » sur la main peut griser sur le visage. La référence, c’est la frontière entre le visage et le cou, testée en lumière naturelle (les éclairages de rayon flattent). Le sous-ton d’abord — chaud, neutre ou froid — puis la profondeur ; et une base qui grise sur le visage, c’est le sous-ton qui est faux, pas la profondeur.',
+    mechanism: 'Le diagnostic KURLA pose déjà la question du sous-ton : ce qu’il faut retenir, c’est que l’échelle de phototypes décrit la réaction au soleil, pas la teinte du maquillage — les deux ne se substituent pas.',
+    source: 'Pratique standard des maquilleuses professionnelles (test frontière/jawline, lumière naturelle, sous-ton avant profondeur) ; recoupement avec la carte échelle de phototypes',
+    confidence: 'expertise',
+  },
+  {
+    key: 'sci_skin_saisonnier',
+    theme: 'barriere',
+    title: 'La même routine, deux saisons : ce qui change en hiver — et ce qui ne change jamais',
+    fact: 'En hiver (froid, air sec, chauffage, eau calcaire), la peau perd plus d’eau à sa surface : la même routine demande souvent une texture plus riche et la règle des 3 minutes après la douche. En été (UV, transpiration, frottement), la logique ne change pas mais la priorité se déplace : la quantité de SPF et sa réapplication, le maquillage qui ne bouche pas, les zones sèches de frottement. Ce qui ne change jamais : le SPF (l’UVA est constant en hiver — le « repos hivernal » de l’écran est l’erreur qui fonde les taches de l’été) et le nettoyant doux.',
+    mechanism: 'Les deux moteurs sont documentés : la perte d’eau transcutanée augmente au froid sec ; l’UVA, lui, ne fait pas de pause de saison — c’est la même lumière qui entretient les taches en hiver qu’en été.',
+    source: 'Réordonnance de faits documentés — UVA constant (pôle soleil), fenêtre post-douche (pôle corps), transpiration et frottement (pôle frottement)',
+    confidence: 'expertise',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -267,20 +294,22 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   const makeup = concerns.includes('port_maquillage');
   const plis = concerns.includes('assombrissement_plis');
   const leveres = concerns.includes('leveres_assombries');
+  const prevent = objectives.includes('prevenir_age');
 
   const wanted: string[] = [];
   if (melasma) wanted.push('sci_skin_melasme_mecanisme', 'sci_skin_melasme_lumiere');
   if (shaving) wanted.push('sci_skin_rasage_mecanisme', 'sci_skin_rasage_arret');
   if (bodyTexture) wanted.push('sci_skin_corps_grain', 'sci_skin_corps_minutes');
   if (bodyDry) wanted.push('sci_skin_corps_minutes', 'sci_skin_corps_grain');
-  if (makeup) wanted.push('sci_skin_maquillage_demaquillage', 'sci_skin_maquillage_pores');
+  if (makeup) wanted.push('sci_skin_maquillage_demaquillage', 'sci_skin_maquillage_pores', 'sci_skin_teinte');
   if (plis) wanted.push('sci_skin_frottement_plis');
   if (leveres) wanted.push('sci_skin_leveres_habitudes');
+  if (prevent) wanted.push('sci_skin_prevention');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
   if (lowSpf) wanted.unshift('sci_skin_spf', 'sci_skin_ipd');
   if (sensitive) wanted.push('sci_skin_parfum', 'sci_skin_barriere');
-  if (dry) wanted.push('sci_skin_barriere', 'sci_skin_lavage');
+  if (dry) wanted.push('sci_skin_barriere', 'sci_skin_lavage', 'sci_skin_saisonnier');
   if (wanted.length === 0) wanted.push('sci_skin_spf', 'sci_skin_hpi', 'sci_skin_aging');
   if (lowSpf && wanted.length < 3) wanted.push('sci_skin_spf_quantite'); // complément de pratique, sans jamais déplacer un besoin déclaré
   wanted.push('sci_skin_fitzpatrick'); // repère utile, glissé en fin de file

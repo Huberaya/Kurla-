@@ -204,6 +204,44 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'Clear Skin (2026, relu médicalement) ; typsybeauty (2026, relu en dermatologie) ; pharmeasy (2026)',
   },
   {
+    key: 'prob_skin_cernes',
+    title: 'Cernes : d’abord reconnaître laquelle — ils ne sont pas tous pareils',
+    confidence: 'institution',
+    fact: 'Il existe trois familles, et les gestes ne sont pas les mêmes : les cernes pigmentaires (marron — la même logique que les taches), les cernes vasculaires (bleu-violet — des vaisseaux vus à travers une peau très fine), et les cernes structurels (l’ombre du creux — une anatomie, pas une couleur). Le test maison : étirez doucement la peau latéralement — la couleur qui reste, c’est du pigment ; celle qui pâlit, c’est du vasculaire.',
+    faire: [
+      'L’écran tous les jours, contour inclus : le pigment se fonce au soleil, comme ailleurs.',
+      'Le contour est la peau la plus fine du corps : gestes légers, jamais d’acides forts ni de frottement appuyé.',
+      'Hydratez la zone avec le reste du visage : une peau déshydratée rend les vaisseaux et le creux plus visibles.',
+      'Caféine le matin sur le bleu-violet : l’effet est documenté — et temporaire (vaisseaux) ; sur le marron, les mêmes actifs progressifs que les taches (niacinamide, vitamine C).',
+    ],
+    eviter: [
+      'Le frottement appuyé et la sur-exfoliation du contour : plus la peau est fine, plus l’irritation y laisse de marques.',
+      'Chercher « la crème » qui efface le cerne structurel : c’est un creux, pas une coloration — aucun produit ne change l’anatomie, et ce n’est pas un défaut.',
+      'Casser les actifs forts « parce que c’est le contour » : cette zone n’est pas un terrain de concentration.',
+    ],
+    attendre: 'Le pigmentaire, comme les taches : en mois, et le signe c’est qu’il ne se fonce plus. Le vasculaire s’améliore avec l’hydratation et l’épaississement lent de la peau, et la caféine donne un effet de matinée. Le structurel, lui, reste — et ce n’est pas à un produit de le corriger.',
+    source: 'DermApproved (2026) — 3 familles et 2 tests maison ; Wederm (2026) — pigmentation plus fréquente en peaux foncées ; Cleveland Clinic (2025)',
+  },
+  {
+    key: 'prob_skin_picking',
+    title: 'Le picking : le facteur que vous contrôlez entièrement — et le seul',
+    confidence: 'recherche',
+    fact: 'Pincer, percer, tripoter : chaque intervention relance l’inflammation locale, et l’inflammation produit le pigment — c’est pourquoi les marques durent plus longtemps que les boutons. C’est le facteur aggravant n°1 documenté des taches post-inflammatoires, et le seul que vous contrôlez entièrement.',
+    faire: [
+      'Remplacez le geste : un patch occlusif sur le bouton — les mains ne sont plus là, et le bouton vit moins longtemps.',
+      'Gardez la routine douce (pas de décapi qui provoque l’envie de toucher) et la peau hydratée : une peau qui ne tire pas est une peau qu’on ne touche pas.',
+      'Repérez les moments (stress, ennui, miroir) : la conscience du déclencheur est déjà la moitié du travail — l’habitude se travaille comme toutes les habitudes.',
+      'Sur les marques déjà là, la routine habituelle (SPF + actifs progressifs) : cette carte parle des mains, pas des produits.',
+    ],
+    eviter: [
+      'L’idée du « juste celui-là, le dernier » : le bouton qu’on presse est celui qui laissera la marque la plus durable.',
+      'Les outils métalliques et les gestes « désinfectés » : chaque micro-écorchure est une nouvelle tache en préparation.',
+      'Blâmer les produits quand les mains reviennent : le produit ne gagne pas contre le geste — c’est le geste d’abord.',
+    ],
+    attendre: 'En quelques semaines, la peau se calme (moins de marques actives) ; l’ancien foncé s’estompe en mois, au rythme de n’importe quelle marque post-inflammatoire. La variable qui tranche, c’est celle que vous contrôlez entièrement : les mains.',
+    source: 'Asian Acne Board (2016, PubMed 26813513) — l’excoriation, facteur aggravant modifiable ; SAGE (2024) — revue des taches post-inflammatoires',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -423,6 +461,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   const hasMaquillage = concerns.includes('port_maquillage');
   const hasPlis = concerns.includes('assombrissement_plis');
   const hasLeveres = concerns.includes('leveres_assombries');
+  const hasPicking = concerns.includes('picking');
+  const hasCernes = concerns.includes('cernes');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
@@ -436,6 +476,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   if (hasMaquillage) wanted.push('prob_skin_maquillage');
   if (hasPlis) wanted.push('prob_skin_assombrissement_plis');
   if (hasLeveres) wanted.push('prob_skin_leveres');
+  if (hasPicking) wanted.push('prob_skin_picking');
+  if (hasCernes) wanted.push('prob_skin_cernes');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 
