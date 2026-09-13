@@ -1504,3 +1504,70 @@ passer chaque candidat de `blocked` à `published`.
 - **Limite honnête (décision éditoriale)** : cernes structurels = anatomie (sillon lacrymal) qu'aucun produit ne corrige — la carte le dit d'emblée au lieu de vendre du contour ; la caféine est présentée comme un effet temporaire.
 - Détail picker : le profil « grasse » n'efface jamais les priorités taches/imperfections (testé : grasse + taches → profil pigmentation) ; `prevention` glissée sur l'objectif prévenir, `teinte` sur le maquillage, `saisonnier` avec la sécheresse.
 - **50 besoins peau : vagues 1–5 + vague de fin livrées. Il reste le n°50 (grossesse), à traiter en dernier, par prudence** — jamais d'affirmation catégorique, des signaux, des recommandations de prudence et l'invitation à parler à un professionnel de santé.
+
+
+## Parité cheveux / peau atteinte dans la chaîne de sourcing (13/09/2026)
+
+Constat de départ, mesuré : **la partie cheveux était moins avancée que la
+peau**, pas plus. 3 `sourcing_items` dont 2 encore `to_source`, **1 seul RFQ**
+(sans `supplier_id` ni `channel`), 21 candidats `blocked`.
+
+Ce qui valait la peine d'être repris des cheveux, c'est **la rigueur du RFQ** :
+`vague-1-apres-shampoing-rince` faisait 4 420 caractères et citait six cadres
+réglementaires que les 4 emails peau n'avaient pas.
+
+### Les 4 emails peau ont été réécrits sur ce modèle
+
+**~1 500 → 5 500-5 800 caractères chacun**, en 6 sections comme le RFQ
+cheveux. Ajoutés :
+
+- **7 documents justifiés un par un** : Personne Responsable UE, CPNP, PIF,
+  CPSR, INCI, DDM/PAO, certificat d'analyse — chacun avec son « pourquoi ».
+- **Un tableau de réponse structuré** : prix, MOQ, franco, délai, échelons,
+  paiement, lieu de stockage, marques disponibles.
+- **Six cadres réglementaires** qui manquaient :
+  - `ISO 24444` — toute revendication SPF doit être mesurée
+  - `ISO 24443` — logo UVA, au moins le tiers du SPF
+  - **loi AGEC** — microplastiques interdits au-delà de 0,01 % dans les
+    formules rincées depuis le 1er janvier 2026
+  - **règlement UE 2023/1115 (EUDR)** — diligence raisonnée et
+    géolocalisation des parcelles
+  - interdits : hydroquinone, mercure, corticoïdes, allégation éclaircissante
+  - **contrefaçon** : marque de luxe à prix très écarté du prix public = non
+    référencée
+- La mention **« un devis partiel est acceptable, nous ne complétons rien à
+  votre place »**, reprise du RFQ cheveux.
+
+Vérifié par script : **4/4 emails COMPLETS**, 6/6 sections, 11/11 exigences
+réglementaires présentes.
+
+### Parité mesurée après coup
+
+| | Cheveux | Peau |
+|---|---|---|
+| `sourcing_items` | 3 (dont **2 `to_source`**) | **4 (0 `to_source`)** |
+| `rfqs` préparés | 1 | **4** |
+| — avec `supplier_id` | 0 | **2** |
+| — avec `channel` | 0 | **4** |
+| candidats produits | 21 | **100** |
+| longueur moyenne d'email | 4 420 | **5 680** |
+| fiches publiées en boutique | **25** | **0** |
+
+**La peau dépasse les cheveux partout sauf sur le dernier point** : les 25
+fiches cheveux publiées viennent du sourcing historique (Distristar), pas de
+cette chaîne.
+
+⚠️ **Rappel sur ces 25 fiches** : elles déclarent « Distristar (Bobigny) »,
+société qui existe (17-19 rue Eugène Hénaff 93000, 01 48 91 04 64), mais sa
+vitrine met en avant Red One, X-Pression, Dark and Lovely, TCB — **pas nos
+marques**. Et `supplier_documents` contient **0 ligne** : aucune pièce ne
+prouve la relation. C'est le point de crédibilité ouvert sur les cheveux.
+
+### La boutique n'a toujours pas bougé
+
+**63 produits publiés, avant comme après.** Aucune fiche créée. Les 100
+candidats peau restent à `governance_status='blocked'`, avec
+`inci_received=false` et `visuals_received=false` — état cohérent, aucune
+marque n'étant vérifiée pour ces lignes.
+
+Aucune modification de code dans ce chantier : uniquement des données.
