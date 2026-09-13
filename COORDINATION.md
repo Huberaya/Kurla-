@@ -900,3 +900,35 @@ du binaire du projet (`./node_modules/.bin/tsx`, ou `npm run test:xxx`).
 `npx` a résolu un autre `tsx`, hors du projet, et cinq bancs ont « échoué »
 en `ERR_MODULE_NOT_FOUND` — une panne d'outil prise pour une panne de code.
 Relancés avec le bon binaire : tous verts.
+
+## Garde CPNP réparé (13/09/2026)
+
+`catalogTruth.ts` testait `cpnp_ready` — **colonne inexistante** dans
+`products` (vérifié dans `information_schema`), et **rien ne l'écrivait**.
+`undefined === false` est toujours faux : le blocage ne s'est **jamais**
+déclenché.
+
+⚠️ **Correction d'une affirmation répétée** : seul le *blocage* était mort.
+La couche de reporting fonctionnait déjà — `catalogStore.ts` signale
+« CPNP+RP+CPSR manquants » via `evaluateCatalogSourcingReadiness`.
+
+Le mécanisme de preuve **existait déjà** et n'a pas été doublé :
+`supplier_documents` accepte `cpnp_notification`, `responsible_person`, `pif`,
+`cpsr`, avec la contrainte `supplier_document_needs_proof`
+(**`file_url` ET `issued_on` obligatoires** — pas de document sans pièce).
+Il contenait **0 ligne**.
+
+Le garde lit maintenant cette preuve, hydratée par `getProducts` :
+
+| État | Effet |
+|---|---|
+| `notified` — pièce enregistrée, non expirée | passe, référence exposée |
+| `expired` — pièce enregistrée mais périmée | **BLOQUE**, avec message |
+| `unknown` — aucune pièce | **ne bloque pas** |
+
+`unknown` ne bloque pas volontairement : un distributeur revendant des produits
+déjà sur le marché UE ne dépose pas le CPNP (art. 4.3). Les 24 marques tierces
+sont dans ce cas ; bloquer viderait la boutique sans fondement.
+
+`tests/kurla_cpnp_guard.test.ts` — 8 contrats. Contrôle négatif : réinjecter le
+garde inerte fait tomber le banc (exit 1).

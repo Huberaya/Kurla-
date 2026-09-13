@@ -73,6 +73,38 @@ export function originProvenanceOf(product: any): OriginProvenance {
   return { country, status, source };
 }
 
+/**
+ * Preuve de notification CPNP, lue depuis `supplier_documents`.
+ *
+ * Ce type remplace un garde qui ne pouvait pas fonctionner : le code testait
+ * `cpnp_ready`, un champ qu'aucune colonne ne portait et que rien n'écrivait.
+ * `undefined === false` est toujours faux, donc le blocage ne s'est jamais
+ * déclenché — un contrôle écrit qui ne peut jamais bloquer.
+ *
+ * Trois états, et un seul bloque :
+ *  - `notified` : une notification CPNP existe, avec pièce et date (la base
+ *    l'exige : contrainte `supplier_document_needs_proof`) et n'est pas expirée
+ *  - `expired`  : la notification existe mais est périmée → **bloque**
+ *  - `unknown`  : aucune pièce enregistrée. Ne bloque PAS : un distributeur qui
+ *    revend des produits déjà mis sur le marché UE ne dépose pas lui-même le
+ *    CPNP. L'écart est rapporté, pas sanctionné — la couche `sourcing readiness`
+ *    le signale déjà (« CPNP+RP+CPSR manquants »).
+ */
+export type CpnpEvidence = {
+  state: 'notified' | 'expired' | 'unknown';
+  /** Numéro de notification tel qu'enregistré, `null` si absent. */
+  reference: string | null;
+};
+
+export function cpnpEvidenceOf(product: any): CpnpEvidence {
+  const rawReference = readCatalogField(product, 'cpnp_reference');
+  const reference = typeof rawReference === 'string' && rawReference.trim() !== '' ? rawReference.trim() : null;
+  const notified = readCatalogField(product, 'cpnp_notified');
+  if (notified === false) return { state: 'expired', reference };
+  if (notified === true) return { state: 'notified', reference };
+  return { state: 'unknown', reference };
+}
+
 export type CatalogTruth = {
   administrativeStatus: CatalogAdministrativeStatus;
   /** Les preuves minimales sont conformes, indépendamment du stock et du workflow. */
@@ -102,6 +134,13 @@ export type CatalogTruth = {
    * bloquant viderait la boutique pour un champ qui n'est pas exigé de nous.
    */
   originProvenance: OriginProvenance;
+  /**
+   * Preuve CPNP lue depuis les documents fournisseur. Contrairement à
+   * `originProvenance`, l'état `expired` **bloque** la publication : une
+   * notification périmée est une non-conformité établie par une pièce, pas une
+   * simple absence de donnée.
+   */
+  cpnpEvidence: CpnpEvidence;
 };
 
 /** Nom métier de la projection serveur consommée par toutes les surfaces. */
@@ -213,11 +252,27 @@ function requiresCosmeticCompliance(product: any): boolean {
  * toute projection public/IA/SEO. Les preuves CPNP/RP/CPSR sont traitées par
  * le workflow admin existant ; `cpnp_ready=false` reste bloquant ici.
  */
+/**
+ * Le produit est-il bloqué au titre du CPNP ?
+ *
+ * Deux voies, toutes deux fondées sur une pièce :
+ *  - `cpnp_notified === false`, hydraté par `catalogStore` quand une
+ *    notification enregistrée est expirée ;
+ *  - `cpnp_ready === false`, conservé pour ne casser aucun appelant existant.
+ *
+ * L'état `unknown` ne bloque jamais : voir `CpnpEvidence`.
+ */
+function hasCpnpBlock(product: any): boolean {
+  if (!requiresCosmeticCompliance(product)) return false;
+  return cpnpEvidenceOf(product).state === 'expired'
+    || readCatalogField(product, 'cpnp_ready') === false;
+}
+
 function hasMinimalCatalogProof(product: any): boolean {
   const imageUrl = product?.image || product?.image_url;
   const images = product?.galleryImages || [];
   const countries = product?.countryAvailability || product?.country_availability || [];
-  const hasCpnpBlock = requiresCosmeticCompliance(product) && readCatalogField(product, 'cpnp_ready') === false;
+  const cpnpBlock = hasCpnpBlock(product);
   const preorderDeclared = isPreorder(product);
   const preorderDocumented = !preorderDeclared || hasDocumentedExternalPreorder(product);
 
@@ -226,7 +281,7 @@ function hasMinimalCatalogProof(product: any): boolean {
     && !hasFormulationTargetMarker(product)
     && !hasPlaceholderMarker(product)
     && hasTrustedImageOwnership(product)
-    && !hasCpnpBlock
+    && !cpnpBlock
     && typeof product?.brand === 'string' && product.brand.trim() !== ''
     && hasNonEmptyIngredients(product)
     && ((Array.isArray(images) && images.length > 0) || typeof imageUrl === 'string' && /^https?:\/\//i.test(imageUrl))
@@ -341,6 +396,8 @@ export function getCatalogTruth(product: any): CatalogTruth {
   const preorderDeclared = isPreorder(product);
   const preorderIsDocumented = preorderDeclared ? hasDocumentedExternalPreorder(product) : null;
   const originProvenance = originProvenanceOf(product);
+  const cpnpEvidence = cpnpEvidenceOf(product);
+  const cpnpBlock = hasCpnpBlock(product);
   const claims = claimsFor(product);
   const governedBySkinContract = isSkinCatalogGoverned(product);
   const skin = skinReadiness(product);
@@ -355,6 +412,11 @@ export function getCatalogTruth(product: any): CatalogTruth {
   if (!formulationTarget && !placeholder && pendingValidation) blockers.push('preuves produit en attente de validation');
   if (preorderDeclared && !preorderIsDocumented && !isInternalFormulationSource(product)) {
     blockers.push('précommande externe non documentée : fournisseur, SKU fournisseur et source explicite requis');
+  }
+  if (cpnpBlock) {
+    blockers.push(cpnpEvidence.state === 'expired'
+      ? 'notification CPNP expirée : pièce enregistrée mais périmée'
+      : 'conformité CPNP explicitement marquée non prête');
   }
   if (!claimsAccepted(product, claims)) blockers.push(`allégations à revoir : ${claims.hits.map(hit => hit.ruleId).join(', ')}`);
   if (skin && skin.commercialState === 'blocked') {
@@ -421,6 +483,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
     skinReadiness: skin,
     preorderDocumented: preorderIsDocumented,
     originProvenance,
+    cpnpEvidence,
   };
 }
 

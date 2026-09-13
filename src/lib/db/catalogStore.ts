@@ -94,6 +94,20 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
       ensureDatabaseSuccess('lecture du stock catalogue', inventoryError);
       const { data: imageRows, error: imagesError } = await supabase.from('product_images').select('*').order('position', { ascending: true });
       ensureDatabaseSuccess('lecture des images catalogue', imagesError);
+      const { data: cpnpRows, error: cpnpError } = await supabase.from('supplier_documents').select('*').eq('document_type', 'cpnp_notification');
+      ensureDatabaseSuccess('lecture des notifications CPNP', cpnpError);
+      const today = new Date().toISOString().slice(0, 10);
+      /** Preuve CPNP la plus recente, par produit puis par fournisseur. */
+      const cpnpByProduct = new Map<string, any>();
+      const cpnpBySupplier = new Map<string, any>();
+      (cpnpRows || []).forEach((document: any) => {
+        // Une notification sans piece ni date est refusee par la base
+        // (contrainte `supplier_document_needs_proof`) : on ne la re-verifie pas ici.
+        const expired = typeof document.expires_on === 'string' && document.expires_on < today;
+        const line = { notified: !expired, reference: document.reference ?? null };
+        if (document.product_id) cpnpByProduct.set(document.product_id, line);
+        else if (document.supplier_id && !cpnpBySupplier.has(document.supplier_id)) cpnpBySupplier.set(document.supplier_id, line);
+      });
       const imagesByProduct = new Map<string, any[]>();
       (imageRows || []).forEach((image: any) => {
         const lines = imagesByProduct.get(image.product_id) || [];
@@ -204,6 +218,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         allergens: p.allergens || [],
         containsFragrance: p.contains_fragrance,
         originCountry: p.origin_country,
+        cpnpNotified: (cpnpByProduct.get(p.id) ?? (p.supplier_id ? cpnpBySupplier.get(p.supplier_id) : undefined))?.notified,
+        cpnpReference: (cpnpByProduct.get(p.id) ?? (p.supplier_id ? cpnpBySupplier.get(p.supplier_id) : undefined))?.reference ?? null,
         originCountryStatus: p.origin_country_status,
         originCountrySource: p.origin_country_source,
         certifications: p.certifications || [],
