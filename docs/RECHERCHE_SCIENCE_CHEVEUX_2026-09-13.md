@@ -710,3 +710,49 @@ cheveu bouclé d'origine) + l'exfoliation.
 Règle de publication (inchangée) : sourcée ou absente, jamais inventée ; zéro
 vocabulaire médical dans le rendu client (pas de « folliculite », pas de
 « pseudofolliculite », pas de « dermatologue » — y compris dans les sources des cartes).
+
+# PIÈCE 6 — Pôle peau : taches hormonales / mélasme (besoin n°16, 13/09/2026)
+
+Contexte : besoin n°16 de `docs/BESOINS_PEAU_50_2026-09-13.md` — « taches hormonales
+(masque de grossesse) : déclencheurs, ce qu'il ne faut JAMAIS faire soi-même,
+protection d'abord ». Fouille du 13/09/2026 (3 recherches).
+
+- [R] **Pattern et prévalence** (GoodRx 2025, contenu relu en dermatologie, réf.
+  StatPearls 2023) : taches marron ou grisâtres, solides ou freckled, **symétriques**,
+  pommettes / front / nez / au-dessus de la lèvre ; **le plus fréquent chez les femmes
+  à peau foncée** ; ~50 % des cas déclarent un antécédent familial ; durée :
+  mois à années.
+- [R] **Mécanisme** (GoodRx 2025 ; dermatologist-nyc 2026 ; ubiehealth 2026 ;
+  londondermatology 2026) : les œstrogènes/progesterone **ne créent pas le pigment —
+  elles rendent les mélanocytes bien plus réactifs aux UV et à la chaleur** ;
+  soleil = déclencheur externe n°1 ; **lumière visible (HEV) et chaleur contribuent** ;
+  grossesse : **50–70 % des femmes** voient le pattern apparaître (« masque de
+  grossesse »), souvent 2ᵉ–3ᵉ trimestre, peut s'estomper après l'accouchement mais
+  persiste ou récidive fréquemment ; pilule : **risque +30–40 %** ; pires l'été,
+  mieux l'hiver.
+- [R] **Lumière visible / oxydes de fer** (PubMed 24313385 — essai randomisé en
+  double aveugle, 68 patientes mélasme, 2014 : écran UV+VL (oxydes de fer) vs UV seul,
+  SPF≥50, 8 semaines → **masi +15 %, colorimétrie +28 %** en faveur du UV-VL ;
+  Polena et al. J Cosmet Dermatol 2025 — RCT investigator-blinded été : moins de
+  progression avec l'écran teinté protecteur VL, même SPF ; revue J Drugs Dermatol
+  2026 : études concordantes, 75 % vs 60 % d'amélioration MASI (P<0,001) ; AAD
+  recommande l'écran teinté aux oxydes de fer pour les taches).
+- [R/I] **Actifs documentés en peau mélaninée** (Baliña & Graupe — acide azélaïque
+  20 % ≈ hydroquinone 4 % à 24 semaines ; Everyday Health 2025 ; skindetekt 2026 ;
+  sacredkosmetics 2026) : **acide azélaïque 10–20 %** (doux, anti-inflammatoire,
+  **considéré sûr en grossesse**, résultat 8–12 sem), **vitamine C** (antioxydant,
+  taches récentes, 4–6 sem), **niacinamide** (bloque le transfert de mélanine,
+  maintenance) ; acide tranexamique : base plus récente, intéressant pour le mélasme
+  hormonal (RCT 2023) — pas encore dans le vocabulaire KURLA.
+- [R/I] **Ce qui aggrave — jamais faire soi-même** (londondermatology 2026 ;
+  GoodRx 2025 ; dermatologist-nyc 2026) : **peelings agressifs / acides DIY sur le
+  pattern actif** (chaque agression = inflammation = plus de pigment) ; plusieurs
+  produits décolorants d'un coup ; **hydroquinone en auto-sur les peaux foncées**
+  (risque documenté : éclaircissement irrégulier, hypopigmentation paradoxale,
+  ochronosis à long terme) ; **dérivés de la vitamine A contre-indiqués en
+  grossesse** + peuvent aggraver le PIH en phase initiale en peau foncée ; **épiler
+  (cire) les zones affectées** (GoodRx : à éviter) ; **chaleur** (cuisson, douches
+  brûlantes) ; soleil sans protection.
+- **Décision RGPD** : la détection passe par une préoccupation déclarée
+  (« Taches récentes ou qui varient (cycle, grossesse, soleil) ») — KURLA stocke le
+  pattern de taches, **jamais un statut de grossesse** ; aucune question médicale.

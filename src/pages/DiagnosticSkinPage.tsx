@@ -274,6 +274,7 @@ export const DiagnosticSkinPage: React.FC = () => {
     { id: 'deshydratation', label: 'Déshydratation', desc: '' },
     { id: 'teint_terne', label: 'Teint terne / éclat', desc: '' },
     { id: 'taches', label: 'Taches / hyperpigmentation', desc: 'Post-acné, HPI' },
+    { id: 'taches_hormonales', label: 'Taches récentes ou qui varient (cycle, grossesse, soleil)', desc: 'Pattern symétrique : pommettes, front, menton' },
     { id: 'rougeurs', label: 'Rougeurs / irritations', desc: '' },
     { id: 'poils_incarnes', label: 'Poils incarnés / irritations du rasage', desc: 'Visage, cou, aisselles' },
     { id: 'imperfections', label: 'Imperfections / boutons', desc: '' },

@@ -89,6 +89,26 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'Révision NIH (2019, PMC6585396) ; AAD ; GoodRx (2024) — prévention des poils incarnés',
   },
   {
+    key: 'prob_skin_taches_hormonales',
+    title: 'Taches hormonales : calmer le déclencheur, protéger de la lumière, être patiente',
+    confidence: 'recherche',
+    fact: 'Taches symétriques apparues au fil du cycle, de la grossesse ou de la pilule : les hormones rendent votre peau plus réactive au soleil et à la chaleur, et la lumière visible entretient le pattern. Ce n’est pas de votre faute — et ce n’est pas une fatalité : il se calme quand le déclencheur s’éloigne, et la routine le retient.',
+    faire: [
+      'Écran teinté SPF 30+ avec oxydes de fer, tous les jours, même temps couvert ou près des fenêtres — c’est la protection la plus mesurée contre ce pattern.',
+      'Gardez vos actifs déjà en place (niacinamide, acide azélaïque) en usage progressif : la régularité douce bat l’intensité.',
+      'Réduisez la chaleur sur la zone : douches moins chaudes, distance avec la cuisson, casquette au soleil.',
+      'Si le déclencheur est la pilule ou une hormonothérapie, posez la question de l’alternance à votre professionnel de santé — c’est votre décision, pas la nôtre.',
+    ],
+    eviter: [
+      'Les acides forts et les peelings « éclaircissants » sur le pattern actif : chaque agression repart l’inflammation et approfondit les taches.',
+      'Plusieurs produits « anti-taches » d’un coup : l’irritation commune fait plus de taches que n’importe quel actif n’en efface.',
+      'Les dérivés de la vitamine A pendant la grossesse : à écarter, c’est documenté.',
+      'Les « décolorants » puissants (type hydroquinone) sur conseil d’internet : sur les peaux foncées, le risque documenté est un éclaircissement irrégulier — ou pire.',
+    ],
+    attendre: 'En mois, pas en semaines. Le signe qu’on est sur la bonne voie : aucune tache neuve, et plus d’assombrissement à l’été. Le pattern s’estompe quand le déclencheur hormonal s’éloigne — parfois en quelques mois, parfois plus longtemps ; ce qui reste s’efface lentement, et c’est documenté, pas de votre faute.',
+    source: 'Essai randomisé en double aveugle (2014, PubMed 24313385) ; GoodRx (2025) ; Baliña & Graupe (acide azélaïque) ; guides peaux (2026)',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -302,6 +322,7 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   const hasTaches = ['frequente', 'occasionnelle'].includes(hpi) || concerns.includes('taches') || concerns.includes('teint_non_uniforme') || concerns.includes('cicatrices') || objectives.includes('attenuer_taches') || objectives.includes('uniformiser');
   const hasImperfections = concerns.includes('imperfections') || concerns.includes('points_noirs') || objectives.includes('reduire_imperfections') || ['occasionnelle', 'reguliere'].includes(acne);
   const hasPoilsIncarnes = concerns.includes('poils_incarnes');
+  const hasMelasme = concerns.includes('taches_hormonales');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
@@ -309,6 +330,7 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   if (hasTaches) wanted.push('prob_skin_taches');
   if (hasImperfections) wanted.push('prob_skin_imperfections');
   if (hasPoilsIncarnes) wanted.push('prob_skin_poils_incarnes');
+  if (hasMelasme) wanted.push('prob_skin_taches_hormonales');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 

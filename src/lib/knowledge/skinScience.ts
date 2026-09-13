@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -142,6 +142,24 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'Révision NIH (2019, PMC6585396) ; AAD',
     confidence: 'recherche',
   },
+  {
+    key: 'sci_skin_melasme_mecanisme',
+    theme: 'hormones',
+    title: 'Le « masque de grossesse » a un mécanisme précis — et des déclencheurs que vous pouvez calmer',
+    fact: 'Des taches symétriques, marron ou grisâtres, sur les pommettes, le front, le menton ou au-dessus de la lèvre : c’est un pattern précis, que la littérature nomme mélasme. Les hormones (cycle, grossesse, pilule) ne créent pas le pigment — elles rendent les cellules pigmentaires bien plus réactives au soleil et à la chaleur. C’est pourquoi ce pattern apparaît souvent à un moment précis de la vie, s’aggrave l’été et s’améliore l’hiver — et pourquoi il touche massivement les peaux mélaninées.',
+    mechanism: 'Pendant la grossesse, jusqu’à 7 femmes sur 10 voient ce pattern apparaître, et la pilule y est aussi associée (+30 à 40 %). Presque la moitié des femmes qui l’ont déclarent l’avoir dans leur famille. Il se calme quand le déclencheur hormonal s’éloigne — mais sans routine, il revient souvent.',
+    source: 'GoodRx (2025, contenu relu en dermatologie — StatPearls 2023) ; dermatologist-nyc (2026) ; ubiehealth (2026)',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_skin_melasme_lumiere',
+    theme: 'hormones',
+    title: 'Contre ces taches, l’écran teinté bat l’écran invisible — c’est mesuré',
+    fact: 'Des études randomisées l’ont établi chez les peaux foncées : un écran solaire contenant des oxydes de fer — ce qui teinte la formule — protège de la lumière visible que les filtres UV laissent passer, et c’est précisément la lumière visible qui entretient ce pattern de taches. Sur 8 semaines, le groupe protégé de la lumière visible a vu ses taches s’estomper significativement plus que le groupe UV seul (15 % de différence mesurée, essai en double aveugle). Un écran teinté adapté à votre teinte, c’est de la protection en plus — pas un fini de maquillage.',
+    mechanism: 'La lumière visible à haute énergie est absorbée par la mélanine et relance la production de pigment — les peaux phototypes IV à VI sont les plus concernées. C’est la même famille de mécanisme que la carte « lumière visible » du pôle pigmentation.',
+    source: 'Essai randomisé en double aveugle, 68 patientes (2014, PubMed 24313385) ; Polena et al. (J Cosmet Dermatol, 2025) ; revue J Drugs Dermatol (2026)',
+    confidence: 'recherche',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -151,6 +169,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'sensibilite', label: 'Sensibilité', intro: 'Le parfum, premier allergène cosmétique — et ce que le label ne dit pas.' },
   { theme: 'savoirs', label: 'Vieillissement & repères', intro: 'Comment vieillit vraiment une peau riche en mélanine, et les échelles qu’il faut savoir lire.' },
   { theme: 'rasage', label: 'Rasage & poils incarnés', intro: 'Pourquoi les poils incarnés touchent massivement les peaux mélaninées — et comment le cycle se coupe.' },
+  { theme: 'hormones', label: 'Taches hormonales (« masque de grossesse »)', intro: 'Le pattern, ses déclencheurs — et la protection que les études mesurent.' },
 ];
 
 /**
@@ -176,8 +195,10 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   const dull = concerns.includes('teint_terne') || objectives.includes('eclat');
 
   const shaving = concerns.includes('poils_incarnes');
+  const melasma = concerns.includes('taches_hormonales');
 
   const wanted: string[] = [];
+  if (melasma) wanted.push('sci_skin_melasme_mecanisme', 'sci_skin_melasme_lumiere');
   if (shaving) wanted.push('sci_skin_rasage_mecanisme', 'sci_skin_rasage_arret');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
