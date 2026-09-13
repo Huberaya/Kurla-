@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
+import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
@@ -159,6 +160,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   const adminHeaders: HeadersInit = {
     ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    ...(workspace ? { 'X-Kurla-Workspace': workspace } : {}),
     'Content-Type': 'application/json'
   };
 
@@ -216,7 +218,7 @@ export const AdminDashboardPage: React.FC = () => {
     if (isAuthenticated) {
       loadData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, workspace]);
 
   const handleLogout = async () => {
     await signOut();
@@ -1416,6 +1418,7 @@ export const AdminDashboardPage: React.FC = () => {
         {/* TAB 5: PRODUCT CATALOG — C20 peau publication TEST contrôlée */}
         {activeTab === 'catalog' && (
           <div className="space-y-10">
+            <CatalogClaimsAuditPanel headers={adminHeaders} />
             {workspace === 'skin' && <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />}
             <CatalogAdminPanel
               scope={workspace === 'skin' ? 'skin' : 'hair'}

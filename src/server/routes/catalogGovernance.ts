@@ -11,13 +11,67 @@ import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
 import { getAvailableCatalog } from '../ai/catalog';
+import { catalogCsvRowToInput, parseCatalogCsv } from '../../lib/catalogManagement';
+import { scanCatalogClaims, describeClaimScan } from '../../lib/catalogClaims';
 import type { AuthenticatedRequest } from '../types';
 import type { Request, Response } from 'express';
+import { isProductInWorkspace, readWorkspaceScope } from '../workspaceScope';
 
 /**
  * CHANTIER 8.1 — gouvernance du catalogue (réservée aux administrateurs
  * vérifiés), extraite de `server.ts`. Chemins inchangés.
  */
+
+async function productMatchesScope(productId: string, scope: ReturnType<typeof readWorkspaceScope>): Promise<boolean> {
+  if (!scope) return true;
+  const product = (await serverDb.getAdminCatalogProducts()).find(item => String(item.id) === productId);
+  return Boolean(product && isProductInWorkspace(product, scope));
+}
+
+async function scopedProductIds(scope: ReturnType<typeof readWorkspaceScope>): Promise<Set<string> | undefined> {
+  if (!scope) return undefined;
+  const products = await serverDb.getAdminCatalogProducts();
+  return new Set(products.filter(product => isProductInWorkspace(product, scope)).map(product => String(product.id)));
+}
+
+async function scopePublicationReport(report: any, scope: ReturnType<typeof readWorkspaceScope>): Promise<any> {
+  const allowed = await scopedProductIds(scope);
+  if (!allowed) return report;
+  const perProduct = (report.perProduct || []).filter((entry: any) => allowed.has(String(entry.productId)));
+  const blocked = (report.publishedButNotListableProducts || []).filter((entry: any) => allowed.has(String(entry.productId)));
+  return {
+    ...report,
+    products: perProduct.length,
+    readyToPublish: perProduct.filter((entry: any) => entry.ready).length,
+    publishedStatus: perProduct.filter((entry: any) => entry.catalogStatus === 'published').length,
+    publishedButNotListable: blocked.length,
+    perProduct,
+    publishedButNotListableProducts: blocked,
+    scope
+  };
+}
+
+async function scopeSourcingReport(report: any, scope: ReturnType<typeof readWorkspaceScope>): Promise<any> {
+  const allowed = await scopedProductIds(scope);
+  if (!allowed) return report;
+  const perProduct = (report.perProduct || []).filter((entry: any) => allowed.has(String(entry.productId)));
+  const byState = perProduct.reduce((counts: Record<string, number>, entry: any) => {
+    counts[entry.state] = (counts[entry.state] || 0) + 1;
+    return counts;
+  }, {});
+  return { ...report, products: perProduct.length, readyToBuy: perProduct.filter((entry: any) => entry.ready).length, byState, perProduct, scope };
+}
+
+async function recordsFitScope(records: any[], scope: ReturnType<typeof readWorkspaceScope>): Promise<boolean> {
+  if (!scope) return true;
+  const products = await serverDb.getAdminCatalogProducts();
+  return records.every(record => {
+    const id = typeof record?.id === 'string' ? record.id : undefined;
+    const existing = id ? products.find(product => String(product.id) === id) : undefined;
+    if (id && (!existing || !isProductInWorkspace(existing, scope))) return false;
+    return isProductInWorkspace(existing ? { ...existing, ...record } : record, scope);
+  });
+}
 
 export function registerCatalogGovernanceRoutes(app: Express): void {
   // PRODUCT CATALOG MANAGEMENT
@@ -30,14 +84,10 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const scope = typeof req.query.scope === 'string' ? req.query.scope : 'all';
+      const scope = readWorkspaceScope(req);
       const allProducts = await serverDb.getAdminCatalogProducts();
-      const products = scope === 'skin'
-        ? allProducts.filter((product: any) => product.category === 'peau')
-        : scope === 'hair'
-          ? allProducts.filter((product: any) => product.category !== 'peau')
-          : allProducts;
-      res.json({ products, count: products.length, scope });
+      const products = scope ? allProducts.filter(product => isProductInWorkspace(product, scope)) : allProducts;
+      res.json({ products, count: products.length, scope: scope || 'all' });
     } catch (error) {
       console.error('[Catalog] admin list error:', error);
       res.status(500).json({ error: safeApiError(error, 'Impossible de charger le catalogue administrable.') });
@@ -60,6 +110,8 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
+      const scope = readWorkspaceScope(req);
+      if (scope && !isProductInWorkspace(req.body || {}, scope)) return res.status(400).json({ error: 'Produit hors de cet espace.' });
       const result = await serverDb.importCatalogRecords(admin.id, [req.body || {}], 'manual');
       if (result.rejected > 0) return res.status(400).json({ error: result.errors[0]?.message || 'Produit catalogue invalide.', result });
       res.status(201).json({ product: result.products[0], import: result });
@@ -73,6 +125,9 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
+      const scope = readWorkspaceScope(req);
+      if (scope && !(await productMatchesScope(req.params.productId, scope))) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+      if (scope && req.body?.category !== undefined && !isProductInWorkspace(req.body, scope)) return res.status(400).json({ error: 'Le produit ne peut pas changer d’espace.' });
       const product = await serverDb.saveCatalogProduct(admin.id, { ...(req.body || {}), id: req.params.productId });
       res.json({ product });
     } catch (error) {
@@ -89,6 +144,11 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
       return res.status(400).json({ error: 'CSV vide ou supérieur à 2 Mo.' });
     }
     try {
+      const scope = readWorkspaceScope(req);
+      if (scope) {
+        const records = parseCatalogCsv(csv).map(row => catalogCsvRowToInput(row));
+        if (!(await recordsFitScope(records, scope))) return res.status(400).json({ error: 'Le fichier contient un produit hors de cet espace.' });
+      }
       const result = await serverDb.importCatalogCsv(admin.id, csv, typeof req.body?.fileName === 'string' ? req.body.fileName.slice(0, 255) : undefined);
       res.status(result.rejected > 0 && result.imported === 0 ? 400 : 201).json({ import: result });
     } catch (error) {
@@ -103,6 +163,10 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const supplier = typeof req.body?.supplier === 'string' ? req.body.supplier.trim().slice(0, 240) : '';
     if (!supplier || !Array.isArray(req.body?.records)) return res.status(400).json({ error: 'Fournisseur et tableau de produits obligatoires.' });
     try {
+      const scope = readWorkspaceScope(req);
+      if (scope && !(await recordsFitScope(req.body.records, scope))) {
+        return res.status(400).json({ error: 'Le flux fournisseur contient un produit hors de cet espace.' });
+      }
       const result = await serverDb.importCatalogRecords(admin.id, req.body.records, 'supplier', supplier);
       res.status(result.rejected > 0 && result.imported === 0 ? 400 : 201).json({ import: result });
     } catch (error) {
@@ -170,8 +234,9 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   app.get('/api/admin/catalog/publication-readiness', rateLimit('admin-publication-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
+    const scope = readWorkspaceScope(req);
     const report = await serverDb.getCatalogPublicationReadinessReport();
-    res.json(report);
+    res.json(await scopePublicationReport(report, scope));
   }));
 
   /**
@@ -181,8 +246,9 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   app.get('/api/admin/catalog/sourcing-readiness', rateLimit('admin-catalog-sourcing-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
+    const scope = readWorkspaceScope(req);
     const report = await serverDb.getCatalogSourcingReadinessReport();
-    res.json(report);
+    res.json(await scopeSourcingReport(report, scope));
   }));
 
   /**
@@ -192,8 +258,10 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   app.get('/api/admin/catalog/skin-readiness', rateLimit('admin-catalog-skin-readiness', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
+    const scope = readWorkspaceScope(req);
+    if (scope === 'hair') return res.json({ generatedAt: new Date().toISOString(), products: 0, ready: 0, perProduct: [], scope });
     const report = await serverDb.getSkinCatalogReadinessReport();
-    res.json(report);
+    res.json({ ...report, scope: scope || 'all' });
   }));
 
   /**
@@ -204,19 +272,79 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     const productId = typeof req.query.productId === 'string' ? req.query.productId.trim() : undefined;
+    const scope = readWorkspaceScope(req);
+    if (scope && productId && !(await productMatchesScope(productId, scope))) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+    if (scope === 'hair') return res.json({ evidence: [], count: 0, scope });
     const evidence = await serverDb.listSkinPhotoprotectionEvidence(productId);
-    res.json({ evidence, count: evidence.length });
+    res.json({ evidence, count: evidence.length, scope: scope || 'all' });
   }));
 
   app.post('/api/admin/catalog/skin-evidence', rateLimit('admin-catalog-skin-evidence-write', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
+      const scope = readWorkspaceScope(req);
+      const productId = typeof req.body?.productId === 'string' ? req.body.productId.trim() : '';
+      if (scope && (scope === 'hair' || !productId || !(await productMatchesScope(productId, scope)))) {
+        return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+      }
       const evidence = await serverDb.addSkinPhotoprotectionEvidence(admin.id, req.body || {});
       res.status(201).json({ evidence });
     } catch (error) {
       res.status(400).json({ error: safeApiError(error, 'Preuve photoprotection invalide ou non traçable.') });
     }
+  }));
+
+  /**
+   * P1-6 — crible lexical des allégations branché sur l'administration.
+   *
+   * Ce rapport ne coche jamais `claims_validation_status` et ne publie rien :
+   * il rend visibles les formulations à revoir, avec le champ, le terme et un
+   * extrait. Le crible est une aide déterministe, pas une validation juridique.
+   * La liste est filtrée avant le scan pour éviter qu'un workspace voie les
+   * textes d'une autre gamme.
+   */
+  app.get('/api/admin/catalog/claims-audit', rateLimit('admin-catalog-claims-audit', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const scope = readWorkspaceScope(req);
+    const requestedProductId = typeof req.query.productId === 'string' ? req.query.productId.trim() : '';
+    const allProducts = await serverDb.getAdminCatalogProducts();
+    const requestedProduct = requestedProductId
+      ? allProducts.find(product => String(product.id) === requestedProductId || String(product.slug) === requestedProductId)
+      : undefined;
+    if (requestedProductId && (!requestedProduct || (scope && !isProductInWorkspace(requestedProduct, scope)))) {
+      return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+    }
+    const products = (requestedProduct ? [requestedProduct] : allProducts)
+      .filter(product => !scope || isProductInWorkspace(product, scope));
+    const perProduct = products.map(product => {
+      const scan = scanCatalogClaims(product as Record<string, unknown>);
+      return {
+        productId: String(product.id),
+        slug: product.slug || null,
+        title: product.name || product.title || product.slug || String(product.id),
+        category: product.category || product.department || null,
+        catalogStatus: product.catalogStatus || product.catalog_status || 'draft',
+        isActive: product.isActive ?? product.is_active ?? false,
+        clean: scan.clean,
+        hitCount: scan.hits.length,
+        scannedFields: scan.scannedFields,
+        scannedCharacters: scan.scannedCharacters,
+        note: describeClaimScan(scan),
+        hits: scan.hits
+      };
+    });
+    const flagged = perProduct.filter(product => !product.clean);
+    res.json({
+      generatedAt: new Date().toISOString(),
+      scope: scope || 'all',
+      products: perProduct.length,
+      clean: perProduct.filter(product => product.clean).length,
+      flagged: flagged.length,
+      hits: flagged.reduce((total, product) => total + product.hitCount, 0),
+      perProduct: [...perProduct].sort((a, b) => Number(b.hitCount > 0) - Number(a.hitCount > 0) || a.title.localeCompare(b.title, 'fr'))
+    });
   }));
 
   /**
@@ -246,6 +374,8 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
+      const scope = readWorkspaceScope(req);
+      if (scope && !(await productMatchesScope(req.params.productId, scope))) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
       const readiness = await serverDb.getCatalogPublicationReadiness(req.params.productId);
       res.json(readiness);
     } catch (error) {

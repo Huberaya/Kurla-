@@ -20,6 +20,7 @@ import { compareRoutines, simulateAnnualCost } from '../../lib/routineEconomics'
 import { SELLER_COUNTRY } from '../../lib/vat';
 import { asyncRoute, getAppUrl, rateLimit, safeApiError } from '../http';
 import { requireAdmin, requireUser } from '../auth';
+import { professionalInWorkspace, readWorkspaceScope } from '../workspaceScope';
 import {
   assessProductComplianceForCountry,
   loadJurisdictionGraph,
@@ -285,6 +286,13 @@ export function registerProfessionalRoutes(app: Express): void {
   app.post('/api/admin/professionals/:professionalId/verify', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const current = await professionalStore.getProfessional(String(req.params.professionalId || '').trim());
+      if (!current || !professionalInWorkspace(current, scope)) {
+        return res.status(404).json({ error: 'Professionnel introuvable dans cet espace.' });
+      }
+    }
     const profile = await professionalStore.verifyIdentity({
       professionalId: String(req.params.professionalId || '').trim(),
       verifiedBy: admin.id,

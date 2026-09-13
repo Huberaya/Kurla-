@@ -11,6 +11,7 @@ import { asyncRoute, rateLimit } from '../http';
 import { requireAdmin, requireUser } from '../auth';
 import type { AuthenticatedRequest } from '../types';
 import type { Response } from 'express';
+import { isProductInWorkspace, readWorkspaceScope } from '../workspaceScope';
 
 /**
  * CHANTIER 8.1 — routes du chantier A (« fermer les trous »), extraites de
@@ -245,6 +246,13 @@ export function registerChantierARoutes(app: Express): void {
     if (!productId) {
       res.status(400).json({ error: 'Identifiant produit manquant.' });
       return;
+    }
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const product = (await serverDb.getAdminCatalogProducts()).find(item => String(item.id) === productId || String(item.slug) === productId);
+      if (!product || !isProductInWorkspace(product, scope)) {
+        return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+      }
     }
     const soldQuantity = req.query.soldQuantity !== undefined ? Number(req.query.soldQuantity) : undefined;
     const summary = await intelligenceStore.summarizeProductReturns(

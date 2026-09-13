@@ -4,6 +4,7 @@ import { listSupplierDocuments } from './supplierStore';
 import { listBatches } from './batchStore';
 
 import type { SupabaseServerStore } from '../serverDb';
+import { isProductInWorkspace, sourcingItemInWorkspace, type WorkspaceScope } from '../../server/workspaceScope';
 
 /**
  * CHANTIER 15B — COCKPIT CATALOGUE ET APPROVISIONNEMENT.
@@ -86,12 +87,16 @@ export interface OperationsCockpit {
 const NO_BATCH_REASON =
   'Aucun lot reçu pour ce produit : le coût servi ne peut pas être calculé, et rien n’est estimé à la place.';
 
-export async function getOperationsCockpit(store: SupabaseServerStore): Promise<OperationsCockpit> {
-  const [report, catalog, items] = await Promise.all([
+export async function getOperationsCockpit(store: SupabaseServerStore, scope?: WorkspaceScope): Promise<OperationsCockpit> {
+  const [report, catalogAll, itemsAll] = await Promise.all([
     getCatalogPublicationReadinessReport(store),
     getAdminCatalogProducts(store),
     listSourcingItems(store)
   ]);
+  const catalog = scope ? catalogAll.filter(product => isProductInWorkspace(product, scope)) : catalogAll;
+  const productIds = new Set(catalog.map(product => String(product.id)));
+  const items = scope ? itemsAll.filter(item => sourcingItemInWorkspace(item, scope)) : itemsAll;
+  const reportEntries = scope ? report.perProduct.filter(entry => productIds.has(String(entry.productId))) : report.perProduct;
 
   // Documents par fournisseur, lus une seule fois : plusieurs produits peuvent
   // venir du même fournisseur, et relire à chaque ligne fausserait le coût.
@@ -111,7 +116,8 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
 
   // Coût servi par produit : moyenne pondérée des lots reçus. Un produit sans
   // lot n'a pas de coût servi, et aucun chiffre n'est avancé à la place.
-  const batches = await listBatches(store);
+  const batchesAll = await listBatches(store);
+  const batches = scope ? batchesAll.filter(batch => productIds.has(String(batch.productId))) : batchesAll;
   const servedCostByProduct = new Map<string, { cents: number; batchCount: number }>();
   for (const product of catalog) {
     const productBatches = batches.filter(batch => batch.productId === product.id);
@@ -124,7 +130,7 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
     });
   }
 
-  const rows: ProductCockpitRow[] = report.perProduct.map(entry => {
+  const rows: ProductCockpitRow[] = reportEntries.map(entry => {
     const product = byId.get(entry.productId);
     const supplierId = product?.supplierId;
     const documents = supplierId ? documentsBySupplier.get(supplierId) : undefined;
@@ -185,10 +191,10 @@ export async function getOperationsCockpit(store: SupabaseServerStore): Promise<
 
   return {
     generatedAt: new Date().toISOString(),
-    products: report.products,
-    readyToPublish: report.readyToPublish,
-    publishedStatus: report.publishedStatus,
-    publishedButNotListable: report.publishedButNotListable,
+    products: rows.length,
+    readyToPublish: rows.filter(row => row.ready).length,
+    publishedStatus: rows.filter(row => row.catalogStatus === 'published').length,
+    publishedButNotListable: rows.filter(row => row.catalogStatus === 'published' && !row.ready).length,
     rows,
     blockers: [...blockerMap.entries()]
       .map(([label, productIds]) => ({ label, count: productIds.length, productIds }))

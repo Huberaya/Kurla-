@@ -47,6 +47,7 @@ import {
   requireUser,
 } from './src/server/auth';
 import type { AuthenticatedRequest, AuthenticatedUser } from './src/server/types';
+import { filterOrderItems, isProductInWorkspace, orderForWorkspace, orderFullyInWorkspace, orderInWorkspace, professionalInWorkspace, productIdFromOrderItem, readWorkspaceScope, returnForWorkspace, type WorkspaceScope } from './src/server/workspaceScope';
 import { getGeminiClient } from './src/server/ai/client';
 import { getStripeClient } from './src/server/payments/stripeClient';
 import { confirmOrderPaidFromCheckoutSession, reconcileOrderPayment, reconcilePendingOrders } from './src/server/payments/reconcileCheckout';
@@ -56,6 +57,19 @@ import { confirmOrderPaidFromCheckoutSession, reconcileOrderPayment, reconcilePe
  * des chaînes courtes sur un jeu de clés connu, pour éviter toute injection ou
  * tout dépassement de taille. Renvoie null si rien d'exploitable.
  */
+async function workspaceCatalogIds(scope: WorkspaceScope): Promise<Set<string>> {
+  const products = await serverDb.getAdminCatalogProducts();
+  return new Set(products.filter(product => isProductInWorkspace(product, scope)).map(product => String(product.id)));
+}
+
+async function workspaceOrderIds(scope: WorkspaceScope): Promise<Set<string>> {
+  const [orders, productIds] = await Promise.all([
+    serverDb.getOrdersByCustomer('', ''),
+    workspaceCatalogIds(scope)
+  ]);
+  return new Set(orders.filter(order => orderFullyInWorkspace(order, productIds)).map(order => order.id));
+}
+
 function sanitizeAttribution(raw: unknown): { last: Record<string, string> | null; first: Record<string, string> | null } | null {
   if (!raw || typeof raw !== 'object') return null;
   const allowed = ['source', 'medium', 'campaign', 'term', 'content', 'referrer', 'channel', 'landingPath', 'capturedAt'];
@@ -1117,10 +1131,18 @@ app.get('/api/orders', async (req: AuthenticatedRequest, res: Response) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const orders = ADMIN_ROLES.includes(user.role)
+  let orders = ADMIN_ROLES.includes(user.role)
     ? await serverDb.getOrdersByCustomer('', '')
     : await serverDb.getOrdersByCustomer(user.email, user.id);
-  return res.json({ orders });
+  const scope = ADMIN_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope) {
+    const productIds = await workspaceCatalogIds(scope);
+    orders = orders.flatMap(order => {
+      const scopedOrder = orderForWorkspace(order, productIds);
+      return scopedOrder ? [scopedOrder] : [];
+    });
+  }
+  return res.json({ orders, scope: scope || 'all' });
 });
 
 // Supabase Connection Status Endpoint
@@ -1555,7 +1577,9 @@ app.get('/api/admin/catalog/:productId/validation', asyncRoute(async (req: Authe
   if (!admin) return;
   const product = await serverDb.getProductById(req.params.productId);
   if (!product) return res.status(404).json({ error: 'Produit introuvable.' });
-  res.json({ events: await serverDb.getCatalogValidationEvents(product.id) });
+  const scope = readWorkspaceScope(req);
+  if (scope && !(await workspaceCatalogIds(scope)).has(String(product.id))) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+  res.json({ events: await serverDb.getCatalogValidationEvents(product.id), scope: scope || 'all' });
 }));
 
 app.post('/api/admin/catalog/validation', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -1563,6 +1587,8 @@ app.post('/api/admin/catalog/validation', asyncRoute(async (req: AuthenticatedRe
   if (!admin) return;
   const productId = typeof req.body?.productId === 'string' ? req.body.productId : '';
   if (!productId) return res.status(400).json({ error: 'Produit obligatoire.' });
+  const scope = readWorkspaceScope(req);
+  if (scope && !(await workspaceCatalogIds(scope)).has(productId)) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
   await serverDb.recordCatalogValidation(admin.id, productId, String(req.body?.checkType || ''), req.body?.status, typeof req.body?.evidenceUrl === 'string' ? req.body.evidenceUrl : undefined, typeof req.body?.note === 'string' ? req.body.note : undefined);
   res.status(201).json({ ok: true });
 }));
@@ -1571,6 +1597,8 @@ app.patch('/api/admin/catalog/:productId/status', asyncRoute(async (req: Authent
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope && !(await workspaceCatalogIds(scope)).has(req.params.productId)) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
     await serverDb.updateCatalogStatus(req.params.productId, req.body?.status);
     res.json({ ok: true });
   } catch (error) {
@@ -1643,6 +1671,10 @@ async function getOwnedTicket(ticketId: string, user: AuthenticatedUser): Promis
     ? await serverDb.getAllSupportTickets()
     : await serverDb.getSupportTicketsByUser(user.id);
   return tickets.find(ticket => ticket.id === ticketId);
+}
+
+async function ticketInWorkspace(ticket: any, scope: WorkspaceScope): Promise<boolean> {
+  return Boolean(ticket?.orderId && (await workspaceOrderIds(scope)).has(ticket.orderId));
 }
 
 // KURLA Pro applications may be submitted by guests. If a valid Supabase
@@ -1724,8 +1756,10 @@ app.get('/api/admin/professional-applications', asyncRoute(async (req: Authentic
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   try {
-    const applications = await serverDb.getProfessionalApplications();
-    res.json({ applications });
+    let applications = await serverDb.getProfessionalApplications();
+    const scope = readWorkspaceScope(req);
+    if (scope) applications = applications.filter(application => professionalInWorkspace(application, scope));
+    res.json({ applications, scope: scope || 'all' });
   } catch (err) {
     console.error('[ProApplications] admin list error:', err);
     res.status(500).json({ error: safeApiError(err, 'Impossible de charger les candidatures Pro.') });
@@ -1745,6 +1779,13 @@ app.post('/api/admin/professional-applications/:id/status', asyncRoute(async (re
   }
 
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const current = (await serverDb.getProfessionalApplications()).find(item => item.id === req.params.id);
+      if (!current || !professionalInWorkspace(current, scope)) {
+        return res.status(404).json({ error: 'Candidature introuvable dans cet espace.' });
+      }
+    }
     const application = await serverDb.updateProfessionalApplication(
       req.params.id,
       status as any,
@@ -1848,9 +1889,11 @@ app.get('/api/shipments/:orderId', asyncRoute(async (req: AuthenticatedRequest, 
   if (!user) return;
   const order = await getOwnedOrder(req.params.orderId, user);
   if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+  const scope = ADMIN_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope && !orderFullyInWorkspace(order, await workspaceCatalogIds(scope))) return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
 
   const shipment = await serverDb.getShipmentByOrderId(order.id);
-  res.json({ shipment: shipment || null });
+  res.json({ shipment: shipment || null, scope: scope || 'all' });
 }));
 
 app.get('/api/shipments/:orderId/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -1858,7 +1901,9 @@ app.get('/api/shipments/:orderId/history', asyncRoute(async (req: AuthenticatedR
   if (!user) return;
   const order = await getOwnedOrder(req.params.orderId, user);
   if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
-  res.json({ history: await serverDb.getShipmentHistory(order.id) });
+  const scope = ADMIN_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope && !orderFullyInWorkspace(order, await workspaceCatalogIds(scope))) return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+  res.json({ history: await serverDb.getShipmentHistory(order.id), scope: scope || 'all' });
 }));
 
 // Delivery address book. An address is always owned by the authenticated
@@ -1927,8 +1972,14 @@ app.get('/api/returns', asyncRoute(async (req: AuthenticatedRequest, res: Respon
   if (!user) return;
 
   if (ADMIN_ROLES.includes(user.role)) {
-    const allReturns = await serverDb.getAllReturns();
-    return res.json({ returns: allReturns });
+    let allReturns = await serverDb.getAllReturns();
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const productIds = await workspaceCatalogIds(scope);
+      const orderIds = new Set((await serverDb.getOrdersByCustomer('', '')).filter(order => orderInWorkspace(order, productIds)).map(order => order.id));
+      allReturns = allReturns.flatMap(item => orderIds.has(item.orderId) ? [returnForWorkspace(item, productIds)].filter(Boolean) : []);
+    }
+    return res.json({ returns: allReturns, scope: scope || 'all' });
   }
   const userReturns = await serverDb.getReturnsByUser(user.id);
   res.json({ returns: userReturns });
@@ -1940,6 +1991,13 @@ app.get('/api/returns/:id/history', asyncRoute(async (req: AuthenticatedRequest,
   const returns = ADMIN_ROLES.includes(user.role) ? await serverDb.getAllReturns() : await serverDb.getReturnsByUser(user.id);
   const returnRequest = returns.find(item => item.id === req.params.id);
   if (!returnRequest) return res.status(404).json({ error: 'Demande de retour introuvable.' });
+  const scope = ADMIN_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope) {
+    const productIds = await workspaceCatalogIds(scope);
+    if (!(await workspaceOrderIds(scope)).has(returnRequest.orderId) || !returnForWorkspace(returnRequest, productIds)) {
+      return res.status(404).json({ error: 'Demande de retour introuvable dans cet espace.' });
+    }
+  }
   res.json({ history: await serverDb.getReturnHistory(returnRequest.id) });
 }));
 
@@ -1956,10 +2014,20 @@ app.post('/api/admin/returns/:id/status', asyncRoute(async (req: AuthenticatedRe
   }
 
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const current = (await serverDb.getAllReturns()).find(item => item.id === req.params.id);
+      const productIds = await workspaceCatalogIds(scope);
+      if (!current || !(await workspaceOrderIds(scope)).has(current.orderId) || !returnForWorkspace(current, productIds)) {
+        return res.status(404).json({ error: 'Demande de retour introuvable dans cet espace.' });
+      }
+    }
     const ret = await serverDb.updateReturnStatus(req.params.id, status as any, typeof adminComment === 'string' ? adminComment.trim() : undefined, admin.id, admin.role === 'support' ? 'support' : 'admin');
     if (!ret) return res.status(404).json({ error: 'Demande de retour introuvable.' });
     await serverDb.recordAdminAudit(admin.id, 'admin_return_status_update', { returnId: ret.id, status });
-    res.json({ returnRequest: ret });
+    const responseReturn = scope ? returnForWorkspace(ret, await workspaceCatalogIds(scope)) : ret;
+    if (!responseReturn) return res.status(404).json({ error: 'Demande de retour introuvable dans cet espace.' });
+    res.json({ returnRequest: responseReturn });
   } catch (err: any) {
     res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le statut du retour.') });
   }
@@ -1982,6 +2050,10 @@ app.post('/api/admin/refunds', asyncRoute(async (req: AuthenticatedRequest, res:
   }
 
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope && !(await workspaceOrderIds(scope)).has(orderId)) {
+      return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+    }
     const refund = await serverDb.processStripeRefund(
       orderId,
       typeof returnId === 'string' ? returnId : undefined,
@@ -2001,10 +2073,15 @@ app.get('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const tickets = SUPPORT_ROLES.includes(user.role)
+  let tickets = SUPPORT_ROLES.includes(user.role)
     ? await serverDb.getAllSupportTickets()
     : await serverDb.getSupportTicketsByUser(user.id);
-  res.json({ tickets });
+  const scope = SUPPORT_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope) {
+    const orderIds = await workspaceOrderIds(scope);
+    tickets = tickets.filter(ticket => Boolean(ticket.orderId && orderIds.has(ticket.orderId)));
+  }
+  res.json({ tickets, scope: scope || 'all' });
 }));
 
 app.post('/api/support/tickets', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -2041,6 +2118,8 @@ app.get('/api/support/tickets/:id/messages', asyncRoute(async (req: Authenticate
   if (!user) return;
   const ticket = await getOwnedTicket(req.params.id, user);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = SUPPORT_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
 
   const [messages, events, attachments] = await Promise.all([
     serverDb.getSupportMessages(ticket.id),
@@ -2055,6 +2134,8 @@ app.post('/api/support/tickets/:id/messages', asyncRoute(async (req: Authenticat
   if (!user) return;
   const ticket = await getOwnedTicket(req.params.id, user);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = SUPPORT_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
 
   const message = req.body?.message;
   if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ error: 'Message vide.' });
@@ -2076,6 +2157,8 @@ app.post('/api/admin/support/tickets/:id/status', asyncRoute(async (req: Authent
 
   const ticket = await getOwnedTicket(req.params.id, admin);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = readWorkspaceScope(req);
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
   await serverDb.updateSupportTicketStatus(ticket.id, status as any, admin.id);
   await serverDb.recordAdminAudit(admin.id, 'support_ticket_status_update', { ticketId: ticket.id, status });
   res.json({ success: true });
@@ -2090,6 +2173,8 @@ app.post('/api/admin/support/tickets/:id/priority', asyncRoute(async (req: Authe
   }
   const ticket = await getOwnedTicket(req.params.id, agent);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = readWorkspaceScope(req);
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
   const updated = await serverDb.updateSupportTicketPriority(ticket.id, priority as any, agent.id);
   await serverDb.recordAdminAudit(agent.id, 'support_ticket_priority_update', { ticketId: ticket.id, priority });
   res.json({ ticket: updated });
@@ -2107,6 +2192,8 @@ app.post('/api/admin/support/tickets/:id/assignment', asyncRoute(async (req: Aut
   }
   const ticket = await getOwnedTicket(req.params.id, agent);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = readWorkspaceScope(req);
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
   const updated = await serverDb.assignSupportTicket(ticket.id, assignedAgentId || undefined, agent.id);
   await serverDb.recordAdminAudit(agent.id, 'support_ticket_assignment_update', { ticketId: ticket.id, assignedAgentId: assignedAgentId || null });
   res.json({ ticket: updated });
@@ -2120,6 +2207,8 @@ app.post('/api/support/tickets/:id/attachments', express.raw({
   if (!user) return;
   const ticket = await getOwnedTicket(req.params.id, user);
   if (!ticket) return res.status(404).json({ error: 'Ticket introuvable.' });
+  const scope = SUPPORT_ROLES.includes(user.role) ? readWorkspaceScope(req) : undefined;
+  if (scope && !(await ticketInWorkspace(ticket, scope))) return res.status(404).json({ error: 'Ticket introuvable dans cet espace.' });
   const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
   if (!allowedTypes.includes(contentType)) return res.status(400).json({ error: 'Format de pièce jointe non pris en charge.' });
@@ -2156,13 +2245,23 @@ app.post('/api/admin/orders/:id/status', asyncRoute(async (req: AuthenticatedReq
   }
 
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const productIds = await workspaceCatalogIds(scope);
+      const current = await serverDb.getOrderById(orderId);
+      if (!current || !orderFullyInWorkspace(current, productIds)) {
+        return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+      }
+    }
     const updated = await serverDb.updateOrderStatus(orderId, status as any, {
       changedBy: admin.id,
       changedByRole: admin.role,
       reason: typeof reason === 'string' && reason.trim() ? reason.trim() : `Mise à jour statut admin vers ${status}`
     });
     if (!updated) return res.status(404).json({ error: 'Commande introuvable.' });
-    res.json({ order: updated });
+    const responseOrder = scope ? orderForWorkspace(updated, await workspaceCatalogIds(scope)) : updated;
+    if (!responseOrder) return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+    res.json({ order: responseOrder });
   } catch (err: any) {
     res.status(400).json({ error: safeApiError(err, 'Impossible de modifier le statut.') });
   }
@@ -2171,6 +2270,14 @@ app.post('/api/admin/orders/:id/status', asyncRoute(async (req: AuthenticatedReq
 app.get('/api/admin/orders/:id/history', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
+  const scope = readWorkspaceScope(req);
+  if (scope) {
+    const productIds = await workspaceCatalogIds(scope);
+    const current = await serverDb.getOrderById(req.params.id);
+    if (!current || !orderFullyInWorkspace(current, productIds)) {
+      return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+    }
+  }
   const history = await serverDb.getOrderStatusHistory(req.params.id);
   res.json({ history });
 }));
@@ -2182,10 +2289,18 @@ app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedReques
   const admin = await requireAdmin(req, res);
   if (!admin) return;
 
-  const [orders, products] = await Promise.all([
+  const scope = readWorkspaceScope(req);
+  const [ordersAll, productsAll] = await Promise.all([
     serverDb.getOrdersByCustomer('', ''),
     serverDb.getPublicProducts()
   ]);
+  const workspaceProductIds = scope ? new Set(productsAll.filter(product => isProductInWorkspace(product, scope)).map(product => String(product.id))) : undefined;
+  const orders = scope && workspaceProductIds
+    ? ordersAll.filter(order => orderInWorkspace(order, workspaceProductIds))
+    : ordersAll;
+  const products = scope && workspaceProductIds
+    ? productsAll.filter(product => workspaceProductIds.has(String(product.id)))
+    : productsAll;
 
   // Statuts qui représentent une demande FERME (paiement confirmé, pas de
   // remboursement/annulation). Le mode Stripe TEST reste affiché séparément.
@@ -2244,7 +2359,9 @@ app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedReques
     || it.isPreorder === true;
 
   for (const order of orders) {
-    const items: any[] = (Array.isArray(order.items) ? order.items : []).filter(isLaunchItem);
+    const items: any[] = (Array.isArray(order.items) ? order.items : [])
+      .filter(isLaunchItem)
+      .filter(item => !workspaceProductIds || Boolean(productIdFromOrderItem(item) && workspaceProductIds.has(productIdFromOrderItem(item)!)));
     const orderHasLaunch = items.length > 0;
     const firm = FIRM.has(order.status);
     const pending = order.status === 'payment_pending_webhook' || order.status === 'pending_payment' || order.status === 'payment_failed';
@@ -2315,6 +2432,7 @@ app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedReques
 
   res.json({
     generatedAt: new Date().toISOString(),
+    scope: scope || 'all',
     stripeMode,
     totals: {
       firmOrders,
@@ -2333,15 +2451,39 @@ app.get('/api/admin/preorder-demand', asyncRoute(async (req: AuthenticatedReques
 app.get('/api/admin/metrics', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
-  const metrics = await serverDb.getAdminAnalyticsMetrics();
-  res.json({ metrics });
+  const metrics = await serverDb.getAdminAnalyticsMetrics(readWorkspaceScope(req));
+  res.json({ metrics, scope: readWorkspaceScope(req) || 'all' });
 }));
 
 app.get('/api/admin/dashboard', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   const dashboard = await serverDb.getAdminDashboardData();
-  res.json({ dashboard });
+  const scope = readWorkspaceScope(req);
+  if (scope) {
+    const productIds = await workspaceCatalogIds(scope);
+    const orders = (dashboard.orders || []).flatMap((order: ServerOrder) => {
+      const scopedOrder = orderForWorkspace(order, productIds);
+      return scopedOrder ? [scopedOrder] : [];
+    });
+    const orderIds = new Set(orders.map((order: ServerOrder) => order.id));
+    dashboard.products = (dashboard.products || []).filter((product: any) => productIds.has(String(product.id)));
+    dashboard.orders = orders;
+    dashboard.returns = (dashboard.returns || []).flatMap((item: any) => orderIds.has(item.orderId) ? [returnForWorkspace(item, productIds)].filter(Boolean) : []);
+    dashboard.refunds = (dashboard.refunds || []).filter((item: any) => orderIds.has(item.orderId));
+    dashboard.shipments = (dashboard.shipments || []).filter((item: any) => orderIds.has(item.orderId));
+    dashboard.variants = (dashboard.variants || []).filter((item: any) => productIds.has(String(item.productId || item.product_id)));
+    dashboard.images = (dashboard.images || []).filter((item: any) => productIds.has(String(item.productId || item.product_id)));
+    dashboard.inventory = (dashboard.inventory || []).filter((item: any) => productIds.has(String(item.productId || item.product_id)));
+    dashboard.payments = (dashboard.payments || []).filter((item: any) => orderIds.has(item.orderId || item.order_id));
+    dashboard.reviews = (dashboard.reviews || []).filter((item: any) => productIds.has(String(item.productId || item.product_id)));
+    dashboard.notifications = (dashboard.notifications || []).filter((item: any) => Boolean(item.orderId && orderIds.has(item.orderId)));
+    dashboard.professionals = (dashboard.professionals || []).filter((item: any) => professionalInWorkspace(item, scope));
+    dashboard.users = [];
+    dashboard.coupons = [];
+    dashboard.logs = [];
+  }
+  res.json({ dashboard, scope: scope || 'all' });
 }));
 
 app.post('/api/admin/entities/:entity', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -2387,6 +2529,13 @@ app.post('/api/admin/reviews/:id/status', asyncRoute(async (req: AuthenticatedRe
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const current = (await serverDb.getAdminDashboardData()).reviews?.find((item: any) => item.id === req.params.id);
+      if (!current || !(await workspaceCatalogIds(scope)).has(String(current.productId || current.product_id))) {
+        return res.status(404).json({ error: 'Avis introuvable dans cet espace.' });
+      }
+    }
     const review = await serverDb.updateAdminReviewStatus(admin.id, req.params.id, req.body?.status);
     if (!review) return res.status(404).json({ error: 'Avis introuvable.' });
     res.json({ review });
@@ -2399,6 +2548,14 @@ app.post('/api/admin/payments/:id/status', asyncRoute(async (req: AuthenticatedR
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const current = (await serverDb.getAdminDashboardData()).payments?.find((item: any) => item.id === req.params.id);
+      const orderId = current?.orderId || current?.order_id;
+      if (!current || !orderId || !(await workspaceOrderIds(scope)).has(String(orderId))) {
+        return res.status(404).json({ error: 'Paiement introuvable dans cet espace.' });
+      }
+    }
     const payment = await serverDb.updateAdminPaymentStatus(admin.id, req.params.id, req.body?.status);
     if (!payment) return res.status(404).json({ error: 'Paiement introuvable.' });
     res.json({ payment });
@@ -2412,7 +2569,9 @@ app.get('/api/admin/shipments/:orderId/history', asyncRoute(async (req: Authenti
   if (!admin) return;
   const order = await serverDb.getOrderById(req.params.orderId);
   if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
-  res.json({ history: await serverDb.getShipmentHistory(order.id) });
+  const scope = readWorkspaceScope(req);
+  if (scope && !orderFullyInWorkspace(order, await workspaceCatalogIds(scope))) return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+  res.json({ history: await serverDb.getShipmentHistory(order.id), scope: scope || 'all' });
 }));
 
 app.get('/api/admin/shipping/rates', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
@@ -2452,6 +2611,10 @@ app.patch('/api/admin/shipments/:orderId', asyncRoute(async (req: AuthenticatedR
   if (!admin) return;
   const order = await serverDb.getOrderById(req.params.orderId);
   if (!order) return res.status(404).json({ error: 'Commande introuvable.' });
+  const scope = readWorkspaceScope(req);
+  if (scope && !orderFullyInWorkspace(order, await workspaceCatalogIds(scope))) {
+    return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+  }
   const allowedCarriers = ['manual', 'colissimo', 'mondial_relay', 'chronopost', 'dhl', 'autre'];
   const allowedStatuses = ['preparing', 'label_created', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'failed'];
   const carrier = typeof req.body?.carrier === 'string' && allowedCarriers.includes(req.body.carrier) ? req.body.carrier : 'manual';
@@ -2569,6 +2732,7 @@ app.get('/api/cron/reconcile-payments', asyncRoute(async (req: AuthenticatedRequ
 app.post('/api/admin/reconcile-payments', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
+  if (readWorkspaceScope(req)) return res.status(400).json({ error: 'La réconciliation globale ne peut pas être exécutée dans un espace filtré.' });
   try {
     const result = await reconcilePendingOrders({});
     res.json({ ok: true, ...result });
@@ -2586,6 +2750,13 @@ app.post('/api/admin/orders/:orderId/reconcile-payment', asyncRoute(async (req: 
     return res.status(400).json({ error: 'Numéro de commande invalide.' });
   }
   try {
+    const scope = readWorkspaceScope(req);
+    if (scope) {
+      const order = await serverDb.getOrderById(orderId);
+      if (!order || !orderFullyInWorkspace(order, await workspaceCatalogIds(scope))) {
+        return res.status(404).json({ error: 'Commande introuvable dans cet espace.' });
+      }
+    }
     res.json({ ok: true, ...(await reconcileOrderPayment(orderId)) });
   } catch (error) {
     res.status(500).json({ error: safeApiError(error, 'Vérification du paiement impossible.') });

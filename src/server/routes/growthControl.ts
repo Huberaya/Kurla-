@@ -18,6 +18,7 @@ import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { requireAdmin } from '../auth';
 import type { AuthenticatedRequest } from '../types';
+import { readWorkspaceScope } from '../workspaceScope';
 
 function numberOrNull(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
@@ -32,9 +33,10 @@ function dateIsValid(value: unknown): value is string {
 async function realGrowthMetrics(
   campaigns: Awaited<ReturnType<typeof serverDb.listGrowthCampaigns>>,
   attribution: Awaited<ReturnType<typeof serverDb.getGrowthAttribution>>,
-  funnel: Awaited<ReturnType<typeof serverDb.getGrowthFunnelMetrics>>
+  funnel: Awaited<ReturnType<typeof serverDb.getGrowthFunnelMetrics>>,
+  scope?: import('../workspaceScope').WorkspaceScope
 ) {
-  const metrics = await serverDb.getAdminAnalyticsMetrics();
+  const metrics = await serverDb.getAdminAnalyticsMetrics(scope);
   const trackedCampaigns = campaigns.filter(campaign => campaign.actualClients !== null && campaign.actualSpendEur !== null);
   const attributedClients = attribution.reduce((sum, campaign) => sum + Number(campaign.orders || 0), 0);
   const attributedRevenueEur = attribution.reduce((sum, campaign) => sum + Number(campaign.revenueEur || 0), 0);
@@ -113,7 +115,7 @@ export function registerGrowthControlRoutes(app: Express): void {
         const measured = attribution.find(row => row.campaign === campaign.trackingCampaign);
         return { ...campaign, measuredOrders: measured?.orders || 0, measuredRevenueEur: measured?.revenueEur || 0, measuredChannel: measured?.channel || null };
       });
-      const real = await realGrowthMetrics(campaigns, attribution, funnel);
+      const real = await realGrowthMetrics(campaigns, attribution, funnel, readWorkspaceScope(req));
       const markets = seeded.markets;
       const alerts = computeAlerts(real, campaigns, tasks);
       const decisionRecommended = alerts.some(alert => alert.level === 'red')

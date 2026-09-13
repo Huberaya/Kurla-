@@ -40,8 +40,9 @@ assertIncludes(migration, 'CREATE POLICY "Admins manage coupons"', 'RLS coupons'
 const source = [readFileSync('src/lib/serverDb.ts', 'utf8')]
   .concat(readdirSync('src/lib/db').map(file => readFileSync(`src/lib/db/${file}`, 'utf8')))
   .join('\n');
-assert.match(source, /const sourceOrders: ServerOrder\[\] = supabase \? supaOrders : store\.inMemoryOrders/);
-assert.match(source, /searchesWithoutResultsCount: zeroResultSearches\.length/);
+assert.match(source, /const allSourceOrders: ServerOrder\[\] = supabase \? supaOrders : store\.inMemoryOrders/);
+assert.match(source, /orderInWorkspace\(order, scopeProductIds\)/);
+assert.match(source, /searchesWithoutResultsCount:\s*(?:workspaceUnattributable \? null : )?zeroResultSearches\.length/);
 assert.match(source, /popularProducts/);
 assert.match(source, /aiUsageRate/);
 assert.doesNotMatch(source, /totalOrders:\s*\d+/);

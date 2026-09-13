@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { SupplierAmbiguityError, SUPPLIER_DOCUMENT_TYPES, SUPPLIER_TYPES } from '../../lib/db/supplierStore';
 import { asyncRoute, safeApiError } from '../http';
 import { requireAdmin, type AuthenticatedRequest } from '../auth';
+import { isProductInWorkspace, readWorkspaceScope } from '../workspaceScope';
 
 /**
  * CHANTIER 16B — SURFACE D'ADMINISTRATION DES FOURNISSEURS.
@@ -24,12 +25,25 @@ import { requireAdmin, type AuthenticatedRequest } from '../auth';
  *     renvoyées par l'API pour que l'écran propose des valeurs réelles plutôt
  *     qu'un champ libre.
  */
+async function workspaceSupplierIds(scope: ReturnType<typeof readWorkspaceScope>): Promise<Set<string> | undefined> {
+  if (!scope) return undefined;
+  const products = await serverDb.getAdminCatalogProducts();
+  return new Set(products
+    .filter(product => isProductInWorkspace(product, scope))
+    .map(product => product.supplierId || product.supplier_id)
+    .filter(Boolean)
+    .map(String));
+}
+
 export function registerSupplierRoutes(app: Express): void {
   app.get('/api/admin/suppliers', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const suppliers = await serverDb.listSuppliers();
+      const scope = readWorkspaceScope(req);
+      const supplierIds = await workspaceSupplierIds(scope);
+      const allSuppliers = await serverDb.listSuppliers();
+      const suppliers = supplierIds ? allSuppliers.filter(supplier => supplierIds.has(String(supplier.id))) : allSuppliers;
       // Le nombre de preuves est calculé par entité : « vérifié » sans document
       // serait un affichage mensonger, donc l'écran reçoit de quoi le voir.
       const detailed = await Promise.all(suppliers.map(async supplier => {
@@ -45,7 +59,8 @@ export function registerSupplierRoutes(app: Express): void {
         suppliers: detailed,
         count: detailed.length,
         supplierTypes: SUPPLIER_TYPES,
-        documentTypes: SUPPLIER_DOCUMENT_TYPES
+        documentTypes: SUPPLIER_DOCUMENT_TYPES,
+        scope: scope || 'all'
       });
     } catch (error) {
       console.error('[Suppliers] list error:', error);
@@ -57,8 +72,19 @@ export function registerSupplierRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
+      const scope = readWorkspaceScope(req);
+      const supplierIds = await workspaceSupplierIds(scope);
+      if (supplierIds && !supplierIds.has(req.params.supplierId)) {
+        return res.status(404).json({ error: 'Fournisseur introuvable dans cet espace.' });
+      }
       const detail = await serverDb.getSupplierDetail(req.params.supplierId);
-      res.json(detail);
+      if (scope) {
+        const allowedProductIds = new Set((await serverDb.getAdminCatalogProducts())
+          .filter(product => isProductInWorkspace(product, scope))
+          .map(product => String(product.id)));
+        detail.products = detail.products.filter((product: any) => allowedProductIds.has(String(product.id)));
+      }
+      res.json({ ...detail, scope: scope || 'all' });
     } catch (error) {
       console.error('[Suppliers] detail error:', error);
       res.status(404).json({ error: safeApiError(error, 'Fournisseur introuvable.') });
@@ -120,6 +146,11 @@ export function registerSupplierRoutes(app: Express): void {
       const { supplierId, supplierSku, sourceSupplier } = req.body || {};
       const supabase = getSupabaseServerClient();
       if (!supabase) return res.status(503).json({ error: 'Base de données indisponible.' });
+      const scope = readWorkspaceScope(req);
+      if (scope) {
+        const product = (await serverDb.getAdminCatalogProducts()).find(item => String(item.id) === req.params.productId);
+        if (!product || !isProductInWorkspace(product, scope)) return res.status(404).json({ error: 'Produit introuvable dans cet espace.' });
+      }
 
       const update: Record<string, unknown> = {};
       if (typeof supplierId === 'string') {

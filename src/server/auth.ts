@@ -35,6 +35,20 @@ export function bearerToken(req: AuthenticatedRequest): string | null {
  */
 export async function authenticateRequest(req: AuthenticatedRequest): Promise<AuthenticatedUser | null> {
   const token = bearerToken(req);
+  // Test-only authenticated fixture. It is deliberately gated by NODE_ENV=test
+  // and an explicit token, so it cannot become a production authentication
+  // bypass if a test variable is accidentally copied to a deployment.
+  if (process.env.NODE_ENV === 'test' && token && token === process.env.KURLA_TEST_AUTH_TOKEN) {
+    const role = process.env.KURLA_TEST_AUTH_ROLE as UserRole;
+    const allowedRoles: UserRole[] = ['customer', 'professional', 'support', 'editor', 'brand', 'admin', 'superadmin'];
+    if (allowedRoles.includes(role)) {
+      return {
+        id: process.env.KURLA_TEST_AUTH_USER_ID || 'test-auth-user',
+        email: process.env.KURLA_TEST_AUTH_EMAIL || 'test-auth@example.invalid',
+        role
+      };
+    }
+  }
   const verifier = getSupabaseAuthVerifier();
   if (!token || !verifier) return null;
 

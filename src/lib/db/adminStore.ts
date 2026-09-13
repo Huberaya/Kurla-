@@ -17,6 +17,7 @@ import {
 } from '../editorialCompliance';
 import { ensureDatabaseSuccess, isUuid, mapOrderVatFields, mapOrderCouponFields } from './internal';
 import { mapRefundRow } from './refundSupport';
+import { isProductInWorkspace, orderForWorkspace, orderInWorkspace, type WorkspaceScope } from '../../server/workspaceScope';
 
 import type {
   CustomerRefund,
@@ -512,8 +513,12 @@ export async function recordAiUsage(store: SupabaseServerStore, requestType: str
   // ============================================================
   // PHASE 5: REAL ADMIN ANALYTICS METRICS
   // ============================================================
-export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Promise<any> {
+export async function getAdminAnalyticsMetrics(store: SupabaseServerStore, scope?: WorkspaceScope): Promise<any> {
     const products = await store.getProducts();
+    const scopeProductIds = scope
+      ? new Set((await store.getAdminCatalogProducts()).filter(product => isProductInWorkspace(product, scope)).map(product => String(product.id)))
+      : undefined;
+    const scopedProducts = scopeProductIds ? products.filter(product => scopeProductIds.has(String(product.id))) : products;
     const supabase = getSupabaseServerClient();
     let supaOrders: ServerOrder[] = [];
     let supaRefunds: CustomerRefund[] = [];
@@ -598,8 +603,20 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
 
     // Never merge the local cache with Supabase: once persistence is
     // configured, the dashboard must describe the persistent source only.
-    const sourceOrders: ServerOrder[] = supabase ? supaOrders : store.inMemoryOrders;
-    const sourceRefunds: CustomerRefund[] = supabase ? supaRefunds : store.inMemoryRefunds;
+    const allSourceOrders: ServerOrder[] = supabase ? supaOrders : store.inMemoryOrders;
+    const sourceOrders: ServerOrder[] = scopeProductIds
+      ? allSourceOrders
+        .filter(order => orderInWorkspace(order, scopeProductIds))
+        .flatMap(order => {
+          const scopedOrder = orderForWorkspace(order, scopeProductIds);
+          return scopedOrder ? [scopedOrder] : [];
+        })
+      : allSourceOrders;
+    const allSourceRefunds: CustomerRefund[] = supabase ? supaRefunds : store.inMemoryRefunds;
+    const scopedOrderIds = new Set(sourceOrders.map(order => order.id));
+    const sourceRefunds: CustomerRefund[] = scopeProductIds
+      ? allSourceRefunds.filter(refund => scopedOrderIds.has(refund.orderId))
+      : allSourceRefunds;
     const revenueStatuses: OrderStatus[] = [
       'paid', 'processing', 'packed', 'shipped', 'delivered',
       'return_requested', 'returned', 'partially_refunded', 'refunded'
@@ -623,7 +640,11 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
     // AOV is deliberately calculated from persisted paid orders, not from a
     // fixture. Refunds are shown separately and do not rewrite order history.
     const avgOrderValue = paidOrders.length > 0 ? grossRevenue / paidOrders.length : 0;
-    const searchEvents: any[] = supabase ? supaSearchEvents : store.inMemoryAdminSearchEvents;
+    // These event/profile tables are not attributable to a workspace in the
+    // current schema. A scoped dashboard must not turn global values into a
+    // false Skin/Hair metric: expose them as non-mesurable instead.
+    const workspaceUnattributable = Boolean(scopeProductIds);
+    const searchEvents: any[] = workspaceUnattributable ? [] : (supabase ? supaSearchEvents : store.inMemoryAdminSearchEvents);
     const zeroResultSearches = searchEvents.filter(event => Number(event.result_count ?? event.resultCount) === 0);
     const zeroResultByQuery = new Map<string, number>();
     zeroResultSearches.forEach(event => {
@@ -634,16 +655,16 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
       .map(([query, count]) => ({ query, count }))
       .sort((a, b) => b.count - a.count || a.query.localeCompare(b.query))
       .slice(0, 10);
-    const aiUsageEvents: any[] = supabase ? supaAiUsageEvents : store.inMemoryAdminAiUsageEvents;
+    const aiUsageEvents: any[] = workspaceUnattributable ? [] : (supabase ? supaAiUsageEvents : store.inMemoryAdminAiUsageEvents);
     const activeAiUsers = new Set(aiUsageEvents.filter(event => event.succeeded && (event.user_id || event.userId)).map(event => event.user_id || event.userId));
-    const aiUsageRate = supaProfilesCount > 0 ? (activeAiUsers.size / supaProfilesCount) * 100 : null;
+    const aiUsageRate = workspaceUnattributable ? null : (supaProfilesCount > 0 ? (activeAiUsers.size / supaProfilesCount) * 100 : null);
     const popularProductCounts = new Map<string, number>();
     paidOrders.forEach(order => (order.items || []).forEach((item: any) => {
       const productId = item.productId || item.product_id;
       const quantity = Number(item.quantity || 0);
       if (productId && quantity > 0) popularProductCounts.set(productId, (popularProductCounts.get(productId) || 0) + quantity);
     }));
-    const productById = new Map(products.map(product => [product.id, product]));
+    const productById = new Map(scopedProducts.map(product => [product.id, product]));
     const popularProducts = Array.from(popularProductCounts.entries())
       .map(([productId, quantity]) => ({ productId, name: productById.get(productId)?.name || 'Produit non renseigné', quantity }))
       .sort((a, b) => b.quantity - a.quantity)
@@ -699,8 +720,8 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
     // Nouveaux clients (créés en base, tous statuts).
     const newCustomers = supaProfilesCount;
 
-    const lowStockProducts = products.filter(p => p.stockQuantity < 5 && p.stockQuantity > 0);
-    const outOfStockProducts = products.filter(p => p.stockQuantity === 0 || !p.inStock);
+    const lowStockProducts = scopedProducts.filter(p => p.stockQuantity < 5 && p.stockQuantity > 0);
+    const outOfStockProducts = scopedProducts.filter(p => p.stockQuantity === 0 || !p.inStock);
 
     return {
       revenueTest,
@@ -713,20 +734,22 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
       processingOrdersCount: processingOrders.length,
       shippedOrdersCount: shippedOrders.length,
       refundedOrdersCount: refundedOrders.length,
-      refundsCount: supabase ? supaRefundCount : inMemoryRefundCount,
+      refundsCount: workspaceUnattributable
+        ? sourceRefunds.filter(refund => ['succeeded', 'completed', 'pending'].includes(refund.status)).length
+        : (supabase ? supaRefundCount : inMemoryRefundCount),
       avgOrderValue,
       lowStockProducts,
       outOfStockProducts,
       popularProducts,
-      searchesWithoutResultsCount: zeroResultSearches.length,
-      topZeroResultSearches,
+      searchesWithoutResultsCount: workspaceUnattributable ? null : zeroResultSearches.length,
+      topZeroResultSearches: workspaceUnattributable ? [] : topZeroResultSearches,
       aiUsageRate,
-      aiUsageEventsCount: aiUsageEvents.length,
-      openTicketsCount: supabase
-        ? supaTicketsCount
-        : store.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length,
-      stripeEventsCount: supabase ? supaEventsCount : store.processedEventsSet.size,
-      registeredUsersCount: supabase ? supaProfilesCount : 0,
+      aiUsageEventsCount: workspaceUnattributable ? null : aiUsageEvents.length,
+      openTicketsCount: workspaceUnattributable
+        ? null
+        : (supabase ? supaTicketsCount : store.inMemoryTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length),
+      stripeEventsCount: workspaceUnattributable ? null : (supabase ? supaEventsCount : store.processedEventsSet.size),
+      registeredUsersCount: workspaceUnattributable ? null : (supabase ? supaProfilesCount : 0),
       // Métriques business / pilotage
       estimatedMargin,
       estimatedMarginRate,
@@ -734,8 +757,8 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore): Prom
       repeatCustomers,
       repeatRate,
       ltvProxy,
-      newCustomers,
-      waitlistCount: supaWaitlistCount,
+      newCustomers: workspaceUnattributable ? null : newCustomers,
+      waitlistCount: workspaceUnattributable ? null : supaWaitlistCount,
       stripeMode: (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_') ? 'live'
         : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown'
     };

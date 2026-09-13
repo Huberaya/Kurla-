@@ -3,6 +3,7 @@ import type { Express, Response } from 'express';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { requireAdmin, type AuthenticatedRequest } from '../auth';
+import { readWorkspaceScope } from '../workspaceScope';
 
 /**
  * CHANTIER 15B — COCKPIT CATALOGUE ET APPROVISIONNEMENT.
@@ -20,8 +21,9 @@ export function registerOperationsCockpitRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const cockpit = await serverDb.getOperationsCockpit();
-      res.json({ cockpit });
+      const scope = readWorkspaceScope(req);
+      const cockpit = await serverDb.getOperationsCockpit(scope);
+      res.json({ cockpit, scope: scope || 'all' });
     } catch (error) {
       console.error('[Cockpit] error:', error);
       res.status(500).json({ error: safeApiError(error, 'Cockpit indisponible.') });
