@@ -1403,4 +1403,9 @@ suivi alertable, pas un blocage automatique.
 ⚠️ **Piège de banc** : `'dropship',` apparaît dans **deux** contraintes.
 Une assertion `sql.includes("'dropship'")` globale restait verte quand on le
 retirait de l'une des deux. Corrigé en isolant chaque bloc de contrainte,
-avec contrôle négatif dans les deux sens.
+avec contrôle négatif dans les deux sens.## Vague 1 peau — poils incarnés (besoin n°39, 13/09/2026)
+- Sources : PIÈCE 5 de `docs/RECHERCHE_SCIENCE_CHEVEUX_2026-09-13.md` (NIH 2019 PMC6585396 + AAD déjà acquis P4.2, + CDA 2026, Healthgrades/AAD, GoodRx 2024, Blueribbonderm 2026, ingrowns.com 2026).
+- Livré : 2 cartes savoirs thème `rasage` (`sci_skin_rasage_mecanisme`, `sci_skin_rasage_arret` — ~12 semaines d'arrêt) · 1 carte moyen `prob_skin_poils_incarnes` · préoccupation `poils_incarnes` posée au diagnostic (option « Poils incarnés / irritations du rasage — visage, cou, aisselles ») · labels profil pour les préoccupations sans label (rougeurs, points noirs, cernes…) · 12 cartes savoirs peau / 13 cartes moyens · banc science_hub 19 checks.
+- Detections : `concerns.includes('poils_incarnes')` — la branche passer en tête de file du picker savoirs (besoin déclaré d'abord), et après imperfections côté moyens (pigmentation garde la priorité documentée).
+- Pièges : `folliculite`/`dermatologue`/`rétino` sont dans MEDICAL_RE (corps ET sources) — jamais « pseudofolliculite » dans une carte ; `follicule` (sans le suffixe) passe.
+- `docs/BESOINS_PEAU_50_2026-09-13.md` = le backlog (31 ✅ / 6 ⚠️ / 13 🆕) ; n°39 fait, suite conseillée : 16 → 40+41 → 45+46 → 33.

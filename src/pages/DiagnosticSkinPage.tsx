@@ -275,6 +275,7 @@ export const DiagnosticSkinPage: React.FC = () => {
     { id: 'teint_terne', label: 'Teint terne / éclat', desc: '' },
     { id: 'taches', label: 'Taches / hyperpigmentation', desc: 'Post-acné, HPI' },
     { id: 'rougeurs', label: 'Rougeurs / irritations', desc: '' },
+    { id: 'poils_incarnes', label: 'Poils incarnés / irritations du rasage', desc: 'Visage, cou, aisselles' },
     { id: 'imperfections', label: 'Imperfections / boutons', desc: '' },
     { id: 'points_noirs', label: 'Points noirs / pores', desc: '' },
     { id: 'grain_irregulier', label: 'Grain irrégulier', desc: '' },

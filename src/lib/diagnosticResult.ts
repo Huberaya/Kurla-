@@ -101,6 +101,7 @@ const LABELS: Record<string, string> = {
   clair: 'Clair', intermediaire: 'Intermédiaire', fonce: 'Foncé', tres_fonce: 'Très foncé',
   faible: 'Faible', moyenne: 'Moyenne', elevee: 'Élevée', forte: 'Forte',
   taches: 'Taches / HPI', teint_terne: 'Teint terne', teint_non_uniforme: 'Teint non uniforme', imperfections: 'Imperfections',
+  poils_incarnes: 'Poils incarnés / rasage', rougeurs: 'Rougeurs', points_noirs: 'Points noirs', grain_irregulier: 'Grain irrégulier', cicatrices: 'Cicatrices', rides: 'Rides', fermete: 'Fermeté', cernes: 'Cernes',
   secheresse: 'Sécheresse', deshydratation: 'Déshydratation', sensibilite: 'Sensibilité', protection_solaire: 'Protection solaire',
   hydrater: 'Hydratation', eclat: 'Éclat', uniformiser: 'Uniformiser le teint', attenuer_taches: 'Atténuer les taches', apaiser: 'Apaiser',
   reduire_imperfections: 'Réduire les imperfections', renforcer_barriere: 'Renforcer la barrière', proteger_spf: 'Protection solaire',

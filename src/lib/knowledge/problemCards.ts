@@ -70,6 +70,25 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'La Roche-Posay (conseils consommateurs, points noirs, 2026) ; DermApproved (guide acide salicylique, 2026) ; The Inkey List (protocole d’introduction, 2026)',
   },
   {
+    key: 'prob_skin_poils_incarnes',
+    title: 'Poils incarnés : couper le cycle, pas la peau',
+    confidence: 'recherche',
+    fact: 'Un poil incarné est une pointe coupée sous la surface qui, suivant la courbure du cheveu, est rentrée dans la peau. Il imite un bouton — mais c’est un cycle mécanique : raser → pointe nette → la pique → irritation → tache sombre. Tout ce qui raccourcit le poil très près le relance.',
+    faire: [
+      'Préparez la zone à l’eau chaude avant de raser, rasez dans le sens de la pousse, par courtes passes, sans tirer la peau.',
+      'Préférez une lame unique ou une tondeuse, et changez de lame dès qu’elle accroche.',
+      'Exfoliez la zone 2 à 3×/semaine, de préférence en exfoliation chimique plutôt qu’au gommage.',
+      'Hydratez après chaque passage et évitez les vêtements serrés sur la zone.',
+    ],
+    eviter: [
+      'Le multi-lames à contre-grain — la cause principale documentée : la première lame lève le poil, les suivantes le coupent sous la surface.',
+      'Raser par-dessus une peau déjà irritée, ou « dégager » le poil à l’aiguille ou aux ongles : chaque intervention repart l’inflammation et prépare la tache.',
+      'Le rasage très fréquent : la zone a besoin de temps pour se calmer entre deux passages.',
+    ],
+    attendre: 'En arrêtant de raser la zone, les points se calment visiblement en ~12 semaines (documenté). Sans arrêt : moins de nouveaux points en 2–3 semaines de gestes réguliers ; les taches déjà formées s’estompent sur plusieurs mois.',
+    source: 'Révision NIH (2019, PMC6585396) ; AAD ; GoodRx (2024) — prévention des poils incarnés',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -282,12 +301,14 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
 
   const hasTaches = ['frequente', 'occasionnelle'].includes(hpi) || concerns.includes('taches') || concerns.includes('teint_non_uniforme') || concerns.includes('cicatrices') || objectives.includes('attenuer_taches') || objectives.includes('uniformiser');
   const hasImperfections = concerns.includes('imperfections') || concerns.includes('points_noirs') || objectives.includes('reduire_imperfections') || ['occasionnelle', 'reguliere'].includes(acne);
+  const hasPoilsIncarnes = concerns.includes('poils_incarnes');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
   const wanted: string[] = [];
   if (hasTaches) wanted.push('prob_skin_taches');
   if (hasImperfections) wanted.push('prob_skin_imperfections');
+  if (hasPoilsIncarnes) wanted.push('prob_skin_poils_incarnes');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 

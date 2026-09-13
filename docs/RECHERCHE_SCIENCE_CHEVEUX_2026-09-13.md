@@ -666,3 +666,47 @@ discours public, zéro mention cancer. Niveaux [R]/[I]/[C]/[E].
   s'allonger ; la longueur réelle se voit **après 12–18 mois** (+ le poids
   tire vers le bas) ; sections plus grosses = plus de shrinkage ; retight
   = tension racinaire (règle du jour 1 applicable).
+
+# PIÈCE 5 — Pôle peau : poils incarnés / irritations du rasage (1ʳᵉ vague peau, 13/09/2026)
+
+Contexte : besoin n°39 de `docs/BESOINS_PEAU_50_2026-09-13.md` — « poils incarnés et
+irritation post-rasage (visage, cou, aisselles) ». Le cœur était déjà acquis dans la
+Pièce 4 (P4.2, pôle barbe) ; ici l'ajout est le versant peau (zones visage/cou/aisselles,
+cheveu bouclé d'origine) + l'exfoliation.
+
+- [R] **Mécanisme — cheveu bouclé/afro** (Canadian Dermatology Association 2026 ;
+  NIH 2019 PMC6585396 ; Healthgrades/AAD) : le follicule courbé oriente le poil vers
+  la peau ; coupé court, la pointe nette suit la courbure et ré-entre dans la peau ;
+  **même sans rasage** (repousse naturelle) ; « this particularly affects people with
+  skin of color » (CDA 2026).
+- [R] **Déclencheurs / leviers** (NIH 2019 ; AAD — repris de P4.2) : le multi-lames
+  **lève le poil et le coupe sous la surface** ; **rasage sec = pointe biseautée** ;
+  **contre-grain = plus d'ingrown** ; eau chaude = poil gonflé, pointe arrondie ;
+  lames obtuses étirent la peau ; **lame unique ou trimmer** ; **arrêt du rasage de la
+  zone → amélioration en ~12 semaines**.
+- [R] **Avant/après le rituel** (Healthgrades citant AAD) : nettoyage doux en mouvements
+  circulaires avant dépilation ; **compresses chaudes 5 min avant** ; **dans le sens de
+  la pousse, courtes passes, sans tirer la peau** ; compresse froide après ; outils
+  nettoyés à chaque usage ; OTC efficace documenté : peroxyde de benzoyle, acide
+  glycolique, acide salicylique.
+- [I] **Prévention** (GoodRx 2024, contenu relu en dermatologie ; Blueribbonderm 2026) :
+  lame unique et aiguisée ; **changer la lame après 5–7 usages** ; gel de rasage
+  (friction réduite) ; crème de rasage **sans parfum** ; vêtements non irritants ;
+  rotation des méthodes ; compresses chaudes 10 min sur zone irritée.
+- [I] **Exfoliation** (ingrowns.com 2026, relu par un dermatologue ; corroborations
+  Byrdie/mytopicals 2025) : **salicylique (BHA, liposoluble, 0,5–2 %) agit à l'intérieur
+  du follicule** = poil incarné actif ; **glycolique (AHA, 5–10 % corps, 2–3×/semaine)
+  agit en surface** = prévention + taches ; **2–3 premières semaines = « purging »**
+  (les points remontent en surface) ; amélioration visible en 2–3 semaines ; taches
+  anciennes ≈ 50 % en 8 semaines, résultat complet en 3–6 mois.
+- [I] **Frottement** (Kelleraesthetics 2025 ; Pimple.care 2025 ; Biology Insights 2026) :
+  vêtements serrés (bikini line, cuisses, cou) repoussent le poil naissant dans la peau —
+  même famille de mécanisme que la carte frottement §2d ; la friction d'habillage est un
+  facteur indépendant du rasage.
+- [I] **Prévalence** (Biology Insights 2026, littérature clinique reprise) : la forme
+  chronique du visage/cou touche **45–85 % des hommes d'ascendance africaine** ;
+  femmes : zones à risque = aisselles, haut du buste, cou, ligne bikini.
+
+Règle de publication (inchangée) : sourcée ou absente, jamais inventée ; zéro
+vocabulaire médical dans le rendu client (pas de « folliculite », pas de
+« pseudofolliculite », pas de « dermatologue » — y compris dans les sources des cartes).

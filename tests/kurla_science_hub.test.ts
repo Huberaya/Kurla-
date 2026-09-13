@@ -91,7 +91,7 @@ async function runScienceHubTests(): Promise<void> {
   check(`cheveux : ${HAIR_SCIENCE_CARDS.length} cartes complètes et sourcées, confiance et thèmes connus`);
 
   // --- 2. Cartes peau : complètes, sourcées, vocabulaire connu ------------
-  assert.equal(SKIN_SCIENCE_CARDS.length, 10, 'le pôle peau compte 10 cartes');
+  assert.equal(SKIN_SCIENCE_CARDS.length, 12, 'le pôle peau compte 12 cartes (dont le pôle rasage)');
   for (const card of SKIN_SCIENCE_CARDS) {
     for (const field of ['key', 'title', 'fact', 'mechanism', 'source'] as const) {
       assert.ok(String(card[field]).trim().length > 0, `carte peau ${card.key} : champ « ${field} » vide`);
@@ -125,7 +125,7 @@ async function runScienceHubTests(): Promise<void> {
     const match = fullText(card).match(MEDICAL_RE);
     assert.ok(!match, `carte ${card.key} : vocabulaire médical « ${match?.[0]} »`);
   }
-  check('aucun vocabulaire médical dans les 23 cartes (corps et sources)');
+  check(`aucun vocabulaire médical dans les ${HAIR_SCIENCE_CARDS.length + SKIN_SCIENCE_CARDS.length} cartes (corps et sources)`);
 
   // --- 6. Corps des cartes peau : mots médicaux réservés aux sources ------
   for (const card of SKIN_SCIENCE_CARDS) {
@@ -205,9 +205,9 @@ async function runScienceHubTests(): Promise<void> {
 
   // --- 14. Cartes « moyens » : complètes, sourcées, protocoles intacts ---
   const allProblemCards = [...SKIN_PROBLEM_CARDS, ...HAIR_PROBLEM_CARDS];
-  assert.equal(allProblemCards.length, 12, '12 cartes moyens : 4 peau + 8 cheveux');
+  assert.equal(allProblemCards.length, 13, '13 cartes moyens : 5 peau + 8 cheveux');
   const problemKeys = new Set(allProblemCards.map(card => card.key));
-  assert.equal(problemKeys.size, 12, 'doublon de clé dans les cartes moyens');
+  assert.equal(problemKeys.size, 13, 'doublon de clé dans les cartes moyens');
   for (const card of allProblemCards) {
     for (const field of ['key', 'title', 'fact', 'attendre', 'source'] as const) {
       assert.ok(String(card[field]).trim().length > 0, `carte moyens ${card.key} : champ « ${field} » vide`);
@@ -216,7 +216,7 @@ async function runScienceHubTests(): Promise<void> {
     assert.ok(card.faire.length >= 3 && card.faire.every(item => item.trim().length > 0), `carte moyens ${card.key} : « faire » incomplet (< 3 gestes vides)`);
     assert.ok(card.eviter.length >= 2 && card.eviter.every(item => item.trim().length > 0), `carte moyens ${card.key} : « éviter » incomplet (< 2 interdits)`);
   }
-  check('cartes moyens : 12 protocoles complets et sourcés (faire ≥ 3, éviter ≥ 2, délai honnête)');
+  check('cartes moyens : 13 protocoles complets et sourcés (faire ≥ 3, éviter ≥ 2, délai honnête)');
 
   // --- 15. Cartes moyens : vocabulaire et phrases réservées ----------------
   for (const card of allProblemCards) {
@@ -267,6 +267,13 @@ async function runScienceHubTests(): Promise<void> {
   }
   check('4 pôles creusés : enfants, barbe, défrisage, locks — savoirs et moyens détectés');
 
+  // --- 17c. Pôle peau : poils incarnés — savoirs + moyens détectés ----------
+  const rasageScience = pickSkinScienceInsights({ skinConcerns: ['poils_incarnes'] } as SkinAdvisoryContext);
+  assert.ok(rasageScience.some(item => item.key === 'sci_skin_rasage_mecanisme'), 'poils incarnés : le fait mécanisme doit être choisi en tête');
+  const rasageCards = pickSkinProblemCards({ skinConcerns: ['poils_incarnes'] } as SkinAdvisoryContext);
+  assert.ok(rasageCards.some(c => c.key === 'prob_skin_poils_incarnes'), 'poils incarnés : la carte moyen doit être choisie');
+  check('pôle peau : poils incarnés — savoirs et moyens détectés');
+
   // --- 17. Wiring : le modèle du résultat porte les cartes moyens ---------
   const skinProblemModel = buildDiagnosticResultModel({ answers: skinAnswers, result: null, products: [], isSkin: true });
   assert.equal(skinProblemModel.problemCards[0].key, 'prob_skin_taches', 'peau : taches déclarées → carte taches dans le résultat');
@@ -276,7 +283,7 @@ async function runScienceHubTests(): Promise<void> {
   check('wiring : DiagnosticResultModel.problemCards présent côté peau et côté cheveux');
 
   console.log(
-    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 9 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) ; 12 cartes « moyens » (faire/éviter/s'attendre) sourcées, 4 pôles creusés (enfants, barbe, défrisage, locks), inconnu = inconnu — ${checks.length} checks.`
+    `[PASS] Base de savoirs (ouvrir les yeux) : ${HAIR_SCIENCE_CARDS.length} cartes cheveux + ${SKIN_SCIENCE_CARDS.length} cartes peau, toutes sourcées ; 9 thèmes sans orphelins ; 0 mot médical, 0 phrase réservée, corps peau sans mot interdit ; pickers déterministes bornés et contextuels ; wiring modèle de résultat (2 pôles) ; 13 cartes « moyens » (faire/éviter/s'attendre) sourcées, 4 pôles creusés (enfants, barbe, défrisage, locks), inconnu = inconnu — ${checks.length} checks.`
   );
 }
 

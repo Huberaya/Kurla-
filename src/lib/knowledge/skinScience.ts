@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -124,6 +124,24 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'Étude citée dans Health Central (2025) — revue de la représentativité de l’échelle de Fitzpatrick ; Skin Health and Disease', 
     confidence: 'recherche',
   },
+  {
+    key: 'sci_skin_rasage_mecanisme',
+    theme: 'rasage',
+    title: 'Le poil incarné n’est pas un bouton têtu : c’est une pointe rentrée dans la peau',
+    fact: 'Quand on rase, on coupe le poil très court, avec une pointe nette. Sur un cheveu bouclé ou afro, le follicule est courbé : la pointe pousse donc en s’enfonçant dans la peau au lieu de la traverser. C’est pour cela que les poils incarnés touchent massivement les peaux mélaninées — et qu’ils peuvent apparaître même sans rasage, lors de la repousse naturelle.',
+    mechanism: 'La même mécanique explique les marques sombres qui suivent : chaque pointe enfoncée est une petite inflammation, et l’inflammation produit du pigment. Casser le cycle des pointes, c’est aussi casser le cycle des taches.',
+    source: 'Révision NIH (2019, PMC6585396) — poils incarnés ; Canadian Dermatology Association (2026) ; AAD',
+    confidence: 'recherche',
+  },
+  {
+    key: 'sci_skin_rasage_arret',
+    theme: 'rasage',
+    title: 'Le cycle se coupe : sans rasage de la zone, l’amélioration est mesurable en ~12 semaines',
+    fact: 'Le système multi-lames lève le poil et le coupe sous la surface ; à contre-grain, la pointe s’enfonce davantage — c’est la cause principale documentée. Lame unique ou tondeuse, dans le sens de la pousse, sur peau préparée à l’eau : moins de pointes. Et quand on arrête de raser la zone : amélioration en ~12 semaines, documentée.',
+    mechanism: 'L’eau chaude fait gonfler le poil et arrondit sa pointe ; les lames obtuses étirent la peau avant de couper — deux aggravants que la préparation du rituel supprime.',
+    source: 'Révision NIH (2019, PMC6585396) ; AAD',
+    confidence: 'recherche',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -132,6 +150,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'barriere', label: 'Barrière & sécheresse', intro: 'L’eau, les lipides et la structure qui tient votre peau souple — et le geste qui change tout.' },
   { theme: 'sensibilite', label: 'Sensibilité', intro: 'Le parfum, premier allergène cosmétique — et ce que le label ne dit pas.' },
   { theme: 'savoirs', label: 'Vieillissement & repères', intro: 'Comment vieillit vraiment une peau riche en mélanine, et les échelles qu’il faut savoir lire.' },
+  { theme: 'rasage', label: 'Rasage & poils incarnés', intro: 'Pourquoi les poils incarnés touchent massivement les peaux mélaninées — et comment le cycle se coupe.' },
 ];
 
 /**
@@ -156,7 +175,10 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   const dry = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const dull = concerns.includes('teint_terne') || objectives.includes('eclat');
 
+  const shaving = concerns.includes('poils_incarnes');
+
   const wanted: string[] = [];
+  if (shaving) wanted.push('sci_skin_rasage_mecanisme', 'sci_skin_rasage_arret');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
   if (lowSpf) wanted.unshift('sci_skin_spf', 'sci_skin_ipd');
