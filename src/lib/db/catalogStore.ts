@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, catalogCsvRowToInput, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
+import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, CATALOG_DEPARTMENTS, catalogCsvRowToInput, normalizeDepartment, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
 import { checkProductVocabulary } from './taxonomyStore';
 import { getSupplierById, getSupplierCompliance, listSupplierDocuments, listSuppliers, registerSupplierByName } from './supplierStore';
 import { getSupabaseServerClient } from '../supabaseClient';
@@ -575,7 +575,7 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
 
     const categoryRaw = text(source.category || source.department || source.departement, 80);
     const categoryKey = categoryRaw?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const category = categoryKey?.includes('peau') ? 'peau' : categoryKey?.includes('cheveu') ? 'cheveux' : categoryRaw ? categoryRaw : undefined;
+    const category = normalizeDepartment(categoryRaw) ?? undefined;
     /**
      * CHANTIER 14 — on valide ce qui est **écrit**, pas ce qui est hérité.
      *
@@ -593,7 +593,12 @@ export function normalizeCatalogProductInput(store: SupabaseServerStore, input: 
      */
     const providedCategory = input?.category ?? input?.department ?? input?.departement;
     const categoryIsProvided = providedCategory !== undefined && providedCategory !== null && String(providedCategory).trim() !== '';
-    if (categoryIsProvided && category && !['cheveux', 'peau'].includes(category)) throw new Error(`Département inconnu pour « ${name} ». Utilisez cheveux ou peau.`);
+    if (categoryIsProvided && !category) {
+      throw new Error(
+        `Département inconnu pour « ${name} » : « ${String(providedCategory).slice(0, 40)} ». `
+        + `Départements acceptés : ${CATALOG_DEPARTMENTS.map(department => department.slug).join(', ')}.`
+      );
+    }
 
     const validCategories = new Set<string>(CATALOG_CATEGORIES.map(item => item.slug));
     const catalogCategoryTags = array(source.catalogCategoryTags ?? source.catalog_category_tags ?? source.categoryTags);

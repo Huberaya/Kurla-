@@ -12,6 +12,7 @@
  * - `isPubliclyListable` et `isCheckoutEligible` sont des portes dérivées.
  */
 
+import { COSMETIC_DEPARTMENTS } from './catalogManagement';
 import { scanCatalogClaims, type CatalogClaimScan } from './catalogClaims';
 import { evaluateSkinProductReadiness, type SkinProductReadiness } from './skinCommercialReadiness';
 import { hasDocumentedExternalPreorder, isInternalFormulationSource } from './preorderEvidence';
@@ -241,7 +242,7 @@ function requiresCosmeticCompliance(product: any): boolean {
   const isAccessory = category.includes('accessoir') || category.includes('outil') || category.includes('device')
     || ['accessoire', 'accessoires', 'kits', 'kit'].includes(category);
   if (isAccessory || (!category && !subcategory)) return false;
-  if (['cheveux', 'peau'].includes(category)) return true;
+  if (COSMETIC_DEPARTMENTS.includes(category)) return true;
   if (['shampoing', 'apres-shampoing', 'masque', 'leave-in', 'huile/beurre', 'gel/coiffant', 'co-wash'].includes(category)) return true;
   if (['shampoing', 'masque', 'leave-in', 'huile', 'gel', 'co-wash'].some(k => category.includes(k) || subcategory.includes(k))) return true;
   return hasNonEmptyIngredients(product) && Boolean(category || subcategory);

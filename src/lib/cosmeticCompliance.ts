@@ -1,3 +1,5 @@
+import { COSMETIC_DEPARTMENTS } from './catalogManagement';
+
 /**
  * B1 — CONFORMITÉ COSMÉTIQUE UE (Règl. 1223/2009)
  *
@@ -43,7 +45,10 @@ export const COSMETIC_DOC_REASONS: Record<string, string> = {
   gmp_iso_22716: 'Bonnes pratiques de fabrication attendues du façonnier.',
 };
 
-const COSMETIC_CATEGORIES = new Set(['cheveux', 'peau']);
+// Source unique : `CATALOG_DEPARTMENTS`. Y ajouter un département non
+// cosmétique imposerait un dossier CPNP à un accessoire — et inversement,
+// oublier un département cosmétique laisserait passer un produit non conforme.
+const COSMETIC_CATEGORIES = new Set(COSMETIC_DEPARTMENTS);
 
 /**
  * Un produit est cosmétique si :

@@ -961,3 +961,50 @@ Contract verrouillé dans `tests/kurla_diagnostic_session.test.ts`
 (6 checks session + 4 checks pré-remplissage : peau puis cheveux, priorité
 session > persistant, garde-fous clé/type/JSON corrompu, payload peau
 string + string[]).
+
+
+## Taxonomie élargie : 2 départements → 10 (13/09/2026)
+
+Mesure avant correctif : le site ne déclarait que `cheveux` et `peau`, alors
+que la base portait déjà **6** départements. **Trois verrous codés en dur**
+interdisaient le reste :
+
+| Fichier | Verrou |
+|---|---|
+| `catalogStore.ts` | normalisation limitée à « peau » / « cheveu » |
+| `catalogStore.ts` | rejet explicite — « Utilisez cheveux ou peau » |
+| `cosmeticCompliance.ts` + `catalogTruth.ts` | `['cheveux','peau']` en dur |
+
+⚠️ **Les deux listes `['cheveux','peau']` devaient rester synchronisées.** En
+ajouter un département dans l'une sans l'autre aurait classé un produit
+cosmétique comme non cosmétique — donc **hors garde CPNP** — sans qu'aucun
+banc ne tombe. C'est le vrai risque de ce chantier, pas la largeur.
+
+**Source unique** : `CATALOG_DEPARTMENTS` dans `catalogManagement.ts`, avec un
+drapeau `cosmetic` par département et `COSMETIC_DEPARTMENTS` dérivé. Les trois
+verrous lisent maintenant cette source. Plus aucune liste en dur (garde
+statique dans le banc).
+
+10 départements, 56 sous-catégories, aucun doublon, aucun département vide :
+
+- **cosmétiques** (soumis au CPNP) : cheveux, peau, maquillage, parfum,
+  hygiene, ongles
+- **non cosmétiques** : accessoires, kits — *exclus du CPNP* ; enfants,
+  hommes — *transverses, c'est la sous-catégorie qui décide*
+
+⚠️ **Piège mesuré** : rattacher `accessoires` à `COSMETIC_DEPARTMENTS`
+imposerait un dossier CPNP à un peigne. Oublier `maquillage` laisserait
+passer un cosmétique sans contrôle. **Les deux erreurs sont verrouillées** par
+`tests/kurla_taxonomie_departements.test.ts`, avec contrôle négatif dans les
+deux sens.
+
+`normalizeDepartment()` reconnaît les libellés saisis (« Hygiène »,
+« Kit Complet », « Rasage & Barbe »). Faux positif corrigé : le motif `men`
+matchait dans « électroménager » → désormais mot entier uniquement.
+
+**Rien en base n'a été migré.** Les catégories existantes continuent de
+fonctionner ; les nouveaux départements sont disponibles à l'écriture.
+
+⚠️ `as const` sur `CATALOG_DEPARTMENTS` rend le type de `slug` strict : une
+liste de comparaison doit être typée `string[]`, sinon `npm run lint` échoue
+(alors que `npm test` passe — le lint est une étape distincte de la chaîne).

@@ -1,3 +1,65 @@
+/**
+ * Départements du catalogue.
+ *
+ * Deux règles, et elles ne sont pas décoratives :
+ *
+ *  1. **`accessoires` et `kits` ne sont PAS cosmétiques.** Ils sont exclus du
+ *     CPNP par `isAccessoryProduct` / `requiresCosmeticCompliance`. Les
+ *     rattacher par erreur à `COSMETIC_CATEGORIES` imposerait un dossier
+ *     réglementaire à un peigne.
+ *  2. **`enfants` et `hommes` sont des départements transverses**, pas des
+ *     familles de produits : une routine enfant peut contenir un shampoing.
+ *     Ils ne déclenchent donc rien par eux-mêmes — c'est la sous-catégorie qui
+ *     décide.
+ */
+export const CATALOG_DEPARTMENTS = [
+  { slug: 'cheveux', label: 'Cheveux', cosmetic: true },
+  { slug: 'peau', label: 'Peau', cosmetic: true },
+  { slug: 'maquillage', label: 'Maquillage', cosmetic: true },
+  { slug: 'parfum', label: 'Parfum', cosmetic: true },
+  { slug: 'hygiene', label: 'Hygiène & soin du corps', cosmetic: true },
+  { slug: 'ongles', label: 'Ongles', cosmetic: true },
+  { slug: 'accessoires', label: 'Accessoires & outils', cosmetic: false },
+  { slug: 'kits', label: 'Kits & routines', cosmetic: false },
+  { slug: 'enfants', label: 'Enfants', cosmetic: false },
+  { slug: 'hommes', label: 'Hommes', cosmetic: false },
+] as const;
+
+export type CatalogDepartmentSlug = typeof CATALOG_DEPARTMENTS[number]['slug'];
+
+/** Départements dont les produits relèvent du règlement cosmétique. */
+export const COSMETIC_DEPARTMENTS: readonly string[] = CATALOG_DEPARTMENTS
+  .filter(department => department.cosmetic)
+  .map(department => department.slug);
+
+/**
+ * Normalise un département saisi. Retourne `null` si inconnu.
+ *
+ * Les deux motifs historiques sont conservés : « peau » et « cheveu »
+ * apparaissent dans les imports CSV sous des formes variées (« Peau sèche »,
+ * « cheveux crépus »…). Les nouveaux départements sont reconnus par leur slug,
+ * avec ou sans accent.
+ */
+export function normalizeDepartment(raw: unknown): CatalogDepartmentSlug | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const key = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const exact = CATALOG_DEPARTMENTS.find(department => department.slug === key);
+  if (exact) return exact.slug;
+  if (key.includes('peau')) return 'peau';
+  if (key.includes('cheveu')) return 'cheveux';
+  if (key.includes('maquillage') || key.includes('makeup') || key.includes('make-up')) return 'maquillage';
+  if (key.includes('parfum') || key.includes('fragrance') || key.includes('perfume')) return 'parfum';
+  if (key.includes('hygiene') || key.includes('douche') || key.includes('savon') || key.includes('bain')) return 'hygiene';
+  if (key.includes('ongle') || key.includes('nail') || key.includes('manucure')) return 'ongles';
+  if (key.includes('accessoir') || key.includes('outil') || key.includes('textile')) return 'accessoires';
+  if (key.includes('kit') || key.includes('routine')) return 'kits';
+  if (key.includes('enfant') || key.includes('bebe') || key.includes('kid')) return 'enfants';
+  if (key.includes('homme') || key.includes('barbe') || /(^|[^a-z])men([^a-z]|$)/.test(key)) return 'hommes';
+  return null;
+}
+
 export const CATALOG_CATEGORIES = [
   { slug: 'cheveux_ondules', department: 'cheveux', label: 'Cheveux ondulés' },
   { slug: 'cheveux_boucles', department: 'cheveux', label: 'Cheveux bouclés' },
@@ -12,6 +74,41 @@ export const CATALOG_CATEGORIES = [
   { slug: 'barbe', department: 'cheveux', label: 'Barbe' },
   { slug: 'cuir_chevelu', department: 'cheveux', label: 'Cuir chevelu' },
   { slug: 'peau_seche', department: 'peau', label: 'Peau sèche' },
+  // ── Maquillage : catégorie cosmétique au sens du règlement 1223/2009 ──
+  { slug: 'teint', department: 'maquillage', label: 'Teint' },
+  { slug: 'levres_maquillage', department: 'maquillage', label: 'Lèvres' },
+  { slug: 'yeux_maquillage', department: 'maquillage', label: 'Yeux' },
+  { slug: 'ongles_maquillage', department: 'maquillage', label: 'Ongles' },
+  { slug: 'outils_maquillage', department: 'maquillage', label: 'Pinceaux & outils' },
+  // ── Parfum ──
+  { slug: 'eau_de_parfum', department: 'parfum', label: 'Eau de parfum' },
+  { slug: 'eau_de_toilette', department: 'parfum', label: 'Eau de toilette' },
+  { slug: 'brume_corporelle', department: 'parfum', label: 'Brume corporelle' },
+  // ── Hygiène & soin du corps ──
+  { slug: 'douche_bain', department: 'hygiene', label: 'Douche & bain' },
+  { slug: 'savons', department: 'hygiene', label: 'Savons' },
+  { slug: 'deodorants', department: 'hygiene', label: 'Déodorants' },
+  { slug: 'soin_corps', department: 'hygiene', label: 'Soin du corps' },
+  { slug: 'hygiene_intime', department: 'hygiene', label: 'Hygiène intime' },
+  // ── Ongles ──
+  { slug: 'vernis', department: 'ongles', label: 'Vernis' },
+  { slug: 'soin_ongles', department: 'ongles', label: 'Soin des ongles' },
+  { slug: 'outils_manucure', department: 'ongles', label: 'Outils manucure' },
+  // ── Accessoires : NON cosmétique, exclu du CPNP ──
+  { slug: 'peignes_brosses', department: 'accessoires', label: 'Peignes & brosses' },
+  { slug: 'textile_nuit', department: 'accessoires', label: 'Textile de nuit' },
+  { slug: 'sectionnement', department: 'accessoires', label: 'Sectionnement & pinces' },
+  { slug: 'flacons', department: 'accessoires', label: 'Flacons & applicateurs' },
+  { slug: 'electrique', department: 'accessoires', label: 'Appareils électriques' },
+  // ── Kits : assemblages, conformité héritée des composants ──
+  { slug: 'kit_entry', department: 'kits', label: 'Kit découverte' },
+  { slug: 'kit_core', department: 'kits', label: 'Kit essentiel' },
+  { slug: 'kit_premium', department: 'kits', label: 'Kit complet' },
+  // ── Transverses : la sous-catégorie décide, pas le département ──
+  { slug: 'routine_enfant', department: 'enfants', label: 'Routine enfant' },
+  { slug: 'routine_bebe', department: 'enfants', label: 'Routine bébé' },
+  { slug: 'rasage_barbe', department: 'hommes', label: 'Rasage & barbe' },
+  { slug: 'soin_homme', department: 'hommes', label: 'Soin homme' },
   { slug: 'peau_grasse', department: 'peau', label: 'Peau grasse' },
   { slug: 'peau_mixte', department: 'peau', label: 'Peau mixte' },
   { slug: 'peau_sensible', department: 'peau', label: 'Peau sensible' },
