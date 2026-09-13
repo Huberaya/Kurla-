@@ -25,7 +25,7 @@
 import type { SkinAdvisoryContext } from './skinAdvisory';
 import type { ScienceConfidence, ScienceInsight } from './hairScience';
 
-export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps' | 'maquillage';
+export type SkinScienceTheme = 'soleil' | 'taches' | 'barriere' | 'sensibilite' | 'savoirs' | 'rasage' | 'hormones' | 'corps' | 'maquillage' | 'frottement';
 
 export interface SkinScienceCard extends ScienceInsight {
   theme: SkinScienceTheme;
@@ -205,6 +205,24 @@ export const SKIN_SCIENCE_CARDS: SkinScienceCard[] = [
     source: 'SELF (2019, avec porte-parole FDA) — aucune définition officielle du label ; Medical News Today (2023, relu médicalement) ; Skin&Me (2024)',
     confidence: 'institution',
   },
+  {
+    key: 'sci_skin_frottement_plis',
+    theme: 'frottement',
+    title: 'Les plis foncissent parce qu’ils se protègent — pas parce qu’ils sont sales',
+    fact: 'Cou, aisselles, cuisses intérieures : la peau des plis est plus fine, se frotte en permanence — sur elle-même, les vêtements, les bijoux — et y piége la transpiration. Le frottement répété stimule la production de mélanine : c’est une réaction de protection, le même mécanisme que les taches du visage, déclenché par le frottement au lieu du soleil. L’accumulation de peau morte rend l’aspect plus foncé, mais c’est un contributeur, pas la cause — et ce n’est, répétons-le, pas une question d’hygiène.',
+    mechanism: 'La même logique que la carte « frottement et pression » du pôle pigmentation, appliquée aux zones que le visage ne voit pas : moins de frottement + zone sèche + exfoliation très douce, c’est le trio qui inverse le mouvement.',
+    source: 'TheElement (2026) ; Fixderma (2026) ; weaclinic (2026) ; pokonut (2026)',
+    confidence: 'institution',
+  },
+  {
+    key: 'sci_skin_leveres_habitudes',
+    theme: 'frottement',
+    title: 'Lèvres : l’habitude qui assombrit, c’est le léchage',
+    fact: 'La peau des lèvres est très fine et très sensible. Et la salive contient des enzymes digestives qui abîment sa barrière : le lèche ne l’hydrate pas, il la déshydrate — d’où le cycle sécheresse → lèche → sécheresse → pèle → micro-écorchure → marque sombre à la cicatrisation. Les lèvres sont aussi le SPF le plus oublié du corps, et un produit qui irrite (bâtonnet, dentifrice) peut les laisser plus foncées une fois l’irritation passée.',
+    mechanism: 'D’où la stratégie en remplacement d’habitude plutôt qu’en force : à chaque envie de lèche, un bâtonnet. Le frottement du rasage du haut de la lèvre joue le même rôle d’aggravant — c’est le même mécanisme que le pôle rasage.',
+    source: 'kolorshairandskin (2026) — enzymes de la salive ; pharmeasy (2026) ; alanna (2022)',
+    confidence: 'institution',
+  },
 ];
 
 export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intro: string }[] = [
@@ -217,6 +235,7 @@ export const SKIN_SCIENCE_THEMES: { theme: SkinScienceTheme; label: string; intr
   { theme: 'hormones', label: 'Taches hormonales (« masque de grossesse »)', intro: 'Le pattern, ses déclencheurs — et la protection que les études mesurent.' },
   { theme: 'corps', label: 'Corps — texture et sécheresse', intro: 'Le « grain de poulet », les coudes et les mollets : ce que le corps demande — et le geste des 3 minutes.' },
   { theme: 'maquillage', label: 'Maquillage — démaquiller et choisir', intro: 'Le film des formules longue tenue, le frottement qui marque — et ce que le label « non-clog » ne dit pas.' },
+  { theme: 'frottement', label: 'Frottement & assombrissements', intro: 'Plis, aisselles, lèvres : la peau qui s’assombrit pour se protéger — et les gestes qui retournent le mouvement.' },
 ];
 
 /**
@@ -246,6 +265,8 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   const bodyTexture = concerns.includes('grain_de_poulet');
   const bodyDry = concerns.includes('secheresse_corps');
   const makeup = concerns.includes('port_maquillage');
+  const plis = concerns.includes('assombrissement_plis');
+  const leveres = concerns.includes('leveres_assombries');
 
   const wanted: string[] = [];
   if (melasma) wanted.push('sci_skin_melasme_mecanisme', 'sci_skin_melasme_lumiere');
@@ -253,6 +274,8 @@ export function pickSkinScienceInsights(ctx: SkinAdvisoryContext, max = 3): Scie
   if (bodyTexture) wanted.push('sci_skin_corps_grain', 'sci_skin_corps_minutes');
   if (bodyDry) wanted.push('sci_skin_corps_minutes', 'sci_skin_corps_grain');
   if (makeup) wanted.push('sci_skin_maquillage_demaquillage', 'sci_skin_maquillage_pores');
+  if (plis) wanted.push('sci_skin_frottement_plis');
+  if (leveres) wanted.push('sci_skin_leveres_habitudes');
   if (hasHpi) wanted.push('sci_skin_hpi', 'sci_skin_visible', 'sci_skin_friction');
   if (dull) wanted.push('sci_skin_visible', 'sci_skin_spf');
   if (lowSpf) wanted.unshift('sci_skin_spf', 'sci_skin_ipd');

@@ -870,3 +870,59 @@ seul pôle (la relation maquillage ↔ peau). Fouille du 13/09/2026 (2 recherche
 Règle de publication : « comédogène/comédones » est dans MEDICAL_RE (motif
 `comedo`) → « qui bouche les pores » / « non-clog » dans le rendu ; le label est
 cité comme « ne bouche pas les pores ».
+
+# PIÈCE 10 — Pôle peau : frottement & assombrissements (plis, aisselles, lèvres) (besoins n°17–42–43, 13/09/2026)
+
+Contexte : besoins n°17 (« assombrissement des plis »), n°42 (aisselles) et n°43 (lèvres)
+de `docs/BESOINS_PEAU_50_2026-09-13.md` — même famille de mécanisme (friction/habitudes
+→ mélanine), construits en un pôle. Fouille du 13/09/2026 (2 recherches croisées).
+
+## Plis & aisselles (n°17 + n°42)
+- [I] **Mécanisme** (TheElement 2026 ; Fixderma 2026 ; weaclinic 2026 ; pokonut 2026) :
+  la peau des plis est plus fine, se frotte en permanence (sur elle-même, vêtements,
+  bijoux, col) et y piége la transpiration ; **le frottement chronique stimule la
+  mélanine — réaction de protection** ; accumulation de peau morte = aspect plus
+  foncé (contributif, pas cause) ; **ce n'est pas une question d'hygiène** (dit
+  explicitement dans les 4 sources). Aisselles = pli chaud/humide/friction = zone
+  n°1 ; irritants ajoutés : déodorants à l'alcool, rasage/cire, textiles synthétiques
+  serrés.
+- [I] **Le protocole** (skinaa 2026 ; weaclinic 2026 ; pokonut 2026 ; TheElement 2026) :
+  garder la zone **sèche et propre** (séchage complet, surtout après transpiration) ;
+  **vêtements amples respirants (coton > synthétique)** ; exfoliation **très douce
+  1×/semaine suffisant pour l'aisselle** (chimique > gant) ; hydratation quotidienne
+  (le soir pour l'aisselle, pas juste avant déodorant) ; **SPF 50 quotidien sur le
+  cou** (la zone SPF la plus oubliée) ; déodorant sans alcool.
+- [I] **Les aggravants documentés** (TheElement 2026 ; skinaa 2026 ; pokonut 2026) :
+  **frotter « pour décoller » = plus de frottement = plus de mélanine** (l'effet est
+  l'inverse du souhait) ; **remèdes maison citron/bicarbonate** (irritation →
+  assombrissement) ; baignade ≠ dépigmentation (« le bain retire la transpiration,
+  pas la pigmentation »).
+- [I] **Délais** (skinaa 2026) : **8–12 semaines minimum** d'usage régulier, souvent
+  plus ; weaclinic : amélioration en 2–3 mois.
+- [I] **Limite honnête** (TheElement 2026 ; weaclinic 2026) : un assombrissement
+  **soudain, à texture épaissie, qui ne s'améliore pas** peut avoir une cause interne
+  (les sources nomment acanthosis nigricans / glycémie) → en parler à un
+  professionnel de santé ; KURLA le dit, sans nommer, sans alerter, sans rassurer à
+  la place.
+
+## Lèvres (n°43)
+- [I] **Le mécanisme** (kolorshairandskin 2026 ; pharmeasy 2026 ; alanna 2022) :
+  la peau des lèvres est **très fine et sensible** ; la **salive contient des enzymes
+  digestives qui abîment la barrière** → le léchage déshydrate au lieu d'hydrater ;
+  cycle : sécheresse → lèche → sécheresse → pèle → micro-écorchure → **marque sombre
+  à la cicatrisation** ; le frottement du rasage du haut de la lèvre assombrit aussi
+  (recoupement pôle rasage).
+- [I] **Les causes documentées** (Clear Skin 2026, relu médicalement ; typsybeauty
+  2026 ; pharmeasy 2026) : soleil (les lèvres = SPF le plus oublié), **léchage**
+  (« les deux habitudes que les patients oublient de mentionner » : fumer, lécher),
+  déshydratation chronique, **allergie à un produit** (bâtonnet, dentifrice, aliment :
+  « après que l'irritation se calme, les lèvres peuvent foncer »), produits à parfum
+  / menthol sur lèvre gercée.
+- [I] **Le protocole** (Clear Skin 2026 ; typsybeauty 2026) : **bâtonnet SPF 15+
+  quotidien** ; à chaque envie de lèche → bâtonnet (remplacement d'habitude, pas de
+  force) ; exfoliation douce 1–2×/semaine (jamais sur lèvre gercée) ; couche riche
+  le soir ; **test honnête 4–6 semaines** ; produit qui brûle = suspect à écarter.
+
+Règle de publication : « acanthosis nigricans » / « insuline » restent du vocabulaire
+médical → le rendu dit « cause interne » sans nommer ; la limite est dite une fois
+(carte moyens), jamais transformée en alarme.

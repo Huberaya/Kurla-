@@ -166,6 +166,44 @@ export const SKIN_PROBLEM_CARDS: ProblemCard[] = [
     source: 'SELF (2019, avec porte-parole FDA) — aucune définition officielle du label ; Medical News Today (2023) ; Quench Botanics (2026) — solubilité lipidique du film',
   },
   {
+    key: 'prob_skin_assombrissement_plis',
+    title: 'Plis et aisselles : moins de frottement, plus de sécheresse contrôlée',
+    confidence: 'institution',
+    fact: 'Cou, aisselles, cuisses intérieures : le frottement répété et la transpiration piégée stimulent la mélanine — la peau s’assombrit pour se protéger. Ce n’est pas une question d’hygiène, et frotter « pour décoller » fait exactement l’inverse de ce qu’on cherche.',
+    faire: [
+      'Gardez la zone sèche et propre : séchage complet, surtout après la transpiration ; vêtements amples et respirants (coton plutôt que synthétique serré).',
+      'Exfoliation très douce 1×/semaine (un exfoliant chimique léger, pas un gant) : assez pour entretenir, pas assez pour irriter.',
+      'Hydratation quotidienne, le soir pour l’aisselle — pas juste avant le déodorant — et déodorant sans alcool.',
+      'SPF sur le cou tous les jours : c’est la zone de la routine que l’on oublie le plus.',
+    ],
+    eviter: [
+      'Le gommage « pour que ça décolle » : le frottement ajouté = plus de mélanine, c’est documenté — l’effet est l’inverse du souhait.',
+      'Les remèdes maison citron ou bicarbonate : l’irritation qu’ils laissent assombrit davantage.',
+      'L’idée que ce soit « de la saleté » : les sources le disent explicitement — c’est de la mélanine de protection, pas de l’accumulation.',
+    ],
+    attendre: 'En semaines longues, pas en jours : 8–12 semaines d’usage régulier au minimum, souvent plus. Et la limite honnête : si l’assombrissement est apparu soudain, avec une texture épaissie, et ne s’améliore pas sur des mois de gestes réguliers, en parler à un professionnel de santé — il existe des causes internes qu’un soin ne voit pas.',
+    source: 'skinaa (2026) — 8–12 semaines ; TheElement (2026) ; Fixderma (2026) ; weaclinic (2026)',
+  },
+  {
+    key: 'prob_skin_leveres',
+    title: 'Lèvres : remplacer l’habitude de lèche, protéger du soleil',
+    confidence: 'institution',
+    fact: 'La peau des lèvres est très fine : la salive, avec ses enzymes digestives, abîme sa barrière au lieu de l’hydrater, et le cycle sécheresse → lèche → pèle → micro-écorchure laisse des marques sombres à la cicatrisation. Les lèvres sont aussi le SPF le plus oublié du corps.',
+    faire: [
+      'Bâtonnet SPF 15+ tous les jours : les lèvres reçoivent le soleil sans le filtre de la peau du visage.',
+      'À chaque envie de lèche, un bâtonnet : c’est un remplacement d’habitude, pas un effort de volonté — le bâtonnet fait le travail que la salive ne faisait que gâcher.',
+      'Exfoliation douce 1–2×/semaine maximum, jamais sur une lèvre gercée ; couche plus riche le soir ; de l’eau pendant la journée.',
+      'Faites le test des produits : un bâtonnet ou un dentifrice qui brûle est un suspect — écartez-le quelques semaines et observez.',
+    ],
+    eviter: [
+      'Le lèche, le pèle et le mordillage : le cycle complet — sécheresse, écorchure, marque sombre à la cicatrisation.',
+      'Le citron ou les acides forts sur les lèvres : l’irritation laisse plus de pigment qu’elle n’en enlève.',
+      'Les produits parfumés ou au menthol sur lèvre gercée : les irritants de ce type sont documentés comme laissant des lèvres plus foncées.',
+    ],
+    attendre: '4–6 semaines de test honnête : les gerçures se calment d’abord, la couleur suit lentement. Si une couleur foncée persiste malgré des lèvres saines et hydratées, c’est peut-être sa couleur de base — et c’est une information, pas un défaut.',
+    source: 'Clear Skin (2026, relu médicalement) ; typsybeauty (2026, relu en dermatologie) ; pharmeasy (2026)',
+  },
+  {
     key: 'prob_skin_secheresse',
     title: 'La sécheresse : une barrière à réparer, pas un visage à décaper',
     confidence: 'recherche',
@@ -383,6 +421,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   const hasGrainDePoulet = concerns.includes('grain_de_poulet');
   const hasSecheresseCorps = concerns.includes('secheresse_corps');
   const hasMaquillage = concerns.includes('port_maquillage');
+  const hasPlis = concerns.includes('assombrissement_plis');
+  const hasLeveres = concerns.includes('leveres_assombries');
   const hasSecheresse = skinType === 'seche' || skinType === 'tres_seche' || hydration === 'seche' || hydration === 'deshydratee' || concerns.includes('secheresse') || concerns.includes('deshydratation') || objectives.includes('hydrater') || objectives.includes('renforcer_barriere');
   const hasSensibilite = sensitivity === 'elevee' || skinType === 'sensible' || sensitivities.includes('sensible') || concerns.includes('sensibilite');
 
@@ -394,6 +434,8 @@ export function pickSkinProblemCards(ctx: SkinAdvisoryContext, max = 2): Problem
   if (hasGrainDePoulet) wanted.push('prob_skin_grain_de_poulet');
   if (hasSecheresseCorps) wanted.push('prob_skin_secheresse_corps');
   if (hasMaquillage) wanted.push('prob_skin_maquillage');
+  if (hasPlis) wanted.push('prob_skin_assombrissement_plis');
+  if (hasLeveres) wanted.push('prob_skin_leveres');
   if (hasSecheresse) wanted.push('prob_skin_secheresse');
   if (hasSensibilite) wanted.push('prob_skin_sensibilite');
 
