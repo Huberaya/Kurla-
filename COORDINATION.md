@@ -1343,3 +1343,64 @@ Banc `tests/kurla_controle_donnees.test.ts` (16 vérifications, chaîné).## Pr�
 - Consigne : « dans la logique votre profil déclaré et la section (4 et 4b) doivent venir avant la routine ».
 - Ordre définitif : **1** profil déclaré → **1b** profil peau mélaninée → **2/2b** certain/inconnu → **3** routine → **4** Pourquoi cette routine ? → **5** comprendre (phrase « routine en tête de page » → « routine ci-dessus ») → **6** science → **7** moyens → **8** priorités → **9** produits → **10** suivi. Ids d'ancres inchangés.
 - Piège : l'assertion de propreté de couture doit être bornée à la zone éditée — le fichier contient des `\n\n\n` préexistants légitimes (entre priorités/produits/suivi), une assertion globale faussement positive.
+
+Banc `tests/kurla_controle_donnees.test.ts` (16 vérifications, chaîné).
+
+## Canaux sans stock et autorisation fournisseur (13/09/2026)
+
+**Migration `20260925000000_sourcing_channels_authorization.sql` APPLIQUÉE en
+base** — 14 instructions, une par appel Management API, toutes vérifiées.
+
+### Les trois verrous levés
+
+1. **`suppliers.supplier_type`** n'acceptait que contract_manufacturer,
+   textile, tool, raw_material, packaging, laboratory, brand, distributor,
+   unknown. **Les trois modèles d'année 1 étaient impossibles à déclarer.**
+   Ajoutés : `dropship`, `affiliation`, `third_party_logistics`.
+
+2. **`products.fulfillment_channel`** (nouveau, défaut `not_set`) — un même
+   catalogue mélange quatre réalités logistiques. Sans ce champ on ne sait
+   pas si un produit part de chez nous, d'un tiers, ou n'est qu'un lien
+   affilié.
+
+3. **Suivi d'autorisation par produit** (n'existait nulle part — vérifié dans
+   `information_schema`) : `supplier_authorization_status`
+   (`not_contacted|contacted|authorized|refused|not_applicable`),
+   `supplier_contacted_on`, `supplier_authorization_note`.
+
+### Trois contraintes, testées négativement en base
+
+| Contrainte | Effet vérifié |
+|---|---|
+| `products_supplier_authorization_status_check` | `23514` sur `'peut_etre'` |
+| `products_authorization_date_coherence` | `23514` sur `authorized` **sans date** |
+| `products_channel_requires_supplier` | `23514` sur `dropship` **sans fournisseur** |
+
+Cas légitimes acceptés : `authorized` **avec** date, `dropship` **avec**
+fournisseur. Fiche témoin `launch-p02` remise à zéro après test.
+
+⚠️ **L'affiliation n'exige PAS de fournisseur** : un lien affilié pointe vers
+un marchand, pas vers un livreur.
+
+### Ce qui n'a PAS été doublé
+
+`sourcing_prospects` portait déjà `dropshipping`, `inci_provided`,
+`eu_compliance`, `visuals_granted`, `decision` — mais **au niveau du
+prospect**, et ses **25 lignes sont toutes à `to_contact`** avec ces champs à
+NULL. `sourcing_product_candidates` (21 lignes) a `governance_status`,
+`inci_received`, `visuals_received`, `sample_validated`. La migration ajoute
+l'état **par produit**, qui manquait ; elle ne recrée pas ces tables.
+
+### Aucun effet sur la boutique
+
+96 fiches → `fulfillment_channel='not_set'`,
+`supplier_authorization_status='not_contacted'`. **63 publiées avant, 63
+après.** La porte de publiabilité n'est pas touchée : l'autorisation est un
+suivi alertable, pas un blocage automatique.
+
+`tests/kurla_canaux_sans_stock.test.ts` — 8 contrats.
+
+⚠️ **Piège de banc** : `'dropship',` apparaît dans **deux** contraintes.
+Une assertion `sql.includes("'dropship'")` globale restait verte quand on le
+retirait de l'une des deux. Corrigé en isolant chaque bloc de contrainte,
+avec contrôle négatif dans les deux sens.
