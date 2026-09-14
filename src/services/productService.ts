@@ -1,5 +1,6 @@
 import { Product } from '../types';
 import type { FicheCiblePeau } from '../lib/skinRangeTarget';
+import type { FicheAvenirProduit } from '../lib/db/catalogStore';
 import type { SkinKitQuote } from '../lib/skinKitPricing';
 import { apiErrorMessage } from '../lib/apiDiagnostics';
 import { useCallback, useEffect, useState } from 'react';
@@ -188,4 +189,41 @@ export function useSkinRangeTargets() {
 
   useEffect(() => { loadData(); }, [loadData]);
   return { fiches, loading, error, refetch: loadData };
+}
+
+/**
+ * Boutique — produits « bientôt disponibles » (sourcing en cours).
+ *
+ * Même raison que la gamme : ces fiches ne sont pas des produits achetables.
+ * Aucun appelant ne doit alimenter un panier, un comparateur ou un schéma
+ * Product avec elles — le bouton d'achat est structurellement absent du
+ * composant qui les affiche.
+ */
+async function fetchComingSoonProducts(): Promise<FicheAvenirProduit[]> {
+  const response = await fetch('/api/produits/avenir');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(apiErrorMessage(response, data, 'La liste des produits à venir est indisponible.'));
+  return Array.isArray(data.fiches) ? data.fiches : [];
+}
+
+export function useComingSoonProducts() {
+  const [fiches, setFiches] = useState<FicheAvenirProduit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      setFiches(await fetchComingSoonProducts());
+      setError(null);
+    } catch (err) {
+      setFiches([]);
+      setError(err instanceof Error ? err : new Error('La liste des produits à venir est indisponible.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+  return { fiches: fiches as FicheAvenirProduit[], loading, error, refetch: loadData };
 }

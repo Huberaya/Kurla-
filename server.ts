@@ -1290,6 +1290,27 @@ app.get('/api/peau/gamme', asyncRoute(async (req: AuthenticatedRequest, res: Res
   });
 }));
 
+// Boutique — « Bientôt disponible » (sourcing en cours, 14/09/2026).
+//
+// Vingt-six fiches candidates (préfixe `src-`) : produits réels déjà sur le
+// marché que KURLA s'apprête à référencer. Elles sont en brouillon et ne
+// seront achetables qu'après autorisation fournisseur, INCI vérifiée et
+// enregistrement UE. Cette route les rend lisibles dans la boutique — marque
+// réelle, prix public constaté (jamais un prix de vente), sans stock ni
+// panier — sur le même modèle que /api/peau/gamme pour les cibles de
+// formulation. Elle ne doit jamais alimenter le panier ni le schéma Product.
+app.get('/api/produits/avenir', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  const fiches = await serverDb.getComingSoonProducts();
+  res.json({
+    fiches,
+    count: fiches.length,
+    availabilityState: 'sourcing_en_cours',
+    note: fiches.length === 0
+      ? 'Aucun produit à venir n’est annoncé pour le moment : le sourcing fournisseur est en cours.'
+      : undefined
+  });
+}));
+
 // Customer-facing trust data is deliberately separated from the catalogue
 // record. Only moderated, verified reviews and answered questions are public.
 app.get('/api/products/:productId/trust', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {

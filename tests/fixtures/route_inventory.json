@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T08:10:21.923Z",
+  "generatedAt": "2026-09-14T06:20:49.633Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -129,6 +129,7 @@
     "GET /api/products/:productId/reviews",
     "GET /api/products/:productId/trust",
     "GET /api/products/:productId/verification",
+    "GET /api/produits/avenir",
     "GET /api/professional/dossier-access/:clientUserId",
     "GET /api/professional/dossier-shares",
     "GET /api/professional/me",

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { TOOL_BY_PRODUCT_SLUG } from '../lib/knowledge/tools';
 import { Product } from '../types';
-import { useProducts } from '../services/productService';
+import { useProducts, useComingSoonProducts } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategories';
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
@@ -171,6 +171,70 @@ function Comparateur({ produits, onRetirer }: { produits: Product[]; onRetirer: 
     </section>
   );
 }
+
+/**
+ * PHASE 4 SOURCING — « Bientôt disponible ».
+ *
+ * Les fiches candidates (produits réels déjà sur le marché, en cours de
+ * référencement fournisseur) sont affichées ici, et nulle part ailleurs :
+ * pas de bouton d'achat, pas de prix engageant (le prix affiché est le prix
+ * public constaté, explicitement non prix de vente), pas de stock. Elles
+ * disparaîtront de cette section d'elles-mêmes le jour où elles seront
+ * réellement achetables, car le serveur ne les sert que tant qu'elles sont
+ * en brouillon.
+ */
+const SectionAvenir = () => {
+  const { fiches, loading, error } = useComingSoonProducts();
+
+  if (loading || error || fiches.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-kurla-copper" /> Bientôt disponible — sourcing en cours</h2>
+        <span className="text-xs text-kurla-carbon/60">{fiches.length} produits</span>
+      </div>
+      <div className="mb-4 rounded-2xl border border-kurla-copper/30 bg-kurla-copper/5 p-3.5">
+        <p className="text-xs text-kurla-carbon/75 leading-relaxed">
+          Ces produits existent déjà sur le marché ; KURLA s’apprête à les référencer. Ils ne sont pas encore
+          vendables : le référencement fournisseur (autorisation, composition vérifiée, enregistrement) est en
+          cours. Le prix affiché est le prix public constaté le 14 septembre 2026 — une référence, pas le prix
+          de vente KURLA.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {fiches.map(fiche => (
+          <article key={fiche.id} className="rounded-3xl border border-kurla-stone bg-white p-4 flex flex-col hover:border-kurla-copper/40 transition-all">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <span className="text-[10px] px-2 py-1 rounded-full bg-kurla-sand border border-kurla-stone text-kurla-carbon/70 font-bold">
+                {fiche.routineStep || fiche.subCategory}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-kurla-copper/10 text-kurla-copper font-bold">
+                <Clock className="w-3 h-3" /> Sourcing en cours
+              </span>
+            </div>
+            <p className="text-[11px] font-bold text-kurla-copper">{fiche.brand}</p>
+            <h3 className="text-sm font-bold leading-tight">{fiche.name}</h3>
+            <div className="mt-auto pt-3 flex items-end justify-between gap-2">
+              <div>
+                <span className="text-base font-bold">{fiche.price !== null ? `${fiche.price.toFixed(2).replace('.', ',')}€` : '—'}</span>
+                <p className="text-[10px] text-kurla-carbon/45 leading-tight">prix public constaté<br />non prix de vente</p>
+              </div>
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                className="px-3 py-2 rounded-full bg-kurla-carbon/10 text-kurla-carbon/55 text-[11px] font-bold flex items-center gap-1.5 cursor-not-allowed"
+              >
+                <Clock className="w-3.5 h-3.5" /> Non vendable
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selectedCategory = 'tous' }) => {
   const { products, skinKits, brands: supabaseBrands, count, loading, error, refetch } = useProducts();
@@ -1050,6 +1114,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
             </div>
           </div>
         )}
+
+        {/* PHASE 4 SOURCING — bientôt disponible (fiches en cours de référencement) */}
+        {(activeCategory === 'peau' || activeCategory === 'tous') && <SectionAvenir />}
 
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">

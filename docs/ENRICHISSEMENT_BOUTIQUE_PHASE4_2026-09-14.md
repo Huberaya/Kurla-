@@ -87,6 +87,29 @@ Avène Cicalfate+, COSRX Snail 96 Mucin.
 6. Puis seulement : `catalog_status = published` + `is_active = true` (garde
    `isCatalogPubliclyListable` re-vérifiée automatiquement).
 
+## 5bis. Visibilité boutique — « Bientôt disponible » (demande de l'utilisateur, 14/09)
+
+« En attendant les fournisseurs, les produits doivent apparaître dans la boutique. »
+Ils **apparaissent** — sans être **vendables** (cette ligne reste fermée : pas
+d'autorisation fournisseur, pas d'INCI vérifiée, pas d'enregistrement UE, pas de
+visuels ; la garde `isCatalogPubliclyListable` continue de les refuser au
+catalogue achetable).
+
+- **Route publique** `GET /api/produits/avenir` (server.ts, à côté de
+  `/api/peau/gamme`) : sert les fiches `src-*` **tant qu'elles sont en brouillon**
+  (`catalog_status='draft'` + préfixe `src-`). Le jour où une fiche est réellement
+  publiée, elle sort de cette liste d'elle-même et entre au catalogue.
+- **Projection client minimale** (`getComingSoonProducts`, `catalogStore.ts`) :
+  marque, nom, prix public constaté (jamais un prix de vente), étape de routine,
+  sous-catégorie. Aucune note interne, aucun email fournisseur, aucun statut
+  d'autorisation n'est exposé.
+- **UI** (`BoutiquePage.tsx`) : section « Bientôt disponible — sourcing en cours »
+  (vue « tous » et « peau ») : cartes marque + produit + prix public constaté
+  « non prix de vente » + bouton **Non vendable** (structurellement désactivé).
+  Pas de panier, pas de comparateur, pas de schéma Product — sur le même modèle
+  que la section Kits.
+- Fixtures d'inventaire régénérées (route + méthode store) ; suite 156 PASS.
+
 ## 6. Garanties vérifiées à la création
 
 - `published` = **63** avant et après insertion (inchangé).

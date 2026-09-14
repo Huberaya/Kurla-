@@ -405,6 +405,59 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
     );
   }
 
+  /**
+   * Boutique — « Bientôt disponible » (sourcing, 14/09/2026).
+   *
+   * Les fiches candidates (préfixe `src-`) sont des brouillons et ne
+   * deviendront achetables par le pipeline normal qu'après autorisation
+   * fournisseur, INCI vérifiée, enregistrement UE et visuels :
+   * `isCatalogPubliclyListable` continue de les refuser. Cette lecture les
+   * rend *lisibles* dans la boutique sans rien promettre : marque réelle,
+   * prix public constaté (jamais un prix de vente), sans stock ni panier.
+   *
+   * Le seul filtre légitime est l'identité (préfixe `src-`) + le statut
+   * `draft` : le jour où une fiche devient réellement achetable
+   * (`catalog_status = 'published'`), elle sort de cette liste d'elle-même
+   * et entre au catalogue. La projection n'expose ni note interne, ni
+   * référence d'email fournisseur, ni statut d'autorisation.
+   */
+  export interface FicheAvenirProduit {
+    id: string;
+    brand: string;
+    name: string;
+    price: number | null;
+    routineStep: string;
+    subCategory: string;
+    availabilityState: 'sourcing_en_cours';
+  }
+
+  export async function getComingSoonProducts(store: SupabaseServerStore): Promise<FicheAvenirProduit[]> {
+    const champ = (produit: any, ...noms: string[]): unknown => {
+      for (const nom of noms) {
+        if (produit && produit[nom] !== undefined && produit[nom] !== null) return produit[nom];
+      }
+      return undefined;
+    };
+    const produits = await getProducts(store, { includeInactive: true });
+    const fiches: FicheAvenirProduit[] = [];
+    for (const produit of produits) {
+      const id = String(champ(produit, 'id') ?? '');
+      if (!id.startsWith('src-')) continue;
+      if (String(champ(produit, 'catalog_status', 'catalogStatus') ?? '') !== 'draft') continue;
+      const prix = Number(champ(produit, 'price'));
+      fiches.push({
+        id,
+        brand: String(champ(produit, 'brand') ?? ''),
+        name: String(champ(produit, 'name') ?? ''),
+        price: Number.isFinite(prix) && prix > 0 ? prix : null,
+        routineStep: String(champ(produit, 'routineStep', 'routine_step') ?? ''),
+        subCategory: String(champ(produit, 'subCategory', 'subcategory') ?? ''),
+        availabilityState: 'sourcing_en_cours',
+      });
+    }
+    return fiches.sort((a, b) => a.brand.localeCompare(b.brand, 'fr') || a.name.localeCompare(b.name, 'fr'));
+  }
+
 export async function getProductReviews(store: SupabaseServerStore, productId: string): Promise<MarketplaceReview[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
