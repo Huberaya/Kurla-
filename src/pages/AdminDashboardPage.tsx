@@ -6,6 +6,7 @@ import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
+import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
@@ -1476,6 +1477,7 @@ export const AdminDashboardPage: React.FC = () => {
                 setTimeout(() => setActionSuccess(''), 5000);
               }}
             />
+            <SourcingConsolidatedPanel headers={adminHeaders} />
             <SourcingProspectsPanel
               headers={adminHeaders}
               onSuccess={(message) => {

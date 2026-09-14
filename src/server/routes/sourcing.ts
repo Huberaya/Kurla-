@@ -4,6 +4,8 @@ import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, safeApiError } from '../http';
 import { requireAdmin, type AuthenticatedRequest } from '../auth';
 import { readWorkspaceScope, sourcingItemInWorkspace, type WorkspaceScope } from '../workspaceScope';
+import { getSupabaseServerClient } from '../../lib/supabaseClient';
+import { buildConsolidatedSourcing } from '../../lib/sourcingConsolidated';
 
 /**
  * CHANTIER 16C — ROUTES DE SOURCING.
@@ -30,6 +32,40 @@ async function rfqInWorkspace(rfqId: string, scope: WorkspaceScope): Promise<boo
 }
 
 export function registerSourcingRoutes(app: Express): void {
+  /**
+   * VUE CONSOLIDÉE (14/09/2026) : « je veux voir tous les 242 produits avec
+   * les prix et le nom des fournisseurs et leurs contacts avec des emails
+   * prêts à être envoyés ». Produits publiables + candidats sourcing,
+   * regroupés par fournisseur ; l'e-mail « prêt » est un RFQ existant ou un
+   * e-mail généré depuis les seules données réelles. Lecture seule : rien
+   * n'est envoyé, conformément au mandat 16C.
+   */
+  app.get('/api/admin/sourcing/consolidated', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const [products, candidates, prospects, suppliers, rfqs] = await Promise.all([
+        serverDb.getAdminCatalogProducts(),
+        supabase.from('sourcing_product_candidates').select('*'),
+        supabase.from('sourcing_prospects').select('*'),
+        supabase.from('suppliers').select('*'),
+        supabase.from('rfqs').select('*'),
+      ]);
+      res.json(buildConsolidatedSourcing({
+        products,
+        candidates: candidates.data || [],
+        prospects: prospects.data || [],
+        suppliers: suppliers.data || [],
+        rfqs: rfqs.data || [],
+      }));
+    } catch (error) {
+      console.error('[Sourcing] consolidated error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Impossible de charger la vue sourcing consolidée.') });
+    }
+  }));
+
   app.get('/api/admin/sourcing/items', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
