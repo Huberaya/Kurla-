@@ -1800,3 +1800,17 @@ essai avait lieu. Il lit désormais `MemAvailable` de `/proc/meminfo`
   ce n'est pas une route visitée par les visiteurs.
 - Dimensions `width`/`height` manquantes sur 34 `<img>` (13 seulement
   renseignées) : gain de mise en page réel mais non mesuré, donc non retenu.
+
+### Emprunt sur un banc qui n'est pas le mien (14/09/2026)
+
+Le commit `968172d`/`fe86950` ajoute `/diagnostic`, point d'entrée unifié du
+parcours, déclaré `indexable: true` et **priorité 1** dans `routeMeta.ts` —
+donc une 36ᵉ route statique prérendue. Le banc du sitemap
+(`chantier_7_seo.test.ts`) recalcule sa liste et est resté vert ; le banc du
+prérendu, lui, fige le compte dans le code et a rougi : *« Attendu 35 routes
+statiques, obtenu 36 »*.
+
+J'ai passé le compte à 36 et ajouté l'assertion nominative sur `/diagnostic`
+(`tests/chantier_7_prerender.test.ts`). **Ce n'est pas mon domaine** : si
+cette page ne doit finalement pas être indexée, c'est `routeMeta.ts` qu'il
+faut changer, pas le compte — le banc suivra.

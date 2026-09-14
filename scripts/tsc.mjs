@@ -70,16 +70,28 @@ const MO = 1024 * 1024;
 const PLANCHER = 1024;
 const PLAFOND = 4096;
 const GARDE_FOU_DEFAUT = 900;
-// Laissés de côté pour les autres processus de la machine.
-const RESERVE = 120;
-// De combien on remonte à chaque nouvel essai après un épuisement.
-const MAJORATION = 256;
+// Laissés de côté pour les autres processus de la machine, au premier essai
+// puis à chaque nouvel essai après un épuisement (table ci-dessous).
+//
+// Défaut trouvé le 14/09/2026 : la réserve était fixe, et la valeur du tas
+// valait « disponible − réserve ». La marge restante valait donc toujours la
+// réserve — 120 Mo — soit moins que le pas d'augmentation, 256 Mo. Le nouvel
+// essai était refusé **par construction** : les trois essais n'en faisaient
+// qu'un, et l'échec annonçait « après 3 essais » pour une seule tentative.
+//
+// L'escalade resserre donc la réserve au lieu d'ajouter au disponible :
+// remonter au-delà de la mémoire physique ne rendrait pas service, le noyau
+// n'ayant pas d'espace d'échange ici.
+const RESERVES = [120, 80, 40];
+// Réserve du dernier essai : on ne descend pas en dessous.
+const RESERVE_MIN = 40;
 
-function limiteMemoire(majoration = 0) {
+function limiteMemoire(essai = 0) {
   const forcee = Number(process.env.KURLA_TSC_MEMORY);
   if (Number.isFinite(forcee) && forcee > 0) {
     return { valeur: Math.round(forcee), origine: 'KURLA_TSC_MEMORY' };
   }
+  const reserve = RESERVES[essai] ?? RESERVE_MIN;
   const totale = os.totalmem() / MO;
   const libre = memoireDisponibleMo();
   // Une réserve FIXE, pas un pourcentage. Mesuré le 12/09/2026 : 85 % du
@@ -89,7 +101,7 @@ function limiteMemoire(majoration = 0) {
   // dix-huit commits ; la part réservée, elle, n'avait aucune raison de
   // grandir avec lui. Un pourcentage lie la marge au besoin, ce qui est
   // exactement l'inverse de ce qu'il faut.
-  const disponible = Math.max(0, libre - RESERVE) + majoration;
+  const disponible = Math.max(0, libre - reserve);
   const souhaitee = Math.min(totale * 0.8, disponible);
   const bornee = Math.min(PLAFOND, Math.max(PLANCHER, Math.round(souhaitee)));
   return {
@@ -161,7 +173,7 @@ const ESSAIS_MAX = 3;
 async function principal() {
   let dernier = null;
   for (let essai = 0; essai < ESSAIS_MAX; essai += 1) {
-    const { valeur, origine } = limiteMemoire(essai * MAJORATION);
+    const { valeur, origine } = limiteMemoire(essai);
     const resultat = await lancer(valeur, origine);
     dernier = { ...resultat, valeur, origine };
 
@@ -171,12 +183,18 @@ async function principal() {
     const epuise = resultat.code === 134 || resultat.signal === 'SIGABRT';
     if (!epuise) process.exit(resultat.code ?? 1);
 
-    const marge = memoireDisponibleMo() - valeur;
-    if (marge < MAJORATION) break;
+    const suivante = limiteMemoire(essai + 1).valeur;
+    if (suivante <= valeur) {
+      console.error(
+        `\n[tsc] Mémoire insuffisante à ${valeur} Mo, et la machine n'a pas` +
+        ` de quoi monter plus haut (${Math.round(memoireDisponibleMo())} Mo disponibles).\n`
+      );
+      break;
+    }
     console.error(
-      `\n[tsc] Mémoire insuffisante à ${valeur} Mo (${origine}) —` +
-      ` il restait ${Math.round(marge)} Mo de marge.\n` +
-      `      Nouvel essai à ${valeur + MAJORATION} Mo.\n`
+      `\n[tsc] Mémoire insuffisante à ${valeur} Mo (${origine}).\n` +
+      `      Nouvel essai à ${suivante} Mo, en laissant` +
+      ` ${Math.round(memoireDisponibleMo() - suivante)} Mo aux autres processus.\n`
     );
   }
 

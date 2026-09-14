@@ -92,8 +92,17 @@ function runPrerenderTests(): void {
   // 35 : la base de savoirs « ouvrir les yeux ». `/cheveux/science` et
   // `/peau/science` deviennent indexables — les faits sourcés de la
   // recherche sont le pilier SEO de la promesse « sourcée ou absente ».
+  // 36 : `/diagnostic`, le point d'entrée unifié du parcours (cheveux ou
+  // peau). Déclaré `indexable: true` et priorité 1 dans `routeMeta.ts` :
+  // c'est la page d'entrée du diagnostic, donc la première à devoir être
+  // trouvée. Le compte ci-dessous est le seul endroit qui le fige — le banc
+  // du sitemap, lui, recalcule la liste et n'a pas eu besoin de bouger.
   const staticPublic = indexableRoutes().filter(route => !route.path.includes(':'));
-  assert.equal(staticPublic.length, 35, `Attendu 35 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.equal(staticPublic.length, 36, `Attendu 36 routes statiques, obtenu ${staticPublic.length}.`);
+  assert.ok(
+    staticPublic.some(route => route.path === '/diagnostic'),
+    'Le point d’entrée unifié du diagnostic doit être prérendu : c’est la porte du parcours.'
+  );
   assert.ok(
     staticPublic.some(route => route.path === '/ingredients'),
     'La recherche d’ingrédients doit être prérendue : c’est un pilier SEO.'
