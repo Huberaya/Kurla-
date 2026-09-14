@@ -2058,3 +2058,58 @@ le corps React avec la locale par défaut (fr) même sur les 3 routes EN — ava
 ce changement les libellés de nav étaient identiques fr/en donc l'écart était
 invisible. Côté client (hydratation), la nav est bien « Hair Diagnostic / Skin
 Diagnostic » sur `/en/*`. À traiter par son chantier i18n, pas ici.
+
+## Fin de diagnostic : kit de soin à emporter (fiche technique + matériel + produits indispensables) (15/09/2026)
+
+Consigne : « au niveau du diagnostic, je veux que tu mettes également l'accès sur
+les produits qu'il faut utiliser. Quand une personne demande sa routine, à la
+fin cette personne doit repartir avec les informations techniques et une liste
+de matériels et produits nécessaires et indispensables dans la routine et le
+soin de la peau ou des cheveux ».
+
+**Nouvelle section « 9b — Votre kit de soin — à emporter avec vous »** sur la
+page de résultat (`DiagnosticResultPage.tsx`), après « Produits réels », avant
+le suivi. Trois blocs :
+
+1. **Votre fiche technique** : les seuls champs que la personne a déclarés
+   (cheveux : texture, porosité, cuir chevelu, priorité, fréquence — peau :
+   type, phototype si consenti, préoccupations, objectifs, sensibilité). Zéro
+   déduction : rien déclaré → fiche vide (cheveux) ou ligne honnête (peau).
+2. **Matériel nécessaire** : chaque outil est justifié par une étape de la
+   routine générée (démêloir ↔ démêlage, microfibre ↔ séchage, vaporisateur ↔
+   hydratation à l'eau, applicateur ↔ étape scalp — seulement si déclenchée,
+   satin ↔ nuit en satin). Peau : la vérité — « mains propres » + note
+   « aucun matériel spécial », rien d'inventé.
+3. **Produits indispensables, par phase** : le TYPE de produit fait règle
+   (shampoing doux, conditionneur, leave-in, scellant, coiffant, masque,
+   clarifiant — nettoyant, sérum ciblé, SPF 30+ « non négociable », crème
+   barrière, exfoliation conditionnelle). Quand une référence KURLA est
+   publiée, elle est liée vers sa fiche ; sinon, mention honnête « aucune
+   référence KURLA publiée — aucune marque n'est imposée ».
+
+**Implémentation** :
+
+- Nouvelle couche connaissance `src/lib/knowledge/careKit.ts` (déterministe,
+  pure) : `buildHairKit` / `buildSkinKit`, branchées sur `buildDiagnosticResultModel`
+  (`model.kit`). Le kit ne lit que `action` des étapes (forme `KitRoutine`
+  commun aux deux pôles).
+- **Matching anti-invention** : `pickProduct` teste le NOM uniquement (un
+  `routineStep` descriptif « shampoo brush » ne fait pas matcher un shampoing),
+  filtre par CATÉGORIE (cheveux / accessoires / peau) et par exclusions
+  ciblées (le shampoing doux ne capte pas le clarifiant, le scellant ne capte
+  pas le conditionneur « Shea Butter », le coiffant ne capte pas les kits…).
+  Aucune référence hors catalogue, aucun prix, aucune marque : catalogue vide
+  → la liste des types reste complète, sans liens.
+- **Contextuel** : locks → pas de coiffant ni de scellant (dépôts) ; cuir
+  chevelu normal → pas d'applicateur ; exfoliation peau seulement si la
+  routine la contient (grain + tolérance + pas de focus barrière) ; SPF
+  marqué « Non négociable ».
+
+**Vérifié** : tsc propre · banc `test:care-kit` (9 blocs, dans la chaîne npm
+test) · c4-diagnostic-result / hair-advisory / diagnostic-advisory /
+diagnostic-session verts · build complet OK · matching validé sur le VRAI
+catalogue servi (63 références) : kit cheveux = Cantu sulfate-free +
+conditionneur Cantu + Knot Today + karité brut + Twisting Butter + Mielle
+Rosemary Mint + Comeback Revitalizer + masque SheaMoisture + Clean Rinse
+clarifiant ; kit peau (catalogue peau en phase test) = types sans liens,
+zéro faux-amis.
