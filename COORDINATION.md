@@ -1593,3 +1593,55 @@ Aucune modification de code dans ce chantier : uniquement des données.## N°50 
   - **Rien n'est publiable sans** : autorisation fournisseur + INCI + CPNP/pers. responsable UE + visuel (checklist §5 du doc).
   - **Visibilité boutique (demande utilisateur, 14/09)** : route publique `/api/produits/avenir` + section « Bientôt disponible — sourcing en cours » dans /boutique (cartes marque + prix public constaté non engageant + bouton Non vendable). Les fiches y sont lisibles **sans être vendables** : pas de panier, pas de prix de vente, garde de publiabilité intacte ; elles sortent de la section d'elles-mêmes à la publication. Fixtures d'inventaire régénérées, suite 156 PASS.
 - **En attente de prix (pas de fiche)** : CeraVe Crème hydratante, CeraVe Crème Yeux, Eucerin Anti-Pigment Correcteur, Avène Cicalfate+, COSRX Snail 96 Mucin.
+
+Aucune modification de code dans ce chantier : uniquement des données.\n
+## Mise en boutique de TEST avec visuels fournisseurs (14/09/2026)
+
+Demande de l'exploitant : « mise en boutique avec des images issues des
+fournisseurs, nécessaires pour faire des tests ; l'envoi des emails viendra en
+deuxième position ». Sans contractualisation, aucune preuve n'existe (prix pro
+masqué derrière connexion revendeur, droits visuels non cédés, INCI non
+vérifiée) : publier ces fiches dans la boutique réelle serait un mensonge.
+
+### Mécanisme : porte test séparée (migration 20260926000000, APPLIQUÉE)
+
+- `products.is_test_listing` (booléen, défaut false) + `test_listing_note`.
+- `catalogTruth.ts` : `isTestListingProduct` + `isTestListableProduct`
+  (drapeau + active + published + marque + visuel http). La porte réelle
+  `isCatalogPubliclyListable` est INCHANGÉE et n'est jamais satisfaite par une
+  fiche test — même le banc la sabote en « conforme », elle reste exclue.
+- `catalogStore.getProducts({ includeTestListings })` : sans le drapeau les
+  fiches test sont exclues ; avec, elles s'ajoutent via leur seule porte.
+- API : `GET /api/products?test=1` et `GET /api/products/:id?test=1`.
+  Client : `?test=1` active un drapeau sessionStorage ; bannière « MODE TEST »
+  dans App.tsx ; badge ambre + « Prix à contractualiser » sur les cartes et
+  fiches ; CTA « Fiche test — non achetable ». Checkout inchangé :
+  `isCheckoutEligibleProduct` reste faux (pas de stock, preuves incomplètes).
+- Prix : `price` NOT NULL conservé (protège le catalogue réel) ; les fiches
+  test portent 0 en base, traduit en `price: null` par `toPublicProduct`.
+
+### Données : 6 fiches test EOLYS (insérées, vérifié count=6)
+
+Visuel, INCI complète, EAN repris de la page publique d'EOLYS Beauté le
+14/09/2026 : Torriden Dive-In sérum 50 ml, crème 100 ml, mousse 150 ml,
+Balanceful gel 200 ml, Balanceful disques 60 pcs, Beauty of Joseon tonique riz
+150 ml. Deux fiches portent la Personne Responsable UE publiée par le
+fournisseur (AK Biocosmetics GmbH AT ; Cosmetrade S.L. ES) — preuve que ces
+références sont déjà mises sur le marché UE. Statuts honnêtes : tous
+`pending`/`unverified`, `supplier_authorization_status='not_contacted'`,
+`fulfillment_channel='not_set'`.
+
+### Écart avec la phase 4 de l'autre agent (44e9b73)
+
+Ses 26 fiches `src-*` sont `draft` + `is_active=false` et **sans visuel** :
+utiles au pipeline, invisibles en boutique. La vague test ci-dessus est la
+seule réponse à « voir des fiches avec images fournisseurs pour tester ».
+Les deux coexistent sans se chevaucher (préfixes `src-` vs `peau-test-`).
+
+### Banc
+
+`tests/kurla_vague_test_images.test.ts` (`test:vague-test-images`, chaîné) :
+porte réelle jamais satisfaite par une fiche test (y compris sabotée
+conforme), exclusion sans mode test, inclusion avec, brouillon jamais exposé,
+projection `price: null`, checkout impossible. Suite complète exit 0
+(157 [PASS], lint inclus).

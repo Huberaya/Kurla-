@@ -1232,8 +1232,14 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
 
 // Products API endpoint
 app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+  // MODE TEST (migration 20260926000000) : `?test=1` ajoute les fiches test
+  // fournisseurs (visuel + INCI repris de la page publique du distributeur,
+  // jamais achetables). Sans ce paramètre, elles sont exclues — la boutique
+  // réelle ne les voit jamais. Les devis de kits restent calculés sur le
+  // catalogue strict, même en mode test.
+  const testMode = req.query.test === '1';
   const [products, pricingCatalog] = await Promise.all([
-    serverDb.getPublicProducts(),
+    serverDb.getPublicProducts({ testListings: testMode }),
     // Les devis de kits ne lisent jamais un prix client : ils sont construits
     // depuis la projection serveur publiée des composants. Tant qu'un composant
     // n'est pas réellement publié, le devis reste explicitement indicatif.
@@ -1242,7 +1248,8 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
   res.json({
     products,
     count: products.length,
-    skinKits: buildSkinKitQuotes(pricingCatalog, 'FR', 'standard')
+    skinKits: buildSkinKitQuotes(pricingCatalog, 'FR', 'standard'),
+    testMode
   });
 }));
 
@@ -1257,9 +1264,10 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
  * routes séparées — elles ne servent que la fiche qui est déjà chargée.
  */
 app.get('/api/products/:productId', rateLimit('product-single', 120, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-  const product = await serverDb.getPublicProductByIdOrSlug(req.params.productId);
+  const testMode = req.query.test === '1';
+  const product = await serverDb.getPublicProductByIdOrSlug(req.params.productId, { testListings: testMode });
   if (!product) return res.status(404).json({ error: 'Produit non disponible.' });
-  res.json({ product, count: 1 });
+  res.json({ product, count: 1, testMode });
 }));
 
 // Gamme peau en cours de formulation (B-08 / C-06).

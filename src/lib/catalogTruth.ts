@@ -142,6 +142,11 @@ export type CatalogTruth = {
    * simple absence de donnée.
    */
   cpnpEvidence: CpnpEvidence;
+  /**
+   * Fiche test (migration 20260926000000) : visible uniquement en mode test,
+   * jamais achetable, exclue de la boutique réelle.
+   */
+  isTestListing: boolean;
 };
 
 /** Nom métier de la projection serveur consommée par toutes les surfaces. */
@@ -363,6 +368,38 @@ export function isCatalogPubliclyListable(product: any): boolean {
     && hasSkinProof(product);
 }
 
+/**
+ * FICHE TEST — drapeau explicite posé par la migration 20260926000000.
+ *
+ * Une fiche test décrit un produit réel repéré chez un fournisseur (visuel et
+ * INCI repris de sa page publique) AVANT toute contractualisation : pas de
+ * prix, pas de droits visuels cédés, preuves non validées. Elle ne doit donc
+ * JAMAIS satisfaire `isCatalogPubliclyListable` — et en pratique ne le peut
+ * pas (statuts de preuve non vérifiés, visuel `unverified`).
+ */
+export function isTestListingProduct(product: any): boolean {
+  return readCatalogField(product, 'is_test_listing') === true;
+}
+
+/**
+ * Porte SÉPARÉE du mode test : plus faible que la porte réelle, mais
+ * explicite et bornée.
+ *
+ * Elle exige seulement ce qu'une fiche de test doit tenir pour être montrée
+ * à l'exploitant : drapeau test, fiche active et publiée, marque nommée et
+ * visuel http(s) présent. Elle n'exige NI preuve validée NI droits visuels :
+ * c'est précisément l'objet du mode test. Elle ne rend jamais la fiche
+ * achetable (`isCheckoutEligible` reste faux : pas de stock, preuves
+ * incomplètes).
+ */
+export function isTestListableProduct(product: any): boolean {
+  return isTestListingProduct(product)
+    && readCatalogField(product, 'is_active') === true
+    && readCatalogField(product, 'catalog_status') === 'published'
+    && typeof product?.brand === 'string' && product.brand.trim() !== ''
+    && hasUsableImage(product);
+}
+
 function hasPositiveStock(product: any): boolean {
   if (asBoolean(product, 'in_stock')) return true;
   const stockQuantity = Number(product?.stockQuantity ?? readCatalogField(product, 'stock_quantity'));
@@ -485,6 +522,7 @@ export function getCatalogTruth(product: any): CatalogTruth {
     preorderDocumented: preorderIsDocumented,
     originProvenance,
     cpnpEvidence,
+    isTestListing: isTestListingProduct(product),
   };
 }
 

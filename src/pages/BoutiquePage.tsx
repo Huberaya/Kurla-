@@ -1301,7 +1301,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       )}
 
                       {/* Badge fulfillment C1 : 24–48h outils vs Précommande 3–5j soins */}
-                      {isDropshipProduct(product as any) ? (
+                      {product.testListing ? (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-amber-500 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          <AlertTriangle className="w-3 h-3" /> MODE TEST — non achetable
+                        </span>
+                      ) : isDropshipProduct(product as any) ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <Clock className="w-3 h-3" /> 24–48h
                         </span>
@@ -1372,7 +1376,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         </ul>
                       );
                     })()}
-                    {isDropshipProduct(product as any) ? (
+                    {product.testListing ? (
+                      <p className="text-[10px] text-amber-700 font-semibold mb-3 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Fiche test : visuel et INCI repris de la page publique du fournisseur — prix et droits à contractualiser
+                      </p>
+                    ) : isDropshipProduct(product as any) ? (
                       <p className="text-[10px] text-emerald-600 font-semibold mb-3 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {TOOL_DISPATCH_SHORT}
                       </p>
@@ -1409,8 +1417,12 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
                   <div className="pt-4 border-t border-kurla-stone flex items-center justify-between gap-2">
                     <div>
-                      <span className="text-lg font-bold text-kurla-carbon">{product.price.toFixed(2)} €</span>
-                      {product.originalPrice && (
+                      {product.price != null ? (
+                        <span className="text-lg font-bold text-kurla-carbon">{product.price.toFixed(2)} €</span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-amber-700 block">Prix à contractualiser</span>
+                      )}
+                      {product.originalPrice != null && (
                         <span className="text-xs text-kurla-carbon/40 line-through block">{product.originalPrice.toFixed(2)} €</span>
                       )}
                     </div>

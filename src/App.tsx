@@ -38,6 +38,33 @@ const DevDemoBanner: React.FC = () => {
   );
 };
 
+// Bannière MODE TEST (migration 20260926000000) : visible tant que le drapeau
+// de session est actif (?test=1). Les fiches test fournisseur ne sont servies
+// que dans ce mode ; la bannière l'annonce sur toutes les pages pour qu'aucun
+// visiteur en mode test ne confonde une fiche test avec une référence vendable.
+const TestModeBanner: React.FC = () => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('test') === '1') window.sessionStorage.setItem('kurla_test_mode', '1');
+        setShow(window.sessionStorage.getItem('kurla_test_mode') === '1');
+      } catch { setShow(false); }
+    };
+    check();
+    const onPop = () => check();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  if (!show) return null;
+  return (
+    <div role="status" className="fixed top-0 left-0 right-0 z-50 px-4 py-2 bg-amber-500 border-b border-amber-600 text-white text-center text-[11px] font-bold">
+      MODE TEST — des fiches test fournisseur (visuel et INCI publics, non achetables) sont affichées. La boutique réelle sans « ?test=1 » ne les montre jamais.
+    </div>
+  );
+};
+
 // Modals & Widgets — différés (hors chemin critique). Le hero doit peindre
 // avant que le JS du panier ou de l'assistant IA ne soit téléchargé.
 const CartDrawer = lazy(() => import('./components/CartDrawer').then(m => ({ default: m.CartDrawer })));
@@ -280,6 +307,7 @@ function AppContent() {
         />
 
         <DevDemoBanner />
+        <TestModeBanner />
 
         {apiFailure && (
           <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(680px,92vw)] rounded-2xl border border-red-200 bg-white px-4 py-3 shadow-xl">

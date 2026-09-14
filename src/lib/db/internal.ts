@@ -108,6 +108,7 @@ export function toPublicProduct(product: any): any {
       inStock: variant.is_active !== false && stockQuantity > reservedQuantity
     };
   });
+  const testListing = truth.isTestListing;
   return {
     id: product.id,
     slug: product.slug,
@@ -115,7 +116,17 @@ export function toPublicProduct(product: any): any {
     brand: product.brand,
     category: product.category,
     subCategory: product.subCategory,
-    price: effectiveCatalogPrice(product),
+    // Une fiche test porte 0 en base (NOT NULL protège le catalogue réel) :
+    // la projection publique traduit ce placeholder en absence explicite,
+    // jamais en « 0 € ».
+    price: testListing ? null : effectiveCatalogPrice(product),
+    priceNote: testListing ? 'Prix fournisseur à contractualiser' : undefined,
+    testListing: testListing || undefined,
+    testNote: testListing
+      ? (typeof product.testListingNote === 'string' && product.testListingNote
+        ? product.testListingNote
+        : (typeof product.test_listing_note === 'string' ? product.test_listing_note : undefined))
+      : undefined,
     originalPrice: isPromotionActive(product) ? (product.originalPrice ?? Number(product.price)) : product.originalPrice,
     rating: 0,
     reviewsCount: 0,

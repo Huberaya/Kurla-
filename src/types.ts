@@ -127,8 +127,13 @@ export interface Product {
   brand: string;
   category: 'cheveux' | 'peau' | 'enfants' | 'hommes' | 'accessoires' | 'kits';
   subCategory?: string;
-  price: number;
+  /** `null` uniquement pour une fiche test : prix fournisseur non contractualisé. */
+  price: number | null;
   originalPrice?: number;
+  /** Fiche test (migration 20260926000000) : visible en mode test, jamais achetable. */
+  testListing?: boolean;
+  priceNote?: string;
+  testNote?: string;
   rating: number;
   reviewsCount: number;
   image: string;

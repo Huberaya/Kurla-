@@ -15,7 +15,7 @@ import {
 } from './internal';
 import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
 import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
-import { getCatalogTruth, type OriginProvenance } from '../catalogTruth';
+import { getCatalogTruth, isTestListableProduct, isTestListingProduct, type OriginProvenance } from '../catalogTruth';
 
 /** Statuts de provenance acceptés, alignés sur la contrainte de base. */
 const ORIGIN_STATUS_VALUES: string[] = ['verified', 'declared', 'pending', 'not_provided'];
@@ -81,7 +81,23 @@ function correctedNeeds(productId: string, fallback: string[]): string[] {
  * `store.syncInventoryToSupabase`) passent par la surface composée déclarée sur
  * la classe : aucun import croisé entre modules de domaine, donc aucun cycle.
  */
-export async function getProducts(store: SupabaseServerStore, options: { publishedOnly?: boolean; includeInactive?: boolean } = {}): Promise<any[]> {
+/**
+ * Porte de publication stricte + porte test séparée (migration
+ * 20260926000000).
+ *
+ * Une fiche test ne passe JAMAIS la porte réelle, même un jour conforme :
+ * son drapeau la route exclusivement vers `isTestListableProduct`, qui n'est
+ * servi que par le mode test (`includeTestListings`). Réciproquement, une
+ * fiche réelle n'emprunte jamais la porte test.
+ */
+function publishedGate(product: any, includeTestListings: boolean): boolean {
+  if (isTestListingProduct(product)) {
+    return includeTestListings && isTestListableProduct(product);
+  }
+  return isPublishableProduct(product);
+}
+
+export async function getProducts(store: SupabaseServerStore, options: { publishedOnly?: boolean; includeInactive?: boolean; includeTestListings?: boolean } = {}): Promise<any[]> {
     const supabase = getSupabaseServerClient();
     if (supabase) {
       let productsQuery = supabase.from('products').select('*');
@@ -251,8 +267,11 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         supplierSku: p.supplier_sku || undefined,
         lastImportedAt: p.last_imported_at,
         catalogUpdatedBy: p.catalog_updated_by,
-        catalogStatus: p.catalog_status,
-        ingredientVerificationStatus: p.ingredient_verification_status,
+      catalogStatus: p.catalog_status,
+      isTestListing: p.is_test_listing === true,
+      is_test_listing: p.is_test_listing === true,
+      testListingNote: p.test_listing_note || undefined,
+      ingredientVerificationStatus: p.ingredient_verification_status,
         claimsValidationStatus: p.claims_validation_status,
         imagesValidationStatus: p.images_validation_status,
         stockValidationStatus: p.stock_validation_status,
@@ -265,7 +284,7 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         variants: productVariants
       };
       });
-      return options.publishedOnly ? mapped.filter(product => isPublishableProduct({
+      return options.publishedOnly ? mapped.filter(product => publishedGate({
         ...product,
         is_active: true,
         catalog_status: product.catalogStatus,
@@ -277,7 +296,7 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         translations_validation_status: product.translationsValidationStatus,
         brand_verification_status: product.brandVerificationStatus,
         image_ownership_status: product.imageOwnershipStatus
-      })) : mapped;
+      }, options.includeTestListings === true)) : mapped;
     }
     // The local development catalogue remains available to internal tests and
     // non-public server routines. Customer-facing API calls always pass
@@ -310,7 +329,7 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
       needs: correctedNeeds(p.id, uniqueNeeds((p as any).needs, (p as any).concerns)),
     }));
     return options.publishedOnly
-      ? memoryMapped.filter(product => isPublishableProduct(product))
+      ? memoryMapped.filter(product => publishedGate(product, options.includeTestListings === true))
       : memoryMapped;
   }
 
@@ -338,8 +357,8 @@ export async function getProductForAdministration(store: SupabaseServerStore, id
     return products.find(p => String(p.id) === idOrSlug || String(p.slug) === idOrSlug);
   }
 
-export async function getPublicProducts(store: SupabaseServerStore): Promise<any[]> {
-    return (await getProducts(store, { publishedOnly: true })).map(toPublicProduct);
+export async function getPublicProducts(store: SupabaseServerStore, options: { testListings?: boolean } = {}): Promise<any[]> {
+    return (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct);
   }
 
 /**
@@ -358,10 +377,10 @@ export async function getPublicProducts(store: SupabaseServerStore): Promise<any
  * ici la projection de 120 lignes dupliquerait le code que cette plateforme
  * déduplique.
  */
-export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idOrSlug: string): Promise<any | undefined> {
+export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idOrSlug: string, options: { testListings?: boolean } = {}): Promise<any | undefined> {
   const key = String(idOrSlug || '').trim();
   if (!key) return undefined;
-  const published = await getPublicProducts(store);
+  const published = await getPublicProducts(store, options);
   return published.find(product => String(product.id) === key || String(product.slug) === key);
 }
 

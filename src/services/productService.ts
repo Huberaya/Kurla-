@@ -44,8 +44,33 @@ function ssrProductContext(): SsrProductContext | null {
   return (globalThis as typeof globalThis & { __KURLA_SSR_CONTEXT?: SsrProductContext }).__KURLA_SSR_CONTEXT || null;
 }
 
+/**
+ * MODE TEST (migration 20260926000000) : `?test=1` dans l'URL active la
+ * lecture des fiches test fournisseur pour toute la session de navigation.
+ * Le drapeau est conservé en sessionStorage pour survivre à la navigation
+ * interne ; le retirer de l'URL ne suffit pas à l'enlever (volontaire : un
+ * clic sur un lien interne ne doit pas faire disparaître les fiches test).
+ * La boutique réelle, sans ce paramètre, ne charge jamais ces fiches.
+ */
+export function isTestModeActive(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('test') === '1') {
+      window.sessionStorage.setItem('kurla_test_mode', '1');
+      return true;
+    }
+    if (params.has('test') && params.get('test') !== '1') {
+      window.sessionStorage.removeItem('kurla_test_mode');
+    }
+    return window.sessionStorage.getItem('kurla_test_mode') === '1';
+  } catch {
+    return false;
+  }
+}
+
 async function fetchPublicProducts(): Promise<{ products: Product[]; skinKits: SkinKitQuote[] }> {
-  const response = await fetch('/api/products');
+  const response = await fetch(isTestModeActive() ? '/api/products?test=1' : '/api/products');
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(apiErrorMessage(response, data, 'Le catalogue publié est indisponible.'));
   return {

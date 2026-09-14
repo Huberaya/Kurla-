@@ -266,7 +266,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               {product.benefitPrimary && <p className="text-lg text-kurla-amber">{product.benefitPrimary}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-4 text-xs">
                 <span className={`px-2.5 py-1 rounded-full border ${canOrder ? (isPreorder ? 'text-amber-300 border-amber-400/30 bg-amber-900/20' : 'text-emerald-300 border-emerald-400/30 bg-emerald-900/20') : 'text-rose-300 border-rose-400/30 bg-rose-900/20'}`}>
-                  {canOrder ? (isPreorder ? 'Précommande — expédition selon délai annoncé' : isDropshipTool ? 'En stock partenaire — 24–48h' : 'Disponible') : 'Indisponible pour cette option'}
+                  {product.testListing ? 'MODE TEST — visuel & INCI fournisseur · non achetable' : canOrder ? (isPreorder ? 'Précommande — expédition selon délai annoncé' : isDropshipTool ? 'En stock partenaire — 24–48h' : 'Disponible') : 'Indisponible pour cette option'}
                 </span>
                 {isDropshipTool && canOrder && (
                   <span className="px-2.5 py-1 rounded-full border border-emerald-400/20 bg-emerald-900/10 text-emerald-200/90 text-[11px]">{TOOL_DISPATCH_SHORT}</span>
@@ -280,6 +280,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
 
             <p className="text-sm text-kurla-cream/78 leading-relaxed">{valueOrMissing(product.description)}</p>
 
+            {product.testNote && (
+              <p className="text-xs text-amber-300/90 leading-relaxed border border-amber-400/20 bg-amber-900/10 rounded-xl p-3">{product.testNote}</p>
+            )}
+
             {variants.length > 0 && <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-4"><h2 className="text-xs uppercase tracking-widest text-kurla-amber font-bold mb-3">Choisir une variante</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{variants.map(variant => <button key={variant.id} onClick={() => setSelectedVariantId(variant.id)} className={`p-3 rounded-xl border text-left ${variant.id === selectedVariantId ? 'border-kurla-copper bg-kurla-copper/15' : 'border-kurla-cream/10 bg-black/10'} ${!variant.inStock ? 'opacity-50' : ''}`}><span className="block text-sm font-semibold">{variant.label}</span><span className="text-xs text-kurla-cream/60">{variant.price.toFixed(2)} € · {isDropshipTool ? (variant.inStock ? '24–48h' : 'Indisponible') : variant.inStock ? 'Précommande — 3–5j' : 'Indisponible'}</span></button>)}</div></section>}
 
             <ProductComplianceBanner
@@ -288,7 +292,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               onVerdictChange={sellable => setSellableInCountry(sellable)}
             />
 
-            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-5 flex flex-wrap items-center justify-between gap-4"><div><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-kurla-cream/50">Prix affiché avant les frais de livraison</span>{!isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-kurla-cream/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : 'Indisponible'}</button></div>
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-5 flex flex-wrap items-center justify-between gap-4"><div>{product.testListing ? (<><span className="text-xl font-bold text-amber-300">Prix à contractualiser</span><span className="block text-[11px] text-kurla-cream/50">Fiche test : prix et droits visuels fournisseur non contractualisés — fiche non achetable.</span></>) : (<><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-kurla-cream/50">Prix affiché avant les frais de livraison</span></>)}{!isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-kurla-cream/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : (product.testListing ? 'Fiche test — non achetable' : 'Indisponible')}</button></div>
 
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
