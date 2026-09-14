@@ -10,6 +10,14 @@ Notre clientèle est plus attirée par des produits moins chers. »
 - **à vérifier** = produit réel identifié, prix non observé cette session — à confirmer
   avant toute fiche (jamais de prix supposé).
 
+**Périmètre et partage** : ce document couvre les **50 besoins** de
+`BESOINS_PEAU_50_2026-09-13.md` (diagnostic + éducation + besoins spécifiques).
+Le travail parallèle du 14/09 (commit `ddb997f`) couvre les **15 besoins produit
+du diagnostic** sur le même modèle — 75 produits, `docs/sourcing/
+SOURCING_FOND_MOINS_CHER_2026-09-14.md` + registre CSV. Sur les besoins communs
+(imperfections, hydrater, barrière, corps, éclat, anti-âge, lèvres…), les deux
+registres se complètent : confronter les deux avant toute RFQ.
+
 ## 1. Stratégie prix — trois canaux, un plafond volontaire
 
 La clientèle KURLA est attirée par le prix accessible. Le marché français offre,
@@ -30,7 +38,7 @@ repères haut de gamme, pas des indispensables). Le trio « routine 3 gestes » 
 
 ## 2. Le parc de fournisseurs moins chers
 
-### 2.1 K-beauty B2B France — 2 nouveaux repérés aujourd'hui (à recouper)
+### 2.1 K-beauty B2B — 4 canaux repérés ce 14/09 (2 ici, 2 au travail parallèle)
 
 | Fournisseur | Statut | Marques / points clés | Coordonnées (site officiel) |
 |---|---|---|---|
@@ -38,6 +46,8 @@ repères haut de gamme, pas des indispensables). Le trio « routine 3 gestes » 
 | **Get Your K-Beauty** | repéré 14/09 (site) — à recouper | importateur/distributeur K-beauty France + Europe depuis 2014 ; **MOQ bas, stock Europe, pas de droits de douane** | getyourkbeauty.com |
 | BLACKETIQUE SASU | ✔ vérifié (dossier 13/09, re-contrôlé 14/09) | 50 marques, stock France, B2B exclusivement | 3 rue Magnier Bédu B12, 95410 Groslay · 01 84 80 62 40 · info@blacketique.com · SIRET 979 710 829 00024 |
 | EOLYS Beauté | ✔ vérifié (dossier 13/09) | plateforme B2B ; Whamisa, Torriden, SKIN1004, COSRX, Beauty of Joseon, Biodance | eolys-beaute.com (page « devenir revendeur ») |
+| **Qudo Beauty** (RO) | constaté au travail parallèle, 14/09 | MOQ **300 € total, aucun minimum par référence**, port offert dès 500 € ; **seul à déclarer par écrit CPNP + personne responsable UE + INCI** ; COSRX, BOJ, Torriden, Isntree, SKIN1004 | cf. `SOURCING_FOND_MOINS_CHER_2026-09-14.md` |
+| **Aquarius Cosmetic SLU** (ES, marque IDC Institute) | constaté au travail parallèle, 14/09 | corps / bain / gifts à **0,98–4,40 €/u** (prix publics) | info@aqc.es · +34 938 861 366 |
 
 ### 2.2 Les grandes marques (CeraVe, The Ordinary, Garnier, Maybelline, essence,
 Sanoflore, Weleda, Eucerin, LRP, Isdin, Ducray, Klorane)
@@ -49,7 +59,8 @@ court vers les prix les plus bas (CeraVe 8,72–17,90 € l'unité en détail, p
 sous le détail).
 
 ### 2.3 Ankorstore (✔ vérifié) — marques françaises
-Sanoflore, Weleda, Cosmo Naturel, marques corps — minimum 100 €/marque, franco 300 €.
+Sanoflore, Weleda, Cosmo Naturel, marques corps — minimum 100 €/marque, franco 300 €,
+**0 % commission réassorts** (constaté janv. 2026, travail parallèle).
 
 ## 3. Les 50 besoins × 5 produits
 
