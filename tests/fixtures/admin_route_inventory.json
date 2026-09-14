@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T23:41:07.502Z",
+  "generatedAt": "2026-09-14T23:54:42.964Z",
   "routes": [
     {
       "method": "GET",
@@ -553,8 +553,17 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/sourcing/consolidated",
+      "file": "src/server/routes/sourcing.ts:43",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/SourcingConsolidatedPanel.tsx:19"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/sourcing/items",
-      "file": "src/server/routes/sourcing.ts:33",
+      "file": "src/server/routes/sourcing.ts:69",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:110",
@@ -564,7 +573,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items",
-      "file": "src/server/routes/sourcing.ts:61",
+      "file": "src/server/routes/sourcing.ts:97",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:110",
@@ -574,7 +583,7 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/items/:itemId",
-      "file": "src/server/routes/sourcing.ts:77",
+      "file": "src/server/routes/sourcing.ts:113",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:131"
@@ -583,7 +592,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/award",
-      "file": "src/server/routes/sourcing.ts:137",
+      "file": "src/server/routes/sourcing.ts:173",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:197"
@@ -592,7 +601,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/rfqs",
-      "file": "src/server/routes/sourcing.ts:94",
+      "file": "src/server/routes/sourcing.ts:130",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:158"
@@ -640,7 +649,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/responses",
-      "file": "src/server/routes/sourcing.ts:123",
+      "file": "src/server/routes/sourcing.ts:159",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:182"
@@ -649,7 +658,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/send",
-      "file": "src/server/routes/sourcing.ts:109",
+      "file": "src/server/routes/sourcing.ts:145",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:168"
