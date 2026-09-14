@@ -12,7 +12,7 @@ import { BrandImage } from './BrandImage';
 
 const PILLARS = [
   { icon: ShoppingBag, title: 'La boutique', text: '60+ soins, outils & innovations — du peigne afro au steamer.', href: '/boutique' },
-  { icon: ScanSearch, title: 'Diagnostic IA', text: 'Votre routine sur-mesure en 3 min, gratuit et sans abonnement.', href: '/diagnostic/cheveux' },
+  { icon: ScanSearch, title: 'Diagnostics IA', text: 'Choisissez votre parcours peau ou cheveux, gratuit et sans abonnement.', href: '/diagnostic' },
   { icon: MessageCircleHeart, title: 'Assistant beauté', text: 'Des réponses d’expert, profondes et honnêtes, 24 h/24.', href: '/assistant-beaute' },
   { icon: BadgeCheck, title: 'Pros certifiés', text: 'Des coiffeurs & spécialistes qui maîtrisent votre texture.', href: '/professionnels' },
 ];
@@ -107,10 +107,10 @@ export const HeroSection: React.FC = () => {
           <CssReveal delayMs={260}>
             <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <a
-                href="/diagnostic/cheveux"
+                href="/diagnostic"
                 className="px-8 py-4 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-cocoa hover:from-[#d48246] hover:to-kurla-copper text-white font-semibold text-base tracking-wide shadow-xl shadow-kurla-copper/30 transition-all duration-200 flex items-center justify-center gap-3 group hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.97]"
               >
-                Lancer mon diagnostic gratuit
+                Choisir mon diagnostic
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
 

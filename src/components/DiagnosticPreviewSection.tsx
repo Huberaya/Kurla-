@@ -28,10 +28,10 @@ export const DiagnosticPreviewSection: React.FC = () => {
             {/* Checklist of what user gets */}
             <div className="space-y-3 pt-2">
               {[
-                'Votre texture identifiée (3A à 4C, boucles, locks, tresses)',
-                'Votre porosité et l’état de votre cuir chevelu évalués',
+                'Une analyse personnalisée de vos cheveux ou de votre peau',
+                'Texture, porosité, phototype et priorités mieux compris',
                 'Une routine étape par étape, claire et sans superflu',
-                'Des produits du catalogue et des pros près de chez vous'
+                'Des produits du catalogue et des conseils adaptés'
               ].map((item, idx) => (
                 <div key={idx} className="flex items-start gap-3 text-sm text-kurla-carbon/90 font-medium">
                   <div className="w-5 h-5 rounded-full bg-kurla-copper/15 text-kurla-copper flex items-center justify-center shrink-0 mt-0.5">
@@ -45,10 +45,10 @@ export const DiagnosticPreviewSection: React.FC = () => {
             {/* CTA Button */}
             <div className="pt-4">
               <a
-                href="/diagnostic/cheveux"
+                href="/diagnostic"
                 className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-semibold text-base shadow-lg shadow-kurla-copper/20 transition-all transform hover:-translate-y-0.5"
               >
-                Démarrer mon diagnostic gratuit
+                Choisir mon diagnostic
                 <ArrowRight className="w-5 h-5" />
               </a>
             </div>
