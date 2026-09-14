@@ -207,9 +207,14 @@ Les 26 fiches `src-*` passent en fiches test (mécanisme existant de l'autre
 chantier, migration `20260926000000`), sans toucher au shop réel :
 
 - `is_test_listing = true`, `is_active = true`, `catalog_status = 'published'`,
-  `test_listing_note` documentant la phase. **Appliqué en production après le
-  déploiement du code** (l'ordre est important : la section « Bientôt
-  disponible » est servie par du code).
+  `test_listing_note` documentant la phase. Appliqué en production le
+  14/09/2026 **après** le déploiement du code (l'ordre est important : la
+  section « Bientôt disponible » est servie par du code) : 26/26 fiches
+  basculées, contrôle post-écriture OK. Mesures production : boutique réelle
+  **63 fiches / 0 test** (inchangée), mode test **95 fiches / 32 test**
+  (26 `src-*` + 6 `peau-test-*`), prix `null` sur les 26, cosmo-001 sans
+  image usurpée (`''`), « Bientôt disponible » **26 fiches** conservées,
+  sonde de production 0 erreur / 0 silence.
 - Porte test `isTestListableProduct` (catalogTruth) : fiche test + publiée +
   active + marque + visuel → servie en mode test ; la porte réelle
   `isCatalogPubliclyListable` reste fermée (preuves non vérifiées) — aucune des
