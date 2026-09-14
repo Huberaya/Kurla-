@@ -118,3 +118,62 @@ catalogue achetable).
   prix entre 5,79 € et 91,19 € (tous constatés).
 - Site prod : aucune fiche nouvelle visible (les drafts ne sont ni listés, ni vendus,
   ni référencés comme publia — la route gamme cible sert toujours les 16 fiches cibles).
+
+## 7. Visuels officiels — 14/09/2026 (suite)
+
+Consolidation demandée : chaque fiche `src-*` obtient le visuel officiel de la
+marque, tel qu'il figure sur la plateforme de l'entreprise.
+
+### 7.1. Packshots récupérés (25/26)
+
+- **25 packshots** téléchargés depuis les plateformes officielles des marques
+  (La Roche-Posay FR/ES, Eucerin, Avène, Bioderma, Ducray, Klorane, IN'OYA,
+  L'Oréal, ISDIN, Weleda, COSRX, The Ordinary, INKEY List, ISNTREE),
+  compressés (≤ 1000 px, ≤ ~90 Ko chacun, 960 Ko au total) et servis par le
+  site depuis **`public/images/sourcing/<id>.jpg`**.
+- Chaque produit : `image_url` → packshot, ligne `product_images`
+  (`image_type='primary'`) avec **`source_note`** (plateforme + date de
+  vérification 14/09/2026) et **`ownership_status='unverified'`**.
+
+### 7.2. Statut de propriété — correction de l'état hérité fictif
+
+Les 26 fiches héritaient du template de création `images_validation_status =
+'verified'` + `image_ownership_status = 'brand_provided'` avec un placeholder
+Unsplash générique — un état **fictif** (aucune marque n'a fourni ni validé de
+visuel). Tout a été corrigé :
+
+- **25 fiches** : `images_validation_status='pending'`,
+  `image_ownership_status='unverified'` (visuel officiel consté,
+  autorisation de la marque non obtenue — la garde de publication reste
+  fermée tant que l'autorisation n'est pas formelle).
+- **cosmo-001** : `images_validation_status='not_provided'`,
+  `image_ownership_status='unverified'`, placeholder KURLA conservé,
+  `product_images.image_type='placeholder'` + note.
+
+### 7.3. Flags issus de la vérification
+
+- **cosmo-001 — pas d'image officielle** : « Lait Corps Nourrissant Karité
+  Amande douce 500 ml » (EAN 3489940049503) est **absent de la plateforme
+  cosmonaturel.fr** (vérifié le 14/09/2026 : recherches karité/lait/EAN,
+  sondage d'identifiants, sitemaps). Le produit existe chez des distributeurs
+  (ex. penntybio.com, 10,75 €, réf. NCO4950) — **visuel officiel à demander au
+  fournisseur** (ajouté aux attentes de la phase 3).
+- **bio-001 — identification corrigée** : le produit exact sur bioderma.fr est
+  la **Créaline Huile Micellaire 150 ml** (gamme Créaline, PDP
+  `/p/crealine-huile-micellaire`), et non « Sensibio Huile Micellaire 500 ml »
+  (la gamme Sensibio regroupe les eaux micellaires). Fiche mise à jour : nom,
+  slug (`src-bio-001-crealine-huile-micellaire`), prix public constaté
+  **24,15 €** (LookFantastic, 14/09/2026 — 150 ml) ; l'ancien prix 11,99 €
+  concernait la référence 500 ml erronée.
+- **lrp-006** : la plateforme FR liste la version **4,7 g** (réf. p6756), la
+  plateforme ES la version **9 ml** — même gamme ; le packshot retenu est la
+  version ES. **Format à confirmer au sourcing.**
+
+### 7.4. Garanties
+
+- Non vendable : inchangé — aucune des 26 fiches n'est publiée, `is_active`
+  reste `false`, la garde `isCatalogPubliclyListable` continue de les refuser.
+- Publiés : inchangés par cette opération (69 = 63 initiaux + 6 kits de
+  précommande ajoutés par un autre chantier entre-temps).
+- La section boutique « Bientôt disponible » affiche désormais les packshots
+  officiels (25) et le placeholder KURLA (cosmo-001).
