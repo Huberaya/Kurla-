@@ -10,6 +10,10 @@ Notre clientèle est plus attirée par des produits moins chers. »
 - **à vérifier** = produit réel identifié, prix non observé cette session — à confirmer
   avant toute fiche (jamais de prix supposé).
 
+**2ᵉ passe (15/09/2026)** : 33 des 41 positions « à vérifier » du 14/09 ont été
+re-vérifiées sur des revendeurs FR (statut « vérifié le 15/09/2026 — <source> »).
+Total : **242/250 prix constatés**, 8 lignes restantes sans prix (détail en §5).
+
 **Périmètre et partage** : ce document couvre les **50 besoins** de
 `BESOINS_PEAU_50_2026-09-13.md` (diagnostic + éducation + besoins spécifiques).
 Le travail parallèle du 14/09 (commit `ddb997f`) couvre les **15 besoins produit
@@ -17,6 +21,8 @@ du diagnostic** sur le même modèle — 75 produits, `docs/sourcing/
 SOURCING_FOND_MOINS_CHER_2026-09-14.md` + registre CSV. Sur les besoins communs
 (imperfections, hydrater, barrière, corps, éclat, anti-âge, lèvres…), les deux
 registres se complètent : confronter les deux avant toute RFQ.
+La vue croisée des deux registres (besoin par besoin, meilleurs prix, points
+d'harmonisation) : `docs/sourcing/VUE_CROISEE_2_REGISTRES_SOURCING_FOND_2026-09-15.md`.
 
 ## 1. Stratégie prix — trois canaux, un plafond volontaire
 
@@ -31,9 +37,10 @@ Trois canaux se combinent :
 | **2. Pharmacie accessible** (CeraVe, The Ordinary, Sanoflore, Weleda, Eucerin, LRP bas de gamme) | 2,50–18 € | Niacinamide TO 5,59 € · CeraVe crème lavante 8,72 € · Sanoflore déo 5,75 € | Les références dermatologiques au prix plancher |
 | **3. Grande distribution** (Carmex, Garnier, Maybelline, essence, Yves Rocher, Klorane) | 2,50–13 € | Carmex 2,59 € · essence FT 7,50 € · Klorane antipelliculaire 5,99 € | Les gestes du quotidien et le maquillage teintes |
 
-**Constat chiffré** : sur les 50 besoins, **45 se couvrent à moins de 25 €** pour les
-5 produits ; 8 besoins seulement exigent un produit au-dessus de 25 € (et ce sont des
-repères haut de gamme, pas des indispensables). Le trio « routine 3 gestes » (#48) coûte
+**Constat chiffré** : après la 2ᵉ passe du 15/09, **les 50 besoins ont chacun au moins
+un produit sous 25 €** (50/50, contre 45/50 le 14/09). Les produits au-dessus de 25 €
+restent des repères haut de gamme, pas des indispensables. Le trio « routine 3 gestes »
+(#48) coûte **≈ 34 €** en produits réels sourçables contre 49,70 € pour le kit cible.
 **≈ 34 €** en produits réels sourçables contre 49,70 € pour le kit cible.
 
 ## 2. Le parc de fournisseurs moins chers
@@ -76,7 +83,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | CeraVe — Crème lavante hydratante (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | CeraVe — Crème lavante hydratante éco-recharge (473 ml) | **8,72 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | Torriden — Balanceful Gel nettoyant centella (200 ml) | à vérifier | EOLYS Beauté |
-| 4 | Garnier — Eau micellaire 3-en-1 peaux sensibles (400 ml) | à vérifier | Grande distribution |
+| 4 | Garnier — Eau micellaire 3-en-1 peaux sensibles (400 ml) | **4,99 €** | Grande distribution |
 | 5 | CeraVe — Moussant nettoyant (peaux mixtes-grasses) (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #2 — Sécheresse (peau) ≠ déshydratation (eau) — eau + lipides séparés
@@ -87,7 +94,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | CeraVe — Crème hydratante (céramides) (52 ml) | **15,35 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Lotion hydratante visage & corps (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | Isntree — Hyaluronic Acid Aqua Gel Cream (100 ml) | **18,95 €** | EOLYS Beauté |
-| 5 | CeraVe — Sérum acide hyaluronique (1 %) (30 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | CeraVe — Sérum acide hyaluronique (1 %) (30 ml) | dès **17,60 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #3 — Niveau d'hydratation (brillante / sèche / déshydratée)
 
@@ -107,7 +114,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | La Roche-Posay — Cicaplast Baume B5+ (100 ml) | **13,39 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Pommade réparatrice intensive (multi-usages) (50 ml) | **8,67 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | Torriden — Balanceful Gel nettoyant centella (200 ml) | à vérifier | EOLYS Beauté |
-| 5 | La Roche-Posay — Lipikar Wash (gel lavant corps, sans savon) (400 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | La Roche-Posay — Lipikar Wash (gel lavant corps, sans savon) (400 ml) | **10,50 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #5 — Phototype + ses limites — débouché produit : le SPF
 
@@ -117,7 +124,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | La Roche-Posay — Anthelios XL teinté gel-crème SPF50+ (50 ml) | dès **9,50 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | Eucerin — Sun Pigment Control Gel-Crème teinté SPF50+ (50 ml) | **12,59 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 4 | Round Lab — Birch Juice Moisturizing Sun Cream SPF50+ (50 ml) | **17,59 €** | Kocosmetic/Bizdistribution |
-| 5 | Isntree — Hydramooth / Sun gel SPF50 (gammes solaires K) (50 ml) | à vérifier | EOLYS Beauté |
+| 5 | Isntree — Hydramooth / Sun gel SPF50 (gammes solaires K) (50 ml) | **14,59 €** | EOLYS Beauté |
 
 #### #6 — Profondeur de ton et sous-ton — débouché : maquillage teinte
 
@@ -126,8 +133,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | essence — I Love Flawless Skin (11 teintes dont Dark Porcelain) (30 ml) | **7,50 €** | Grande distribution |
 | 2 | Maybelline — Fit Me fond de teint (350 Caramel/352 Cacao/365 Expresso) (30 ml) | **9,39 €** | Grande distribution |
 | 3 | L'Oréal Paris — True Match fond de teint (30 ml) | **18,99 €** (fiche) | Grande distribution |
-| 4 | L'Oréal Paris — Infallible 24H Fresh Wear (nuances profondes) (30 ml) | à vérifier | Grande distribution |
-| 5 | NYX — Can't Stop Won't Stop (gamme étendue) (30 ml) | à vérifier | Grande distribution |
+| 4 | L'Oréal Paris — Infallible 24H Fresh Wear (nuances profondes) (30 ml) | **7,50 €** | Grande distribution |
+| 5 | NYX — Can't Stop Won't Stop (gamme étendue) (30 ml) | **12,88 €** | Grande distribution |
 
 #### #7 — Force de la barrière cutanée — céramides
 
@@ -178,8 +185,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | The Ordinary — Niacinamide 10 % + Zinc 1 % (30 ml) | **5,59 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | The Ordinary — Suspension vitamine C 23 % + HA 2 % (30 ml) | **8,20 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | The Ordinary — Solution salicylique 2 % (30 ml) | **7,49 €** | Grande distribution pharmacie/parapharmacie |
-| 4 | Beauty of Joseon — Glow Serum Propolis 10 % (30 ml) | à vérifier | EOLYS Beauté |
-| 5 | Garnier — Sérum vitamine C Bright Complete (30 ml) | à vérifier | Grande distribution |
+| 4 | Beauty of Joseon — Glow Serum Propolis 10 % (30 ml) | **11,93 €** | EOLYS Beauté |
+| 5 | Garnier — Sérum vitamine C Bright Complete (30 ml) | **13,99 €** | Grande distribution |
 
 #### #12 — Teint terne, fatigué
 
@@ -188,8 +195,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | The Ordinary — Suspension vitamine C 23 % + HA 2 % (30 ml) | **8,20 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | The Ordinary — Niacinamide 10 % + Zinc 1 % (30 ml) | **5,59 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | The Ordinary — Solution d'ascorbyl glucoside 12 % (30 ml) | **17,00 €** | Grande distribution pharmacie/parapharmacie |
-| 4 | Garnier — Sérum vitamine C Bright Complete (30 ml) | à vérifier | Grande distribution |
-| 5 | Beauty of Joseon — Glow Serum Propolis 10 % (30 ml) | à vérifier | EOLYS Beauté |
+| 4 | Garnier — Sérum vitamine C Bright Complete (30 ml) | **13,99 €** | Grande distribution |
+| 5 | Beauty of Joseon — Glow Serum Propolis 10 % (30 ml) | **11,93 €** | EOLYS Beauté |
 
 #### #13 — Taches par frottement et pression (différenciateur KURLA)
 
@@ -246,10 +253,10 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | # | Produit | Prix | Fournisseur / canal |
 |---|---|---|---|
 | 1 | The INKEY List — Crème yeux au rétinol (15 ml) | **11,21 €** | Grande distribution pharmacie/parapharmacie |
-| 2 | The Ordinary — Caffeine Solution 5 % + EGCG (30 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 2 | The Ordinary — Caffeine Solution 5 % + EGCG (30 ml) | **8,85 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | La Roche-Posay — Hyalu B5 Sérum Yeux (repère haut de gamme) (15 ml) | **23,03 €** (fiche) | Grande distribution pharmacie/parapharmacie |
-| 4 | CeraVe — Crème yeux (céramides) (15 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
-| 5 | Beauty of Joseon — Revive Eye Serum Ginseng + Retinal (30 ml) | à vérifier | EOLYS Beauté |
+| 4 | CeraVe — Crème yeux (céramides) (15 ml) | **11,30 €** | Grande distribution pharmacie/parapharmacie |
+| 5 | Beauty of Joseon — Revive Eye Serum Ginseng + Retinal (30 ml) | **12,75 €** | EOLYS Beauté |
 
 ### C. Imperfections
 
@@ -271,7 +278,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | COSRX — BHA Blackhead Power Liquid (100 ml) | **18,99 €** (fiche) | EOLYS Beauté |
 | 3 | The Ordinary — Acide azélaïque 10 % (30 ml) | **13,50 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 4 | Isntree — Chestnut BHA 2 % Clear Liquid (100 ml) | **21,95 €** (fiche) | EOLYS Beauté |
-| 5 | La Roche-Posay — Effaclar Gel Nettoyant Purifiant (200 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | La Roche-Posay — Effaclar Gel Nettoyant Purifiant (200 ml) | **10,67 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #21 — Points noirs (2 % salicylique, zéro extraction)
 
@@ -281,7 +288,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | COSRX — BHA Blackhead Power Liquid (100 ml) | **18,99 €** (fiche) | EOLYS Beauté |
 | 3 | Isntree — Chestnut BHA 2 % Clear Liquid (100 ml) | **21,95 €** (fiche) | EOLYS Beauté |
 | 4 | CeraVe — Gel-crème matifiant (sébum/pores) (53 ml) | **13,63 €** | Grande distribution pharmacie/parapharmacie |
-| 5 | CeraVe — Nettoyant pores (salicylique 0,5 %) (236 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | CeraVe — Nettoyant pores (salicylique 0,5 %) (236 ml) | **8,80 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #22 — Picking (s'arracher les boutons) — patch occlusif = protection physique
 
@@ -289,9 +296,9 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 |---|---|---|---|
 | 1 | COSRX — Acne Pimple Master Patch (24 patchs) | **6,89 €** | EOLYS Beauté |
 | 2 | COSRX — Master Patch Intensive (90 patchs) | **11,39 €** | EOLYS Beauté |
-| 3 | Mizon — All In One Acne Pimple Patch (lot) | à vérifier | EOLYS Beauté |
+| 3 | Mizon — All In One Acne Pimple Patch (lot) | **5,99 €** | Kocosmetic/Bizdistribution |
 | 4 | CeraVe — Pommade réparatrice intensive (occlusif doux) (50 ml) | **8,67 €** | Grande distribution pharmacie/parapharmacie |
-| 5 | Vaseline — Original (occlusif basique) (100 ml) | à vérifier | Grande distribution |
+| 5 | Vaseline — Original (occlusif basique) (100 ml) | **2,48 €** | Grande distribution |
 
 #### #23 — Peau brillante, sébum en excès
 
@@ -301,7 +308,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | The Ordinary — Solution salicylique 2 % (30 ml) | **7,49 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Gel-crème matifiant (peaux mixtes-grasses) (53 ml) | **13,63 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | CeraVe — Flacon moussant nettoyant (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
-| 5 | La Roche-Posay — Effaclar Mat (fluide matifiant) (40 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | La Roche-Posay — Effaclar Mat (fluide matifiant) (40 ml) | **12,99 €** | Grande distribution pharmacie/parapharmacie |
 
 ### D. Hydratation & confort
 
@@ -332,7 +339,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | CeraVe — Crème lavante hydratante (sans parfum) (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | La Roche-Posay — Cicaplast Baume B5+ (100 ml) | **13,39 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 3 | Torriden — Balanceful Gel centella (200 ml) | à vérifier | EOLYS Beauté |
-| 4 | SKIN1004 — Madagascar Centella Ampoule (100 ml) | à vérifier | EOLYS Beauté |
+| 4 | SKIN1004 — Madagascar Centella Ampoule (100 ml) | **21,90 €** | EOLYS Beauté |
 | 5 | CeraVe — Pommade réparatrice intensive (50 ml) | **8,67 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #27 — Rougeurs (azélaïque + SPF, jamais sur-exfolier)
@@ -343,7 +350,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | The INKEY List — Sérum azélaïque 10 % (30 ml) | **18,40 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Pommade réparatrice intensive (50 ml) | **8,67 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | La Roche-Posay — Cicaplast Baume B5+ (100 ml) | **13,39 €** (fiche) | Grande distribution pharmacie/parapharmacie |
-| 5 | SKIN1004 — Madagascar Centella Ampoule (100 ml) | à vérifier | EOLYS Beauté |
+| 5 | SKIN1004 — Madagascar Centella Ampoule (100 ml) | **21,90 €** | EOLYS Beauté |
 
 #### #28 — Réactions au parfum (« sans parfum » ≠ « sans allergène »)
 
@@ -352,7 +359,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | CeraVe — Crème lavante hydratante (sans parfum) (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | CeraVe — Lotion hydratante (sans parfum) (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Pommade réparatrice (sans parfum) (50 ml) | **8,67 €** | Grande distribution pharmacie/parapharmacie |
-| 4 | Garnier — Eau micellaire sans parfum (400 ml) | à vérifier | Grande distribution |
+| 4 | Garnier — Eau micellaire sans parfum (400 ml) | **4,99 €** | Grande distribution |
 | 5 | La Roche-Posay — Anthelios Fluide Invisible SPF50+ (sans parfum) (40 ml) | **22,90 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 
 #### #29 — Climat : eau calcaire, vent froid, hiver
@@ -417,7 +424,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | The INKEY List — Sérum au rétinol (débutant, libération lente) (30 ml) | **12,99 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Lotion hydratante (base quotidienne) (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | La Roche-Posay — Hyalu B5 Sérum (repère haut de gamme) (30 ml) | **31,99 €** (fiche) | Grande distribution pharmacie/parapharmacie |
-| 5 | The Ordinary — Caffeine Solution 5 % + EGCG (contour) (30 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | The Ordinary — Caffeine Solution 5 % + EGCG (contour) (30 ml) | **8,85 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #35 — Fermeté, élasticité (peptides)
 
@@ -425,8 +432,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 |---|---|---|---|
 | 1 | The INKEY List — Bio-Active Ceramide (barrière = soutien fermeté) (50 ml) | **16,38 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | CeraVe — Crème hydratante (3 céramides) (52 ml) | **15,35 €** | Grande distribution pharmacie/parapharmacie |
-| 3 | The INKEY List — Sérum peptides (30 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
-| 4 | Beauty of Joseon — Revive Eye Serum Ginseng + Retinal (30 ml) | à vérifier | EOLYS Beauté |
+| 3 | The INKEY List — Sérum peptides (30 ml) | **13,95 €** | Grande distribution pharmacie/parapharmacie |
+| 4 | Beauty of Joseon — Revive Eye Serum Ginseng + Retinal (30 ml) | **12,75 €** | EOLYS Beauté |
 | 5 | CeraVe — Lotion hydratante (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #36 — Vieillissement de la peau mélaninée (pigment d'abord, ride ensuite)
@@ -479,7 +486,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | The Ordinary — Acide lactique 10 % + HA (−66 % en 12 sem mesuré) (30 ml) | **14,89 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | La Roche-Posay — Lipikar Baume AP+ (400 ml) | **17,90 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | Yves Rocher — Gommage corps karité (75 ml) | **5,99 €** | Grande distribution |
-| 5 | CeraVe — Lavage SA corps (acide salicylique) (473 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | CeraVe — Lavage SA corps (acide salicylique) (473 ml) | **17,50 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #41 — Corps sec et rêche (coudes, genoux, mollets)
 
@@ -498,7 +505,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | Sanoflore — Déodorant Coton 24 H (sans sels d'aluminium) (50 ml) | **5,75 €** | Ankorstore |
 | 2 | Weleda — Déodorant solide 24 H Sensitive (50 g) | **11,50 €** (fiche) | Ankorstore |
 | 3 | Sanoflore — Déodorant Mentha 48 H (50 ml) | **5,75 €** | Ankorstore |
-| 4 | La Roche-Posay — Déodorant Sensitive 48 H (50 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 4 | La Roche-Posay — Déodorant Sensitive 48 H (50 ml) | **11,84 €** | Grande distribution pharmacie/parapharmacie |
 | 5 | The Ordinary — Acide lactique 10 % (usage ciblé, cadencé) (30 ml) | **14,89 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #43 — Lèvres : sécheresse, assombrissement par les habitudes
@@ -527,11 +534,11 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 
 | # | Produit | Prix | Fournisseur / canal |
 |---|---|---|---|
-| 1 | Garnier — Eau micellaire 3-en-1 (400 ml) | à vérifier | Grande distribution |
+| 1 | Garnier — Eau micellaire 3-en-1 (400 ml) | **6,99 €** | Grande distribution |
 | 2 | CeraVe — Huile lavante moussante (double nettoyage) (473 ml) | **16,67 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | CeraVe — Crème lavante hydratante (2ᵉ temps doux) (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | Bioderma — Créaline Huile Micellaire (repère prix élevé) (150 ml) | **24,15 €** (fiche) | Grande distribution pharmacie/parapharmacie |
-| 5 | Banila Co — Clean It Zero cleansing balm (100 ml) | à vérifier | EOLYS Beauté |
+| 5 | Banila Co — Clean It Zero cleansing balm (100 ml) | **21,90 €** | Kocosmetic/Bizdistribution |
 
 #### #46 — Maquillage non comédogène
 
@@ -540,8 +547,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | essence — I Love Flawless Skin (non pore-clogging, mat) (30 ml) | **7,50 €** | Grande distribution |
 | 2 | Maybelline — Fit Me fond de teint matifiant (30 ml) | **9,39 €** | Grande distribution |
 | 3 | CeraVe — Gel-crème matifiant (base sans excès) (53 ml) | **13,63 €** | Grande distribution pharmacie/parapharmacie |
-| 4 | L'Oréal Paris — Infallible 24H (gamme large, teintes profondes) (30 ml) | à vérifier | Grande distribution |
-| 5 | NYX — Can't Stop Won't Stop foundation (30 ml) | à vérifier | Grande distribution |
+| 4 | L'Oréal Paris — Infallible 24H (gamme large, teintes profondes) (30 ml) | **7,50 €** | Grande distribution |
+| 5 | NYX — Can't Stop Won't Stop foundation (30 ml) | **12,88 €** | Grande distribution |
 
 #### #47 — Trouver sa teinte de fond de teint en teint foncé
 
@@ -551,7 +558,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | Maybelline — Fit Me (350 Caramel/352 Cacao/365 Expresso) (30 ml) | **9,39 €** | Grande distribution |
 | 3 | L'Oréal Paris — True Match (30 ml) | **18,99 €** (fiche) | Grande distribution |
 | 4 | Beauty of Joseon — Tinted Mineral Dayscreen SPF30 (15 teintes) (40 ml) | **15,00 €** | EOLYS Beauté |
-| 5 | L'Oréal Paris — Infallible 24H Fresh Wear (nuances profondes) (30 ml) | à vérifier | Grande distribution |
+| 5 | L'Oréal Paris — Infallible 24H Fresh Wear (nuances profondes) (30 ml) | **7,50 €** | Grande distribution |
 
 ### I. Routine & actifs
 
@@ -562,7 +569,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | CeraVe — Crème lavante hydratante (nettoyer) (236 ml) | **10,90 €** | Grande distribution pharmacie/parapharmacie |
 | 2 | CeraVe — Lotion hydratante (hydrater) (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
 | 3 | Beauty of Joseon — Relief Sun SPF50+ (protéger) (50 ml) | **12,25 €** | EOLYS Beauté |
-| 4 | Garnier — Eau micellaire (alternative nettoyage) (400 ml) | à vérifier | Grande distribution |
+| 4 | Garnier — Eau micellaire (alternative nettoyage) (400 ml) | **6,99 €** | Grande distribution |
 | 5 | CeraVe — Crème lavante éco-recharge (le trio à ≈32 €) (473 ml) | **8,72 €** | Grande distribution pharmacie/parapharmacie |
 
 #### #49 — Introduire un actif à la fois + combinaisons sûres
@@ -582,7 +589,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 1 | The Ordinary — Acide azélaïque 10 % (alternative douce documentée) (30 ml) | **13,50 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 2 | Beauty of Joseon — Relief Sun SPF50+ (ce qui reste) (50 ml) | **12,25 €** | EOLYS Beauté |
 | 3 | CeraVe — Lotion hydratante (ce qui reste, sans parfum) (400 ml) | **10,95 €** | Grande distribution pharmacie/parapharmacie |
-| 4 | The INKEY List — Bakuchiol (alternative végétale au rétinol) (30 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 4 | The INKEY List — Bakuchiol (alternative végétale au rétinol) (30 ml) | **18,95 €** | Grande distribution pharmacie/parapharmacie |
 | 5 | La Roche-Posay — Anthelios XL teinté SPF50+ (ce qui reste) (50 ml) | dès **9,50 €** | Grande distribution pharmacie/parapharmacie |
 
 ## 4. Ce que le sourcing de fond change par rapport au dossier du 14/09
@@ -611,21 +618,24 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 
 ## 5. Honnêteté — ce qui n'est PAS encore fait
 
-- Les lignes **à vérifier** (≈40) n'ont pas de prix observé cette session : le
-  produit est réel et identifié, le prix sera confirmé avant toute fiche.
+- **8 lignes sans prix** après la 2ᵉ passe du 15/09 (contre 41 le 14/09) : 6
+  positions Torriden en fiche `peau-test-*` existante (prix volontairement non
+  listé tant que la fiche n'est pas vendable — couche test, pas ce dossier),
+  1 LRP Keralys DS Gentle (aucun prix FR trouvé le 15/09 — 2 recherches),
+  1 SKIN1004 Silky Fit Sun Stick (23 $ US uniquement).
 - Kocosmetic et Get Your K-Beauty sont **repérés sur leur site**, non recoupés
   (RCS, références clients) — statut « à recouper », pas « vérifié ».
 - **Aucun distributeur B2B n'est désigné** pour les grandes marques (CeraVe,
   The Ordinary, Garnier…) — c'est la prochaine étape de RFQ.
 - **0 fournisseur contacté, 0 autorisation** : `not_contacted` partout, inchangé.
-- Les prix sont des **prix publics constatés le 14/09/2026** ; les prix de
+- Les prix sont des **prix publics constatés les 14-15/09/2026** ; les prix de
   négociation B2B seront (logiquement) inférieurs, mais aucun n'est promis ici.
 
 ## 6. Prochaines étapes (ordre tenu)
 
 1. Recouper Kocosmetic + Get Your K-Beauty (RCS, conditions) → statut du registre.
 2. Désigner les distributeurs B2B des grandes marques (RFQ ciblée par marque).
-3. Confirmer les ≈40 lignes « à vérifier » (prix revendeur).
+3. Confirmer les 8 lignes restantes sans prix (Keralys DS Gentle FR, SKIN1004 stick US, 6 Torriden peau-test — à la validation des fiches test).
 4. Dès boîte mail + mandat + SIREN disponibles : emails fournisseur avec ce dossier
    comme annexe (5 références par besoin, prix publics cités = base de négociation).
 5. À chaque réponse : 3 documents bloquants (CPNP + PR UE + INCI) → fiche test →

@@ -422,7 +422,7 @@ trois réglages (8 contrôles).
 | — | déploiement auto-vérifié (commit servi, régressions) | livré |
 | — | détection des clés JSON déclarées deux fois | livré |
 | — | phase de test : 26 fiches `src-*` en boutique mode test + 4 gardes-fous admin (① autorisation ② INCI ③ CPNP+PR UE ④ visuel) + bouton Dépublier | livré |
-| — | sourcing de fond : 50 besoins × 5 produits à prix accessibles (250 lignes, 209 prix constatés) + 2 K-beauty B2B repérés (Kocosmetic, Get Your K-Beauty) | livré |
+| — | sourcing de fond : 50 besoins × 5 produits à prix accessibles (250 lignes, **242 prix constatés** — 2ᵉ passe 15/09) + 2 K-beauty B2B repérés + vue croisée des 2 registres | livré |
 
 ## Propositions pour la suite (robustesse)
 
@@ -1847,3 +1847,9 @@ directives de CDN. Leur effet se lit dans `x-vercel-cache: HIT`.
 **CI verte sur `b9d5a75`**, y compris le job « Suite complète » — qui était
 **rouge** sur `ddb997f`, avant mon push, pour la raison du paragraphe
 précédent (35 routes au lieu de 36).
+
+## Sourcing de fond — 2ᵉ passe de vérification prix + vue croisée (livré 2026-09-15)
+- **2ᵉ passe** : 33 des 41 lignes « à vérifier » du 14/09 re-vérifiées sur revendeurs FR (laroche-posay.fr, redcare, boticinal, primor, idealo, amazon.fr, flaconi, holyskin, pibukare, easypara, pharmazon, kalista-parfums, ohfeliz, foliecosmetic, E.Leclerc, koreanqueens, boozyshop, e-parapharmacie, parapromos, nocibe) — statut « vérifié le 15/09/2026 — <source> ».
+- **Chiffres** : **242/250 prix constatés** (contre 209) · 8 lignes sans prix (6 Torriden `peau-test-*` = couche test volontairement non listée, 1 LRP Keralys DS Gentle sans prix FR trouvé, 1 SKIN1004 Sun Stick 23 $ US seul) · min **2,48 €** · médiane **12,25 €** · **50/50 besoins ont au moins un produit sous 25 €** (45/50 le 14/09).
+- **Vue croisée avant RFQ** : `docs/sourcing/VUE_CROISEE_2_REGISTRES_SOURCING_FOND_2026-09-15.md` — confronte le registre A (50 besoins × 5, `717f757` + cette passe) au registre B (15 besoins du diagnostic × 5, `ddb997f`) besoin par besoin : meilleur prix de chaque registre, canaux (DECIEM pro, Qudo Beauty RO, IDC/Aquarius ES, Ankorstore), 4 points d'harmonisation (TO officiel vs revendeur, tonique glycolique prix UK, canaux grandes marques, 0 email envoyé).
+- **Zéro impact sur le travail parallèle** : registre B en lecture seule ; fiches `src-*` mode test et 4 gardes-fous inchangés. Docs-only : aucun code touché.
