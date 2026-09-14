@@ -150,10 +150,12 @@ proposez. Vos conditions de compte pro (MOQ, remises, délais, franco) ?
 
 ## Email 4 — Kocosmetic / Bizconsulting (importateur K-beauty, Choisy-le-Roi)
 
-**À** : contact@kocosmetic.fr · **Vérifié** : site officiel — SAS, SIRET 91109664200010,
-TVA FR76911096642, 127 av. Anatole France 94600 Choisy-le-Roi, +33 6 65 67 35 91,
-groupe Bizconsulting (2016) / Biz International (Séoul) / Biz Distribution — import,
-transit douanier et labelling gérés en France, 7 ans d'activité.
+**À** : contact@kocosmetic.fr · **Vérifié + recoupé RCS 15/09/2026** : BizDistribution
+SASU, SIREN 911 096 642, **RCS Créteil B 911 096 642** (inscrit 08/03/2022), capital
+50 000 €, siège 127 av. Anatole France 94600 Choisy-le-Roi (SIRET 911 096 642 00028,
+en activité — l'ancien établissement …00010 d'Igny est fermé depuis 08/2024),
+dirigeants : BIZCONSULTING (président) + Kim Suhee (DG), comptes annuels déposés.
+Contact : +33 6 65 67 35 91 — import, transit douanier et labelling gérés en France.
 
 **Objet** : Revendeur e-commerce — catalogue K-beauty + conformité UE par référence
 

@@ -1848,6 +1848,11 @@ directives de CDN. Leur effet se lit dans `x-vercel-cache: HIT`.
 **rouge** sur `ddb997f`, avant mon push, pour la raison du paragraphe
 précédent (35 routes au lieu de 36).
 
+## Sourcing de fond — RFQ par canal + recoupement RCS Kocosmetic (livré 2026-09-15)
+- **Pack RFQ** : `docs/sourcing/RFQ_SOURCING_FOND_2026-09-15.md` — 4 nouvelles RFQ prêtes à envoyer (DECIEM/The Ordinary 10 réf · Qudo Beauty RO 18 réf K-beauty · Groupe L'Oréal 5 réf teintes profondes · IDC Institute/Aquarius ES corps/bain) + récap des canaux existants (phase 3 emails 1–10) + ordre d'envoi en 3 vagues. **0 email envoyé** (boîte + mandat + SIREN).
+- **Recoupement RCS 15/09** : Kocosmetic = **BizDistribution SASU, RCS Créteil B 911 096 642, capital 50 000 €, SIRET siège 911 096 642 00028** (l'ancien …00010 d'Igny est fermé — note « Vérifié » de l'Email 4 phase 3 corrigée) → Email 4 débloqué. Get Your K-Beauty : aucune raison sociale trouvée dans les registres publics → reste « à confirmer ».
+- Docs-only : aucun code touché ; les 2 registres et les 4 gardes-fous inchangés.
+
 ## Sourcing de fond — 2ᵉ passe de vérification prix + vue croisée (livré 2026-09-15)
 - **2ᵉ passe** : 33 des 41 lignes « à vérifier » du 14/09 re-vérifiées sur revendeurs FR (laroche-posay.fr, redcare, boticinal, primor, idealo, amazon.fr, flaconi, holyskin, pibukare, easypara, pharmazon, kalista-parfums, ohfeliz, foliecosmetic, E.Leclerc, koreanqueens, boozyshop, e-parapharmacie, parapromos, nocibe) — statut « vérifié le 15/09/2026 — <source> ».
 - **Chiffres** : **242/250 prix constatés** (contre 209) · 8 lignes sans prix (6 Torriden `peau-test-*` = couche test volontairement non listée, 1 LRP Keralys DS Gentle sans prix FR trouvé, 1 SKIN1004 Sun Stick 23 $ US seul) · min **2,48 €** · médiane **12,25 €** · **50/50 besoins ont au moins un produit sous 25 €** (45/50 le 14/09).

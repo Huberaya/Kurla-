@@ -49,8 +49,8 @@ restent des repères haut de gamme, pas des indispensables. Le trio « routine 3
 
 | Fournisseur | Statut | Marques / points clés | Coordonnées (site officiel) |
 |---|---|---|---|
-| **Kocosmetic / Bizdistribution** | repéré 14/09 (site) — à recouper RCS | SAS Choisy-le-Roi, SIRET 911 096 642 00010, fondée 2021 ; **Nacific, SKIN1004, COSRX, Beauty of Joseon** ; import direct des laboratoires coréens ; compte pro sous 24 h | 127 av. Anatole France, 94600 Choisy-le-Roi · contact@kocosmetic.fr · kocosmetic.fr |
-| **Get Your K-Beauty** | repéré 14/09 (site) — à recouper | importateur/distributeur K-beauty France + Europe depuis 2014 ; **MOQ bas, stock Europe, pas de droits de douane** | getyourkbeauty.com |
+| **Kocosmetic / Bizdistribution** | repéré 14/09, **recoupé RCS 15/09** — BizDistribution SASU, RCS Créteil B 911 096 642, capital 50 k€, SIRET siège 911 096 642 00028 | fondée 2021, comptes déposés ; **Nacific, SKIN1004, COSRX, Beauty of Joseon** ; import direct des laboratoires coréens ; compte pro sous 24 h | 127 av. Anatole France, 94600 Choisy-le-Roi · contact@kocosmetic.fr · +33 6 65 67 35 91 · kocosmetic.fr |
+| **Get Your K-Beauty** | repéré 14/09, **recoupement tenté 15/09 : aucune raison sociale trouvée dans les registres publics** — à confirmer | importateur/distributeur K-beauty France + Europe depuis 2014 ; **MOQ bas, stock Europe, pas de droits de douane** | getyourkbeauty.com |
 | BLACKETIQUE SASU | ✔ vérifié (dossier 13/09, re-contrôlé 14/09) | 50 marques, stock France, B2B exclusivement | 3 rue Magnier Bédu B12, 95410 Groslay · 01 84 80 62 40 · info@blacketique.com · SIRET 979 710 829 00024 |
 | EOLYS Beauté | ✔ vérifié (dossier 13/09) | plateforme B2B ; Whamisa, Torriden, SKIN1004, COSRX, Beauty of Joseon, Biodance | eolys-beaute.com (page « devenir revendeur ») |
 | **Qudo Beauty** (RO) | constaté au travail parallèle, 14/09 | MOQ **300 € total, aucun minimum par référence**, port offert dès 500 € ; **seul à déclarer par écrit CPNP + personne responsable UE + INCI** ; COSRX, BOJ, Torriden, Isntree, SKIN1004 | cf. `SOURCING_FOND_MOINS_CHER_2026-09-14.md` |
@@ -598,9 +598,10 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
    au lieu de positions abstraites du registre 100 (PEAU-xxx). Le CSV joint
    (`SOURCING_FOND_50_BESOINS_5_PRODUITS_2026-09-14.csv`, 250 lignes) est prêt
    pour le tri / la négociation.
-2. **2 fournisseurs K-beauty B2B nouveaux** (Kocosmetic, Get Your K-Beauty) — à
-   recouper (RCS) et à ajouter aux emails 1/2 dès que la boîte mail + le mandat
-   sont prêts. **0 email envoyé à ce jour** (état inchangé).
+2. **2 fournisseurs K-beauty B2B nouveaux** (Kocosmetic — recoupé RCS 15/09,
+   Get Your K-Beauty — à confirmer) — à ajouter aux emails 1/2 dès que la
+   boîte mail + le mandat sont prêts. **0 email envoyé à ce jour** (état
+   inchangé). Pack RFQ complet : `docs/sourcing/RFQ_SOURCING_FOND_2026-09-15.md`.
 3. **Le trou structurel « SPF teinté teintes foncées » (#15/#47) est pourvu** :
    Beauty of Joseon Tinted Mineral Dayscreen SPF30 — **15 teintes**, 40 ml, 20 $
    (site officiel, réf. septembre 2026) ; en marque FR : Odacité Mineral Drops
@@ -623,8 +624,11 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
   listé tant que la fiche n'est pas vendable — couche test, pas ce dossier),
   1 LRP Keralys DS Gentle (aucun prix FR trouvé le 15/09 — 2 recherches),
   1 SKIN1004 Silky Fit Sun Stick (23 $ US uniquement).
-- Kocosmetic et Get Your K-Beauty sont **repérés sur leur site**, non recoupés
-  (RCS, références clients) — statut « à recouper », pas « vérifié ».
+- **Kocosmetic recoupé RCS 15/09** : BizDistribution SASU, RCS Créteil
+  B 911 096 642 (inscrit 08/03/2022), capital 50 000 €, comptes déposés, en
+  activité — statut passé de « à recouper » à « recoupé ». **Get Your
+  K-Beauty** : recoupement tenté 15/09, aucune raison sociale trouvée dans
+  les registres publics consultés — reste « à confirmer ».
 - **Aucun distributeur B2B n'est désigné** pour les grandes marques (CeraVe,
   The Ordinary, Garnier…) — c'est la prochaine étape de RFQ.
 - **0 fournisseur contacté, 0 autorisation** : `not_contacted` partout, inchangé.
@@ -633,7 +637,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 
 ## 6. Prochaines étapes (ordre tenu)
 
-1. Recouper Kocosmetic + Get Your K-Beauty (RCS, conditions) → statut du registre.
+1. Kocosmetic : recoupé RCS 15/09 ✓. Get Your K-Beauty : à confirmer (pas de raison sociale trouvée) → statut du registre.
 2. Désigner les distributeurs B2B des grandes marques (RFQ ciblée par marque).
 3. Confirmer les 8 lignes restantes sans prix (Keralys DS Gentle FR, SKIN1004 stick US, 6 Torriden peau-test — à la validation des fiches test).
 4. Dès boîte mail + mandat + SIREN disponibles : emails fournisseur avec ce dossier
