@@ -8,7 +8,6 @@ import type { Product, ProductVariant, UserRole } from '../types';
 // Pages
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
 const HomePage = lazy(() => import('../pages/HomePage').then(m => ({ default: m.HomePage })));
-const DiagnosticHubPage = lazy(() => import('../pages/DiagnosticHubPage').then(m => ({ default: m.DiagnosticHubPage })));
 const DiagnosticHairPage = lazy(() => import('../pages/DiagnosticHairPage').then(m => ({ default: m.DiagnosticHairPage })));
 const DiagnosticSkinPage = lazy(() => import('../pages/DiagnosticSkinPage').then(m => ({ default: m.DiagnosticSkinPage })));
 const DiagnosticResultPage = lazy(() => import('../pages/DiagnosticResultPage').then(m => ({ default: m.DiagnosticResultPage })));
@@ -117,7 +116,10 @@ export const ROUTES: RouteEntry[] = [
 
   // Diagnostics
   { path: '/assistant-beaute', render: () => <AiBeautyAssistantPage /> },
-  { path: '/diagnostic', render: () => <DiagnosticHubPage /> },
+  // (15/09) L'URL historique /diagnostic sert directement le diagnostic cheveux
+  // (la nav ne pointe que sur les deux diagnostics) ; /diagnostic/cheveux reste
+  // l'URL canonique du même page (pied de page, SEO).
+  { path: '/diagnostic', render: () => <DiagnosticHairPage /> },
   { path: '/diagnostic/cheveux', render: () => <DiagnosticHairPage /> },
   { path: '/diagnostic/peau', render: () => <DiagnosticSkinPage /> },
   { path: '/diagnostic/enfant', render: () => <DiagnosticKidsPage /> },

@@ -2013,3 +2013,48 @@ produits actifs, contre 96 avant l'arrivée des dix fiches `fond-*`.
 - Vue = produits publiables (hors `unavailable`) + tous les candidats sourcing, avec prix (catalogue/constaté, sinon « à obtenir »), fournisseur, contact, e-mail prêt (RFQ existant servi tel quel, sinon généré depuis les seules données réelles ; conditions publiques constatées rappelées).
 - Banc : `tests/kurla_sourcing_consolidated.test.ts` (chaîné dans `npm test` après test:prospects). Merge `a8ae022`+`419d978` résolu en gardant `test:sante-legere` ET `test:sourcing-consolidated`.
 - Aucun envoi automatique : copier/mailto restent des actes humains (mandat 16C).
+## Navigation : deux diagnostics nommés (Diagnostic Cheveux / Diagnostic Peau) (15/09/2026)
+
+Consigne : « je veux qu'il ait une page diagnostic cheveux et une page diagnostic
+peau. la page peau sera maintenant renommée en diagnostic peau et la page
+diagnostic en diagnostic cheveux et ne contiendra que le diagnostic cheveux ».
+
+**Ce qui change** :
+
+- **Nav principale** (Navbar.tsx) : l'entrée « Diagnostic » devient
+  **« Diagnostic Cheveux »** → `/diagnostic/cheveux` ; l'entrée « Peau » devient
+  **« Diagnostic Peau »** → `/peau/diagnostic`. Libellés i18n
+  (`nav.diagHair`/`nav.diagSkin`, fr + en, parité de clés vérifiée par le banc
+  chantier 7.5 — 90 clés). État actif : cheveux sur toute la famille
+  `/diagnostic*` (hors `/diagnostic/peau`), peau sur tout `/peau*`.
+- **`/diagnostic` sert désormais directement le diagnostic cheveux**
+  (routeTable : même rendu que `/diagnostic/cheveux`, qui reste l'URL canonique
+  du pied de page / SEO). L'ancienne page de choix (`DiagnosticHubPage.tsx`,
+  2 cartes cheveux/peau) est **supprimée** — elle n'était référencée que par la
+  routeTable. `routeMeta` de `/diagnostic` aligné sur le titre diagnostic
+  cheveux.
+- **Le pôle peau (`/peau`) n'est pas supprimé** : le nav n'y pointe plus, mais la
+  page reste accessible (pied de page `/peau/science`, « Pôle peau » dans la
+  recherche, boutique, fiches peau, annuaire pro) et tout le pôle (routine,
+  comparer, science, journal) est joint depuis le diagnostic peau.
+- **Zéro perte d'accès aux autres diagnostics** : enfant (`/kids` →
+  `/diagnostic/enfant`) et coiffures protectrices (`/protective-styles` →
+  `/diagnostic/protective-style`) gardent leur CTA dans leur module de nav.
+- **Non médical inchangé** : les disclaimers des pages de diagnostic sont
+  intacts ; aucune donnée, aucun produit, aucun flux API touchés (317 routes
+  API de l'inventaire identiques).
+
+**Vérifié** : `npm run lint` (tsc) propre · build complet OK (110 pages
+prérendues) · bancs verts : chantier-7-i18n (90 clés), c4-diagnostic-result,
+parcours-peau, route-inventory (317 routes), growth-funnel, chantier-7-prerender,
+chantier-7-seo, seo-dynamic, sitemap-products, diagnostic-session,
+hair-advisory (15 checks), diagnostic-advisory (11 contrats) · HTML prérendu :
+`/diagnostic` = H1 « Trouvez votre routine cheveux », nav « Diagnostic Cheveux
+/ Diagnostic Peau » SSR'de, aucun résidu « Choisissez votre diagnostic » dans
+le dist.
+
+**Limite connue (pré-existante, pas régressée)** : le prérendu chantier 7.3 rend
+le corps React avec la locale par défaut (fr) même sur les 3 routes EN — avant
+ce changement les libellés de nav étaient identiques fr/en donc l'écart était
+invisible. Côté client (hydratation), la nav est bien « Hair Diagnostic / Skin
+Diagnostic » sur `/en/*`. À traiter par son chantier i18n, pas ici.

@@ -52,11 +52,14 @@ export const ROUTE_META: RouteMeta[] = [
   },
 
   // ── Diagnostics (publics, point d'entrée du parcours) ──────────────────────
+  // (15/09) /diagnostic sert désormais directement le diagnostic cheveux
+  // (l'ancienne page de choix a été remplacée par les deux entrées de
+  // navigation « Diagnostic Cheveux » / « Diagnostic Peau »).
   {
     path: '/diagnostic',
-    title: 'Choisissez votre diagnostic beauté | KURLA',
+    title: 'Diagnostic cheveux texturés gratuit | KURLA',
     description:
-      'Choisissez entre le diagnostic cheveux pour les textures 3A à 4C et le diagnostic peau pour les peaux riches en mélanine. Conseils beauté personnalisés, sans diagnostic médical.',
+      'Identifiez votre type de boucle, votre porosité et votre densité. Un diagnostic cheveux pensé pour les textures 3A à 4C, sans jargon et sans promesse de résultat garanti.',
     indexable: true,
     changefreq: 'monthly',
     priority: 1,
