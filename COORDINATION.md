@@ -422,6 +422,7 @@ trois réglages (8 contrôles).
 | — | déploiement auto-vérifié (commit servi, régressions) | livré |
 | — | détection des clés JSON déclarées deux fois | livré |
 | — | phase de test : 26 fiches `src-*` en boutique mode test + 4 gardes-fous admin (① autorisation ② INCI ③ CPNP+PR UE ④ visuel) + bouton Dépublier | livré |
+| — | sourcing de fond : 50 besoins × 5 produits à prix accessibles (250 lignes, 209 prix constatés) + 2 K-beauty B2B repérés (Kocosmetic, Get Your K-Beauty) | livré |
 
 ## Propositions pour la suite (robustesse)
 
