@@ -40,6 +40,30 @@
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+
+/**
+ * Ce que la machine peut réellement donner, pas ce qu'elle a de vacant.
+ *
+ * `os.freemem()` rapporte la mémoire strictement inutilisée ; sur Linux, une
+ * part importante de la mémoire occupée est du cache de fichiers que le noyau
+ * rend sur demande. Mesuré ici le 14/09/2026 : 1 123 Mo « libres » pour
+ * 1 417 Mo « disponibles » — la vérification des types échouait sur une
+ * machine qui avait en réalité 294 Mo de plus à donner, et le nouvel essai
+ * était refusé faute de marge. `MemAvailable` est le chiffre que le noyau
+ * publie précisément pour répondre à cette question.
+ */
+function memoireDisponibleMo() {
+  try {
+    const lignes = readFileSync('/proc/meminfo', 'utf8').split('\n');
+    const ligne = lignes.find(candidate => candidate.startsWith('MemAvailable:'));
+    const ko = Number(ligne?.split(/\s+/)[1]);
+    if (Number.isFinite(ko) && ko > 0) return ko / 1024;
+  } catch {
+    // Pas de /proc/meminfo (macOS, Windows) : on retombe sur la mesure Node.
+  }
+  return os.freemem() / MO;
+}
 
 const MO = 1024 * 1024;
 // En dessous, TypeScript abandonne sur ce projet (mesuré : 896 Mo → SIGABRT).
@@ -57,7 +81,7 @@ function limiteMemoire(majoration = 0) {
     return { valeur: Math.round(forcee), origine: 'KURLA_TSC_MEMORY' };
   }
   const totale = os.totalmem() / MO;
-  const libre = os.freemem() / MO;
+  const libre = memoireDisponibleMo();
   // Une réserve FIXE, pas un pourcentage. Mesuré le 12/09/2026 : 85 % du
   // libre tombait à 1 111 Mo et faisait échouer la vérification, alors que
   // la machine annonçait encore 1 307 Mo de libres et que la même commande
@@ -70,7 +94,7 @@ function limiteMemoire(majoration = 0) {
   const bornee = Math.min(PLAFOND, Math.max(PLANCHER, Math.round(souhaitee)));
   return {
     valeur: bornee,
-    origine: `${Math.round(libre)} Mo libres sur ${Math.round(totale)} Mo`,
+    origine: `${Math.round(libre)} Mo disponibles sur ${Math.round(totale)} Mo`,
   };
 }
 const totalMo = Math.round(os.totalmem() / MO);
@@ -147,7 +171,7 @@ async function principal() {
     const epuise = resultat.code === 134 || resultat.signal === 'SIGABRT';
     if (!epuise) process.exit(resultat.code ?? 1);
 
-    const marge = os.freemem() / MO - valeur;
+    const marge = memoireDisponibleMo() - valeur;
     if (marge < MAJORATION) break;
     console.error(
       `\n[tsc] Mémoire insuffisante à ${valeur} Mo (${origine}) —` +

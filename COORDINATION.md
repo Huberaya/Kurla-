@@ -1727,3 +1727,76 @@ dont l'INCI n'est pas encore reçue aurait été affichée « CPNP au vert ».
 fail-closed : catégorie non accessoire/kit + composition inconnue → CPNP
 requis, garde au rouge, nominativement. Si d'autres gardes réutilisent
 `requiresCpnp` sur des fiches incomplètes, même vigilance.
+
+### Vitesse du site : le temps serveur, pas le poids (14/09/2026)
+
+Chantier : « améliorer la vitesse du site ». Diagnostic **mesuré** sur la
+production, pas supposé.
+
+**Le poids n'était pas le problème.** Tout est déjà servi en Brotli, et c'est
+le seul chiffre qui compte pour le réseau : HTML 297 Ko → **31 Ko** transférés,
+CSS 162 Ko → 21 Ko, JS 106 Ko → 31 Ko. Tailler ou découper des bundles
+n'aurait rien changé de perceptible. Le problème était le **temps serveur** :
+
+| Mesure (14/09/2026, à chaud) | Avant |
+|---|---|
+| `/` | 0,21 s |
+| `/produit/…` | 0,08 s |
+| **`/api/products`** | **0,67 à 0,99 s** |
+| `/api/health` | 0,45 s |
+
+Deux causes, deux correctifs :
+
+1. **`getProducts` enchaînait cinq `await` séquentiels** (products, variantes,
+   stock, images, preuves CPNP) — cinq allers-retours l'un après l'autre, à
+   ~0,26 s pièce, alors qu'aucune de ces lectures ne dépend d'une autre : les
+   variantes, le stock, les images et les preuves sont rattachés aux produits
+   **après** coup, en mémoire. Passés en `Promise.all`. Les erreurs restent
+   contrôlées une par une, dans le même ordre : le premier échec fait toujours
+   échouer la lecture du catalogue.
+
+2. **`/api/products` chargeait le catalogue deux fois** — `getPublicProducts`
+   pour la liste, `getProducts` pour les devis de kits : dix lectures. Une
+   seule désormais, via `lireCataloguePublic()`.
+
+S'y ajoute un en-tête `Cache-Control: public, s-maxage=60,
+stale-while-revalidate=300` : le catalogue change quelques fois par jour, pas
+à chaque seconde.
+
+#### Ce que cette route partage maintenant — à connaître avant d'y toucher
+
+`/api/products` sert la liste publique **et** les devis de kits depuis une
+seule lecture, y compris en mode test `?test=1`. Trois règles, verrouillées
+par `tests/kurla_vitesse_catalogue.test.ts` (banc d'équivalence : la
+projection servie doit rester **identique** aux deux lectures d'avant) :
+
+1. hors mode test, aucune fiche test n'est servie ;
+2. **une fiche test n'entre jamais dans le catalogue qui chiffre les devis de
+   kits**, même en mode test — elle n'a pas de prix KURLA. Le retrait se fait
+   en mémoire (la requête lit déjà toutes les fiches actives) : il ne coûte
+   aucune lecture ;
+3. une réponse de mode test n'est **jamais** mise en cache (chemin de revue
+   interne, pas une réponse publique).
+
+**Conséquence à garder en tête** : le stock affiché par la boutique peut
+avoir jusqu'à une minute de retard. Ce n'est pas une approximation de plus :
+le paiement réserve le stock **sous verrou côté base** et ne lit jamais cette
+réponse.
+
+#### Correctif collatéral — `scripts/tsc.mjs` (14/09/2026)
+
+La vérification des types, qui ferme la suite, a commencé à mourir d'épuisement
+mémoire (1146 Mo insuffisants) après les 27 commits de la phase de test : le
+projet a grossi. La cause était dans mon propre outil : il dimensionnait le
+tas sur `os.freemem()` (1 123 Mo « libres ») alors que la machine annonçait
+**1 417 Mo disponibles** — le cache de fichiers est rendu par le noyau sur
+demande. Le nouvel essai était ensuite refusé faute de marge, donc un seul
+essai avait lieu. Il lit désormais `MemAvailable` de `/proc/meminfo`
+(1260 Mo → vérification verte).
+
+#### Reste mesuré, non engagé
+
+- `/api/health` à 0,45 s : même cause (lectures séquentielles), pas traité —
+  ce n'est pas une route visitée par les visiteurs.
+- Dimensions `width`/`height` manquantes sur 34 `<img>` (13 seulement
+  renseignées) : gain de mise en page réel mais non mesuré, donc non retenu.

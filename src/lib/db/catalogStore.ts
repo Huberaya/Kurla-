@@ -103,15 +103,37 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
     if (supabase) {
       let productsQuery = supabase.from('products').select('*');
       if (!options.includeInactive) productsQuery = productsQuery.eq('is_active', true);
-      const { data, error } = await productsQuery;
+
+      // Cinq lectures, **en parallèle**.
+      //
+      // Mesuré le 14/09/2026 : ces cinq appels étaient attendus l'un après
+      // l'autre. Chacun est un aller-retour vers la base (~0,26 s mesuré
+      // depuis l'extérieur, ~0,15 s depuis la fonction) : le catalogue
+      // entier coûtait donc cinq allers-retours, soit l'essentiel des 0,7 à
+      // 1,0 seconde de `/api/products`. Aucune de ces lectures ne dépend
+      // d'une autre — les variantes, le stock, les images et les preuves
+      // CPNP sont rattachés aux produits **après** coup, en mémoire.
+      //
+      // `Promise.all` ne change pas la sémantique : les erreurs sont
+      // contrôlées une par une, dans le même ordre qu'avant, et le premier
+      // échec fait toujours échouer la lecture du catalogue.
+      const [
+        { data, error },
+        { data: variants, error: variantsError },
+        { data: inventoryRows, error: inventoryError },
+        { data: imageRows, error: imagesError },
+        { data: cpnpRows, error: cpnpError }
+      ] = await Promise.all([
+        productsQuery,
+        supabase.from('product_variants').select('*'),
+        supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity, available_quantity'),
+        supabase.from('product_images').select('*').order('position', { ascending: true }),
+        supabase.from('supplier_documents').select('*').eq('document_type', 'cpnp_notification')
+      ]);
       ensureDatabaseSuccess('lecture du catalogue', error);
-      const { data: variants, error: variantsError } = await supabase.from('product_variants').select('*');
       ensureDatabaseSuccess('lecture des variantes produit', variantsError);
-      const { data: inventoryRows, error: inventoryError } = await supabase.from('inventory').select('product_id, variant_id, quantity, reserved_quantity, available_quantity');
       ensureDatabaseSuccess('lecture du stock catalogue', inventoryError);
-      const { data: imageRows, error: imagesError } = await supabase.from('product_images').select('*').order('position', { ascending: true });
       ensureDatabaseSuccess('lecture des images catalogue', imagesError);
-      const { data: cpnpRows, error: cpnpError } = await supabase.from('supplier_documents').select('*').eq('document_type', 'cpnp_notification');
       ensureDatabaseSuccess('lecture des notifications CPNP', cpnpError);
       const today = new Date().toISOString().slice(0, 10);
       /** Preuve CPNP la plus recente, par produit puis par fournisseur. */
@@ -369,6 +391,33 @@ export async function getProductForAdministration(store: SupabaseServerStore, id
 
 export async function getPublicProducts(store: SupabaseServerStore, options: { testListings?: boolean } = {}): Promise<any[]> {
     return (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct);
+  }
+
+  /**
+   * UNE lecture, deux usages.
+   *
+   * `/api/products` servait la liste publique (`getPublicProducts`) **et** le
+   * catalogue complet pour les devis de kits (`getProducts`) : deux appels
+   * identiques, donc deux fois cinq lectures. Mesuré le 14/09/2026, c'était
+   * la moitié des ~0,9 seconde de l'endpoint le plus demandé du site.
+   *
+   * La projection reste exactement la même : `produitsPublics` est ce que
+   * rendait `getPublicProducts`, `catalogue` ce que rendait `getProducts` —
+   * y compris la règle du mode test (les fiches test entrent dans la liste
+   * publique, jamais dans le catalogue qui chiffre les devis de kits).
+   */
+  export async function lireCataloguePublic(store: SupabaseServerStore, options: { testListings?: boolean } = {}): Promise<{ produitsPublics: any[]; catalogue: any[] }> {
+    // `getProducts` lit TOUTES les fiches actives en une requête et ne retire
+    // les fiches test qu'ensuite, en mémoire : demander le mode test ne coûte
+    // donc aucune lecture de plus, et retirer les fiches test ici non plus.
+    const lignes = await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true });
+    // Les devis de kits restent calculés sur le catalogue STRICT, y compris en
+    // mode test : une fiche test n'a pas de prix KURLA et ne doit jamais
+    // entrer dans un devis. Même discriminant que `publishedGate`.
+    const catalogue = options.testListings === true
+      ? lignes.filter(ligne => !isTestListingProduct(ligne))
+      : lignes;
+    return { produitsPublics: lignes.map(toPublicProduct), catalogue };
   }
 
 /**

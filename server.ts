@@ -1238,17 +1238,32 @@ app.get('/api/products', asyncRoute(async (req: AuthenticatedRequest, res: Respo
   // réelle ne les voit jamais. Les devis de kits restent calculés sur le
   // catalogue strict, même en mode test.
   const testMode = req.query.test === '1';
-  const [products, pricingCatalog] = await Promise.all([
-    serverDb.getPublicProducts({ testListings: testMode }),
-    // Les devis de kits ne lisent jamais un prix client : ils sont construits
-    // depuis la projection serveur publiée des composants. Tant qu'un composant
-    // n'est pas réellement publié, le devis reste explicitement indicatif.
-    serverDb.getProducts({ publishedOnly: true })
-  ]);
+
+  // Une seule lecture du catalogue : la liste publique et les devis de kits
+  // en sortent tous les deux. Avant, le même catalogue était chargé deux fois
+  // (getPublicProducts + getProducts) — dix lectures de base au lieu de cinq.
+  //
+  // Les devis de kits ne lisent jamais un prix client : ils sont construits
+  // depuis la projection serveur publiée des composants. Tant qu'un composant
+  // n'est pas réellement publié, le devis reste explicitement indicatif.
+  const { produitsPublics, catalogue } = await serverDb.lireCataloguePublic({ testListings: testMode });
+
+  // Le catalogue change quelques fois par jour, pas à chaque seconde : une
+  // minute de cache partagé, puis on sert du périmé pendant que la fonction
+  // recalcule. Le stock affiché peut donc avoir une minute de retard — le
+  // paiement, lui, réserve le stock sous verrou côté base et ne lit jamais
+  // cette réponse.
+  //
+  // `stale-while-revalidate` : le visiteur ne paie jamais l'attente du
+  // recalcul, c'est la requête suivante qui voit la fraîcheur.
+  //
+  // Rien n'est mis en cache en mode test : c'est un chemin de revue interne,
+  // pas une réponse publique.
+  if (!testMode) res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   res.json({
-    products,
-    count: products.length,
-    skinKits: buildSkinKitQuotes(pricingCatalog, 'FR', 'standard'),
+    products: produitsPublics,
+    count: produitsPublics.length,
+    skinKits: buildSkinKitQuotes(catalogue, 'FR', 'standard'),
     testMode
   });
 }));
