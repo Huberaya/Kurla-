@@ -82,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Les chemins restent non préfixés : c'est `localizedPath` qui ajoute la
   // locale au moment du rendu. Le libellé, lui, vient du dictionnaire.
   const primaryNavLinks = [
-    { label: t('nav.diagnostic'), path: '/diagnostic/cheveux' },
+    { label: t('nav.diagnostic'), path: '/diagnostic' },
     { label: 'Peau', path: '/peau' },
     { label: t('nav.assistant'), path: '/assistant-beaute' },
     { label: t('nav.shop'), path: '/boutique' },
@@ -135,7 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6">
           {primaryNavLinks.map((link) => {
-            const isActive = activePath === link.path;
+            const isActive = activePath === link.path
+              || (link.path === '/diagnostic' && (activePath.startsWith('/diagnostic/') || activePath.startsWith('/peau/diagnostic')));
             return (
               <a
                 key={link.path}
@@ -357,7 +358,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Primary Copper CTA: Diagnostic Gratuit */}
           <a
-            href={localizedPath('/diagnostic/cheveux', locale)}
+            href={localizedPath('/diagnostic', locale)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold tracking-wide shadow-md shadow-kurla-copper/20 transition-all transform hover:-translate-y-0.5"
           >
             <Sparkles className="w-3.5 h-3.5" /> {t('nav.diagnosticCta')}

@@ -53,6 +53,15 @@ export const ROUTE_META: RouteMeta[] = [
 
   // ── Diagnostics (publics, point d'entrée du parcours) ──────────────────────
   {
+    path: '/diagnostic',
+    title: 'Choisissez votre diagnostic beauté | KURLA',
+    description:
+      'Choisissez entre le diagnostic cheveux pour les textures 3A à 4C et le diagnostic peau pour les peaux riches en mélanine. Conseils beauté personnalisés, sans diagnostic médical.',
+    indexable: true,
+    changefreq: 'monthly',
+    priority: 1,
+  },
+  {
     path: '/diagnostic/cheveux',
     title: 'Diagnostic cheveux texturés gratuit | KURLA',
     description:

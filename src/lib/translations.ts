@@ -30,7 +30,7 @@ const fr = {
     login: 'Connexion',
     search: 'Rechercher',
     spaces: 'Espaces Spécialisés',
-    diagnosticCta: 'Diagnostic (2 min)',
+    diagnosticCta: 'Choisir mon diagnostic',
     language: 'Langue',
   },
   footer: {
@@ -157,7 +157,7 @@ const en: Dictionary = {
     login: 'Sign in',
     search: 'Search',
     spaces: 'Specialised Spaces',
-    diagnosticCta: 'Diagnostic (2 min)',
+    diagnosticCta: 'Choose your diagnostic',
     language: 'Language',
   },
   footer: {
