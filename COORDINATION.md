@@ -2007,3 +2007,9 @@ Le champ a changé de forme sans changer de nom : `productsCount` reste un
 nombre (ou `null`), et `produits` expose désormais le compte **et** sa source.
 Vérifié en production : `produits = {compte: 106, source: 'base'}` — 106
 produits actifs, contre 96 avant l'arrivée des dix fiches `fond-*`.
+
+## 2026-09-14 — Vue sourcing consolidée (Agent Arena)
+- Ajout : `src/lib/sourcingConsolidated.ts` (helper pur), `GET /api/admin/sourcing/consolidated` (lecture seule, requireAdmin), `SourcingConsolidatedPanel.tsx` monté dans l'onglet sourcing SKIN avant SourcingProspectsPanel.
+- Vue = produits publiables (hors `unavailable`) + tous les candidats sourcing, avec prix (catalogue/constaté, sinon « à obtenir »), fournisseur, contact, e-mail prêt (RFQ existant servi tel quel, sinon généré depuis les seules données réelles ; conditions publiques constatées rappelées).
+- Banc : `tests/kurla_sourcing_consolidated.test.ts` (chaîné dans `npm test` après test:prospects). Merge `a8ae022`+`419d978` résolu en gardant `test:sante-legere` ET `test:sourcing-consolidated`.
+- Aucun envoi automatique : copier/mailto restent des actes humains (mandat 16C).
