@@ -1984,3 +1984,26 @@ Règle inchangée, c'est celle du module : un compte non lu est `null`, jamais
 plus le catalogue n'est pas une relecture de code : `serverDb.getProducts` est
 remplacé par une fonction qui échoue, et `/api/health` doit répondre 200 quand
 même. Si le chargement complet revient un jour, le banc rougit.
+
+#### Mesures après déploiement (15/09/2026, 00 h 50, `a8ae022`)
+
+`/api/health`, 15 mesures à chaud : **min 0,265 s · médiane 0,338 s · max
+0,477 s**. Avant : 0,371 · 0,434 · 0,477 s — trois mesures seulement, à
+prendre pour ce qu'elles valent.
+
+Le gain est réel mais **modeste**, et l'explication est instructive : le
+chargement du catalogue n'était pas tout. La route fait encore trois
+allers-retours vers la base (produits, commandes, incidents), en parallèle —
+donc un seul aller-retour en temps mur, soit ~0,26 s mesuré depuis
+l'extérieur. Le plancher est un aller-retour, et on l'atteint.
+
+**Conséquence, et elle n'est pas négociable : ne jamais mettre `/api/health`
+en cache.** Un indicateur de santé qui répond de mémoire ne surveille plus
+rien, il rassure. C'est exactement le défaut que `compterCommandes`
+corrigeait le 13/09 : un `orderCount: 0` venu du cache du processus alors que
+la base comptait 39 commandes.
+
+Le champ a changé de forme sans changer de nom : `productsCount` reste un
+nombre (ou `null`), et `produits` expose désormais le compte **et** sa source.
+Vérifié en production : `produits = {compte: 106, source: 'base'}` — 106
+produits actifs, contre 96 avant l'arrivée des dix fiches `fond-*`.
