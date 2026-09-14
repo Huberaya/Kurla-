@@ -1814,3 +1814,35 @@ J'ai passé le compte à 36 et ajouté l'assertion nominative sur `/diagnostic`
 (`tests/chantier_7_prerender.test.ts`). **Ce n'est pas mon domaine** : si
 cette page ne doit finalement pas être indexée, c'est `routeMeta.ts` qu'il
 faut changer, pas le compte — le banc suivra.
+
+#### Mesures après déploiement (14/09/2026, ~22 h, `b9d5a75`)
+
+| | Avant | Après |
+|---|---|---|
+| `/api/products`, cache contourné (MISS) | 0,67 à 0,99 s | 0,480 · 0,511 · 0,568 · 0,509 s |
+| `/api/products`, servi par le CDN (HIT) | — | 0,063 · 0,064 · 0,068 · 0,119 · 0,171 s |
+| `/` | 0,21 s | 0,246 · 0,121 · 0,068 s |
+| `/api/health` | 0,45 s | 0,477 · 0,434 · 0,371 s (inchangé, non traité) |
+
+Le cas qui compte pour un visiteur est la ligne « HIT » : le catalogue est
+servi en 60 millisecondes au lieu de 800. Le temps serveur pur, lui, passe
+d'environ 0,83 s à environ 0,52 s.
+
+**Invariants vérifiés sur la production**, pas seulement sur les bancs :
+
+- `count = 63` hors mode test — exactement le chiffre d'avant, aucun produit
+  perdu ni ajouté ;
+- `skinKits` **strictement identiques** dans les deux modes (3 devis) : les
+  32 fiches test du mode test n'entrent jamais dans un devis de kit ;
+- les 32 fiches supplémentaires du mode test sont toutes marquées
+  `testListing: true`, et **aucune** ne figure dans la liste publique ;
+- `?test=1` répond `x-vercel-cache: MISS` à chaque appel : jamais mis en
+  cache, comme prévu.
+
+À noter : Vercel retire `s-maxage` et `stale-while-revalidate` de la réponse
+envoyée au client (le visiteur voit `cache-control: public`) — ce sont des
+directives de CDN. Leur effet se lit dans `x-vercel-cache: HIT`.
+
+**CI verte sur `b9d5a75`**, y compris le job « Suite complète » — qui était
+**rouge** sur `ddb997f`, avant mon push, pour la raison du paragraphe
+précédent (35 routes au lieu de 36).
