@@ -12,7 +12,11 @@ Notre clientèle est plus attirée par des produits moins chers. »
 
 **2ᵉ passe (15/09/2026)** : 33 des 41 positions « à vérifier » du 14/09 ont été
 re-vérifiées sur des revendeurs FR (statut « vérifié le 15/09/2026 — <source> »).
-Total : **242/250 prix constatés**, 8 lignes restantes sans prix (détail en §5).
+**3ᵉ passe (15/09/2026)** : #15 — Odacité Mineral Drops (52 €, premium) remplacé par
+LRP Anthelios XL teinté SPF50+ **dès 9,50 €** (oxydes de fer, teintes foncées) ; #44 —
+Keralys DS Gentle (aucun prix FR après 4 tentatives) remplacé par Uriage DS Hair
+**8,99 €** (boticinal, en stock). Total : **243/250 prix constatés**, 7 lignes
+restantes sans prix (détail en §5).
 
 **Périmètre et partage** : ce document couvre les **50 besoins** de
 `BESOINS_PEAU_50_2026-09-13.md` (diagnostic + éducation + besoins spécifiques).
@@ -224,7 +228,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 |---|---|---|---|
 | 1 | Beauty of Joseon — Tinted Mineral Dayscreen SPF30 (15 teintes) (40 ml) | **15,00 €** | EOLYS Beauté |
 | 2 | Beauty of Joseon — Daily Tinted Fluid Sunscreen SPF30 (50 ml) | **16,39 €** | EOLYS Beauté |
-| 3 | Odacité — Mineral Drops écran teinté SPF50 (6 teintes, marque FR) (30 ml) | **52,00 €** | Ankorstore |
+| 3 | La Roche-Posay — Anthelios XL teinté gel-crème SPF50+ (oxydes de fer) (50 ml) | dès **9,50 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | La Roche-Posay — Anthelios UVair sérum solaire teinté SPF50+ (50 ml) | dès **16,50 €** | Grande distribution pharmacie/parapharmacie |
 | 5 | Eucerin — Sun Pigment Control teinté SPF50+ (50 ml) | **12,59 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 
@@ -526,7 +530,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 | 2 | Ducray — Kelual DS shampoing antipelliculaire (100 ml) | **11,89 €** (fiche) | Grande distribution pharmacie/parapharmacie |
 | 3 | Nizoral — Shampoing kétoconazole 1 % (100 ml) | **12,49 €** | Grande distribution pharmacie/parapharmacie |
 | 4 | La Roche-Posay — Kerium DS shampoing antipelliculaire (200 ml) | **14,99 €** | Grande distribution pharmacie/parapharmacie |
-| 5 | La Roche-Posay — Keralys DS Gentle (pellicules grasses/sèches) (200 ml) | à vérifier | Grande distribution pharmacie/parapharmacie |
+| 5 | Uriage — DS Hair shampoing traitant antipelliculaire (pellicules modérées) (200 ml) | **8,99 €** | Grande distribution pharmacie/parapharmacie |
 
 ### H. Maquillage
 
@@ -605,7 +609,8 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 3. **Le trou structurel « SPF teinté teintes foncées » (#15/#47) est pourvu** :
    Beauty of Joseon Tinted Mineral Dayscreen SPF30 — **15 teintes**, 40 ml, 20 $
    (site officiel, réf. septembre 2026) ; en marque FR : Odacité Mineral Drops
-   (6 teintes, 52 € — premium) ; en pharmacie : LRP UVair teinté dès 16,50 €.
+   (6 teintes, 52 € — repère premium) ; en pharmacie : LRP UVair teinté dès
+   16,50 € et LRP Anthelios XL teinté **dès 9,50 €** (retenu dans le besoin #15).
 4. **Le trou « patchs occlusifs » (#22) est comblé à prix plancher** : COSRX
    Master Patch 3,63–6,89 € (24 pcs), 9,11–11,39 € (90 pcs).
 5. **La routine 3 gestes (#48) est assemblable à ≈34 €** en produits réels :
@@ -619,11 +624,13 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 
 ## 5. Honnêteté — ce qui n'est PAS encore fait
 
-- **8 lignes sans prix** après la 2ᵉ passe du 15/09 (contre 41 le 14/09) : 6
+- **7 lignes sans prix** après la 3ᵉ passe du 15/09 (contre 41 le 14/09) : 6
   positions Torriden en fiche `peau-test-*` existante (prix volontairement non
   listé tant que la fiche n'est pas vendable — couche test, pas ce dossier),
-  1 LRP Keralys DS Gentle (aucun prix FR trouvé le 15/09 — 2 recherches),
-  1 SKIN1004 Silky Fit Sun Stick (23 $ US uniquement).
+  1 SKIN1004 Silky Fit Sun Stick (23 $ US uniquement). LRP Keralys DS Gentle :
+  4 tentatives de prix FR sans succès le 15/09 → remplacé dans #44 par Uriage
+  DS Hair 8,99 € (boticinal, en stock) ; Odacité 52 € retiré de #15 (premium,
+  documenté en §4 comme repère).
 - **Kocosmetic recoupé RCS 15/09** : BizDistribution SASU, RCS Créteil
   B 911 096 642 (inscrit 08/03/2022), capital 50 000 €, comptes déposés, en
   activité — statut passé de « à recouper » à « recoupé ». **Get Your
@@ -639,7 +646,7 @@ public de la fiche existante · *à vérifier* = produit identifié, prix à con
 
 1. Kocosmetic : recoupé RCS 15/09 ✓. Get Your K-Beauty : à confirmer (pas de raison sociale trouvée) → statut du registre.
 2. Désigner les distributeurs B2B des grandes marques (RFQ ciblée par marque).
-3. Confirmer les 8 lignes restantes sans prix (Keralys DS Gentle FR, SKIN1004 stick US, 6 Torriden peau-test — à la validation des fiches test).
+3. Confirmer les 7 lignes restantes sans prix (SKIN1004 stick US, 6 Torriden peau-test — à la validation des fiches test).
 4. Dès boîte mail + mandat + SIREN disponibles : emails fournisseur avec ce dossier
    comme annexe (5 références par besoin, prix publics cités = base de négociation).
 5. À chaque réponse : 3 documents bloquants (CPNP + PR UE + INCI) → fiche test →

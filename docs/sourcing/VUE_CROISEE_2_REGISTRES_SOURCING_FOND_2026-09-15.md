@@ -75,8 +75,9 @@ meilleur prix de chaque registre, et les points à harmoniser.
    (13,50 € Niacinamide) ; le registre A cite redcare/boticinal (5,59 €). Pour la
    RFQ DECIEM, l'officiel fait **plafond** ; le revendeur fait **référence de marché**.
    Les deux sont conservés dans les registres, aucun n'est écrasé.
-2. **TO Glycolic Toner 13,90 € = prix UK** (boots.com, £11,90) — à convertir en
-   prix FR avant d'être cité dans une RFQ.
+2. **TO Glycolic Toner : prix UK (boots £11,90) converti en FR le 15/09** —
+   240 ml constaté **13,15–14,59 €** (idealo / redcare-pharmacie.fr, en stock).
+   Cifre utilisable tel quel dans une RFQ DECIEM.
 3. **Canal des grandes marques** : les deux registres convergent — distributeur B2B
    FR à désigner (RFQ), Ankorstore pour les marques FR (Sanoflore, Weleda, Cosmo),
    Qudo Beauty pour la K-beauty (CPNP/PR UE/INCI par écrit), IDC/Aquarius pour le corps.
