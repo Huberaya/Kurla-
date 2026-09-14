@@ -1887,3 +1887,100 @@ mécanique du mode test (migration 20260926000000) :
   produit précis serait inventer.
 - Mesuré en production : 63 fiches sans `?test=1` ; 97 avec (34 test
   visibles). Boutique réelle inchangée.
+## Sourcing de fond 50 besoins × 5 produits — migration Supabase (livré 2026-09-15)
+
+Consigne 15/09 : « je veux que le fichier soit poussé sur Github **et migré sur
+supabase** ». Le registre (250 positions) est migré dans la **base de
+production** `qzwgsarfdegqtfdnqiql` en s'alignant sur le schéma sourcing
+EXISTANT (chantier 16) — pas de structure parallèle.
+
+**DDL** — `supabase/migrations/20260927000000_sourcing_fond_positions.sql`,
+appliquée via Management API (8 instructions, toutes vérifiées) :
+
+- Nouvelle table `public.sourcing_fond_positions` : les 250 lignes du registre
+  (1 rang = 1 produit). Colonnes : `sourcing_item_id` (FK → `sourcing_items`,
+  ON DELETE CASCADE), `rang` (1-5, CHECK), `marque`, `produit`, `format`,
+  `prix_constate_cents` (integer, **nullable** — NULL = « à vérifier », jamais
+  une valeur supposée), `statut_prix` (statut complet daté + source),
+  `fournisseur_canal`. PK `(sourcing_item_id, rang)`.
+- RLS activé + 3 policies `is_admin()` (SELECT / INSERT / UPDATE) — même
+  mécanisme que `suppliers` / `sourcing_items` du chantier 16 : le service role
+  bypass, l'anon n'a aucun accès (fail-closed).
+- `prix_constate_cents` NULLABLE : cohérent avec la discipline du chantier 16C
+  « la plateforme n'invente ni un prix, ni un statut ». Les 7 lignes sans prix
+  observé restent `NULL` + `statut_prix = 'à vérifier …'`.
+
+**DML** — script de migration daté 15/09/2026 (`.tmp-imgs/migrate-fond50.mts`,
+service role, **idempotent**, dry-run par défaut, `--apply` pour écrire).
+`fond50.json` est généré depuis le CSV maître `docs/sourcing/SOURCING_FOND_50_BESOINS_5_PRODUITS_2026-09-14.csv`
+(0 donnée ré-saisie).
+
+Ce que le script écrit, et pourquoi :
+
+- **50 besoins → `sourcing_items`** : ids `fond-50-n01` … `fond-50-n50`, wave
+  `fond-2026-09-14`, status `to_source`, `required_documents` =
+  `cpnp_notification` + `responsible_person` + `pif` (les 3 pièces bloquantes du
+  plan de sourcing). Rationale = la consigne client d'origine.
+- **6 fournisseurs → `suppliers`** : Kocosmetic/BizDistribution (`pending` —
+  identité RCS recoupée 15/09), Get Your K-Beauty (`not_provided` — raison
+  sociale à confirmer), Qudo Beauty (RO), Aquarius Cosmetic SLU (ES, marque IDC),
+  Ankorstore, DECIEM (groupe The Ordinary). **Réutilisés sans écraser** :
+  `sup-blacketique-sas` et `sup-eolys-beaute` (déjà créés par le chantier 16).
+  « Grandes marques FR (distributeur à désigner) » : **aucune ligne** — entité
+  non identifiée, ne pas inventer ; le canal reste porté par
+  `fournisseur_canal` des positions.
+- **250 positions → `sourcing_fond_positions`** : upsert sur `(sourcing_item_id,
+  rang)`, 243 prix en centimes + 7 NULL « à vérifier ».
+
+**Mesuré en production après `--apply`** (re-vérifié après une 2ᵉ exécution :
+0 changement, idempotence confirmée) :
+
+- `suppliers` = 16 (10 existants + 6 nouveaux).
+- `sourcing_items` = 57 (7 existants `vague-1`/`peau-*` + 50 `fond-50-nXX`).
+- `sourcing_fond_positions` = 250.
+- Prix : n = 243, min 2,48 €, médiane 12,25 €, max 31,99 € — **identique au
+  document maître** (aucune dérive de transcription).
+
+**RFQ** — aucune `rfqs` / `rfq_responses` insérée : les 5 packs de
+`docs/sourcing/RFQ_SOURCING_FOND_2026-09-15.md` peuvent brancher
+`rfqs.sourcing_item_id` sur les ids `fond-50-nXX` à l'envoi. L'envoi reste
+bloqué sur le mandat utilisateur (boîte + mandat + SIREN) : **0 email envoyé**,
+comme avant.
+
+**Zéro impact sur le travail parallèle** : les 10 fiches `fond-*` du catalogue
+(commit `c3043e8`/`12d4f9f`), les 7 `sourcing_items` existants, les 10
+`suppliers` existants et les 4 gardes-fous du dashboard sont intacts.
+
+### Santé légère : `/api/health` ne charge plus le catalogue (14/09/2026)
+
+Deuxième passe du chantier vitesse. `/api/health` répondait en 0,45 s, et
+**ce n'était pas** le défaut du premier coup : les trois lectures étaient déjà
+en `Promise.all`. La cause était `getProducts()` — cinq tables lues et les 96
+produits mappés un par un avec variantes, images, stock et preuves CPNP —
+**pour en afficher le nombre**.
+
+La route est la plus sondée du site : la sonde l'appelle toutes les quinze
+minutes, et `verifier-deploiement.mjs` attend sa réponse avant de sonder quoi
+que ce soit d'autre. Un indicateur de santé qui coûte un chargement complet du
+catalogue finit par ressembler à une charge de trafic.
+
+`compterProduitsActifs()` demande désormais le compte à PostgreSQL
+(`head: true` + `count: 'exact'`, aucune ligne ramenée). Il vit dans
+`incidentStore.ts` et non dans `catalogStore.ts` pour la même raison que
+`compterCommandes` : c'est un compteur de santé, et un import direct entre
+deux modules de domaine créerait un cycle.
+
+**Incohérence trouvée au passage** : la branche mémoire de `getProducts` ne
+filtrait pas `is_active`, contrairement à la branche base. Le même champ
+`productsCount` avait donc deux vérités — « produits » en mémoire, « produits
+actifs » en production. Aligné sur la règle de la base.
+
+**Contrat** : `productsCount` est conservé (nombre ou `null`), et `produits`
+expose désormais le compte **et** sa source, comme `commandes` le fait déjà.
+Règle inchangée, c'est celle du module : un compte non lu est `null`, jamais
+`0`.
+
+**Banc** `tests/kurla_sante_legere.test.ts` — la preuve que la route ne lit
+plus le catalogue n'est pas une relecture de code : `serverDb.getProducts` est
+remplacé par une fonction qui échoue, et `/api/health` doit répondre 200 quand
+même. Si le chargement complet revient un jour, le banc rougit.

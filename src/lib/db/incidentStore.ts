@@ -41,7 +41,15 @@ import type { SupabaseServerStore } from '../serverDb';
  */
 const ACTION_INCIDENT = 'server_incident';
 
-export type SourceDuCompte = 'base' | 'non_lu';
+/**
+ * `'memoire'` : le compte vient du catalogue en mémoire, pas d'une base.
+ *
+ * Ajouté le 14/09/2026 pour `compterProduitsActifs` — les deux autres
+ * compteurs n'ont pas de mode mémoire, ils rendent `non_lu` faute de base.
+ * Dire « mémoire » plutôt que « base » évite de faire passer un catalogue de
+ * développement pour une lecture de production.
+ */
+export type SourceDuCompte = 'base' | 'memoire' | 'non_lu';
 
 export interface Compte {
   compte: number | null;
@@ -80,6 +88,49 @@ export async function compterCommandes(_store: SupabaseServerStore): Promise<Com
   } catch {
     // Une base injoignable n'est pas « zéro commande » : c'est une lecture
     // qui a échoué. La différence est tout l'objet de ce module.
+    return NON_LU;
+  }
+}
+
+/**
+ * Le nombre de produits actifs, **sans charger le catalogue**.
+ *
+ * Pourquoi cette fonction existe, mesuré le 14/09/2026 : `/api/health`
+ * appelait `getProducts()` — cinq tables lues, et les 96 produits mappés un
+ * par un avec leurs variantes, leurs images, leur stock et leurs preuves
+ * CPNP — dans le seul but d'en afficher le compte. C'était l'essentiel des
+ * 0,45 seconde de la route la plus sondée du site (la sonde l'appelle toutes
+ * les quinze minutes, et `verifier-deploiement.mjs` attend sa réponse avant
+ * de sonder quoi que ce soit d'autre).
+ *
+ * Elle vit dans ce module plutôt que dans `catalogStore` pour la même raison
+ * que `compterCommandes` : c'est un compteur de santé, et un import direct
+ * entre deux modules de domaine créerait un cycle.
+ *
+ * Même règle que les deux autres compteurs : un compte qu'on n'a pas lu est
+ * `null`, jamais `0`.
+ */
+export async function compterProduitsActifs(store: SupabaseServerStore): Promise<Compte> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    // Pas de base : le catalogue est en mémoire et le compter ne coûte rien.
+    // La règle est alignée sur celle de la base (produits actifs) — la
+    // branche mémoire de `getProducts` ne filtrait pas, et le compte de
+    // santé disait donc « produits » là où la base disait « produits
+    // actifs ». Deux vérités pour un même champ, c'est un champ qui ment.
+    const actifs = (store.inMemoryProducts ?? []).filter(
+      (produit: any) => produit?.is_active !== false && produit?.isActive !== false
+    );
+    return { compte: actifs.length, source: 'memoire' };
+  }
+  try {
+    const { count, error } = await supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    if (error) return NON_LU;
+    return typeof count === 'number' ? { compte: count, source: 'base' } : NON_LU;
+  } catch {
     return NON_LU;
   }
 }
