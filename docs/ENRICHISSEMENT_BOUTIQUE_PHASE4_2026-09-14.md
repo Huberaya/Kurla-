@@ -182,3 +182,10 @@ visuel). Tout a été corrigé :
   dans `SectionAvenir` (BoutiquePage.tsx). **cosmo-001** : `image_url =
   NULL` → la carte affiche le marqueur « Visuel officiel en attente du
   référencement fournisseur » (jamais d'image usurpée).
+- Garde anti-usurpation : la projection ne sert qu'un visuel hébergé par
+  KURLA (`/images/sourcing/…`) via `comingSoonImage()` (catalogStore.ts) ;
+  toute URL de type placeholder/illustration (unsplash, etc.) — y compris
+  la ligne d'audit `product_images` d'une fiche sans visuel — est écartée.
+- Fixture `tests/fixtures/store_api_inventory.json` régénérée
+  (`KURLA_UPDATE_FIXTURE=1` + diff vérifié) : +`comingSoonImage/0`,
+  329 méthodes, aucune retirée.

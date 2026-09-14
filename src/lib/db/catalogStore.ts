@@ -458,6 +458,23 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
     availabilityState: 'sourcing_en_cours';
   }
 
+  /**
+   * Visuel servable dans la section « Bientôt disponible ».
+   *
+   * Règle : un packshot officiel est servi seulement s'il est hébergé par
+   * KURLA (`/images/sourcing/…`) ou s'il porte une confiance explicite ;
+   * toute URL de type placeholder/illustration (unsplash, etc.) est écartée,
+   * y compris via la galerie (`product_images`), pour qu'une fiche sans visuel
+   * officiel n'affiche jamais une image usurpée.
+   */
+  export function comingSoonImage(value: unknown): string | null {
+    const url = typeof value === 'string' ? value.trim() : '';
+    if (!url) return null;
+    if (/unsplash|placeholder|illustration|dummy/i.test(url)) return null;
+    if (url.startsWith('/images/sourcing/')) return url;
+    return null;
+  }
+
   export async function getComingSoonProducts(store: SupabaseServerStore): Promise<FicheAvenirProduit[]> {
     const champ = (produit: any, ...noms: string[]): unknown => {
       for (const nom of noms) {
@@ -480,9 +497,13 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
         routineStep: String(champ(produit, 'routineStep', 'routine_step') ?? ''),
         subCategory: String(champ(produit, 'subCategory', 'subcategory') ?? ''),
         availabilityState: 'sourcing_en_cours',
-        image: champ(produit, 'image_url', 'imageUrl') != null
-          ? String(champ(produit, 'image_url', 'imageUrl'))
-          : null,
+        // Visuel de la fiche : uniquement un packshot servi par KURLA
+        // (`/images/sourcing/`, téléchargé de la plateforme officielle de la
+        // marque). Jamais d'image usurpée : les URLs de type placeholder
+        // (unsplash, illustration) — y compris la ligne d'audit de
+        // `product_images` d'un produit sans visuel — sont écartées, et la
+        // boutique affiche alors le marqueur « visuel en attente ».
+        image: comingSoonImage(champ(produit, 'image', 'image_url', 'imageUrl')),
       });
     }
     return fiches.sort((a, b) => a.brand.localeCompare(b.brand, 'fr') || a.name.localeCompare(b.name, 'fr'));
