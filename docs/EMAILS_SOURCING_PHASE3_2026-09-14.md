@@ -31,7 +31,11 @@ encore de boîte mail ni de mandat : les placeholders `[Prénom Nom]`, `[fonctio
 > 5. le **minimum de commande** et le franco de port ;
 > 6. le **tarif revendeur** (et paliers de remise) et les délais de livraison ;
 > 7. vos **modalités de paiement** ;
-> 8. la disponibilité d'**échantillons** de contrôle avant référencement.
+> 8. la disponibilité d'**échantillons** de contrôle avant référencement ;
+> 9. pour chaque référence, le **visuel officiel du produit** (packshot haute
+>    définition) et votre **accord écrit par référence pour son utilisation** sur
+>    notre boutique en ligne — nos fiches produits n'étant publiées qu'avec un
+>    visuel autorisé.
 
 **Trois refus à opposer d'emblée** (réponse type si applicable)
 
@@ -305,11 +309,16 @@ Votre Lait Corps au Karité (bio COSMOS, fabriqué en France) correspond au pôl
 sec et rêche » que nous servons — coudes, genoux, mollets, peau sèche — avec un ancrage
 karité qui parle à notre clientèle.
 
+Nous avons consulté votre plateforme en ligne et n'avons pas localisé cette référence :
+pourriez-vous confirmer la **référence exacte** (désignation commerciale, format, EAN)
+et sa **disponibilité** ?
+
 Nous souhaiterions le référencer :
 
 1. vos **conditions professionnelles** (MOQ, remises, délais, franco) ;
 2. pour le produit : [bloc commun §0] — attestation CPNP, personne responsable, INCI,
-   DDM/PAO ;
+   DDM/PAO — et le **visuel officiel** avec votre accord écrit de l'utiliser sur notre
+   boutique (cf. point 9 du bloc commun) ;
 3. vos **échantillons** si possible.
 
 [Signature commune]
@@ -338,18 +347,23 @@ protection solaire, corps, cuir chevelu) :
 | Marque | Références |
 |---|---|
 | La Roche-Posay | Anthelios Fluide Invisible SPF50+ · Hyalu B5 Sérum Yeux · Retinol B3 Sérum · Pure Vitamin C12 Sérum · Anthelios Stick Lèvres SPF50+ · Cicaplast Baume B5 |
-| CeraVe | Crème hydratante céramides · Crème yeux anti-ernes |
+| CeraVe | Crème hydratante céramides · Crème yeux anti-cernes |
 | Eucerin | UreaRepair Plus Émollient 10 % Urée 400 ml · Anti-Pigment (thiamidol) · Sun Pigment Control **Teinté** SPF50+ |
 | Avène | Solaire Stick Lèvres SPF50+ · Cicalfate+ |
-| Bioderma | Sensibio Huile Micellaire (démaquillage waterproof) |
+| Bioderma | Créaline Huile Micellaire 150 ml (démaquillage waterproof) |
 | Ducray / Klorane | Kelual DS (pellicules + démangeaisons) / Shampoing antipelliculaire |
 | Isdin | Eryfotona Ageless **Teinté** SPF50 · Stick Invisible SPF50 |
 | L'Oréal Paris | True Match fond de teint (teintes foncées 8+) |
 
+Deux précisions sur les références : pour l'**Anthelios Stick Lèvres SPF50+**,
+confirmez-nous le **format approvisionné** (4,7 g ou 9 ml) ; pour la **Créaline Huile
+Micellaire Bioderma**, le format de référence est le **150 ml**.
+
 Pour chaque référence : [bloc commun §0] — en précisant pour les produits de groupes
 (L'Oréal, Beiersdorf, Pierre Fabre, Naos, Cantabria Farma/Isdin) la **personne
-responsable UE** désignée et le **CPNP**. Et vos conditions de revente e-commerce
-(MOQ, remises, délais, franco, paiement).
+responsable UE** désignée et le **CPNP** — et les **visuels officiels** avec votre
+accord écrit de les utiliser sur notre boutique (cf. point 9 du bloc commun). Et vos
+conditions de revente e-commerce (MOQ, remises, délais, franco, paiement).
 
 [Signature commune]
 
@@ -380,3 +394,36 @@ livraison + **autorisation fournisseur** (garde de publiabilité).
 réponse), pas de prix (les prix publics constatés dans la recherche du 14/09 ne sont
 pas des prix d'achat), pas de promesse de référencement (tout dépend des réponses
 CPNP). Et pas d'envoi avant : boîte mail KURLA + mandat + SIREN complétés.
+
+---
+
+## Journal des corrections — 14/09/2026 (suite, mission images)
+
+Alignement des brouillons avec les vérifications des plateformes menées le
+14/09/2026 (voir `ENRICHISSEMENT_BOUTIQUE_PHASE4_2026-09-14.md` §7) :
+
+1. **Bloc commun §0** : point 9 ajouté — demande du **visuel officiel** par
+   référence + **accord écrit** pour son utilisation sur la boutique. C'est le
+   maillon qui fera passer les 25 visuels déjà repérés de `unverified` à
+   `verified` (garde de propriété des images).
+2. **Email 9 (Cosmo Naturel)** : le « Lait Corps Nourrissant Karité Amande douce
+   500 ml » (EAN 3489940049503) est **absent de la plateforme officielle
+   cosmonaturel.fr** (vérifié : recherches karité/lait/EAN, sondage
+   d'identifiants, sitemaps). L'email demande désormais la **confirmation de la
+   référence exacte et de sa disponibilité** + le visuel officiel. Le produit
+   existe chez des distributeurs (ex. penntybio.com, 10,75 €, réf. NCO4950) —
+   la confirmation du statut auprès de la marque est indispensable avant
+   référencement.
+3. **Email 10 (Bioderma)** : identification corrigée — le produit exact est la
+   **Créaline Huile Micellaire 150 ml** (gamme Créaline ; la gamme Sensibio
+   regroupe les eaux micellaires, pas d'huile). L'ancien libellé « Sensibio
+   Huile Micellaire 500 ml » n'existait pas sur la plateforme FR.
+4. **Email 10 (La Roche-Posay)** : question ajoutée sur le **format** de
+   l'Anthelios Stick Lèvres SPF50+ — la plateforme FR liste la version 4,7 g
+   (réf. p6756), la plateforme ES la version 9 ml.
+5. **Fiche bio-001** (boutique) : nom, slug et prix constaté corrigés en
+   conséquence (Créaline Huile Micellaire 150 ml, 24,15 € constatés le
+   14/09/2026).
+
+**État d'envoi inchangé** : **0 email envoyé** (boîte mail + mandat + SIREN à
+compléter d'abord — voir en-tête).

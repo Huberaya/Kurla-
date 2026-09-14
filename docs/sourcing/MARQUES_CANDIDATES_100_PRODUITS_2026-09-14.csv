@@ -1,5 +1,5 @@
 ref_registre;marque_candidat;produit_candidat;format;prix_public_eur;source_prix_public;variante;fiche_boutique_id;note
-PEAU-004;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);non — correspondance directe;src-bio-001;Correspond à l'étape « Huile nettoyante démaquillante » (hautement tolérante, démaquillant yeux inclus).
+PEAU-004;Bioderma;Créaline Huile Micellaire;150 ml;24.15;pharmacie FR (24,15 € constaté le 14/09/2026, LookFantastic);non — correspondance directe;src-bio-001;Correspond à l'étape « Huile nettoyante démaquillante » (hautement tolérante, démaquillant yeux inclus). IDENTIFICATION CORRIGEE 14/09/2026 : le produit exact est la Créaline Huile Micellaire 150 ml (gamme Créaline) — l’ancien libellé « Sensibio Huile Micellaire » n’existait pas sur la plateforme FR (voir doc phase 4 §7.3).
 PEAU-014;COSRX;BHA Blackhead Power Liquid;format standard;18.99;revendeur K-beauty FR (18,99 €);non;src-cosrx-001;BHA 2 % pores et imperfections — correspondance directe.
 PEAU-014;Isntree;Chestnut BHA 2 % Clear Liquid;100 ml;21.95;revendeur K-beauty FR (21,95 €);non;src-isntree-001;BHA 2 % — 2ᵉ candidat (marque officielle à confirmer).
 PEAU-020;The Ordinary;Niacinamide 10 % + Zinc 1 %;30 ml;13.5;theordinary.com FR (13,50 €);variante — 10 % contre 5 % visé;src-to-002;"Sérum niacinamide ; concentration au-dessus de la cible 5 % (à doser)."
@@ -24,7 +24,7 @@ PEAU-050;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9
 PEAU-050;Avène;Solaire Stick Lèvres SPF50+;3 g;6.59;pharmacie FR (5,83–8,50 €);variante — SPF ajouté;src-avene-001;Baume lèvres — 2ᵉ candidat, moins cher.
 PEAU-067;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (19,34 €/L);variante — lait au lieu de masque;src-cosmo-001;Soin nourrissant corps.
 PEAU-068;La Roche-Posay;Hyalu B5 Sérum Yeux;15 ml;23.03;pharmacie FR (23,03–28,59 €);variante — sérum au lieu de crème, sans caféine;src-lrp-003;Soin contour des yeux hydratant.
-PEAU-071;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);variante — huile mono-phase au lieu de biphasé;src-bio-001;Démaquillant yeux doux (hautement tolérante).
+PEAU-071;Bioderma;Créaline Huile Micellaire;150 ml;24.15;pharmacie FR (24,15 € constaté le 14/09/2026, LookFantastic);variante — huile mono-phase au lieu de biphasé;src-bio-001;Démaquillant yeux doux (hautement tolérante). IDENTIFICATION CORRIGEE 14/09/2026 : le produit exact est la Créaline Huile Micellaire 150 ml (gamme Créaline) — l’ancien libellé « Sensibio Huile Micellaire » n’existait pas sur la plateforme FR (voir doc phase 4 §7.3).
 PEAU-073;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — non teinté, SPF ajouté;src-lrp-006;Baume lèvres (cible teintée = variante).
 PEAU-076;La Roche-Posay;Anthelios Stick Lèvres SPF50+;4,7 g;9.9;pharmacie FR (9,90 €);variante — SPF ajouté;src-lrp-006;Stick lèvres nourrissant.
 PEAU-076;Avène;Solaire Stick Lèvres SPF50+;3 g;6.59;pharmacie FR (5,83–8,50 €);variante — SPF ajouté;src-avene-001;2ᵉ candidat.
@@ -33,7 +33,7 @@ PEAU-078;Cosmo Naturel;Lait Corps au Karité Bio;500 ml;9.67;cosmo-naturel.fr (1
 PEAU-081;Weleda;Lait Corps Nourrissant à l'Argousier;200 ml;15.0;weleda.fr (15,00 €);variante — parfum naturel (huiles essentielles), non « sans parfum »;src-weleda-002;Lait corps apaisant — attention allégation sans parfum : à vérifier au dossier allergènes.
 PEAU-082;La Roche-Posay;Cicaplast Baume B5+;100 ml;13.39;Redcare FR (13,39 €);variante;src-lrp-007;Soin apaisant (zones rasées, barrière).
 PEAU-083;Weleda;Déodorant Solide 24H Sensitive;50 g;11.5;weleda.fr (11,50 €);non — sans alcool ni sels d'aluminium;src-weleda-001;Déodorant doux sans sels d'aluminium — correspondance directe.
-PEAU-091;Bioderma;Sensibio Huile Micellaire;150 ml;11.99;parapharmacie FR (11,99–17,48 €);non;src-bio-001;Huile démaquillante (compatible make-up waterproof).
+PEAU-091;Bioderma;Créaline Huile Micellaire;150 ml;24.15;pharmacie FR (24,15 € constaté le 14/09/2026, LookFantastic);non;src-bio-001;Huile démaquillante (compatible make-up waterproof). IDENTIFICATION CORRIGEE 14/09/2026 : le produit exact est la Créaline Huile Micellaire 150 ml (gamme Créaline) — l’ancien libellé « Sensibio Huile Micellaire » n’existait pas sur la plateforme FR (voir doc phase 4 §7.3).
 PEAU-092;La Roche-Posay;Pure Vitamin C12 Sérum;30 ml;42.1;pharmacie FR (40,65–42,10 €);non;src-lrp-005;Sérum antioxydant mat, sous SPF.
 PEAU-093;La Roche-Posay;Anthelios Fluide Invisible SPF50+;40 ml;22.9;pharmacie FR (22,90 €);variante — SPF50+ au lieu de SPF30;src-lrp-001;Crème de jour invisible — candidat 1.
 PEAU-093;Eucerin;Sun Pigment Control Gel-Crème Teinté SPF50+;50 ml;12.59;pharmacie FR (12,59–16,50 €);variante — teinté;src-euc-002;SPF de jour teinté anti-taches — candidat 2.

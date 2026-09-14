@@ -37,7 +37,7 @@ cibles existantes.
 | src-euc-001 | Eucerin | UreaRepair Plus Émollient 10% Urée — 400ml | 16,99 | #40/#41 urée 10–20 % | n°10 |
 | src-euc-002 | Eucerin | Sun Pigment Control Gel-Crème Teinté SPF50+ — 50ml | 12,59 | #15/#16 SPF teinté anti-taches | n°10 |
 | src-avene-001 | Avène | Solaire Stick Lèvres SPF50+ — 3g | 6,59 | #43 | n°10 |
-| src-bio-001 | Bioderma | Sensibio Huile Micellaire — 150ml | 11,99 | #45 démaquiller | n°10 |
+| src-bio-001 | Bioderma | Créaline Huile Micellaire — 150ml (identification corrigée — §7.3) | 24,15 (cf. §7.3) | #45 démaquiller | n°10 |
 | src-ducray-001 | Ducray | Kelual DS Shampoing Antipelliculaire — 100ml | 11,89 | #44 cuir chevelu | n°10 |
 | src-klorane-001 | Klorane | Shampoing Antipelliculaire — 200ml | 5,99 | #44 cuir chevelu | n°10 |
 | src-isdin-001 | Isdin | Eryfotona Ageless Teinté SPF50 — 100ml | 91,19 | #15 SPF teinté oxydes de fer | n°10 (prix à confirmer) |

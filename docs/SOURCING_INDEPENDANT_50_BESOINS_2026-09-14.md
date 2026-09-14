@@ -57,7 +57,7 @@ parapharmacie** (à sourcer) ou contact direct :
   Pure Vitamin C12, stick lèvres) · Vichy (Minéral 89) · CeraVe (céramides) · Ducray
   (Kelual DS) · Klorane (antipelliculaire) · L'Oréal Paris (True Match 48 teintes)
 - **Pierre Fabre** (FR) : Avène (Cicalfate, stick lèvres SPF50+, Solaire)
-- **Naos** (FR) : Bioderma (Sensibio Huile, Cicabio)
+- **Naos** (FR) : Bioderma (Créaline Huile Micellaire, Cicabio)
 - **Beiersdorf** (DE, site FR officiel) : Eucerin (UreaRepair 10% urée, Anti-Pigment
   thiamidol, Sun Pigment Control teinté SPF50+)
 - **Isdin** (ES, distribution FR) : Eryfotona Ageless Teinté (INCI publique : **CI 77491/
@@ -118,7 +118,7 @@ constatés en France (pas de prix fournisseur) · Fournisseur = canal pour s'app
 | 42 | Aisselles | déodorant **sans alcool** | **Weleda Déodorant solide 24H Sensitive — sans alcool ET sans sels d'aluminium** (11,50 €, weleda.fr, vegan) | **Weleda ✔ SITE (distribution pro à demander)** |
 | 43 | Lèvres | L Baume céramides + bâtonnet SPF 15+ | **Avène Solaire Stick Lèvres SPF50+** (5,83–8,50 €, FR, sans parfum, sans effet blanc) · LRP Anthelios XL Stick Lèvres (9,90 €) | Pierre Fabre · L'Oréal (grosiste) |
 | 44 | Cuir chevelu | pôle cheveux (recoupement) | **Ducray Kelual DS** (11,69–13,38 €, ciclopirox + pyrithione Zn, FR) · **Klorane antipelliculaire** (5,99–8,99 €, FR) · Ducray Squanorm (pellicules sèches) | **L'Oréal (Ducray + Klorane = mêmes groupes — grosiste)** |
-| 45 | Démaquiller sans frotter | huile + temps de pose | **Bioderma Sensibio Huile Micellaire** 150 ml (11,99–17,48 €, FR, maquillage waterproof, « sans frottement ») · Sensibio H2O Eye | Naos (grosiste) |
+| 45 | Démaquiller sans frotter | huile + temps de pose | **Bioderma Créaline Huile Micellaire** 150 ml (24,15 € constaté le 14/09, FR, maquillage waterproof, « sans frottement » — identification corrigée, doc phase 4 §7.3) · Sensibio H2O Eye | Naos (grosiste) |
 | 46 | Maquillage non comédogène | label = allégation | L'Oréal Paris True Match (non comédogène, sans parfum, **48 teintes**) · Maybelline Fit Me (grande distribution FR) | L'Oréal (marque FR) · Revlon |
 | 47 | Teinte fond de teint foncé | sous-ton, frontière, lumière | **L'Oréal Paris True Match 48 teintes** (teintes foncées 8N/9N/10D, 12,95–18,99 €) · Fenty Beauty 40+ teintes (Sephora FR) · MAC 50+ teintes (Sephora FR) | **L'Oréal (marque FR — grosiste)** · Revlon (Fenty) · Estée Lauder (MAC) |
 | 48 | Routine 3 gestes | L Kit Essentielle | nettoyant + crème + SPF : CeraVe/LRP + IN'OYA ou Anthelios | L'Oréal · IN'OYA · Beiersdorf |
