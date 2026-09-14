@@ -55,10 +55,22 @@ function collectRoutes(): AdminRoute[] {
   const routes: AdminRoute[] = [];
 
   for (const file of serverFiles.sort()) {
-    const lines = readFileSync(file, 'utf8').split('\n');
-    lines.forEach((line, index) => {
-      const match = REGISTRATION.exec(line);
-      if (!match) return;
+    const texte = readFileSync(file, 'utf8');
+    const lines = texte.split('\n');
+    // L'expression est appliquée au fichier ENTIER, plus ligne par ligne.
+    //
+    // Mesuré le 15/09/2026 : quatre routes admin échappaient à cet inventaire
+    // — `conversion-funnel`, `launch/traction`, `strategy/cockpit` et, le
+    // jour même, `copilote` — uniquement parce que leur enregistrement est
+    // écrit sur plusieurs lignes (`app.get(` seul sur la sienne). Un
+    // inventaire qui se dit exact et qui perd des routes sur une histoire de
+    // retours à la ligne n'est pas exact : il rassure. Les quatre étaient
+    // correctement gardées, mais personne ne le vérifiait.
+    const global = new RegExp(REGISTRATION.source, 'g');
+    let found: RegExpExecArray | null;
+    while ((found = global.exec(texte)) !== null) {
+      const match = found;
+      const index = texte.slice(0, match.index).split('\n').length - 1;
       // La garde doit précéder le premier effet dans le corps du gestionnaire.
       const body = lines.slice(index, index + 45).join('\n');
       const guard = GUARD.exec(body);
@@ -72,7 +84,7 @@ function collectRoutes(): AdminRoute[] {
         guard: guardFirst ? guard![0] : null,
         callers: []
       });
-    });
+    }
   }
 
   // Appelants côté client : tout ce qui n'est pas sous src/server.

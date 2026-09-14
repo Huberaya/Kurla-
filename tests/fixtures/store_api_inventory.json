@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T22:39:26.016Z",
+  "generatedAt": "2026-09-14T23:32:27.956Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -209,6 +209,7 @@
     "linkAllDeclaredIngredients/0",
     "linkDeclaredIngredients/1",
     "lireCataloguePublic/0",
+    "lirePoulsPlateforme/0",
     "listAllocatableOrderItems/1",
     "listBatches/1",
     "listCandidates/1",

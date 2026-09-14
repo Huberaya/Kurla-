@@ -124,6 +124,7 @@ import * as membershipStore from './db/membershipStore';
 import * as textureGapStore from './db/textureGapStore';
 import * as skinJournalStore from './db/skinJournalStore';
 import * as incidentStore from './db/incidentStore';
+import * as copiloteStore from './db/copiloteStore';
 import { mapRefundRow } from './db/refundSupport';
 import type { MembershipEventRecord } from './db/membershipStore';
 import type { SkinJournalEntry, SkinObservanceDay } from './db/skinJournalStore';
@@ -546,6 +547,7 @@ bindDomain(storeInstance, communityStore);
 bindDomain(storeInstance, brandContractStore);
 bindDomain(storeInstance, brandInvoiceStore);
 bindDomain(storeInstance, incidentStore);
+bindDomain(storeInstance, copiloteStore);
 
 export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof notificationsStore>
@@ -582,4 +584,5 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof brandInvoiceStore>
   & Curried<typeof prospectStore>
   & Curried<typeof sourcingStrategyStore>
-  & Curried<typeof incidentStore>;
+  & Curried<typeof incidentStore>
+  & Curried<typeof copiloteStore>;

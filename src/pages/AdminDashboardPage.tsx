@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -34,13 +35,21 @@ import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
 import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
-type AdminWorkspace = 'skin' | 'hair';
-type AdminTab = 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
+type AdminWorkspace = 'skin' | 'hair' | 'copilot';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
   const value = new URLSearchParams(window.location.search).get('base');
-  return value === 'skin' || value === 'hair' ? value : null;
+  return value === 'skin' || value === 'hair' || value === 'copilot' ? value : null;
+};
+
+/** Onglet ouvert à l'arrivée, selon l'espace demandé dans l'URL. */
+const tabInitial = (): AdminTab => {
+  const espace = initialAdminWorkspace();
+  if (espace === 'skin') return 'skin_overview';
+  if (espace === 'copilot') return 'copilote';
+  return 'analytics';
 };
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-kurla-cream' }) => (
@@ -94,11 +103,11 @@ export const AdminDashboardPage: React.FC = () => {
   }, []);
 
   const [workspace, setWorkspace] = useState<AdminWorkspace | null>(initialAdminWorkspace);
-  const [activeTab, setActiveTab] = useState<AdminTab>(() => initialAdminWorkspace() === 'skin' ? 'skin_overview' : 'analytics');
+  const [activeTab, setActiveTab] = useState<AdminTab>(tabInitial);
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
-    setActiveTab(next === 'skin' ? 'skin_overview' : 'analytics');
+    setActiveTab(next === 'skin' ? 'skin_overview' : next === 'copilot' ? 'copilote' : 'analytics');
     setProsFilter(next === 'skin' ? 'peau' : 'all');
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -479,9 +488,9 @@ export const AdminDashboardPage: React.FC = () => {
               <Shield className="w-10 h-10 mx-auto text-kurla-copper mb-4" />
               <p className="text-[11px] uppercase tracking-[0.3em] text-kurla-amber font-bold">Espace administration</p>
               <h1 className="mt-3 text-3xl sm:text-4xl font-serif-title font-bold text-kurla-cream">Choisir votre base KURLA</h1>
-              <p className="mt-3 text-sm text-kurla-cream/60">Les deux espaces sont séparés : choisissez la ligne métier à piloter.</p>
+              <p className="mt-3 text-sm text-kurla-cream/60">Les espaces métier sont séparés ; le copilote, lui, lit les chiffres des deux.</p>
             </div>
-            <div className="mt-10 grid md:grid-cols-2 gap-5">
+            <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               <button onClick={() => selectWorkspace('skin')} className="group text-left p-6 rounded-3xl bg-emerald-950/35 border border-emerald-400/25 hover:border-emerald-300/70 hover:bg-emerald-950/55 transition-all">
                 <div className="flex items-center justify-between gap-4"><span className="text-2xl">✦</span><span className="px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/25 text-[10px] uppercase tracking-wider text-emerald-200 font-bold">C1 · C5</span></div>
                 <h2 className="mt-6 text-2xl font-serif-title font-bold text-emerald-100">KURLA Skin</h2>
@@ -493,6 +502,12 @@ export const AdminDashboardPage: React.FC = () => {
                 <h2 className="mt-6 text-2xl font-serif-title font-bold text-kurla-cream">KURLA Hair</h2>
                 <p className="mt-2 text-sm leading-relaxed text-kurla-cream/65">Cheveux, textures, routines, ventes, commandes, stock et opérations commerciales.</p>
                 <span className="inline-flex mt-6 px-4 py-2 rounded-xl bg-kurla-copper/25 text-kurla-cream text-xs font-bold group-hover:bg-kurla-copper/45">Ouvrir KURLA Hair →</span>
+              </button>
+              <button onClick={() => selectWorkspace('copilot')} className="group text-left p-6 rounded-3xl bg-sky-950/30 border border-sky-400/25 hover:border-sky-300/70 hover:bg-sky-950/50 transition-all">
+                <div className="flex items-center justify-between gap-4"><span className="text-2xl">◈</span><span className="px-2.5 py-1 rounded-full bg-sky-400/15 border border-sky-400/25 text-[10px] uppercase tracking-wider text-sky-200 font-bold">Chiffres réels</span></div>
+                <h2 className="mt-6 text-2xl font-serif-title font-bold text-sky-100">Copilote</h2>
+                <p className="mt-2 text-sm leading-relaxed text-sky-100/65">Visites, visiteurs, diagnostics, inscriptions, panier, ventes et santé — et ce qui n’est pas encore mesuré, dit comme tel.</p>
+                <span className="inline-flex mt-6 px-4 py-2 rounded-xl bg-sky-500/25 text-sky-100 text-xs font-bold group-hover:bg-sky-500/40">Ouvrir le copilote →</span>
               </button>
             </div>
           </div>
@@ -509,14 +524,15 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
           <div>
             <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-kurla-cream flex items-center gap-3">
-              <Shield className={`w-7 h-7 ${workspace === 'skin' ? 'text-emerald-300' : 'text-kurla-copper'}`} /> {workspace === 'skin' ? 'KURLA Skin — Administration' : 'KURLA Hair — Administration & Operations'}
+              <Shield className={`w-7 h-7 ${workspace === 'skin' ? 'text-emerald-300' : workspace === 'copilot' ? 'text-sky-300' : 'text-kurla-copper'}`} /> {workspace === 'skin' ? 'KURLA Skin — Administration' : workspace === 'copilot' ? 'Copilote — Chiffres de la plateforme' : 'KURLA Hair — Administration & Operations'}
             </h1>
-            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Pilotage séparé peau & teint : preuves C1/C5, catalogue skincare et sourcing.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
+            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Pilotage séparé peau & teint : preuves C1/C5, catalogue skincare et sourcing.' : workspace === 'copilot' ? 'Visites, inscriptions, diagnostics, ventes et santé — lus, jamais estimés.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <button onClick={() => selectWorkspace('skin')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'skin' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-emerald-400/40'}`}>KURLA SKIN</button>
             <button onClick={() => selectWorkspace('hair')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'hair' ? 'bg-kurla-copper/25 text-kurla-cream border-kurla-copper/60' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-kurla-copper/50'}`}>KURLA HAIR</button>
+            <button onClick={() => selectWorkspace('copilot')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'copilot' ? 'bg-sky-500/25 text-sky-100 border-sky-400/60' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-sky-400/40'}`}>COPILOTE</button>
             <button
               onClick={loadData}
               className="p-2.5 rounded-full bg-kurla-ink hover:bg-kurla-bark text-kurla-amber border border-kurla-copper/30 transition-colors"
@@ -576,7 +592,7 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* Navigation — familles fonctionnelles + sous-onglets */}
-        {(() => {
+        {workspace !== 'copilot' && (() => {
           const sharedNavGroups = [
             {
               id: 'overview', label: workspace === 'skin' ? 'Vue d’ensemble Skin' : "Vue d'ensemble Hair", icon: LayoutDashboard,
@@ -692,6 +708,10 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           );
         })()}
+
+        {workspace === 'copilot' && (
+          <CopilotePanel headers={adminHeaders} />
+        )}
 
         {/* KURLA SKIN — espace dédié, séparé du dashboard Hair */}
         {activeTab === 'skin_overview' && workspace === 'skin' && (

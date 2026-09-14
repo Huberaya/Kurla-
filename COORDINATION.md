@@ -2113,3 +2113,57 @@ conditionneur Cantu + Knot Today + karité brut + Twisting Butter + Mielle
 Rosemary Mint + Comeback Revitalizer + masque SheaMoisture + Clean Rinse
 clarifiant ; kit peau (catalogue peau en phase test) = types sans liens,
 zéro faux-amis.
+
+### Copilote — les chiffres de la plateforme, sans en inventer un seul (15/09/2026)
+
+Demandé : un copilote dans le tableau de bord d'administration, **troisième
+porte** à côté de KURLA Hair et KURLA Skin, donnant « combien de personnes ont
+cliqué sur le site, combien ont créé un compte ».
+
+Deux choix arrêtés avec Hubert avant d'écrire une ligne : **panneau de
+métriques déterministe** (pas d'assistant conversationnel — Gemini est
+pourtant actif en production, mais un tableau de bord qui calcule ne dépend
+d'aucun modèle), et **dire ce qui est à zéro en expliquant pourquoi** plutôt
+que de masquer les indicateurs vides.
+
+**Ce que la production dit, mesuré le 15/09/2026** — et c'est la seule
+matière du copilote :
+
+| | |
+|---|---|
+| Pages vues | 846 |
+| Diagnostics démarrés / terminés | 20 / 16 |
+| Inscriptions suivies | **0** |
+| Ajouts au panier, passages en caisse, achats | **0** |
+| Commandes en base | 39, dont **1 seule réglée** (38 en attente de webhook) |
+| Comptes | 2 — ceux du fondateur |
+
+Le tuyau d'événements, lui, fonctionne : éprouvé à la main, un `add_to_cart`
+envoyé à `/api/events/funnel` arrive bien en base (puis effacé). Les zéros
+sont donc **vrais** : le site a du trafic et de l'engagement sur le
+diagnostic, mais aucune conversion commerciale. Le copilote le dit.
+
+**Architecture** : `src/lib/db/copiloteStore.ts` (`lirePoulsPlateforme`),
+`GET /api/admin/copilote`, `src/components/CopilotePanel.tsx`, troisième porte
+et onglet dédié dans `AdminDashboardPage`. Périodes 7 / 30 / 90 jours / 1 an.
+
+**La règle, et elle n'est pas négociable** : jamais un 0 à la place d'un
+chiffre non lu. Trois états par indicateur — `mesure`, `aucun` (zéro réel,
+avec une lecture qui dit ce que ce zéro signifie) et `non_mesurable`
+(`valeur: null`). Les commandes `payment_pending_webhook` ne comptent jamais
+comme des ventes : une session Stripe ouverte n'est pas un achat.
+
+**Deux trouvailles en route :**
+
+1. **L'inventaire des routes admin perdait 4 routes.** Le banc du chantier 15A
+   applique son expression **ligne par ligne** : toute route enregistrée sur
+   plusieurs lignes (`app.get(` seul sur la sienne) lui échappait. Quatre
+   routes étaient donc hors contrôle — `conversion-funnel`,
+   `launch/traction`, `strategy/cockpit` et la mienne — alors que ce banc est
+   précisément celui qui vérifie que **la garde précède l'effet**. Elles
+   étaient toutes correctement gardées, mais personne ne le vérifiait.
+   Collecteur corrigé : **75 → 79 routes, 0 sans garde.**
+2. Un défaut attrapé par le banc, pas par relecture : la lecture « 1 commande
+   réglée sur 3 » n'était jamais produite, parce qu'elle lisait
+   `valeur('reglees')` sur un identifiant d'indicateur qui n'existe pas — et
+   obtenait donc toujours 0.
