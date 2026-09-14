@@ -441,6 +441,14 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
    * référence d'email fournisseur, ni statut d'autorisation.
    */
   export interface FicheAvenirProduit {
+    /**
+     * Visuel de la fiche. Pour les fiches sourcing, c'est le packshot officiel
+     * récupéré sur la plateforme de la marque (servi depuis
+     * `public/images/sourcing/`) ; `null` tant que le visuel n'existe pas
+     * (ex. produit absent de la plateforme officielle — la boutique affiche
+     * alors un marqueur « visuel en attente », jamais une image usurpée).
+     */
+    image: string | null;
     id: string;
     brand: string;
     name: string;
@@ -472,6 +480,9 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
         routineStep: String(champ(produit, 'routineStep', 'routine_step') ?? ''),
         subCategory: String(champ(produit, 'subCategory', 'subcategory') ?? ''),
         availabilityState: 'sourcing_en_cours',
+        image: champ(produit, 'image_url', 'imageUrl') != null
+          ? String(champ(produit, 'image_url', 'imageUrl'))
+          : null,
       });
     }
     return fiches.sort((a, b) => a.brand.localeCompare(b.brand, 'fr') || a.name.localeCompare(b.name, 'fr'));

@@ -205,6 +205,21 @@ const SectionAvenir = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {fiches.map(fiche => (
           <article key={fiche.id} className="rounded-3xl border border-kurla-stone bg-white p-4 flex flex-col hover:border-kurla-copper/40 transition-all">
+            <div className="h-44 rounded-2xl bg-kurla-ivory border border-kurla-stone overflow-hidden mb-3 flex items-center justify-center p-3">
+              {fiche.image ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={fiche.image}
+                  alt={`Visuel officiel — ${fiche.brand} ${fiche.name}`}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="text-center text-[10px] text-kurla-carbon/50 leading-relaxed px-2">
+                  Visuel officiel en attente<br />du référencement fournisseur
+                </div>
+              )}
+            </div>
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <span className="text-[10px] px-2 py-1 rounded-full bg-kurla-sand border border-kurla-stone text-kurla-carbon/70 font-bold">
                 {fiche.routineStep || fiche.subCategory}

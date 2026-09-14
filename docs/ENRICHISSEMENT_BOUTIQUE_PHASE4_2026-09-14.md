@@ -147,8 +147,9 @@ visuel). Tout a été corrigé :
   autorisation de la marque non obtenue — la garde de publication reste
   fermée tant que l'autorisation n'est pas formelle).
 - **cosmo-001** : `images_validation_status='not_provided'`,
-  `image_ownership_status='unverified'`, placeholder KURLA conservé,
-  `product_images.image_type='placeholder'` + note.
+  `image_ownership_status='unverified'`, `image_url = NULL` (aucun visuel
+  officiel n'existe), ligne d'audit `product_images.image_type='placeholder'`
+  + note.
 
 ### 7.3. Flags issus de la vérification
 
@@ -176,4 +177,8 @@ visuel). Tout a été corrigé :
 - Publiés : inchangés par cette opération (69 = 63 initiaux + 6 kits de
   précommande ajoutés par un autre chantier entre-temps).
 - La section boutique « Bientôt disponible » affiche désormais les packshots
-  officiels (25) et le placeholder KURLA (cosmo-001).
+  officiels (25). Affichage : champ `image` ajouté à la projection
+  `getComingSoonProducts` (catalogStore.ts) + bloc visuel `object-contain`
+  dans `SectionAvenir` (BoutiquePage.tsx). **cosmo-001** : `image_url =
+  NULL` → la carte affiche le marqueur « Visuel officiel en attente du
+  référencement fournisseur » (jamais d'image usurpée).
