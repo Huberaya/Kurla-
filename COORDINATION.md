@@ -1950,3 +1950,37 @@ comme avant.
 **Zéro impact sur le travail parallèle** : les 10 fiches `fond-*` du catalogue
 (commit `c3043e8`/`12d4f9f`), les 7 `sourcing_items` existants, les 10
 `suppliers` existants et les 4 gardes-fous du dashboard sont intacts.
+
+### Santé légère : `/api/health` ne charge plus le catalogue (14/09/2026)
+
+Deuxième passe du chantier vitesse. `/api/health` répondait en 0,45 s, et
+**ce n'était pas** le défaut du premier coup : les trois lectures étaient déjà
+en `Promise.all`. La cause était `getProducts()` — cinq tables lues et les 96
+produits mappés un par un avec variantes, images, stock et preuves CPNP —
+**pour en afficher le nombre**.
+
+La route est la plus sondée du site : la sonde l'appelle toutes les quinze
+minutes, et `verifier-deploiement.mjs` attend sa réponse avant de sonder quoi
+que ce soit d'autre. Un indicateur de santé qui coûte un chargement complet du
+catalogue finit par ressembler à une charge de trafic.
+
+`compterProduitsActifs()` demande désormais le compte à PostgreSQL
+(`head: true` + `count: 'exact'`, aucune ligne ramenée). Il vit dans
+`incidentStore.ts` et non dans `catalogStore.ts` pour la même raison que
+`compterCommandes` : c'est un compteur de santé, et un import direct entre
+deux modules de domaine créerait un cycle.
+
+**Incohérence trouvée au passage** : la branche mémoire de `getProducts` ne
+filtrait pas `is_active`, contrairement à la branche base. Le même champ
+`productsCount` avait donc deux vérités — « produits » en mémoire, « produits
+actifs » en production. Aligné sur la règle de la base.
+
+**Contrat** : `productsCount` est conservé (nombre ou `null`), et `produits`
+expose désormais le compte **et** sa source, comme `commandes` le fait déjà.
+Règle inchangée, c'est celle du module : un compte non lu est `null`, jamais
+`0`.
+
+**Banc** `tests/kurla_sante_legere.test.ts` — la preuve que la route ne lit
+plus le catalogue n'est pas une relecture de code : `serverDb.getProducts` est
+remplacé par une fonction qui échoue, et `/api/health` doit répondre 200 quand
+même. Si le chargement complet revient un jour, le banc rougit.

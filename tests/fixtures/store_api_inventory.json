@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T09:43:41.079Z",
+  "generatedAt": "2026-09-14T22:39:26.016Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -23,6 +23,7 @@
     "compareRfqResponses/1",
     "compterCommandes/0",
     "compterIncidentsRecents/1",
+    "compterProduitsActifs/0",
     "consignerIncident/1",
     "countCreatorStandingInputs/1",
     "countersignBrandContract/2",

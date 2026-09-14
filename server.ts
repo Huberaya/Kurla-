@@ -1172,8 +1172,16 @@ app.get('/api/stripe/status', (req: Request, res: Response) => {
 // Health check endpoint
 app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
   const depuis24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const [products, commandes, incidents] = await Promise.all([
-    serverDb.getProducts(),
+  // Un compte, pas un catalogue.
+  //
+  // Mesuré le 14/09/2026 : cette route chargeait les cinq tables du
+  // catalogue et mappait les 96 produits avec variantes, images, stock et
+  // preuves CPNP — pour en afficher le nombre. C'était l'essentiel de ses
+  // 0,45 seconde, sur la route que la sonde appelle toutes les quinze
+  // minutes. `compterProduitsActifs` demande le compte à PostgreSQL :
+  // aucune ligne n'est ramenée.
+  const [produits, commandes, incidents] = await Promise.all([
+    serverDb.compterProduitsActifs(),
     serverDb.compterCommandes(),
     serverDb.compterIncidentsRecents(depuis24h)
   ]);
@@ -1197,7 +1205,11 @@ app.get('/api/health', asyncRoute(async (req: AuthenticatedRequest, res: Respons
       incidentsSource: incidents.source,
       repli: etatDuRepli()
     },
-    productsCount: products.length,
+    productsCount: produits.compte,
+    // Même forme que `commandes` : le nombre **et** d'où il vient. Un
+    // `null` avec `source: 'non_lu'` veut dire « on n'a pas pu compter »,
+    // ce qui n'est pas « il n'y a aucun produit ».
+    produits,
     // Le nombre réel de commandes, lu en base. `compte` est `null` — jamais
     // `0` — quand la lecture a échoué : un 0 faux se lit comme « aucune
     // commande », alors qu'il veut dire « on n'a pas pu compter ».
