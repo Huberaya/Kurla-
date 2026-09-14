@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T07:33:26.774Z",
+  "generatedAt": "2026-09-14T09:10:59.000Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -190,6 +190,7 @@
     "getSupportTicketsByUser/1",
     "getTaxonomies/0",
     "getTaxonomyTerms/1",
+    "getTestPhaseGatesReport/0",
     "getTextureGapReport/0",
     "getVocabularyAudit/0",
     "handleLoyaltyRedemption/4",

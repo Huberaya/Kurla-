@@ -421,6 +421,7 @@ trois réglages (8 contrôles).
 | — | sonde anti-silences + banc « dépendances déclarées » | livré |
 | — | déploiement auto-vérifié (commit servi, régressions) | livré |
 | — | détection des clés JSON déclarées deux fois | livré |
+| — | phase de test : 26 fiches `src-*` en boutique mode test + 4 gardes-fous admin (① autorisation ② INCI ③ CPNP+PR UE ④ visuel) + bouton Dépublier | livré |
 
 ## Propositions pour la suite (robustesse)
 
@@ -1710,3 +1711,19 @@ le visuel est hyper important ». Commits `506f527`, `be241a8`, `9172901`
 5. **Les pages Bioderma sont des shells JS** (AEM + Adobe Commerce) :
    slugs produits non devinables, `/graphql` et `/rest/V1` = 403, sitemap =
    contenu seul — web_search + lecture de la PDP obligatoires.
+
+### L'absence de composition se lit comme « non cosmétique » (14/09/2026)
+
+Chantier : phase de test, garde-fou ③ (CPNP + personne responsable UE).
+
+`requiresCpnp` (cosmeticCompliance.ts) classe un produit SANS composition
+connue comme non cosmétique — l'heuristique `isAccessoryProduct` renvoie vrai
+quand ni INCI ni ingrédients ne sont connus. Conséquence silencieuse :
+`evaluateCosmeticCompliance` renvoie alors `requiresCpnp: false, compliant:
+true`. Pour une porte de VENTE c'est cohérent (on ne vend pas ce qu'on ne
+peut pas identifier), mais pour un GARDE-FOU c'est un trou : une fiche cosmétique
+dont l'INCI n'est pas encore reçue aurait été affichée « CPNP au vert ».
+`evaluateTestPhaseGates` (testPhaseGates.ts) applique donc la règle
+fail-closed : catégorie non accessoire/kit + composition inconnue → CPNP
+requis, garde au rouge, nominativement. Si d'autres gardes réutilisent
+`requiresCpnp` sur des fiches incomplètes, même vigilance.

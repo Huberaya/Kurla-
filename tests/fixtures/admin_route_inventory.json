@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T06:20:38.270Z",
+  "generatedAt": "2026-09-14T09:12:05.814Z",
   "routes": [
     {
       "method": "GET",
@@ -114,14 +114,14 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/:productId/readiness",
-      "file": "src/server/routes/catalogGovernance.ts:373",
+      "file": "src/server/routes/catalogGovernance.ts:392",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/claims-audit",
-      "file": "src/server/routes/catalogGovernance.ts:307",
+      "file": "src/server/routes/catalogGovernance.ts:326",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogClaimsAuditPanel.tsx:49"
@@ -221,28 +221,28 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/skin-evidence",
-      "file": "src/server/routes/catalogGovernance.ts:271",
+      "file": "src/server/routes/catalogGovernance.ts:290",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "POST",
       "path": "/api/admin/catalog/skin-evidence",
-      "file": "src/server/routes/catalogGovernance.ts:282",
+      "file": "src/server/routes/catalogGovernance.ts:301",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/skin-readiness",
-      "file": "src/server/routes/catalogGovernance.ts:258",
+      "file": "src/server/routes/catalogGovernance.ts:277",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/sourcing-readiness",
-      "file": "src/server/routes/catalogGovernance.ts:246",
+      "file": "src/server/routes/catalogGovernance.ts:265",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -257,8 +257,17 @@
     },
     {
       "method": "GET",
+      "path": "/api/admin/catalog/test-phase",
+      "file": "src/server/routes/catalogGovernance.ts:251",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/TestPhaseGatesPanel.tsx:49"
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/api/admin/catalog/vocabulary-audit",
-      "file": "src/server/routes/catalogGovernance.ts:366",
+      "file": "src/server/routes/catalogGovernance.ts:385",
       "guard": "requireAdmin(",
       "callers": []
     },

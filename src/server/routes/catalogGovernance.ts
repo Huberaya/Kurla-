@@ -240,6 +240,25 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
   }));
 
   /**
+   * Phase de test (14/09/2026) — vue d'administration des fiches de test
+   * (fiches sourcing `src-*` + fiches test `peau-test-*`) : les 4 gardes-fous
+   * nommés par l'exploitant par fiche (① autorisation fournisseur écrite,
+   * ② INCI complète vérifiée, ③ CPNP + personne responsable UE, ④ visuel
+   * autorisé) + l'état de la fiche. Ce rapport ne publie rien : il dit ce qui
+   * manque ; le « Dépublier » de l'écran passe par la route de statut
+   * existante (→ `draft`), qui retire la fiche du mode test immédiatement.
+   */
+  app.get('/api/admin/catalog/test-phase', rateLimit('admin-catalog-test-phase', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const scope = readWorkspaceScope(req);
+    const report = await serverDb.getTestPhaseGatesReport();
+    const allowed = await scopedProductIds(scope);
+    const products = allowed ? report.products.filter((row) => allowed.has(row.productId)) : report.products;
+    res.json({ ...report, products });
+  }));
+
+  /**
    * CHANTIER 2 — sourcing réel → catalogue.
    * Nommé par produit : aucun fournisseur, SKU ou document n'est déduit.
    */

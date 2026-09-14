@@ -183,16 +183,21 @@ function Comparateur({ produits, onRetirer }: { produits: Product[]; onRetirer: 
  * réellement achetables, car le serveur ne les sert que tant qu'elles sont
  * en brouillon.
  */
-const SectionAvenir = () => {
+const SectionAvenir: React.FC<{ hideIds?: Set<string> }> = ({ hideIds }) => {
   const { fiches, loading, error } = useComingSoonProducts();
 
-  if (loading || error || fiches.length === 0) return null;
+  // Mode test : les fiches déjà montrées comme fiches test dans la grille ne
+  // sont pas redoublonnées ici — la section retrouve toutes ses fiches dès
+  // qu'elles ne sont plus des fiches test (boutique réelle).
+  const visibles = hideIds && hideIds.size > 0 ? fiches.filter(fiche => !hideIds.has(fiche.id)) : fiches;
+
+  if (loading || error || visibles.length === 0) return null;
 
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-serif-title font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-kurla-copper" /> Bientôt disponible — sourcing en cours</h2>
-        <span className="text-xs text-kurla-carbon/60">{fiches.length} produits</span>
+        <span className="text-xs text-kurla-carbon/60">{visibles.length} produits</span>
       </div>
       <div className="mb-4 rounded-2xl border border-kurla-copper/30 bg-kurla-copper/5 p-3.5">
         <p className="text-xs text-kurla-carbon/75 leading-relaxed">
@@ -203,7 +208,7 @@ const SectionAvenir = () => {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {fiches.map(fiche => (
+        {visibles.map(fiche => (
           <article key={fiche.id} className="rounded-3xl border border-kurla-stone bg-white p-4 flex flex-col hover:border-kurla-copper/40 transition-all">
             <div className="h-44 rounded-2xl bg-kurla-ivory border border-kurla-stone overflow-hidden mb-3 flex items-center justify-center p-3">
               {fiche.image ? (
@@ -1131,7 +1136,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
         )}
 
         {/* PHASE 4 SOURCING — bientôt disponible (fiches en cours de référencement) */}
-        {(activeCategory === 'peau' || activeCategory === 'tous') && <SectionAvenir />}
+        {(activeCategory === 'peau' || activeCategory === 'tous') && (
+          <SectionAvenir hideIds={new Set(products.map(product => product.id))} />
+        )}
 
         {/* RESULTS COUNT & HEADER */}
         <div className="flex items-center justify-between mb-6">

@@ -189,3 +189,100 @@ visuel). Tout a été corrigé :
 - Fixture `tests/fixtures/store_api_inventory.json` régénérée
   (`KURLA_UPDATE_FIXTURE=1` + diff vérifié) : +`comingSoonImage/0`,
   329 méthodes, aucune retirée.
+
+## 8. Phase de test — fiches en boutique + gardes-fous administrés (consigne 14/09)
+
+> Consigne : « pour la phase de teste, je voudrais que ces produits apparaissent
+> dans la boutique. Dans le dashboard admin, il faut prendre le soin de mettre
+> ces gardes fou : ① autorisation fournisseur écrite, ② INCI complète vérifiée,
+> ③ CPNP + personne responsable UE, ④ visuel autorisé, avec un bouton dépublier
+> le produit. »
+
+Le plan est conservé (26 fiches visibles non vendables) ; la phase de test y
+ajoute **la visibilité en boutique** et **l'administration des 4 gardes-fous**.
+
+### 8.1. Boutique — mode test `?test=1`
+
+Les 26 fiches `src-*` passent en fiches test (mécanisme existant de l'autre
+chantier, migration `20260926000000`), sans toucher au shop réel :
+
+- `is_test_listing = true`, `is_active = true`, `catalog_status = 'published'`,
+  `test_listing_note` documentant la phase. **Appliqué en production après le
+  déploiement du code** (l'ordre est important : la section « Bientôt
+  disponible » est servie par du code).
+- Porte test `isTestListableProduct` (catalogTruth) : fiche test + publiée +
+  active + marque + visuel → servie en mode test ; la porte réelle
+  `isCatalogPubliclyListable` reste fermée (preuves non vérifiées) — aucune des
+  26 fiches n'est vendable, panier fermé, prix « à contractualiser ».
+- **Boutique réelle : 63 fiches inchangées.** Mode test : 63 + 6
+  (`peau-test-*` existantes) + 26 = **95 fiches**, 32 fiches test.
+- Section « Bientôt disponible » **conservée** : `getComingSoonProducts`
+  accepte désormais les fiches `src-*` brouillon **ou** publiées+drapeau test
+  (catalogStore) ; en mode test, `SectionAvenir` (BoutiquePage) exclut les
+  fiches déjà dans la grille — pas de doublon ; en boutique réelle la section
+  retrouve ses 26 fiches.
+- **cosmo-001** : plus d'image usurpée — le repli composite
+  `image_url || galerie[0]` de `getProducts` exclut désormais les lignes
+  `product_images` de type `placeholder` (l'audit « pas d'image officielle »
+  ne pouvait plus réapparaître en visuel). La carte affiche le marqueur
+  « Image en attente de validation ».
+
+### 8.2. Dashboard admin — les 4 gardes-fous nommés + Dépublier
+
+Nouveau panneau « Phase de test — gardes-fous des fiches sourcing », en tête
+du tab **Fiches peau** du dashboard (workspace peau), au-dessus du panneau de
+publication TEST contrôlée existante :
+
+- **`GET /api/admin/catalog/test-phase`** (catalogGovernance.ts, admin,
+  rate-limité, scopé par espace) → `getTestPhaseGatesReport` (catalogStore) :
+  périmètre = préfixes `src-*` + `peau-test-*`, par fiche : les 4 gardes
+  nommés (état + détail lisible) + statut + drapeau test + visuel + prix public
+  constaté.
+- Le calcul est **pur** : `evaluateTestPhaseGates`
+  (`src/lib/testPhaseGates.ts`), contexte CPNP injecté depuis le fournisseur
+  rattaché (`getSupplierCompliance`).
+- **①** `supplier_authorization_status = 'authorized'` **et date** (cohérence
+  exigée par la contrainte `produits_authorization_date_coherence`).
+- **②** `ingredient_verification_status = 'verified'` **et composition non
+  vide**.
+- **③** conformité cosmétique (`evaluateCosmeticCompliance`) : CPSR +
+  notification CPNP + Personne Responsable UE tenus, non expirés, fournisseur
+  vérifié. **Règle fail-closed du garde-fou** : une fiche non accessoire/kit
+  dont la composition n'est pas reçue n'est pas exemptée — le verdit
+  « non cosmétique » de l'heuristique (composition inconnue) est refusé et le
+  garde reste au rouge, nominativement.
+- **④** `image_ownership_status ∈ (brand_provided, licensed)` **et**
+  `images_validation_status = 'verified'`.
+- **Bouton « Dépublier »** par fiche publiée → `PATCH
+  /api/admin/catalog/:id/status {status:'draft'}` (route existante, aucune
+  condition sur la dépublication) : la fiche sort immédiatement du mode test
+  et réapparaît en « Bientôt disponible ». Confirmation explicite avant
+  l'action.
+- **4/4 verts ≠ publiable** : le panneau le dit en permanence — la
+  publication réelle exige en plus la porte complète (statuts vérifiés, stock,
+  pays, TVA, truth layer) et la garde d'écriture `updateCatalogStatus` (422
+  nominatif) reste la source de vérité.
+
+### 8.3. Garanties du chantier
+
+- Fichiers : `src/lib/testPhaseGates.ts` (nouveau, pur),
+  `src/lib/db/catalogStore.ts` (mapping `supplierAuthorization*`, repli image
+  sans placeholder, `getComingSoonProducts` étendu, `getTestPhaseGatesReport`),
+  `src/server/routes/catalogGovernance.ts` (route test-phase),
+  `src/components/TestPhaseGatesPanel.tsx` (nouveau),
+  `src/pages/AdminDashboardPage.tsx` (montage tab Fiches peau),
+  `src/pages/BoutiquePage.tsx` (dédoublonnage SectionAvenir),
+  `tests/kurla_test_phase_gates.test.ts` (nouveau, câblé dans `npm test`),
+  fixtures régénérées (admin 74→75 routes ; store 329→330 méthodes).
+- Banc : 10 contrats — 4 gardes échouent nommément sur une fiche fresh ;
+  4/4 verts sur fiche complète ; chaque garde échoue indépendamment (+ cascade
+  fail-closed INCI vide → CPNP non opposable) ; CPNP non applicable sur
+  accessoire ; porte test ouverte / porte réelle fermée sur la même fiche ;
+  brouillon test jamais montré ; « Bientôt disponible » = draft + publiées
+  drapeau test, jamais un produit réel ; Dépublier = sortie mode test + retour
+  section avenir ; rapport admin = périmètre + 4 gardes.
+- Aucune donnée réglementaire inventée : les gardes lisent des champs dont
+  l'état réel est 14/09/2026 `not_contacted` / `not_provided` /
+  `unverified` — tout est donc au rouge en production, c'est le point.
+- **Aucun email fournisseur n'a été envoyé** (boîte + mandat + SIREN toujours
+  manquants) ; les 4 gardes resteront au rouge jusqu'aux réponses réelles.

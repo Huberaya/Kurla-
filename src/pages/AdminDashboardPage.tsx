@@ -21,6 +21,7 @@ import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
 import { PeauDemandStockGapPanel } from '../components/PeauDemandStockGapPanel';
 import { PeauGatesCockpitPanel } from '../components/PeauGatesCockpitPanel';
 import { PeauCatalogPublishPanel } from '../components/PeauCatalogPublishPanel';
+import { TestPhaseGatesPanel } from '../components/TestPhaseGatesPanel';
 import { PeauQAFatouC21Panel } from '../components/PeauQAFatouC21Panel';
 import { PeauJ0MailTrackingPanel } from '../components/PeauJ0MailTrackingPanel';
 import { PeauJ3J7WhitecastLotPanel } from '../components/PeauJ3J7WhitecastLotPanel';
@@ -724,6 +725,7 @@ export const AdminDashboardPage: React.FC = () => {
 
         {activeTab === 'skin_catalog' && workspace === 'skin' && (
           <div className="space-y-10">
+            <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />
             <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />
             <CatalogAdminPanel
               scope="skin"

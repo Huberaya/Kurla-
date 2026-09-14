@@ -16,6 +16,7 @@ import {
 import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance';
 import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
 import { getCatalogTruth, isTestListableProduct, isTestListingProduct, type OriginProvenance } from '../catalogTruth';
+import { evaluateTestPhaseGates, type TestPhaseGates } from '../testPhaseGates';
 
 /** Statuts de provenance acceptés, alignés sur la contrainte de base. */
 const ORIGIN_STATUS_VALUES: string[] = ['verified', 'declared', 'pending', 'not_provided'];
@@ -180,7 +181,14 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         category: p.category,
         subCategory: p.subcategory,
         description: p.description || '',
-        image: p.image_url || imagesByProduct.get(p.id)?.[0]?.url || '',
+        // Image primaire : `image_url` d'abord ; en repli la première image
+        // de galerie NON placeholder — une ligne d'audit de type
+        // `placeholder` (fiche sans visuel officiel) ne doit jamais devenir
+        // le visuel servi d'un produit (ex. cosmo-001 : pas d'image
+        // officielle → visuel absent, marqueur UI à la place).
+        image: p.image_url
+          || (imagesByProduct.get(p.id) || []).find(entry => entry.type !== 'placeholder')?.url
+          || '',
         galleryImages: imagesByProduct.get(p.id) || [],
         ingredients: p.ingredients || [],
         inci: p.inci || '',
@@ -279,6 +287,8 @@ export async function getProducts(store: SupabaseServerStore, options: { publish
         translationsValidationStatus: p.translations_validation_status,
         brandVerificationStatus: p.brand_verification_status,
         imageOwnershipStatus: p.image_ownership_status,
+        supplierAuthorizationStatus: p.supplier_authorization_status,
+        supplierAuthorizationDate: p.supplier_authorization_date ?? null,
         lastCatalogReviewedAt: p.last_catalog_reviewed_at,
         lastCatalogUpdatedAt: p.last_catalog_updated_at,
         variants: productVariants
@@ -487,7 +497,14 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
     for (const produit of produits) {
       const id = String(champ(produit, 'id') ?? '');
       if (!id.startsWith('src-')) continue;
-      if (String(champ(produit, 'catalog_status', 'catalogStatus') ?? '') !== 'draft') continue;
+      // Une fiche sourcing est « bientôt disponible » tant qu'elle est
+      // brouillon — et, une fois activée pour la phase de test, tant qu'elle
+      // porte le drapeau `is_test_listing` (elle reste hors catalogue réel :
+      // la porte de publication la refuse tant que les gardes ne sont pas
+      // vertes). Sans le drapeau, une fiche publiée sortirait d'ici.
+      const statut = String(champ(produit, 'catalog_status', 'catalogStatus') ?? '');
+      const estFicheTest = champ(produit, 'is_test_listing', 'isTestListing') === true;
+      if (statut !== 'draft' && !(statut === 'published' && estFicheTest)) continue;
       const prix = Number(champ(produit, 'price'));
       fiches.push({
         id,
@@ -507,6 +524,98 @@ export async function getPublicProductByIdOrSlug(store: SupabaseServerStore, idO
       });
     }
     return fiches.sort((a, b) => a.brand.localeCompare(b.brand, 'fr') || a.name.localeCompare(b.name, 'fr'));
+  }
+
+  /**
+   * ADMIN — rapport des gardes-fous de la phase de test (14/09/2026).
+   *
+   * Pour chaque fiche de test (préfixes `src-` et `peau-test-`) : les 4
+   * gardes-fous nommés demandés par l'exploitant (autorisation fournisseur
+   * écrite, INCI complète vérifiée, CPNP + personne responsable UE, visuel
+   * autorisé) + l'état de la fiche (statut, drapeau test, visuel).
+   *
+   * Le contexte CPNP est lu auprès du fournisseur rattaché (documents tenus
+   * et expirés, vérification) — un incident fournisseur ne masque pas les
+   * autres gardes : il se lit comme « fournisseur introuvable/non vérifié ».
+   * L'administration publie/dépublie depuis ce rapport (bouton Dépublier =
+   * `PATCH /api/admin/catalog/:id/status` → `draft`), jamais de l'interface
+   * publique.
+   */
+  export async function getTestPhaseGatesReport(store: SupabaseServerStore): Promise<{
+    generatedAt: string;
+    products: Array<{
+      productId: string;
+      slug: string;
+      name: string;
+      brand: string;
+      category: string;
+      catalogStatus: string;
+      isActive: boolean;
+      isTestListing: boolean;
+      price: number | null;
+      image: string | null;
+      testListingNote?: string;
+      gates: TestPhaseGates;
+    }>;
+  }> {
+    const produits = await getProducts(store, { includeInactive: true });
+    const rows: Array<{
+      productId: string;
+      slug: string;
+      name: string;
+      brand: string;
+      category: string;
+      catalogStatus: string;
+      isActive: boolean;
+      isTestListing: boolean;
+      price: number | null;
+      image: string | null;
+      testListingNote?: string;
+      gates: TestPhaseGates;
+    }> = [];
+    for (const product of produits) {
+      const slug = String(product.slug ?? '');
+      if (!slug.startsWith('src-') && !slug.startsWith('peau-test-')) continue;
+      let heldTypes: string[] = [];
+      let expiredTypes: string[] = [];
+      let supplierVerificationStatus: string | undefined;
+      const supplierId = product.supplierId || product.supplier_id;
+      if (supplierId) {
+        try {
+          const supplier = await getSupplierById(store, String(supplierId));
+          if (supplier) {
+            const compliance = await getSupplierCompliance(store, supplier.id);
+            heldTypes = compliance.heldTypes;
+            expiredTypes = compliance.expiredTypes;
+            supplierVerificationStatus = supplier.verificationStatus;
+          }
+        } catch {
+          // Fournisseur introuvable : le garde CPNP le nommera lui-même.
+        }
+      }
+      const price = Number(product.price);
+      const image = typeof product.image === 'string' && product.image.trim() !== ''
+        ? product.image
+        : (typeof product.image_url === 'string' && product.image_url.trim() !== '' ? product.image_url : null);
+      rows.push({
+        productId: String(product.id ?? ''),
+        slug,
+        name: String(product.name ?? ''),
+        brand: String(product.brand ?? ''),
+        category: String(product.category ?? ''),
+        catalogStatus: String(product.catalogStatus ?? product.catalog_status ?? ''),
+        isActive: product.isActive === true || product.is_active === true,
+        isTestListing: product.isTestListing === true || product.is_test_listing === true,
+        price: Number.isFinite(price) && price > 0 ? price : null,
+        image,
+        testListingNote: typeof product.testListingNote === 'string' && product.testListingNote
+          ? product.testListingNote
+          : (typeof product.test_listing_note === 'string' ? product.test_listing_note : undefined),
+        gates: evaluateTestPhaseGates(product, { heldTypes, expiredTypes, supplierVerificationStatus }),
+      });
+    }
+    rows.sort((a, b) => a.slug.localeCompare(b.slug, 'fr'));
+    return { generatedAt: new Date().toISOString(), products: rows };
   }
 
 export async function getProductReviews(store: SupabaseServerStore, productId: string): Promise<MarketplaceReview[]> {
