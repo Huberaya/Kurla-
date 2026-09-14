@@ -1887,3 +1887,66 @@ mécanique du mode test (migration 20260926000000) :
   produit précis serait inventer.
 - Mesuré en production : 63 fiches sans `?test=1` ; 97 avec (34 test
   visibles). Boutique réelle inchangée.
+## Sourcing de fond 50 besoins × 5 produits — migration Supabase (livré 2026-09-15)
+
+Consigne 15/09 : « je veux que le fichier soit poussé sur Github **et migré sur
+supabase** ». Le registre (250 positions) est migré dans la **base de
+production** `qzwgsarfdegqtfdnqiql` en s'alignant sur le schéma sourcing
+EXISTANT (chantier 16) — pas de structure parallèle.
+
+**DDL** — `supabase/migrations/20260927000000_sourcing_fond_positions.sql`,
+appliquée via Management API (8 instructions, toutes vérifiées) :
+
+- Nouvelle table `public.sourcing_fond_positions` : les 250 lignes du registre
+  (1 rang = 1 produit). Colonnes : `sourcing_item_id` (FK → `sourcing_items`,
+  ON DELETE CASCADE), `rang` (1-5, CHECK), `marque`, `produit`, `format`,
+  `prix_constate_cents` (integer, **nullable** — NULL = « à vérifier », jamais
+  une valeur supposée), `statut_prix` (statut complet daté + source),
+  `fournisseur_canal`. PK `(sourcing_item_id, rang)`.
+- RLS activé + 3 policies `is_admin()` (SELECT / INSERT / UPDATE) — même
+  mécanisme que `suppliers` / `sourcing_items` du chantier 16 : le service role
+  bypass, l'anon n'a aucun accès (fail-closed).
+- `prix_constate_cents` NULLABLE : cohérent avec la discipline du chantier 16C
+  « la plateforme n'invente ni un prix, ni un statut ». Les 7 lignes sans prix
+  observé restent `NULL` + `statut_prix = 'à vérifier …'`.
+
+**DML** — script de migration daté 15/09/2026 (`.tmp-imgs/migrate-fond50.mts`,
+service role, **idempotent**, dry-run par défaut, `--apply` pour écrire).
+`fond50.json` est généré depuis le CSV maître `docs/sourcing/SOURCING_FOND_50_BESOINS_5_PRODUITS_2026-09-14.csv`
+(0 donnée ré-saisie).
+
+Ce que le script écrit, et pourquoi :
+
+- **50 besoins → `sourcing_items`** : ids `fond-50-n01` … `fond-50-n50`, wave
+  `fond-2026-09-14`, status `to_source`, `required_documents` =
+  `cpnp_notification` + `responsible_person` + `pif` (les 3 pièces bloquantes du
+  plan de sourcing). Rationale = la consigne client d'origine.
+- **6 fournisseurs → `suppliers`** : Kocosmetic/BizDistribution (`pending` —
+  identité RCS recoupée 15/09), Get Your K-Beauty (`not_provided` — raison
+  sociale à confirmer), Qudo Beauty (RO), Aquarius Cosmetic SLU (ES, marque IDC),
+  Ankorstore, DECIEM (groupe The Ordinary). **Réutilisés sans écraser** :
+  `sup-blacketique-sas` et `sup-eolys-beaute` (déjà créés par le chantier 16).
+  « Grandes marques FR (distributeur à désigner) » : **aucune ligne** — entité
+  non identifiée, ne pas inventer ; le canal reste porté par
+  `fournisseur_canal` des positions.
+- **250 positions → `sourcing_fond_positions`** : upsert sur `(sourcing_item_id,
+  rang)`, 243 prix en centimes + 7 NULL « à vérifier ».
+
+**Mesuré en production après `--apply`** (re-vérifié après une 2ᵉ exécution :
+0 changement, idempotence confirmée) :
+
+- `suppliers` = 16 (10 existants + 6 nouveaux).
+- `sourcing_items` = 57 (7 existants `vague-1`/`peau-*` + 50 `fond-50-nXX`).
+- `sourcing_fond_positions` = 250.
+- Prix : n = 243, min 2,48 €, médiane 12,25 €, max 31,99 € — **identique au
+  document maître** (aucune dérive de transcription).
+
+**RFQ** — aucune `rfqs` / `rfq_responses` insérée : les 5 packs de
+`docs/sourcing/RFQ_SOURCING_FOND_2026-09-15.md` peuvent brancher
+`rfqs.sourcing_item_id` sur les ids `fond-50-nXX` à l'envoi. L'envoi reste
+bloqué sur le mandat utilisateur (boîte + mandat + SIREN) : **0 email envoyé**,
+comme avant.
+
+**Zéro impact sur le travail parallèle** : les 10 fiches `fond-*` du catalogue
+(commit `c3043e8`/`12d4f9f`), les 7 `sourcing_items` existants, les 10
+`suppliers` existants et les 4 gardes-fous du dashboard sont intacts.
