@@ -1594,7 +1594,7 @@ Aucune modification de code dans ce chantier : uniquement des données.## N°50 
   - **Visibilité boutique (demande utilisateur, 14/09)** : route publique `/api/produits/avenir` + section « Bientôt disponible — sourcing en cours » dans /boutique (cartes marque + prix public constaté non engageant + bouton Non vendable). Les fiches y sont lisibles **sans être vendables** : pas de panier, pas de prix de vente, garde de publiabilité intacte ; elles sortent de la section d'elles-mêmes à la publication. Fixtures d'inventaire régénérées, suite 156 PASS.
 - **En attente de prix (pas de fiche)** : CeraVe Crème hydratante, CeraVe Crème Yeux, Eucerin Anti-Pigment Correcteur, Avène Cicalfate+, COSRX Snail 96 Mucin.
 
-Aucune modification de code dans ce chantier : uniquement des données.\n
+Aucune modification de code dans ce chantier : uniquement des données.
 ## Mise en boutique de TEST avec visuels fournisseurs (14/09/2026)
 
 Demande de l'exploitant : « mise en boutique avec des images issues des
@@ -1645,3 +1645,68 @@ porte réelle jamais satisfaite par une fiche test (y compris sabotée
 conforme), exclusion sans mode test, inclusion avec, brouillon jamais exposé,
 projection `price: null`, checkout impossible. Suite complète exit 0
 (157 [PASS], lint inclus).
+
+## Visuels officiels des 26 fiches — mission images (livré 2026-09-14)
+
+Demande de l'exploitant : « le prochain travail c'est de mettre les images,
+chaque produit dispose d'une image présente sur la plateforme de l'entreprise…
+le visuel est hyper important ». Commits `506f527`, `be241a8`, `9172901`
+(+ alignement des brouillons fournisseurs `b5e6c36`).
+
+### Livré
+
+- **25/26 packshots** téléchargés depuis les plateformes officielles des
+  marques (LRP FR/ES, Eucerin, Avène, Bioderma, Ducray, Klorane, IN'OYA,
+  L'Oréal, ISDIN, Weleda, COSRX, The Ordinary, INKEY, ISNTREE) →
+  `public/images/sourcing/<id>.jpg` (≤ 1000 px, ≤ ~90 Ko, 960 Ko au total).
+- **Affichage boutique** : champ `image` ajouté à la projection
+  `getComingSoonProducts` (catalogStore.ts) + bloc visuel `object-contain`
+  dans `SectionAvenir` (BoutiquePage.tsx). 25 visuels en prod vérifiés
+  (200, 404 propre pour id inconnu), route `/api/produits/avenir` : 25 images
+  + 1 null.
+- **cosmo-001 — pas d'image officielle** : « Lait Corps Nourrissant Karité
+  Amande douce 500 ml » (EAN 3489940049503) **absent de cosmonaturel.fr**
+  (vérifié 14/09 : recherches karité/lait/EAN, sondage d'identifiants,
+  sitemaps). `image_url = NULL` → la carte affiche « Visuel officiel en
+  attente du référencement fournisseur ». Le produit existe chez des
+  distributeurs (penntybio 10,75 € réf. NCO4950) — à confirmer auprès de la
+  marque (demande ajoutée à l'email 9).
+- **Statut de propriété honnête** : 25 fiches `image_ownership_status=
+  'unverified'` + `images_validation_status='pending'` + `source_note` par
+  produit (plateforme + date) ; cosmo-001 `not_provided` + ligne d'audit
+  `product_images.image_type='placeholder'`.
+- Garanties : non vendable intact (26 drafts, garde de publiabilité fermée),
+  publiés inchangés par l'opération, suite 157 PASS / 0 FAIL (fixture
+  `store_api_inventory` régénérée : +`comingSoonImage/0`, 329 méthodes).
+
+### Pièges à lire
+
+1. **L'état hérité du template était fictif (corrigé)** — les 26 fiches
+   avaient hérité `verified`/`brand_provided` + placeholder Unsplash
+   (template `peau-ess-003`). Aucune marque n'a fourni ni validé de visuel :
+   l'état est `unverified`/`pending`. **Ne pas « réparer » en remontant à
+   `verified`** — le passage à `verified` attend l'accord écrit de la marque
+   (point 9 du bloc commun des emails, `b5e6c36`).
+2. **La règle « bientôt disponible » n'est pas la règle « publié »** : la
+   projection n'utilise que `comingSoonImage()` — uniquement
+   `/images/sourcing/…`, jamais d'URL placeholder/illustration (y compris via
+   la galerie `product_images`). **Ne pas appliquer
+   `hasTrustedImageOwnership`/`hasPlaceholderMarker` à cette section** :
+   l'ownership d'une fiche sourcing est `unverified` par définition, et ces
+   gardes masqueraient les 25 packshots. Les deux règles coexistent :
+   catalogue publié = image de confiance ; section avenir = packshots servis
+   par KURLA, jamais d'image usurpée.
+3. **Bioderma — identification corrigée** : le produit officiel est la
+   **Créaline Huile Micellaire 150 ml** (PDP `bioderma.fr/p/crealine-huile-micellaire`),
+   pas « Sensibio Huile Micellaire 500 ml » (n'existe pas ; Sensibio = eaux
+   micellaires). Fiche (nom, slug `src-bio-001-crealine-huile-micellaire`,
+   prix constaté 24,15 € 14/09), emails et CSV latéral corrigés. **Pièce
+   jointe au piège** : la galerie d'une PDP Bioderma contient des produits
+   conseillés — vérifier le nom de gamme **sur l'image** avant validation
+   (un candidat « Créaline Défensive » a été écarté).
+4. **lrp-006** : plateforme FR = version 4,7 g (p6756), plateforme ES =
+   version 9 ml — même gamme ; packshot ES retenu, question de format ajoutée
+   à l'email dermo.
+5. **Les pages Bioderma sont des shells JS** (AEM + Adobe Commerce) :
+   slugs produits non devinables, `/graphql` et `/rest/V1` = 403, sitemap =
+   contenu seul — web_search + lecture de la PDP obligatoires.
