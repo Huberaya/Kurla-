@@ -1860,3 +1860,30 @@ précédent (35 routes au lieu de 36).
 - **Zéro impact sur le travail parallèle** : registre B en lecture seule ; fiches `src-*` mode test et 4 gardes-fous inchangés. Docs-only : aucun code touché.
 - **3ᵉ passe (15/09)** : #15 — Odacité Mineral Drops (52 €, premium) remplacé par **LRP Anthelios XL teinté dès 9,50 €** (oxydes de fer, teintes foncées) ; #44 — Keralys DS Gentle (4 tentatives sans prix FR) remplacé par **Uriage DS Hair 8,99 €** (boticinal, en stock) ; tonique glycolique TO : prix UK converti en FR (**13,15–14,59 €** redcare, vue croisée §3.2). **243/250 prix constatés, 7 lignes restantes, max ramené à 31,99 €.**
 - **Variantes de circulation (15/09)** : `docs/sourcing/SOURCING_FOND_50_BESOINS_5_PRODUITS_2026-09-14.xlsx` (3 feuilles : 250 lignes filtrables + fournisseurs + stats/honnêteté) et `docs/sourcing/SOURCING_FOND_5_PRODUITS_PAR_BESOIN_2026-09-14.pdf` (9 pages, à imprimer/circuler) — générés depuis le CSV de référence, aucune donnée ajoutée.
+
+## Sourcing de fond chargé au catalogue (14/09/2026)
+
+Registre `REGISTRE_SOURCING_FOND_75_PRODUITS_2026-09-14.csv` (15 besoins × 5,
+68 prix publics constatés, 7 slots ouverts) chargé en base selon la
+mécanique du mode test (migration 20260926000000) :
+
+- Couverture : 26 `src-*` + 6 `peau-test-*` existants + **10 nouvelles
+  `fond-*`** (TO NMF+HA, NMF+PhytoCeramides, HA 30/60 ml, Retinol 1 %,
+  Glycolic 7 %, Caffeine, Multi-Peptide+HA ; COSRX Snail 96 ; BOJ Glow
+  Serum) = tous les produits identifiés du registre présents au catalogue.
+- `fond-cosrx-snail` et `fond-boj-glow` portent un packshot public holyskin
+  (200 vérifié) → visibles en mode test. Prix publics constatés en base
+  (16,99/16,90 €) mais la projection publique reste `price: null` pour TOUTE
+  fiche test : un prix constaté n'est pas un prix de vente ; le testNote
+  porte le prix et sa source.
+- Les 8 `fond-to-*` n'ont PAS de visuel (theordinary.com instable le
+  14/09) : elles existent au catalogue (admin, gouvernance) mais ne sont pas
+  test-listables (`isTestListableProduct` exige un visuel). Aucun visuel
+  généré n'a été posé sur ces produits réels — proposé à l'exploitant :
+  téléchargement via un autre miroir OU placeholder généré ÉTIQUETÉ comme
+  tel.
+- IDC Institute : aucune fiche créée — la ligne du registre est une gamme
+  (0,98–4,40 €) sans référence exacte identifiée ; créer une fiche sans
+  produit précis serait inventer.
+- Mesuré en production : 63 fiches sans `?test=1` ; 97 avec (34 test
+  visibles). Boutique réelle inchangée.
