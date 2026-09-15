@@ -15,6 +15,25 @@ import { catalogCsvRowToInput, parseCatalogCsv } from '../../lib/catalogManageme
 import { scanCatalogClaims, describeClaimScan } from '../../lib/catalogClaims';
 import { evaluateGateProposals, findProposal, type GateAction } from '../../lib/catalogGate';
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
+import { buildDerogationAlertText, classifyDerogation, summarizeDerogations, type DerogationRow } from '../../lib/derogations';
+import { emailService } from '../../lib/emailService';
+
+/** C5 — charge les dérogations datées depuis la base (table `catalog_derogations`). */
+async function loadDerogations(): Promise<DerogationRow[]> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('catalog_derogations').select('*');
+  if (error) {
+    console.error('[Catalog] lecture des dérogations échouée — la porte scanne SANS protection de dérogation par prudence ? Non : on propage.', error.message);
+    throw error;
+  }
+  return (data || []).map((row: any) => ({
+    productId: String(row.product_id),
+    reason: String(row.reason || ''),
+    decidedBy: row.decided_by ? String(row.decided_by) : null,
+    expiresAt: String(row.expires_at),
+  }));
+}
 import type { AuthenticatedRequest } from '../types';
 import type { Request, Response } from 'express';
 import { isProductInWorkspace, readWorkspaceScope } from '../workspaceScope';
@@ -150,10 +169,80 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     if (!admin) return;
     try {
       const products = await serverDb.getAdminCatalogProducts();
-      res.json({ mode: 'proposal', proposals: evaluateGateProposals(products) });
+      const derogations = await loadDerogations();
+      res.json({ mode: 'proposal', proposals: evaluateGateProposals(products, derogations) });
     } catch (error) {
       console.error('[Catalog] gate scan error:', error);
       res.status(500).json({ error: safeApiError(error, 'Scan de la porte impossible.') });
+    }
+  }));
+
+  /** CHANTIER C5 — dérogations datées : liste avec état calculé. */
+  app.get('/api/admin/catalog/derogations', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const derogations = await loadDerogations();
+      const products = await serverDb.getAdminCatalogProducts();
+      const nameById = new Map(products.map((p: any) => [String(p.id), String(p.name || p.id)]));
+      const rows = derogations.map(d => ({
+        ...d,
+        name: nameById.get(d.productId) || d.productId,
+        state: classifyDerogation(d.expiresAt),
+      }));
+      res.json({ rows, summary: summarizeDerogations(derogations) });
+    } catch (error) {
+      console.error('[Catalog] derogations list error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Liste des dérogations impossible.') });
+    }
+  }));
+
+  /** C5 — renouveler (ou créer) une dérogation : acte admin explicite, +30 jours. */
+  app.post('/api/admin/catalog/derogations/:productId/renew', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const productId = String(req.params.productId || '');
+      const reason = typeof req.body?.reason === 'string' && req.body.reason.trim() !== ''
+        ? req.body.reason.trim()
+        : 'Fiche test / sourcing maintenue en vitrine — choix exploitant (non achetable)';
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase.from('catalog_derogations').upsert(
+        { product_id: productId, reason, decided_by: admin.id, expires_at: expiresAt },
+        { onConflict: 'product_id' },
+      ).select();
+      if (error) throw error;
+      res.json({ derogation: data?.[0] || null });
+    } catch (error) {
+      console.error('[Catalog] derogation renew error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Renouvellement de la dérogation impossible.') });
+    }
+  }));
+
+  /** C5 — récapitulatif des dérogations par e-mail (texte = données réelles). */
+  app.post('/api/admin/catalog/derogations/alert-email', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const derogations = await loadDerogations();
+      const products = await serverDb.getAdminCatalogProducts();
+      const nameById = new Map(products.map((p: any) => [String(p.id), String(p.name || p.id)]));
+      const rows = derogations.map(d => ({ ...d, name: nameById.get(d.productId) }));
+      const text = buildDerogationAlertText(rows);
+      const to = typeof req.body?.to === 'string' && req.body.to.includes('@') ? req.body.to : (admin as any).email;
+      if (!to) return res.status(400).json({ error: 'Adresse de destination manquante (body.to ou e-mail admin).' });
+      const delivery = await emailService.sendEmail({
+        to,
+        subject: 'KURLA — récapitulatif des dérogations catalogue',
+        template: 'derogation_summary',
+        data: { summaryText: text },
+      });
+      res.json({ status: delivery.status });
+    } catch (error) {
+      console.error('[Catalog] derogation alert error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Envoi du récapitulatif impossible.') });
     }
   }));
 
@@ -174,7 +263,8 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
         return res.status(400).json({ error: 'productId et action (publish|withdraw) requis.' });
       }
       const products = await serverDb.getAdminCatalogProducts();
-      const proposal = findProposal(evaluateGateProposals(products), productId, action);
+      const derogations = await loadDerogations();
+      const proposal = findProposal(evaluateGateProposals(products, derogations), productId, action);
       if (!proposal) return res.status(409).json({ error: 'La porte ne propose plus cette décision — relancez un scan.' });
       const patch = action === 'publish'
         ? { catalog_status: 'published', catalogStatus: 'published', is_active: true, isActive: true }

@@ -370,6 +370,20 @@ export function renderOrderEmail(template: string, data: EmailData): RenderedEma
         text: `Stock faible: ${data.productName || data.productId} (${data.quantity ?? '?'} restants).`
       };
     }
+    case 'derogation_summary': {
+      // C5 — récapitulatif interne des dérogations (fiches hors critères en
+      // vitrine). Le texte est construit par buildDerogationAlertText :
+      // uniquement des données réelles.
+      const summaryText = String(data.summaryText || 'Aucune dérogation enregistrée.');
+      return {
+        html: shell({
+          heading: 'Dérogations catalogue (interne)',
+          intro: 'Fiches hors critères maintenues en vitrine — état des échéances.',
+          blocks: `<pre style="white-space:pre-wrap;font-size:13px;line-height:1.5">${esc(summaryText)}</pre>`
+        }),
+        text: summaryText
+      };
+    }
     case 'abandoned_cart_1':
     case 'abandoned_cart_2':
     case 'abandoned_cart_3': {

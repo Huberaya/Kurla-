@@ -28,8 +28,10 @@ const products = [
   { id: 'p-unavailable', name: 'Retirée', catalogStatus: 'unavailable', ...ready, truth: { blockers: ['x'] } },
 ];
 
+const NOW = new Date('2026-09-15T12:00:00Z');
+
 function main(): void {
-  const proposals = evaluateGateProposals(products);
+  const proposals = evaluateGateProposals(products, [], NOW);
 
   const publish = proposals.filter(p => p.action === 'publish');
   const withdraw = proposals.filter(p => p.action === 'withdraw');
@@ -38,13 +40,16 @@ function main(): void {
   assert.equal(publish[0].productId, 'p-ready-draft');
   assert.equal(publish[0].score, 100);
 
-  assert.equal(withdraw.length, 1, 'une seule fiche à retirer');
-  assert.equal(withdraw[0].productId, 'p-blocked-published');
-  assert.ok(withdraw[0].reason.includes('CPNP expiré'), 'le retrait est motivé par le blocage réel');
+  // SANS dérogation, une fiche publiée non conforme est proposée au retrait —
+  // y compris une fiche test : depuis C5 la protection vient de la dérogation
+  // datée, plus du simple drapeau test.
+  assert.equal(withdraw.length, 2, 'deux fiches non conformes sans dérogation');
+  const withdrawnIds = withdraw.map(p => p.productId).sort();
+  assert.deepEqual(withdrawnIds, ['p-blocked-published', 'p-test-published']);
+  assert.ok(withdraw.find(p => p.productId === 'p-blocked-published')!.reason.includes('CPNP expiré'), 'le retrait est motivé par le blocage réel');
 
-  // Invariant de sûreté : la fiche test non conforme n'est JAMAIS proposée au retrait.
-  assert.equal(proposals.some(p => p.productId === 'p-test-published'), false, 'dérogation test ignorée');
-  // Ni publiée ni retirée d'office : les fiches conformes et les brouillons bloqués ne bougent pas.
+  // Une fiche test sous dérogation ACTIVE est protégée (cas couvert plus bas) ;
+  // les fiches conformes, brouillons bloqués et retirées ne bougent jamais.
   assert.equal(proposals.some(p => p.productId === 'p-ok-published'), false);
   assert.equal(proposals.some(p => p.productId === 'p-blocked-draft'), false);
   assert.equal(proposals.some(p => p.productId === 'p-unavailable'), false, 'fiche retirée volontairement intouchable');
@@ -57,7 +62,29 @@ function main(): void {
   // Entrée vide ou nulle : aucune proposition, aucune exception.
   assert.deepEqual(evaluateGateProposals([]), []);
 
-  console.log('[PASS] Porte de publication : publier si prête, retirer si non conforme, dérogations test ignorées, fiches retirées intouchables, paire produit/action exigée.');
+  // --- C5 : les dérogations datées gouvernent les fiches test ---
+  const blockedTest = { id: 'p-test-published', name: 'Fiche test', catalogStatus: 'published', isTestListing: true, ...ready, truth: { blockers: ['preuve en attente'], isTestListing: true } };
+
+  // Dérogation ACTIVE → la fiche test reste protégée.
+  const protectedProposals = evaluateGateProposals([blockedTest], [{ productId: 'p-test-published', reason: 'test', decidedBy: 'x', expiresAt: '2026-10-15T00:00:00Z' }], NOW);
+  assert.deepEqual(protectedProposals, [], 'dérogation active = aucune proposition');
+
+  // Dérogation bientôt expirée (≤ 7 j) → protège encore.
+  const soonProposals = evaluateGateProposals([blockedTest], [{ productId: 'p-test-published', reason: 'test', decidedBy: 'x', expiresAt: '2026-09-20T00:00:00Z' }], NOW);
+  assert.deepEqual(soonProposals, [], 'dérogation bientôt expirée = protégée, signalée ailleurs');
+
+  // Dérogation EXPIRÉE → la protection tombe, le retrait est proposé et motivé.
+  const expiredProposals = evaluateGateProposals([blockedTest], [{ productId: 'p-test-published', reason: 'test', decidedBy: 'x', expiresAt: '2026-09-01T00:00:00Z' }], NOW);
+  assert.equal(expiredProposals.length, 1, 'dérogation expirée = retrait proposé');
+  assert.equal(expiredProposals[0].action, 'withdraw');
+  assert.ok(expiredProposals[0].reason.includes('dérogation expirée'), 'le motif cite l’expiration');
+
+  // Une fiche sous dérogation n'est jamais publiée d'office, même prête.
+  const readyDraftDerog = { id: 'p-draft-derog', name: 'Brouillon sous dérogation', catalogStatus: 'draft', ...ready };
+  const neverAutoPublish = evaluateGateProposals([readyDraftDerog], [{ productId: 'p-draft-derog', reason: 'test', decidedBy: 'x', expiresAt: '2026-10-15T00:00:00Z' }], NOW);
+  assert.deepEqual(neverAutoPublish, [], 'dérogation = pas de publication automatique');
+
+  console.log('[PASS] Porte de publication : publier si prête, retirer si non conforme, dérogations actives protégées, expirées = retrait motivé, jamais de publication sous dérogation.');
 }
 
 main();

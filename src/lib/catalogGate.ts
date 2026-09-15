@@ -17,6 +17,7 @@
  */
 
 import { evaluateKurlaReady } from './kurlaReadyScore';
+import { classifyDerogation, type DerogationRow } from './derogations';
 
 export type GateAction = 'publish' | 'withdraw';
 
@@ -39,8 +40,9 @@ export function isTestListingFlag(product: any): boolean {
     || product?.is_test_listing === true;
 }
 
-export function evaluateGateProposals(products: any[]): GateProposal[] {
+export function evaluateGateProposals(products: any[], derogations?: DerogationRow[] | null, now: Date = new Date()): GateProposal[] {
   const proposals: GateProposal[] = [];
+  const byProduct = new Map((derogations || []).map(d => [String(d.productId), d]));
   for (const product of products || []) {
     const id = String(product?.id || '');
     if (!id) continue;
@@ -48,18 +50,26 @@ export function evaluateGateProposals(products: any[]): GateProposal[] {
     if (status === 'unavailable') continue; // retirée volontairement : la porte n'y touche pas
     const testListing = isTestListingFlag(product);
     const ready = evaluateKurlaReady(product);
+    const derogation = byProduct.get(id);
+    const derogationState = derogation ? classifyDerogation(derogation.expiresAt, now) : null;
+    // Une dérogation ACTIVE (ou bientôt expirée) protège la fiche du retrait :
+    // c'est un choix d'exploitant daté. Expirée, la protection tombe.
+    const protectedByDerogation = derogationState === 'active' || derogationState === 'expiring_soon';
 
-    if (status === 'published' && ready.state === 'blocked' && !testListing) {
+    if (status === 'published' && ready.state === 'blocked' && !protectedByDerogation) {
+      const expiry = derogationState === 'expired' ? ` (dérogation expirée le ${new Date(derogation!.expiresAt).toLocaleDateString('fr-FR')})` : '';
       proposals.push({
         productId: id,
         name: String(product?.name || id),
         action: 'withdraw',
         score: ready.score,
-        reason: `non conforme : ${ready.hardBlockers.join(' · ')}`,
+        reason: `non conforme${expiry} : ${ready.hardBlockers.join(' · ')}`,
       });
       continue;
     }
-    if (status !== 'published' && ready.state === 'ready' && !testListing) {
+    // Ne jamais publier d'office une fiche sous dérogation : elle est en
+    // vitrine par choix, pas parce qu'elle satisfait les critères.
+    if (status !== 'published' && ready.state === 'ready' && !testListing && !derogation) {
       proposals.push({
         productId: id,
         name: String(product?.name || id),

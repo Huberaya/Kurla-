@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { CatalogGatePanel } from '../components/CatalogGatePanel';
+import { DerogationsPanel } from '../components/DerogationsPanel';
 import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
@@ -778,6 +779,7 @@ export const AdminDashboardPage: React.FC = () => {
               onOpenGuide={() => setActiveTab('skin_sourcing')}
             />
             <CatalogGatePanel headers={adminHeaders} />
+            <DerogationsPanel headers={adminHeaders} />
           </div>
         )}
 

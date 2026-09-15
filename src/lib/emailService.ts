@@ -32,7 +32,8 @@ export type EmailTemplate =
   | 'referral_reward'
   | 'abandoned_cart_1'
   | 'abandoned_cart_2'
-  | 'abandoned_cart_3';
+  | 'abandoned_cart_3'
+  | 'derogation_summary';
 
 export type EmailDeliveryStatus = 'sent' | 'logged' | 'failed';
 
