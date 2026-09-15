@@ -2745,3 +2745,84 @@ vérification doit porter sur chaque élément interactif, pas sur le document.
 - HTML PRÉRENDU vérifié dans dist/peau : message honnête présent, 0 occurrence de l'ancien CTA.
 - Vérifications : tsc 0 + bancs [PASS] (gate, dérogations, 10 cas achat) + `npm run build` exit 0 (110 pages prérendues). Push 353ba12 FF_OK.
 - Découverte : `/besoins` (sans /peau) reste 404 — route inexistante dans routeTable.
+## Dashboard admin : pipeline de mise en vente — Lot 1 (B + C) : vue d'ensemble + alarme anomalies boutique + veille expiration (17/09/2026)
+
+**Consigne** : « cela ne me donne pas une visibilité sur l'ensemble des
+produits… quand un produit respecte les critères que nous avons fixés, il se
+retrouve directement dans la boutique… les produits qui sont dans la boutique
+et qui ne respectent pas ces critères (c'était mon choix pour tester) doivent
+être signalés dans le catalogue… en approvisionnement : les produits
+identifiés, les fournisseurs correspondants, leurs contacts et les messages
+prêts à envoyer… un système qui fasse passer automatiquement un produit de
+l'approvisionnement dans le catalogue quand il respecte les critères. » →
+proposition (`docs/PROPOSITION_PIPELINE_MISE_EN_VENTE_APPRO_CATALOGUE_BOUTIQUE.md`,
+6 chantiers A–F) validée en **Lot 1 = B + C** (l'acheteur a choisi « Lot 1 :
+B + C (recommandé) »).
+
+**Ce qui change** (nouvel onglet « Pipeline de mise en vente », premier du
+groupe catalogue + bandeau en tête de l'onglet catalogue) :
+
+- **B — Pipeline catalogue** (6 stades, d'un seul tenant appro → boutique) :
+  **identifié** (candidat appro sans fiche) → **fiche créée** (draft) →
+  **dossier en cours** → **conforme** (critères verts, à publier) →
+  **publié** → **vendable** (checkout OK). Vue d'ensemble : total, compteur
+  par stade, badge test, matrice des critères manquants les plus fréquents
+  (nommés, plafonnée à 8) et détail ligne à ligne (fiche ou candidat) avec
+  deep link « Ouvrir dans le catalogue ».
+- **C1 — Alarme « anomalies en boutique »** : les fiches **publiées ET
+  visibles ET non conformes** — exactement le cas de test laissé volontairement
+  par l'exploitant — sont **signalées nommément, jamais masquées**. Bandeau
+  compact en tête de l'onglet catalogue + section dédiée dans le pipeline
+  (triées par nombre de manquants). Action par fiche : **Dépublier** (→ draft,
+  via l'endpoint de statut existant) ou **Compléter** (→ ouvre la fiche).
+- **C2 — Veille d'expiration réglementaire** : documents **CPNP / personne
+  responsable UE / CPSR / PIF** expirés ou expirant sous **60 jours**, mappés
+  aux produits concernés. **Sans date → non surveillé** (on ne devine pas une
+  date), type non suivi ignoré, `now` injectable (calcul figé et testé). La
+  route fournisseurs expose désormais `complianceDocs` (types suivis +
+  `expiresOn`) en plus de `documentCount`/`expiredDocumentCount`.
+
+**C3 — Mode strict (livré en lecture seule, activation en attente)** : le
+bouton **« Conformes uniquement (aperçu mode strict) »** du pipeline montre
+déjà ce que la boutique afficherait si le mode strict était armé (seules les
+fiches conformes resteraient listées). **L'armement réel est BLOQUÉ** — aucun
+jeton DDL (`sbp_`) disponible ici et aucune table `publication_policy` en base
+(sondée : 404 sur 12 noms candidats). Tant que le jeton + la table ne sont pas
+en place, le mode strict reste **OFF** (le choix de test est respecté) et
+l'aperçu est en lecture seule. L'activation est la suite du Lot 3 (E) :
+interrupteur persisté, journalisé, et la liste publique consomme
+`strict_mode && !conforme → masqué`.
+
+**Zéro donnée inventée** : tout est dérivé des endpoints existants
+(consolidated, catalogue, publication-readiness, fournisseurs) ; un candidat
+sans fiche = « identifié », une ligne produit sans fiche = « identifié », un
+champ absent reste absent.
+
+**Fichiers** : `src/lib/catalogPipeline.ts` (NEUF ; `derivePipelineStage`,
+`buildCatalogPipeline`, `findBoutiqueAnomalies`, `buildExpiryWatch` pures) ·
+`src/components/CatalogPipelinePanel.tsx` (NEUF ; vue pipeline) ·
+`src/components/BoutiqueAnomalyBanner.tsx` (NEUF ; bandeau C1) ·
+`src/server/routes/suppliers.ts` (`complianceDocs` additif) ·
+`src/pages/AdminDashboardPage.tsx` (onglet `pipeline` + les 2 composants +
+deep link) · `tests/kurla_catalog_pipeline.test.ts` (`test:catalog-pipeline`,
+5 blocs, dans la chaîne npm test) · `tests/fixtures/admin_route_inventory.json`
+(**mise à jour volontaire** — diff vérifié : +2 nouveaux écrans comme appelants
+de routes existantes, **aucune route ajoutée/retirée, 80 → 80**) ·
+`docs/PROPOSITION_PIPELINE_MISE_EN_VENTE_APPRO_CATALOGUE_BOUTIQUE.md`
+(§ 10 statut de livraison).
+
+**Vérifié** : tsc propre · banc pipeline 5 blocs verts (6 stades ; anomalie =
+visible + non conforme ; veille J-5 expiré / J+1·J+5·J+60 expirants / J+61 et
+J+60h01 exclus / sans date ignoré / mapping produits) · régressions
+`kurla_sourcing`, `sourcing-consolidated`, `kurla_supplier`,
+`kurla_supplier_admin`, `admin_dashboard`, `kurla_operations_cockpit`,
+`kurla_catalog_publication`, `admin_route_inventory` verts · **chaîne complète
+`npm test` exit 0**.
+
+**Note** : lots restants = **2** (D : registre des 250 + « Créer la fiche »,
+import `POST /api/admin/catalog/import/supplier` qui existe déjà), **3**
+(A → E : carte des critères en données versionnées puis auto-publication
+watch → actif avec audit / rollback 1 clic / kill switch), **4** (F :
+scorecard fournisseurs + réassort min/max). **C3 (mode strict) est bloqué sur
+le jeton DDL + la table `publication_policy`** — à soulever avec le porteur ;
+d'ici là le mode strict est OFF et l'aperçu est en lecture seule.

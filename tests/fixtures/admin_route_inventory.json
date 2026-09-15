@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T23:51:15.093Z",
+  "generatedAt": "2026-09-16T06:14:00.633Z",
   "routes": [
     {
       "method": "GET",
@@ -231,8 +231,10 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:111",
+        "src/components/BoutiqueAnomalyBanner.tsx:25",
         "src/components/CatalogAdminPanel.tsx:226",
         "src/components/CatalogAdminPanel.tsx:421",
+        "src/components/CatalogPipelinePanel.tsx:49",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27",
@@ -249,8 +251,10 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:111",
+        "src/components/BoutiqueAnomalyBanner.tsx:25",
         "src/components/CatalogAdminPanel.tsx:226",
         "src/components/CatalogAdminPanel.tsx:421",
+        "src/components/CatalogPipelinePanel.tsx:49",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27",
@@ -279,7 +283,9 @@
       "callers": [
         "src/components/AdminActionQueue.tsx:44",
         "src/components/AdminActionQueue.tsx:204",
+        "src/components/BoutiqueAnomalyBanner.tsx:26",
         "src/components/CatalogAdminPanel.tsx:244",
+        "src/components/CatalogPipelinePanel.tsx:50",
         "src/components/PeauCatalogPublishPanel.tsx:29",
         "src/components/PeauGoLiveC24Panel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:54",
@@ -581,7 +587,7 @@
     {
       "method": "PATCH",
       "path": "/api/admin/products/:productId/supplier",
-      "file": "src/server/routes/suppliers.ts:142",
+      "file": "src/server/routes/suppliers.ts:151",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/ProductSupplierPanel.tsx:78"
@@ -665,6 +671,7 @@
       "file": "src/server/routes/sourcing.ts:58",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/CatalogPipelinePanel.tsx:48",
         "src/components/SourcingConsolidatedPanel.tsx:21"
       ]
     },
@@ -861,6 +868,7 @@
       "callers": [
         "src/components/BatchAdminPanel.tsx:112",
         "src/components/CatalogAdminPanel.tsx:229",
+        "src/components/CatalogPipelinePanel.tsx:51",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
@@ -875,11 +883,12 @@
     {
       "method": "POST",
       "path": "/api/admin/suppliers",
-      "file": "src/server/routes/suppliers.ts:94",
+      "file": "src/server/routes/suppliers.ts:103",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:112",
         "src/components/CatalogAdminPanel.tsx:229",
+        "src/components/CatalogPipelinePanel.tsx:51",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
@@ -894,7 +903,7 @@
     {
       "method": "GET",
       "path": "/api/admin/suppliers/:supplierId",
-      "file": "src/server/routes/suppliers.ts:71",
+      "file": "src/server/routes/suppliers.ts:80",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:113",
@@ -905,7 +914,7 @@
     {
       "method": "PATCH",
       "path": "/api/admin/suppliers/:supplierId",
-      "file": "src/server/routes/suppliers.ts:114",
+      "file": "src/server/routes/suppliers.ts:123",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:113",
@@ -916,7 +925,7 @@
     {
       "method": "POST",
       "path": "/api/admin/suppliers/:supplierId/documents",
-      "file": "src/server/routes/suppliers.ts:126",
+      "file": "src/server/routes/suppliers.ts:135",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierAdminPanel.tsx:206"

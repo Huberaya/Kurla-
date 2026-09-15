@@ -46,13 +46,22 @@ export function registerSupplierRoutes(app: Express): void {
       const suppliers = supplierIds ? allSuppliers.filter(supplier => supplierIds.has(String(supplier.id))) : allSuppliers;
       // Le nombre de preuves est calculé par entité : « vérifié » sans document
       // serait un affichage mensonger, donc l'écran reçoit de quoi le voir.
+      const TRACKED_TYPES = new Set(['cpnp_notification', 'responsible_person', 'cpsr', 'pif']);
       const detailed = await Promise.all(suppliers.map(async supplier => {
         const documents = await serverDb.listSupplierDocuments(supplier.id);
         const today = new Date().toISOString().slice(0, 10);
+        // Veille d'expiration (chantier 17/09 C2) : les documents de
+        // conformité suivis (CPNP / pers. responsable / CPSR / PIF) avec leur
+        // date d'expiration — la liste admin en a besoin pour dater la veille,
+        // pas seulement compter. Changement additif.
+        const complianceDocs = documents
+          .filter(document => TRACKED_TYPES.has(document.documentType) && document.expiresOn)
+          .map(document => ({ documentType: document.documentType, expiresOn: document.expiresOn }));
         return {
           ...supplier,
           documentCount: documents.length,
-          expiredDocumentCount: documents.filter(document => document.expiresOn && document.expiresOn < today).length
+          expiredDocumentCount: documents.filter(document => document.expiresOn && document.expiresOn < today).length,
+          complianceDocs
         };
       }));
       res.json({

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen, Workflow } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
@@ -23,6 +23,8 @@ import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { AdminSectionNav } from '../components/AdminSectionNav';
 import { AdminActionQueue } from '../components/AdminActionQueue';
 import { PurchaseProposalPanel } from '../components/PurchaseProposalPanel';
+import { CatalogPipelinePanel } from '../components/CatalogPipelinePanel';
+import { BoutiqueAnomalyBanner } from '../components/BoutiqueAnomalyBanner';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
@@ -47,7 +49,7 @@ import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
 type AdminWorkspace = 'skin' | 'hair' | 'copilot';
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -641,6 +643,7 @@ export const AdminDashboardPage: React.FC = () => {
             {
               id: 'catalog', label: workspace === 'skin' ? 'Catalogue Skin & Stock' : 'Catalogue Hair & Stock', icon: Store,
               tabs: [
+                { id: 'pipeline', label: 'Pipeline de mise en vente', icon: Workflow },
                 { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
                 { id: 'catalog', label: 'Catalogue produits', icon: Package },
                 { id: 'batches', label: 'Lots & traçabilité', icon: Boxes },
@@ -1472,9 +1475,20 @@ export const AdminDashboardPage: React.FC = () => {
           <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
         )}
 
+        {/* TAB PIPELINE — vue d'ensemble de mise en vente (chantier 17/09 B+C) */}
+        {activeTab === 'pipeline' && (
+          <div className="space-y-10">
+            <CatalogPipelinePanel
+              headers={adminHeaders}
+              onOpenCatalog={(productId) => navigateFromQueue({ tab: 'catalog', focusProductId: productId })}
+            />
+          </div>
+        )}
+
         {/* TAB 5: PRODUCT CATALOG — C20 peau publication TEST contrôlée */}
         {activeTab === 'catalog' && (
           <div className="space-y-10">
+            <BoutiqueAnomalyBanner headers={adminHeaders} onOpenPipeline={() => setActiveTab('pipeline')} />
             <CatalogClaimsAuditPanel headers={adminHeaders} />
             {workspace === 'skin' && <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />}
             <CatalogAdminPanel
