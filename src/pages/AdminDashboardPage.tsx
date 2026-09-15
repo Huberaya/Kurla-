@@ -10,6 +10,7 @@ import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
 import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPanel';
+import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
@@ -1555,8 +1556,9 @@ export const AdminDashboardPage: React.FC = () => {
                 <PurchaseProposalPanel headers={adminHeaders} />
                 {workspace === 'skin' && <PeauSourcingCahierPanel />}
                 {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
-                <SourcingConsolidatedPanel headers={adminHeaders} />
-                <SourcingProspectsPanel
+            <SupplyOpsPanel headers={adminHeaders} />
+            <SourcingConsolidatedPanel headers={adminHeaders} />
+            <SourcingProspectsPanel
                   headers={adminHeaders}
                   onSuccess={(message) => {
                     setActionSuccess(message);
