@@ -2218,3 +2218,41 @@ chantiers d'intégration continue. Causes, corrigées dans `f9e9642` :
    `src/lib/routeMeta.ts`, en gardant `/diagnostic` indexable : c'est l'URL la
    plus liée du site (bouton d'appel de la barre de navigation, hero,
    prévisualisation, retour depuis un résultat).
+## Dashboard admin : navigation par sections (barre de saut + scrollspy) (15/09/2026)
+
+Consigne : « dans le dashboard admin, rends la navigation plus intéressante et
+plus fluide — dans catalogue → pilotage catalogue, il faut scroller longtemps
+pour aller d'une section à l'autre. C'est la même chose pour toutes les pages. »
+
+**Ce qui change** (tous les onglets du dashboard, hair et skin, sans refonte
+des panels) :
+
+- Nouvelle barre de saut **collante** (sous la barre de nav du site) qui se
+  construit automatiquement depuis les `<h2>/<h3>` du panel actif : chaque
+  section devient une chip cliquable → **saut fluide** (smooth scroll,
+  `prefers-reduced-motion` respecté, atterrissage sous la barre via
+  `scroll-margin-top`).
+- **Scrollspy** : la section lue est surlignée pendant la lecture ; la barre
+  prend une ombre quand elle est en butée (sentinelle IntersectionObserver).
+- **Progression de lecture** de la page (liseré cuivre) + **bouton flottant
+  retour en haut** (apparaît après 600 px).
+- Seuil : moins de 3 sections détectées → la barre disparaît (pas de bruit sur
+  les onglets courts). Re-scan automatique : changement d'onglet +
+  MutationObserver débouncé (contenu asynchrone des panels). Ids de sections
+  stables par libellé (hash) → le scrollspy survive aux re-scans.
+
+**Fichiers** : `src/components/AdminSectionNav.tsx` (composant ; la fonction
+pure `collectSections` est exportée et testée sans DOM) ·
+`src/pages/AdminDashboardPage.tsx` (branchement : ref du conteneur + barre
+insérée sous les onglets) · `tests/kurla_admin_section_nav.test.ts`
+(`test:admin-section-nav`, dans la chaîne npm test).
+
+**Vérifié** : tsc propre · banc `admin-section-nav` (4 blocs : détection,
+stabilité des ids, visibilité/dédup/plafond 8) · bancs admin verts
+(admin_dashboard, kurla_admin_role_guard) · Vite transforme le composant (200)
+· /admin servi (200).
+
+**Note pour l'agent « vue sourcing consolidée » (37a9376)** : le banc
+`admin_route_inventory` est **rouge en production** (la surface d'admin a
+changé sans mise à jour de l'inventaire de référence — pré-existant, vérifié
+sans le WIP de cette entrée ; à trancher volontairement dans votre chantier).

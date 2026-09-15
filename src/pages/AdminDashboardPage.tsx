@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
@@ -12,6 +12,7 @@ import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
+import { AdminSectionNav } from '../components/AdminSectionNav';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
@@ -104,6 +105,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   const [workspace, setWorkspace] = useState<AdminWorkspace | null>(initialAdminWorkspace);
   const [activeTab, setActiveTab] = useState<AdminTab>(tabInitial);
+  // Racine du panel actif : AdminSectionNav détecte les h2/h3 pour la navigation par sections.
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
@@ -518,7 +521,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div ref={panelRootRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
         {/* Header Bar */}
         <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
@@ -709,6 +712,9 @@ export const AdminDashboardPage: React.FC = () => {
           );
         })()}
 
+        {/* Navigation par sections : barre de saut collante + scrollspy + progression
+            (détecte les h2/h3 du panel actif ; invisible si moins de 3 sections). */}
+        <AdminSectionNav rootRef={panelRootRef} pageKey={`${workspace}-${activeTab}`} />
         {workspace === 'copilot' && (
           <CopilotePanel headers={adminHeaders} />
         )}
