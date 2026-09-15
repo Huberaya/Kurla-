@@ -2167,3 +2167,54 @@ comme des ventes : une session Stripe ouverte n'est pas un achat.
    réglée sur 3 » n'était jamais produite, parce qu'elle lisait
    `valeur('reglees')` sur un identifiant d'indicateur qui n'existe pas — et
    obtenait donc toujours 0.
+
+#### Copilote — mesure en production (15/09/2026, 00h06 UTC)
+
+Exécuté contre la base de production réelle (jamais en mémoire), par le vrai
+gestionnaire de route, sans créer le moindre compte :
+
+    GET /api/admin/copilote?jours=30 -> HTTP 200
+    Pages vues 858 · sessions 711 · diagnostics 16 terminés sur 22 démarrés
+    comptes créés 0 (état « aucun », expliqué) · comptes existants 2
+    ajouts au panier 0 · passages en caisse 0 · achats confirmés 0
+    commandes en base 39, dont 1 réellement réglée · produits actifs 106
+    incidents 24 h : 0
+
+La phrase « 1 commande(s) réglée(s) sur 39 » apparaît bien : c'était le défaut
+attrapé au banc, invisible à la relecture.
+
+Deux précautions à connaître avant de mesurer quoi que ce soit soi-même :
+
+- Le bac à sable tourne sous **Node 20**, la production exige **Node 22**
+  (`engines`). Sous Node 20, le client Supabase échoue à la construction :
+  « native WebSocket not found ». Ce n'est pas un défaut de l'application.
+  Contournement local : `(globalThis as any).WebSocket ??= require('ws').WebSocket`.
+- Sans jeton, la route répond **401** — c'est la preuve qu'elle est déployée et
+  gardée. Elle a été vérifiée telle quelle sur `kurlabeauty.vercel.app`.
+
+#### À l'attention du pôle navigation : l'intégration continue était rouge
+
+Les deux commits précédents (`ed7b2da`, `48bd6f3`) faisaient échouer les deux
+chantiers d'intégration continue. Causes, corrigées dans `f9e9642` :
+
+1. **Photo d'inventaire des routes non régénérée.** Toute route ajoutée doit
+   être déclarée dans `tests/fixtures/route_inventory.json`. La régénérer :
+   `KURLA_UPDATE_FIXTURE=1 npx tsx tests/route_inventory.test.ts` (idem pour
+   `tests/admin_route_inventory.test.ts`). Sans quoi la suite casse chez tout
+   le monde, y compris en intégration continue.
+2. **Deux routes au même titre.** `/diagnostic` et `/diagnostic/cheveux`
+   servent le même écran depuis la suppression de la page de choix, et
+   portaient le même titre ; le banc du routeur déclaratif le refuse à juste
+   titre (signal de métadonnées restées à l'état de gabarit).
+
+   Corrigé en donnant à `/diagnostic` un titre et une description propres.
+
+   **Je n'ai pas tranché le fond, qui vous revient :** deux URL indexables
+   publient aujourd'hui le même écran (`/diagnostic` poids 1,
+   `/diagnostic/cheveux` poids 0.9). Le remède propre est une balise canonical
+   ou une redirection de `/diagnostic/cheveux` vers `/diagnostic` — le routeur
+   déclaratif (`src/lib/routeTable.tsx`, interface `RouteEntry`) ne sait faire
+   ni l'un ni l'autre. J'ai laissé la question ouverte et commentée dans
+   `src/lib/routeMeta.ts`, en gardant `/diagnostic` indexable : c'est l'URL la
+   plus liée du site (bouton d'appel de la barre de navigation, hero,
+   prévisualisation, retour depuis un résultat).
