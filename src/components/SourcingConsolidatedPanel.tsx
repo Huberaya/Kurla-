@@ -11,6 +11,7 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
   const [data, setData] = useState<any | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState<string>('all');
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,10 +28,11 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
   }, [headers]);
 
   const rows = useMemo(() => {
-    const all = data?.rows || [];
+    let all = data?.rows || [];
+    if (stateFilter !== 'all') all = all.filter((r: any) => r.state === stateFilter);
     const low = filter.toLowerCase();
     return low ? all.filter((r: any) => `${r.name} ${r.brand || ''} ${r.supplierName || ''}`.toLowerCase().includes(low)) : all;
-  }, [data, filter]);
+  }, [data, filter, stateFilter]);
 
   const copyEmail = async (block: any) => {
     const text = `${block.emailSubject}\n\n${block.emailBody}`;
@@ -49,8 +51,13 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
   return (
     <div className="space-y-6">
       <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-3">
-        <h3 className="font-bold flex items-center gap-2"><Store className="w-4 h-4 text-kurla-amber" /> Vue sourcing consolidée — {data.total} lignes ({data.products} produits · {data.candidates} candidats)</h3>
-        <p className="text-[11px] text-kurla-cream/60">Prix = prix catalogue ou prix public constaté (jamais inventé ; « à obtenir » sinon). E-mail « prêt » = RFQ déjà rédigé ou généré depuis les données réelles du fournisseur. Aucun envoi automatique : copier puis envoyer reste un acte humain (mandat 16C).</p>
+        <h3 className="font-bold flex items-center gap-2"><Store className="w-4 h-4 text-kurla-amber" /> Approvisionnement unifié — {data.total} références ({data.products} produits · {data.candidates} candidats · {data.positions} positions de fond)</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {([['all', 'Tous', data.total], ['identifie', 'Identifié', data.pipeline?.identifie], ['contacte', 'Contacté', data.pipeline?.contacte], ['source', 'Sourcé', data.pipeline?.source], ['conforme', 'Conforme', data.pipeline?.conforme], ['publie', 'Publié', data.pipeline?.publie], ['en_vente', 'En vente', data.pipeline?.en_vente]] as Array<[string, string, number]>).map(([key, label, count]) => (
+            <button key={key} type="button" onClick={() => setStateFilter(key)} className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${stateFilter === key ? 'bg-kurla-copper/20 text-kurla-copper border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60 hover:border-kurla-copper/30'}`}>{label} ({count ?? 0})</button>
+          ))}
+        </div>
+        <p className="text-[11px] text-kurla-cream/60">Pipeline : Identifié → Contacté → Sourcé (prix réel obtenu) → Conforme → Publié → En vente. Prix = prix catalogue ou prix public constaté (jamais inventé ; « à obtenir » sinon). E-mail « prêt » = RFQ déjà rédigé ou généré depuis les données réelles du fournisseur. Aucun envoi automatique : copier puis envoyer reste un acte humain (mandat 16C).</p>
       </div>
 
       <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
@@ -85,8 +92,8 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
         <div className="space-y-1.5 max-h-[560px] overflow-y-auto pr-1">
           {rows.map((row: any) => (
             <div key={`${row.kind}-${row.id}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.kind === 'product' ? 'bg-sky-500/15 text-sky-300' : 'bg-violet-500/15 text-violet-300'}`}>{row.kind === 'product' ? 'produit' : 'candidat'}</span>
-              <span className="font-semibold flex-1 min-w-[180px]">{row.name}{row.brand ? <span className="text-kurla-cream/50 font-normal"> · {row.brand}</span> : null}</span>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.kind === 'product' ? 'bg-sky-500/15 text-sky-300' : row.kind === 'candidate' ? 'bg-violet-500/15 text-violet-300' : 'bg-kurla-copper/15 text-kurla-copper'}`}>{row.kind === 'product' ? 'produit' : row.kind === 'candidate' ? 'candidat' : 'position'}</span>
+              <span className="font-semibold flex-1 min-w-[180px]">{row.name}{row.brand ? <span className="text-kurla-cream/50 font-normal"> · {row.brand}</span> : null}{row.format ? <span className="text-kurla-cream/40 font-normal"> · {row.format}</span> : null}</span>
               <span className="w-28 text-right font-bold">{row.priceEur != null ? `${row.priceEur.toFixed(2).replace('.', ',')} €` : 'à obtenir'}{row.priceEur != null && <span className="block text-[9px] text-kurla-cream/40 font-normal">{row.priceLabel}</span>}</span>
               <span className="w-44 truncate text-kurla-cream/70">{row.supplierName || 'fournisseur à qualifier'}</span>
               <span className="w-40 truncate">{row.supplierContact ? <span className="text-kurla-amber">{row.supplierContact}</span> : <span className="text-amber-300/80">contact à obtenir</span>}</span>

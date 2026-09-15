@@ -32,6 +32,10 @@ const fixtures = {
     { id: 'sup-deciem', legal_name: 'The Ordinary (Deciem)', website: 'https://theordinary.com', contact_email: null },
     { id: 'sup-blacketique-sas', legal_name: 'BLACKETIQUE SAS', website: 'https://blacketique.com', contact_email: 'info@blacketique.com' },
   ],
+  positions: [
+    { sourcing_item_id: 'fond-1', rang: 1, marque: 'The Ordinary', produit: 'Glycolic Acid 7 %', format: '240 ml', prix_constate_cents: 1390, statut_prix: 'constate', fournisseur_canal: 'theordinary.com' },
+    { sourcing_item_id: 'fond-1', rang: 2, marque: 'COSRX', produit: 'Advanced Snail 96', format: '100 ml', prix_constate_cents: 0, statut_prix: 'a_obtenir', fournisseur_canal: 'getyourkbeauty' },
+  ],
   rfqs: [
     { id: 'peau-blacketique-kbeauty', supplier_id: 'sup-blacketique-sas', content: 'Bonjour BLACKETIQUE, demande de compte pro pour Beauty of Joseon Glow…', status: 'draft' },
   ],
@@ -40,11 +44,25 @@ const fixtures = {
 function main(): void {
   const result = buildConsolidatedSourcing(fixtures as any);
 
-  // 1. Les fiches unavailable sont exclues ; produits + candidats comptés.
-  assert.equal(result.total, 5, '4 produits - 1 unavailable + 2 candidats = 5 lignes');
+  // 1. Les fiches unavailable sont exclues ; produits + candidats + positions comptés.
+  assert.equal(result.total, 7, '4 produits - 1 unavailable + 2 candidats + 2 positions = 7 lignes');
   assert.equal(result.products, 3);
   assert.equal(result.candidates, 2);
+  assert.equal(result.positions, 2);
   assert.equal(result.rows.some(r => r.id === 'prod-retired'), false, 'fiche retirée exclue');
+
+  // 1b. Pipeline : chaque ligne porte un état, les KPI somment juste.
+  const priced = result.rows.find(r => r.name === 'Glycolic Acid 7 %');
+  const unpriced = result.rows.find(r => r.name === 'Advanced Snail 96');
+  assert.equal(priced?.state, 'source', 'position avec prix constaté = sourcé');
+  assert.equal(unpriced?.state, 'identifie', 'position sans prix = identifié');
+  assert.equal(priced?.format, '240 ml', 'format de la position conservé');
+  const published = result.rows.find(r => r.id === 'fond-boj-glow');
+  assert.equal(published?.state, 'publie', 'produit publié non achetable = publié');
+  const draft = result.rows.find(r => r.id === 'src-unknown-price');
+  assert.equal(draft?.state, 'conforme', 'produit draft = conforme (pas encore publié)');
+  const somme = Object.values(result.pipeline).reduce((a: number, b) => a + (b as number), 0);
+  assert.equal(somme, 7, 'les KPI du pipeline somment au total');
 
   // 2. Aucun prix inventé : 0 € devient « à obtenir ».
   const noPrice = result.rows.find(r => r.id === 'src-unknown-price');
@@ -52,6 +70,7 @@ function main(): void {
   assert.equal(noPrice?.priceEur, null, 'prix produit absent = null');
   assert.equal(noPrice?.priceLabel, 'à obtenir');
   assert.equal(noPriceCandidate?.priceEur, null, 'prix candidat absent = null');
+  assert.equal(unpriced?.priceEur, null, 'position sans prix = null');
 
   // 3. Fournisseur, contact et état e-mail rattachés par ligne.
   const boj = result.rows.find(r => r.id === 'fond-boj-glow');

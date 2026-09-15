@@ -46,9 +46,10 @@ export function registerSourcingRoutes(app: Express): void {
     try {
       const supabase = getSupabaseServerClient();
       if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
-      const [products, candidates, prospects, suppliers, rfqs] = await Promise.all([
+      const [products, candidates, positions, prospects, suppliers, rfqs] = await Promise.all([
         serverDb.getAdminCatalogProducts(),
         supabase.from('sourcing_product_candidates').select('*'),
+        supabase.from('sourcing_fond_positions').select('*'),
         supabase.from('sourcing_prospects').select('*'),
         supabase.from('suppliers').select('*'),
         supabase.from('rfqs').select('*'),
@@ -56,6 +57,7 @@ export function registerSourcingRoutes(app: Express): void {
       res.json(buildConsolidatedSourcing({
         products,
         candidates: candidates.data || [],
+        positions: positions.data || [],
         prospects: prospects.data || [],
         suppliers: suppliers.data || [],
         rfqs: rfqs.data || [],

@@ -9,8 +9,11 @@
  * demandes : prix pro, MOQ, INCI, CPNP/RP UE, droits visuels).
  */
 
+/** Pipeline 6 états de l'étude du 15/09/2026 (C2). */
+export type PipelineState = 'identifie' | 'contacte' | 'source' | 'conforme' | 'publie' | 'en_vente';
+
 export type ConsolidatedRow = {
-  kind: 'product' | 'candidate';
+  kind: 'product' | 'candidate' | 'position';
   id: string;
   name: string;
   brand: string | null;
@@ -20,6 +23,9 @@ export type ConsolidatedRow = {
   supplierContact: string | null;
   supplierWebsite: string | null;
   emailState: 'pret' | 'a_preparer';
+  state: PipelineState;
+  /** Format/taille pour les positions de fond (ex. « 30 ml »), null sinon. */
+  format: string | null;
 };
 
 export type SupplierEmailBlock = {
@@ -40,6 +46,9 @@ export type ConsolidatedSourcing = {
   total: number;
   products: number;
   candidates: number;
+  positions: number;
+  /** Compte par état du pipeline — les KPI de la vue Appro unifiée. */
+  pipeline: Record<PipelineState, number>;
   rows: ConsolidatedRow[];
   supplierBlocks: SupplierEmailBlock[];
 };
@@ -111,11 +120,12 @@ function buildEmail(subject: string, supplierName: string, rows: ConsolidatedRow
 export function buildConsolidatedSourcing(args: {
   products: AnyRecord[];
   candidates: AnyRecord[];
+  positions?: AnyRecord[];
   prospects: AnyRecord[];
   suppliers: AnyRecord[];
   rfqs: AnyRecord[];
 }): ConsolidatedSourcing {
-  const { products, candidates, prospects, suppliers, rfqs } = args;
+  const { products, candidates, positions = [], prospects, suppliers, rfqs } = args;
   const supplierById = new Map<string, AnyRecord>((suppliers || []).map(s => [String(s.id), s]));
   const prospectById = new Map<string, AnyRecord>((prospects || []).map(p => [String(p.id), p]));
 
@@ -139,6 +149,11 @@ export function buildConsolidatedSourcing(args: {
       supplierContact: supplier ? str(supplier.contact_email) : null,
       supplierWebsite: supplier ? str(supplier.website) : null,
       emailState: 'a_preparer',
+      // Pipeline : la vérité catalogue décide — achetable > publié > brouillon.
+      state: product.truth?.isCheckoutEligible === true ? 'en_vente'
+        : status === 'published' ? 'publie'
+        : 'conforme',
+      format: null,
     });
   }
 
@@ -156,6 +171,30 @@ export function buildConsolidatedSourcing(args: {
       supplierContact: prospect ? str(prospect.contact_email) : null,
       supplierWebsite: prospect ? str(prospect.source_url) : null,
       emailState: 'a_preparer',
+      // Pipeline : publié > échantillon/prix pro obtenu (sourced) > identifié.
+      state: candidate.published_on ? 'publie'
+        : (candidate.sample_validated === true || priceFromCents(candidate.purchase_price_cents) != null) ? 'source'
+        : 'identifie',
+      format: null,
+    });
+  }
+
+  // Positions du sourcing de fond (250 lignes, table sourcing_fond_positions).
+  for (const position of positions || []) {
+    const price = priceFromCents(position.prix_constate_cents);
+    rows.push({
+      kind: 'position',
+      id: `pos-${position.sourcing_item_id ?? 'x'}-${position.rang ?? position.id}`,
+      name: String(position.produit || position.id),
+      brand: str(position.marque),
+      priceEur: price,
+      priceLabel: price != null ? 'prix public constaté' : 'à obtenir',
+      supplierName: str(position.fournisseur_canal),
+      supplierContact: null, // le canal n'a pas de contact direct : il passe par les prospects/fournisseurs
+      supplierWebsite: null,
+      emailState: 'a_preparer',
+      state: price != null ? 'source' : 'identifie',
+      format: str(position.format),
     });
   }
 
@@ -198,11 +237,16 @@ export function buildConsolidatedSourcing(args: {
   }
   supplierBlocks.sort((a, b) => b.rowCount - a.rowCount);
 
+  const pipeline: Record<PipelineState, number> = { identifie: 0, contacte: 0, source: 0, conforme: 0, publie: 0, en_vente: 0 };
+  for (const row of rows) pipeline[row.state] += 1;
+
   return {
     generatedAt: new Date().toISOString(),
     total: rows.length,
     products: rows.filter(r => r.kind === 'product').length,
     candidates: rows.filter(r => r.kind === 'candidate').length,
+    positions: rows.filter(r => r.kind === 'position').length,
+    pipeline,
     rows,
     supplierBlocks,
   };
