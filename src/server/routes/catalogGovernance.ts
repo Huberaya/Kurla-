@@ -13,6 +13,8 @@ import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
 import { getAvailableCatalog } from '../ai/catalog';
 import { catalogCsvRowToInput, parseCatalogCsv } from '../../lib/catalogManagement';
 import { scanCatalogClaims, describeClaimScan } from '../../lib/catalogClaims';
+import { evaluateGateProposals, findProposal, type GateAction } from '../../lib/catalogGate';
+import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import type { AuthenticatedRequest } from '../types';
 import type { Request, Response } from 'express';
 import { isProductInWorkspace, readWorkspaceScope } from '../workspaceScope';
@@ -133,6 +135,67 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     } catch (error) {
       console.error('[Catalog] product update error:', error);
       res.status(400).json({ error: safeApiError(error, 'Impossible de modifier ce produit catalogue.') });
+    }
+  }));
+
+  /**
+   * CHANTIER C4 (15/09/2026) — PORTE DE PUBLICATION, mode proposition.
+   * `scan` est en LECTURE SEULE : il calcule les décisions que la porte
+   * prendrait (publier une fiche prête / retirer une fiche non conforme)
+   * sans rien écrire. Les fiches test (dérogations assumées) ne sont jamais
+   * proposées au retrait — voir `catalogGate.ts`.
+   */
+  app.post('/api/admin/catalog/gate/scan', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const products = await serverDb.getAdminCatalogProducts();
+      res.json({ mode: 'proposal', proposals: evaluateGateProposals(products) });
+    } catch (error) {
+      console.error('[Catalog] gate scan error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Scan de la porte impossible.') });
+    }
+  }));
+
+  /**
+   * Application d'UNE décision de la porte, sur acte admin explicite.
+   * La proposition est RECALCULÉE côté serveur : un client ne peut pas faire
+   * appliquer une décision que la porte ne propose plus (données changées
+   * entre-temps → 409). Chaque application est journalisée
+   * (`catalog_gate_journal`, migration 20260929000000).
+   */
+  app.post('/api/admin/catalog/gate/apply', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const productId = String(req.body?.productId || '');
+      const action = String(req.body?.action || '') as GateAction;
+      if (!productId || (action !== 'publish' && action !== 'withdraw')) {
+        return res.status(400).json({ error: 'productId et action (publish|withdraw) requis.' });
+      }
+      const products = await serverDb.getAdminCatalogProducts();
+      const proposal = findProposal(evaluateGateProposals(products), productId, action);
+      if (!proposal) return res.status(409).json({ error: 'La porte ne propose plus cette décision — relancez un scan.' });
+      const patch = action === 'publish'
+        ? { catalog_status: 'published', catalogStatus: 'published', is_active: true, isActive: true }
+        : { catalog_status: 'draft', catalogStatus: 'draft', is_active: false, isActive: false };
+      const product = await serverDb.saveCatalogProduct(admin.id, { id: productId, ...patch });
+      const supabase = getSupabaseServerClient();
+      if (supabase) {
+        const { error } = await supabase.from('catalog_gate_journal').insert({
+          product_id: productId,
+          product_name: proposal.name,
+          action,
+          mode: 'proposal',
+          reason: proposal.reason,
+          created_by: admin.id,
+        });
+        if (error) console.error('[Catalog] journal porte échoué (décision appliquée quand même) :', error.message);
+      }
+      res.json({ product: { id: product.id, catalogStatus: product.catalogStatus }, action, reason: proposal.reason });
+    } catch (error) {
+      console.error('[Catalog] gate apply error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Application de la décision impossible.') });
     }
   }));
 

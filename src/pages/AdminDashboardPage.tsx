@@ -3,6 +3,7 @@ import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, Rotat
 import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
+import { CatalogGatePanel } from '../components/CatalogGatePanel';
 import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
@@ -776,6 +777,7 @@ export const AdminDashboardPage: React.FC = () => {
               onSuccess={(message) => { setActionSuccess(message); loadData(); setTimeout(() => setActionSuccess(''), 4000); }}
               onOpenGuide={() => setActiveTab('skin_sourcing')}
             />
+            <CatalogGatePanel headers={adminHeaders} />
           </div>
         )}
 
