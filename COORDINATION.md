@@ -2635,3 +2635,9 @@ l'ancien `kurla-shell-v1`, avec ses 404 mémorisés. La première ouverture peut
 encore être servie par l'ancien worker ; la suivante est saine. Si le
 problème persistait malgré tout, vider les données du site (ou réinstaller
 l'application) règle le cas.
+
+## 2026-09-15 — C1+C2 pipeline Appro→Boutique (Agent Arena)
+- Étude : `docs/PIPELINE_APPRO_BOUTIQUE_ETUDE_2026-09-15.md` (7 chantiers).
+- C1 : `src/lib/kurlaReadyScore.ts` (score 0-100 depuis truth.blockers + manques qualité ; ready ≥ 95) — pastille « KURLA Ready N/100 » + ligne « ⛔ Bloque la vente / à compléter » sur chaque carte de CatalogAdminPanel. Banc : `tests/kurla_ready_score.test.ts`.
+- C2 : vue consolidée étendue aux 250 `sourcing_fond_positions` (pipeline 6 états : identifié→contacté→sourcé→conforme→publié→en vente, KPI + filtres par état). Banc étendu.
+- Défauts pris (arbitrages non tranchés) : toutes les 250 positions dans le pipeline ; porte auto (C4) et dérogations (C5) pas encore codés.
