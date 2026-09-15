@@ -26,7 +26,16 @@ export default defineConfig(() => {
               if (id.includes('@google/genai') || id.includes('stripe')) return 'ai-vendor';
               return 'vendor';
             }
-            if (id.includes('src/pages/AdminDashboardPage') || id.includes('src/components/Admin')) return 'admin';
+            // (15/09) Le regroupement manuel « admin » a été retiré.
+            // AdminDashboardPage est déjà chargée paresseusement
+            // (lazy() dans src/lib/routeTable.tsx), mais forcer ces modules
+            // dans un morceau nommé y attirait aussi le code partagé avec
+            // l'entrée : le morceau devenait une dépendance statique et
+            // Vite l'insérait en <link rel="modulepreload"> de index.html.
+            // Résultat : 888 Ko (229 Ko compressés) téléchargés et analysés
+            // sur la page d'accueil, téléphone compris, pour un écran
+            // qu'aucun visiteur n'ouvre. Désormais Rollup découpe seul :
+            // l'administration reste un morceau distinct, chargé à la demande.
           },
         },
       },

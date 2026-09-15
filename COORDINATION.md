@@ -2416,3 +2416,41 @@ et le composant transformés (200).
 la file indique *quoi relancer et depuis quand*, l'envoi passe par les
 e-mails prêts de la vue consolidée (mailto/copier), conformément au principe
 « rien n'est envoyé depuis la plateforme ».
+
+#### Mobile : le téléchargeait trois fois, et chargeait l'administration (15/09/2026)
+
+Chantier « rendre le site plus responsive », mesuré avant de toucher au code.
+Banc de mesure : Chrome mobile, iPhone (390×844), processeur ralenti 4×,
+réseau « 4G lente » (1,6 Mbit/s, 150 ms d'aller-retour) — le profil de
+référence de Lighthouse.
+
+**Avant :** premier contenu peint à 1 079 ms, mais **1 486 ms de blocage**
+(13 tâches longues) et **3 074 Ko décodés** au total, dont **1 813 Ko de
+JavaScript**. Deux causes, mesurées :
+
+1. **L'administration était préchargée sur toutes les pages.** `index.html`
+   portait `<link rel="modulepreload">` vers le morceau `admin` : **945 Ko
+   décodés (229 Ko compressés)** téléchargés et analysés sur la page
+   d'accueil, y compris par des téléphones qui n'ouvriront jamais
+   l'administration. La cause n'était pas un oubli de `lazy()` — la page
+   l'est déjà — mais le découpage manuel dans `vite.config.ts` : forcer ces
+   modules dans un morceau nommé y attirait le code partagé avec l'entrée,
+   ce qui le transformait en dépendance statique. Le regroupement « admin »
+   est retiré ; l'administration reste un morceau à part, chargé à la
+   demande (820 Ko, plus personne ne les paie s'il ne va pas sur /admin).
+2. **`GET /api/products` partait trois fois** sur la page d'accueil : le
+   panier, la recherche et l'aperçu boutique appellent chacun `useProducts()`,
+   et le hook déclenchait sa propre requête — trois fois 159 Ko décodés,
+   soit 477 Ko de JSON à analyser, pour un catalogue identique au même
+   instant. Le vol est désormais partagé (`cataloguePublicPartage`) : une
+   requête, tous les appelants branchés dessus.
+
+**Rien n'est mis en cache** : la donnée n'est pas conservée au-delà du vol,
+donc la boutique ne peut pas afficher un catalogue périmé. « Rafraîchir »
+reste un ordre et relance une lecture. Banc : `tests/kurla_catalogue_partage.test.ts`.
+
+Vérifié aussi, et **déjà correct** — ne pas « corriger » : les polices Google
+sont chargées de façon non bloquante (`preload as=style` + bascule par
+`public/fonts.js`), la feuille de style n'existe que dans un `<noscript>`, et
+la page est prérendue (2 551 mots présents dans le HTML, donc visibles avant
+toute exécution de JavaScript). Aucun dépassement horizontal.
