@@ -2692,3 +2692,45 @@ l'application) règle le cas.
 - `ProductNeedsEditor.tsx` monté dans skin_catalog (sous DerogationsPanel) : recherche produit, les 15 codes `SKIN_NEEDS` en toggles multi-besoins, état initial lu sur la fiche (concerns/needs), bouton Enregistrer/Annuler avec détection de changement.
 - Écriture via le PATCH `/api/admin/catalog/products/:id` existant → `saveCatalogProduct` applique le vocabulaire contrôlé (valeur hors référentiel refusée côté serveur). Aucune logique métier nouvelle, aucun besoin inventé.
 - 8 bancs [PASS] + tsc 0 au push 2d8757f.
+
+#### Navigation introuvable sur téléphone : la barre débordait de l'écran (15/09/2026)
+
+Symptôme rapporté : « je n'ai pas les différentes pages — diagnostic cheveux,
+diagnostic peau, boutique, outils ». Ce n'était pas des pages vides : c'était
+**l'impossibilité d'atteindre le menu**.
+
+Mesuré sur un écran de 390 px : la barre de navigation (`<header>`, en
+`position: fixed`) avait un contenu de **552 px** de large. Comme elle est
+fixe, aucun défilement ne peut révéler ce qui dépasse. Étaient donc définiti-
+vement hors d'atteinte :
+
+    311 → 372  sélecteur de langue
+    382 → 414  recherche
+    424 → 464  Connexion
+    474 → 506  panier
+    516 → 552  LE MENU — 126 px hors écran
+
+Deux causes, dans `src/components/Navbar.tsx` :
+
+1. **Le logo traînait un bandeau** « Afro & Melanin Beauty-Tech » de 166 px :
+   le bloc logo atteignait 295 px à lui seul.
+2. Le bloc de droite (langue, recherche, compte, panier, menu) demandait
+   241 px — et le lien du logo portait `shrink-0`, donc rien ne pouvait se
+   comprimer.
+
+Correction : le bandeau et le sélecteur de langue passent sous 640 px
+(`hidden sm:*`). **Le sélecteur de langue n'est pas supprimé mais déplacé**
+dans le tiroir mobile, où il reste accessible — masquer une fonction revien-
+drait à la retirer.
+
+Vérifié dans Chrome mobile, sur 360 et 390 px : aucun élément hors écran
+dans la barre, menu entre 308 et 344 px (donc à portée du doigt), et les
+quatre pages atteignables — `/boutique`, `/outils`, `/diagnostic/cheveux`,
+`/peau/diagnostic`.
+
+**Leçon pour mes propres mesures :** je contrôlais
+`documentElement.scrollWidth > innerWidth` et concluais « aucun débordement
+horizontal ». C'était faux dans ce cas précis : un élément `position: fixed`
+ne contribue pas à la largeur défilable du document. Un contenu peut donc
+déborder d'une barre fixe sans jamais faire apparaître d'ascenseur. La
+vérification doit porter sur chaque élément interactif, pas sur le document.
