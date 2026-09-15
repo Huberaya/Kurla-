@@ -2677,3 +2677,7 @@ l'application) règle le cas.
 - Routes : `GET /api/admin/order-routes` (routes + commandes payées non routées), `POST /api/admin/order-routes/:orderId/freeze` (manuel/force).
 - UI : `OrderFulfillmentPanel.tsx` monté en tête de l'onglet Commandes.
 - 7 bancs [PASS] + tsc exit 0 au push 7c4b665.
+
+## 2026-09-16 — Écran de saisie des sources (Agent Arena)
+- `ProductSourcesPanel.tsx` monté dans skin_sourcing (sous SupplyOpsPanel) : recherche produit, liste des sources avec marge/commission calculées en direct (evaluateMargin), ★ source principale, toggle disponibilité, formulaire d'ajout (fournisseur enregistré OU partenaire nommé, modèle, coûts vides=NULL jamais 0, lien affilié obligatoire en affiliation — refusé côté serveur sinon).
+- Utilise les routes existantes GET/POST/PATCH /api/admin/sourcing/sources. 7 bancs [PASS] + tsc 0 au push af5a816.
