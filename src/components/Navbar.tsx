@@ -135,7 +135,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="shrink-0 group-hover:opacity-90 transition-opacity"
             title=""
           />
-          <div className="flex flex-col">
+          {/* (15/09) Le bandeau disparaît sous 640 px.
+              Mesuré sur un écran de 390 px : le logo et son bandeau occupaient
+              295 px à eux seuls, et la barre entière en demandait 552 — dans
+              une barre `position: fixed`, donc impossible à faire défiler.
+              Résultat : la recherche, la connexion et le menu se trouvaient
+              hors écran, sans qu'aucun défilement puisse les révéler. */}
+          <div className="hidden sm:flex flex-col">
             <span className={`text-[9px] uppercase tracking-widest font-medium ${
               scrolled ? 'text-kurla-carbon/60' : 'text-white/60'
             }`}>
@@ -169,7 +175,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Action Icons & Copper CTA */}
         <div className="flex items-center gap-2.5">
-          <LanguageSwitcher locale={locale} locales={locales} onSwitch={switchTo} scrolled={scrolled} />
+          {/* (15/09) Le sélecteur de langue quitte la barre sous 640 px — il
+              est repris dans le tiroir mobile, pour que la fonction reste
+              accessible au lieu d'être simplement supprimée. */}
+          <div className="hidden sm:block">
+            <LanguageSwitcher locale={locale} locales={locales} onSwitch={switchTo} scrolled={scrolled} />
+          </div>
 
           {/* Search Button */}
           <button
@@ -421,6 +432,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </a>
               ))}
             </div>
+          </div>
+
+          {/* Le sélecteur de langue revient ici : retiré de la barre sous
+              640 px, il doit rester atteignable sur téléphone. */}
+          <div className="pt-3 flex items-center justify-between">
+            <span className="text-xs font-semibold text-kurla-carbon">Langue / Language</span>
+            <LanguageSwitcher locale={locale} locales={locales} onSwitch={switchTo} scrolled />
           </div>
 
           <div className="pt-3 flex flex-col gap-2">
