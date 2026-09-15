@@ -2454,3 +2454,47 @@ sont chargées de façon non bloquante (`preload as=style` + bascule par
 `public/fonts.js`), la feuille de style n'existe que dans un `<noscript>`, et
 la page est prérendue (2 551 mots présents dans le HTML, donc visibles avant
 toute exécution de JavaScript). Aucun dépassement horizontal.
+
+#### Mobile : mesure d'après, et ce qu'il reste (15/09/2026)
+
+Même banc, trois passages pour tenir compte de la variance (les mesures
+réseau variant d'un essai à l'autre, les octets sont la preuve stable ; les
+temps sont donnés en médiane).
+
+| | avant | après |
+|---|---|---|
+| Octets décodés, accueil | 3 074 Ko | **2 050 Ko** |
+| dont JavaScript | 1 813 Ko | **953 Ko** |
+| dont appels réseau | 528 Ko | 372 Ko |
+| `GET /api/products` | 3 appels | 2 appels |
+| DOMContentLoaded | 3 498 ms | **2 258 ms** |
+| LCP (plus grand contenu) | 1 980 ms | 1 636 ms |
+| Blocage (TBT) | 1 486 ms | ~1 350 ms |
+
+Le téléchargement a fondu de moitié ; **le blocage du processeur, lui, n'a
+quasiment pas bougé**. Ce n'est donc pas le morceau « admin » qui rendait
+l'accueil lent à l'usage — c'est le coût d'hydratation de la page elle-même.
+
+Pages intérieures, mesurées de la même façon : `/boutique` LCP 3 163 ms avec
+597 ms de blocage, `/diagnostic` LCP 915 ms avec 234 ms. **Aucune page n'est
+invisible** : le premier contenu est peint en moins d'une seconde partout et
+2 524 mots sont présents dans le HTML dès le premier octet (prérendu). Aucun
+débordement horizontal. L'accueil est la seule page lourde.
+
+**Restent ouverts, par ordre d'effet attendu — à l'attention du pôle
+interface.** Je ne les ai pas engagés seuls : ce sont des composants
+d'écran, pas de l'infrastructure.
+
+1. **Deux appels au catalogue au lieu d'un.** Le second part ~3 secondes
+   après le premier : une section de l'accueil se monte une fois le vol
+   terminé. Le partage ne peut rien y faire sans mise en cache, et je n'ai
+   pas voulu introduire de fraîcheur sans accord — un catalogue périmé est
+   pire qu'un appel de trop.
+2. **La bibliothèque d'animations `motion` est dans le morceau partagé** :
+   elle est donc analysée et démarrée sur toutes les pages, y compris celles
+   qui n'animent rien.
+3. **82 Ko de SVG en ligne** dans le HTML prérendu de l'accueil, pour un
+   corps de 291 Ko : plus le DOM est gros, plus l'hydratation coûte.
+4. Les tâches longues de l'accueil : 462 ms, 410 ms, 331 ms. Le navigateur
+   n'a pas voulu en dire l'origine ; il faudrait une trace d'exécution pour
+   nommer précisément le responsable.
