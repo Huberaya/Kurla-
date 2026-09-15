@@ -13,19 +13,41 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
   const [filter, setFilter] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('all');
   const [copied, setCopied] = useState<string | null>(null);
+  const [creating, setCreating] = useState<string | null>(null);
+  const [notice, setNotice] = useState('');
+
+  const load = async () => {
+    try {
+      const response = await fetch('/api/admin/sourcing/consolidated', { headers });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Vue consolidée indisponible.');
+      setData(body);
+    } catch (e: any) {
+      setError(e.message || 'Erreur de chargement.');
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const response = await fetch('/api/admin/sourcing/consolidated', { headers });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error || 'Vue consolidée indisponible.');
-        setData(body);
-      } catch (e: any) {
-        setError(e.message || 'Erreur de chargement.');
-      }
-    })();
+    load();
   }, [headers]);
+
+  const createFiche = async (row: any) => {
+    setCreating(row.id);
+    setNotice('');
+    try {
+      const response = await fetch(`/api/admin/sourcing/candidates/${row.id}/create-fiche`, { method: 'POST', headers });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Création impossible.');
+      setNotice(body.alreadyLinked
+        ? `Fiche déjà liée à ce candidat : ${body.product.id}`
+        : `Fiche draft créée : ${body.product.name} (${body.product.id}) — à compléter dans Catalogue, la porte de publication décidera.`);
+      await load();
+    } catch (e: any) {
+      setNotice(`Échec : ${e.message || 'erreur inconnue'}`);
+    } finally {
+      setCreating(null);
+    }
+  };
 
   const rows = useMemo(() => {
     let all = data?.rows || [];
@@ -98,9 +120,15 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
               <span className="w-44 truncate text-kurla-cream/70">{row.supplierName || 'fournisseur à qualifier'}</span>
               <span className="w-40 truncate">{row.supplierContact ? <span className="text-kurla-amber">{row.supplierContact}</span> : <span className="text-amber-300/80">contact à obtenir</span>}</span>
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.emailState === 'pret' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{row.emailState === 'pret' ? 'e-mail prêt' : 'e-mail généré'}</span>
+              {row.kind === 'candidate' && row.state !== 'publie' && (
+                <button type="button" onClick={() => createFiche(row)} disabled={creating === row.id} className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold hover:bg-kurla-copper/25 disabled:opacity-40">
+                  {creating === row.id ? 'Création…' : '+ Créer la fiche'}
+                </button>
+              )}
             </div>
           ))}
         </div>
+        {notice && <p className="text-[11px] text-kurla-cream/70 border-t border-kurla-cream/10 pt-2">{notice}</p>}
       </div>
     </div>
   );

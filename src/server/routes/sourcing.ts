@@ -6,6 +6,7 @@ import { requireAdmin, type AuthenticatedRequest } from '../auth';
 import { readWorkspaceScope, sourcingItemInWorkspace, type WorkspaceScope } from '../workspaceScope';
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { buildConsolidatedSourcing } from '../../lib/sourcingConsolidated';
+import { buildFicheFromCandidate } from '../../lib/sourcingFicheLink';
 
 /**
  * CHANTIER 16C — ROUTES DE SOURCING.
@@ -65,6 +66,50 @@ export function registerSourcingRoutes(app: Express): void {
     } catch (error) {
       console.error('[Sourcing] consolidated error:', error);
       res.status(500).json({ error: safeApiError(error, 'Impossible de charger la vue sourcing consolidée.') });
+    }
+  }));
+
+  /**
+   * CHANTIER C3 (15/09/2026) — créer une fiche catalogue depuis un candidat
+   * sourcing. Données réelles uniquement (buildFicheFromCandidate), fiche en
+   * draft inactive, liaison bidirectionnelle par clés :
+   * products.source_candidate_id ↔ sourcing_product_candidates.draft_product_id
+   * (migration 20260928000000). Idempotent : un candidat déjà lié renvoie sa
+   * fiche existante au lieu d'en créer une seconde.
+   */
+  app.post('/api/admin/sourcing/candidates/:id/create-fiche', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const candidateId = String(req.params.id || '');
+      const { data: candidate, error: candidateError } = await supabase
+        .from('sourcing_product_candidates')
+        .select('*')
+        .eq('id', candidateId)
+        .maybeSingle();
+      if (candidateError) throw candidateError;
+      if (!candidate) return res.status(404).json({ error: 'Candidat sourcing introuvable.' });
+      if (candidate.draft_product_id) {
+        return res.json({ product: { id: candidate.draft_product_id }, alreadyLinked: true });
+      }
+      const prospect = candidate.prospect_id
+        ? (await supabase.from('sourcing_prospects').select('*').eq('id', String(candidate.prospect_id)).maybeSingle()).data
+        : null;
+      const payload = buildFicheFromCandidate(candidate, prospect);
+      const result = await serverDb.importCatalogRecords(admin.id, [payload], 'manual');
+      if (result.rejected > 0) return res.status(400).json({ error: result.errors[0]?.message || 'Fiche refusée par le catalogue.' });
+      const product = result.products[0];
+      const { error: linkError } = await supabase
+        .from('sourcing_product_candidates')
+        .update({ draft_product_id: product.id })
+        .eq('id', candidateId);
+      if (linkError) console.error('[Sourcing] liaison candidat→fiche échouée (fiche créée quand même) :', linkError.message);
+      res.status(201).json({ product: { id: product.id, slug: product.slug, name: product.name } });
+    } catch (error) {
+      console.error('[Sourcing] create-fiche error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Impossible de créer la fiche depuis ce candidat.') });
     }
   }));
 
