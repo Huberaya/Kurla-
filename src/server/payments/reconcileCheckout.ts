@@ -34,6 +34,7 @@ import type Stripe from 'stripe';
 import { incrementCouponUsage } from '../../lib/db/couponStore';
 import { serverDb } from '../../lib/serverDb';
 import { getStripeClient } from './stripeClient';
+import { freezeOrderRouting } from './orderRoutingHook';
 
 export type ReconcileOutcome =
   /** La commande vient d'être marquée payée. */
@@ -139,6 +140,19 @@ export async function confirmOrderPaidFromCheckoutSession(
     changedByRole: 'system',
     reason: options.reason || 'Paiement confirmé auprès de Stripe'
   });
+
+  // JONCTION COMMANDE → ROUTEUR : la route de fulfillment est figée au
+  // paiement (qui expédie, par quel modèle). Un échec ici ne doit JAMAIS
+  // remettre en cause un paiement confirmé — la commande reste payable et
+  // sera routée manuellement depuis le dashboard.
+  try {
+    const routing = await freezeOrderRouting(order.id);
+    if (routing.blocked) {
+      console.warn(`[Routing] Commande ${order.id} payée mais routage BLOQUÉ : source absente ou indisponible — intervention requise.`);
+    }
+  } catch (error) {
+    console.error(`[Routing] Échec du figeage pour la commande ${order.id} (paiement confirmé, à router manuellement) :`, error instanceof Error ? error.message : error);
+  }
 
   // Le coupon n'est consommé qu'une fois, parce qu'on n'arrive ici qu'après
   // avoir écarté le cas « déjà payé ».

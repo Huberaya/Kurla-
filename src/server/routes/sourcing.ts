@@ -7,6 +7,7 @@ import { readWorkspaceScope, sourcingItemInWorkspace, type WorkspaceScope } from
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { buildConsolidatedSourcing } from '../../lib/sourcingConsolidated';
 import { buildFicheFromCandidate } from '../../lib/sourcingFicheLink';
+import { freezeOrderRouting } from '../payments/orderRoutingHook';
 import {
   canTransitionSupplyWorkflow,
   evaluateMargin,
@@ -346,6 +347,48 @@ export function registerSourcingRoutes(app: Express): void {
     } catch (error) {
       console.error('[Sourcing] ops error:', error);
       res.status(500).json({ error: safeApiError(error, 'Vue ops impossible.') });
+    }
+  }));
+
+  /**
+   * JONCTION COMMANDE → ROUTEUR — lecture : routes figées au paiement,
+   * groupées par commande, + commandes payées non encore routées (historique
+   * d'avant la jonction). Répond à « qui est responsable de l'expédition ? ».
+   */
+  app.get('/api/admin/order-routes', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const { data: routeRows, error } = await supabase
+        .from('order_item_routes')
+        .select('*')
+        .order('routed_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const paidOrders = await serverDb.listOrdersByStatus(['paid'], { limit: 100 });
+      const routedOrderIds = new Set((routeRows || []).map((r: any) => String(r.order_id)));
+      const pending = paidOrders
+        .filter((order: any) => !routedOrderIds.has(String(order.id)))
+        .map((order: any) => ({ orderId: String(order.id), total: order.total, status: order.status }));
+      res.json({ routes: routeRows || [], pendingRouting: pending });
+    } catch (error) {
+      console.error('[Routing] order-routes list error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Lecture des routes impossible.') });
+    }
+  }));
+
+  /** Figement manuel (commandes historiques ou échec du hook). Idempotent. */
+  app.post('/api/admin/order-routes/:orderId/freeze', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const result = await freezeOrderRouting(String(req.params.orderId || ''), { force: req.body?.force === true });
+      res.json(result);
+    } catch (error) {
+      console.error('[Routing] freeze error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Figeage de la route impossible.') });
     }
   }));
 

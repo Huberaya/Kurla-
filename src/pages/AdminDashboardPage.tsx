@@ -11,6 +11,7 @@ import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
 import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPanel';
 import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
+import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
@@ -961,6 +962,7 @@ export const AdminDashboardPage: React.FC = () => {
             <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-kurla-copper" /> Commandes et Suivi Opérationnel
             </h2>
+            <OrderFulfillmentPanel headers={adminHeaders} />
 
             {serverOrders.length === 0 ? (
               <p className="text-xs text-kurla-cream/50 italic">Aucune commande enregistrée dans la base.</p>
