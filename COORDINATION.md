@@ -2615,3 +2615,23 @@ précédente ; et seules les réponses `ok` entrent en cache.
 récupérera donc la correction à sa prochaine visite, sans intervention.
 
 Banc : `tests/kurla_service_worker.test.ts`.
+
+#### Vérification du service worker en situation réelle
+
+Banc : Chrome mobile, deux visites (la première installe, la seconde active),
+puis navigation au clic avec le cache en place.
+
+    cache actif     : kurla-shell-a7aba15a2d59 — le numéro de construction
+    contenu         : 43 entrées
+    /diagnostic/cheveux  248 mots  · /peau/diagnostic 277
+    /boutique           6689 mots  · /outils         2994
+    hors ligne      : 2 409 mots servis depuis la coquille — pas de page blanche
+
+**Et pour un téléphone déjà bloqué ?** `GET /sw.js` est servi avec
+`max-age=0, must-revalidate` : le navigateur le récupère à chaque visite. Le
+nouveau service worker s'installe, s'active (`skipWaiting` + `clients.claim`)
+et l'activation supprime les caches qui ne portent pas le nom courant — donc
+l'ancien `kurla-shell-v1`, avec ses 404 mémorisés. La première ouverture peut
+encore être servie par l'ancien worker ; la suivante est saine. Si le
+problème persistait malgré tout, vider les données du site (ou réinstaller
+l'application) règle le cas.
