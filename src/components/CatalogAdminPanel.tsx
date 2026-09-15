@@ -127,6 +127,71 @@ function draftFromProduct(product: any): ProductDraft {
   };
 }
 
+/**
+ * « Fiche 360 » (17/09 phase 2) — assemble, pour une fiche, les trois points de
+ * vue de l'acheteur depuis les données déjà chargées : commercial (état de
+ * publication + manques nommés), appro (fournisseur rattaché + lots reçus) et
+ * demande (précommandes). Fonction pure, sans DOM ni réseau : le banc
+ * `kurla_catalog_workbench` la couvre. Aucune donnée n'est déduite : un champ
+ * inconnu reste null, jamais supposé.
+ */
+export interface Product360Input {
+  product: { id: string; name?: string; catalogStatus?: string; inStock?: boolean; stockQuantity?: number; isPreorder?: boolean } | null;
+  supplier: { legalName?: string; country?: string; moqUnits?: number | null; leadTimeDays?: number | null; verificationStatus?: string } | null;
+  readiness: { ready: boolean; missing: string[] } | null;
+  batches: Array<{ receivedOn?: string; quantityReceived?: number; unitCost?: number | null }>;
+  demandRow: { qtyFirm?: number; qtyPending?: number; qtyToSource?: number; orderCountFirm?: number } | null;
+}
+
+export function buildProduct360(input: Product360Input) {
+  const { product, supplier, readiness, batches, demandRow } = input;
+  const lastLot = batches
+    .filter(batch => Number.isFinite(Number(batch.unitCost)) && Number(batch.unitCost) > 0)
+    .sort((a, b) => String(b.receivedOn || '').localeCompare(String(a.receivedOn || '')))[0];
+  const qtyFirm = Number(demandRow?.qtyFirm) || 0;
+  const qtyPending = Number(demandRow?.qtyPending) || 0;
+  const qtyToSource = Number(demandRow?.qtyToSource) || 0;
+  return {
+    commercial: {
+      status: product?.catalogStatus || 'inconnu',
+      ready: readiness ? readiness.ready : null,
+      missing: readiness ? readiness.missing || [] : []
+    },
+    supply: {
+      supplierName: supplier ? String(supplier.legalName || '') || null : null,
+      country: supplier?.country || null,
+      moqUnits: supplier && Number.isFinite(Number(supplier.moqUnits)) ? Number(supplier.moqUnits) : null,
+      leadTimeDays: supplier && Number.isFinite(Number(supplier.leadTimeDays)) ? Number(supplier.leadTimeDays) : null,
+      verified: supplier?.verificationStatus === 'verified',
+      lotsReceived: batches.length,
+      lastLotCostEur: lastLot ? Math.round(Number(lastLot.unitCost)) / 100 : null
+    },
+    demand: {
+      hasDemand: qtyFirm > 0 || qtyPending > 0 || qtyToSource > 0,
+      qtyFirm,
+      qtyPending,
+      qtyToSource
+    }
+  };
+}
+
+/** Export CSV d'une sélection de fiches (RFC4180 : CRLF + échappements). Fonction pure, testée. */
+export function productsSelectionToCsv(rows: Array<{
+  id: string; name: string; slug?: string; brand?: string | null; price: number;
+  catalogStatus: string; supplierName: string | null; ready: boolean; missing: string[];
+}>): string {
+  const header = ['Reference', 'Nom', 'Slug', 'Marque', 'Prix_eur', 'Statut', 'Fournisseur', 'Publiable', 'Manquants'];
+  const escape = (value: string | number | boolean | null): string => {
+    const text = value == null ? '' : typeof value === 'boolean' ? (value ? 'oui' : 'non') : String(value);
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const lines = [header.join(',')];
+  for (const row of rows) {
+    lines.push([row.id, row.name, row.slug || '', row.brand, row.price, row.catalogStatus, row.supplierName, row.ready, row.missing.join(' | ')].map(escape).join(','));
+  }
+  return `${lines.join('\r\n')}\r\n`;
+}
+
 export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide, scope = 'all', focusProductId, focusLabel }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -207,10 +272,100 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
 
   const isTestCard = (product: any) => product?.truth?.isTestListing === true || product?.isTestListing === true || product?.is_test_listing === true;
   const testCardCount = useMemo(() => products.filter(isTestCard).length, [products]);
+  // Filtres rapides de l'acheteur (17/09 phase 2) : prêts / bloqués / sans
+  // fournisseur — comptés sur les données réelles (readiness, supplierId).
+  const [quickFilter, setQuickFilter] = useState<'all' | 'ready' | 'blocked' | 'nosupplier'>('all');
+  const quickCounts = useMemo(() => ({
+    ready: products.filter(p => readinessMap[p.id]?.ready).length,
+    blocked: products.filter(p => readinessMap[p.id] && !readinessMap[p.id].ready).length,
+    nosupplier: products.filter(p => !p.supplierId).length
+  }), [products, readinessMap]);
+  // Sélection multiple → actions groupées (rattachement fournisseur, export CSV).
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [bulkSupplierId, setBulkSupplierId] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
+  // Vue 360 : une fiche, tout d'un coup (commercial / appro / demande).
+  const [view360Id, setView360Id] = useState<string | null>(null);
+  const [view360Data, setView360Data] = useState<{ batches: any[]; demandRow: any | null } | null>(null);
   const filteredProducts = useMemo(() => products.filter(product => {
     if (showTestOnly && !isTestCard(product)) return false;
-    return `${product.name} ${product.brand || ''} ${product.slug}`.toLowerCase().includes(filter.toLowerCase());
-  }), [products, filter, showTestOnly]);
+    if (quickFilter === 'ready' && !readinessMap[product.id]?.ready) return false;
+    if (quickFilter === 'blocked' && !(readinessMap[product.id] && !readinessMap[product.id].ready)) return false;
+    if (quickFilter === 'nosupplier' && product.supplierId) return false;
+    // Recherche globale : nom, marque, slug, INCI, ingrédients.
+    const haystack = `${product.name} ${product.brand || ''} ${product.slug} ${product.inci || ''} ${(product.ingredients || []).join(' ')}`.toLowerCase();
+    return haystack.includes(filter.toLowerCase());
+  }), [products, filter, showTestOnly, quickFilter, readinessMap]);
+  const toggleSelect = (id: string) => setSelection(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const selectVisible = () => setSelection(prev => { const next = new Set(prev); filteredProducts.forEach(p => next.add(String(p.id))); return next; });
+  const clearSelection = () => setSelection(new Set());
+
+  const openView360 = async (productId: string) => {
+    setView360Id(productId);
+    setView360Data(null);
+    try {
+      const [batchesResponse, demandResponse] = await Promise.all([
+        fetch(`/api/admin/batches?productId=${encodeURIComponent(productId)}`, { headers }),
+        fetch('/api/admin/preorder-demand', { headers })
+      ]);
+      const [batchesJson, demandJson] = await Promise.all([batchesResponse.json(), demandResponse.json()]);
+      setView360Data({
+        batches: batchesJson.batches || [],
+        demandRow: (demandJson.products || []).find((row: any) => String(row.productId) === String(productId)) || null
+      });
+    } catch {
+      setView360Data({ batches: [], demandRow: null });
+    }
+  };
+
+  const linkSuppliersBulk = async () => {
+    if (!bulkSupplierId || selection.size === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    setBulkMessage('');
+    const ids = Array.from(selection).map(String);
+    const results = await Promise.allSettled(ids.map(id =>
+      fetch(`/api/admin/catalog/products/${encodeURIComponent(id)}`, {
+        method: 'PATCH', headers, body: JSON.stringify({ supplierId: bulkSupplierId })
+      }).then(response => response.json().then(data => ({ ok: response.ok, data })))
+    ));
+    const failed = results.map((result, index) => ({ id: ids[index], result })).filter(x => x.result.status === 'rejected' || !x.result.value.ok);
+    const supplier = suppliersRef.find(s => String(s.id) === String(bulkSupplierId));
+    if (failed.length === 0) {
+      setBulkMessage(`✓ ${ids.length} fiche(s) rattachée(s) à « ${supplier?.legalName || bulkSupplierId} ».`);
+      clearSelection();
+    } else {
+      setBulkMessage(`${ids.length - failed.length}/${ids.length} rattachée(s) — ${failed.length} refusée(s) : ${failed.slice(0, 3).map(f => f.id).join(', ')}${failed.length > 3 ? '…' : ''}`);
+    }
+    setBulkBusy(false);
+    loadCatalog();
+  };
+
+  const exportSelectionCsv = () => {
+    const rows = products.filter(p => selection.has(String(p.id))).map(p => ({
+      id: String(p.id),
+      name: String(p.name || ''),
+      slug: p.slug,
+      brand: p.brand || null,
+      price: Number(p.price) || 0,
+      catalogStatus: p.catalogStatus || 'draft',
+      supplierName: p.supplierId && supplierById[p.supplierId] ? supplierById[p.supplierId].legalName : null,
+      ready: !!readinessMap[p.id]?.ready,
+      missing: readinessMap[p.id]?.missing || []
+    }));
+    if (rows.length === 0) return;
+    const csv = productsSelectionToCsv(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `selection-catalogue-kurla-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setBulkMessage(`✓ ${rows.length} fiche(s) exportée(s) en CSV.`);
+  };
   const supplierById = useMemo(() => {
     const index: Record<string, any> = {};
     for (const item of suppliersRef) index[item.id] = item;
@@ -433,7 +588,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
         </div>
       </div>
 
-      <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({products.length})</h3><button type="button" onClick={() => setShowTestOnly(v => !v)} className={`px-3 py-2 rounded-xl border text-[11px] font-bold ${showTestOnly ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60 hover:border-amber-400/40'}`}>Test / sourcing ({testCardCount}) : {showTestOnly ? 'isolées' : 'dans la liste'}</button><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-72 px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" /></div>{filteredProducts.length === 0 ? <p className="text-xs text-kurla-cream/45">Aucune fiche catalogue.</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-kurla-copper/15 text-kurla-amber">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span>{isTestCard(product) && <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/20">test / sourcing</span>}{Array.isArray(product.badges) && (product.badges.includes('dropship') || product.badges.includes('dropship_24_48h')) && <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">24–48h dropship</span>}</div><p className="text-[11px] text-kurla-cream/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p>{(() => { const linked = product.supplierId ? supplierById[product.supplierId] : null; return linked ? <p className="text-[11px] mt-1 text-kurla-cream/70">Fournisseur : <span className="font-bold text-kurla-amber">{linked.legalName}</span>{linked.country ? ` (${linked.country})` : ''} — {linked.contactName || 'contact non nommé'}{linked.contactEmail ? <> · <a href={`mailto:${linked.contactEmail}`} className="text-kurla-amber underline">{linked.contactEmail}</a></> : <span className="text-amber-300"> · e-mail à compléter</span>}{linked.website ? <> · <a href={linked.website} target="_blank" rel="noreferrer" className="text-kurla-amber underline">{String(linked.website).replace(/^https?:\/\//, '')}</a></> : null}</p> : <p className="text-[11px] mt-1 text-amber-300/85">Fournisseur non rattaché — sourcing à qualifier{product.sourceSupplier ? ` (${product.sourceSupplier})` : ''}</p>; })()}
+      <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4"><div className="space-y-2.5"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><h3 className="font-bold">Fiches produits ({filteredProducts.length}/{products.length})</h3><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher (nom, marque, slug, INCI)…" className="sm:w-80 px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" /></div><div className="flex flex-wrap items-center gap-1.5">{([['all', 'Toutes', null], ['ready', 'Prêtes', quickCounts.ready], ['blocked', 'Bloquées', quickCounts.blocked], ['nosupplier', 'Sans fournisseur', quickCounts.nosupplier], ['test', 'Test / sourcing', testCardCount]] as Array<['all' | 'ready' | 'blocked' | 'nosupplier' | 'test', string, number | null]>).map(([key, label, count]) => { const active = key === 'test' ? showTestOnly : quickFilter === key; return <button key={key} type="button" onClick={() => key === 'test' ? setShowTestOnly(v => !v) : setQuickFilter(current => current === key ? 'all' : key)} className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-colors ${active ? 'bg-kurla-copper/20 text-kurla-copper border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60 hover:border-kurla-copper/30'}`}>{label} ({count ?? 0})</button>; })}<button type="button" onClick={selectVisible} className="ml-auto px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/60 hover:border-kurla-copper/30">Sélectionner la vue</button></div>{selection.size > 0 && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-kurla-copper/30 bg-kurla-copper/[0.07] px-3 py-2"><span className="text-[11px] font-bold text-kurla-copper">{selection.size} sélectionnée{selection.size > 1 ? 's' : ''}</span><select value={bulkSupplierId} onChange={e => setBulkSupplierId(e.target.value)} className="px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px]"><option value="">Fournisseur…</option>{suppliersRef.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.legalName}</option>)}</select><button type="button" onClick={linkSuppliersBulk} disabled={!bulkSupplierId || bulkBusy} className="px-3 py-1.5 rounded-lg bg-kurla-copper text-white text-[11px] font-bold hover:bg-kurla-cocoa disabled:opacity-40 disabled:cursor-not-allowed">{bulkBusy ? 'Rattachement…' : 'Rattacher au fournisseur'}</button><button type="button" onClick={exportSelectionCsv} className="px-3 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 hover:border-kurla-copper/30">Exporter la sélection (CSV)</button><button type="button" onClick={clearSelection} className="px-3 py-1.5 rounded-lg text-[11px] text-kurla-cream/45 hover:text-kurla-cream">Tout désélectionner</button>{bulkMessage && <span className="text-[11px] text-kurla-cream/65 w-full sm:w-auto">{bulkMessage}</span>}</div>}{view360Id && (() => { const product = products.find(p => String(p.id) === String(view360Id)); const supplier = product?.supplierId ? supplierById[product.supplierId] : null; const summary = buildProduct360({ product: product || null, supplier: supplier || null, readiness: product ? readinessMap[product.id] || null : null, batches: view360Data?.batches || [], demandRow: view360Data?.demandRow || null }); return <div className="rounded-2xl border border-kurla-copper/30 bg-kurla-ink p-4 space-y-3"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 min-w-0"><span className="font-bold text-sm truncate">{product?.name || view360Id}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-kurla-copper/15 text-kurla-amber shrink-0">{summary.commercial.status}</span></div><button type="button" onClick={() => { setView360Id(null); setView360Data(null); }} className="px-3 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/60 hover:border-kurla-copper/30 shrink-0">← Retour aux fiches</button></div>{view360Data === null && <p className="text-[11px] text-kurla-cream/45">Lecture des lots et de la demande pour cette fiche…</p>}{view360Data !== null && <div className="grid md:grid-cols-3 gap-3"><div className="rounded-xl bg-kurla-espresso border border-kurla-cream/10 p-3 space-y-1.5"><p className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Commercial</p>{summary.commercial.ready === true && <p className="text-[11px] text-emerald-300">✓ Prête à publier — tous les contrôles au vert.</p>}{summary.commercial.ready === false && <><p className="text-[11px] font-bold text-rose-300">⛔ Bloquée — {summary.commercial.missing.length} manquant(s) :</p><ul className="space-y-0.5">{summary.commercial.missing.map(item => <li key={item} className="text-[10px] text-rose-200/70">· {item}</li>)}</ul></>}{summary.commercial.ready === null && <p className="text-[11px] text-kurla-cream/45">État de publication non chargé.</p>}<p className="text-[10px] text-kurla-cream/50">Statut : {summary.commercial.status}{product?.isPreorder ? ' · précommande' : ''} · stock {product?.stockQuantity ?? 0}</p>{product?.inci && <details className="text-[10px] text-kurla-cream/50"><summary className="cursor-pointer text-kurla-amber/80 font-bold">INCI (extrait)</summary><p className="mt-1 leading-relaxed line-clamp-6 whitespace-pre-wrap">{String(product.inci).slice(0, 600)}{String(product.inci).length > 600 ? '…' : ''}</p></details>}</div><div className="rounded-xl bg-kurla-espresso border border-kurla-cream/10 p-3 space-y-1.5"><p className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Approvisionnement</p>{summary.supply.supplierName ? <p className="text-[11px] text-kurla-cream/75"><span className="font-bold text-kurla-cream">{summary.supply.supplierName}</span>{summary.supply.country ? ` (${summary.supply.country})` : ''} · {summary.supply.verified ? <span className="text-emerald-300">vérifié</span> : <span className="text-amber-300">vérification en cours</span>}</p> : <p className="text-[11px] text-amber-300/85">Fournisseur non rattaché — à sourcer.</p>}<p className="text-[10px] text-kurla-cream/50">MOQ : {summary.supply.moqUnits != null ? summary.supply.moqUnits : '—'} · Délai : {summary.supply.leadTimeDays != null ? `${summary.supply.leadTimeDays} j` : '—'}</p><p className="text-[10px] text-kurla-cream/50">Lots reçus : {summary.supply.lotsReceived}{summary.supply.lastLotCostEur != null ? ` · dernier coût ${summary.supply.lastLotCostEur.toFixed(2).replace('.', ',')} €/u` : ''}</p>{view360Data.batches.slice(0, 4).map((batch, index) => <p key={index} className="text-[10px] text-kurla-cream/40">· {batch.lotReference || 'lot'} {batch.receivedOn ? `du ${String(batch.receivedOn).slice(0, 10)}` : ''} — {batch.quantityReceived ?? '—'} u{Number.isFinite(Number(batch.unitCost)) && Number(batch.unitCost) > 0 ? ` à ${(Number(batch.unitCost) / 100).toFixed(2).replace('.', ',')} €/u` : ''}</p>)}</div><div className="rounded-xl bg-kurla-espresso border border-kurla-cream/10 p-3 space-y-1.5"><p className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Demande</p>{summary.demand.hasDemand ? <><p className="text-[11px] text-kurla-cream/75">{summary.demand.qtyFirm} ferme{summary.demand.qtyFirm > 1 ? 's' : ''} · {summary.demand.qtyPending} en attente</p><p className="text-[10px] text-kurla-cream/50">À couvrir au total : <span className="font-bold text-kurla-copper">{summary.demand.qtyToSource}</span> (kits déroulés)</p></> : <p className="text-[11px] text-kurla-cream/45">Aucune demande enregistrée pour cette fiche.</p>}</div></div>}</div>; })()}</div>{filteredProducts.length === 0 ? <p className="text-xs text-kurla-cream/45">{products.length === 0 ? 'Aucune fiche catalogue.' : 'Aucune fiche ne correspond à ces filtres.'}</p> : <div className="space-y-3">{filteredProducts.map(product => <div key={product.id} className={`p-4 rounded-2xl bg-kurla-ink border ${selection.has(String(product.id)) ? 'border-kurla-copper/50' : 'border-kurla-cream/10'}`}><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div className="flex items-start gap-3 flex-1 min-w-0"><input type="checkbox" aria-label={`Sélectionner ${product.name}`} checked={selection.has(String(product.id))} onChange={() => toggleSelect(String(product.id))} className="mt-1.5 w-4 h-4 accent-[#B4642C] shrink-0" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-bold text-sm">{product.name}</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-kurla-copper/15 text-kurla-amber">{product.catalogStatus || 'draft'}</span><span className={`px-2 py-0.5 rounded-full text-[10px] ${product.isActive ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-500/15 text-slate-300'}`}>{product.isActive ? 'actif' : 'inactif'}</span>{isTestCard(product) && <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/20">test / sourcing</span>}{Array.isArray(product.badges) && (product.badges.includes('dropship') || product.badges.includes('dropship_24_48h')) && <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">24–48h dropship</span>}</div><p className="text-[11px] text-kurla-cream/55 mt-1">{product.brand || 'Marque non renseignée'} • {Number(product.price || 0).toFixed(2)} € • stock {product.stockQuantity ?? 0} • modifié {product.lastCatalogUpdatedAt ? new Date(product.lastCatalogUpdatedAt).toLocaleString('fr-FR') : 'date non renseignée'}</p>{(() => { const linked = product.supplierId ? supplierById[product.supplierId] : null; return linked ? <p className="text-[11px] mt-1 text-kurla-cream/70">Fournisseur : <span className="font-bold text-kurla-amber">{linked.legalName}</span>{linked.country ? ` (${linked.country})` : ''} — {linked.contactName || 'contact non nommé'}{linked.contactEmail ? <> · <a href={`mailto:${linked.contactEmail}`} className="text-kurla-amber underline">{linked.contactEmail}</a></> : <span className="text-amber-300"> · e-mail à compléter</span>}{linked.website ? <> · <a href={linked.website} target="_blank" rel="noreferrer" className="text-kurla-amber underline">{String(linked.website).replace(/^https?:\/\//, '')}</a></> : null}</p> : <p className="text-[11px] mt-1 text-amber-300/85">Fournisseur non rattaché — sourcing à qualifier{product.sourceSupplier ? ` (${product.sourceSupplier})` : ''}</p>; })()}
 {readinessMap[product.id] && !readinessMap[product.id].ready && (
   <div className="mt-2 p-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20">
     <p className="text-[10px] font-bold text-amber-300">⛔ Publication bloquée — {readinessMap[product.id].missing.length} manque(s) :</p>
@@ -446,7 +601,7 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
 {readinessMap[product.id]?.ready && product.catalogStatus !== 'published' && (
   <p className="text-[10px] text-emerald-300 mt-1.5">✓ Prêt à publier — tous les contrôles (y compris CPNP/RP/CPSR si cosmétique) sont au vert.</p>
 )}
-</div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-kurla-espresso border border-kurla-cream/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => loadReturnInsight(product.id)} disabled={insightLoading === product.id} className="px-3 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RefreshCw className={`w-3 h-3 ${insightLoading === product.id ? 'animate-spin' : ''}`} /> Retours</button><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-kurla-copper text-[11px] font-bold">Modifier</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div>{returnInsights[product.id] && <div className="mt-3 p-3 rounded-xl border border-kurla-cream/10 bg-kurla-espresso space-y-2"><p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold">Intelligence des retours — interne</p><p className="text-[11px] text-kurla-cream/65">{returnInsights[product.id].totalReturns} retour(s) enregistré(s), dont {returnInsights[product.id].informativeReturns} avec une raison exploitable.</p>{returnInsights[product.id].topReasons.length > 0 && <ul className="space-y-1">{returnInsights[product.id].topReasons.map(reason => <li key={reason.reason} className="text-[11px] text-kurla-cream/60">• {reason.label} — {reason.count} signalement(s), {Math.round(reason.share * 100)} %</li>)}</ul>}{returnInsights[product.id].catalogAlert && <p className="text-[11px] text-amber-300 font-semibold">⚠ {returnInsights[product.id].catalogAlert}</p>}{returnInsights[product.id].archetypeHotspots.length > 0 && <p className="text-[11px] text-kurla-cream/55">Cohortes concernées : {returnInsights[product.id].archetypeHotspots.map(hotspot => hotspot.archetypeId).join(', ')}.</p>}{returnInsights[product.id].limitations.length > 0 && <ul className="space-y-0.5">{returnInsights[product.id].limitations.map((limitation, index) => <li key={index} className="text-[10px] text-kurla-cream/40">· {limitation}</li>)}</ul>}<p className="text-[10px] text-kurla-cream/35">Ces signaux sont réservés à l’équipe catalogue. Ils ne sont jamais affichés aux clientes.</p></div>}</div>)}</div>}</div>
+</div></div><div className="flex flex-wrap items-center gap-2"><select value={product.catalogStatus || 'draft'} onChange={e => setStatus(product, e.target.value)} className="px-2 py-1.5 rounded-lg bg-kurla-espresso border border-kurla-cream/15 text-[11px]"><option value="draft">brouillon</option><option value="pending_review">à vérifier</option><option value="published">publier</option><option value="unavailable">indisponible</option></select><button onClick={() => loadReturnInsight(product.id)} disabled={insightLoading === product.id} className="px-3 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RefreshCw className={`w-3 h-3 ${insightLoading === product.id ? 'animate-spin' : ''}`} /> Retours</button><button onClick={() => setDraft(draftFromProduct(product))} className="px-3 py-1.5 rounded-lg bg-kurla-copper text-[11px] font-bold">Modifier</button><button onClick={() => openView360(String(product.id))} className="px-3 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 hover:border-kurla-copper/30">Vue 360</button></div></div><div className="flex flex-wrap gap-1.5 mt-3">{Object.entries(product.validation || {}).map(([check, status]) => <button key={check} onClick={() => status === 'verified' ? undefined : markValidation(product.id, check)} disabled={status === 'verified'} className={`px-2 py-1 rounded-lg text-[10px] border ${status === 'verified' ? 'border-emerald-500/30 text-emerald-300' : 'border-amber-500/30 text-amber-300 hover:bg-amber-500/10'}`}><span className="capitalize">{check}</span>: {String(status)}{status !== 'verified' && <Check className="inline w-3 h-3 ml-1" />}</button>)}</div>{returnInsights[product.id] && <div className="mt-3 p-3 rounded-xl border border-kurla-cream/10 bg-kurla-espresso space-y-2"><p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold">Intelligence des retours — interne</p><p className="text-[11px] text-kurla-cream/65">{returnInsights[product.id].totalReturns} retour(s) enregistré(s), dont {returnInsights[product.id].informativeReturns} avec une raison exploitable.</p>{returnInsights[product.id].topReasons.length > 0 && <ul className="space-y-1">{returnInsights[product.id].topReasons.map(reason => <li key={reason.reason} className="text-[11px] text-kurla-cream/60">• {reason.label} — {reason.count} signalement(s), {Math.round(reason.share * 100)} %</li>)}</ul>}{returnInsights[product.id].catalogAlert && <p className="text-[11px] text-amber-300 font-semibold">⚠ {returnInsights[product.id].catalogAlert}</p>}{returnInsights[product.id].archetypeHotspots.length > 0 && <p className="text-[11px] text-kurla-cream/55">Cohortes concernées : {returnInsights[product.id].archetypeHotspots.map(hotspot => hotspot.archetypeId).join(', ')}.</p>}{returnInsights[product.id].limitations.length > 0 && <ul className="space-y-0.5">{returnInsights[product.id].limitations.map((limitation, index) => <li key={index} className="text-[10px] text-kurla-cream/40">· {limitation}</li>)}</ul>}<p className="text-[10px] text-kurla-cream/35">Ces signaux sont réservés à l’équipe catalogue. Ils ne sont jamais affichés aux clientes.</p></div>}</div>)}</div>}</div>
     </div>
   );
 };

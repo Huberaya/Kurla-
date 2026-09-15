@@ -2311,3 +2311,65 @@ désormais caduque (corrigée en `36cedfd` par le travail parallèle, puis fixtu
 refigé par cette entrée avec diff vérifié). **Prochain lot** : phases 2 (fiche
 produit 3 colonnes + actions groupées) puis 3 (découpage approvisionnement en
 3 sous-onglets + objet « proposition d'achat ») — ne pas commencer sans GO.
+
+## Dashboard admin : fiche produit 3 colonnes + actions groupées, approvisionnement découpé, proposition d'achat (17/09/2026)
+
+Suite de la proposition « espace de travail acheteur » (`docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`) —
+**phases 2 et 3 livrées** (la phase 1 « À faire aujourd'hui » était déjà poussée).
+
+**Phase 2 — Catalogue produits devient un espace de travail** (`CatalogAdminPanel`) :
+- **Recherche globale** : nom, marque, slug **+ INCI + ingrédients** ; compteur
+  « vues/total » sur le titre.
+- **Filtres rapides** (comptés sur les données réelles, jamais supposés) :
+  Prêtes · Bloquées · Sans fournisseur · Test/sourcing — cumulables avec la
+  recherche.
+- **Actions groupées** : sélection multiple (cases par fiche, « Sélectionner la
+  vue ») → barre d'actions : **rattacher un fournisseur** (PATCH partiel
+  `{ supplierId }` par fiche — le store merge avec l'existant, vérifié dans
+  `normalizeCatalogProductInput` ; les refus sont nommés un à un, jamais
+  masqués) + **export CSV** de la sélection (RFC4180).
+- **Vue 360** par fiche : une carte en 3 colonnes — *Commercial* (statut, état
+  de publication, manques nommés, INCI repliable) · *Approvisionnement*
+  (fournisseur, vérification, MOQ, délai, lots reçus avec coûts) · *Demande*
+  (fermes, attente, à couvrir kits déroulés). Données lues sur
+  `batches?productId=` + `preorder-demand` à l'ouverture.
+
+**Phase 3 — Approvisionnement découpé + objet d'achat** :
+- « Fournisseurs & sourcing » : **11 panels empilés → 3 sous-onglets** :
+  *Fournisseurs* (référentiel + rattachement produits) · *Sourcing & RFQ*
+  (proposition d'achat, cahier peau, tracking mails, vue consolidée, prospects,
+  matrice pays) · *Logistique* (tampon A3 3PL, contacts & messages prêts,
+  kitting, lot whitecast peau + **carte de renvoi vers Lots & traçabilité** —
+  l'écran dédié reste dans la famille Catalogue, lien explicite). La barre de
+  sections re-scanne par sous-onglet (pageKey dédié).
+- **Nouvelle « Proposition d'achat — premier lot »** (`PurchaseProposalPanel`,
+  tête du sous-onglet Sourcing & RFQ) : pour chaque référence à couvrir —
+  demande (fermes+attente+kits) − stock = **à commander** (bornée à 0, « couvert »
+  sinon), fournisseur + MOQ + délai, **coût unitaire = coût réel du dernier lot
+  reçu** (sinon « à obtenir » — jamais d'estimation inventée), pièces
+  manquantes lues sur l'état de publication, total estimé **complet ou
+  « estimation partielle » nommé**, export CSV.
+
+**Fichiers** : `src/components/PurchaseProposalPanel.tsx` (NEUF ; `buildPurchaseProposal`
++ `purchaseProposalToCsv` pures exportées) · `src/components/CatalogAdminPanel.tsx`
+(filtres rapides, sélection, rattachement groupé, export CSV, vue 360 ; `buildProduct360`
++ `productsSelectionToCsv` pures exportées) · `src/pages/AdminDashboardPage.tsx`
+(sous-onglets `supplierSub`, PurchaseProposalPanel branché, pageKey de la nav
+sections) · `tests/kurla_purchase_proposal.test.ts` (7 blocs) ·
+`tests/kurla_catalog_workbench.test.ts` (4 blocs) — `test:purchase-proposal` et
+`test:catalog-workbench` dans la chaîne npm test · `tests/fixtures/admin_route_inventory.json`
+(**mise à jour volontaire** — diff contrôlé : uniquement les nouveaux écrans comme
+appelants des routes existantes + décalages de lignes dans `CatalogAdminPanel`).
+
+**Vérifié** : tsc propre · bancs `purchase-proposal` (7) et `catalog-workbench` (4)
+verts · `admin_route_inventory` PASS après régénération (diff = 2 nouveaux écrans,
+aucune route ajoutée/retirée, aucun appelant perdu) · bancs admin_dashboard /
+operations-cockpit / batches / catalog verts · dev server relancé (store Supabase
+OK, `NODE_OPTIONS=--experimental-websocket`) · /admin 200 · les 3 nouveaux
+composants transformés par Vite (200).
+
+**Note** : l'écran « Lots & traçabilité » n'a **pas** été déplacé (décision :
+renvoi explicite depuis Logistique) — la file « À faire aujourd'hui » et la
+barre de sections pointent toujours vers le même onglet. Prochain chantier
+possible (non demandé) : deep-link « Sourcing & RFQ » depuis la file quand une
+RFQ est en retard de relance.

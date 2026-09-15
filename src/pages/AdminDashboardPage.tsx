@@ -14,6 +14,7 @@ import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { AdminSectionNav } from '../components/AdminSectionNav';
 import { AdminActionQueue } from '../components/AdminActionQueue';
+import { PurchaseProposalPanel } from '../components/PurchaseProposalPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
@@ -117,6 +118,8 @@ export const AdminDashboardPage: React.FC = () => {
     // On revient en haut : la page cible est longue et l'action doit être visible.
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
+  // Approvisionnement (17/09 phase 3) : 11 panels empilés → 3 sous-onglets.
+  const [supplierSub, setSupplierSub] = useState<'dir' | 'sourcing' | 'log'>('dir');
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
@@ -724,7 +727,7 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* Navigation par sections : barre de saut collante + scrollspy + progression
             (détecte les h2/h3 du panel actif ; invisible si moins de 3 sections). */}
-        <AdminSectionNav rootRef={panelRootRef} pageKey={`${workspace}-${activeTab}`} />
+        <AdminSectionNav rootRef={panelRootRef} pageKey={`${workspace}-${activeTab}${activeTab === 'suppliers' ? `-${supplierSub}` : ''}`} />
         {workspace === 'copilot' && (
           <CopilotePanel headers={adminHeaders} />
         )}
@@ -1501,42 +1504,82 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — C16 cahier + C22 P1 J0 5 mails + C22 P2 J+3/J+7 + 16B + A3 tampon + B2 kitting + matrice pays */}
+        {/* TAB 5B: APPROVISIONNEMENT — 17/09 phase 3 : 11 panels empilés découpés
+            en 3 sous-onglets (Fournisseurs · Sourcing & RFQ · Logistique). La
+            barre de sections reste active dans chaque sous-onglet. */}
         {activeTab === 'suppliers' && (
-          <div className="space-y-10">
-            {workspace === 'skin' && <>
-              <PeauSourcingCahierPanel />
-              <PeauJ0MailTrackingPanel headers={adminHeaders} />
-              <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
-            </>}
-            <SourcingCountryStrategyPanel headers={adminHeaders} />
-            <TamponOrderPanel />
-            <FulfillmentContactPanel />
-            <KittingAdminPanel />
-            <ProductSupplierPanel
-              headers={adminHeaders}
-              onSuccess={(message) => {
-                setActionSuccess(message);
-                setTimeout(() => setActionSuccess(''), 5000);
-              }}
-            />
-            <SourcingConsolidatedPanel headers={adminHeaders} />
-            <SourcingProspectsPanel
-              headers={adminHeaders}
-              onSuccess={(message) => {
-                setActionSuccess(message);
-                setTimeout(() => setActionSuccess(''), 5000);
-              }}
-            />
-            <div className="border-t border-kurla-cream/10 pt-8">
-              <SupplierAdminPanel
-                headers={adminHeaders}
-                onSuccess={(message) => {
-                  setActionSuccess(message);
-                  setTimeout(() => setActionSuccess(''), 5000);
-                }}
-              />
+          <div className="space-y-8">
+            <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Sections approvisionnement">
+              {([['dir', 'Fournisseurs'], ['sourcing', 'Sourcing & RFQ'], ['log', 'Logistique']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={supplierSub === key}
+                  type="button"
+                  onClick={() => setSupplierSub(key)}
+                  className={`px-4 py-2 rounded-xl border text-xs font-bold transition-colors ${supplierSub === key ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60 hover:border-kurla-copper/40'}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {supplierSub === 'dir' && (
+              <div className="space-y-10">
+                <SupplierAdminPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+                <ProductSupplierPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+              </div>
+            )}
+
+            {supplierSub === 'sourcing' && (
+              <div className="space-y-10">
+                <PurchaseProposalPanel headers={adminHeaders} />
+                {workspace === 'skin' && <PeauSourcingCahierPanel />}
+                {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
+                <SourcingConsolidatedPanel headers={adminHeaders} />
+                <SourcingProspectsPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+                <SourcingCountryStrategyPanel headers={adminHeaders} />
+              </div>
+            )}
+
+            {supplierSub === 'log' && (
+              <div className="space-y-10">
+                <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-kurla-cream">Lots &amp; traçabilité</h2>
+                    <p className="text-xs text-kurla-cream/55 mt-1 max-w-xl">
+                      Les lots reçus, leurs coûts et leur allocation aux commandes restent dans leur écran dédié
+                      (famille Catalogue) — c'est là qu'on enregistre une réception et qu'on trace.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setActiveTab('batches')} className="px-4 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold hover:bg-kurla-cocoa transition-colors">
+                    Ouvrir Lots &amp; traçabilité →
+                  </button>
+                </div>
+                {workspace === 'skin' && <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />}
+                <TamponOrderPanel />
+                <FulfillmentContactPanel />
+                <KittingAdminPanel />
+              </div>
+            )}
           </div>
         )}
 
