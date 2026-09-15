@@ -7,6 +7,7 @@ import { readWorkspaceScope, sourcingItemInWorkspace, type WorkspaceScope } from
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { buildConsolidatedSourcing } from '../../lib/sourcingConsolidated';
 import { buildFicheFromCandidate } from '../../lib/sourcingFicheLink';
+import { searchAcrossCatalog } from '../../lib/globalSearch';
 import { freezeOrderRouting } from '../payments/orderRoutingHook';
 import {
   canTransitionSupplyWorkflow,
@@ -389,6 +390,38 @@ export function registerSourcingRoutes(app: Express): void {
     } catch (error) {
       console.error('[Routing] freeze error:', error);
       res.status(400).json({ error: safeApiError(error, 'Figeage de la route impossible.') });
+    }
+  }));
+
+  /**
+   * RECHERCHE GLOBALE UNIFIÉE (§24) — une requête traverse catalogue,
+   * positions de fond, candidats et fournisseurs. Lecture seule.
+   */
+  app.get('/api/admin/global-search', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      if (query.length < 2) return res.json({ query, hits: [], counts: { product: 0, position: 0, candidate: 0, supplier: 0 } });
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const [products, positions, candidates, prospects, suppliers] = await Promise.all([
+        serverDb.getAdminCatalogProducts(),
+        supabase.from('sourcing_fond_positions').select('*'),
+        supabase.from('sourcing_product_candidates').select('*'),
+        supabase.from('sourcing_prospects').select('*'),
+        supabase.from('suppliers').select('*'),
+      ]);
+      res.json(searchAcrossCatalog(query, {
+        products,
+        positions: positions.data || [],
+        candidates: candidates.data || [],
+        prospects: prospects.data || [],
+        suppliers: suppliers.data || [],
+      }));
+    } catch (error) {
+      console.error('[Sourcing] global search error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Recherche globale impossible.') });
     }
   }));
 
