@@ -28,6 +28,8 @@ done
 unset __vercel_var
 
 vite build
+# Le cache du service worker doit porter le numero de construction, sinon
+tsx scripts/stampServiceWorker.ts
 tsx scripts/generateSitemap.ts
 tsx scripts/prerender.ts
 esbuild server.ts --bundle --platform=node --format=cjs --packages=external \

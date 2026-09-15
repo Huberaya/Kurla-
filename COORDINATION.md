@@ -2578,3 +2578,40 @@ Piste chiffrée pour qui voudra continuer : le morceau `supabase` (206 Ko)
 est chargé sur `/boutique` pour l'authentification, alors que la session n'est
 nécessaire qu'après le premier affichage. Le rendre paresseux allégerait
 cette page d'autant — sous réserve que rien n'attende la session au montage.
+
+#### Pages blanches sur téléphone : le cache du service worker n'était jamais vidé (15/09/2026)
+
+Symptôme rapporté : la vitesse s'était améliorée, mais **impossible d'ouvrir
+le diagnostic cheveux, la boutique, les outils, le diagnostic peau**.
+
+Ce n'était ni le réseau ni le code des écrans. Mesuré : les quatre pages
+répondent en HTTP 200 avec leur contenu (685 à 3 359 mots de HTML
+prérendu), et elles s'affichaient parfaitement dans un navigateur neuf, en
+chargement direct **comme après un clic depuis l'accueil**, sans la moindre
+erreur console.
+
+La différence entre mon banc et un vrai téléphone tient en un mot : le
+**service worker**. Mon navigateur démarre sur un profil neuf, donc sans
+cache ; le téléphone, lui, gardait le sien.
+
+Deux défauts, dans `public/sw.js` :
+
+1. **Le cache s'appelait `kurla-shell-v1` en dur.** Jamais invalidé, jamais
+   vidé. Après une mise en ligne, le téléphone continuait de servir
+   l'application précédente — une version dont les fichiers n'existent plus
+   sur le serveur, ou qui ne connaît pas les adresses actuelles.
+2. **Les réponses en erreur étaient mises en cache.** `cache.put` était
+   appelé sans vérifier `response.ok` : un 404 sur un ancien fichier
+   d'assets était donc mémorisé, et comme le cache n'était jamais vidé, il
+   le restait définitivement. C'est le scénario du cache empoisonné : la
+   page reste blanche quoi qu'on fasse.
+
+Corrections : le nom du cache porte désormais le numéro de construction
+(`scripts/stampServiceWorker.ts`, estampillé dans les deux chemins de
+compilation), ce qui fait que l'activation vide d'elle-même la construction
+précédente ; et seules les réponses `ok` entrent en cache.
+
+`GET /sw.js` est servi avec `max-age=0, must-revalidate` : un téléphone
+récupérera donc la correction à sa prochaine visite, sans intervention.
+
+Banc : `tests/kurla_service_worker.test.ts`.

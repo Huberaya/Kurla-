@@ -18,8 +18,19 @@
  *     cache est au format « réseau d'abord avec secours local » pour les
  *     navigations, et « cache d'abord » pour les assets de build (dont les
  *     noms sont hachés, donc immuables).
+ *
+ *  4. LE CACHE PORTE LE NUMÉRO DE CONSTRUCTION (15/09/2026). Il s'appelait
+ *     « kurla-shell-v1 » en dur : jamais invalidé, jamais vidé. Après une
+ *     mise en ligne, le téléphone continuait de servir l'application
+ *     précédente — une version dont les fichiers n'existent plus sur le
+ *     serveur, ou qui ne connaît pas les adresses actuelles. Résultat : des
+ *     pages blanches pour le visiteur, alors qu'un navigateur neuf affiche
+ *     tout. Le nom du cache est donc estampillé à la compilation
+ *     (`scripts/stampServiceWorker.ts`) : à chaque construction, l'étape
+ *     d'activation vide les caches des constructions précédentes, et le
+ *     secours hors ligne ne peut plus ressortir une vieille version.
  */
-const CACHE = 'kurla-shell-v1';
+const CACHE = 'kurla-shell-__KURLA_BUILD__';
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -90,8 +101,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          // Une erreur n'entre pas au cache : y mettre un 404 reviendrait à
+          // le resservir ensuite, même une fois le réseau revenu.
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
           return response;
         })
         .catch(() => caches.match(event.request).then((hit) => hit || caches.match('/')))
@@ -109,8 +124,10 @@ self.addEventListener('fetch', (event) => {
         (hit) =>
           hit ||
           fetch(event.request).then((response) => {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+            if (response && response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+            }
             return response;
           })
       )
