@@ -2646,3 +2646,10 @@ l'application) règle le cas.
 - Migration `20260928000000_sourcing_fiche_link.sql` APPLIQUÉE en prod (vérifiée information_schema) : `products.source_candidate_id`, `sourcing_product_candidates.draft_product_id`.
 - `src/lib/sourcingFicheLink.ts` (helper pur, données réelles uniquement, draft inactive) + `POST /api/admin/sourcing/candidates/:id/create-fiche` (idempotent) + bouton « + Créer la fiche » sur les lignes candidat du panel Appro unifié.
 - Banc : `tests/kurla_sourcing_fiche_link.test.ts` (chaîné après test:ready-score).
+
+## 2026-09-15 — C4 porte de publication (Agent Arena)
+- Migration `20260929000000_catalog_gate_journal.sql` APPLIQUÉE en prod (8 colonnes vérifiées information_schema) : table `catalog_gate_journal` + RLS.
+- `src/lib/catalogGate.ts` (helper pur : propositions publish/withdraw depuis le score KURLA Ready ; fiches test JAMAIS proposées au retrait = dérogations C5 ; fiches `unavailable` intouchables).
+- Routes : `POST /api/admin/catalog/gate/scan` (lecture seule) et `POST /api/admin/catalog/gate/apply` (recalcule la proposition côté serveur avant d'appliquer, 409 si périmée, journalise).
+- UI : `CatalogGatePanel.tsx` monté sous CatalogAdminPanel (onglet peau). Mode automatique = arbitrage futur, pas un défaut.
+- Banc : `tests/kurla_gate.test.ts` (chaîné après test:fiche-link).
