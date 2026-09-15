@@ -24,6 +24,15 @@ export default defineConfig(() => {
               if (id.includes('@supabase')) return 'supabase';
               if (id.includes('three')) return 'three';
               if (id.includes('@google/genai') || id.includes('stripe')) return 'ai-vendor';
+              // (15/09) Les animations partent dans leur propre morceau.
+              // Sans cela, `motion` se retrouvait dans le morceau `vendor`
+              // — donc téléchargé, analysé et démarré sur **toutes** les
+              // pages, y compris celles qui n'animent rien. Le motif est
+              // volontairement strict : « motion » apparaît aussi dans
+              // `@emotion`, qui n'a rien à voir.
+              if (/node_modules[/\\](motion|motion-dom|motion-utils|framer-motion)[/\\]/.test(id)) {
+                return 'motion';
+              }
               return 'vendor';
             }
             // (15/09) Le regroupement manuel « admin » a été retiré.

@@ -11,29 +11,30 @@
  * Contrat verrouillé :
  *   1. des appels simultanés partagent un seul vol : une requête, pas trois,
  *      et tous reçoivent la même liste ;
- *   2. rien n'est mis en cache : un appel lancé après la fin du vol relit
- *      vraiment, sinon la boutique afficherait un catalogue périmé ;
- *   3. « rafraîchir » reste un ordre : il relance une lecture même pendant
- *      qu'un vol est en cours ;
- *   4. un échec n'est pas mémorisé : le vol suivant repart de zéro au lieu
- *      de faire échouer toute la page.
+ *   2. un catalogue lu depuis moins de trente secondes est réutilisé — c'est
+ *      ce qui évite la requête de la section qui se monte en retard ;
+ *   3. « rafraîchir » reste un ordre : il relance une lecture même si le
+ *      catalogue est frais, et même pendant un vol en cours ;
+ *   4. `reinitialiserCataloguePublic` oublie tout (sortie de session, mode
+ *      test) et la lecture suivante retourne au réseau ;
+ *   5. un échec n'est pas mémorisé : le vol suivant repart de zéro au lieu de
+ *      faire échouer toute la page, et un échec n'invalide pas la fraîcheur
+ *      d'un succès antérieur.
  */
 
 import assert from 'node:assert/strict';
 
 process.env.KURLA_TEST_NO_SERVER = 'true';
 
-type Appel = { url: string };
-
-let appels: Appel[] = [];
+let appels: string[] = [];
 let reponses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [];
 
 const vraiFetch = globalThis.fetch;
 
 function fauxFetch(url: string): Promise<{ ok: boolean; json: () => Promise<unknown> }> {
-  appels.push({ url: String(url) });
+  appels.push(String(url));
   const reponse = reponses.shift();
-  assert.ok(reponse, `requête imprévue vers ${url}`);
+  assert.ok(reponse, `requête imprévue vers ${url} : le catalogue aurait dû être réutilisé`);
   return Promise.resolve(reponse);
 }
 
@@ -48,9 +49,11 @@ function reinitialiser(suites: Array<{ ok: boolean; corps: unknown }>): void {
 const CATALOGUE = { products: [{ id: 'p1', name: 'Crème' }], skinKits: [] };
 
 async function main(): Promise<void> {
-  const { getProductsFromSupabase } = await import('../src/services/productService');
+  const { getProductsFromSupabase, reinitialiserCataloguePublic } =
+    await import('../src/services/productService');
 
   // 1. Trois appelants au même instant : une seule requête.
+  reinitialiserCataloguePublic();
   reinitialiser([{ ok: true, corps: CATALOGUE }]);
   const [a, b, c] = await Promise.all([
     getProductsFromSupabase(),
@@ -65,20 +68,36 @@ async function main(): Promise<void> {
   assert.equal(b.error, null);
   assert.equal(c.error, null);
 
-  // 2. Aucune mise en cache : après la fin du vol, on relit vraiment.
-  reinitialiser([{ ok: true, corps: CATALOGUE }]);
-  await getProductsFromSupabase();
-  assert.equal(appels.length, 1, 'un montage après le vol doit relire, pas servir du périmé');
+  // 2. Catalogue encore frais : réutilisé, aucune requête. Aucune réponse
+  //    n'est préparée, donc la moindre requête fait échouer le banc.
+  reinitialiser([]);
+  const reuse = await getProductsFromSupabase();
+  assert.equal(appels.length, 0, 'un catalogue frais doit être réutilisé sans requête');
+  assert.equal(reuse.products.length, 1);
 
-  // 3. « Rafraîchir » relance une lecture même pendant un vol en cours.
-  reinitialiser([{ ok: true, corps: CATALOGUE }, { ok: true, corps: CATALOGUE }]);
-  const volEnCours = getProductsFromSupabase();
+  // 3. « Rafraîchir » relance une lecture malgré la fraîcheur.
+  reinitialiser([{ ok: true, corps: CATALOGUE }]);
   const force = await getProductsFromSupabase(true);
-  await volEnCours;
-  assert.equal(appels.length, 2, 'un rafraîchissement explicite doit relancer une requête');
+  assert.equal(appels.length, 1, 'un rafraîchissement explicite doit relancer une requête');
   assert.equal(force.products.length, 1);
 
-  // 4. Un échec n'est pas mémorisé : le vol suivant repart de zéro.
+  // 3 bis. Et même pendant un vol en cours.
+  reinitialiser([{ ok: true, corps: CATALOGUE }, { ok: true, corps: CATALOGUE }]);
+  const volEnCours = getProductsFromSupabase(true);
+  const forcePendantVol = await getProductsFromSupabase(true);
+  await volEnCours;
+  assert.equal(appels.length, 2, 'deux rafraîchissements = deux requêtes, même simultanés');
+  assert.equal(forcePendantVol.products.length, 1);
+
+  // 4. Réinitialisation : la lecture suivante retourne au réseau.
+  reinitialiser([{ ok: true, corps: CATALOGUE }]);
+  reinitialiserCataloguePublic();
+  const apresReset = await getProductsFromSupabase();
+  assert.equal(appels.length, 1, 'après réinitialisation, on doit relire');
+  assert.equal(apresReset.products.length, 1);
+
+  // 5. Un échec n'est pas mémorisé : la lecture suivante repart de zéro.
+  reinitialiserCataloguePublic();
   reinitialiser([
     { ok: false, corps: {} },
     { ok: true, corps: CATALOGUE },
@@ -88,9 +107,9 @@ async function main(): Promise<void> {
   assert.equal(echec.products.length, 0);
   const reprise = await getProductsFromSupabase();
   assert.equal(reprise.products.length, 1, 'après un échec, la lecture suivante doit réussir');
-  assert.equal(appels.length, 2);
+  assert.equal(appels.length, 2, 'un échec ne doit pas être servi depuis le cache');
 
-  console.log('[PASS] Catalogue partagé : 3 appelants, 1 requête ; rien n\'est mis en cache ; « rafraîchir » relit ; un échec n\'est pas mémorisé.');
+  console.log('[PASS] Catalogue partagé : 3 appelants 1 requête, fraîcheur 30 s réutilisée, « rafraîchir » et réinitialisation relisent, échec non mémorisé.');
 }
 
 globalThis.fetch = fauxFetch as unknown as typeof fetch;

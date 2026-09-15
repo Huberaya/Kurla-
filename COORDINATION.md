@@ -2498,3 +2498,36 @@ d'écran, pas de l'infrastructure.
 4. Les tâches longues de l'accueil : 462 ms, 410 ms, 331 ms. Le navigateur
    n'a pas voulu en dire l'origine ; il faudrait une trace d'exécution pour
    nommer précisément le responsable.
+
+#### Mobile, second passage : animations isolées, extras différés, catalogue réutilisé (15/09/2026)
+
+Trois corrections, décidées après un profil d'exécution de l'accueil sur
+téléphone (et non à l'instinct) :
+
+1. **Les animations ne sont plus dans le morceau partagé.** `motion`
+   se retrouvait dans `vendor`, donc téléchargé, analysé et démarré sur
+   **toutes** les pages — y compris celles qui n'animent rien. Il a son
+   propre morceau : **123,7 Ko** sortis de `vendor`, qui passe de 392,5 à
+   **269 Ko**. Vérifié : le morceau n'est pas devenu une dépendance
+   statique (c'est le piège qui avait transformé l'administration en
+   préchargement).
+2. **Les tiroirs et fenêtres globales se montent au premier temps mort du
+   navigateur.** Panier, recherche, assistant et rappel de panier étaient
+   en chargement différé, mais se montaient pendant l'hydratation : leur
+   JavaScript s'analysait, leurs effets tournaient et le panier relançait un
+   téléchargement du catalogue — en pleine mise en route de la page, donc
+   en concurrence avec elle. Ils passent après. Le délai est borné à 4 s,
+   avec repli sur une temporisation pour les navigateurs sans
+   `requestIdleCallback` (Safari). Le panneau de récupération de mot de
+   passe reste monté sans attendre : un lien reçu par courriel doit
+   s'ouvrir tout de suite.
+3. **Le catalogue est réutilisé pendant trente secondes.** Sans cela, la
+   section de l'accueil qui se monte trois secondes après la fin du premier
+   vol relançait une requête pour un catalogue déjà en mémoire : « partager
+   le vol » ne servait qu'aux appelants strictement simultanés.
+
+   **Le risque est connu et assumé :** un visiteur peut voir un catalogue
+   vieux de trente secondes au plus. Aucun prix ni aucun stock n'en
+   dépendent — ils sont recalculés côté serveur au panier et à la commande.
+   « Rafraîchir » court-circuite la fraîcheur, ainsi que la sortie de
+   session. Banc mis à jour : `tests/kurla_catalogue_partage.test.ts`.

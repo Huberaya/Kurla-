@@ -99,20 +99,67 @@ async function fetchPublicProducts(): Promise<{ products: Product[]; skinKits: S
  * donnée n'est pas conservée au-delà du vol, donc rien ne peut être périmé.
  * Un `refetch` explicite reste libre de relancer une lecture (`forcer`).
  */
+/**
+ * Fraîcheur du catalogue : au-delà, on relit.
+ *
+ * Trente secondes, pas davantage — et c'est un choix assumé, pas une
+ * optimisation gratuite. Mesuré sur téléphone, une section de l'accueil se
+ * monte trois secondes après la fin du premier téléchargement et relançait
+ * donc une requête pour un catalogue déjà en mémoire. Sans cette fenêtre,
+ * « partager le vol » ne sert qu'aux appelants strictement simultanés.
+ *
+ * Le risque est connu et borné : un visiteur peut voir un catalogue vieux
+ * de trente secondes au plus. Aucun prix ni aucun stock n'en dépend — ils
+ * sont recalculés côté serveur au panier et à la commande.
+ */
+const FRAICHEUR_CATALOGUE_MS = 30_000;
+
 interface VolCatalogue {
   url: string;
   promesse: Promise<{ products: Product[]; skinKits: SkinKitQuote[] }>;
 }
 
+interface SuccesCatalogue {
+  url: string;
+  obtenuLe: number;
+  produits: Product[];
+  kits: SkinKitQuote[];
+}
+
 let volCatalogue: VolCatalogue | null = null;
+let dernierSucces: SuccesCatalogue | null = null;
+
+/**
+ * Oublie le catalogue déjà lu. Sert à la sortie de session, au changement de
+ * mode test, et aux bancs — jamais au rendu courant.
+ */
+export function reinitialiserCataloguePublic(): void {
+  volCatalogue = null;
+  dernierSucces = null;
+}
 
 export async function cataloguePublicPartage(
   forcer = false,
 ): Promise<{ products: Product[]; skinKits: SkinKitQuote[] }> {
   const url = urlCataloguePublic();
+
+  // Déjà lu, et encore frais : on réutilise.
+  if (
+    !forcer
+    && dernierSucces
+    && dernierSucces.url === url
+    && Date.now() - dernierSucces.obtenuLe < FRAICHEUR_CATALOGUE_MS
+  ) {
+    return { products: dernierSucces.produits, skinKits: dernierSucces.kits };
+  }
+
+  // Vol en cours : on s'y branche au lieu de lancer une requête de plus.
   if (!forcer && volCatalogue && volCatalogue.url === url) return volCatalogue.promesse;
 
-  const promesse = fetchPublicProducts();
+  const promesse = fetchPublicProducts().then((resultat) => {
+    dernierSucces = { url, obtenuLe: Date.now(), produits: resultat.products, kits: resultat.skinKits };
+    return resultat;
+  });
   volCatalogue = { url, promesse };
   // Le vol n'est libéré qu'une fois terminé : les appelants arrivés pendant le
   // trajet partagent la même réponse au lieu de relancer la même requête.
