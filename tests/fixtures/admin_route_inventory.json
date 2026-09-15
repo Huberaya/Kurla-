@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T23:39:35.618Z",
+  "generatedAt": "2026-09-15T23:51:15.093Z",
   "routes": [
     {
       "method": "GET",
@@ -152,7 +152,8 @@
       "file": "src/server/routes/catalogGovernance.ts:201",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/DerogationsPanel.tsx:38"
+        "src/components/DerogationsPanel.tsx:38",
+        "src/components/DerogationsPanel.tsx:87"
       ]
     },
     {
@@ -626,7 +627,8 @@
       "file": "src/server/routes/prospects.ts:70",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:106"
+        "src/components/SourcingProspectsPanel.tsx:106",
+        "src/components/SourcingWorkflowPanel.tsx:34"
       ]
     },
     {
@@ -635,7 +637,8 @@
       "file": "src/server/routes/prospects.ts:109",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingProspectsPanel.tsx:106"
+        "src/components/SourcingProspectsPanel.tsx:106",
+        "src/components/SourcingWorkflowPanel.tsx:34"
       ]
     },
     {
@@ -825,14 +828,18 @@
       "path": "/api/admin/sourcing/workflow/events",
       "file": "src/server/routes/sourcing.ts:266",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/SourcingWorkflowPanel.tsx:48"
+      ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/workflow/transition",
       "file": "src/server/routes/sourcing.ts:235",
       "guard": "requireAdmin(",
-      "callers": []
+      "callers": [
+        "src/components/SourcingWorkflowPanel.tsx:91"
+      ]
     },
     {
       "method": "GET",
