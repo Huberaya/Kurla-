@@ -137,3 +137,9 @@ async function requestApp(path: string) {
     fiche(INACTIF, { is_active: false })
   ] as never[];
 }
+
+console.log(
+  `[PASS] Santé légère : /api/health compte les produits sans lire le catalogue (preuve : getProducts ` +
+  `neutralisé, la route répond quand même), les inactifs sont exclus, le compte non lu reste null, ` +
+  `et le reste de l’indicateur — monitoring, limitation, commit — n’a pas bougé.`
+);

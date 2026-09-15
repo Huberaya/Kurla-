@@ -14,6 +14,8 @@ import type { Locale } from './i18n';
 const fr = {
   nav: {
     diagnostic: 'Diagnostic',
+    diagHair: 'Diagnostic Cheveux',
+    diagSkin: 'Diagnostic Peau',
     assistant: 'Assistant IA',
     shop: 'Boutique',
     inspirations: 'Inspirations',
@@ -141,6 +143,8 @@ type Dictionary = DeepString<typeof fr>;
 const en: Dictionary = {
   nav: {
     diagnostic: 'Diagnostic',
+    diagHair: 'Hair Diagnostic',
+    diagSkin: 'Skin Diagnostic',
     assistant: 'AI Assistant',
     shop: 'Shop',
     inspirations: 'Inspiration',

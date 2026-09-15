@@ -134,6 +134,7 @@ import { registerGrowthControlRoutes } from './src/server/routes/growthControl';
 import { registerFunnelEventRoutes } from './src/server/routes/funnelEvents';
 import { registerLaunchTractionRoutes } from './src/server/routes/launchTraction';
 import { registerConversionFunnelRoutes } from './src/server/routes/conversionFunnel';
+import { registerCopiloteRoutes } from './src/server/routes/copilote';
 import { registerCommunityRoutes } from './src/server/routes/community';
 import { registerBrandContractRoutes } from './src/server/routes/brandContracts';
 import { registerRoutineComplementRoutes } from './src/server/routes/routineComplements';
@@ -1728,6 +1729,7 @@ registerGrowthControlRoutes(app);
 registerFunnelEventRoutes(app);
 registerLaunchTractionRoutes(app);
 registerConversionFunnelRoutes(app);
+registerCopiloteRoutes(app);
 registerCommunityRoutes(app);
 registerBrandContractRoutes(app);
 

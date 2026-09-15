@@ -81,14 +81,26 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Les chemins restent non préfixés : c'est `localizedPath` qui ajoute la
   // locale au moment du rendu. Le libellé, lui, vient du dictionnaire.
-  const primaryNavLinks = [
-    { label: t('nav.diagnostic'), path: '/diagnostic' },
-    { label: 'Peau', path: '/peau' },
-    { label: t('nav.assistant'), path: '/assistant-beaute' },
-    { label: t('nav.shop'), path: '/boutique' },
-    { label: t('nav.inspirations'), path: '/inspirations' },
-    { label: t('nav.tools'), path: '/outils' },
-    { label: t('nav.pro'), path: '/professionnels' },
+  // (15/09) La nav expose directement les deux diagnostics : la page « Diagnostic »
+  // ne contient plus que le diagnostic cheveux, la page peau pointe sur le
+  // diagnostic peau. Le pôle peau (/peau) reste accessible depuis le pied de
+  // page et les pages du pôle.
+  const primaryNavLinks: { label: string; path: string; active: (p: string) => boolean }[] = [
+    {
+      label: t('nav.diagHair'),
+      path: '/diagnostic/cheveux',
+      active: (p) => p === '/diagnostic' || (p.startsWith('/diagnostic/') && !p.startsWith('/diagnostic/peau')),
+    },
+    {
+      label: t('nav.diagSkin'),
+      path: '/peau/diagnostic',
+      active: (p) => p.startsWith('/peau'),
+    },
+    { label: t('nav.assistant'), path: '/assistant-beaute', active: (p) => p === '/assistant-beaute' },
+    { label: t('nav.shop'), path: '/boutique', active: (p) => p === '/boutique' },
+    { label: t('nav.inspirations'), path: '/inspirations', active: (p) => p === '/inspirations' },
+    { label: t('nav.tools'), path: '/outils', active: (p) => p === '/outils' },
+    { label: t('nav.pro'), path: '/professionnels', active: (p) => p === '/professionnels' },
   ];
 
   const subModules = [
@@ -135,8 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6">
           {primaryNavLinks.map((link) => {
-            const isActive = activePath === link.path
-              || (link.path === '/diagnostic' && (activePath.startsWith('/diagnostic/') || activePath.startsWith('/peau/diagnostic')));
+            const isActive = link.active(activePath);
             return (
               <a
                 key={link.path}

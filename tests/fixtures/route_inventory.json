@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T09:13:34.106Z",
+  "generatedAt": "2026-09-14T23:51:43.889Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -33,6 +33,7 @@
     "GET /api/admin/catalog/vocabulary-audit",
     "GET /api/admin/content/compliance",
     "GET /api/admin/conversion-funnel",
+    "GET /api/admin/copilote",
     "GET /api/admin/creators",
     "GET /api/admin/dashboard",
     "GET /api/admin/double-sourcing",
@@ -52,6 +53,7 @@
     "GET /api/admin/shipments/:orderId/history",
     "GET /api/admin/shipping/rates",
     "GET /api/admin/sourcing/candidates",
+    "GET /api/admin/sourcing/consolidated",
     "GET /api/admin/sourcing/items",
     "GET /api/admin/sourcing/items/:itemId",
     "GET /api/admin/sourcing/prospects",

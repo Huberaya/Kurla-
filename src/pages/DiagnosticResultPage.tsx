@@ -187,6 +187,53 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
 
 
 
+        <section className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="kit-de-soin">
+          <SectionHeading number="9b" id="kit-de-soin" title="Votre kit de soin — à emporter avec vous" />
+          <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Ce que vous gardez : votre fiche technique, le matériel que la routine utilise réellement, et les produits indispensables par phase. Quand une référence KURLA est publiée, elle est liée ci-dessous ; sinon, c’est le type de produit qui fait règle — aucune marque ni aucun prix n’est inventé.</p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+              <h3 className="mb-3 text-sm font-bold text-kurla-amber">Votre fiche technique</h3>
+              <ul className="space-y-1.5">
+                {model.kit.profileLines.map(line => (
+                  <li key={line} className="flex gap-2 text-xs leading-relaxed text-kurla-cream/75"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-kurla-amber" />{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+              <h3 className="mb-3 text-sm font-bold text-kurla-amber">Matériel nécessaire</h3>
+              <ul className="space-y-2.5">
+                {model.kit.materials.map(material => (
+                  <li key={material.name} className="text-xs leading-relaxed">
+                    <p className="font-semibold text-kurla-cream/90">
+                      {material.name}
+                      {material.product ? <a href={`/produit/${material.product.slug}`} className="ml-2 inline-flex items-center gap-1 font-semibold text-kurla-amber hover:underline">Réf. KURLA : {material.product.name} <ArrowRight className="h-3 w-3" /></a> : null}
+                    </p>
+                    <p className="mt-0.5 text-kurla-cream/55">{material.why}</p>
+                  </li>
+                ))}
+              </ul>
+              {model.kit.materialNote && <p className="mt-3 text-[11px] leading-relaxed text-kurla-cream/50">{model.kit.materialNote}</p>}
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
+            <h3 className="mb-3 text-sm font-bold text-kurla-amber">Produits indispensables, par phase</h3>
+            <ul className="space-y-3">
+              {model.kit.essentials.map(essential => (
+                <li key={`${essential.phase}-${essential.type}`} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
+                  <span className="w-40 shrink-0 pt-0.5 text-[10px] font-bold uppercase tracking-wide text-kurla-amber">{essential.phase}</span>
+                  <div className="min-w-0 flex-1 text-xs leading-relaxed">
+                    <p className="font-semibold text-kurla-cream/90">{essential.type}{essential.nonNegotiable ? <span className="ml-2 rounded-full bg-kurla-copper px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Non négociable</span> : null}</p>
+                    <p className="mt-0.5 text-kurla-cream/55">{essential.why}</p>
+                    {essential.product
+                      ? <a href={`/produit/${essential.product.slug}`} className="mt-1 inline-flex items-center gap-1 font-semibold text-kurla-amber hover:underline">Réf. KURLA : {essential.product.name} <ArrowRight className="h-3 w-3" /></a>
+                      : <p className="mt-1 text-[11px] text-kurla-cream/45">Aucune référence KURLA publiée pour l’instant — le type de produit fait règle, aucune marque n’est imposée.</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         <section className="mb-8 rounded-3xl border border-kurla-copper/30 bg-kurla-espresso p-6"><SectionHeading number="10" title="Suivi et prochaines observations" /><p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Trois questions concrètes, à répondre dans votre journal : ce sont elles qui pilotent l’ajustement de votre routine — pas une intuition.</p><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">Aujourd’hui</p><p className="mt-1 text-sm font-semibold leading-relaxed">{model.followUp.firstObservation}</p></div>{model.observations.length > 0 ? model.observations.map(obs => <div key={obs.day} className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">{obs.day}</p><p className="mt-1 text-sm leading-relaxed text-kurla-cream/75">{obs.question}</p></div>) : <div className="rounded-2xl bg-kurla-ink p-4"><Clock3 className="mb-2 h-5 w-5 text-kurla-amber" /><p className="text-xs font-bold uppercase tracking-wide text-kurla-cream/45">Prochaine étape</p><p className="mt-1 text-sm font-semibold">{model.followUp.nextObservation}</p></div>}</div>{model.advisoryLoop && <p className="mt-4 rounded-2xl border border-kurla-copper/20 bg-kurla-bark p-4 text-xs leading-relaxed text-kurla-cream/70"><span className="font-bold text-kurla-amber">Votre routine évolue avec vous. </span>{model.advisoryLoop}</p>}<div className="mt-4 flex flex-wrap gap-3"><a href={model.followUp.journalHref} className="rounded-full bg-kurla-copper px-5 py-2.5 text-sm font-bold hover:bg-kurla-cocoa">Ouvrir mon suivi</a><a href={model.followUp.shelfHref} className="rounded-full border border-kurla-cream/20 px-5 py-2.5 text-sm font-semibold hover:border-kurla-amber">Voir ma sélection</a></div></section>
 
         <div className="space-y-2 text-xs leading-relaxed text-kurla-cream/55"><p><strong className="text-kurla-cream/75">Source du résultat :</strong> {model.generatedWithAI ? 'Gemini a répondu à partir des réponses et du catalogue autorisé.' : 'fallback déterministe KURLA ou résultat mis en cache ; aucune mention d’aide IA n’est affichée.'}</p><p><strong className="text-kurla-cream/75">Catalogue :</strong> {catalogSource === 'supabase' ? 'catalogue serveur publié.' : 'catalogue serveur indisponible ou vide.'}</p>{model.warnings.map(warning => <p key={warning} className="flex gap-2"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-kurla-amber" />{warning}</p>)}</div>

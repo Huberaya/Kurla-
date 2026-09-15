@@ -114,6 +114,28 @@ function AppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  /**
+   * Montage différé des tiroirs et fenêtres globales.
+   *
+   * `requestIdleCallback` n'existe pas partout (Safari, notamment) : on
+   * retombe alors sur une temporisation, et le délai est borné de toute
+   * façon — un navigateur trop occupé pour nous appeler finit par monter
+   * les éléments malgré tout.
+   */
+  const [extrasMontes, setExtrasMontes] = useState(false);
+  useEffect(() => {
+    const fenetre = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof fenetre.requestIdleCallback !== 'function') {
+      const minuteries = window.setTimeout(() => setExtrasMontes(true), 1200);
+      return () => window.clearTimeout(minuteries);
+    }
+    const id = fenetre.requestIdleCallback(() => setExtrasMontes(true), { timeout: 4000 });
+    return () => { if (fenetre.cancelIdleCallback) fenetre.cancelIdleCallback(id); };
+  }, []);
+
   const [anonId] = useState<string>(() => {
     if (typeof window === 'undefined') return 'ssr_anon';
     let id = window.localStorage.getItem('kurla_anon_id');
@@ -333,25 +355,44 @@ function AppContent() {
 
         <Footer />
 
-        {/* Global Drawers & Modals — chargés après le premier paint */}
+        {/* Panneau de récupération : monté sans attendre — un lien reçu par
+            courriel doit s'ouvrir dès l'arrivée, pas au premier temps mort. */}
         <Suspense fallback={null}>
-          <CartDrawer
-            isOpen={isCartOpen}
-            onClose={() => setIsCartOpen(false)}
-            items={cartItems}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onAddItem={handleAddToCart}
-            onCheckout={handleCheckout}
-          />
-          <SearchModal
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-          />
-          <AiAssistantWidget />
-          <AbandonedCartReminder count={cartCount} onOpenCart={() => setIsCartOpen(true)} />
           <PasswordRecoveryPanel />
         </Suspense>
+
+        {/* Tiroirs et fenêtres globales : montés au premier temps mort du
+            navigateur, pas avant.
+
+            Ils étaient déjà en chargement différé, mais ils se montaient
+            pendant l'hydratation : leur JavaScript s'analyse, leurs effets
+            tournent et le panier déclenche un deuxième téléchargement du
+            catalogue — le tout en plein milieu de la mise en route de la
+            page, donc en concurrence avec elle. Ils ne servent qu'à
+            l'interaction : rien ne justifie qu'ils passent avant l'écran.
+
+            Le délai est borné (4 s) pour qu'un navigateur sans
+            `requestIdleCallback`, ou trop occupé pour l'appeler, finisse
+            tout de même par les monter. */}
+        {extrasMontes ? (
+          <Suspense fallback={null}>
+            <CartDrawer
+              isOpen={isCartOpen}
+              onClose={() => setIsCartOpen(false)}
+              items={cartItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onAddItem={handleAddToCart}
+              onCheckout={handleCheckout}
+            />
+            <SearchModal
+              isOpen={isSearchOpen}
+              onClose={() => setIsSearchOpen(false)}
+            />
+            <AiAssistantWidget />
+            <AbandonedCartReminder count={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+          </Suspense>
+        ) : null}
       </div>
   );
 }

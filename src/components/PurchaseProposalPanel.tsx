@@ -1,0 +1,342 @@
+/**
+ * PROPOSITION D'ACHAT — l'objet « que commander, à qui, combien » (17/09, phase 3).
+ *
+ * La demande (précommandes fermes + en attente, kits déroulés), le stock et les
+ * lots reçus sont assemblés en un tableau d'achat : pour chaque référence, la
+ * quantité à commander (= demande − stock, jamais négative), le fournisseur
+ * rattaché (MOQ, délai), le coût unitaire réel si un lot a été reçu, et les
+ * pièces manquantes (lues sur l'état de publication).
+ *
+ * Aucune donnée inventée : le coût unitaire est celui du **lot reçu le plus
+ * récent** (centimes → euros), sinon « à obtenir » ; le total estimé n'est
+ * complet que si TOUTES les références à commander ont un coût connu — sinon il
+ * est affiché comme estimation partielle. L'export CSV est une fonction pure
+ * testée par le banc `kurla_purchase_proposal`. L'envoi des e-mails reste un
+ * acte humain (vue consolidée, mailto/copier).
+ */
+import React, { useEffect, useState } from 'react';
+import { Download, FileText } from 'lucide-react';
+
+export interface PurchaseProposalRow {
+  productId: string;
+  name: string;
+  slug?: string;
+  isKit: boolean;
+  isPreorder: boolean;
+  /** Demande totale à couvrir (fermes + attente + déroulage des kits). */
+  qtyDemand: number;
+  stockOnHand: number;
+  qtyToOrder: number;
+  supplierName: string | null;
+  moqUnits: number | null;
+  leadTimeDays: number | null;
+  unitCostEur: number | null;
+  /** Provenance du coût : « lot reçu le JJ/MM/AAAA » ou « à obtenir ». */
+  unitCostLabel: string;
+  /** Pièces manquantes lues sur l'état de publication (nommées, jamais inventées). */
+  missing: string[];
+  totalEstEur: number | null;
+}
+
+export interface PurchaseProposalInput {
+  /** /api/admin/preorder-demand → products (qtyToSource = fermes + attente + kits) */
+  demand?: Array<{ productId: string; name: string; slug?: string; isKit?: boolean; isPreorder?: boolean; qtyToSource: number }> | null;
+  /** /api/admin/catalog/products → stock + fournisseur rattaché */
+  products?: Array<{ id: string; stockQuantity?: number; supplierId?: string | null }> | null;
+  /** /api/admin/suppliers → MOQ, délai */
+  suppliers?: Array<{ id: string; legalName?: string; tradeName?: string; moqUnits?: number | null; leadTimeDays?: number | null }> | null;
+  /** /api/admin/batches → coût réel du lot reçu */
+  batches?: Array<{ productId?: string | null; receivedOn?: string; unitCost?: number | null }> | null;
+  /** /api/admin/catalog/publication-readiness → perProduct (missing) */
+  readiness?: Array<{ productId: string; missing: string[] }> | null;
+}
+
+export interface PurchaseProposalResult {
+  rows: PurchaseProposal[];
+  totals: { refs: number; units: number; estEur: number | null; estComplete: boolean };
+}
+
+type PurchaseProposal = PurchaseProposalRow;
+
+function eurFromCents(cents: number | null | undefined): number | null {
+  const n = Number(cents);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) / 100 : null;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/** Dérive la proposition d'achat. Fonction pure, sans DOM ni réseau. */
+export function buildPurchaseProposal(input: PurchaseProposalInput): PurchaseProposalResult {
+  const demand = (input.demand || []).filter(row => (Number(row.qtyToSource) || 0) > 0);
+  if (demand.length === 0) return { rows: [], totals: { refs: 0, units: 0, estEur: null, estComplete: true } };
+
+  const productById = new Map<string, any>((input.products || []).map(p => [String(p.id), p]));
+  const supplierById = new Map<string, any>((input.suppliers || []).map(s => [String(s.id), s]));
+  const missingById = new Map<string, string[]>((input.readiness || []).map(r => [String(r.productId), r.missing || []]));
+
+  // Coût réel : le lot reçu le plus récent par produit (jamais la moyenne,
+  // jamais une estimation : le dernier prix payé est le seul fait connu).
+  const latestLot = new Map<string, { receivedOn: string; unitCost: number | null }>();
+  for (const batch of input.batches || []) {
+    const pid = String(batch.productId ?? '');
+    if (!pid) continue;
+    const on = String(batch.receivedOn || '');
+    const prev = latestLot.get(pid);
+    if (!prev || on >= prev.receivedOn) {
+      const cost = eurFromCents(batch.unitCost);
+      if (cost != null) latestLot.set(pid, { receivedOn: on, unitCost: cost });
+    }
+  }
+
+  const rows: PurchaseProposal[] = demand.map(row => {
+    const productId = String(row.productId);
+    const product = productById.get(productId) || {};
+    const stockOnHand = Math.max(0, Number(product.stockQuantity) || 0);
+    const qtyDemand = Math.max(0, Number(row.qtyToSource) || 0);
+    const qtyToOrder = Math.max(0, qtyDemand - stockOnHand);
+
+    const supplier = product.supplierId ? supplierById.get(String(product.supplierId)) : undefined;
+    const supplierName = supplier ? String(supplier.legalName || supplier.tradeName || '') || null : null;
+    const moqUnits = supplier && Number.isFinite(Number(supplier.moqUnits)) ? Number(supplier.moqUnits) : null;
+    const leadTimeDays = supplier && Number.isFinite(Number(supplier.leadTimeDays)) ? Number(supplier.leadTimeDays) : null;
+
+    const lot = latestLot.get(productId);
+    const unitCostEur = lot?.unitCost ?? null;
+    const unitCostLabel = lot && lot.receivedOn
+      ? `lot reçu le ${lot.receivedOn.slice(0, 10)}`
+      : 'à obtenir';
+
+    const totalEstEur = qtyToOrder > 0 && unitCostEur != null ? round2(qtyToOrder * unitCostEur) : null;
+
+    return {
+      productId,
+      name: String(row.name || productId),
+      slug: row.slug,
+      isKit: !!row.isKit,
+      isPreorder: !!row.isPreorder,
+      qtyDemand,
+      stockOnHand,
+      qtyToOrder,
+      supplierName: supplierName || null,
+      moqUnits,
+      leadTimeDays,
+      unitCostEur,
+      unitCostLabel,
+      missing: missingById.get(productId) || [],
+      totalEstEur
+    };
+  });
+
+  rows.sort((a, b) => (b.qtyToOrder - a.qtyToOrder) || a.name.localeCompare(b.name));
+
+  const toOrderRows = rows.filter(row => row.qtyToOrder > 0);
+  const knownTotals = toOrderRows.filter(row => row.totalEstEur != null);
+  const estEur = knownTotals.length > 0 ? round2(knownTotals.reduce((sum, row) => sum + (row.totalEstEur ?? 0), 0)) : null;
+  return {
+    rows,
+    totals: {
+      refs: rows.length,
+      units: toOrderRows.reduce((sum, row) => sum + row.qtyToOrder, 0),
+      estEur,
+      estComplete: toOrderRows.length > 0 && knownTotals.length === toOrderRows.length
+    }
+  };
+}
+
+/** Export CSV RFC4180 (CRLF, guillemets échappés). Fonction pure, testée. */
+export function purchaseProposalToCsv(result: PurchaseProposalResult): string {
+  const header = ['Reference', 'Nom', 'Demande', 'Stock', 'A_commander', 'Fournisseur', 'MOQ', 'Delai_jours', 'Cout_unitaire_eur', 'Total_estime_eur', 'Pices_manquantes'];
+  const escape = (value: string | number | null): string => {
+    const text = value == null ? '' : String(value);
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const lines = [header.join(',')];
+  for (const row of result.rows) {
+    lines.push([
+      row.productId,
+      row.name,
+      row.qtyDemand,
+      row.stockOnHand,
+      row.qtyToOrder,
+      row.supplierName,
+      row.moqUnits,
+      row.leadTimeDays,
+      row.unitCostEur,
+      row.totalEstEur,
+      row.missing.join(' | ')
+    ].map(escape).join(','));
+  }
+  return `${lines.join('\r\n')}\r\n`;
+}
+
+export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ headers }) => {
+  const [result, setResult] = useState<PurchaseProposalResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState<string[]>([]);
+  const [exported, setExported] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [demand, products, suppliers, batches, readiness] = await Promise.allSettled([
+        fetch('/api/admin/preorder-demand', { headers }),
+        fetch('/api/admin/catalog/products', { headers }),
+        fetch('/api/admin/suppliers', { headers }),
+        fetch('/api/admin/batches', { headers }),
+        fetch('/api/admin/catalog/publication-readiness', { headers })
+      ]);
+      if (cancelled) return;
+      const failed: string[] = [];
+      const names = ['la demande précommandes', 'le catalogue', 'les fournisseurs', 'les lots reçus', 'l’état de publication'];
+      [demand, products, suppliers, batches, readiness].forEach((r, i) => {
+        if (r.status === 'rejected') failed.push(names[i]);
+      });
+      const json = (r: PromiseSettledResult<any>) => (r.status === 'fulfilled' ? r.value.json() : Promise.resolve(null));
+      const [demandJson, productsJson, suppliersJson, batchesJson, readinessJson] = await Promise.all([
+        json(demand), json(products), json(suppliers), json(batches), json(readiness)
+      ]);
+      if (cancelled) return;
+      setUnavailable(failed);
+      setResult(buildPurchaseProposal({
+        demand: demandJson?.products || null,
+        products: productsJson?.products || null,
+        suppliers: suppliersJson?.suppliers || null,
+        batches: batchesJson?.batches || null,
+        readiness: readinessJson?.perProduct || null
+      }));
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+    // headers récréé à chaque rendu du dashboard : lecture une seule fois au montage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const downloadCsv = () => {
+    if (!result || result.rows.length === 0) return;
+    const blob = new Blob([purchaseProposalToCsv(result)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `proposition-achat-kurla-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setExported(true);
+    window.setTimeout(() => setExported(false), 4000);
+  };
+
+  const fmt = (n: number | null): string => (n == null ? '—' : n.toFixed(2).replace('.', ','));
+
+  return (
+    <section className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-copper/30 shadow-xl space-y-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
+            <FileText className="w-5 h-5 text-kurla-copper" /> Proposition d'achat — premier lot
+          </h2>
+          <p className="text-xs text-kurla-cream/55 mt-1 max-w-3xl">
+            Ce qu'il faut commander, à qui, et combien : demande précommandes (fermes + attente, kits déroulés)
+            moins le stock, fournisseur rattaché avec MOQ et délai, coût unitaire du dernier lot reçu.
+            Tout est lu sur les données réelles — un coût inconnu reste « à obtenir », jamais estimé à la place.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={downloadCsv}
+          disabled={!result || result.rows.length === 0}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold hover:bg-kurla-cocoa transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4" /> {exported ? 'Exporté ✓' : 'Exporter le CSV'}
+        </button>
+      </div>
+
+      {loading && <div className="rounded-xl border border-kurla-cream/10 p-4 text-xs text-kurla-cream/45">Lecture de la demande, du stock, des lots et des fournisseurs…</div>}
+
+      {result && !loading && result.rows.length === 0 && (
+        <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 text-xs text-emerald-200/90">
+          Aucune référence à couvrir : il n'y a pas de demande à sourcer en quantité. La proposition se remplira
+          au fil des précommandes.
+        </div>
+      )}
+
+      {result && !loading && result.rows.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 p-3 text-center"><p className="text-xl font-bold text-kurla-cream">{result.totals.refs}</p><p className="text-[10px] uppercase tracking-wider text-kurla-cream/45">références concernées</p></div>
+            <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 p-3 text-center"><p className="text-xl font-bold text-kurla-copper">{result.totals.units}</p><p className="text-[10px] uppercase tracking-wider text-kurla-cream/45">unités à commander</p></div>
+            <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 p-3 text-center">
+              <p className={`text-xl font-bold ${result.totals.estEur != null ? (result.totals.estComplete ? 'text-emerald-300' : 'text-amber-300') : 'text-kurla-cream/35'}`}>{result.totals.estEur != null ? `${result.totals.estEur.toFixed(2).replace('.', ',')} €` : '—'}</p>
+              <p className="text-[10px] uppercase tracking-wider text-kurla-cream/45">{result.totals.estEur == null ? 'coût à obtenir' : result.totals.estComplete ? 'coût estimé (coûts lots connus)' : 'estimation partielle (quelques coûts inconnus)'}</p>
+            </div>
+            <div className="rounded-xl bg-kurla-ink border border-kurla-cream/10 p-3 text-center">
+              <p className="text-xl font-bold text-kurla-cream">{result.rows.filter(r => r.missing.length > 0).length}</p>
+              <p className="text-[10px] uppercase tracking-wider text-kurla-cream/45">références avec pièces manquantes</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-kurla-cream/10">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-kurla-ink text-kurla-amber uppercase tracking-wider text-[10px]">
+                  <th className="text-left px-3 py-2.5">Référence</th>
+                  <th className="text-right px-3 py-2.5">Demande</th>
+                  <th className="text-right px-3 py-2.5">Stock</th>
+                  <th className="text-right px-3 py-2.5">À commander</th>
+                  <th className="text-left px-3 py-2.5">Fournisseur</th>
+                  <th className="text-right px-3 py-2.5">MOQ</th>
+                  <th className="text-right px-3 py-2.5">Délai</th>
+                  <th className="text-right px-3 py-2.5">Coût unit.</th>
+                  <th className="text-right px-3 py-2.5">Total estimé</th>
+                  <th className="text-left px-3 py-2.5">Pièces</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.rows.map(row => (
+                  <tr key={row.productId} className={`border-t border-kurla-cream/10 ${row.qtyToOrder === 0 ? 'opacity-55' : ''}`}>
+                    <td className="px-3 py-2.5">
+                      <span className="font-semibold text-kurla-cream">{row.name}</span>
+                      {row.isKit && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 text-[9px] font-bold">kit</span>}
+                      {row.isPreorder && !row.isKit && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 text-[9px] font-bold">préco</span>}
+                      <span className="block text-[10px] text-kurla-cream/40 font-mono">{row.slug || row.productId}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-kurla-cream/80">{row.qtyDemand}</td>
+                    <td className="px-3 py-2.5 text-right text-kurla-cream/60">{row.stockOnHand}</td>
+                    <td className="px-3 py-2.5 text-right font-bold text-kurla-copper">{row.qtyToOrder > 0 ? row.qtyToOrder : 'couvert'}</td>
+                    <td className="px-3 py-2.5">{row.supplierName || <span className="text-amber-300/80">à sourcer</span>}</td>
+                    <td className="px-3 py-2.5 text-right text-kurla-cream/70">{row.moqUnits != null ? row.moqUnits : '—'}</td>
+                    <td className="px-3 py-2.5 text-right text-kurla-cream/70">{row.leadTimeDays != null ? `${row.leadTimeDays} j` : '—'}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      {row.unitCostEur != null ? <span className="text-kurla-cream">{fmt(row.unitCostEur)} €</span> : <span className="text-kurla-cream/40">à obtenir</span>}
+                      <span className="block text-[9px] text-kurla-cream/35">{row.unitCostLabel}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-kurla-cream">{row.totalEstEur != null ? `${fmt(row.totalEstEur)} €` : '—'}</td>
+                    <td className="px-3 py-2.5">
+                      {row.missing.length === 0
+                        ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[9px] font-bold">OK</span>
+                        : <span title={row.missing.join('\n')} className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 text-[9px] font-bold cursor-help">{row.missing.length} manquant{row.missing.length > 1 ? 's' : ''}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-kurla-cream/40">
+            Coût unitaire = coût réel du dernier lot reçu ; sans lot reçu, « à obtenir » — l'export CSV porte la
+            même discipline. L'envoi des demandes de prix se fait depuis la vue consolidée (e-mails prêts à copier).
+          </p>
+        </>
+      )}
+
+      {!loading && unavailable.length > 0 && (
+        <p className="text-[11px] text-amber-200/80">
+          Source{unavailable.length > 1 ? 's' : ''} indisponible{unavailable.length > 1 ? 's' : ''} : {unavailable.join(', ')} —
+          le tableau est partiel, rien n'est masqué ni inventé.
+        </p>
+      )}
+    </section>
+  );
+};

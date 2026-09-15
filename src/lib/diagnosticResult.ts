@@ -27,6 +27,7 @@ import { pickHairScienceInsights } from './knowledge/hairScience';
 import { pickHairProblemCards, pickSkinProblemCards, type ProblemCard } from './knowledge/problemCards';
 import { pickSkinScienceInsights } from './knowledge/skinScience';
 import type { ScienceInsight } from './knowledge/hairScience';
+import { buildHairKit, buildSkinKit, type CareKit } from './knowledge/careKit';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -90,6 +91,12 @@ export interface DiagnosticResultModel {
   scienceInsights: ScienceInsight[];
   /** Cartes « moyens » — protocole (faire / éviter / s'attendre) pour chaque problème déclaré (peau et cheveux). */
   problemCards: ProblemCard[];
+  /**
+   * Kit de soin à emporter — fiche technique (champs déclarés), matériel
+   * justifié par la routine, produits indispensables par phase avec les
+   * références KURLA publiées quand elles existent (jamais inventées).
+   */
+  kit: CareKit;
   /** Note sur la boucle de réévaluation J+30 (peau et cheveux, texte commun L4). */
   advisoryLoop: string | null;
 }
@@ -315,6 +322,9 @@ export function buildDiagnosticResultModel(input: {
     ].filter((warning, index, list) => list.indexOf(warning) === index),
     summary: result?.summary || (isSkin ? buildSkinAdvisorySummary(advisoryCtx, priorities) : buildHairAdvisorySummary(hairAdvisoryCtx)),
     skinKnowledgeProfile,
+    kit: isSkin
+      ? buildSkinKit(advisoryCtx, routine, products, fields, skinKnowledgeProfile)
+      : buildHairKit(hairAdvisoryCtx, routine, products, fields),
     lessons: isSkin ? pickSkinLessons(advisoryCtx) : pickHairLessons(hairAdvisoryCtx),
     observations: isSkin ? pickSkinObservations(advisoryCtx) : pickHairObservations(hairAdvisoryCtx),
     scienceInsights: isSkin ? pickSkinScienceInsights(advisoryCtx) : pickHairScienceInsights(hairAdvisoryCtx),

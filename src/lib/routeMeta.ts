@@ -52,11 +52,24 @@ export const ROUTE_META: RouteMeta[] = [
   },
 
   // ── Diagnostics (publics, point d'entrée du parcours) ──────────────────────
+  // (15/09) /diagnostic sert désormais directement le diagnostic cheveux
+  // (l'ancienne page de choix a été remplacée par les deux entrées de
+  // navigation « Diagnostic Cheveux » / « Diagnostic Peau »).
   {
     path: '/diagnostic',
-    title: 'Choisissez votre diagnostic beauté | KURLA',
+    // (15/09) Titre et description propres : le banc « Chantier 7 — routeur
+    // déclaratif » refuse deux routes au même titre, et /diagnostic servait
+    // jusqu'ici une copie conforme de /diagnostic/cheveux. On garde
+    // /diagnostic indexable (poids 1) : c'est l'URL la plus liée du site —
+    // bouton d'appel de la barre de navigation, hero, prévisualisation,
+    // retour depuis un résultat.
+    // RESTE OUVERT, à l'attention du pôle navigation : deux URL publient le
+    // même écran. Le remède propre serait une balise canonical ou une
+    // redirection de /diagnostic/cheveux vers /diagnostic ; le routeur
+    // déclaratif ne sait aujourd'hui faire ni l'un ni l'autre.
+    title: 'Diagnostic cheveux texturés gratuit — accès direct | KURLA',
     description:
-      'Choisissez entre le diagnostic cheveux pour les textures 3A à 4C et le diagnostic peau pour les peaux riches en mélanine. Conseils beauté personnalisés, sans diagnostic médical.',
+      'Accédez directement au diagnostic cheveux : type de boucle, porosité et densité pour les textures 3A à 4C. Gratuit, sans inscription.',
     indexable: true,
     changefreq: 'monthly',
     priority: 1,

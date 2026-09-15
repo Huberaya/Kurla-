@@ -4,6 +4,9 @@ import { AlertTriangle, Boxes, GitBranch, Link2, RefreshCw, Save, Search } from 
 type BatchAdminPanelProps = {
   headers: HeadersInit;
   onSuccess?: (message: string) => void;
+  /** « À faire aujourd'hui » : produit à présélectionner dans le formulaire de lot reçu. */
+  focusProductId?: string;
+  focusLabel?: string;
 };
 
 type Batch = {
@@ -80,7 +83,7 @@ function euros(cents: number | null | undefined, currency = 'EUR'): string {
   return `${(cents / 100).toFixed(2).replace('.', ',')} ${currency === 'EUR' ? '€' : currency}`;
 }
 
-export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
+export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel }: BatchAdminPanelProps) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -133,6 +136,15 @@ export function BatchAdminPanel({ headers, onSuccess }: BatchAdminPanelProps) {
   }, [headers]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // « À faire aujourd'hui » : présélectionne le produit cible dans le formulaire
+  // « Enregistrer un lot reçu » dès que la liste des produits est chargée.
+  // No-op si le produit n'existe pas dans le catalogue (jamais de faux état).
+  useEffect(() => {
+    if (!focusProductId) return;
+    if (!products.some(product => String(product.id) === String(focusProductId))) return;
+    setDraft(draft => (String(draft.productId) === String(focusProductId) ? draft : { ...draft, productId: String(focusProductId) }));
+  }, [focusProductId, products]);
 
   const openTrace = async (batchId: string) => {
     setError('');

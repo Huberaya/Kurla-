@@ -2013,3 +2013,625 @@ produits actifs, contre 96 avant l'arrivée des dix fiches `fond-*`.
 - Vue = produits publiables (hors `unavailable`) + tous les candidats sourcing, avec prix (catalogue/constaté, sinon « à obtenir »), fournisseur, contact, e-mail prêt (RFQ existant servi tel quel, sinon généré depuis les seules données réelles ; conditions publiques constatées rappelées).
 - Banc : `tests/kurla_sourcing_consolidated.test.ts` (chaîné dans `npm test` après test:prospects). Merge `a8ae022`+`419d978` résolu en gardant `test:sante-legere` ET `test:sourcing-consolidated`.
 - Aucun envoi automatique : copier/mailto restent des actes humains (mandat 16C).
+## Navigation : deux diagnostics nommés (Diagnostic Cheveux / Diagnostic Peau) (15/09/2026)
+
+Consigne : « je veux qu'il ait une page diagnostic cheveux et une page diagnostic
+peau. la page peau sera maintenant renommée en diagnostic peau et la page
+diagnostic en diagnostic cheveux et ne contiendra que le diagnostic cheveux ».
+
+**Ce qui change** :
+
+- **Nav principale** (Navbar.tsx) : l'entrée « Diagnostic » devient
+  **« Diagnostic Cheveux »** → `/diagnostic/cheveux` ; l'entrée « Peau » devient
+  **« Diagnostic Peau »** → `/peau/diagnostic`. Libellés i18n
+  (`nav.diagHair`/`nav.diagSkin`, fr + en, parité de clés vérifiée par le banc
+  chantier 7.5 — 90 clés). État actif : cheveux sur toute la famille
+  `/diagnostic*` (hors `/diagnostic/peau`), peau sur tout `/peau*`.
+- **`/diagnostic` sert désormais directement le diagnostic cheveux**
+  (routeTable : même rendu que `/diagnostic/cheveux`, qui reste l'URL canonique
+  du pied de page / SEO). L'ancienne page de choix (`DiagnosticHubPage.tsx`,
+  2 cartes cheveux/peau) est **supprimée** — elle n'était référencée que par la
+  routeTable. `routeMeta` de `/diagnostic` aligné sur le titre diagnostic
+  cheveux.
+- **Le pôle peau (`/peau`) n'est pas supprimé** : le nav n'y pointe plus, mais la
+  page reste accessible (pied de page `/peau/science`, « Pôle peau » dans la
+  recherche, boutique, fiches peau, annuaire pro) et tout le pôle (routine,
+  comparer, science, journal) est joint depuis le diagnostic peau.
+- **Zéro perte d'accès aux autres diagnostics** : enfant (`/kids` →
+  `/diagnostic/enfant`) et coiffures protectrices (`/protective-styles` →
+  `/diagnostic/protective-style`) gardent leur CTA dans leur module de nav.
+- **Non médical inchangé** : les disclaimers des pages de diagnostic sont
+  intacts ; aucune donnée, aucun produit, aucun flux API touchés (317 routes
+  API de l'inventaire identiques).
+
+**Vérifié** : `npm run lint` (tsc) propre · build complet OK (110 pages
+prérendues) · bancs verts : chantier-7-i18n (90 clés), c4-diagnostic-result,
+parcours-peau, route-inventory (317 routes), growth-funnel, chantier-7-prerender,
+chantier-7-seo, seo-dynamic, sitemap-products, diagnostic-session,
+hair-advisory (15 checks), diagnostic-advisory (11 contrats) · HTML prérendu :
+`/diagnostic` = H1 « Trouvez votre routine cheveux », nav « Diagnostic Cheveux
+/ Diagnostic Peau » SSR'de, aucun résidu « Choisissez votre diagnostic » dans
+le dist.
+
+**Limite connue (pré-existante, pas régressée)** : le prérendu chantier 7.3 rend
+le corps React avec la locale par défaut (fr) même sur les 3 routes EN — avant
+ce changement les libellés de nav étaient identiques fr/en donc l'écart était
+invisible. Côté client (hydratation), la nav est bien « Hair Diagnostic / Skin
+Diagnostic » sur `/en/*`. À traiter par son chantier i18n, pas ici.
+
+## Fin de diagnostic : kit de soin à emporter (fiche technique + matériel + produits indispensables) (15/09/2026)
+
+Consigne : « au niveau du diagnostic, je veux que tu mettes également l'accès sur
+les produits qu'il faut utiliser. Quand une personne demande sa routine, à la
+fin cette personne doit repartir avec les informations techniques et une liste
+de matériels et produits nécessaires et indispensables dans la routine et le
+soin de la peau ou des cheveux ».
+
+**Nouvelle section « 9b — Votre kit de soin — à emporter avec vous »** sur la
+page de résultat (`DiagnosticResultPage.tsx`), après « Produits réels », avant
+le suivi. Trois blocs :
+
+1. **Votre fiche technique** : les seuls champs que la personne a déclarés
+   (cheveux : texture, porosité, cuir chevelu, priorité, fréquence — peau :
+   type, phototype si consenti, préoccupations, objectifs, sensibilité). Zéro
+   déduction : rien déclaré → fiche vide (cheveux) ou ligne honnête (peau).
+2. **Matériel nécessaire** : chaque outil est justifié par une étape de la
+   routine générée (démêloir ↔ démêlage, microfibre ↔ séchage, vaporisateur ↔
+   hydratation à l'eau, applicateur ↔ étape scalp — seulement si déclenchée,
+   satin ↔ nuit en satin). Peau : la vérité — « mains propres » + note
+   « aucun matériel spécial », rien d'inventé.
+3. **Produits indispensables, par phase** : le TYPE de produit fait règle
+   (shampoing doux, conditionneur, leave-in, scellant, coiffant, masque,
+   clarifiant — nettoyant, sérum ciblé, SPF 30+ « non négociable », crème
+   barrière, exfoliation conditionnelle). Quand une référence KURLA est
+   publiée, elle est liée vers sa fiche ; sinon, mention honnête « aucune
+   référence KURLA publiée — aucune marque n'est imposée ».
+
+**Implémentation** :
+
+- Nouvelle couche connaissance `src/lib/knowledge/careKit.ts` (déterministe,
+  pure) : `buildHairKit` / `buildSkinKit`, branchées sur `buildDiagnosticResultModel`
+  (`model.kit`). Le kit ne lit que `action` des étapes (forme `KitRoutine`
+  commun aux deux pôles).
+- **Matching anti-invention** : `pickProduct` teste le NOM uniquement (un
+  `routineStep` descriptif « shampoo brush » ne fait pas matcher un shampoing),
+  filtre par CATÉGORIE (cheveux / accessoires / peau) et par exclusions
+  ciblées (le shampoing doux ne capte pas le clarifiant, le scellant ne capte
+  pas le conditionneur « Shea Butter », le coiffant ne capte pas les kits…).
+  Aucune référence hors catalogue, aucun prix, aucune marque : catalogue vide
+  → la liste des types reste complète, sans liens.
+- **Contextuel** : locks → pas de coiffant ni de scellant (dépôts) ; cuir
+  chevelu normal → pas d'applicateur ; exfoliation peau seulement si la
+  routine la contient (grain + tolérance + pas de focus barrière) ; SPF
+  marqué « Non négociable ».
+
+**Vérifié** : tsc propre · banc `test:care-kit` (9 blocs, dans la chaîne npm
+test) · c4-diagnostic-result / hair-advisory / diagnostic-advisory /
+diagnostic-session verts · build complet OK · matching validé sur le VRAI
+catalogue servi (63 références) : kit cheveux = Cantu sulfate-free +
+conditionneur Cantu + Knot Today + karité brut + Twisting Butter + Mielle
+Rosemary Mint + Comeback Revitalizer + masque SheaMoisture + Clean Rinse
+clarifiant ; kit peau (catalogue peau en phase test) = types sans liens,
+zéro faux-amis.
+
+### Copilote — les chiffres de la plateforme, sans en inventer un seul (15/09/2026)
+
+Demandé : un copilote dans le tableau de bord d'administration, **troisième
+porte** à côté de KURLA Hair et KURLA Skin, donnant « combien de personnes ont
+cliqué sur le site, combien ont créé un compte ».
+
+Deux choix arrêtés avec Hubert avant d'écrire une ligne : **panneau de
+métriques déterministe** (pas d'assistant conversationnel — Gemini est
+pourtant actif en production, mais un tableau de bord qui calcule ne dépend
+d'aucun modèle), et **dire ce qui est à zéro en expliquant pourquoi** plutôt
+que de masquer les indicateurs vides.
+
+**Ce que la production dit, mesuré le 15/09/2026** — et c'est la seule
+matière du copilote :
+
+| | |
+|---|---|
+| Pages vues | 846 |
+| Diagnostics démarrés / terminés | 20 / 16 |
+| Inscriptions suivies | **0** |
+| Ajouts au panier, passages en caisse, achats | **0** |
+| Commandes en base | 39, dont **1 seule réglée** (38 en attente de webhook) |
+| Comptes | 2 — ceux du fondateur |
+
+Le tuyau d'événements, lui, fonctionne : éprouvé à la main, un `add_to_cart`
+envoyé à `/api/events/funnel` arrive bien en base (puis effacé). Les zéros
+sont donc **vrais** : le site a du trafic et de l'engagement sur le
+diagnostic, mais aucune conversion commerciale. Le copilote le dit.
+
+**Architecture** : `src/lib/db/copiloteStore.ts` (`lirePoulsPlateforme`),
+`GET /api/admin/copilote`, `src/components/CopilotePanel.tsx`, troisième porte
+et onglet dédié dans `AdminDashboardPage`. Périodes 7 / 30 / 90 jours / 1 an.
+
+**La règle, et elle n'est pas négociable** : jamais un 0 à la place d'un
+chiffre non lu. Trois états par indicateur — `mesure`, `aucun` (zéro réel,
+avec une lecture qui dit ce que ce zéro signifie) et `non_mesurable`
+(`valeur: null`). Les commandes `payment_pending_webhook` ne comptent jamais
+comme des ventes : une session Stripe ouverte n'est pas un achat.
+
+**Deux trouvailles en route :**
+
+1. **L'inventaire des routes admin perdait 4 routes.** Le banc du chantier 15A
+   applique son expression **ligne par ligne** : toute route enregistrée sur
+   plusieurs lignes (`app.get(` seul sur la sienne) lui échappait. Quatre
+   routes étaient donc hors contrôle — `conversion-funnel`,
+   `launch/traction`, `strategy/cockpit` et la mienne — alors que ce banc est
+   précisément celui qui vérifie que **la garde précède l'effet**. Elles
+   étaient toutes correctement gardées, mais personne ne le vérifiait.
+   Collecteur corrigé : **75 → 79 routes, 0 sans garde.**
+2. Un défaut attrapé par le banc, pas par relecture : la lecture « 1 commande
+   réglée sur 3 » n'était jamais produite, parce qu'elle lisait
+   `valeur('reglees')` sur un identifiant d'indicateur qui n'existe pas — et
+   obtenait donc toujours 0.
+
+#### Copilote — mesure en production (15/09/2026, 00h06 UTC)
+
+Exécuté contre la base de production réelle (jamais en mémoire), par le vrai
+gestionnaire de route, sans créer le moindre compte :
+
+    GET /api/admin/copilote?jours=30 -> HTTP 200
+    Pages vues 858 · sessions 711 · diagnostics 16 terminés sur 22 démarrés
+    comptes créés 0 (état « aucun », expliqué) · comptes existants 2
+    ajouts au panier 0 · passages en caisse 0 · achats confirmés 0
+    commandes en base 39, dont 1 réellement réglée · produits actifs 106
+    incidents 24 h : 0
+
+La phrase « 1 commande(s) réglée(s) sur 39 » apparaît bien : c'était le défaut
+attrapé au banc, invisible à la relecture.
+
+Deux précautions à connaître avant de mesurer quoi que ce soit soi-même :
+
+- Le bac à sable tourne sous **Node 20**, la production exige **Node 22**
+  (`engines`). Sous Node 20, le client Supabase échoue à la construction :
+  « native WebSocket not found ». Ce n'est pas un défaut de l'application.
+  Contournement local : `(globalThis as any).WebSocket ??= require('ws').WebSocket`.
+- Sans jeton, la route répond **401** — c'est la preuve qu'elle est déployée et
+  gardée. Elle a été vérifiée telle quelle sur `kurlabeauty.vercel.app`.
+
+#### À l'attention du pôle navigation : l'intégration continue était rouge
+
+Les deux commits précédents (`ed7b2da`, `48bd6f3`) faisaient échouer les deux
+chantiers d'intégration continue. Causes, corrigées dans `f9e9642` :
+
+1. **Photo d'inventaire des routes non régénérée.** Toute route ajoutée doit
+   être déclarée dans `tests/fixtures/route_inventory.json`. La régénérer :
+   `KURLA_UPDATE_FIXTURE=1 npx tsx tests/route_inventory.test.ts` (idem pour
+   `tests/admin_route_inventory.test.ts`). Sans quoi la suite casse chez tout
+   le monde, y compris en intégration continue.
+2. **Deux routes au même titre.** `/diagnostic` et `/diagnostic/cheveux`
+   servent le même écran depuis la suppression de la page de choix, et
+   portaient le même titre ; le banc du routeur déclaratif le refuse à juste
+   titre (signal de métadonnées restées à l'état de gabarit).
+
+   Corrigé en donnant à `/diagnostic` un titre et une description propres.
+
+   **Je n'ai pas tranché le fond, qui vous revient :** deux URL indexables
+   publient aujourd'hui le même écran (`/diagnostic` poids 1,
+   `/diagnostic/cheveux` poids 0.9). Le remède propre est une balise canonical
+   ou une redirection de `/diagnostic/cheveux` vers `/diagnostic` — le routeur
+   déclaratif (`src/lib/routeTable.tsx`, interface `RouteEntry`) ne sait faire
+   ni l'un ni l'autre. J'ai laissé la question ouverte et commentée dans
+   `src/lib/routeMeta.ts`, en gardant `/diagnostic` indexable : c'est l'URL la
+   plus liée du site (bouton d'appel de la barre de navigation, hero,
+   prévisualisation, retour depuis un résultat).
+## Dashboard admin : navigation par sections (barre de saut + scrollspy) (15/09/2026)
+
+Consigne : « dans le dashboard admin, rends la navigation plus intéressante et
+plus fluide — dans catalogue → pilotage catalogue, il faut scroller longtemps
+pour aller d'une section à l'autre. C'est la même chose pour toutes les pages. »
+
+**Ce qui change** (tous les onglets du dashboard, hair et skin, sans refonte
+des panels) :
+
+- Nouvelle barre de saut **collante** (sous la barre de nav du site) qui se
+  construit automatiquement depuis les `<h2>/<h3>` du panel actif : chaque
+  section devient une chip cliquable → **saut fluide** (smooth scroll,
+  `prefers-reduced-motion` respecté, atterrissage sous la barre via
+  `scroll-margin-top`).
+- **Scrollspy** : la section lue est surlignée pendant la lecture ; la barre
+  prend une ombre quand elle est en butée (sentinelle IntersectionObserver).
+- **Progression de lecture** de la page (liseré cuivre) + **bouton flottant
+  retour en haut** (apparaît après 600 px).
+- Seuil : moins de 3 sections détectées → la barre disparaît (pas de bruit sur
+  les onglets courts). Re-scan automatique : changement d'onglet +
+  MutationObserver débouncé (contenu asynchrone des panels). Ids de sections
+  stables par libellé (hash) → le scrollspy survive aux re-scans.
+
+**Fichiers** : `src/components/AdminSectionNav.tsx` (composant ; la fonction
+pure `collectSections` est exportée et testée sans DOM) ·
+`src/pages/AdminDashboardPage.tsx` (branchement : ref du conteneur + barre
+insérée sous les onglets) · `tests/kurla_admin_section_nav.test.ts`
+(`test:admin-section-nav`, dans la chaîne npm test).
+
+**Vérifié** : tsc propre · banc `admin-section-nav` (4 blocs : détection,
+stabilité des ids, visibilité/dédup/plafond 8) · bancs admin verts
+(admin_dashboard, kurla_admin_role_guard) · Vite transforme le composant (200)
+· /admin servi (200).
+
+**Note pour l'agent « vue sourcing consolidée » (37a9376)** : le banc
+`admin_route_inventory` est **rouge en production** (la surface d'admin a
+changé sans mise à jour de l'inventaire de référence — pré-existant, vérifié
+sans le WIP de cette entrée ; à trancher volontairement dans votre chantier).
+
+## Dashboard admin : « À faire aujourd'hui » — file d'actions de l'acheteur (17/09/2026)
+
+Consigne : « tu es l'acheteur et le fondateur : étudie le dashboard admin, surtout
+catalogue et approvisionnement, pour un espace de travail agréable. Fais une
+proposition, on va attaquer. » → proposition validée en **lot Phase 1 + Phase 4**
+(document : `docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`,
+phases 2 et 3 à suivre).
+
+**Ce qui change** (onglet « Pilotage catalogue », les 2 workspaces, en tête de page) :
+
+- Nouvelle section **« À faire aujourd'hui »** : 3 compteurs cliquables
+  (fiches à débloquer · lots à traiter · RFQ à envoyer) + une **file priorisée**
+  (commercial → physique → sourcing), chaque ligne = action + contexte + bouton
+  **« Y aller »** qui mène au bon onglet **contexte présélectionné** :
+  - *Débloquer* → Catalogue produits, filtre prérempli sur la fiche (publiée mais
+    non listable — premier manquement nommé) ;
+  - *Lot à traiter* → Lots & traçabilité, produit présélectionné dans le
+    formulaire « Enregistrer un lot reçu » (demande ferme sans lot = trou de
+    traçabilité) ;
+  - *RFQ à envoyer* → Fournisseurs & sourcing (besoin encore `to_source`, vague
+    et documents requis affichés).
+- **Zéro donnée inventée** : tout est dérivé en lecture des endpoints existants
+  (`publication-readiness`, `sourcing/items`, `preorder-demand`, `batches`),
+  scopés par workspace. Source indisponible → file affichée **partielle** et
+  l'indisponibilité est nommée. File vide → état « rien à faire » honnête.
+  Plafond de lisibilité 12 lignes, compteurs complets, excédent nommé.
+- **Phase 4 (soubassement)** : audit des titres — tous les panels catalogue +
+  approvisionnement ont déjà des `<h2>/<h3>` réels (la nav par sections les
+  couvre déjà à 100 %) ; la liste « Ce qui bloque, nommé » du cockpit passe à
+  des **statuts colorés** (puce rouge + badge compteur).
+
+**Fichiers** : `src/components/AdminActionQueue.tsx` (NEUF ; `buildActionQueue`
+pure exportée) · `src/pages/AdminDashboardPage.tsx` (section de la file en tête
+du cockpit + `queueNav` : tab + focus) · `CatalogAdminPanel.tsx` (props
+`focusProductId`/`focusLabel` → filtre) · `BatchAdminPanel.tsx` (mêmes props →
+présélection du formulaire de lot) · `OperationsCockpitPanel.tsx` (statuts
+colorés) · `tests/kurla_admin_action_queue.test.ts` (`test:admin-action-queue`,
+7 blocs, dans la chaîne npm test) · `tests/fixtures/admin_route_inventory.json`
+(**mise à jour volontaire** du fixture — diff vérifié : +4 appelants = le nouvel
+écran `AdminActionQueue.tsx` sur les routes existantes, aucun autre changement)
+· `docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`.
+
+**Vérifié** : tsc propre · banc `admin-action-queue` 7 blocs verts ·
+`admin_route_inventory` PASS après régénération du fixture (diff contrôlé :
+uniquement le nouvel écran + décalages de lignes dans les fichiers modifiés) ·
+bancs admin_dashboard / kurla_operations_cockpit / kurla_batches /
+kurla_admin_role_guard verts · les 4 endpoints de la file existants et gardés
+(401 sans session) · Vite transform 200 · /admin 200.
+
+**Note** : la note « inventaire rouge pré-existant » de l'entrée du 15/09 est
+désormais caduque (corrigée en `36cedfd` par le travail parallèle, puis fixture
+refigé par cette entrée avec diff vérifié). **Prochain lot** : phases 2 (fiche
+produit 3 colonnes + actions groupées) puis 3 (découpage approvisionnement en
+3 sous-onglets + objet « proposition d'achat ») — ne pas commencer sans GO.
+
+## Dashboard admin : fiche produit 3 colonnes + actions groupées, approvisionnement découpé, proposition d'achat (17/09/2026)
+
+Suite de la proposition « espace de travail acheteur » (`docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`) —
+**phases 2 et 3 livrées** (la phase 1 « À faire aujourd'hui » était déjà poussée).
+
+**Phase 2 — Catalogue produits devient un espace de travail** (`CatalogAdminPanel`) :
+- **Recherche globale** : nom, marque, slug **+ INCI + ingrédients** ; compteur
+  « vues/total » sur le titre.
+- **Filtres rapides** (comptés sur les données réelles, jamais supposés) :
+  Prêtes · Bloquées · Sans fournisseur · Test/sourcing — cumulables avec la
+  recherche.
+- **Actions groupées** : sélection multiple (cases par fiche, « Sélectionner la
+  vue ») → barre d'actions : **rattacher un fournisseur** (PATCH partiel
+  `{ supplierId }` par fiche — le store merge avec l'existant, vérifié dans
+  `normalizeCatalogProductInput` ; les refus sont nommés un à un, jamais
+  masqués) + **export CSV** de la sélection (RFC4180).
+- **Vue 360** par fiche : une carte en 3 colonnes — *Commercial* (statut, état
+  de publication, manques nommés, INCI repliable) · *Approvisionnement*
+  (fournisseur, vérification, MOQ, délai, lots reçus avec coûts) · *Demande*
+  (fermes, attente, à couvrir kits déroulés). Données lues sur
+  `batches?productId=` + `preorder-demand` à l'ouverture.
+
+**Phase 3 — Approvisionnement découpé + objet d'achat** :
+- « Fournisseurs & sourcing » : **11 panels empilés → 3 sous-onglets** :
+  *Fournisseurs* (référentiel + rattachement produits) · *Sourcing & RFQ*
+  (proposition d'achat, cahier peau, tracking mails, vue consolidée, prospects,
+  matrice pays) · *Logistique* (tampon A3 3PL, contacts & messages prêts,
+  kitting, lot whitecast peau + **carte de renvoi vers Lots & traçabilité** —
+  l'écran dédié reste dans la famille Catalogue, lien explicite). La barre de
+  sections re-scanne par sous-onglet (pageKey dédié).
+- **Nouvelle « Proposition d'achat — premier lot »** (`PurchaseProposalPanel`,
+  tête du sous-onglet Sourcing & RFQ) : pour chaque référence à couvrir —
+  demande (fermes+attente+kits) − stock = **à commander** (bornée à 0, « couvert »
+  sinon), fournisseur + MOQ + délai, **coût unitaire = coût réel du dernier lot
+  reçu** (sinon « à obtenir » — jamais d'estimation inventée), pièces
+  manquantes lues sur l'état de publication, total estimé **complet ou
+  « estimation partielle » nommé**, export CSV.
+
+**Fichiers** : `src/components/PurchaseProposalPanel.tsx` (NEUF ; `buildPurchaseProposal`
++ `purchaseProposalToCsv` pures exportées) · `src/components/CatalogAdminPanel.tsx`
+(filtres rapides, sélection, rattachement groupé, export CSV, vue 360 ; `buildProduct360`
++ `productsSelectionToCsv` pures exportées) · `src/pages/AdminDashboardPage.tsx`
+(sous-onglets `supplierSub`, PurchaseProposalPanel branché, pageKey de la nav
+sections) · `tests/kurla_purchase_proposal.test.ts` (7 blocs) ·
+`tests/kurla_catalog_workbench.test.ts` (4 blocs) — `test:purchase-proposal` et
+`test:catalog-workbench` dans la chaîne npm test · `tests/fixtures/admin_route_inventory.json`
+(**mise à jour volontaire** — diff contrôlé : uniquement les nouveaux écrans comme
+appelants des routes existantes + décalages de lignes dans `CatalogAdminPanel`).
+
+**Vérifié** : tsc propre · bancs `purchase-proposal` (7) et `catalog-workbench` (4)
+verts · `admin_route_inventory` PASS après régénération (diff = 2 nouveaux écrans,
+aucune route ajoutée/retirée, aucun appelant perdu) · bancs admin_dashboard /
+operations-cockpit / batches / catalog verts · dev server relancé (store Supabase
+OK, `NODE_OPTIONS=--experimental-websocket`) · /admin 200 · les 3 nouveaux
+composants transformés par Vite (200).
+
+**Note** : l'écran « Lots & traçabilité » n'a **pas** été déplacé (décision :
+renvoi explicite depuis Logistique) — la file « À faire aujourd'hui » et la
+barre de sections pointent toujours vers le même onglet. Prochain chantier
+possible (non demandé) : deep-link « Sourcing & RFQ » depuis la file quand une
+RFQ est en retard de relance.
+
+## Dashboard admin : relance RFQ J+3 dans la file « À faire aujourd'hui » (17/09/2026)
+
+Suite du chantier « espace de travail acheteur » — la file d'actions passe de 3
+à **4 familles** : **unblock → lot → relance → rfq** (le suivi des demandes
+envoyées arrive avant le nouveau sourcing, qui est le plus long).
+
+**Ce qui change** :
+
+- **Nouvelle famille « RFQ à relancer »** (pastille bleue, 4ᵉ compteur) : un
+  besoin en consultation (`in_rfq`) dont la **plus ancienne demande envoyée sans
+  réponse** dépasse **J+3** (`RELANCE_AFTER_DAYS = 3`, exporté). Le détail
+  affiche le délai exact : « 1 demande envoyée, sans réponse depuis 5 j ».
+  Un besoin déjà en relance n'est pas double-compté en « à envoyer » ; un
+  besoin `awarded` ou `to_source` n'y entre pas.
+- **Deep link affiné** : les actions « suppliers » (relance + RFQ à envoyer)
+  mènent directement sur le sous-onglet **Sourcing & RFQ** (pas le
+  référentiel).
+- **Mesure, pas supposition** : la route `GET /api/admin/sourcing/items`
+  agrège désormais `sentAwaitingCount` + `oldestAwaitingSentOn` (RFQ `sent`
+  avec date d'envoi — une « sent » sans `sentOn` ne peut pas être datée et
+  n'entre pas dans le délai). Changement **additif** : aucun consommateur
+  existant cassé (vérifié par les bancs sourcing/consolidated/cockpit).
+- Message « Rien à faire » mis à jour (« aucune RFQ n'est sans réponse au-delà
+  de J+3 »).
+
+**Fichiers** : `src/server/routes/sourcing.ts` (agrégats de relance) ·
+`src/components/AdminActionQueue.tsx` (famille `relance`, `buildActionQueue`
+accepte `now` injectable pour figer les délais) · `src/pages/AdminDashboardPage.tsx`
+(under-link Sourcing & RFQ) · `tests/kurla_admin_action_queue.test.ts`
+(nouveau bloc 5 : seuil exact J+3, in_rfq uniquement, date injectable ; bloc
+priorité à 4 familles — **8 blocs au total**).
+
+**Vérifié** : tsc propre · banc `admin-action-queue` 8 blocs verts (dont seuil
+pile : 3 j → relance, 3 j − 1 s → non) · bancs `kurla_sourcing`,
+`sourcing-consolidated`, `operations-cockpit`, `admin_dashboard`,
+`admin_route_inventory` verts · dev server relancé (store Supabase OK) · /admin
+et le composant transformés (200).
+
+**Note** : le **contenu** de la relance (e-mail court) reste un acte humain —
+la file indique *quoi relancer et depuis quand*, l'envoi passe par les
+e-mails prêts de la vue consolidée (mailto/copier), conformément au principe
+« rien n'est envoyé depuis la plateforme ».
+
+#### Mobile : le téléchargeait trois fois, et chargeait l'administration (15/09/2026)
+
+Chantier « rendre le site plus responsive », mesuré avant de toucher au code.
+Banc de mesure : Chrome mobile, iPhone (390×844), processeur ralenti 4×,
+réseau « 4G lente » (1,6 Mbit/s, 150 ms d'aller-retour) — le profil de
+référence de Lighthouse.
+
+**Avant :** premier contenu peint à 1 079 ms, mais **1 486 ms de blocage**
+(13 tâches longues) et **3 074 Ko décodés** au total, dont **1 813 Ko de
+JavaScript**. Deux causes, mesurées :
+
+1. **L'administration était préchargée sur toutes les pages.** `index.html`
+   portait `<link rel="modulepreload">` vers le morceau `admin` : **945 Ko
+   décodés (229 Ko compressés)** téléchargés et analysés sur la page
+   d'accueil, y compris par des téléphones qui n'ouvriront jamais
+   l'administration. La cause n'était pas un oubli de `lazy()` — la page
+   l'est déjà — mais le découpage manuel dans `vite.config.ts` : forcer ces
+   modules dans un morceau nommé y attirait le code partagé avec l'entrée,
+   ce qui le transformait en dépendance statique. Le regroupement « admin »
+   est retiré ; l'administration reste un morceau à part, chargé à la
+   demande (820 Ko, plus personne ne les paie s'il ne va pas sur /admin).
+2. **`GET /api/products` partait trois fois** sur la page d'accueil : le
+   panier, la recherche et l'aperçu boutique appellent chacun `useProducts()`,
+   et le hook déclenchait sa propre requête — trois fois 159 Ko décodés,
+   soit 477 Ko de JSON à analyser, pour un catalogue identique au même
+   instant. Le vol est désormais partagé (`cataloguePublicPartage`) : une
+   requête, tous les appelants branchés dessus.
+
+**Rien n'est mis en cache** : la donnée n'est pas conservée au-delà du vol,
+donc la boutique ne peut pas afficher un catalogue périmé. « Rafraîchir »
+reste un ordre et relance une lecture. Banc : `tests/kurla_catalogue_partage.test.ts`.
+
+Vérifié aussi, et **déjà correct** — ne pas « corriger » : les polices Google
+sont chargées de façon non bloquante (`preload as=style` + bascule par
+`public/fonts.js`), la feuille de style n'existe que dans un `<noscript>`, et
+la page est prérendue (2 551 mots présents dans le HTML, donc visibles avant
+toute exécution de JavaScript). Aucun dépassement horizontal.
+
+#### Mobile : mesure d'après, et ce qu'il reste (15/09/2026)
+
+Même banc, trois passages pour tenir compte de la variance (les mesures
+réseau variant d'un essai à l'autre, les octets sont la preuve stable ; les
+temps sont donnés en médiane).
+
+| | avant | après |
+|---|---|---|
+| Octets décodés, accueil | 3 074 Ko | **2 050 Ko** |
+| dont JavaScript | 1 813 Ko | **953 Ko** |
+| dont appels réseau | 528 Ko | 372 Ko |
+| `GET /api/products` | 3 appels | 2 appels |
+| DOMContentLoaded | 3 498 ms | **2 258 ms** |
+| LCP (plus grand contenu) | 1 980 ms | 1 636 ms |
+| Blocage (TBT) | 1 486 ms | ~1 350 ms |
+
+Le téléchargement a fondu de moitié ; **le blocage du processeur, lui, n'a
+quasiment pas bougé**. Ce n'est donc pas le morceau « admin » qui rendait
+l'accueil lent à l'usage — c'est le coût d'hydratation de la page elle-même.
+
+Pages intérieures, mesurées de la même façon : `/boutique` LCP 3 163 ms avec
+597 ms de blocage, `/diagnostic` LCP 915 ms avec 234 ms. **Aucune page n'est
+invisible** : le premier contenu est peint en moins d'une seconde partout et
+2 524 mots sont présents dans le HTML dès le premier octet (prérendu). Aucun
+débordement horizontal. L'accueil est la seule page lourde.
+
+**Restent ouverts, par ordre d'effet attendu — à l'attention du pôle
+interface.** Je ne les ai pas engagés seuls : ce sont des composants
+d'écran, pas de l'infrastructure.
+
+1. **Deux appels au catalogue au lieu d'un.** Le second part ~3 secondes
+   après le premier : une section de l'accueil se monte une fois le vol
+   terminé. Le partage ne peut rien y faire sans mise en cache, et je n'ai
+   pas voulu introduire de fraîcheur sans accord — un catalogue périmé est
+   pire qu'un appel de trop.
+2. **La bibliothèque d'animations `motion` est dans le morceau partagé** :
+   elle est donc analysée et démarrée sur toutes les pages, y compris celles
+   qui n'animent rien.
+3. **82 Ko de SVG en ligne** dans le HTML prérendu de l'accueil, pour un
+   corps de 291 Ko : plus le DOM est gros, plus l'hydratation coûte.
+4. Les tâches longues de l'accueil : 462 ms, 410 ms, 331 ms. Le navigateur
+   n'a pas voulu en dire l'origine ; il faudrait une trace d'exécution pour
+   nommer précisément le responsable.
+
+#### Mobile, second passage : animations isolées, extras différés, catalogue réutilisé (15/09/2026)
+
+Trois corrections, décidées après un profil d'exécution de l'accueil sur
+téléphone (et non à l'instinct) :
+
+1. **Les animations ne sont plus dans le morceau partagé.** `motion`
+   se retrouvait dans `vendor`, donc téléchargé, analysé et démarré sur
+   **toutes** les pages — y compris celles qui n'animent rien. Il a son
+   propre morceau : **123,7 Ko** sortis de `vendor`, qui passe de 392,5 à
+   **269 Ko**. Vérifié : le morceau n'est pas devenu une dépendance
+   statique (c'est le piège qui avait transformé l'administration en
+   préchargement).
+2. **Les tiroirs et fenêtres globales se montent au premier temps mort du
+   navigateur.** Panier, recherche, assistant et rappel de panier étaient
+   en chargement différé, mais se montaient pendant l'hydratation : leur
+   JavaScript s'analysait, leurs effets tournaient et le panier relançait un
+   téléchargement du catalogue — en pleine mise en route de la page, donc
+   en concurrence avec elle. Ils passent après. Le délai est borné à 4 s,
+   avec repli sur une temporisation pour les navigateurs sans
+   `requestIdleCallback` (Safari). Le panneau de récupération de mot de
+   passe reste monté sans attendre : un lien reçu par courriel doit
+   s'ouvrir tout de suite.
+3. **Le catalogue est réutilisé pendant trente secondes.** Sans cela, la
+   section de l'accueil qui se monte trois secondes après la fin du premier
+   vol relançait une requête pour un catalogue déjà en mémoire : « partager
+   le vol » ne servait qu'aux appelants strictement simultanés.
+
+   **Le risque est connu et assumé :** un visiteur peut voir un catalogue
+   vieux de trente secondes au plus. Aucun prix ni aucun stock n'en
+   dépendent — ils sont recalculés côté serveur au panier et à la commande.
+   « Rafraîchir » court-circuite la fraîcheur, ainsi que la sortie de
+   session. Banc mis à jour : `tests/kurla_catalogue_partage.test.ts`.
+
+#### Mobile :bilan mesuré après les deux passages (15/09/2026)
+
+Accueil, médiane de trois passages, iPhone 390×844, processeur ralenti 4×,
+réseau 4G lente :
+
+| | avant | après |
+|---|---|---|
+| Octets décodés | 3 074 Ko | **1 903 Ko** |
+| dont JavaScript | 1 813 Ko | **953 Ko** |
+| dont appels réseau | 528 Ko | **217 Ko** |
+| `GET /api/products` | 3 appels | **1 appel** |
+| DOMContentLoaded | 3 498 ms | **1 747 ms** |
+| Premier contenu peint | 1 079 ms | 892 ms |
+| Blocage total | 1 486 ms | 1 331 ms |
+| **dont pendant la mise en route** (avant 2 s) | ~1 486 ms | **~743 ms** |
+
+Le point qui compte : le blocage **pendant la mise en route** a été divisé
+par deux, même si le total bouge peu. Le reste du travail existe toujours —
+c'est le panier, la recherche et l'assistant — mais il se fait après que la
+page est utilisable, au lieu de lui passer devant.
+
+Pages intérieures, médiane de trois passages :
+
+- `/diagnostic` : 1 227 Ko (JS 720 Ko), premier contenu à 872 ms, **197 ms
+  de blocage**.
+- `/boutique` : 1 343 Ko (JS 803 Ko), premier contenu à 837 ms, **773 ms de
+  blocage** — c'est la deuxième page la plus lourde, après l'accueil.
+
+**Honnêteté sur les mesures :** les octets et le nombre d'appels sont
+reproductibles au Ko près ; les temps, eux, varient d'un passage à l'autre
+(jusqu'à 2 secondes d'écart sur le LCP de `/boutique`). Les temps des pages
+intérieures « avant » ne reposaient que sur un passage : je ne les compare
+donc pas, seul l'allègement (JavaScript 927 → 803 Ko sur `/boutique`,
+844 → 720 Ko sur `/diagnostic`) est établi.
+
+**Ce qui reste, et c'est le fond du sujet :** l'accueil bloque encore
+~743 ms au démarrage. Ce n'est plus un problème de téléchargement — la page
+reçoit deux fois moins de données — c'est le coût d'hydratation d'un DOM de
+290 Ko contenant **82 Ko de SVG en ligne**, animé par `motion`. Réduire
+cela demande de reprendre les sections d'écran elles-mêmes : ce n'est plus
+de l'infrastructure, et je ne l'engage pas seul.
+
+Piste chiffrée pour qui voudra continuer : le morceau `supabase` (206 Ko)
+est chargé sur `/boutique` pour l'authentification, alors que la session n'est
+nécessaire qu'après le premier affichage. Le rendre paresseux allégerait
+cette page d'autant — sous réserve que rien n'attende la session au montage.
+
+#### Pages blanches sur téléphone : le cache du service worker n'était jamais vidé (15/09/2026)
+
+Symptôme rapporté : la vitesse s'était améliorée, mais **impossible d'ouvrir
+le diagnostic cheveux, la boutique, les outils, le diagnostic peau**.
+
+Ce n'était ni le réseau ni le code des écrans. Mesuré : les quatre pages
+répondent en HTTP 200 avec leur contenu (685 à 3 359 mots de HTML
+prérendu), et elles s'affichaient parfaitement dans un navigateur neuf, en
+chargement direct **comme après un clic depuis l'accueil**, sans la moindre
+erreur console.
+
+La différence entre mon banc et un vrai téléphone tient en un mot : le
+**service worker**. Mon navigateur démarre sur un profil neuf, donc sans
+cache ; le téléphone, lui, gardait le sien.
+
+Deux défauts, dans `public/sw.js` :
+
+1. **Le cache s'appelait `kurla-shell-v1` en dur.** Jamais invalidé, jamais
+   vidé. Après une mise en ligne, le téléphone continuait de servir
+   l'application précédente — une version dont les fichiers n'existent plus
+   sur le serveur, ou qui ne connaît pas les adresses actuelles.
+2. **Les réponses en erreur étaient mises en cache.** `cache.put` était
+   appelé sans vérifier `response.ok` : un 404 sur un ancien fichier
+   d'assets était donc mémorisé, et comme le cache n'était jamais vidé, il
+   le restait définitivement. C'est le scénario du cache empoisonné : la
+   page reste blanche quoi qu'on fasse.
+
+Corrections : le nom du cache porte désormais le numéro de construction
+(`scripts/stampServiceWorker.ts`, estampillé dans les deux chemins de
+compilation), ce qui fait que l'activation vide d'elle-même la construction
+précédente ; et seules les réponses `ok` entrent en cache.
+
+`GET /sw.js` est servi avec `max-age=0, must-revalidate` : un téléphone
+récupérera donc la correction à sa prochaine visite, sans intervention.
+
+Banc : `tests/kurla_service_worker.test.ts`.
+
+#### Vérification du service worker en situation réelle
+
+Banc : Chrome mobile, deux visites (la première installe, la seconde active),
+puis navigation au clic avec le cache en place.
+
+    cache actif     : kurla-shell-a7aba15a2d59 — le numéro de construction
+    contenu         : 43 entrées
+    /diagnostic/cheveux  248 mots  · /peau/diagnostic 277
+    /boutique           6689 mots  · /outils         2994
+    hors ligne      : 2 409 mots servis depuis la coquille — pas de page blanche
+
+**Et pour un téléphone déjà bloqué ?** `GET /sw.js` est servi avec
+`max-age=0, must-revalidate` : le navigateur le récupère à chaque visite. Le
+nouveau service worker s'installe, s'active (`skipWaiting` + `clients.claim`)
+et l'activation supprime les caches qui ne portent pas le nom courant — donc
+l'ancien `kurla-shell-v1`, avec ses 404 mémorisés. La première ouverture peut
+encore être servie par l'ancien worker ; la suivante est saine. Si le
+problème persistait malgré tout, vider les données du site (ou réinstaller
+l'application) règle le cas.

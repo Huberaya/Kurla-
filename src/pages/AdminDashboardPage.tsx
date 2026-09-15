@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -11,6 +12,9 @@ import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
+import { AdminSectionNav } from '../components/AdminSectionNav';
+import { AdminActionQueue } from '../components/AdminActionQueue';
+import { PurchaseProposalPanel } from '../components/PurchaseProposalPanel';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
@@ -34,13 +38,21 @@ import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
 import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
-type AdminWorkspace = 'skin' | 'hair';
-type AdminTab = 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
+type AdminWorkspace = 'skin' | 'hair' | 'copilot';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
   const value = new URLSearchParams(window.location.search).get('base');
-  return value === 'skin' || value === 'hair' ? value : null;
+  return value === 'skin' || value === 'hair' || value === 'copilot' ? value : null;
+};
+
+/** Onglet ouvert à l'arrivée, selon l'espace demandé dans l'URL. */
+const tabInitial = (): AdminTab => {
+  const espace = initialAdminWorkspace();
+  if (espace === 'skin') return 'skin_overview';
+  if (espace === 'copilot') return 'copilote';
+  return 'analytics';
 };
 
 const KpiCell: React.FC<{ label: string; value: React.ReactNode; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'text-kurla-cream' }) => (
@@ -94,11 +106,27 @@ export const AdminDashboardPage: React.FC = () => {
   }, []);
 
   const [workspace, setWorkspace] = useState<AdminWorkspace | null>(initialAdminWorkspace);
-  const [activeTab, setActiveTab] = useState<AdminTab>(() => initialAdminWorkspace() === 'skin' ? 'skin_overview' : 'analytics');
+  const [activeTab, setActiveTab] = useState<AdminTab>(tabInitial);
+  // Racine du panel actif : AdminSectionNav détecte les h2/h3 pour la navigation par sections.
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
+  // « À faire aujourd'hui » (17/09 phase 1) : la file d'actions mène à un onglet
+  // avec le contexte présélectionné (fiche focalisée / produit présélectionné au lot).
+  const [queueNav, setQueueNav] = useState<{ tab: AdminTab; focusProductId?: string; focusLabel?: string } | null>(null);
+  const navigateFromQueue = (nav: { tab: 'catalog' | 'batches' | 'suppliers'; focusProductId?: string; focusLabel?: string }) => {
+    setQueueNav(nav);
+    // Les actions sourcing (relance RFQ, RFQ à envoyer) atterrissent directement
+    // sur le sous-onglet « Sourcing & RFQ », pas sur le référentiel.
+    if (nav.tab === 'suppliers') setSupplierSub('sourcing');
+    setActiveTab(nav.tab);
+    // On revient en haut : la page cible est longue et l'action doit être visible.
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+  // Approvisionnement (17/09 phase 3) : 11 panels empilés → 3 sous-onglets.
+  const [supplierSub, setSupplierSub] = useState<'dir' | 'sourcing' | 'log'>('dir');
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
-    setActiveTab(next === 'skin' ? 'skin_overview' : 'analytics');
+    setActiveTab(next === 'skin' ? 'skin_overview' : next === 'copilot' ? 'copilote' : 'analytics');
     setProsFilter(next === 'skin' ? 'peau' : 'all');
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -479,9 +507,9 @@ export const AdminDashboardPage: React.FC = () => {
               <Shield className="w-10 h-10 mx-auto text-kurla-copper mb-4" />
               <p className="text-[11px] uppercase tracking-[0.3em] text-kurla-amber font-bold">Espace administration</p>
               <h1 className="mt-3 text-3xl sm:text-4xl font-serif-title font-bold text-kurla-cream">Choisir votre base KURLA</h1>
-              <p className="mt-3 text-sm text-kurla-cream/60">Les deux espaces sont séparés : choisissez la ligne métier à piloter.</p>
+              <p className="mt-3 text-sm text-kurla-cream/60">Les espaces métier sont séparés ; le copilote, lui, lit les chiffres des deux.</p>
             </div>
-            <div className="mt-10 grid md:grid-cols-2 gap-5">
+            <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               <button onClick={() => selectWorkspace('skin')} className="group text-left p-6 rounded-3xl bg-emerald-950/35 border border-emerald-400/25 hover:border-emerald-300/70 hover:bg-emerald-950/55 transition-all">
                 <div className="flex items-center justify-between gap-4"><span className="text-2xl">✦</span><span className="px-2.5 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/25 text-[10px] uppercase tracking-wider text-emerald-200 font-bold">C1 · C5</span></div>
                 <h2 className="mt-6 text-2xl font-serif-title font-bold text-emerald-100">KURLA Skin</h2>
@@ -494,6 +522,12 @@ export const AdminDashboardPage: React.FC = () => {
                 <p className="mt-2 text-sm leading-relaxed text-kurla-cream/65">Cheveux, textures, routines, ventes, commandes, stock et opérations commerciales.</p>
                 <span className="inline-flex mt-6 px-4 py-2 rounded-xl bg-kurla-copper/25 text-kurla-cream text-xs font-bold group-hover:bg-kurla-copper/45">Ouvrir KURLA Hair →</span>
               </button>
+              <button onClick={() => selectWorkspace('copilot')} className="group text-left p-6 rounded-3xl bg-sky-950/30 border border-sky-400/25 hover:border-sky-300/70 hover:bg-sky-950/50 transition-all">
+                <div className="flex items-center justify-between gap-4"><span className="text-2xl">◈</span><span className="px-2.5 py-1 rounded-full bg-sky-400/15 border border-sky-400/25 text-[10px] uppercase tracking-wider text-sky-200 font-bold">Chiffres réels</span></div>
+                <h2 className="mt-6 text-2xl font-serif-title font-bold text-sky-100">Copilote</h2>
+                <p className="mt-2 text-sm leading-relaxed text-sky-100/65">Visites, visiteurs, diagnostics, inscriptions, panier, ventes et santé — et ce qui n’est pas encore mesuré, dit comme tel.</p>
+                <span className="inline-flex mt-6 px-4 py-2 rounded-xl bg-sky-500/25 text-sky-100 text-xs font-bold group-hover:bg-sky-500/40">Ouvrir le copilote →</span>
+              </button>
             </div>
           </div>
         </div>
@@ -503,20 +537,21 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-kurla-ink text-kurla-cream">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div ref={panelRootRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
         {/* Header Bar */}
         <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
           <div>
             <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-kurla-cream flex items-center gap-3">
-              <Shield className={`w-7 h-7 ${workspace === 'skin' ? 'text-emerald-300' : 'text-kurla-copper'}`} /> {workspace === 'skin' ? 'KURLA Skin — Administration' : 'KURLA Hair — Administration & Operations'}
+              <Shield className={`w-7 h-7 ${workspace === 'skin' ? 'text-emerald-300' : workspace === 'copilot' ? 'text-sky-300' : 'text-kurla-copper'}`} /> {workspace === 'skin' ? 'KURLA Skin — Administration' : workspace === 'copilot' ? 'Copilote — Chiffres de la plateforme' : 'KURLA Hair — Administration & Operations'}
             </h1>
-            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Pilotage séparé peau & teint : preuves C1/C5, catalogue skincare et sourcing.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
+            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Pilotage séparé peau & teint : preuves C1/C5, catalogue skincare et sourcing.' : workspace === 'copilot' ? 'Visites, inscriptions, diagnostics, ventes et santé — lus, jamais estimés.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <button onClick={() => selectWorkspace('skin')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'skin' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-emerald-400/40'}`}>KURLA SKIN</button>
             <button onClick={() => selectWorkspace('hair')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'hair' ? 'bg-kurla-copper/25 text-kurla-cream border-kurla-copper/60' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-kurla-copper/50'}`}>KURLA HAIR</button>
+            <button onClick={() => selectWorkspace('copilot')} className={`px-3 py-2 rounded-xl text-[10px] font-bold border transition-colors ${workspace === 'copilot' ? 'bg-sky-500/25 text-sky-100 border-sky-400/60' : 'bg-kurla-ink text-kurla-cream/55 border-kurla-cream/10 hover:border-sky-400/40'}`}>COPILOTE</button>
             <button
               onClick={loadData}
               className="p-2.5 rounded-full bg-kurla-ink hover:bg-kurla-bark text-kurla-amber border border-kurla-copper/30 transition-colors"
@@ -576,7 +611,7 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* Navigation — familles fonctionnelles + sous-onglets */}
-        {(() => {
+        {workspace !== 'copilot' && (() => {
           const sharedNavGroups = [
             {
               id: 'overview', label: workspace === 'skin' ? 'Vue d’ensemble Skin' : "Vue d'ensemble Hair", icon: LayoutDashboard,
@@ -692,6 +727,13 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           );
         })()}
+
+        {/* Navigation par sections : barre de saut collante + scrollspy + progression
+            (détecte les h2/h3 du panel actif ; invisible si moins de 3 sections). */}
+        <AdminSectionNav rootRef={panelRootRef} pageKey={`${workspace}-${activeTab}${activeTab === 'suppliers' ? `-${supplierSub}` : ''}`} />
+        {workspace === 'copilot' && (
+          <CopilotePanel headers={adminHeaders} />
+        )}
 
         {/* KURLA SKIN — espace dédié, séparé du dashboard Hair */}
         {activeTab === 'skin_overview' && workspace === 'skin' && (
@@ -1426,6 +1468,8 @@ export const AdminDashboardPage: React.FC = () => {
             <CatalogAdminPanel
               scope={workspace === 'skin' ? 'skin' : 'hair'}
               headers={adminHeaders}
+              focusProductId={queueNav?.tab === 'catalog' ? queueNav.focusProductId : undefined}
+              focusLabel={queueNav?.tab === 'catalog' ? queueNav.focusLabel : undefined}
               onSuccess={(message) => {
                 setActionSuccess(message);
                 loadData();
@@ -1447,6 +1491,11 @@ export const AdminDashboardPage: React.FC = () => {
 
         {activeTab === 'cockpit' && (
           <div className="space-y-10">
+            <AdminActionQueue
+              headers={adminHeaders}
+              scopeKey={workspace === 'skin' ? 'skin' : 'hair'}
+              onNavigate={navigateFromQueue}
+            />
             {workspace === 'skin' && <PeauGatesCockpitPanel headers={adminHeaders} />}
             <OperationsCockpitPanel
               headers={adminHeaders}
@@ -1458,42 +1507,82 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5B: APPROVISIONNEMENT — C16 cahier + C22 P1 J0 5 mails + C22 P2 J+3/J+7 + 16B + A3 tampon + B2 kitting + matrice pays */}
+        {/* TAB 5B: APPROVISIONNEMENT — 17/09 phase 3 : 11 panels empilés découpés
+            en 3 sous-onglets (Fournisseurs · Sourcing & RFQ · Logistique). La
+            barre de sections reste active dans chaque sous-onglet. */}
         {activeTab === 'suppliers' && (
-          <div className="space-y-10">
-            {workspace === 'skin' && <>
-              <PeauSourcingCahierPanel />
-              <PeauJ0MailTrackingPanel headers={adminHeaders} />
-              <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
-            </>}
-            <SourcingCountryStrategyPanel headers={adminHeaders} />
-            <TamponOrderPanel />
-            <FulfillmentContactPanel />
-            <KittingAdminPanel />
-            <ProductSupplierPanel
-              headers={adminHeaders}
-              onSuccess={(message) => {
-                setActionSuccess(message);
-                setTimeout(() => setActionSuccess(''), 5000);
-              }}
-            />
-            <SourcingConsolidatedPanel headers={adminHeaders} />
-            <SourcingProspectsPanel
-              headers={adminHeaders}
-              onSuccess={(message) => {
-                setActionSuccess(message);
-                setTimeout(() => setActionSuccess(''), 5000);
-              }}
-            />
-            <div className="border-t border-kurla-cream/10 pt-8">
-              <SupplierAdminPanel
-                headers={adminHeaders}
-                onSuccess={(message) => {
-                  setActionSuccess(message);
-                  setTimeout(() => setActionSuccess(''), 5000);
-                }}
-              />
+          <div className="space-y-8">
+            <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Sections approvisionnement">
+              {([['dir', 'Fournisseurs'], ['sourcing', 'Sourcing & RFQ'], ['log', 'Logistique']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={supplierSub === key}
+                  type="button"
+                  onClick={() => setSupplierSub(key)}
+                  className={`px-4 py-2 rounded-xl border text-xs font-bold transition-colors ${supplierSub === key ? 'bg-kurla-copper text-white border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60 hover:border-kurla-copper/40'}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {supplierSub === 'dir' && (
+              <div className="space-y-10">
+                <SupplierAdminPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+                <ProductSupplierPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+              </div>
+            )}
+
+            {supplierSub === 'sourcing' && (
+              <div className="space-y-10">
+                <PurchaseProposalPanel headers={adminHeaders} />
+                {workspace === 'skin' && <PeauSourcingCahierPanel />}
+                {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
+                <SourcingConsolidatedPanel headers={adminHeaders} />
+                <SourcingProspectsPanel
+                  headers={adminHeaders}
+                  onSuccess={(message) => {
+                    setActionSuccess(message);
+                    setTimeout(() => setActionSuccess(''), 5000);
+                  }}
+                />
+                <SourcingCountryStrategyPanel headers={adminHeaders} />
+              </div>
+            )}
+
+            {supplierSub === 'log' && (
+              <div className="space-y-10">
+                <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-kurla-cream">Lots &amp; traçabilité</h2>
+                    <p className="text-xs text-kurla-cream/55 mt-1 max-w-xl">
+                      Les lots reçus, leurs coûts et leur allocation aux commandes restent dans leur écran dédié
+                      (famille Catalogue) — c'est là qu'on enregistre une réception et qu'on trace.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setActiveTab('batches')} className="px-4 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold hover:bg-kurla-cocoa transition-colors">
+                    Ouvrir Lots &amp; traçabilité →
+                  </button>
+                </div>
+                {workspace === 'skin' && <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />}
+                <TamponOrderPanel />
+                <FulfillmentContactPanel />
+                <KittingAdminPanel />
+              </div>
+            )}
           </div>
         )}
 
@@ -1503,6 +1592,8 @@ export const AdminDashboardPage: React.FC = () => {
             {workspace === 'skin' && <PeauKitsCoutServiPanel headers={adminHeaders} />}
             <BatchAdminPanel
               headers={adminHeaders}
+              focusProductId={queueNav?.tab === 'batches' ? queueNav.focusProductId : undefined}
+              focusLabel={queueNav?.tab === 'batches' ? queueNav.focusLabel : undefined}
               onSuccess={(message) => {
                 setActionSuccess(message);
                 loadData();
