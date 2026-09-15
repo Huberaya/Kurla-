@@ -2531,3 +2531,50 @@ téléphone (et non à l'instinct) :
    dépendent — ils sont recalculés côté serveur au panier et à la commande.
    « Rafraîchir » court-circuite la fraîcheur, ainsi que la sortie de
    session. Banc mis à jour : `tests/kurla_catalogue_partage.test.ts`.
+
+#### Mobile :bilan mesuré après les deux passages (15/09/2026)
+
+Accueil, médiane de trois passages, iPhone 390×844, processeur ralenti 4×,
+réseau 4G lente :
+
+| | avant | après |
+|---|---|---|
+| Octets décodés | 3 074 Ko | **1 903 Ko** |
+| dont JavaScript | 1 813 Ko | **953 Ko** |
+| dont appels réseau | 528 Ko | **217 Ko** |
+| `GET /api/products` | 3 appels | **1 appel** |
+| DOMContentLoaded | 3 498 ms | **1 747 ms** |
+| Premier contenu peint | 1 079 ms | 892 ms |
+| Blocage total | 1 486 ms | 1 331 ms |
+| **dont pendant la mise en route** (avant 2 s) | ~1 486 ms | **~743 ms** |
+
+Le point qui compte : le blocage **pendant la mise en route** a été divisé
+par deux, même si le total bouge peu. Le reste du travail existe toujours —
+c'est le panier, la recherche et l'assistant — mais il se fait après que la
+page est utilisable, au lieu de lui passer devant.
+
+Pages intérieures, médiane de trois passages :
+
+- `/diagnostic` : 1 227 Ko (JS 720 Ko), premier contenu à 872 ms, **197 ms
+  de blocage**.
+- `/boutique` : 1 343 Ko (JS 803 Ko), premier contenu à 837 ms, **773 ms de
+  blocage** — c'est la deuxième page la plus lourde, après l'accueil.
+
+**Honnêteté sur les mesures :** les octets et le nombre d'appels sont
+reproductibles au Ko près ; les temps, eux, varient d'un passage à l'autre
+(jusqu'à 2 secondes d'écart sur le LCP de `/boutique`). Les temps des pages
+intérieures « avant » ne reposaient que sur un passage : je ne les compare
+donc pas, seul l'allègement (JavaScript 927 → 803 Ko sur `/boutique`,
+844 → 720 Ko sur `/diagnostic`) est établi.
+
+**Ce qui reste, et c'est le fond du sujet :** l'accueil bloque encore
+~743 ms au démarrage. Ce n'est plus un problème de téléchargement — la page
+reçoit deux fois moins de données — c'est le coût d'hydratation d'un DOM de
+290 Ko contenant **82 Ko de SVG en ligne**, animé par `motion`. Réduire
+cela demande de reprendre les sections d'écran elles-mêmes : ce n'est plus
+de l'infrastructure, et je ne l'engage pas seul.
+
+Piste chiffrée pour qui voudra continuer : le morceau `supabase` (206 Ko)
+est chargé sur `/boutique` pour l'authentification, alors que la session n'est
+nécessaire qu'après le premier affichage. Le rendre paresseux allégerait
+cette page d'autant — sous réserve que rien n'attende la session au montage.
