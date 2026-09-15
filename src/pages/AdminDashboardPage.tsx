@@ -114,6 +114,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [queueNav, setQueueNav] = useState<{ tab: AdminTab; focusProductId?: string; focusLabel?: string } | null>(null);
   const navigateFromQueue = (nav: { tab: 'catalog' | 'batches' | 'suppliers'; focusProductId?: string; focusLabel?: string }) => {
     setQueueNav(nav);
+    // Les actions sourcing (relance RFQ, RFQ à envoyer) atterrissent directement
+    // sur le sous-onglet « Sourcing & RFQ », pas sur le référentiel.
+    if (nav.tab === 'suppliers') setSupplierSub('sourcing');
     setActiveTab(nav.tab);
     // On revient en haut : la page cible est longue et l'action doit être visible.
     window.scrollTo({ top: 0, behavior: 'auto' });

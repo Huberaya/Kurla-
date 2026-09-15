@@ -1,11 +1,13 @@
 /**
  * « À faire aujourd'hui » — file d'actions de l'acheteur (chantier 17/09, phase 1).
  *
- * Le travail d'acheteur tient en trois familles d'actions :
+ * Le travail d'acheteur tient en quatre familles d'actions :
  *   1. **Débloquer une fiche** — publiée mais non listable (un manquement est nommé),
  *   2. **Traiter un lot** — de la demande ferme existe mais aucun lot n'est enregistré
  *      (traçabilité / réception à caler),
- *   3. **Envoyer une RFQ** — un besoin de sourcing est encore `to_source`.
+ *   3. **Relancer une RFQ** — une demande est envoyée sans réponse depuis plus de
+ *      `RELANCE_AFTER_DAYS` jours (J+3) : c'est le rythme de relance du cahier,
+ *   4. **Envoyer une RFQ** — un besoin de sourcing est encore `to_source`.
  *
  * Tout est **déréglé à partir d'endpoints admin existants** (publication-readiness,
  * sourcing/items, preorder-demand, batches) : aucune donnée n'est inventée, la file
@@ -18,9 +20,9 @@
  * couverte par le banc `kurla_admin_action_queue`.
  */
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckSquare, Package, Send } from 'lucide-react';
+import { AlertTriangle, BellRing, CheckSquare, Package, Send } from 'lucide-react';
 
-export type QueueKind = 'unblock' | 'lot' | 'rfq';
+export type QueueKind = 'unblock' | 'lot' | 'relance' | 'rfq';
 export type QueueTab = 'catalog' | 'batches' | 'suppliers';
 
 export interface QueueAction {
@@ -44,7 +46,13 @@ export interface QueueInputs {
     publishedButNotListableProducts?: Array<{ productId: string; title: string; missing: string[] }>;
   } | null;
   /** /api/admin/sourcing/items */
-  items?: Array<{ id: string; title: string; wave: string; status: string; requiredDocuments?: string[] }> | null;
+  items?: Array<{
+    id: string; title: string; wave: string; status: string; requiredDocuments?: string[];
+    /** Demandes envoyées sans réponse (mesuré côté route). */
+    sentAwaitingCount?: number;
+    /** Date d'envoi de la plus ancienne de ces demandes (ISO). */
+    oldestAwaitingSentOn?: string | null;
+  }> | null;
   /** /api/admin/preorder-demand → products */
   demandProducts?: Array<{ productId: string; name: string; isKit?: boolean; qtyFirm: number }> | null;
   /** /api/admin/batches → ids de produits ayant au moins un lot enregistré */
@@ -61,17 +69,23 @@ export interface QueueResult {
 /** Plafond de lisibilité de la file (les compteurs restent complets). */
 export const QUEUE_MAX_ROWS = 12;
 
-const KIND_ORDER: QueueKind[] = ['unblock', 'lot', 'rfq'];
+/** Rythme de relance RFQ : sans réponse depuis plus de N jours → à relancer. */
+export const RELANCE_AFTER_DAYS = 3;
+
+const KIND_ORDER: QueueKind[] = ['unblock', 'lot', 'relance', 'rfq'];
 
 /**
  * Dériver la file d'actions depuis les lectures admin. Fonction pure, sans DOM,
  * sans réseau : le banc `kurla_admin_action_queue` la couvre directement.
  * Ordre de priorité : commercial d'abord (fiche visible mais invendable), puis
- * physique (lot à traiter), puis le plus long (sourcing/RFQ).
+ * physique (lot à traiter), puis le suivi (relance RFQ sans réponse), enfin le
+ * plus long (nouveau sourcing/RFQ à envoyer).
+ * `now` est injectable pour figer le calcul des délais dans les tests.
  */
-export function buildActionQueue(input: QueueInputs): QueueResult {
+export function buildActionQueue(input: QueueInputs, now: Date = new Date()): QueueResult {
   const unblock: QueueAction[] = [];
   const lot: QueueAction[] = [];
+  const relance: QueueAction[] = [];
   const rfq: QueueAction[] = [];
 
   const listable = input.readiness?.publishedButNotListableProducts || [];
@@ -108,6 +122,27 @@ export function buildActionQueue(input: QueueInputs): QueueResult {
 
   const items = input.items || [];
   for (const item of items) {
+    // Relance J+3 : un besoin EN CONSULTATION (in_rfq) dont la plus ancienne
+    // demande envoyée n'a toujours pas de réponse au-delà du seuil.
+    if (item.status === 'in_rfq') {
+      const sentOn = item.oldestAwaitingSentOn ? new Date(item.oldestAwaitingSentOn) : null;
+      if (sentOn && !Number.isNaN(sentOn.getTime())) {
+        const days = Math.floor((now.getTime() - sentOn.getTime()) / 86_400_000);
+        if (days >= RELANCE_AFTER_DAYS) {
+          const count = Number(item.sentAwaitingCount) || 1;
+          relance.push({
+            key: `relance-${item.id}`,
+            kind: 'relance',
+            title: 'À relancer',
+            context: item.title,
+            detail: `${count} demande${count > 1 ? 's' : ''} envoyée${count > 1 ? 's' : ''}, sans réponse depuis ${days} j`,
+            tab: 'suppliers'
+          });
+          continue; // un besoin déjà en relance n'est pas aussi « à envoyer »
+        }
+      }
+      continue;
+    }
     if (item.status !== 'to_source') continue;
     const docs = item.requiredDocuments || [];
     rfq.push({
@@ -120,13 +155,14 @@ export function buildActionQueue(input: QueueInputs): QueueResult {
     });
   }
 
-  const grouped: Record<QueueKind, QueueAction[]> = { unblock, lot, rfq };
+  const grouped: Record<QueueKind, QueueAction[]> = { unblock, lot, relance, rfq };
   const ordered = KIND_ORDER.flatMap(kind => grouped[kind]);
   const actions = ordered.slice(0, QUEUE_MAX_ROWS);
   return {
     counters: {
       unblock: unblock.length,
       lot: lot.length,
+      relance: relance.length,
       rfq: rfq.length
     },
     actions,
@@ -137,12 +173,14 @@ export function buildActionQueue(input: QueueInputs): QueueResult {
 const KIND_STYLE: Record<QueueKind, { chip: string; icon: React.ReactNode; tone: string }> = {
   unblock: { chip: 'bg-rose-500/15 text-rose-300 border-rose-500/25', icon: <AlertTriangle className="w-3.5 h-3.5" />, tone: 'text-rose-300' },
   lot: { chip: 'bg-amber-500/15 text-amber-300 border-amber-500/25', icon: <Package className="w-3.5 h-3.5" />, tone: 'text-amber-300' },
+  relance: { chip: 'bg-sky-500/15 text-sky-300 border-sky-500/25', icon: <BellRing className="w-3.5 h-3.5" />, tone: 'text-sky-300' },
   rfq: { chip: 'bg-kurla-copper/15 text-kurla-copper border-kurla-copper/30', icon: <Send className="w-3.5 h-3.5" />, tone: 'text-kurla-copper' }
 };
 
 const KIND_LABEL: Record<QueueKind, string> = {
   unblock: 'fiches à débloquer',
   lot: 'lots à traiter',
+  relance: 'RFQ à relancer',
   rfq: 'RFQ à envoyer'
 };
 
@@ -191,7 +229,7 @@ export const AdminActionQueue: React.FC<{
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [scopeKey]);
 
-  const total = queue ? queue.counters.unblock + queue.counters.lot + queue.counters.rfq : 0;
+  const total = queue ? queue.counters.unblock + queue.counters.lot + queue.counters.relance + queue.counters.rfq : 0;
 
   return (
     <section className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-copper/30 shadow-xl space-y-4">
@@ -202,8 +240,9 @@ export const AdminActionQueue: React.FC<{
           </h2>
           <p className="text-xs text-kurla-cream/55 mt-1 max-w-2xl">
             La file d'actions de l'acheteur, lue sur les données réelles du workspace :
-            fiches publiées mais non listables, lots sans traçabilité, besoins encore à sourcer.
-            Chaque ligne mène directement au bon écran, contexte présélectionné.
+            fiches publiées mais non listables, lots sans traçabilité, RFQ sans réponse à relancer
+            (J+3), besoins encore à sourcer. Chaque ligne mène directement au bon écran,
+            contexte présélectionné.
           </p>
         </div>
         <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${total > 0 ? 'bg-kurla-copper/15 text-kurla-copper border-kurla-copper/30' : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'}`}>
@@ -212,7 +251,7 @@ export const AdminActionQueue: React.FC<{
       </div>
 
       {/* Compteurs cliquables : un clic mène au bon onglet. */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {KIND_ORDER.map(kind => {
           const count = queue?.counters[kind] ?? 0;
           return (
@@ -238,7 +277,8 @@ export const AdminActionQueue: React.FC<{
       {!loading && queue && queue.actions.length === 0 && unavailable.length === 0 && (
         <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 text-xs text-emerald-200/90">
           Rien à faire — les fiches publiées sont listables, les demandes fermes ont leurs lots,
-          et aucun besoin n'est encore à sourcer. C'est exactement l'état recherché.
+          aucune RFQ n'est sans réponse au-delà de J+3, et aucun besoin n'est encore à sourcer.
+          C'est exactement l'état recherché.
         </div>
       )}
 

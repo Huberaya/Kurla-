@@ -3,31 +3,33 @@
  *
  * La file d'actions de l'acheteur est dérivée par `buildActionQueue`, fonction
  * pure sans DOM ni réseau. Contrats :
- *   - 3 familles : unblock (fiche publiée mais non listable), lot (demande ferme
- *     sans lot enregistré), rfq (besoin encore `to_source`) ;
+ *   - 4 familles : unblock (fiche publiée mais non listable), lot (demande ferme
+ *     sans lot enregistré), relance (RFQ envoyée sans réponse depuis J+3, sur
+ *     les besoins `in_rfq`), rfq (besoin encore `to_source`) ;
  *   - RIEN n'est inventé : chaque action référence un identifiant réel lu
  *     dans les endpoints (publication-readiness, sourcing/items, preorder-demand,
- *     batches) ;
- *   - priorité commerciale : unblock → lot → rfq ;
+ *     batches) ; la date de relance est mesurée (oldestAwaitingSentOn), jamais
+ *     supposée, et `now` est injectable pour figer le calcul ;
+ *   - priorité commerciale : unblock → lot → relance → rfq ;
  *   - chaque action porte son onglet cible et, le cas échéant, le contexte à
  *     présélectionner (focusProductId / focusLabel) ;
  *   - plafonné à 12 lignes lues, compteurs complets + hiddenCount honnête ;
  *   - robuste : sources absentes/vides → file vide, jamais de plantage.
  */
 import { strict as assert } from 'node:assert';
-import { buildActionQueue, QUEUE_MAX_ROWS, type QueueInputs } from '../src/components/AdminActionQueue';
+import { buildActionQueue, RELANCE_AFTER_DAYS, QUEUE_MAX_ROWS, type QueueInputs } from '../src/components/AdminActionQueue';
 
 /* 1. Vide / sources absentes → zéro action, zéro compteur, pas de plantage. */
 {
   const empty = buildActionQueue({});
-  assert.deepEqual(empty.counters, { unblock: 0, lot: 0, rfq: 0 });
+  assert.deepEqual(empty.counters, { unblock: 0, lot: 0, relance: 0, rfq: 0 });
   assert.equal(empty.actions.length, 0);
   assert.equal(empty.hiddenCount, 0);
 
   const nulls = buildActionQueue({
     readiness: null, items: null, demandProducts: null, batchProductIds: null
   });
-  assert.deepEqual(nulls.counters, { unblock: 0, lot: 0, rfq: 0 });
+  assert.deepEqual(nulls.counters, { unblock: 0, lot: 0, relance: 0, rfq: 0 });
   assert.equal(nulls.actions.length, 0);
 
   const empties = buildActionQueue({
@@ -103,19 +105,62 @@ import { buildActionQueue, QUEUE_MAX_ROWS, type QueueInputs } from '../src/compo
   console.log('✓ lot : demande ferme sans lot uniquement, quantités exactes (singulier/pluriel), focus formulaire');
 }
 
-/* 5. Priorité : unblock d'abord, puis lot, enfin rfq. */
+/* 5. Relance J+3 : envoyée sans réponse au-delà du seuil ; date injectable. */
+{
+  const now = new Date('2026-09-15T12:00:00Z');
+  const result = buildActionQueue({
+    items: [
+      // 5 jours sans réponse → à relancer
+      { id: 'r1', title: 'Crème karité', wave: '1', status: 'in_rfq', sentAwaitingCount: 1, oldestAwaitingSentOn: '2026-09-10T09:00:00Z' },
+      // 2 jours → trop tôt, pas de relance
+      { id: 'r2', title: 'Huile coco', wave: '1', status: 'in_rfq', sentAwaitingCount: 2, oldestAwaitingSentOn: '2026-09-13T09:00:00Z' },
+      // demandée mais sans date d'envoi (ou déjà répondue) → impossible à dater → rien
+      { id: 'r3', title: 'Gant soie', wave: '1', status: 'in_rfq', sentAwaitingCount: 0, oldestAwaitingSentOn: null },
+      // to_source avec de vieilles dates → reste « RFQ à envoyer », pas relance
+      { id: 'r4', title: 'Spray définition', wave: '1', status: 'to_source', sentAwaitingCount: 1, oldestAwaitingSentOn: '2026-09-01T00:00:00Z' },
+      // attribué → plus de relance
+      { id: 'r5', title: 'Bandeau soie', wave: '2', status: 'awarded', sentAwaitingCount: 1, oldestAwaitingSentOn: '2026-09-01T00:00:00Z' }
+    ]
+  }, now);
+  assert.deepEqual(result.counters, { unblock: 0, lot: 0, relance: 1, rfq: 1 });
+  const rel = result.actions.find(a => a.kind === 'relance');
+  assert.ok(rel, 'une relance présente');
+  assert.equal(rel!.context, 'Crème karité');
+  assert.equal(rel!.tab, 'suppliers');
+  assert.ok(rel!.detail.includes('5 j'), `délai exact attendu (« ${rel!.detail} »)`);
+  assert.ok(rel!.detail.includes('1 demande envoyée, sans réponse'));
+  const rfq = result.actions.find(a => a.kind === 'rfq');
+  assert.equal(rfq!.context, 'Spray définition', 'to_source reste « à envoyer »');
+  assert.equal(rel!.key, `relance-r1`, 'clé stable par besoin');
+
+  // Seuil exact : RELANCE_AFTER_DAYS jours pile → relance ; un jour de moins → non.
+  const atThreshold = buildActionQueue({
+    items: [{ id: 't1', title: 'Seuil', wave: '1', status: 'in_rfq', sentAwaitingCount: 1, oldestAwaitingSentOn: '2026-09-12T12:00:00Z' }]
+  }, now);
+  assert.equal(atThreshold.counters.relance, 1, `${RELANCE_AFTER_DAYS} jours pile → relance`);
+  const beforeThreshold = buildActionQueue({
+    items: [{ id: 't2', title: 'Seuil', wave: '1', status: 'in_rfq', sentAwaitingCount: 1, oldestAwaitingSentOn: '2026-09-12T12:00:01Z' }]
+  }, now);
+  assert.equal(beforeThreshold.counters.relance, 0, 'un instant de moins → pas de relance');
+  console.log('✓ relance J+3 : seuil exact, in_rfq uniquement, date injectable');
+}
+
+/* 6. Priorité : unblock d'abord, puis lot, puis relance, enfin rfq. */
 {
   const result = buildActionQueue({
     readiness: { publishedButNotListableProducts: [{ productId: 'p1', title: 'Fiche A', missing: ['x'] }] },
-    items: [{ id: 'i1', title: 'Besoin B', wave: '1', status: 'to_source' }],
+    items: [
+      { id: 'i1', title: 'Besoin B', wave: '1', status: 'to_source' },
+      { id: 'r1', title: 'Besoin R', wave: '1', status: 'in_rfq', sentAwaitingCount: 1, oldestAwaitingSentOn: '2020-01-01T00:00:00Z' }
+    ],
     demandProducts: [{ productId: 'd1', name: 'Produit C', qtyFirm: 1 }],
     batchProductIds: []
-  });
-  assert.deepEqual(result.actions.map(a => a.kind), ['unblock', 'lot', 'rfq'], 'ordre commercial → physique → sourcing');
-  console.log('✓ priorité : unblock → lot → rfq');
+  }, new Date('2026-09-15T12:00:00Z'));
+  assert.deepEqual(result.actions.map(a => a.kind), ['unblock', 'lot', 'relance', 'rfq'], 'ordre commercial → physique → suivi → sourcing');
+  console.log('✓ priorité : unblock → lot → relance → rfq');
 }
 
-/* 6. Plafond de lisibilité : 12 lignes, compteurs complets, hiddenCount honnête. */
+/* 7. Plafond de lisibilité : 12 lignes, compteurs complets, hiddenCount honnête. */
 {
   const many = Array.from({ length: 15 }, (_, i) => ({ productId: `p${i}`, title: `Fiche ${i}`, missing: ['m'] }));
   const result = buildActionQueue({ readiness: { publishedButNotListableProducts: many } });
@@ -125,7 +170,7 @@ import { buildActionQueue, QUEUE_MAX_ROWS, type QueueInputs } from '../src/compo
   console.log('✓ plafond : 12 lignes lues, compteurs complets, excédent nommé');
 }
 
-/* 7. Idempotence des clés : deux appels → mêmes clés stables (scrollspy/UI). */
+/* 8. Idempotence des clés : deux appels → mêmes clés stables (scrollspy/UI). */
 {
   const input: QueueInputs = {
     readiness: { publishedButNotListableProducts: [{ productId: 'p1', title: 'Fiche', missing: [] }] },
@@ -137,4 +182,4 @@ import { buildActionQueue, QUEUE_MAX_ROWS, type QueueInputs } from '../src/compo
   console.log('✓ clés stables entre relectures');
 }
 
-console.log('\n7 blocs de contrôles « À faire aujourd\'hui » validés — dérivation, cibles, priorités, bornes, stabilité.');
+console.log('\n8 blocs de contrôles « À faire aujourd\'hui » validés — dérivation, cibles, relance J+3, priorités, bornes, stabilité.');

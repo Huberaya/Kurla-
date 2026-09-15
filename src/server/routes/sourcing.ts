@@ -79,10 +79,21 @@ export function registerSourcingRoutes(app: Express): void {
       const detailed = await Promise.all(items.map(async item => {
         const rfqs = await serverDb.listRfqs(item.id);
         const comparison = await serverDb.compareRfqResponses(item.id);
+        // Relance J+3 (chantier 17/09) : les demandes ENVOYÉES sans réponse
+        // sont comptées et datées — la file « À faire aujourd'hui » déclenche
+        // la relance à partir de la plus ancienne. Mesuré, pas supposé :
+        // une RFQ « sent » sans `sentOn` ne peut pas être datée, donc
+        // n'entre pas dans le délai.
+        const awaiting = rfqs.filter(rfq => rfq.status === 'sent' && rfq.sentOn);
+        const oldestAwaitingSentOn = awaiting.length > 0
+          ? awaiting.map(rfq => String(rfq.sentOn)).sort()[0]
+          : null;
         return {
           ...item,
           rfqCount: rfqs.length,
           sentCount: rfqs.filter(rfq => rfq.status !== 'draft').length,
+          sentAwaitingCount: awaiting.length,
+          oldestAwaitingSentOn,
           responseCount: comparison.responseCount,
           selectableResponses: comparison.rows.filter(row => row.selectable).length
         };

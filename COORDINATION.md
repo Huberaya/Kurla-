@@ -2373,3 +2373,46 @@ renvoi explicite depuis Logistique) — la file « À faire aujourd'hui » et la
 barre de sections pointent toujours vers le même onglet. Prochain chantier
 possible (non demandé) : deep-link « Sourcing & RFQ » depuis la file quand une
 RFQ est en retard de relance.
+
+## Dashboard admin : relance RFQ J+3 dans la file « À faire aujourd'hui » (17/09/2026)
+
+Suite du chantier « espace de travail acheteur » — la file d'actions passe de 3
+à **4 familles** : **unblock → lot → relance → rfq** (le suivi des demandes
+envoyées arrive avant le nouveau sourcing, qui est le plus long).
+
+**Ce qui change** :
+
+- **Nouvelle famille « RFQ à relancer »** (pastille bleue, 4ᵉ compteur) : un
+  besoin en consultation (`in_rfq`) dont la **plus ancienne demande envoyée sans
+  réponse** dépasse **J+3** (`RELANCE_AFTER_DAYS = 3`, exporté). Le détail
+  affiche le délai exact : « 1 demande envoyée, sans réponse depuis 5 j ».
+  Un besoin déjà en relance n'est pas double-compté en « à envoyer » ; un
+  besoin `awarded` ou `to_source` n'y entre pas.
+- **Deep link affiné** : les actions « suppliers » (relance + RFQ à envoyer)
+  mènent directement sur le sous-onglet **Sourcing & RFQ** (pas le
+  référentiel).
+- **Mesure, pas supposition** : la route `GET /api/admin/sourcing/items`
+  agrège désormais `sentAwaitingCount` + `oldestAwaitingSentOn` (RFQ `sent`
+  avec date d'envoi — une « sent » sans `sentOn` ne peut pas être datée et
+  n'entre pas dans le délai). Changement **additif** : aucun consommateur
+  existant cassé (vérifié par les bancs sourcing/consolidated/cockpit).
+- Message « Rien à faire » mis à jour (« aucune RFQ n'est sans réponse au-delà
+  de J+3 »).
+
+**Fichiers** : `src/server/routes/sourcing.ts` (agrégats de relance) ·
+`src/components/AdminActionQueue.tsx` (famille `relance`, `buildActionQueue`
+accepte `now` injectable pour figer les délais) · `src/pages/AdminDashboardPage.tsx`
+(under-link Sourcing & RFQ) · `tests/kurla_admin_action_queue.test.ts`
+(nouveau bloc 5 : seuil exact J+3, in_rfq uniquement, date injectable ; bloc
+priorité à 4 familles — **8 blocs au total**).
+
+**Vérifié** : tsc propre · banc `admin-action-queue` 8 blocs verts (dont seuil
+pile : 3 j → relance, 3 j − 1 s → non) · bancs `kurla_sourcing`,
+`sourcing-consolidated`, `operations-cockpit`, `admin_dashboard`,
+`admin_route_inventory` verts · dev server relancé (store Supabase OK) · /admin
+et le composant transformés (200).
+
+**Note** : le **contenu** de la relance (e-mail court) reste un acte humain —
+la file indique *quoi relancer et depuis quand*, l'envoi passe par les
+e-mails prêts de la vue consolidée (mailto/copier), conformément au principe
+« rien n'est envoyé depuis la plateforme ».
