@@ -2681,3 +2681,9 @@ l'application) règle le cas.
 ## 2026-09-16 — Écran de saisie des sources (Agent Arena)
 - `ProductSourcesPanel.tsx` monté dans skin_sourcing (sous SupplyOpsPanel) : recherche produit, liste des sources avec marge/commission calculées en direct (evaluateMargin), ★ source principale, toggle disponibilité, formulaire d'ajout (fournisseur enregistré OU partenaire nommé, modèle, coûts vides=NULL jamais 0, lien affilié obligatoire en affiliation — refusé côté serveur sinon).
 - Utilise les routes existantes GET/POST/PATCH /api/admin/sourcing/sources. 7 bancs [PASS] + tsc 0 au push af5a816.
+
+## 2026-09-16 — Recherche globale unifiée (Agent Arena)
+- `src/lib/globalSearch.ts` (helper pur, lexicale insensible accents/casse, matchedOn nommé) + `GET /api/admin/global-search?q=` + `GlobalSearchPanel.tsx` monté en tête de skin_sourcing.
+- Traverse : produits (nom, marque, SKU/slug, catégorie, besoins/concerns, fournisseur, INCI), positions de fond, candidats (via prospect), fournisseurs.
+- Banc `tests/kurla_global_search.test.ts` : le banc initial tombait à juste titre (« hyperpigmentation » ne matche pas « Pigment Control » en lexicale) — corrigé pour tester le comportement réel, pas une promesse sémantique non tenue.
+- 8 bancs [PASS] + tsc 0 au push f0a48a4.
