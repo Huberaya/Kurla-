@@ -1,6 +1,9 @@
 # AUDIT UTILISATEUR — KURLA BEAUTY (16/09/2026)
 **Méthode : parcours réel de la boutique en prod (mesures curl sur kurlabeauty.vercel.app) + état réel du dashboard vérifié par structure et données. Limite honnête : sans identifiants admin je n'ai pas pu cliquer dans le dashboard — les parcours admin sont évalués sur leur structure réelle, leurs données réelles et leurs bancs, et je le signale à chaque fois.**
 
+> ## ⚠️ CORRECTION DU 16/09 (mesurée après publication de cet audit)
+> Le finding « besoins invisibles côté client (0/63) » était **FAUX** : j'avais mesuré le champ `concerns` alors que la projection publique expose `needs`. Re-mesuré : **63/63 produits publics portent leurs besoins** (`definir_boucles` 26, `hydrater_cheveux` 22, `reduire_casse` 18…) et la boutique dispose **déjà** du filtrage par besoin complet (puces cheveux/peau, URL `?need=`, alias). Les notes « Organisation par besoins » (55→**72**) et la priorité n°2 (exposition des besoins) sont donc caduques — remplacée par : **remplir l'étagère peau** (inchangé, 🔴) et **besoins cheveux dans l'éditeur admin** (toujours valable).
+
 ---
 
 ## 1. SYNTHÈSE — « QU'EST-CE QUI A CHANGÉ DEPUIS LA DERNIÈRE VERSION ? »

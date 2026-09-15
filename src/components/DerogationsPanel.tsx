@@ -66,6 +66,40 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
     }
   };
 
+  /**
+   * Renouvellement EN MASSE des dérogations expirées ou bientôt expirées :
+   * le 15/10/2026, 42 dérogations tombent d'un coup — sans ce bouton, la
+   * porte proposerait 42 retraits le même jour. Chaque renouvellement reste
+   * un appel tracé ; les dérogations encore actives ne sont pas touchées.
+   */
+  const renewUrgent = async () => {
+    const urgent = rows.filter(row => row.state === 'expired' || row.state === 'expiring_soon');
+    if (urgent.length === 0) {
+      setMessage('Aucune dérogation expirée ou bientôt expirée.');
+      return;
+    }
+    setBusy('bulk');
+    setMessage('');
+    let done = 0;
+    let failed = 0;
+    for (const row of urgent) {
+      try {
+        const response = await fetch(`/api/admin/catalog/derogations/${row.productId}/renew`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ reason: row.reason }),
+        });
+        if (response.ok) done += 1;
+        else failed += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setMessage(`Renouvellement en masse : ${done} dérogation(s) prolongée(s) de 30 jours${failed > 0 ? `, ${failed} échec(s)` : ''}.`);
+    await load();
+    setBusy(null);
+  };
+
   if (error) return <div className="p-6 rounded-3xl bg-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
 
   const urgent = summary ? summary.expiringSoon + summary.expired : 0;
@@ -74,7 +108,10 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
     <div className={`p-6 rounded-3xl border space-y-3 ${urgent > 0 ? 'bg-rose-950/30 border-rose-400/30' : 'bg-kurla-espresso border-kurla-cream/10'}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-bold flex items-center gap-2"><ShieldAlert className={`w-4 h-4 ${urgent > 0 ? 'text-rose-300' : 'text-kurla-amber'}`} /> Dérogations — fiches hors critères en vitrine</h3>
-        <button type="button" onClick={sendAlert} disabled={busy === 'alert'} className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><Mail className="w-3 h-3" /> {busy === 'alert' ? 'Envoi…' : 'Envoyer le récapitulatif'}</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={renewUrgent} disabled={busy === 'bulk' || urgent === 0} className="px-3 py-1.5 rounded-xl bg-kurla-copper text-white text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><RotateCcw className="w-3 h-3" /> {busy === 'bulk' ? 'Renouvellement…' : `Renouveler les ${urgent} urgente(s)`}</button>
+          <button type="button" onClick={sendAlert} disabled={busy === 'alert'} className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><Mail className="w-3 h-3" /> {busy === 'alert' ? 'Envoi…' : 'Envoyer le récapitulatif'}</button>
+        </div>
       </div>
       {summary && (
         <p className="text-[11px] text-kurla-cream/70">
