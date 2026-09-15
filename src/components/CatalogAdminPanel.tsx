@@ -8,6 +8,9 @@ type CatalogAdminPanelProps = {
   onOpenGuide?: () => void;
   /** Workspace catalogue affiché par le dashboard admin. */
   scope?: 'all' | 'hair' | 'skin';
+  /** « À faire aujourd'hui » : fiche à focaliser (préremplit le filtre de recherche). */
+  focusProductId?: string;
+  focusLabel?: string;
 };
 
 type VariantDraft = {
@@ -124,7 +127,7 @@ function draftFromProduct(product: any): ProductDraft {
   };
 }
 
-export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide, scope = 'all' }) => {
+export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, onSuccess, onOpenGuide, scope = 'all', focusProductId, focusLabel }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [audiences, setAudiences] = useState<any[]>([]);
@@ -188,6 +191,14 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
   };
 
   useEffect(() => { loadCatalog(); }, [scope]);
+
+  // « À faire aujourd'hui » : focalise la fiche demandée en préremplissant le
+  // filtre (le filtre cherche sur nom / marque / slug). Se réactive quand la
+  // cible change, pas à chaque rendu.
+  useEffect(() => {
+    if (!focusProductId) return;
+    setFilter(focusLabel || focusProductId);
+  }, [focusProductId, focusLabel]);
 
   useEffect(() => {
     if (draft.id) return;

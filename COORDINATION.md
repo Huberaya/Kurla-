@@ -2256,3 +2256,58 @@ stabilité des ids, visibilité/dédup/plafond 8) · bancs admin verts
 `admin_route_inventory` est **rouge en production** (la surface d'admin a
 changé sans mise à jour de l'inventaire de référence — pré-existant, vérifié
 sans le WIP de cette entrée ; à trancher volontairement dans votre chantier).
+
+## Dashboard admin : « À faire aujourd'hui » — file d'actions de l'acheteur (17/09/2026)
+
+Consigne : « tu es l'acheteur et le fondateur : étudie le dashboard admin, surtout
+catalogue et approvisionnement, pour un espace de travail agréable. Fais une
+proposition, on va attaquer. » → proposition validée en **lot Phase 1 + Phase 4**
+(document : `docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`,
+phases 2 et 3 à suivre).
+
+**Ce qui change** (onglet « Pilotage catalogue », les 2 workspaces, en tête de page) :
+
+- Nouvelle section **« À faire aujourd'hui »** : 3 compteurs cliquables
+  (fiches à débloquer · lots à traiter · RFQ à envoyer) + une **file priorisée**
+  (commercial → physique → sourcing), chaque ligne = action + contexte + bouton
+  **« Y aller »** qui mène au bon onglet **contexte présélectionné** :
+  - *Débloquer* → Catalogue produits, filtre prérempli sur la fiche (publiée mais
+    non listable — premier manquement nommé) ;
+  - *Lot à traiter* → Lots & traçabilité, produit présélectionné dans le
+    formulaire « Enregistrer un lot reçu » (demande ferme sans lot = trou de
+    traçabilité) ;
+  - *RFQ à envoyer* → Fournisseurs & sourcing (besoin encore `to_source`, vague
+    et documents requis affichés).
+- **Zéro donnée inventée** : tout est dérivé en lecture des endpoints existants
+  (`publication-readiness`, `sourcing/items`, `preorder-demand`, `batches`),
+  scopés par workspace. Source indisponible → file affichée **partielle** et
+  l'indisponibilité est nommée. File vide → état « rien à faire » honnête.
+  Plafond de lisibilité 12 lignes, compteurs complets, excédent nommé.
+- **Phase 4 (soubassement)** : audit des titres — tous les panels catalogue +
+  approvisionnement ont déjà des `<h2>/<h3>` réels (la nav par sections les
+  couvre déjà à 100 %) ; la liste « Ce qui bloque, nommé » du cockpit passe à
+  des **statuts colorés** (puce rouge + badge compteur).
+
+**Fichiers** : `src/components/AdminActionQueue.tsx` (NEUF ; `buildActionQueue`
+pure exportée) · `src/pages/AdminDashboardPage.tsx` (section de la file en tête
+du cockpit + `queueNav` : tab + focus) · `CatalogAdminPanel.tsx` (props
+`focusProductId`/`focusLabel` → filtre) · `BatchAdminPanel.tsx` (mêmes props →
+présélection du formulaire de lot) · `OperationsCockpitPanel.tsx` (statuts
+colorés) · `tests/kurla_admin_action_queue.test.ts` (`test:admin-action-queue`,
+7 blocs, dans la chaîne npm test) · `tests/fixtures/admin_route_inventory.json`
+(**mise à jour volontaire** du fixture — diff vérifié : +4 appelants = le nouvel
+écran `AdminActionQueue.tsx` sur les routes existantes, aucun autre changement)
+· `docs/PROPOSITION_ESPACE_TRAVAIL_ACHETEUR_CATALOGUE_APPRO_2026-09-15.md`.
+
+**Vérifié** : tsc propre · banc `admin-action-queue` 7 blocs verts ·
+`admin_route_inventory` PASS après régénération du fixture (diff contrôlé :
+uniquement le nouvel écran + décalages de lignes dans les fichiers modifiés) ·
+bancs admin_dashboard / kurla_operations_cockpit / kurla_batches /
+kurla_admin_role_guard verts · les 4 endpoints de la file existants et gardés
+(401 sans session) · Vite transform 200 · /admin 200.
+
+**Note** : la note « inventaire rouge pré-existant » de l'entrée du 15/09 est
+désormais caduque (corrigée en `36cedfd` par le travail parallèle, puis fixture
+refigé par cette entrée avec diff vérifié). **Prochain lot** : phases 2 (fiche
+produit 3 colonnes + actions groupées) puis 3 (découpage approvisionnement en
+3 sous-onglets + objet « proposition d'achat ») — ne pas commencer sans GO.

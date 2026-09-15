@@ -13,6 +13,7 @@ import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrat
 import { ProductSupplierPanel } from '../components/ProductSupplierPanel';
 import { OperationsCockpitPanel } from '../components/OperationsCockpitPanel';
 import { AdminSectionNav } from '../components/AdminSectionNav';
+import { AdminActionQueue } from '../components/AdminActionQueue';
 import { BatchAdminPanel } from '../components/BatchAdminPanel';
 import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
@@ -107,6 +108,15 @@ export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>(tabInitial);
   // Racine du panel actif : AdminSectionNav détecte les h2/h3 pour la navigation par sections.
   const panelRootRef = useRef<HTMLDivElement | null>(null);
+  // « À faire aujourd'hui » (17/09 phase 1) : la file d'actions mène à un onglet
+  // avec le contexte présélectionné (fiche focalisée / produit présélectionné au lot).
+  const [queueNav, setQueueNav] = useState<{ tab: AdminTab; focusProductId?: string; focusLabel?: string } | null>(null);
+  const navigateFromQueue = (nav: { tab: 'catalog' | 'batches' | 'suppliers'; focusProductId?: string; focusLabel?: string }) => {
+    setQueueNav(nav);
+    setActiveTab(nav.tab);
+    // On revient en haut : la page cible est longue et l'action doit être visible.
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
@@ -1452,6 +1462,8 @@ export const AdminDashboardPage: React.FC = () => {
             <CatalogAdminPanel
               scope={workspace === 'skin' ? 'skin' : 'hair'}
               headers={adminHeaders}
+              focusProductId={queueNav?.tab === 'catalog' ? queueNav.focusProductId : undefined}
+              focusLabel={queueNav?.tab === 'catalog' ? queueNav.focusLabel : undefined}
               onSuccess={(message) => {
                 setActionSuccess(message);
                 loadData();
@@ -1473,6 +1485,11 @@ export const AdminDashboardPage: React.FC = () => {
 
         {activeTab === 'cockpit' && (
           <div className="space-y-10">
+            <AdminActionQueue
+              headers={adminHeaders}
+              scopeKey={workspace === 'skin' ? 'skin' : 'hair'}
+              onNavigate={navigateFromQueue}
+            />
             {workspace === 'skin' && <PeauGatesCockpitPanel headers={adminHeaders} />}
             <OperationsCockpitPanel
               headers={adminHeaders}
@@ -1529,6 +1546,8 @@ export const AdminDashboardPage: React.FC = () => {
             {workspace === 'skin' && <PeauKitsCoutServiPanel headers={adminHeaders} />}
             <BatchAdminPanel
               headers={adminHeaders}
+              focusProductId={queueNav?.tab === 'batches' ? queueNav.focusProductId : undefined}
+              focusLabel={queueNav?.tab === 'batches' ? queueNav.focusLabel : undefined}
               onSuccess={(message) => {
                 setActionSuccess(message);
                 loadData();

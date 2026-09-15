@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T23:54:42.964Z",
+  "generatedAt": "2026-09-15T07:21:03.346Z",
   "routes": [
     {
       "method": "GET",
@@ -7,8 +7,10 @@
       "file": "src/server/routes/batches.ts:25",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:107",
-        "src/components/BatchAdminPanel.tsx:158",
+        "src/components/AdminActionQueue.tsx:50",
+        "src/components/AdminActionQueue.tsx:169",
+        "src/components/BatchAdminPanel.tsx:110",
+        "src/components/BatchAdminPanel.tsx:170",
         "src/components/PeauC26FinalPanel.tsx:62",
         "src/components/PeauDemandStockGapPanel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:21",
@@ -25,8 +27,10 @@
       "file": "src/server/routes/batches.ts:42",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:107",
-        "src/components/BatchAdminPanel.tsx:158",
+        "src/components/AdminActionQueue.tsx:50",
+        "src/components/AdminActionQueue.tsx:169",
+        "src/components/BatchAdminPanel.tsx:110",
+        "src/components/BatchAdminPanel.tsx:170",
         "src/components/PeauC26FinalPanel.tsx:62",
         "src/components/PeauDemandStockGapPanel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:21",
@@ -43,7 +47,7 @@
       "file": "src/server/routes/batches.ts:84",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:193"
+        "src/components/BatchAdminPanel.tsx:205"
       ]
     },
     {
@@ -52,7 +56,7 @@
       "file": "src/server/routes/batches.ts:59",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:142"
+        "src/components/BatchAdminPanel.tsx:154"
       ]
     },
     {
@@ -133,7 +137,7 @@
       "file": "src/server/routes/catalogGovernance.ts:139",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:269"
+        "src/components/CatalogAdminPanel.tsx:280"
       ]
     },
     {
@@ -142,7 +146,7 @@
       "file": "src/server/routes/catalogGovernance.ts:160",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:284"
+        "src/components/CatalogAdminPanel.tsx:295"
       ]
     },
     {
@@ -151,7 +155,7 @@
       "file": "src/server/routes/catalogGovernance.ts:103",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:159"
+        "src/components/CatalogAdminPanel.tsx:162"
       ]
     },
     {
@@ -174,9 +178,9 @@
       "file": "src/server/routes/catalogGovernance.ts:83",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:108",
-        "src/components/CatalogAdminPanel.tsx:157",
-        "src/components/CatalogAdminPanel.tsx:254",
+        "src/components/BatchAdminPanel.tsx:111",
+        "src/components/CatalogAdminPanel.tsx:160",
+        "src/components/CatalogAdminPanel.tsx:265",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27"
@@ -188,9 +192,9 @@
       "file": "src/server/routes/catalogGovernance.ts:109",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:108",
-        "src/components/CatalogAdminPanel.tsx:157",
-        "src/components/CatalogAdminPanel.tsx:254",
+        "src/components/BatchAdminPanel.tsx:111",
+        "src/components/CatalogAdminPanel.tsx:160",
+        "src/components/CatalogAdminPanel.tsx:265",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27"
@@ -202,7 +206,7 @@
       "file": "src/server/routes/catalogGovernance.ts:124",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:254"
+        "src/components/CatalogAdminPanel.tsx:265"
       ]
     },
     {
@@ -211,7 +215,9 @@
       "file": "src/server/routes/catalogGovernance.ts:234",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:175",
+        "src/components/AdminActionQueue.tsx:42",
+        "src/components/AdminActionQueue.tsx:166",
+        "src/components/CatalogAdminPanel.tsx:178",
         "src/components/PeauCatalogPublishPanel.tsx:29",
         "src/components/PeauGoLiveC24Panel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:54",
@@ -252,7 +258,7 @@
       "file": "src/server/routes/catalogGovernance.ts:97",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:158"
+        "src/components/CatalogAdminPanel.tsx:161"
       ]
     },
     {
@@ -324,7 +330,7 @@
       "file": "src/server/routes/batches.ts:124",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:111",
+        "src/components/BatchAdminPanel.tsx:114",
         "src/components/PeauKitsCoutServiPanel.tsx:28"
       ]
     },
@@ -478,7 +484,7 @@
       "file": "src/server/routes/batches.ts:108",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:146"
+        "src/components/BatchAdminPanel.tsx:158"
       ]
     },
     {
@@ -521,7 +527,7 @@
       "file": "src/server/routes/chantierA.ts:242",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:297"
+        "src/components/CatalogAdminPanel.tsx:308"
       ]
     },
     {
@@ -566,7 +572,9 @@
       "file": "src/server/routes/sourcing.ts:69",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:110",
+        "src/components/AdminActionQueue.tsx:46",
+        "src/components/AdminActionQueue.tsx:167",
+        "src/components/BatchAdminPanel.tsx:113",
         "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
@@ -576,7 +584,9 @@
       "file": "src/server/routes/sourcing.ts:97",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:110",
+        "src/components/AdminActionQueue.tsx:46",
+        "src/components/AdminActionQueue.tsx:167",
+        "src/components/BatchAdminPanel.tsx:113",
         "src/components/OperationsCockpitPanel.tsx:111"
       ]
     },
@@ -691,8 +701,8 @@
       "file": "src/server/routes/suppliers.ts:39",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:109",
-        "src/components/CatalogAdminPanel.tsx:160",
+        "src/components/BatchAdminPanel.tsx:112",
+        "src/components/CatalogAdminPanel.tsx:163",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
@@ -707,8 +717,8 @@
       "file": "src/server/routes/suppliers.ts:94",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:109",
-        "src/components/CatalogAdminPanel.tsx:160",
+        "src/components/BatchAdminPanel.tsx:112",
+        "src/components/CatalogAdminPanel.tsx:163",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",

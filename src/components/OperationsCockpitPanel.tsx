@@ -249,9 +249,17 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
             ) : (
               <ul className="space-y-2">
                 {cockpit.blockers.map(blocker => (
-                  <li key={blocker.label} className="rounded-xl border border-kurla-cream/10 px-3 py-2">
-                    <div className="text-xs text-kurla-cream">{blocker.label} <span className="text-kurla-cream/50">— {blocker.count} produit(s)</span></div>
-                    <div className="text-[10px] text-kurla-cream/40 font-mono break-all">{blocker.productIds.join(', ')}</div>
+                  <li key={blocker.label} className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs text-kurla-cream flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" aria-hidden />
+                        <span className="min-w-0">{blocker.label}</span>
+                      </div>
+                      <div className="text-[10px] text-kurla-cream/40 font-mono break-all mt-1">{blocker.productIds.join(', ')}</div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-rose-300 text-[10px] font-bold" title="Fiches concernées">
+                      {blocker.count}
+                    </span>
                   </li>
                 ))}
               </ul>
