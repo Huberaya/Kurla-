@@ -41,7 +41,26 @@ const GUIDE_ARTICLES = [
 export const SkinLandingPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [skinPros, setSkinPros] = useState<any[]>([]);
+  // Étagère peau RÉELLE : nombre de fiches peau achetables exposées par
+  // l'API publique. Tant qu'elle est vide, la page ne promet pas un
+  // catalogue qui n'existe pas — les CTA « catalogue » sont remplacés par
+  // l'état honnête, et réapparaissent tout seuls dès la première
+  // publication conforme (aucune donnée inventée, aucune promesse vide).
+  const [skinShelfCount, setSkinShelfCount] = useState<number | null>(null);
   useEffect(()=>{ fetchVerifiedProfessionals().then(r=>{ const filtered = (r.professionals||[]).filter((e:any)=> isSkinProfessional(e.profile)); setSkinPros(filtered.slice(0,3)); }).catch(()=>{}); },[]);
+  useEffect(() => {
+    fetch('/api/v1/products?limit=200')
+      .then(r => (r.ok ? r.json() : null))
+      .then(body => {
+        const products = (body && body.products) || [];
+        setSkinShelfCount(products.filter((p: any) => p.category === 'peau' && p.price != null).length);
+      })
+      .catch(() => setSkinShelfCount(null));
+  }, []);
+  // Défaut honnête : tant que l'étagère n'est pas MESURÉE non vide (y compris
+  // dans le HTML prérendu), on affiche l'état « en constitution ». Le CTA
+  // catalogue ne réapparaît que sur preuve.
+  const shelfEmpty = skinShelfCount === null || skinShelfCount === 0;
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-kurla-ivory text-kurla-carbon">
@@ -69,9 +88,15 @@ export const SkinLandingPage: React.FC = () => {
                 <a href="/peau/diagnostic" className="px-6 py-3.5 rounded-full bg-kurla-ivory border border-kurla-stone hover:border-kurla-copper text-kurla-carbon text-xs font-bold inline-flex items-center gap-2">
                   Diagnostic complet (5 min) <Zap className="w-4 h-4 text-kurla-copper" />
                 </a>
-                <a href="/boutique?cat=peau" className="px-6 py-3.5 rounded-full bg-transparent text-kurla-carbon/70 text-xs font-semibold hover:text-kurla-copper inline-flex items-center gap-1.5">
-                  Explorer le catalogue peau <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+                {shelfEmpty ? (
+                  <span className="px-6 py-3.5 rounded-full bg-kurla-sand border border-kurla-stone text-kurla-carbon/60 text-xs font-semibold inline-flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-kurla-copper" /> Étagère peau en cours de constitution — chaque référence passe notre porte de conformité avant publication
+                  </span>
+                ) : (
+                  <a href="/boutique?cat=peau" className="px-6 py-3.5 rounded-full bg-transparent text-kurla-carbon/70 text-xs font-semibold hover:text-kurla-copper inline-flex items-center gap-1.5">
+                    Explorer le catalogue peau <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
               <p className="text-[11px] text-kurla-carbon/50 mt-3 flex items-start gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> KURLA est un guide beauté, pas un diagnostic médical. En cas de symptôme persistant, consultez un dermatologue.
@@ -104,9 +129,13 @@ export const SkinLandingPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Qu’est-ce que vous voulez améliorer ?</h2>
-              <p className="text-sm text-kurla-carbon/60 font-light mt-1">Sélectionnez un ou plusieurs besoins — produits, routine et guide adaptés s’affichent.</p>
+              <p className="text-sm text-kurla-carbon/60 font-light mt-1">{shelfEmpty ? 'Sélectionnez un ou plusieurs besoins — routine et guide adaptés s’affichent. Les produits suivront, après passage de notre porte de conformité.' : 'Sélectionnez un ou plusieurs besoins — produits, routine et guide adaptés s’affichent.'}</p>
             </div>
-            <a href="/boutique?cat=peau" className="text-xs font-bold text-kurla-copper hover:underline inline-flex items-center gap-1">Tout le catalogue peau <ArrowRight className="w-3.5 h-3.5" /></a>
+            {shelfEmpty ? (
+              <span className="text-xs font-semibold text-kurla-carbon/55">Étagère en cours de constitution — les besoins ci-dessous ouvrent le guide et la routine ; les produits arriveront après contrôle.</span>
+            ) : (
+              <a href="/boutique?cat=peau" className="text-xs font-bold text-kurla-copper hover:underline inline-flex items-center gap-1">Tout le catalogue peau <ArrowRight className="w-3.5 h-3.5" /></a>
+            )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {SKIN_NEEDS.map(n => {
