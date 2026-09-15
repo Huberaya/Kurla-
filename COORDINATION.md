@@ -2669,3 +2669,11 @@ l'application) règle le cas.
 - UI : `SupplyOpsPanel.tsx` monté en tête de l'onglet skin_sourcing.
 - Banc `tests/kurla_supply_model.test.ts` : les 10 cas réels de la mission. Rapport : `docs/RAPPORT_SYSTEME_ACHAT_2026-09-16.md`.
 - Restants assumés : jonction commande→routeur, écran CRUD sources par produit, recherche globale, édition besoins par fiche.
+
+## 2026-09-16 — Jonction commande→routeur (Agent Arena)
+- Migration `20261002000000_order_item_routes.sql` APPLIQUÉE en prod (14 colonnes vérifiées, RLS) : routes fulfillment FIGÉES au paiement (snapshot).
+- Hook `freezeOrderRouting` appelé dans `confirmOrderPaidFromCheckoutSession` (src/server/payments/reconcileCheckout.ts) après passage à `paid` — idempotent, et un échec de routage n'échoue JAMAIS un paiement confirmé (try/catch journalisé).
+- `src/lib/orderRouting.ts` (routeOrderItems : routes par ligne + agrégat « qui expédie ») + banc `tests/kurla_order_routing.test.ts`.
+- Routes : `GET /api/admin/order-routes` (routes + commandes payées non routées), `POST /api/admin/order-routes/:orderId/freeze` (manuel/force).
+- UI : `OrderFulfillmentPanel.tsx` monté en tête de l'onglet Commandes.
+- 7 bancs [PASS] + tsc exit 0 au push 7c4b665.
