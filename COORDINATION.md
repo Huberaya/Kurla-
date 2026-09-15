@@ -2734,3 +2734,8 @@ horizontal ». C'était faux dans ce cas précis : un élément `position: fixed
 ne contribue pas à la largeur défilable du document. Un contenu peut donc
 déborder d'une barre fixe sans jamais faire apparaître d'ascenseur. La
 vérification doit porter sur chaque élément interactif, pas sur le document.
+
+## 2026-09-16 — Workflow 8 étapes : UI (Agent Arena)
+- `SourcingWorkflowPanel.tsx` monté dans skin_sourcing (sous ProductSourcesPanel) : sélecteur de candidat, état courant = dernier événement tracé (défaut « identifié », jamais plus), boutons limités aux transitions légales (canTransitionSupplyWorkflow), refus à raison OBLIGATOIRE (bouton désactivé sinon), historique lu depuis sourcing_workflow_events (horodaté + auteur).
+- Aucune logique nouvelle : l'UI applique le moteur déjà banc-testé. tsc 0 + bancs [PASS] au push cc28a86 (merge distant inclus).
+- Trouvaille audit corrigée : les besoins ÉTAIENT exposés (champ needs, 63/63) — voir correction en tête de docs/AUDIT_UTILISATEUR_2026-09-16.md.
