@@ -2653,3 +2653,11 @@ l'application) règle le cas.
 - Routes : `POST /api/admin/catalog/gate/scan` (lecture seule) et `POST /api/admin/catalog/gate/apply` (recalcule la proposition côté serveur avant d'appliquer, 409 si périmée, journalise).
 - UI : `CatalogGatePanel.tsx` monté sous CatalogAdminPanel (onglet peau). Mode automatique = arbitrage futur, pas un défaut.
 - Banc : `tests/kurla_gate.test.ts` (chaîné après test:fiche-link).
+
+## 2026-09-15 — C5 dérogations datées (Agent Arena)
+- Migration `20260930000000_catalog_derogations.sql` APPLIQUÉE en prod (table + RLS, 6 colonnes vérifiées) ; 42 fiches test amorcées en dérogations (motif « choix exploitant 14/09 », expiration 2026-10-15, décidées par `exploitant-kurla`).
+- SÉMENTIQUE C4 mise à jour : la protection contre le retrait vient désormais de la DÉROGATION ACTIVE (plus du simple drapeau test). Dérogation expirée → la porte propose le retrait en citant la date. Fiche sous dérogation jamais publiée d'office.
+- Routes : `GET /api/admin/catalog/derogations` (états calculés), `POST /api/admin/catalog/derogations/:productId/renew` (+30 j, upsert), `POST /api/admin/catalog/derogations/alert-email` (template `derogation_summary` ajouté à emailTemplates).
+- UI : `DerogationsPanel.tsx` (panneau rouge si échéances proches, renouvellement par fiche, envoi récap) monté sous CatalogGatePanel (onglet peau).
+- Bancs : `tests/kurla_derogations.test.ts` (nouveau) + `kurla_gate.test.ts` mis à jour (chaînés dans npm test).
+- Plan étude 15/09 : C1→C5 TERMINÉS. Restent C6 (portail fournisseur) et C7 (boucle vente→score), non lancés.
