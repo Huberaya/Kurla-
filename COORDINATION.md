@@ -2739,3 +2739,9 @@ vérification doit porter sur chaque élément interactif, pas sur le document.
 - `SourcingWorkflowPanel.tsx` monté dans skin_sourcing (sous ProductSourcesPanel) : sélecteur de candidat, état courant = dernier événement tracé (défaut « identifié », jamais plus), boutons limités aux transitions légales (canTransitionSupplyWorkflow), refus à raison OBLIGATOIRE (bouton désactivé sinon), historique lu depuis sourcing_workflow_events (horodaté + auteur).
 - Aucune logique nouvelle : l'UI applique le moteur déjà banc-testé. tsc 0 + bancs [PASS] au push cc28a86 (merge distant inclus).
 - Trouvaille audit corrigée : les besoins ÉTAIENT exposés (champ needs, 63/63) — voir correction en tête de docs/AUDIT_UTILISATEUR_2026-09-16.md.
+
+## 2026-09-16 — Étagère peau honnête (Agent Arena)
+- Priorité 🔴 n°1 de l'audit traitée par le défaut honnête : `/peau` (SkinLandingPage) ne promet plus un catalogue vide. Étagère mesurée en direct (`/api/v1/products`, fiches peau avec prix) : vide ou non mesurée → état « en cours de constitution » (hero + section besoins + promesse), CTA « Explorer le catalogue » réapparaît seul dès la première publication conforme.
+- HTML PRÉRENDU vérifié dans dist/peau : message honnête présent, 0 occurrence de l'ancien CTA.
+- Vérifications : tsc 0 + bancs [PASS] (gate, dérogations, 10 cas achat) + `npm run build` exit 0 (110 pages prérendues). Push 353ba12 FF_OK.
+- Découverte : `/besoins` (sans /peau) reste 404 — route inexistante dans routeTable.
