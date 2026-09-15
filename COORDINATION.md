@@ -2661,3 +2661,11 @@ l'application) règle le cas.
 - UI : `DerogationsPanel.tsx` (panneau rouge si échéances proches, renouvellement par fiche, envoi récap) monté sous CatalogGatePanel (onglet peau).
 - Bancs : `tests/kurla_derogations.test.ts` (nouveau) + `kurla_gate.test.ts` mis à jour (chaînés dans npm test).
 - Plan étude 15/09 : C1→C5 TERMINÉS. Restent C6 (portail fournisseur) et C7 (boucle vente→score), non lancés.
+
+## 2026-09-16 — Système d'achat / appro / fulfillment (Agent Arena)
+- Migrations APPLIQUÉES en prod : `product_sources` (20 colonnes, multi-sources × modèles dropshipping/affiliation/3pl/stock_kurla, coûts NULL jamais 0) + `sourcing_workflow_events` (9 colonnes, workflow 8 étapes tracé) + RLS.
+- `src/lib/supplyModel.ts` : workflow (transitions légales, refus motivé), marge (affiliation = commission), routeur fulfillment (« qui expédie », bloqué si source absente/indisponible, pas de bascule auto), alertes ops (9 types).
+- Routes : `GET/POST/PATCH /api/admin/sourcing/sources`, `POST /api/admin/sourcing/workflow/transition`, `GET /api/admin/sourcing/workflow/events`, `GET /api/admin/sourcing/ops` (KPI+alertes+marges+routage).
+- UI : `SupplyOpsPanel.tsx` monté en tête de l'onglet skin_sourcing.
+- Banc `tests/kurla_supply_model.test.ts` : les 10 cas réels de la mission. Rapport : `docs/RAPPORT_SYSTEME_ACHAT_2026-09-16.md`.
+- Restants assumés : jonction commande→routeur, écran CRUD sources par produit, recherche globale, édition besoins par fiche.
