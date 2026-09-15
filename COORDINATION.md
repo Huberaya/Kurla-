@@ -2687,3 +2687,8 @@ l'application) règle le cas.
 - Traverse : produits (nom, marque, SKU/slug, catégorie, besoins/concerns, fournisseur, INCI), positions de fond, candidats (via prospect), fournisseurs.
 - Banc `tests/kurla_global_search.test.ts` : le banc initial tombait à juste titre (« hyperpigmentation » ne matche pas « Pigment Control » en lexicale) — corrigé pour tester le comportement réel, pas une promesse sémantique non tenue.
 - 8 bancs [PASS] + tsc 0 au push f0a48a4.
+
+## 2026-09-16 — Édition des besoins par fiche (Agent Arena)
+- `ProductNeedsEditor.tsx` monté dans skin_catalog (sous DerogationsPanel) : recherche produit, les 15 codes `SKIN_NEEDS` en toggles multi-besoins, état initial lu sur la fiche (concerns/needs), bouton Enregistrer/Annuler avec détection de changement.
+- Écriture via le PATCH `/api/admin/catalog/products/:id` existant → `saveCatalogProduct` applique le vocabulaire contrôlé (valeur hors référentiel refusée côté serveur). Aucune logique métier nouvelle, aucun besoin inventé.
+- 8 bancs [PASS] + tsc 0 au push 2d8757f.
