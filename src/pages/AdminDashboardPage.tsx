@@ -13,6 +13,7 @@ import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPan
 import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
 import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { GlobalSearchPanel } from '../components/GlobalSearchPanel';
+import { SourcingWorkflowPanel } from '../components/SourcingWorkflowPanel';
 import { ProductNeedsEditor } from '../components/ProductNeedsEditor';
 import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
@@ -1565,6 +1566,7 @@ export const AdminDashboardPage: React.FC = () => {
             <GlobalSearchPanel headers={adminHeaders} />
             <SupplyOpsPanel headers={adminHeaders} />
             <ProductSourcesPanel headers={adminHeaders} />
+            <SourcingWorkflowPanel headers={adminHeaders} />
             <SourcingConsolidatedPanel headers={adminHeaders} />
             <SourcingProspectsPanel
                   headers={adminHeaders}
