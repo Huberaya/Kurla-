@@ -2641,3 +2641,8 @@ l'application) règle le cas.
 - C1 : `src/lib/kurlaReadyScore.ts` (score 0-100 depuis truth.blockers + manques qualité ; ready ≥ 95) — pastille « KURLA Ready N/100 » + ligne « ⛔ Bloque la vente / à compléter » sur chaque carte de CatalogAdminPanel. Banc : `tests/kurla_ready_score.test.ts`.
 - C2 : vue consolidée étendue aux 250 `sourcing_fond_positions` (pipeline 6 états : identifié→contacté→sourcé→conforme→publié→en vente, KPI + filtres par état). Banc étendu.
 - Défauts pris (arbitrages non tranchés) : toutes les 250 positions dans le pipeline ; porte auto (C4) et dérogations (C5) pas encore codés.
+
+## 2026-09-15 — C3 liaison candidat→fiche (Agent Arena)
+- Migration `20260928000000_sourcing_fiche_link.sql` APPLIQUÉE en prod (vérifiée information_schema) : `products.source_candidate_id`, `sourcing_product_candidates.draft_product_id`.
+- `src/lib/sourcingFicheLink.ts` (helper pur, données réelles uniquement, draft inactive) + `POST /api/admin/sourcing/candidates/:id/create-fiche` (idempotent) + bouton « + Créer la fiche » sur les lignes candidat du panel Appro unifié.
+- Banc : `tests/kurla_sourcing_fiche_link.test.ts` (chaîné après test:ready-score).
