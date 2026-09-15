@@ -1,0 +1,266 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link2, Plus, Star, Power } from 'lucide-react';
+import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
+
+/**
+ * SAISIE DES SOURCES PAR PRODUIT — l'écran qui alimente le routeur.
+ *
+ * Un produit × plusieurs fournisseurs × modèles (dropshipping, affiliation,
+ * 3PL, stock KURLA). Coût inconnu = champ vide (NULL en base), jamais 0.
+ * L'affiliation exige le lien réel — le serveur refuse sans lui : aucune
+ * intégration n'est simulée.
+ */
+
+const eurInput = (cents: number | null | undefined) => (cents == null ? '' : String(cents / 100));
+const centsOrUndef = (value: string) => {
+  if (value.trim() === '') return undefined;
+  const n = Number(value.replace(',', '.'));
+  return Number.isFinite(n) ? Math.round(n * 100) : undefined;
+};
+
+const EMPTY_FORM = {
+  supplierId: '',
+  partnerName: '',
+  model: 'dropshipping' as SupplyModel,
+  cost: '',
+  fee: '',
+  fulfillmentCost: '',
+  commissionPct: '',
+  affiliateUrl: '',
+  cookieDays: '',
+  leadTimeDays: '',
+  shipsFrom: '',
+  isPrimary: false,
+};
+
+export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> = ({ headers }) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sources, setSources] = useState<any[]>([]);
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [productsResponse, suppliersResponse] = await Promise.all([
+          fetch('/api/admin/catalog/products?scope=all', { headers }),
+          fetch('/api/admin/suppliers', { headers }),
+        ]);
+        const productsBody = await productsResponse.json();
+        const suppliersBody = await suppliersResponse.json();
+        if (!productsResponse.ok) throw new Error(productsBody.error || 'Produits indisponibles.');
+        setProducts(productsBody.products || []);
+        setSuppliers(suppliersBody.suppliers || []);
+      } catch (e: any) {
+        setError(e.message || 'Erreur de chargement.');
+      }
+    })();
+  }, [headers]);
+
+  const selected = useMemo(() => products.find(p => String(p.id) === selectedId) || null, [products, selectedId]);
+
+  const loadSources = async (productId: string) => {
+    try {
+      const response = await fetch(`/api/admin/sourcing/sources?productId=${encodeURIComponent(productId)}`, { headers });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Sources indisponibles.');
+      setSources(body.sources || []);
+    } catch (e: any) {
+      setMessage(`Sources : ${e.message || 'erreur'}`);
+    }
+  };
+
+  const selectProduct = (productId: string) => {
+    setSelectedId(productId);
+    setForm({ ...EMPTY_FORM });
+    setMessage('');
+    if (productId) loadSources(productId);
+    else setSources([]);
+  };
+
+  const filtered = useMemo(() => {
+    const low = search.toLowerCase();
+    const list = low ? products.filter(p => `${p.name} ${p.brand || ''}`.toLowerCase().includes(low)) : products;
+    return list.slice(0, 60);
+  }, [products, search]);
+
+  const submit = async () => {
+    if (!selectedId) return;
+    if (form.model === 'affiliation' && !form.affiliateUrl.trim()) {
+      setMessage('Une source en affiliation exige le lien d’affiliation réel.');
+      return;
+    }
+    if (!form.supplierId && !form.partnerName.trim()) {
+      setMessage('Choisis un fournisseur enregistré ou nomme le partenaire.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/admin/sourcing/sources', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          productId: selectedId,
+          supplierId: form.supplierId || null,
+          partnerName: form.partnerName.trim() || null,
+          model: form.model,
+          isPrimary: form.isPrimary,
+          costCents: centsOrUndef(form.cost) ?? null,
+          feeCents: centsOrUndef(form.fee) ?? null,
+          fulfillmentCostCents: centsOrUndef(form.fulfillmentCost) ?? null,
+          commissionPct: form.commissionPct.trim() === '' ? null : Number(form.commissionPct.replace(',', '.')),
+          affiliateUrl: form.affiliateUrl.trim() || null,
+          cookieDays: form.cookieDays.trim() === '' ? null : Number(form.cookieDays),
+          leadTimeDays: form.leadTimeDays.trim() === '' ? null : Number(form.leadTimeDays),
+          shipsFrom: form.shipsFrom.trim() || null,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Création impossible.');
+      setMessage('Source ajoutée.');
+      setForm({ ...EMPTY_FORM });
+      await loadSources(selectedId);
+    } catch (e: any) {
+      setMessage(`Échec : ${e.message || 'erreur inconnue'}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const patchSource = async (sourceId: string, patch: Record<string, unknown>, label: string) => {
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch(`/api/admin/sourcing/sources/${sourceId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(patch),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Mise à jour impossible.');
+      setMessage(label);
+      if (selectedId) await loadSources(selectedId);
+    } catch (e: any) {
+      setMessage(`Échec : ${e.message || 'erreur inconnue'}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const priceCents = selected ? (() => {
+    const price = Number(selected.basePrice ?? selected.price);
+    return Number.isFinite(price) && price > 0 ? Math.round(price * 100) : null;
+  })() : null;
+
+  const supplierName = (source: any) => {
+    if (source.supplierId) {
+      const supplier = suppliers.find(s => String(s.id) === String(source.supplierId));
+      if (supplier) return supplier.legalName || supplier.tradeName || source.supplierId;
+    }
+    return source.partnerName || 'partenaire à nommer';
+  };
+
+  if (error) return <div className="p-6 rounded-3xl bg-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
+
+  const field = 'px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px]';
+
+  return (
+    <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
+      <h3 className="font-bold flex items-center gap-2"><Link2 className="w-4 h-4 text-kurla-amber" /> Sources d'approvisionnement par produit</h3>
+      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA) ; la source ★ principale décide du routage des commandes. Coût inconnu = laisser vide — jamais 0. Affiliation : le lien réel est obligatoire.</p>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un produit (nom, marque)…" className={`w-full ${field}`} />
+          <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
+            {filtered.map(product => (
+              <button key={product.id} type="button" onClick={() => selectProduct(String(product.id))} className={`w-full text-left px-3 py-2 rounded-xl border text-[11px] ${String(product.id) === selectedId ? 'bg-kurla-copper/15 border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/5 hover:border-kurla-copper/25'}`}>
+                <span className="font-semibold">{product.name}</span>
+                {product.brand && <span className="text-kurla-cream/50"> · {product.brand}</span>}
+                <span className="float-right text-kurla-cream/45">{Number(product.basePrice ?? product.price ?? 0).toFixed(2).replace('.', ',')} €</span>
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="text-[11px] text-kurla-cream/45">Aucun produit ne correspond.</p>}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {selected ? (
+            <>
+              <p className="text-[12px] font-bold">{selected.name} <span className="text-kurla-cream/50 font-normal">· prix vente {priceCents != null ? `${(priceCents / 100).toFixed(2).replace('.', ',')} €` : 'à obtenir'}</span></p>
+
+              <div className="space-y-1.5">
+                {sources.map(source => {
+                  const margin = evaluateMargin({
+                    model: source.model,
+                    salePriceCents: priceCents,
+                    costCents: source.costCents,
+                    feeCents: source.feeCents,
+                    fulfillmentCostCents: source.fulfillmentCostCents,
+                    commissionPct: source.commissionPct,
+                  });
+                  return (
+                    <div key={source.id} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 text-[11px] space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button type="button" title="Définir comme source principale" onClick={() => patchSource(source.id, { isPrimary: true }, 'Source principale mise à jour.')} disabled={busy || source.isPrimary} className={`px-1.5 py-0.5 rounded text-[10px] ${source.isPrimary ? 'text-kurla-amber' : 'text-kurla-cream/30 hover:text-kurla-amber'}`}><Star className="w-3 h-3" fill={source.isPrimary ? 'currentColor' : 'none'} /></button>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-copper/15 text-kurla-copper">{SUPPLY_MODEL_LABELS[source.model as SupplyModel] || source.model}</span>
+                        <span className="font-semibold">{supplierName(source)}</span>
+                        <button type="button" onClick={() => patchSource(source.id, { available: !source.available }, source.available ? 'Source marquée indisponible.' : 'Source de nouveau disponible.')} disabled={busy} className={`ml-auto px-1.5 py-0.5 rounded text-[9px] font-bold border ${source.available ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300' : 'bg-rose-500/10 border-rose-500/25 text-rose-300'}`}><Power className="w-2.5 h-2.5 inline mr-1" />{source.available ? 'disponible' : 'indisponible'}</button>
+                      </div>
+                      <p className="text-kurla-cream/60">
+                        coût : <span className="text-kurla-cream/85 font-semibold">{source.costCents != null ? `${(source.costCents / 100).toFixed(2).replace('.', ',')} €` : 'à obtenir'}</span>
+                        {' · '}
+                        {source.model === 'affiliation'
+                          ? <>commission : <span className="text-emerald-300 font-semibold">{margin.commissionCents != null ? `${(margin.commissionCents / 100).toFixed(2).replace('.', ',')} €` : 'à obtenir'}</span>{source.cookieDays != null && <span className="text-kurla-cream/45"> · cookie {source.cookieDays} j</span>}</>
+                          : <>marge : <span className={`font-semibold ${margin.marginCents != null && margin.marginCents <= 0 ? 'text-rose-300' : 'text-emerald-300'}`}>{margin.marginCents != null ? `${(margin.marginCents / 100).toFixed(2).replace('.', ',')} €${margin.marginPct != null ? ` (${margin.marginPct} %)` : ''}` : 'à obtenir'}</span></>}
+                        {source.leadTimeDays != null && <span className="text-kurla-cream/45"> · délai {source.leadTimeDays} j</span>}
+                        {source.shipsFrom && <span className="text-kurla-cream/45"> · depuis {source.shipsFrom}</span>}
+                      </p>
+                      {margin.missing.length > 0 && <p className="text-[10px] text-amber-300/75">à obtenir pour calculer : {margin.missing.join(', ')}</p>}
+                      {source.affiliateUrl && <p className="text-[10px] text-kurla-cream/45 truncate">lien : {source.affiliateUrl}</p>}
+                    </div>
+                  );
+                })}
+                {sources.length === 0 && <p className="text-[11px] text-amber-300/80">Aucune source — les commandes de ce produit seront bloquées au routage (« aucune source d'approvisionnement »).</p>}
+              </div>
+
+              <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
+                <p className="text-[11px] font-bold text-kurla-amber">Ajouter une source</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))} className={field}>
+                    <option value="">Fournisseur enregistré…</option>
+                    {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.legalName || supplier.tradeName}</option>)}
+                  </select>
+                  <input value={form.partnerName} onChange={e => setForm(f => ({ ...f, partnerName: e.target.value }))} placeholder="…ou nom du partenaire" className={field} />
+                  <select value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value as SupplyModel }))} className={field}>
+                    {Object.entries(SUPPLY_MODEL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                  </select>
+                  <input value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))} placeholder="Coût € (vide = inconnu)" className={field} />
+                  <input value={form.fee} onChange={e => setForm(f => ({ ...f, fee: e.target.value }))} placeholder="Frais € (vide = inconnu)" className={field} />
+                  <input value={form.fulfillmentCost} onChange={e => setForm(f => ({ ...f, fulfillmentCost: e.target.value }))} placeholder="Fulfillment € (vide = inconnu)" className={field} />
+                  <input value={form.commissionPct} onChange={e => setForm(f => ({ ...f, commissionPct: e.target.value }))} placeholder="Commission % (affiliation)" className={field} />
+                  <input value={form.affiliateUrl} onChange={e => setForm(f => ({ ...f, affiliateUrl: e.target.value }))} placeholder="Lien affilié (obligatoire en affiliation)" className={field} />
+                  <input value={form.leadTimeDays} onChange={e => setForm(f => ({ ...f, leadTimeDays: e.target.value }))} placeholder="Délai (jours)" className={field} />
+                  <input value={form.shipsFrom} onChange={e => setForm(f => ({ ...f, shipsFrom: e.target.value }))} placeholder="Expédié depuis (pays)" className={field} />
+                  <label className="flex items-center gap-1.5 text-[11px] text-kurla-cream/70 col-span-2">
+                    <input type="checkbox" checked={form.isPrimary} onChange={e => setForm(f => ({ ...f, isPrimary: e.target.checked }))} className="accent-[#B4642C]" /> Source principale (décide du routage)
+                  </label>
+                </div>
+                <button type="button" onClick={submit} disabled={busy} className="px-3 py-1.5 rounded-xl bg-kurla-copper text-white text-[11px] font-bold flex items-center gap-1 disabled:opacity-40"><Plus className="w-3 h-3" /> {busy ? 'Enregistrement…' : 'Ajouter la source'}</button>
+              </div>
+            </>
+          ) : (
+            <p className="text-[11px] text-kurla-cream/45">Sélectionne un produit pour voir et saisir ses sources.</p>
+          )}
+          {message && <p className="text-[11px] text-kurla-cream/75">{message}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};

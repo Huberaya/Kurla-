@@ -11,6 +11,7 @@ import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
 import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPanel';
 import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
+import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
 import { SourcingCountryStrategyPanel } from '../components/SourcingCountryStrategyPanel';
@@ -1559,6 +1560,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {workspace === 'skin' && <PeauSourcingCahierPanel />}
                 {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
             <SupplyOpsPanel headers={adminHeaders} />
+            <ProductSourcesPanel headers={adminHeaders} />
             <SourcingConsolidatedPanel headers={adminHeaders} />
             <SourcingProspectsPanel
                   headers={adminHeaders}
