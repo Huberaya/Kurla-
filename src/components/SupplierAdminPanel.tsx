@@ -84,6 +84,10 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Filtres demandés le 17/09 : retrouver un fournisseur par nom/pays/contact,
+  // et isoler ceux qu'on ne peut pas encore joindre (aucun e-mail enregistré).
+  const [filterText, setFilterText] = useState('');
+  const [onlyMissingContact, setOnlyMissingContact] = useState(false);
 
   const [draft, setDraft] = useState({
     legalName: '', tradeName: '', supplierType: 'unknown', country: '', website: '',
@@ -231,6 +235,19 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
     }
   };
 
+  // Liste filtrée : recherche texte (nom, métier, pays, contact) + isolement
+  // des fournisseurs sans e-mail enregistré. Aucun filtre = liste complète.
+  const filterQuery = filterText.trim().toLowerCase();
+  const visibleSuppliers = suppliers.filter(supplier => {
+    if (onlyMissingContact && supplier.contactEmail) return false;
+    if (!filterQuery) return true;
+    return [
+      supplier.legalName, supplier.tradeName, supplier.country,
+      SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType,
+      supplier.contactEmail, supplier.contactName
+    ].filter(Boolean).join(' ').toLowerCase().includes(filterQuery);
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -253,7 +270,24 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
       )}
 
       <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Référentiel ({suppliers.length})</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3">Fournisseurs ({suppliers.length})</h3>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <input
+            className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper w-64"
+            placeholder="Filtrer : nom, métier, pays, contact…"
+            value={filterText}
+            onChange={event => setFilterText(event.target.value)}
+          />
+          <button
+            onClick={() => setOnlyMissingContact(value => !value)}
+            className={`px-3 py-2 rounded-xl border text-xs ${onlyMissingContact ? 'border-amber-300/50 bg-amber-500/15 text-amber-200' : 'border-kurla-cream/15 text-kurla-cream/70 hover:border-kurla-copper'}`}
+          >
+            Sans contact ({suppliers.filter(s => !s.contactEmail).length})
+          </button>
+          {(filterText || onlyMissingContact) && (
+            <span className="text-[11px] text-kurla-cream/50">{visibleSuppliers.length} affiché(s) sur {suppliers.length}</span>
+          )}
+        </div>
         {suppliers.length === 0 ? (
           <p className="text-xs text-kurla-cream/50">
             Aucun fournisseur enregistré. Les 16 produits du catalogue n’ont pas de provenance
@@ -277,7 +311,14 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
                 </tr>
               </thead>
               <tbody>
-                {suppliers.map(supplier => {
+                {visibleSuppliers.length === 0 && (
+                  <tr>
+                    <td colSpan={showAll ? 10 : 9} className="py-4 text-center text-kurla-cream/50">
+                      Aucun fournisseur ne correspond à ce filtre.
+                    </td>
+                  </tr>
+                )}
+                {visibleSuppliers.map(supplier => {
                   const status = STATUS_LABELS[supplier.verificationStatus] || STATUS_LABELS.not_provided;
                   return (
                     <tr key={supplier.id} className="border-t border-kurla-cream/10">

@@ -1634,14 +1634,14 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="space-y-10">
             <div>
               <h2 className="text-lg font-bold text-kurla-cream">Qui me fournit — et sur quelle preuve</h2>
-              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés — y compris ceux pas encore utilisés, avec leur usage réel par espace —, quel fournisseur sert chaque produit, et la stratégie pays.</p>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">D'abord les fournisseurs et leurs contacts (filtrables), puis ce que chacun fournit et la stratégie pays. En bas : le dossier de complétude (ce qu'on sait, ce qui manque) et l'affectation produit par produit.</p>
             </div>
-            <SupplierDossierPanel headers={adminHeaders} />
             <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SupplierCatalogPanel headers={adminHeaders} />
-            <ProductSupplierPanel headers={adminHeaders} fullCatalog onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <GlobalSearchPanel headers={adminHeaders} />
+            <SupplierDossierPanel headers={adminHeaders} />
+            <ProductSupplierPanel headers={adminHeaders} fullCatalog onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
           </div>
         )}
 
