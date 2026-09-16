@@ -3136,3 +3136,106 @@ surveillance. Ils ne peuvent pas pourrir silencieusement.
   scope de session (`readWorkspaceScope(req)` + `isProductInWorkspace`,
   `src/server/routes/catalogGovernance.ts` lignes 110-113) : le paramètre est ignoré,
   aucune fuite entre espaces. Le libellé est trompeur, le comportement est sain.
+
+## 2026-09-16 — Parité des espaces peau / cheveux (Agent Kurla)
+
+**Demande :** « j'ai regardé dans le dashboard kurla hair et je me rend compte
+que c'est la même configuration que j'attends dans Kurla skin. je veux que tu
+retravaille kurla skin, que les onglets et les section soit pareil ».
+
+**Travail mené deux fois, sans le savoir.** L'agent du domaine peau (b968d3b) et
+moi-même avons traité la même demande en parallèle. Sa résolution est meilleure
+que la mienne sur un point, et c'est la sienne qui est retenue dans le code :
+
+| | Ma version | Leur version (retenue) |
+|---|---|---|
+| Famille « Gouvernance Skin » | retirée | retirée |
+| Injections peau dans les onglets partagés | retirées | retirées |
+| Porte de publication, dérogations, gates de test | **perdues** (n'étaient montées que dans « Fiches peau ») | **déplacées** dans l'onglet partagé « Catalogue produits », visibles dans les deux espaces |
+| Blocs de rendu `skin_overview` / `skin_readiness` / `skin_catalog` | supprimés | retirés à leur tour : un onglet absent de `navGroups` n'est atteint par aucun bouton, et le laisser dans l'arbre de rendu le faisait passer pour vivant. Les composants restent dans `src/components/` |
+
+Leur argument pour le déplacement, qui emporte la décision : un cosmétique
+cheveux est soumis au même Règlement 1223/2009 qu'un cosmétique peau — la
+gouvernance catalogue n'est pas l'affaire d'un seul espace. **Mesuré après
+fusion : aucune route admin ne tombe à zéro appelant. Aucune fonction n'est
+perdue.**
+
+**Ce que j'apporte donc, au lieu d'un second retrait :**
+
+1. `tests/parite_espaces.test.ts`, chaîné dans `npm test` — il échoue si un
+   panneau, un onglet ou une famille redevient propre à un espace. Sans ce
+   banc, la dérive tient en une ligne et ne se voit qu'en comparant les deux
+   écrans à la main ;
+2. une correction de l'inventaire des routes admin, qui comptait comme
+   « appelée » toute route présente dans un fichier de `src/`, **monté ou non**.
+   Il parcourt désormais le graphe des importations depuis les point d'entrée et
+   nomme les fichiers morts : **13 fichiers inatteints** appellent encore
+   l'administration.
+
+**Limite connue de cette correction, à ne pas prendre pour une garantie :** elle
+raisonne sur le graphe des importations, pas sur l'arbre de rendu. Un composant
+importé mais jamais rendu passe encore pour « atteint ». Un banc sur l'arbre de
+rendu reste à écrire.
+
+**Commentaire faux corrigé :** le commentaire laissé au-dessus de `navGroups`
+affirmait que les blocs de rendu `skin_*` « restent intacts plus bas ». Ils
+avaient été retirés entre-temps. Il décrit maintenant ce que fait le code.
+
+**Défaut qui demeure, commun aux deux espaces :** l'onglet « Fournisseurs &
+sourcing » empile 27 sections alors que la barre de saut s'arrête à 8
+(`MAX_SECTIONS` dans `src/components/AdminSectionNav.tsx`) ; « 1 · Qui me
+fournit » en empile 9. Une dizaine de sections restent inatteignables.
+
+## 2026-09-16 — Lien piste → fournisseur : migration à appliquer (Agent Kurla)
+
+**Demande :** « quand je remplis les informations d'un produit ou d'un
+fournisseur, que ces informations apparaissent partout où ils sont mentionnés.
+
+Je viens de remplir certaines informations de certains fournisseurs et ces
+informations n'apparaissent pas dans les autres sections et onglets. »
+
+**Cause mesurée :** il existe deux mondes, et **aucun lien entre eux**.
+
+| | fiches | écrans qui le lisent |
+|---|---:|---|
+| `suppliers` — la fiche validée | 30 | 12 |
+| `sourcing_prospects` — le démarchage en cours | 28 | 7 |
+
+**0 piste sur 28 ne porte de référence à un fournisseur** : la colonne de
+liaison n'existe pas. 3 noms seulement sont présents dans les deux tables.
+Remplir un fournisseur ne change donc rien dans les écrans de sourcing —
+l'information existe sans être rattachée à rien.
+
+Ces deux tables ne sont **pas** des doublons : une piste est une démarche en
+cours, un fournisseur une fiche validée. Ce sont deux étapes d'une même
+filiation. C'est précisément le lien qui permet de passer de l'une à l'autre.
+
+**Décision de l'exploitant : migration (et non rapprochement approximatif par
+nom), fournisseurs d'abord.**
+
+**À APPLIQUER À LA MAIN — je n'ai pas les droits de modification de schéma**
+(et aucune action CI n'applique les migrations, vérifié) :
+
+    supabase/migrations/20261004000000_supplier_link.sql
+
+Le fichier ajoute `sourcing_prospects.supplier_id` (TEXT — la clé de
+`suppliers` est un identifiant lisible, `sup-…`, pas un UUID), un index, et le
+`NOTIFY pgrst` sans lequel l'API continue d'ignorer la colonne. Idempotent,
+avec contrôle et retour arrière en commentaire.
+
+**Ensuite, de mon côté :** `scripts/rapprocheFournisseursPistes.ts` reliera les
+pistes identifiables — 3 aujourd'hui — en important `normalizeSupplierName` du
+référentiel (jamais recopié : un banc échoue si une copie divergerait). Puis
+câblage des écrans pour qu'une fiche fournisseur alimente les 19 écrans qui la
+mentionnent.
+
+**Non traité, volontairement (chantier suivant) :** le champ libre
+`products.source_supplier`. Sur les produits qui ont un fournisseur lié, **79
+sur 111 affichent un nom qui ne correspond pas** (« Candidat — Weleda » pour un
+produit lié à « WELEDA S.A. »). Le texte est figé et ne suit jamais le
+fournisseur. 27 produits portent même ce texte sans aucun lien.
+
+**Garde-fou posé :** `tests/rapprochement_fournisseurs.test.ts`, chaîné dans
+`npm test`. Il vérifie d'abord ce qui doit échouer : deux fournisseurs dont le
+nom se plie à l'identique ne donnent lieu à **aucun** lien, et une piste déjà
+reliée n'est jamais écrasée.
