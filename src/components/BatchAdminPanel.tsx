@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, columnFilterClass, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, Boxes, GitBranch, Link2, RefreshCw, Save, Search } from 'lucide-react';
 
 type BatchAdminPanelProps = {
@@ -94,6 +95,24 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Filtres par colonne (17/09) : un filtre sous chaque en-tête, combinables
+  // entre eux, aucun filtre = liste complète. Calcul partagé avec le reste du
+  // dashboard (src/lib/columnFilters, banc kurla_column_filters).
+  const batchColumnFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'lot', kind: 'text', get: (batch: Batch) => batch.lotReference },
+    { key: 'product', kind: 'text', get: (batch: Batch) => productName(batch.productId) },
+    { key: 'supplier', kind: 'text', get: (batch: Batch) => supplierName(batch.supplierId), presentLabels: { filled: 'Fournisseur nommé', empty: 'Fournisseur absent' } },
+    { key: 'quantity', kind: 'numeric', get: (batch: Batch) => batch.quantityReceived, unit: ' u' },
+    { key: 'cost', kind: 'numeric', get: (batch: Batch) => Number(batch.servedCostCents || 0) / 100, unit: ' €' },
+    { key: 'receivedOn', kind: 'text', get: (batch: Batch) => batch.receivedOn, everyWord: false },
+    { key: 'status', kind: 'enum', get: (batch: Batch) => batch.status, options: Object.entries(BATCH_STATUS_LABELS).map(([value, label]) => ({ value, label })) },
+  ], [products, suppliers]);
+  const [batchFilters, setBatchFilters] = useState(() => emptyFilterState([
+    { key: 'lot' }, { key: 'product' }, { key: 'supplier' }, { key: 'quantity' },
+    { key: 'cost' }, { key: 'receivedOn' }, { key: 'status' },
+  ] as ColumnFilter[]));
+  const setBatchFilter = (key: string, value: string) => setBatchFilters(prev => ({ ...prev, [key]: value }));
+  const [showAllBatches, setShowAllBatches] = useState(false);
 
   const [draft, setDraft] = useState({
     lotReference: '', productId: '', supplierId: '', sourcingItemId: '',
@@ -224,6 +243,20 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
 
   const totalUnits = batches.reduce((sum, batch) => sum + batch.quantityReceived, 0);
 
+  // Liste filtrée : les filtres par colonne retirent des lignes, ils ne
+  // réordonnent jamais. Aucun filtre actif = la liste complète.
+  const visibleBatches = useMemo(
+    () => applyColumnFilters(batches, batchColumnFilters, batchFilters),
+    [batches, batchColumnFilters, batchFilters]
+  );
+  // Allègement (17/09) : même principe que les fiches produits — on rend les
+  // 50 premiers lots de la vue filtrée, le reste sur demande explicite.
+  const BATCH_PAGE = 50;
+  const shownBatches = useMemo(
+    () => (showAllBatches ? visibleBatches : visibleBatches.slice(0, BATCH_PAGE)),
+    [visibleBatches, showAllBatches]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -329,9 +362,21 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                   <th className="py-2 pr-3">Statut</th>
                   <th className="py-2" />
                 </tr>
+                <tr>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Référence…" value={batchFilters.lot} onChange={value => setBatchFilter('lot', value)} ariaLabel="Filtrer par lot" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Produit…" value={batchFilters.product} onChange={value => setBatchFilter('product', value)} ariaLabel="Filtrer par produit" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Fournisseur…" value={batchFilters.supplier} onChange={value => setBatchFilter('supplier', value)} ariaLabel="Filtrer par fournisseur" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="10-500" value={batchFilters.quantity} onChange={value => setBatchFilter('quantity', value)} ariaLabel="Filtrer par quantité" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="2-9 €" value={batchFilters.cost} onChange={value => setBatchFilter('cost', value)} ariaLabel="Filtrer par coût servi" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="2026-09" value={batchFilters.receivedOn} onChange={value => setBatchFilter('receivedOn', value)} ariaLabel="Filtrer par date de réception" /></th>
+                  <th className="pb-2 pr-3">
+                    <ColumnFilterSelect value={batchFilters.status} onChange={value => setBatchFilter('status', value)} ariaLabel="Filtrer par statut" options={Object.entries(BATCH_STATUS_LABELS).map(([value, label]) => ({ value, label }))} />
+                  </th>
+                  <th className="pb-2" />
+                </tr>
               </thead>
               <tbody>
-                {batches.map(batch => (
+                {shownBatches.map(batch => (
                   <tr key={batch.id} className="border-t border-kurla-cream/10">
                     <td className="py-2 pr-3 text-kurla-cream font-mono">{batch.lotReference}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{productName(batch.productId)}</td>
@@ -349,6 +394,16 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                 ))}
               </tbody>
             </table>
+            {visibleBatches.length > shownBatches.length && (
+              <button type="button" onClick={() => setShowAllBatches(true)} className="mt-3 px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 hover:border-kurla-copper/40 hover:text-kurla-cream">
+                Afficher les {visibleBatches.length} lots (les {shownBatches.length} premiers sont à l’écran)
+              </button>
+            )}
+            {showAllBatches && visibleBatches.length > BATCH_PAGE && (
+              <button type="button" onClick={() => setShowAllBatches(false)} className="mt-3 px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/60 hover:border-kurla-copper/40">
+                Revenir aux {BATCH_PAGE} premiers lots
+              </button>
+            )}
           </div>
         )}
       </section>

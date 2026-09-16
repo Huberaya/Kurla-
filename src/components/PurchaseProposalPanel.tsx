@@ -14,7 +14,8 @@
  * testée par le banc `kurla_purchase_proposal`. L'envoi des e-mails reste un
  * acte humain (vue consolidée, mailto/copier).
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ColumnFilterPresence, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { Download, FileText } from 'lucide-react';
 
 export interface PurchaseProposalRow {
@@ -177,6 +178,29 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
   const [unavailable, setUnavailable] = useState<string[]>([]);
   const [exported, setExported] = useState(false);
 
+  // Filtres par colonne (17/09) : la proposition d'achat est le tableau où
+  // l'on décide quoi commander — « à commander » et « fournisseur » doivent se
+  // croiser sans faire défiler 100 lignes. Calcul partagé (columnFilters).
+  const PROPOSAL_FILTER_KEYS = ['reference', 'demand', 'stock', 'toOrder', 'supplier', 'moq', 'lead', 'unitCost', 'total', 'missing'] as const;
+  const proposalFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'reference', kind: 'text', get: (row: any) => row.name, extra: (row: any) => [row.slug, row.productId] },
+    { key: 'demand', kind: 'numeric', get: (row: any) => row.qtyDemand, unit: ' u' },
+    { key: 'stock', kind: 'numeric', get: (row: any) => row.stockOnHand, unit: ' u' },
+    { key: 'toOrder', kind: 'numeric', get: (row: any) => row.qtyToOrder, unit: ' u' },
+    { key: 'supplier', kind: 'text', get: (row: any) => row.supplierName, presentLabels: { filled: 'Fournisseur nommé', empty: 'À sourcer' } },
+    { key: 'moq', kind: 'numeric', get: (row: any) => (row.moqUnits == null ? NaN : row.moqUnits), unit: ' u' },
+    { key: 'lead', kind: 'numeric', get: (row: any) => (row.leadTimeDays == null ? NaN : row.leadTimeDays), unit: ' j' },
+    { key: 'unitCost', kind: 'numeric', get: (row: any) => (row.unitCostEur == null ? NaN : row.unitCostEur), unit: ' €' },
+    { key: 'total', kind: 'numeric', get: (row: any) => (row.totalEstEur == null ? NaN : row.totalEstEur), unit: ' €' },
+    { key: 'missing', kind: 'present', get: (row: any) => row.missing, presentLabels: { filled: 'Pièces manquantes', empty: 'Dossier complet' } },
+  ], []);
+  const [proposalFilterState, setProposalFilterState] = useState(() => emptyFilterState(PROPOSAL_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const setProposalFilter = (key: string, value: string) => setProposalFilterState(prev => ({ ...prev, [key]: value }));
+  const visibleProposals = useMemo(
+    () => applyColumnFilters(result?.rows || [], proposalFilters, proposalFilterState),
+    [result, proposalFilters, proposalFilterState]
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -293,9 +317,23 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
                   <th className="text-right px-3 py-2.5">Total estimé</th>
                   <th className="text-left px-3 py-2.5">Pièces</th>
                 </tr>
+                <tr className="bg-kurla-ink/40">
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="Nom, slug…" value={proposalFilterState.reference} onChange={value => setProposalFilter('reference', value)} ariaLabel="Filtrer par référence" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="10-" value={proposalFilterState.demand} onChange={value => setProposalFilter('demand', value)} ariaLabel="Filtrer par demande" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="-5" value={proposalFilterState.stock} onChange={value => setProposalFilter('stock', value)} ariaLabel="Filtrer par stock" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="1-" value={proposalFilterState.toOrder} onChange={value => setProposalFilter('toOrder', value)} ariaLabel="Filtrer par quantité à commander" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="Fournisseur…" value={proposalFilterState.supplier} onChange={value => setProposalFilter('supplier', value)} ariaLabel="Filtrer par fournisseur" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="MOQ…" value={proposalFilterState.moq} onChange={value => setProposalFilter('moq', value)} ariaLabel="Filtrer par MOQ" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="-30" value={proposalFilterState.lead} onChange={value => setProposalFilter('lead', value)} ariaLabel="Filtrer par délai" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="2-9 €" value={proposalFilterState.unitCost} onChange={value => setProposalFilter('unitCost', value)} ariaLabel="Filtrer par coût unitaire" /></th>
+                  <th className="px-3 py-2"><ColumnFilterText placeholder="100-" value={proposalFilterState.total} onChange={value => setProposalFilter('total', value)} ariaLabel="Filtrer par total estimé" /></th>
+                  <th className="px-3 py-2">
+                    <ColumnFilterPresence value={proposalFilterState.missing} onChange={value => setProposalFilter('missing', value)} ariaLabel="Filtrer par pièces manquantes" labels={{ filled: 'Manquantes', empty: 'Complet' }} />
+                  </th>
+                </tr>
               </thead>
               <tbody>
-                {result.rows.map(row => (
+                {visibleProposals.map(row => (
                   <tr key={row.productId} className={`border-t border-kurla-cream/10 ${row.qtyToOrder === 0 ? 'opacity-55' : ''}`}>
                     <td className="px-3 py-2.5">
                       <span className="font-semibold text-kurla-cream">{row.name}</span>
@@ -323,6 +361,10 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
                 ))}
               </tbody>
             </table>
+            <p className="px-3 py-2 text-[11px] text-kurla-cream/50 border-t border-kurla-cream/10">
+              <span className="font-bold text-kurla-cream">{visibleProposals.length}</span>/{result.rows.length} ligne{(result.rows.length || 0) > 1 ? 's' : ''}
+              {visibleProposals.length !== result.rows.length && <> · filtres actifs — <button type="button" onClick={() => setProposalFilterState(emptyFilterState(PROPOSAL_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))} className="underline hover:text-kurla-cream">réinitialiser</button></>}
+            </p>
           </div>
           <p className="text-[11px] text-kurla-cream/40">
             Coût unitaire = coût réel du dernier lot reçu ; sans lot reçu, « à obtenir » — l'export CSV porte la

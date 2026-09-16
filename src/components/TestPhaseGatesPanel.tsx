@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, ShieldCheck, XCircle, Beaker, Undo2 } from 'lucide-react';
 
 type Gate = { id: string; label: string; ok: boolean; detail: string };
@@ -41,6 +42,31 @@ export const TestPhaseGatesPanel: React.FC<{ headers: HeadersInit; onSuccess?: (
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState('');
+
+  // Filtres par champ (17/09) : les fiches de test se comptent en dizaines ;
+  // « lesquelles sont prêtes », « quelle marque », « quel statut » doivent se
+  // répondre en deux clics, pas en faisant défiler.
+  const TEST_FILTER_KEYS = ['name', 'brand', 'category', 'status', 'test', 'ready', 'price'] as const;
+  const testFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'name', kind: 'text', get: (row: Row) => row.name, extra: (row: Row) => [row.slug] },
+    { key: 'brand', kind: 'text', get: (row: Row) => row.brand },
+    { key: 'category', kind: 'text', get: (row: Row) => row.category },
+    { key: 'status', kind: 'enum', get: (row: Row) => row.catalogStatus, options: [
+      { value: 'published', label: 'Publié' },
+      { value: 'draft', label: 'Brouillon' },
+    ] },
+    { key: 'test', kind: 'enum', get: (row: Row) => (row.isTestListing ? 'oui' : 'non'), options: [
+      { value: 'oui', label: 'Fiche test' },
+      { value: 'non', label: 'Hors test' },
+    ] },
+    { key: 'ready', kind: 'enum', get: (row: Row) => (row.gates.ready ? 'oui' : 'non'), options: [
+      { value: 'oui', label: 'Gardes-fous complets' },
+      { value: 'non', label: 'Gardes-fous manquants' },
+    ] },
+    { key: 'price', kind: 'numeric', get: (row: Row) => (row.price == null ? NaN : row.price), unit: ' €' },
+  ], []);
+  const [testFilterState, setTestFilterState] = useState(() => emptyFilterState(TEST_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const visibleRows = useMemo(() => applyColumnFilters(rows, testFilters, testFilterState), [rows, testFilters, testFilterState]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,7 +157,15 @@ export const TestPhaseGatesPanel: React.FC<{ headers: HeadersInit; onSuccess?: (
         <p className="text-xs text-kurla-cream/50">Aucune fiche de test — les fiches `src-*` / `peau-test-*` apparaîtront ici dès leur création.</p>
       ) : (
         <div className="space-y-3">
-          {rows.map(row => {
+          <ColumnFilterStrip
+            filters={testFilters}
+            state={testFilterState}
+            onChange={(key, value) => setTestFilterState(prev => ({ ...prev, [key]: value }))}
+            onReset={() => setTestFilterState(emptyFilterState(TEST_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+            total={rows.length}
+            shown={visibleRows.length}
+          />
+          {visibleRows.map(row => {
             const isPublished = row.catalogStatus === 'published';
             const gateBy = (id: string) => row.gates.gates.find(gate => gate.id === id);
             return (

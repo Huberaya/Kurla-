@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { ShieldAlert, Mail, RotateCcw } from 'lucide-react';
 
 /**
@@ -14,6 +15,23 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  // Filtres par champ (17/09) : avec des dizaines de dérogations datées,
+  // trouver « celles qui expirent » en faisant défiler n'est pas tenable.
+  // Même calcul partagé que partout ailleurs (src/lib/columnFilters).
+  const DEROGATION_FILTER_KEYS = ['name', 'reason', 'state', 'expires'] as const;
+  const derogationFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'name', kind: 'text', get: (row: any) => row.name },
+    { key: 'reason', kind: 'text', get: (row: any) => row.reason },
+    { key: 'state', kind: 'enum', get: (row: any) => row.state, options: [
+      { value: 'active', label: 'Active' },
+      { value: 'expiring_soon', label: 'Expire bientôt' },
+      { value: 'expired', label: 'Expirée' },
+    ] },
+    { key: 'expires', kind: 'text', get: (row: any) => (row.expiresAt ? new Date(row.expiresAt).toLocaleDateString('fr-FR') : ''), everyWord: false },
+  ], []);
+  const [derogationFilterState, setDerogationFilterState] = useState(() => emptyFilterState(DEROGATION_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const visibleRows = useMemo(() => applyColumnFilters(rows, derogationFilters, derogationFilterState), [rows, derogationFilters, derogationFilterState]);
 
   const load = async () => {
     try {
@@ -122,7 +140,15 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
       <p className="text-[11px] text-kurla-cream/55">Chaque dérogation est un choix daté : tant qu'elle est active, la porte ne propose aucun retrait ; à expiration, la protection tombe. Renouveler = 30 jours de plus.</p>
       {message && <p className="text-[11px] text-kurla-cream/75">{message}</p>}
       <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
-        {rows.map(row => (
+        <ColumnFilterStrip
+          filters={derogationFilters}
+          state={derogationFilterState}
+          onChange={(key, value) => setDerogationFilterState(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setDerogationFilterState(emptyFilterState(DEROGATION_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+          total={rows.length}
+          shown={visibleRows.length}
+        />
+        {visibleRows.map(row => (
           <div key={row.productId} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.state === 'active' ? 'bg-emerald-500/15 text-emerald-300' : row.state === 'expiring_soon' ? 'bg-amber-500/15 text-amber-300' : 'bg-rose-500/15 text-rose-300'}`}>{row.state === 'active' ? 'active' : row.state === 'expiring_soon' ? 'expire bientôt' : 'EXPIRÉE'}</span>
             <span className="font-semibold flex-1 min-w-[160px]">{row.name}</span>
@@ -133,7 +159,7 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
             </button>
           </div>
         ))}
-        {rows.length === 0 && <p className="text-[11px] text-kurla-cream/45">Aucune dérogation enregistrée.</p>}
+        {visibleRows.length === 0 && <p className="text-[11px] text-kurla-cream/45">{rows.length === 0 ? 'Aucune dérogation enregistrée.' : 'Aucune dérogation ne correspond à ces filtres.'}</p>}
       </div>
     </div>
   );
