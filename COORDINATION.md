@@ -3398,3 +3398,50 @@ absence de migration) et `tests/rapprochement_fournisseurs.test.ts`
 **Reste — le champ libre `products.source_supplier` :** 79 produits sur 111
 affichent un nom qui ne correspond pas au fournisseur lié. C'est le deuxième
 visage du même problème, et le plus visible par la cliente.
+
+---
+
+## Famille Appro : filtres par colonne, lot 2 (17/09/2026, commit 80352b0)
+
+Même module `src/lib/columnFilters` — aucune recopie du calcul.
+
+### Correction de mon propre inventaire
+Au lot précédent j'annonçais « 12 panneaux sans filtre » en comptant les
+`<input>`. **C'était faux** : `SourcingConsolidatedPanel`, `SourcedReferencesPanel`,
+`SupplierDossierPanel`, `SupplyOpsPanel` et `SourcingWorkflowPanel` filtrent déjà
+(état, recherche, cases à cocher) sans passer par un `<input>` de filtre.
+N'ont été touchés que les panneaux où le filtre manquait réellement.
+
+### Équipés (5 panneaux)
+| Panneau | Filtres |
+|---|---|
+| `SourcingProspectsPanel` | un sous chacun des **10** en-têtes du tableau candidats (produit, marque, étape, achat, public, marge, quantité, INCI, visuels, gouvernance) + compteur et réinitialisation |
+| `SupplierCatalogPanel` | 4 (fournisseur, pays, nb de produits, avec/sans produit rattaché) |
+| `SourcedReferencesPanel` | 6 **après** la recherche existante (marque, piste, gouvernance, achat, public, marge) |
+| `SourcingConsolidatedPanel` | 7 **après** l'état et la recherche existants (nom, type, marque, format, fournisseur, contact, prix) |
+| `ProductSourcesPanel` | 1 : « Sans fournisseur / Déjà rattaché » — les orphelins doivent sauter aux yeux sur l'écran qui sert à les qualifier |
+
+121 candidats en base : « lesquels sont bloqués », « quelle marque »,
+« quelle marge » se répondent maintenant sans dérouler.
+
+**Booléens** : INCI et visuels passent par un choix **oui/non**, pas par
+« rempli/vide » — `false` est une information, et un filtre « vide » l'aurait
+masquée.
+
+### Volontairement non touchés, et pourquoi
+- `TamponOrderPanel` : `TAMPON_3PL` fait **5 lignes fixes** (bon de commande
+  tampon, `src/lib/fulfillment.ts` lignes 62-68). Cinq filtres pour cinq
+  lignes, c'est du bruit, pas une fonction.
+- `KittingAdminPanel` : 3 spécifications de kit + une calculatrice de coûts.
+- `FulfillmentContactPanel` : générateur de messages de contact, pas une liste.
+- `SupplierDossierPanel`, `SupplyOpsPanel`, `SourcingWorkflowPanel`,
+  `GlobalSearchPanel` : filtrent déjà.
+
+### Contrôles
+`npm run lint` exit 0 · **18 bancs exit 0** avant push, puis **9 bancs re-exécutés
+exit 0 sur l'arbre fusionné** après le merge du travail de l'autre agent
+(`SourcingProspectsPanel` auto-fusionné, `lien-fournisseur` inclus) · build
+exit 0 sur l'arbre fusionné · bundle local `AdminDashboardPage-BByzN5il.js` :
+« Filtrer par gouvernance » 1, « Sans produit rattaché » 1,
+« Contact à obtenir » 1, « Aucun candidat ne correspond » 2.
+**Non vérifié** : le rendu réel en navigateur (pas de session admin en local).
