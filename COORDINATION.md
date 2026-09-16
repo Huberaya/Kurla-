@@ -2834,3 +2834,56 @@ d'ici là le mode strict est OFF et l'aperçu est en lecture seule.
 - Merge avec le travail d'Agent Kurla résolu (union AdminTab : `pipeline` + `supply_v2_*`) — les deux chantiers coexistent. suppliers.ts enrichi par Kurla (complianceDocs, additif).
 - Vérifications : tsc 0 + build 0 (110 pages) + bancs [PASS] (gate, 10 cas achat, dérogations) sur l'arbre FUSIONNÉ. Push 2bc586b vérifié sur le distant.
 - Rappel du bug fournisseur (chantier A, pas encore lancé) : /api/admin/suppliers filtre par workspace → 4/16 visibles en Hair, 3/16 en Skin, 10 fournisseurs invisibles partout (dont BLACKETIQUE).
+## Dashboard admin : mode strict C3 — code complet, il ne manque que la table (17/09/2026)
+
+Suite directe du Lot 1 : le code C3 est **livré et bancé** — le seul point
+restant est la création de la table (SQL idempotent à coller dans l'éditeur
+SQL du dashboard Supabase, **aucun jeton requis** :
+`supabase/migrations/20261003000000_publication_policy.sql`).
+
+**Ce qui change** :
+
+- **`src/lib/db/publicationPolicyStore.ts` (NEUF)** — lecture/armement de la
+  politique (une ligne en base). Fail-closed à tous les états : table absente
+  (PGRST205) = état **nommé** (`available: false` + raison complète) + repli
+  OFF ; armement refusé tant que la politique n'est pas lisible ; écriture
+  invalide (strictMode non booléen) rejetée sans effet ; `activated_at`/`activated_by`
+  ne se posent que sur le passage à true (l'historique du dernier armement
+  survit au désarmement).
+- **`GET` / `PATCH /api/admin/publication-policy`** (catalogGovernance, garde
+  `requireAdmin` + rate limit) — chaque armement/désarmement est **journalisé
+  dans `audit_logs`** (`action: publication_policy_change`, avant/après, note,
+  acteur, date) ; la consignation ne fait jamais échouer l'armement, son
+  échec est retourné.
+- **Interrupteur réel dans le pipeline** (`CatalogPipelinePanel`) — section
+  « Mode strict — politique de publication » : badge ARMÉ/Désarmé, date +
+  acteur + note, boutons armement/désarmement avec confirmation explicite,
+  état « non mesurable » affiché tel quel tant que la table n'existe pas
+  (l'aperçu lecture seule « Conformes uniquement » reste disponible dans
+  tous les cas).
+- **La liste publique consomme `strict_mode`** (`catalogStore`) — armé : la
+  boutique (liste `/api/products`, fiches individuelles, public API, **et
+  devis de kits**) ne sert que les fiches dont la publication-readiness est
+  au vert. **Masque de vue, jamais de dépublication** : la fiche reste
+  `published` en base et redevient visible au désarmement ou dès que ses
+  critères passent au vert. Désarmé (état par défaut) : comportement
+  d'avant à l'identique, et **zéro surcoût** sur le chemin chaud (la
+  readiness n'est calculée qu'en mode armé ; caches 60 s alignés sur le CDN,
+  invalidation immédiate dans le processus qui arme).
+- **Store** : `inMemoryPublicationPolicy` sur `SupabaseServerStore`
+  (null = table non appliquée, modélise l'état réel des bancs).
+
+**Vérifié** : tsc propre · banc `tests/kurla_publication_policy.test.ts`
+(`test:publication-policy`, 5 blocs : table absente → armement refusé ;
+OFF = liste identique ; armement daté/nommé + masque liste ET kits sans
+dépublication ; désarmement fidèle + historique conservé ; écriture invalide
+rejetée sans effet) · **chaîne complète `npm test` exit 0** (170 [PASS] +
+bancs pipeline/mode-strict) · fixtures régénérées avec diff lu :
+`route_inventory` (336 routes, +2), `admin_route_inventory` (97 routes, +2,
+appelant = le panneau pipeline), `store_api_inventory` (334 méthodes,
++`resetStrictModeCache/0` — hook d'invali­dation cache, aucun retrait).
+
+**Pour le porteur** : coller le SQL (≈ 30 s, SQL Editor → Run). Dès que la
+table existe, l'interrupteur du panneau devient actif sans aucun autre
+changement de code ; le mode strict reste OFF par défaut jusqu'à armement
+explicite.

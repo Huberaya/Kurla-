@@ -7,6 +7,8 @@ import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from '../../lib/ai/systemPrompt';
 import { formatKnowledgeContext } from '../../lib/ai/knowledgeBase';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
+import { readPublicationPolicy, setPublicationPolicy } from '../../lib/db/publicationPolicyStore';
+import { resetStrictModeCache } from '../../lib/db/catalogStore';
 import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
@@ -390,6 +392,38 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const scope = readWorkspaceScope(req);
     const report = await serverDb.getCatalogPublicationReadinessReport();
     res.json(await scopePublicationReport(report, scope));
+  }));
+
+  /**
+   * C3 — POLITIQUE DE PUBLICATION (mode strict de la boutique).
+   * Une ligne : l'état du mode strict, OFF par défaut, armé par un acte
+   * explicite — daté, nommé, journalisé dans audit_logs. Quand la table est
+   * absente (DDL non appliqué), l'état est rapporté `available: false` avec sa
+   * raison : l'écran admin l'affiche tel quel, jamais de mode strict au vert
+   * par défaut (fail-closed).
+   */
+  app.get('/api/admin/publication-policy', rateLimit('admin-publication-policy', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    res.json({ policy: await readPublicationPolicy(serverDb) });
+  }));
+
+  app.patch('/api/admin/publication-policy', rateLimit('admin-publication-policy-write', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const body = (req.body || {}) as { strictMode?: unknown; note?: unknown };
+    if (typeof body.strictMode !== 'boolean') {
+      return res.status(400).json({ error: 'strictMode (boolean) requis.' });
+    }
+    const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 500) : undefined;
+    const result = await setPublicationPolicy(serverDb, { strictMode: body.strictMode, note }, { id: admin.id, email: admin.email });
+    if (!result.ok) {
+      return res.status(500).json({ error: 'Écriture de la politique impossible — état inchangé.', detail: result.reason });
+    }
+    // Ce processus reflète immédiatement le nouvel état (les autres suivent
+    // au TTL de 60 s, comme le cache CDN de /api/products).
+    resetStrictModeCache();
+    res.json({ policy: result.state, audit: result.audit });
   }));
 
   /**

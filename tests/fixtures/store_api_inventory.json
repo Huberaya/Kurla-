@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T23:32:27.956Z",
+  "generatedAt": "2026-09-16T06:39:58.016Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -277,6 +277,7 @@
     "requestAiHumanReview/5",
     "requestLoyaltyReward/2",
     "reserveLocalStockUnlocked/1",
+    "resetStrictModeCache/0",
     "resolveBrandContractEligibility/1",
     "resolveBrandReportAccess/1",
     "resolveSupplier/1",

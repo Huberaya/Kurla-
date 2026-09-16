@@ -125,11 +125,16 @@ Total ≈ 8 jours d'agent ; chaque chantier = commit testé, tsc propre, bancs d
 
 **Banc** : `tests/kurla_catalog_pipeline.test.ts` (5 blocs) ajouté à la chaîne `npm test`. Régressions revérifiées : sourcing, sourcing consolidé, fournisseur, fournisseur admin, dashboard, cockpit opérations, publication catalogue, inventaire de routes (80 routes, fixture régénérée car les nouveaux écrans appellent des routes existantes).
 
-### Livré en lecture seule, à activer (chantier C3 — mode strict)
+### C3 — Mode strict : code livré, il ne manque que la table (SQL à coller)
 
-- Le bouton **« Conformes uniquement (aperçu mode strict) »** dans le pipeline montre déjà ce que la boutique afficherait si le mode strict était armé : **seules les fiches conformes** (critères verts) resteraient listées. C'est l'aperçu, sans effet sur la boutique.
-- **L'armement réel du mode strict est BLOQUÉ, pour une raison d'architecture et non de paresse.** La plateforme n'a **aucun jeton de DDL** (`sbp_`) disponible ici, et **aucune table de persistance** `publication_policy`/KV n'existe en Supabase (sondée : 404 sur 12 noms de tables candidats). Créer la table + un interrupteur persisté exige le jeton DDL et une table dédiée. Tant que ce n'est pas en place, le mode strict reste **OFF** (ton choix de test est respecté) et l'aperçu lit seule.
-- **Prochaine étape (débloquer C3)** : obtenir le jeton `sbp_` + créer la table `publication_policy` (une seule ligne : `strict_mode boolean default false`, `activated_at`, `activated_by`, journal d'armement). Ensuite l'interrupteur devient persisté, journalisé, et le filtrage de la liste publique (boutique) consomme `strict_mode && !conforme → masqué`. C'est alors que le point 2 de ta demande (« se retrouve directement / automatiquement dans la boutique ») passe de l'aperçu au réel — via le chantier **E** (auto-publication), qui réutilisera exactement cette table.
+- **Tout le code C3 est livré et bancé** :
+  - `src/lib/db/publicationPolicyStore.ts` — lecture/armement de la politique (fail-closed : table absente = état **nommé** + repli OFF, jamais d'armement par défaut) ;
+  - `GET`/`PATCH /api/admin/publication-policy` — gardées `requireAdmin`, chaque armement **daté, nommé et journalisé** dans `audit_logs` ;
+  - **interrupteur réel** dans le panneau « Pipeline de mise en vente » : état ARMÉ/Désarmé + date + acteur + note, armement/désarmement avec confirmation, état « non mesurable » affiché telle quelle tant que la table n'existe pas ;
+  - **la liste publique consomme `strict_mode`** : armé = la boutique (liste, fiches, devis de kits) ne sert que les fiches dont la publication-readiness est au vert — **masque de vue, jamais de dépublication** ; désarmé = comportement d'avant, à l'identique (zéro surcoût quand OFF, cache 60 s aligné sur le CDN).
+- **Il ne reste qu'à créer la table** — l'éditeur SQL du dashboard Supabase suffit (aucun jeton requis) : SQL idempotent dans `supabase/migrations/20261003000000_publication_policy.sql` (une ligne, `strict_mode` OFF par défaut, RLS admin).
+- Banc `tests/kurla_publication_policy.test.ts` (5 blocs) : table absente → armement refusé · OFF = zéro changement · armement daté/nommé + masque liste & kits · désarmement fidèle + historique conservé · écriture invalide rejetée sans effet.
+- C'est alors que le point 2 de ta demande (« se retrouve directement / automatiquement dans la boutique ») passe de l'aperçu au réel — et que le chantier **E** (auto-publication) pourra réutiliser exactement cette table comme interrupteur de la machine.
 
 ### Ce qui reste (lots 2 à 4)
 
