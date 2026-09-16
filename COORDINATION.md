@@ -3023,3 +3023,49 @@ l'inventaire de routes ne bouge pas.
 - `SupplierCatalogPanel` (nouveau) monté dans « 1 · Qui me fournit » : les 29 fournisseurs identifiés avec les produits du catalogue réellement rattachés (products.supplier_id) — 16 alimentent le catalogue (OEM accessoires 28, Distristar 20, test 16, Atelier KURLA 10, L'Oréal 8, Baraka 6, EOLYS 6, Qudo 4…), les 13 autres sont nommés « aucun produit rattaché » (ce qu'ils peuvent fournir se prouve : tarif, échantillon, RFQ).
 - Les deux panneaux interrogent SANS en-tête workspace = vue complète quelle que soit la session.
 - Vérifications : tsc 0, 3 bancs [PASS], build 0, 3 chaînes dans le bundle local, push FF_OK (remote HEAD = a044c82).
+
+## 2026-09-16 — Retrait de vitrine des candidates peau + 2 invariants (Agent Kurla)
+
+**J'ai modifié 40 fiches `products`.** Si vous travaillez sur le catalogue ou
+sur l'approvisionnement, lisez ceci.
+
+**Ce qui a changé.** Les 40 candidates de test de marques tierces de l'espace
+peau (The Ordinary, La Roche-Posay, Torriden, COSRX…) sont passées
+`catalog_status = 'draft'` + `is_active = false` — exactement ce que fait
+l'action `withdraw` de la porte. **Aucune suppression.**
+
+Elles restent visibles partout où l'on en a besoin : le catalogue admin
+(`getAdminCatalogProducts`, `includeInactive: true`) et l'approvisionnement
+consolidé, qui ne filtre que `unavailable` et non le statut publié — vérifié
+dans `src/server/routes/sourcing.ts`.
+
+**Avant / après, mesuré :** espace peau publiées 50 → 10 ; servies en boutique
+10 → **10** (aucun effet client : aucune des 40 n'était servie, garde-fou dans
+le script) ; publiées sans fournisseur 11 → 0 ; doublons publiés 1 → 0.
+
+**Le doublon** « Hyaluronic Acid 2% + B5 » (The Ordinary), publié à 10,12 € et
+17,49 € : `fond-to-004` passe `unavailable` (donc hors approvisionnement),
+`fond-to-003` est conservée. Règle : face à deux fiches identiques non sourcées,
+le doute profite à la cliente.
+
+**Deux invariants ajoutés** à `scripts/lib/donnees.mjs` et mesurés dans
+`scripts/verifier-donnees.mjs` :
+1. `provenance_manquante` — publiées sans `supplier_id` (l'invariant voisin ne
+   lisait que le champ libre `source_supplier` : il affichait 0 alors que 36
+   fiches publiées n'avaient aucune provenance) ;
+2. `doublons_publies` — même marque + même nom publiés deux fois.
+
+Le contrôle nocturne passe de 8 à 9 invariants. **Attention** : ils sont
+exigeants. Toute fiche publiée sans `supplier_id`, ou tout doublon publié,
+fera échouer la nuit. C'est le but — mais si vous publiez en masse, rattachez
+le fournisseur d'abord.
+
+**Fichiers** : `scripts/retireCandidatsVitrinePeau.ts`,
+`scripts/lib/donnees.mjs`, `scripts/verifier-donnees.mjs`,
+`tests/doublons_catalogue.test.ts` (chaîné dans `npm test`),
+`docs/AUDIT_ESPACE_PEAU_2026-09-16.md`,
+`docs/RETRAIT_VITRINE_PEAU_2026-09-16_annulation.sql`.
+
+**Non fait** : déplacer les 10 kits capillaires hors de l'espace peau (ce sont
+les seules fiches servies — les retirer viderait la vitrine), et supprimer les
+4 fiches « (Démo) » (destructif, et déjà refusé une fois pour `p15`).

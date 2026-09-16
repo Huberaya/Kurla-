@@ -34,7 +34,8 @@ import {
   bilan,
   evaluer,
   invariantsNonEvalues,
-  nouvelleReference
+  nouvelleReference,
+  surplusDoublons
 } from './lib/donnees.mjs';
 
 const args = process.argv.slice(2);
@@ -100,6 +101,26 @@ async function compterParApi(chemin) {
 }
 
 const PUBLIES = 'products?select=id&catalog_status=eq.published&is_active=eq.true';
+/** Même population, avec de quoi comparer les noms : le doublon ne se voit pas sur un identifiant. */
+const PUBLIES_NOMS = 'products?select=id,name,brand&catalog_status=eq.published&is_active=eq.true';
+
+/**
+ * Compte les fiches publiées **en trop** : mêmes marque et nom, plusieurs fois.
+ * Une lecture qui échoue rend `null`, jamais 0 — on ne confond pas « aucun
+ * doublon » avec « je n'ai pas pu regarder ».
+ */
+async function compterDoublonsPublies() {
+  try {
+    const reponse = await fetch(`${urlBase}/rest/v1/${PUBLIES_NOMS}`, { headers: entetes });
+    if (!reponse.ok) return { valeur: null, erreur: `HTTP ${reponse.status} sur les fiches publiées` };
+    const lignes = await reponse.json();
+    if (!Array.isArray(lignes)) return { valeur: null, erreur: 'réponse inattendue (tableau attendu)' };
+    const surplus = surplusDoublons(lignes);
+    return surplus === null ? { valeur: null, erreur: 'comptage impossible' } : { valeur: surplus };
+  } catch (erreur) {
+    return { valeur: null, erreur: erreur?.message || String(erreur) };
+  }
+}
 
 console.log(`Contrôle des données — ${new URL(urlBase).host}${prodUrl ? ` · ${prodUrl}` : ' (base seule)'}`);
 
@@ -109,6 +130,8 @@ const [
   prixNulOuNul,
   sansSource,
   sourceVide,
+  sansFournisseurId,
+  doublonsPublies,
   publiesInactifs,
   sansMiseAJour,
   produitsServis,
@@ -119,6 +142,8 @@ const [
   compter(`${PUBLIES}&price=lte.0&limit=1`),
   compter(`${PUBLIES}&source_supplier=is.null&limit=1`),
   compter(`${PUBLIES}&source_supplier=eq.&limit=1`),
+  compter(`${PUBLIES}&supplier_id=is.null&limit=1`),
+  compterDoublonsPublies(),
   compter('products?select=id&catalog_status=eq.published&is_active=eq.false&limit=1'),
   compter('products?select=id&updated_at=is.null&limit=1'),
   compterParApi('/api/products'),
@@ -139,6 +164,8 @@ const mesures = {
   gamme_peau: gammePeau,
   prix_manquant: somme(prixNul, prixNulOuNul),
   source_manquante: somme(sansSource, sourceVide),
+  provenance_manquante: sansFournisseurId,
+  doublons_publies: doublonsPublies,
   publies_inactifs: publiesInactifs,
   updated_at_manquant: sansMiseAJour
 };

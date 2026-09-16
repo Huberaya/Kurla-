@@ -87,8 +87,26 @@ export const INVARIANTS = [
   },
   {
     id: 'source_manquante',
-    libelle: 'produits publiés sans fournisseur déclaré',
+    libelle: 'produits publiés sans source déclarée (champ libre)',
     pourquoi: 'la truth layer exige une source ; sans elle, la fiche ne doit pas être en vitrine',
+    attendu: 0
+  },
+  {
+    // AJOUTÉ LE 16/09/2026. L'invariant ci-dessus ne lisait que le champ
+    // libre `source_supplier` : il affichait 0 le jour où 36 fiches
+    // publiées n'avaient aucun `supplier_id`. La provenance réelle est la
+    // fiche fournisseur rattachée, pas le texte qu'on a bien voulu écrire.
+    id: 'provenance_manquante',
+    libelle: 'produits publiés sans fournisseur rattaché',
+    pourquoi: 'une fiche en vitrine dont on ignore le fournisseur ne peut être ni achetée ni tracée',
+    attendu: 0
+  },
+  {
+    // AJOUTÉ LE 16/09/2026, après la découverte du même sérum publié deux
+    // fois à 10,12 € et 17,49 €. Rien ne comptait les doublons.
+    id: 'doublons_publies',
+    libelle: 'doublons publiés (même marque et même nom)',
+    pourquoi: 'deux fiches pour un même produit, c’est deux prix possibles et une cliente qui ne peut pas choisir',
     attendu: 0
   },
   {
@@ -156,4 +174,38 @@ export function bilan(resultats) {
     nonVerifiables,
     bloquant: anomalies.length > 0 || nonVerifiables.length > 0
   };
+}
+
+/**
+ * Replie un nom pour le comparer : casse, accents et ponctuation ne doivent
+ * pas faire passer deux écritures du même produit pour deux produits.
+ */
+export function replierNom(valeur) {
+  return String(valeur ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Nombre de fiches **en trop** dans le catalogue publié.
+ *
+ * On compte le surplus, pas les groupes : un groupe de 3, c'est 2 fiches à
+ * retirer, et c'est ce chiffre-là qui est actionnable. Zéro signifie
+ * « aucun doublon » — ce que l'invariant exige.
+ */
+export function surplusDoublons(lignes) {
+  if (!Array.isArray(lignes)) return null;
+  const groupes = new Map();
+  for (const ligne of lignes) {
+    const cle = `${replierNom(ligne?.brand)}|${replierNom(ligne?.name)}`;
+    const liste = groupes.get(cle) ?? [];
+    liste.push(ligne);
+    groupes.set(cle, liste);
+  }
+  let surplus = 0;
+  for (const liste of groupes.values()) if (liste.length > 1) surplus += liste.length - 1;
+  return surplus;
 }
