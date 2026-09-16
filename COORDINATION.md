@@ -3185,3 +3185,57 @@ avaient été retirés entre-temps. Il décrit maintenant ce que fait le code.
 sourcing » empile 27 sections alors que la barre de saut s'arrête à 8
 (`MAX_SECTIONS` dans `src/components/AdminSectionNav.tsx`) ; « 1 · Qui me
 fournit » en empile 9. Une dizaine de sections restent inatteignables.
+
+## 2026-09-16 — Lien piste → fournisseur : migration à appliquer (Agent Kurla)
+
+**Demande :** « quand je remplis les informations d'un produit ou d'un
+fournisseur, que ces informations apparaissent partout où ils sont mentionnés.
+
+Je viens de remplir certaines informations de certains fournisseurs et ces
+informations n'apparaissent pas dans les autres sections et onglets. »
+
+**Cause mesurée :** il existe deux mondes, et **aucun lien entre eux**.
+
+| | fiches | écrans qui le lisent |
+|---|---:|---|
+| `suppliers` — la fiche validée | 30 | 12 |
+| `sourcing_prospects` — le démarchage en cours | 28 | 7 |
+
+**0 piste sur 28 ne porte de référence à un fournisseur** : la colonne de
+liaison n'existe pas. 3 noms seulement sont présents dans les deux tables.
+Remplir un fournisseur ne change donc rien dans les écrans de sourcing —
+l'information existe sans être rattachée à rien.
+
+Ces deux tables ne sont **pas** des doublons : une piste est une démarche en
+cours, un fournisseur une fiche validée. Ce sont deux étapes d'une même
+filiation. C'est précisément le lien qui permet de passer de l'une à l'autre.
+
+**Décision de l'exploitant : migration (et non rapprochement approximatif par
+nom), fournisseurs d'abord.**
+
+**À APPLIQUER À LA MAIN — je n'ai pas les droits de modification de schéma**
+(et aucune action CI n'applique les migrations, vérifié) :
+
+    supabase/migrations/20261004000000_supplier_link.sql
+
+Le fichier ajoute `sourcing_prospects.supplier_id` (TEXT — la clé de
+`suppliers` est un identifiant lisible, `sup-…`, pas un UUID), un index, et le
+`NOTIFY pgrst` sans lequel l'API continue d'ignorer la colonne. Idempotent,
+avec contrôle et retour arrière en commentaire.
+
+**Ensuite, de mon côté :** `scripts/rapprocheFournisseursPistes.ts` reliera les
+pistes identifiables — 3 aujourd'hui — en important `normalizeSupplierName` du
+référentiel (jamais recopié : un banc échoue si une copie divergerait). Puis
+câblage des écrans pour qu'une fiche fournisseur alimente les 19 écrans qui la
+mentionnent.
+
+**Non traité, volontairement (chantier suivant) :** le champ libre
+`products.source_supplier`. Sur les produits qui ont un fournisseur lié, **79
+sur 111 affichent un nom qui ne correspond pas** (« Candidat — Weleda » pour un
+produit lié à « WELEDA S.A. »). Le texte est figé et ne suit jamais le
+fournisseur. 27 produits portent même ce texte sans aucun lien.
+
+**Garde-fou posé :** `tests/rapprochement_fournisseurs.test.ts`, chaîné dans
+`npm test`. Il vérifie d'abord ce qui doit échouer : deux fournisseurs dont le
+nom se plie à l'identique ne donnent lieu à **aucun** lien, et une piste déjà
+reliée n'est jamais écrasée.
