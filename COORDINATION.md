@@ -3239,3 +3239,52 @@ fournisseur. 27 produits portent même ce texte sans aucun lien.
 `npm test`. Il vérifie d'abord ce qui doit échouer : deux fournisseurs dont le
 nom se plie à l'identique ne donnent lieu à **aucun** lien, et une piste déjà
 reliée n'est jamais écrasée.
+
+---
+
+## Onglet « Catalogue produits » allégé (17/09/2026, commits be7feee + 38471d1)
+
+Trois mesures ont précédé le code, et deux contredisaient ce que j'avais annoncé
+la veille :
+
+1. **La barre de saut existait déjà** (`AdminSectionNav`, monté sur tous les
+   onglets). Je n'avais donc rien à « ajouter ». Ce qui n'allait pas, c'est son
+   plafond : 8 sections pour un onglet qui en compte **12** une fois les outils
+   de gouvernance visibles — les derniers panneaux étaient injoignables par la
+   barre. Plafond porté à 12, banc `kurla_admin_section_nav` mis à jour
+   (18 titres générés → 12 retenus).
+2. **La liste produits était demandée 4 fois au montage du même onglet**
+   (BoutiqueAnomalyBanner, CatalogAdminPanel, ProductNeedsEditor,
+   ProductSourcesPanel). Les URL différaient (`?scope=hair`, `?scope=all`, rien)
+   mais `readWorkspaceScope` donne la priorité à l'en-tête `x-kurla-workspace`
+   — toujours présent via `adminHeaders` — sur le paramètre d'URL, et `all`
+   n'est ni 'skin' ni 'hair'. **Les quatre requêtes étaient donc identiques** ;
+   le `?scope=all` était un libellé mort qui laissait croire à une liste tous
+   espaces. Nouveau module `src/lib/adminCatalogProducts.ts` : regroupement
+   **strictement concurrentiel** (l'entrée est retirée dès la résolution → aucun
+   cache périmé après une écriture), une **copie** du JSON par appelant
+   (`Response.json()` ne se lit qu'une fois), clé = URL + espace (deux espaces
+   ne partagent jamais une réponse). Banc dédié
+   `tests/kurla_admin_products_shared_fetch` (8 blocs).
+   Les `?scope=` morts ont été retirés des quatre panneaux.
+3. **Les 4 outils de gouvernance sont repliés par défaut** dans l'onglet partagé
+   (`governanceOpen = false`) : ils ne chargent plus rien tant qu'on ne les
+   déplie pas. Au montage, l'onglet passe de ~10 requêtes à ~7 et n'ouvre plus
+   sur un mur de sept panneaux.
+
+**Piège à retenir pour l'autre agent** : l'inventaire des routes admin compte les
+appelants en cherchant la chaîne de la route dans le texte des fichiers atteints
+— **commentaires compris**. Recopier une URL d'API admin dans un commentaire
+ajoute un faux appelant et fait échouer le banc. Les URL ne sont plus écrites
+dans les commentaires de `src/lib/adminCatalogProducts.ts` pour cette raison.
+
+**Inventaire régénéré deux fois**, diff vérifié à chaque fois :
+14 → 12 → **11 appelants** de la liste produits. Le dernier état intègre le banc
+amélioré par l'autre agent (`fichiersAtteints` : un `fetch()` dans un fichier que
+rien n'importe n'est plus compté comme couverture) — les panneaux peau démontés
+sont désormais nommés « code mort » par le banc au lieu de gonfler la couverture.
+
+**Contrôles** : `npm run lint` exit 0 sur l'arbre fusionné · 16 bancs exit 0
+(dont `parite-espaces` et `rapprochement-fournisseurs`, nouveaux) · build exit 0 ·
+bundle local `AdminDashboardPage-492GnpD0.js` : « Gouvernance du catalogue » 1,
+« Déplier les 4 outils de gouvernance » 1, `catalog/products?scope=` **0**.
