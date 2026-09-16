@@ -3136,3 +3136,52 @@ surveillance. Ils ne peuvent pas pourrir silencieusement.
   scope de session (`readWorkspaceScope(req)` + `isProductInWorkspace`,
   `src/server/routes/catalogGovernance.ts` lignes 110-113) : le paramètre est ignoré,
   aucune fuite entre espaces. Le libellé est trompeur, le comportement est sain.
+
+## 2026-09-16 — Parité des espaces peau / cheveux (Agent Kurla)
+
+**Demande :** « j'ai regardé dans le dashboard kurla hair et je me rend compte
+que c'est la même configuration que j'attends dans Kurla skin. je veux que tu
+retravaille kurla skin, que les onglets et les section soit pareil ».
+
+**Travail mené deux fois, sans le savoir.** L'agent du domaine peau (b968d3b) et
+moi-même avons traité la même demande en parallèle. Sa résolution est meilleure
+que la mienne sur un point, et c'est la sienne qui est retenue dans le code :
+
+| | Ma version | Leur version (retenue) |
+|---|---|---|
+| Famille « Gouvernance Skin » | retirée | retirée |
+| Injections peau dans les onglets partagés | retirées | retirées |
+| Porte de publication, dérogations, gates de test | **perdues** (n'étaient montées que dans « Fiches peau ») | **déplacées** dans l'onglet partagé « Catalogue produits », visibles dans les deux espaces |
+| Blocs de rendu `skin_overview` / `skin_readiness` / `skin_catalog` | supprimés | retirés à leur tour : un onglet absent de `navGroups` n'est atteint par aucun bouton, et le laisser dans l'arbre de rendu le faisait passer pour vivant. Les composants restent dans `src/components/` |
+
+Leur argument pour le déplacement, qui emporte la décision : un cosmétique
+cheveux est soumis au même Règlement 1223/2009 qu'un cosmétique peau — la
+gouvernance catalogue n'est pas l'affaire d'un seul espace. **Mesuré après
+fusion : aucune route admin ne tombe à zéro appelant. Aucune fonction n'est
+perdue.**
+
+**Ce que j'apporte donc, au lieu d'un second retrait :**
+
+1. `tests/parite_espaces.test.ts`, chaîné dans `npm test` — il échoue si un
+   panneau, un onglet ou une famille redevient propre à un espace. Sans ce
+   banc, la dérive tient en une ligne et ne se voit qu'en comparant les deux
+   écrans à la main ;
+2. une correction de l'inventaire des routes admin, qui comptait comme
+   « appelée » toute route présente dans un fichier de `src/`, **monté ou non**.
+   Il parcourt désormais le graphe des importations depuis les point d'entrée et
+   nomme les fichiers morts : **13 fichiers inatteints** appellent encore
+   l'administration.
+
+**Limite connue de cette correction, à ne pas prendre pour une garantie :** elle
+raisonne sur le graphe des importations, pas sur l'arbre de rendu. Un composant
+importé mais jamais rendu passe encore pour « atteint ». Un banc sur l'arbre de
+rendu reste à écrire.
+
+**Commentaire faux corrigé :** le commentaire laissé au-dessus de `navGroups`
+affirmait que les blocs de rendu `skin_*` « restent intacts plus bas ». Ils
+avaient été retirés entre-temps. Il décrit maintenant ce que fait le code.
+
+**Défaut qui demeure, commun aux deux espaces :** l'onglet « Fournisseurs &
+sourcing » empile 27 sections alors que la barre de saut s'arrête à 8
+(`MAX_SECTIONS` dans `src/components/AdminSectionNav.tsx`) ; « 1 · Qui me
+fournit » en empile 9. Une dizaine de sections restent inatteignables.

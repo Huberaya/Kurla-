@@ -371,3 +371,45 @@ un fournisseur rattaché — c'est un état de stock, pas un mensonge de statut.
   suppression est destructive et je l'ai déjà refusée une fois pour `p15`.
   À décider.
 - **F à J (l'écran)** : chantier suivant.
+
+---
+
+## 10. Appliqué le 16/09 au soir — la lettre F, et au-delà
+
+Le fondateur a tranché après lecture : **la configuration attendue dans l'espace
+peau est celle de l'espace cheveux**, ni plus ni moins. Les lettres F à J
+deviennent donc sans objet — il ne s'agit plus d'élaguer l'espace peau, mais de
+le rendre **identique** à l'espace cheveux.
+
+**Retiré :** la famille « Gouvernance Skin » (3 onglets) et les panneaux
+propres à peau injectés dans les onglets partagés — écart demande/stock,
+publication des fiches peau, coût servi des kits, cockpit Gates, cahier
+d'actifs, suivi des mails J0, contrôle whitecast.
+
+**Résultat :** 6 familles, 19 onglets, identiques. Les deux espaces ne
+diffèrent plus que par le libellé (Skin / Hair) et par le filtre de données.
+
+**Les trois écrans de gouvernance catalogue** — porte de publication,
+dérogations datées, gates de phase de test — n'étaient montés que dans l'onglet
+« Fiches peau ». Ils ont été **déplacés**, pas supprimés : ils vivent désormais
+dans l'onglet partagé « Catalogue produits », visibles dans les deux espaces.
+Un cosmétique cheveux est soumis au même Règlement 1223/2009 qu'un cosmétique
+peau ; cette gouvernance n'est pas l'affaire d'un seul espace. Mesuré après
+coup : **aucune route d'administration ne tombe à zéro appelant.**
+
+**Garde-fou :** `tests/parite_espaces.test.ts`, chaîné dans `npm test`. Il
+échoue si un panneau, un onglet ou une famille redevient propre à un espace.
+
+**Aveuglement corrigé au passage :** l'inventaire des routes d'administration
+comptait comme « appelée » toute route présente dans un fichier de `src/`,
+**monté ou non**. Il parcourt désormais le graphe des importations depuis les
+points d'entrée et nomme les fichiers morts : **13 fichiers inatteints**
+appellent encore l'administration. Limite à connaître : il raisonne sur les
+importations, pas sur l'arbre de rendu — les blocs `skin_*` conservés importent
+encore des panneaux peau qui passent pour atteints sans être rendus par aucun
+onglet offert.
+
+**Défaut qui demeure, commun aux deux espaces :** l'onglet « Fournisseurs &
+sourcing » empile **27 sections** alors que la barre de saut s'arrête à 8 ; les
+19 dernières sont inatteignables. C'est aujourd'hui le principal défaut de
+navigation du dashboard, et il concerne peau et cheveux également.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T19:43:08.124Z",
+  "generatedAt": "2026-09-16T19:53:41.515Z",
   "routes": [
     {
       "method": "GET",
@@ -12,14 +12,6 @@
         "src/components/BatchAdminPanel.tsx:110",
         "src/components/BatchAdminPanel.tsx:170",
         "src/components/CatalogAdminPanel.tsx:310",
-        "src/components/PeauC26FinalPanel.tsx:62",
-        "src/components/PeauDemandStockGapPanel.tsx:27",
-        "src/components/PeauGoLiveC24Panel.tsx:21",
-        "src/components/PeauGoLiveC24Panel.tsx:24",
-        "src/components/PeauGoLiveC24Panel.tsx:30",
-        "src/components/PeauGoLiveC24Panel.tsx:55",
-        "src/components/PeauKitsCoutServiPanel.tsx:26",
-        "src/components/PeauQAFatouC21Panel.tsx:35",
         "src/components/PurchaseProposalPanel.tsx:48",
         "src/components/PurchaseProposalPanel.tsx:188"
       ]
@@ -35,14 +27,6 @@
         "src/components/BatchAdminPanel.tsx:110",
         "src/components/BatchAdminPanel.tsx:170",
         "src/components/CatalogAdminPanel.tsx:310",
-        "src/components/PeauC26FinalPanel.tsx:62",
-        "src/components/PeauDemandStockGapPanel.tsx:27",
-        "src/components/PeauGoLiveC24Panel.tsx:21",
-        "src/components/PeauGoLiveC24Panel.tsx:24",
-        "src/components/PeauGoLiveC24Panel.tsx:30",
-        "src/components/PeauGoLiveC24Panel.tsx:55",
-        "src/components/PeauKitsCoutServiPanel.tsx:26",
-        "src/components/PeauQAFatouC21Panel.tsx:35",
         "src/components/PurchaseProposalPanel.tsx:48",
         "src/components/PurchaseProposalPanel.tsx:188"
       ]
@@ -235,9 +219,6 @@
         "src/components/CatalogAdminPanel.tsx:226",
         "src/components/CatalogAdminPanel.tsx:421",
         "src/components/CatalogPipelinePanel.tsx:54",
-        "src/components/PeauCatalogPublishPanel.tsx:30",
-        "src/components/PeauGoLiveC24Panel.tsx:19",
-        "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
         "src/components/ProductSupplierPanel.tsx:68",
@@ -257,9 +238,6 @@
         "src/components/CatalogAdminPanel.tsx:226",
         "src/components/CatalogAdminPanel.tsx:421",
         "src/components/CatalogPipelinePanel.tsx:54",
-        "src/components/PeauCatalogPublishPanel.tsx:30",
-        "src/components/PeauGoLiveC24Panel.tsx:19",
-        "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
         "src/components/ProductSupplierPanel.tsx:68",
@@ -290,10 +268,6 @@
         "src/components/BoutiqueAnomalyBanner.tsx:26",
         "src/components/CatalogAdminPanel.tsx:244",
         "src/components/CatalogPipelinePanel.tsx:55",
-        "src/components/PeauCatalogPublishPanel.tsx:29",
-        "src/components/PeauGoLiveC24Panel.tsx:27",
-        "src/components/PeauGoLiveC24Panel.tsx:54",
-        "src/components/PeauQAFatouC21Panel.tsx:34",
         "src/components/PurchaseProposalPanel.tsx:50",
         "src/components/PurchaseProposalPanel.tsx:189"
       ]
@@ -404,8 +378,7 @@
       "file": "src/server/routes/batches.ts:124",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/BatchAdminPanel.tsx:114",
-        "src/components/PeauKitsCoutServiPanel.tsx:28"
+        "src/components/BatchAdminPanel.tsx:114"
       ]
     },
     {
@@ -550,15 +523,7 @@
       "file": "src/server/routes/operationsCockpit.ts:20",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/OperationsCockpitPanel.tsx:110",
-        "src/components/PeauC25ToutPanel.tsx:27",
-        "src/components/PeauC26FinalPanel.tsx:60",
-        "src/components/PeauC26FinalPanel.tsx:287",
-        "src/components/PeauC27ScalePanel.tsx:26",
-        "src/components/PeauC28ToutPanel.tsx:22",
-        "src/components/PeauGatesCockpitPanel.tsx:32",
-        "src/components/PeauGoLiveC24Panel.tsx:26",
-        "src/components/PeauGoLiveC24Panel.tsx:53"
+        "src/components/OperationsCockpitPanel.tsx:110"
       ]
     },
     {
@@ -767,11 +732,6 @@
       "file": "src/server/routes/prospects.ts:31",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/PeauC27ScalePanel.tsx:24",
-        "src/components/PeauGoLiveC24Panel.tsx:18",
-        "src/components/PeauGoLiveC24Panel.tsx:28",
-        "src/components/PeauJ0MailTrackingPanel.tsx:59",
-        "src/components/PeauJ3J7WhitecastLotPanel.tsx:45",
         "src/components/SourcedReferencesPanel.tsx:69",
         "src/components/SourcingCountryStrategyPanel.tsx:47",
         "src/components/SourcingProspectsPanel.tsx:105"
@@ -783,11 +743,6 @@
       "file": "src/server/routes/prospects.ts:59",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/PeauC27ScalePanel.tsx:24",
-        "src/components/PeauGoLiveC24Panel.tsx:18",
-        "src/components/PeauGoLiveC24Panel.tsx:28",
-        "src/components/PeauJ0MailTrackingPanel.tsx:59",
-        "src/components/PeauJ3J7WhitecastLotPanel.tsx:45",
         "src/components/SourcedReferencesPanel.tsx:69",
         "src/components/SourcingCountryStrategyPanel.tsx:47",
         "src/components/SourcingProspectsPanel.tsx:105"
@@ -901,8 +856,6 @@
       "file": "src/server/routes/strategy.ts:40",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/PeauC25ToutPanel.tsx:26",
-        "src/components/PeauC28ToutPanel.tsx:21",
         "src/components/StrategyCockpitPanel.tsx:114",
         "src/lib/businessStrategy.ts:6"
       ]
@@ -916,9 +869,6 @@
         "src/components/BatchAdminPanel.tsx:112",
         "src/components/CatalogAdminPanel.tsx:229",
         "src/components/CatalogPipelinePanel.tsx:56",
-        "src/components/PeauGatesCockpitPanel.tsx:33",
-        "src/components/PeauGoLiveC24Panel.tsx:57",
-        "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/ProductSupplierPanel.tsx:67",
@@ -940,9 +890,6 @@
         "src/components/BatchAdminPanel.tsx:112",
         "src/components/CatalogAdminPanel.tsx:229",
         "src/components/CatalogPipelinePanel.tsx:56",
-        "src/components/PeauGatesCockpitPanel.tsx:33",
-        "src/components/PeauGoLiveC24Panel.tsx:57",
-        "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/ProductSupplierPanel.tsx:67",

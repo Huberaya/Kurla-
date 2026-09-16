@@ -50,6 +50,49 @@ function relative(file: string): string {
   return path.relative(process.cwd(), file).split(path.sep).join('/');
 }
 
+/**
+ * Fichiers réellement atteints depuis les points d'entrée.
+ *
+ * Mesuré le 16/09/2026 : ce banc comptait comme « appelée » toute route
+ * présente dans un fichier de `src/`, **monté ou non**. Après le retrait de la
+ * famille « Gouvernance Skin », 17 composants sont devenus inatteignables —
+ * plus aucun écran ne les affiche — sans que le compte d'appelants bouge d'un
+ * iota. L'inventaire continuait de lire leurs `fetch()` et de déclarer ces
+ * routes couvertes.
+ *
+ * Un `fetch()` dans un fichier que rien n'importe n'est pas un appelant :
+ * c'est du code mort qui se fait passer pour de la couverture. On ne parcourt
+ * donc que les fichiers atteints par le graphe des importations.
+ */
+function fichiersAtteints(): Set<string> {
+  const entrees = ['src/main.tsx', 'src/App.tsx']
+    .map(f => path.join(process.cwd(), f))
+    .filter(f => existsSync(f));
+
+  const resolu = (depuis: string, source: string): string | null => {
+    if (!source.startsWith('.')) return null;
+    const base = path.resolve(path.dirname(depuis), source);
+    for (const candidat of [base, `${base}.tsx`, `${base}.ts`, path.join(base, 'index.tsx'), path.join(base, 'index.ts')]) {
+      if (existsSync(candidat) && statSync(candidat).isFile()) return candidat;
+    }
+    return null;
+  };
+
+  const vus = new Set<string>();
+  const aTraiter = [...entrees];
+  while (aTraiter.length > 0) {
+    const courant = aTraiter.pop()!;
+    if (vus.has(courant)) continue;
+    vus.add(courant);
+    const texte = readFileSync(courant, 'utf8');
+    for (const m of texte.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
+      const cible = resolu(courant, m[1]);
+      if (cible) aTraiter.push(cible);
+    }
+  }
+  return vus;
+}
+
 function collectRoutes(): AdminRoute[] {
   const serverFiles = walk(path.join(process.cwd(), 'src', 'server'));
   const routes: AdminRoute[] = [];
@@ -87,9 +130,22 @@ function collectRoutes(): AdminRoute[] {
     }
   }
 
-  // Appelants côté client : tout ce qui n'est pas sous src/server.
-  const clientFiles = walk(path.join(process.cwd(), 'src')).filter(file => !file.split(path.sep).includes('server'));
+  // Appelants côté client : tout ce qui n'est pas sous src/server **et qui est
+  // atteint** depuis les points d'entrée (voir `fichiersAtteints`).
+  const atteints = fichiersAtteints();
+  const clientFiles = walk(path.join(process.cwd(), 'src'))
+    .filter(file => !file.split(path.sep).includes('server') && atteints.has(file));
   const corpus = clientFiles.map(file => ({ file: relative(file), text: readFileSync(file, 'utf8') }));
+
+  // Les fichiers inatteints qui appellent pourtant l'admin : ce n'est plus de
+  // la couverture, c'est du code mort. Nommé, pas ignoré.
+  const morts = walk(path.join(process.cwd(), 'src'))
+    .filter(file => !file.split(path.sep).includes('server') && !atteints.has(file))
+    .filter(file => /['"`]\/api\/admin/.test(readFileSync(file, 'utf8')))
+    .map(relative);
+  if (morts.length > 0) {
+    console.log(`[INFO] ${morts.length} fichier(s) inatteint(s) appellent encore l'admin (code mort) :\n       ${morts.join('\n       ')}`);
+  }
 
   for (const route of routes) {
     const pattern = new RegExp(
@@ -175,7 +231,7 @@ async function main(): Promise<void> {
   assert.deepEqual(callerDrift, [],
     'Le nombre d’appelants client a changé pour ces routes admin (un écran a cessé d’appeler, ou un nouvel écran est apparu).');
 
-  console.log('[PASS] Inventaire admin banc : 30 routes, toutes gardées avant effet, appelants figés.');
+  console.log(`[PASS] Inventaire admin banc : ${routes.length} routes, toutes gardées avant effet, appelants figés.`);
 }
 
 main().catch(error => {

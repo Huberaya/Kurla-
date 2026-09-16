@@ -680,8 +680,10 @@ export const AdminDashboardPage: React.FC = () => {
           // l'onglet partagé « Catalogue produits », visibles dans les DEUX
           // espaces (un cosmétique cheveux est soumis au même Règlement
           // 1223/2009). Les blocs de rendu skin_overview / skin_readiness /
-          // skin_catalog restent intacts plus bas — onglets simplement non
-          // offerts, rien n'est supprimé, tout reste remontable.
+          // skin_catalog ont été retirés : un onglet absent de `navGroups`
+          // n'est atteint par aucune touche de la barre, et le garder dans
+          // l'arbre de rendu le faisait passer pour vivant. Les composants
+          // restent dans src/components/ — remontables si le besoin revient.
           const navGroups = sharedNavGroups;
           const activeGroup = navGroups.find(g => g.tabs.some(t => t.id === activeTab)) ?? navGroups[0];
           const GroupIcon = activeGroup.icon;
