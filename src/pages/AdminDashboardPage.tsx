@@ -47,7 +47,7 @@ import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
 type AdminWorkspace = 'skin' | 'hair' | 'copilot';
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -652,6 +652,18 @@ export const AdminDashboardPage: React.FC = () => {
               tabs: [
                 { id: 'demand', label: 'Demande précommandes', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
                 { id: 'suppliers', label: 'Fournisseurs & sourcing', icon: Truck },
+              ],
+            },
+            {
+              // CHANTIER B — espace restructuré, EN PARALLÈLE de l'existant :
+              // mêmes panneaux, réorganisés par étape du travail réel. Rien
+              // n'est supprimé tant que la comparaison n'est pas tranchée.
+              id: 'supply-v2', label: 'Appro par étapes (nouveau)', icon: Factory,
+              tabs: [
+                { id: 'supply_v2_qui', label: '1 · Qui me fournit', icon: Store },
+                { id: 'supply_v2_negocier', label: '2 · Négocier', icon: MessageSquare },
+                { id: 'supply_v2_acheter', label: '3 · Acheter & marges', icon: DollarSign },
+                { id: 'supply_v2_recevoir', label: '4 · Recevoir', icon: Boxes },
               ],
             },
             {
@@ -1599,6 +1611,76 @@ export const AdminDashboardPage: React.FC = () => {
                 <KittingAdminPanel />
               </div>
             )}
+          </div>
+        )}
+
+        {/* CHANTIER B — APPRO PAR ÉTAPES (espace parallèle, rien d'existant n'est
+            supprimé). Chaque écran = une étape du travail réel, avec un titre en
+            langage métier ; les panneaux sont les composants existants, non modifiés. */}
+        {activeTab.startsWith('supply_v2_') && (
+          <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-400/30 text-[11px] text-sky-100/85 leading-relaxed">
+            <span className="font-bold">Espace restructuré — en comparaison.</span> Ce sont les mêmes outils que « Fournisseurs & sourcing », réorganisés par étape : 1 · Qui me fournit → 2 · Négocier → 3 · Acheter &amp; marges → 4 · Recevoir. L'ancien onglet reste intact — rien n'est supprimé tant que tu n'as pas tranché.
+          </div>
+        )}
+
+        {activeTab === 'supply_v2_qui' && (
+          <div className="space-y-10">
+            <div>
+              <h2 className="text-lg font-bold text-kurla-cream">Qui me fournit — et sur quelle preuve</h2>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés, quel fournisseur sert chaque produit, et la stratégie pays. C'est l'écran « annuaire » : on y vient pour savoir avec qui on travaille.</p>
+            </div>
+            <SupplierAdminPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <ProductSupplierPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <SourcingCountryStrategyPanel headers={adminHeaders} />
+            <GlobalSearchPanel headers={adminHeaders} />
+          </div>
+        )}
+
+        {activeTab === 'supply_v2_negocier' && (
+          <div className="space-y-10">
+            <div>
+              <h2 className="text-lg font-bold text-kurla-cream">Négocier — du premier contact à la première commande</h2>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Les pistes (prospects), les références en cours d'évaluation (candidats), l'avancement de chacune sur les 8 étapes, et la proposition d'achat du premier lot.</p>
+            </div>
+            <SourcingProspectsPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <SourcingWorkflowPanel headers={adminHeaders} />
+            <PurchaseProposalPanel headers={adminHeaders} />
+            {workspace === 'skin' && <PeauSourcingCahierPanel />}
+            {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
+          </div>
+        )}
+
+        {activeTab === 'supply_v2_acheter' && (
+          <div className="space-y-10">
+            <div>
+              <h2 className="text-lg font-bold text-kurla-cream">Acheter &amp; marges — ce que ça coûte, qui expédie, ce qu'il reste</h2>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Les sources d'achat réelles saisies par produit, la marge et le mode d'expédition qui en découlent, et la vue consolidée : où en est chaque position du fond.</p>
+            </div>
+            <ProductSourcesPanel headers={adminHeaders} />
+            <SupplyOpsPanel headers={adminHeaders} />
+            <SourcingConsolidatedPanel headers={adminHeaders} />
+          </div>
+        )}
+
+        {activeTab === 'supply_v2_recevoir' && (
+          <div className="space-y-10">
+            <div>
+              <h2 className="text-lg font-bold text-kurla-cream">Recevoir — lots, assemblage, expédition</h2>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Ce qui se passe quand la marchandise arrive : réception et traçabilité des lots, assemblage des kits, tampon 3PL, et les messages prêts à envoyer aux transporteurs.</p>
+            </div>
+            <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-kurla-cream">Réception des lots &amp; traçabilité</h3>
+                <p className="text-xs text-kurla-cream/55 mt-1 max-xl">C'est dans « Lots &amp; traçabilité » (famille Catalogue) qu'on enregistre une réception : n° de lot, coût reçu, allocation aux commandes.</p>
+              </div>
+              <button type="button" onClick={() => setActiveTab('batches')} className="px-4 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold hover:bg-kurla-cocoa transition-colors">
+                Ouvrir Lots &amp; traçabilité →
+              </button>
+            </div>
+            <KittingAdminPanel />
+            <TamponOrderPanel />
+            <FulfillmentContactPanel />
+            {workspace === 'skin' && <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />}
           </div>
         )}
 
