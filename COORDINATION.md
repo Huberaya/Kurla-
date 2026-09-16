@@ -3288,3 +3288,71 @@ sont désormais nommés « code mort » par le banc au lieu de gonfler la couver
 (dont `parite-espaces` et `rapprochement-fournisseurs`, nouveaux) · build exit 0 ·
 bundle local `AdminDashboardPage-492GnpD0.js` : « Gouvernance du catalogue » 1,
 « Déplier les 4 outils de gouvernance » 1, `catalog/products?scope=` **0**.
+
+---
+
+## Filtres par colonne partagés + listes allégées (17/09/2026, commit c85cb8b)
+
+Demande : alléger le catalogue produits, mettre des filtres dans les sections du
+dashboard. Portée tranchée par l'utilisateur : **familles Catalogue et Appro**.
+Motif tranché : **un filtre par colonne**, combinables, aucun filtre = liste
+complète (celui déjà validé dans Fournisseurs, `acadc7b`). Allègement sur les
+**trois** plans : longueur de page, densité du tableau, chargement.
+
+**Le motif n'est pas recopié panneau par panneau.** Recopié 20 fois, il serait
+devenu 20 calculs légèrement différents (« contient » qui ignore les accents ici,
+pas là ; « rempli » qui accepte 0 dans un panneau et le refuse dans l'autre) — et
+un filtre imprévisible est un filtre qu'on n'utilise pas. Le calcul vit une fois
+dans `src/lib/columnFilters.tsx` (fonctions pures), le rendu une fois dans les
+composants du même fichier. Banc : `tests/kurla_column_filters` (11 blocs).
+
+**Le banc a attrapé un vrai bug avant livraison** : « -10 » était lu comme le
+nombre exact −10 au lieu de « jusqu'à 10 ». Corrigé dans le module, pas dans le
+test.
+
+### Contrats du calcul (à ne pas réinventer ailleurs)
+- accents et casse ignorés (« Sérum » trouvé en tapant « serum ») ;
+- plusieurs mots = **tous** les mots doivent coller, ordre libre ;
+- **un filtre vide ne retire rien** ;
+- **0 est une donnée**, pas une absence (stock nul ≠ stock inconnu) ;
+- les filtres se combinent en **ET**, jamais en OU ;
+- un filtre **retire**, il ne réordonne jamais ;
+- numérique : « 10-50 », « 20- », « -10 », valeur exacte, virgule française.
+
+### Posés (5 panneaux)
+| Panneau | Filtres |
+|---|---|
+| `CatalogAdminPanel` | 8 nommés (nom/slug, marque, statut, catégorie, fournisseur, prix, stock, INCI) — barre nommée, les fiches sont des cartes |
+| `BatchAdminPanel` | un sous chacun des 7 en-têtes |
+| `DerogationsPanel` | 4 (produit, motif, état, échéance) |
+| `TestPhaseGatesPanel` | 7 (nom/slug, marque, catégorie, statut, fiche test, gardes-fous, prix) |
+| `PurchaseProposalPanel` | un sous chacun des 10 en-têtes + compteur |
+
+`CatalogPipelinePanel` **volontairement non touché** : il a déjà 4 filtres
+(étape, conforme, recherche, critère).
+
+### Allègement
+Les fiches produits et les lots ne rendent plus tout d'un coup : **50 premières
+de la vue filtrée**, le reste sur clic (« Afficher les N … »). Les filtres sont
+au-dessus du plafond, donc « Tout afficher » ne les perd pas. Sur 138 fiches, le
+DOM rendu au montage passe de 138 cartes à 50.
+
+### Reste à faire (famille Appro, non livré dans ce commit)
+Panneaux sans filtre identifiés par mesure, dans l'ordre d'utilité :
+`SupplierCatalogPanel` (118 l., 0 filtre), `SourcingCountryStrategyPanel`
+(190 l., 0), `SourcingConsolidatedPanel` (135 l., 1 champ), `KittingAdminPanel`
+(109 l., 1), `FulfillmentContactPanel` (221 l., 2), `SourcedReferencesPanel`
+(181 l., 1), `SupplyOpsPanel` (127 l., 1+1), `SourcingProspectsPanel`
+(357 l., tableau 1 th), `ProductSourcesPanel` (272 l.), `GlobalSearchPanel`
+(77 l., c'est déjà une recherche), `SupplierDossierPanel` (282 l., 1),
+`SourcingWorkflowPanel` (180 l., 2), `TamponOrderPanel` (253 l., tableau 5 th),
+`ProductSupplierPanel` (265 l., a déjà le filtre défaut « Sans fournisseur »).
+
+**Contrôles** : `npm run lint` exit 0 · 13 bancs exit 0 (dont `column-filters`,
+`purchase-proposal`, `batches`, `gate`, `derogations`, `test-phase-gates`,
+`parite-espaces`) · build exit 0 · bundle local
+`AdminDashboardPage-HbfcXmh8.js` : « Réinitialiser les filtres » 2,
+« Afficher les » 2, « Filtrer par référence » 1, « INCI manquant » 1,
+« Gardes-fous complets » 1, « Aucune dérogation ne correspond » 1.
+**Non vérifié** : le rendu réel en navigateur (pas de session admin en local) —
+les filtres sont vérifiés par leurs fonctions pures, les types et le bundle.
