@@ -3017,3 +3017,9 @@ l'inventaire de routes ne bouge pas.
 - Parité : SupplierDossierPanel (ajouté par Agent Kurla dans l'ancien onglet) monté aussi dans « 1 · Qui me fournit » du nouvel espace.
 - Merge propre du travail distant (rattachement fournisseurs 52→27 sans provenance, banc rattachement-fournisseurs [PASS] localement).
 - Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations, rattachement) sur l'arbre fusionné. Push 552ba0e FF_OK vérifié.
+
+## 2026-09-17 — Chantier B : inventaire des références + produits par fournisseur (Agent Arena, `a044c82`, poussé)
+- `SourcedReferencesPanel` (nouveau) monté dans « 2 · Négocier » : les 121 références identifiées (mesuré en base : 100 peau, 12 cheveux, 6 outils, 2 enfants, 1 solaire), classées catégorie → usage, chaque ligne avec fournisseur/piste (candidate.prospectId → prospect.name), prix achat/public, marge, statut gouvernance réel (121/121 « bloquée — preuve manquante »), recherche texte. Rien d'inventé : « À confirmer » affiché tel quel, usage absent = « Usage non précisé ».
+- `SupplierCatalogPanel` (nouveau) monté dans « 1 · Qui me fournit » : les 29 fournisseurs identifiés avec les produits du catalogue réellement rattachés (products.supplier_id) — 16 alimentent le catalogue (OEM accessoires 28, Distristar 20, test 16, Atelier KURLA 10, L'Oréal 8, Baraka 6, EOLYS 6, Qudo 4…), les 13 autres sont nommés « aucun produit rattaché » (ce qu'ils peuvent fournir se prouve : tarif, échantillon, RFQ).
+- Les deux panneaux interrogent SANS en-tête workspace = vue complète quelle que soit la session.
+- Vérifications : tsc 0, 3 bancs [PASS], build 0, 3 chaînes dans le bundle local, push FF_OK (remote HEAD = a044c82).
