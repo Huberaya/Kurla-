@@ -31,6 +31,10 @@ const TRACK_LABEL: Record<string, string> = {
 export const SourcingCountryStrategyPanel: React.FC<Props> = ({ headers }) => {
   const [rows, setRows] = useState<StrategyRow[]>([]);
   const [prospects, setProspects] = useState<any[]>([]);
+  // Chantier B : les fournisseurs RÉELS du référentiel (?all=1), avec leur
+  // usage mesuré (linkedHairCount/linkedSkinCount). La matrice ne raconte
+  // plus seulement le plan — elle montre qui est déjà identifié par pays.
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; legalName: string; tradeName?: string; country?: string | null; linkedHairCount?: number; linkedSkinCount?: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,15 +42,29 @@ export const SourcingCountryStrategyPanel: React.FC<Props> = ({ headers }) => {
     setLoading(true);
     setError(null);
     try {
-      const [sRes, pRes] = await Promise.all([
+      const [sRes, pRes, supRes] = await Promise.all([
         fetch('/api/admin/sourcing/strategy', { headers }),
         fetch('/api/admin/sourcing/prospects', { headers }),
+        fetch('/api/admin/suppliers?all=1', { headers }),
       ]);
       const sData = await sRes.json();
       const pData = await pRes.json();
+      const supData = await supRes.json();
       if (!sRes.ok) throw new Error(sData.error || 'Stratégie indisponible');
       setRows(sData.strategy || []);
       setProspects(pData.prospects || []);
+      // Le référentiel complet est un plus, pas une condition : s'il échoue,
+      // la matrice stratégique reste affichée (dégradation honnête).
+      if (supRes.ok) {
+        setSuppliers((supData.suppliers || []).map((s: any) => ({
+          id: String(s.id),
+          legalName: s.legalName || s.legal_name || 'Sans raison sociale',
+          tradeName: s.tradeName || s.trade_name || undefined,
+          country: s.country || null,
+          linkedHairCount: typeof s.linkedHairCount === 'number' ? s.linkedHairCount : 0,
+          linkedSkinCount: typeof s.linkedSkinCount === 'number' ? s.linkedSkinCount : 0,
+        })));
+      }
     } catch (e: any) {
       setError(e.message || 'Chargement échoué');
     } finally {
@@ -77,6 +95,12 @@ export const SourcingCountryStrategyPanel: React.FC<Props> = ({ headers }) => {
     const linked = (r.prospects || []).map(id => prospectById.get(id)).filter(Boolean);
     const agreed = linked.filter(p => p.status === 'agreed' || p.decision === 'accepted').length;
     const inTouch = linked.filter(p => ['emailed','followed_up','replied','in_negotiation','samples_sent'].includes(p.status)).length;
+    // Fournisseurs RÉELLEMENT identifiés pour ce pays (référentiel complet).
+    // « FR_make » (façonnage France) lit les fournisseurs dont le pays déclaré
+    // est FR — c'est le même territoire, seule la piste diffère.
+    const countryMatch = r.country_code === 'FR_make' ? 'FR' : r.country_code;
+    const countrySuppliers = suppliers.filter(s => (s.country || '').toUpperCase() === countryMatch);
+    const linkedProducts = countrySuppliers.reduce((sum, s) => sum + (s.linkedHairCount || 0) + (s.linkedSkinCount || 0), 0);
     return (
       <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 overflow-hidden">
         <div className="p-4 flex items-start gap-3 flex-wrap">
@@ -106,6 +130,26 @@ export const SourcingCountryStrategyPanel: React.FC<Props> = ({ headers }) => {
               return <span key={pid} className={`px-2 py-1 rounded-lg border text-[10px] flex items-center gap-1 ${tone}`} title={`${p.name} — ${p.status}`}>{p.name} <span className="opacity-60">· {p.status}</span></span>;
             })}
             {(r.prospects || []).length === 0 && <span className="text-[10px] text-kurla-cream/40 italic">Aucun prospect rattaché — à qualifier</span>}
+          </div>
+
+          {/* Fournisseurs RÉELS du référentiel pour ce pays — pas le plan, l'existant. */}
+          <div className="mt-2.5 pt-2.5 border-t border-kurla-cream/5">
+            <p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold mb-1.5">
+              Fournisseurs identifiés pour ce pays ({countrySuppliers.length})
+              {linkedProducts > 0 && <span className="ml-2 normal-case tracking-normal text-kurla-cream/50 font-normal">· {linkedProducts} produit(s) du catalogue déjà rattaché(s)</span>}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {countrySuppliers.map(s => {
+                const total = (s.linkedHairCount || 0) + (s.linkedSkinCount || 0);
+                return (
+                  <span key={s.id} className={`px-2 py-1 rounded-lg border text-[10px] flex items-center gap-1 ${total > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-kurla-cream/10 bg-kurla-espresso text-kurla-cream/60'}`} title={`${s.legalName}${total > 0 ? ` — ${total} produit(s) rattaché(s)` : ' — identifié, aucun produit rattaché'}`}>
+                    {s.tradeName || s.legalName}
+                    <span className="opacity-60">{total > 0 ? `· ${total} produit(s)` : '· non utilisé'}</span>
+                  </span>
+                );
+              })}
+              {countrySuppliers.length === 0 && <span className="text-[10px] text-kurla-cream/40 italic">Aucun fournisseur du référentiel pour ce pays — piste encore vierge.</span>}
+            </div>
           </div>
         </div>
       </div>

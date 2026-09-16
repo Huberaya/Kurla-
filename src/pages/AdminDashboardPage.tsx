@@ -1648,7 +1648,7 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés — y compris ceux pas encore utilisés, avec leur usage réel par espace —, quel fournisseur sert chaque produit, et la stratégie pays.</p>
             </div>
             <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
-            <ProductSupplierPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <ProductSupplierPanel headers={adminHeaders} fullCatalog onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <GlobalSearchPanel headers={adminHeaders} />
           </div>

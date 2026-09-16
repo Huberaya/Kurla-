@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Save, Package, Truck, CheckCircle2 } from 'lucide-react';
 
-type Props = { headers: HeadersInit; onSuccess?: (message: string) => void };
+type Props = { headers: HeadersInit; onSuccess?: (message: string) => void; fullCatalog?: boolean };
 
 type Supplier = { id: string; legalName: string; tradeName?: string; supplierType: string; country?: string };
 type Product = {
@@ -26,7 +26,7 @@ const TYPE_LABEL: Record<string, string> = {
  * par référence, d'où vient le produit et à quel coût approximatif — base du
  * pilotage de la marge et du sourcing « bas coût ».
  */
-export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) => {
+export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, fullCatalog = false }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,9 +37,13 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // Mode complet (chantier B) : catalogue ADMIN entier (138 fiches, pas les
+      // seules 63 publiques) + référentiel fournisseurs COMPLET (?all=1, les 16
+      // identifiés) — l'affectation ne doit pas être limitée par ce qui est
+      // déjà publié ou déjà lié. Le mode par défaut reste inchangé.
       const [supRes, prodRes] = await Promise.all([
-        fetch('/api/admin/suppliers', { headers }),
-        fetch('/api/products', { headers })
+        fetch(fullCatalog ? '/api/admin/suppliers?all=1' : '/api/admin/suppliers', { headers }),
+        fetch(fullCatalog ? '/api/admin/catalog/products' : '/api/products', { headers })
       ]);
       const supJson = await supRes.json();
       const prodJson = await prodRes.json();
@@ -48,10 +52,10 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
         supplierType: s.supplierType || s.supplier_type, country: s.country
       }));
       setSuppliers(supList);
-      const prodList: Product[] = (prodJson.products || [])
-        .filter((p: any) => String(p.id).startsWith('launch-'))
+      const rawProducts: any[] = prodJson.products || [];
+      const prodList: Product[] = (fullCatalog ? rawProducts : rawProducts.filter((p: any) => String(p.id).startsWith('launch-')))
         .map((p: any) => ({
-          id: p.id, name: p.name, slug: p.slug, category: p.category,
+          id: String(p.id), name: p.name, slug: p.slug, category: p.category,
           supplierId: (p as any).supplierId ?? (p as any).supplier_id ?? null,
           supplierSku: (p as any).supplierSku ?? (p as any).supplier_sku ?? null,
           sourceSupplier: (p as any).sourceSupplier ?? (p as any).source_supplier ?? null
@@ -65,7 +69,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
     } finally {
       setLoading(false);
     }
-  }, [headers]);
+  }, [headers, fullCatalog]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -91,13 +95,17 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
     } finally { setSavingId(null); }
   };
 
+  // En mode complet, les kits restent listés : la base leur connaît un
+  // fournisseur réel (« Atelier KURLA — assemblage interne », 10 produits
+  // liés mesurés le 16/09). Les masquer cacherait du vrai travail.
   const visible = useMemo(() => {
-    const list = products.filter(p => p.category !== 'kits');
+    const list = fullCatalog ? products : products.filter(p => p.category !== 'kits');
     return filter === 'unassigned' ? list.filter(p => !p.supplierId) : list;
-  }, [products, filter]);
+  }, [products, filter, fullCatalog]);
 
-  const assignedCount = products.filter(p => p.category !== 'kits' && p.supplierId).length;
-  const totalCount = products.filter(p => p.category !== 'kits').length;
+  const countable = fullCatalog ? products : products.filter(p => p.category !== 'kits');
+  const assignedCount = countable.filter(p => p.supplierId).length;
+  const totalCount = countable.length;
 
   return (
     <div className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-5 shadow-xl">
@@ -107,7 +115,9 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess }) =>
             <Package className="w-5 h-5 text-kurla-copper" /> Fournisseur par produit
           </h3>
           <p className="text-xs text-kurla-cream/55 mt-1 max-w-2xl">
-            Affectez la source d'approvisionnement de chaque référence. Les produits finis passent par un façonnier private label (bas coût), le karité/huiles par les matières premières, les accessoires en OEM. Les kits sont des assemblages (pas de fournisseur unique).
+            {fullCatalog
+              ? 'Toutes les fiches du catalogue administrable et tous les fournisseurs identifiés — y compris les fiches non publiées et les fournisseurs pas encore utilisés. Affectez la source réelle de chaque référence : c\'est ce lien qui alimente la marge et le routage.'
+              : "Affectez la source d'approvisionnement de chaque référence. Les produits finis passent par un façonnier private label (bas coût), le karité/huiles par les matières premières, les accessoires en OEM. Les kits sont des assemblages (pas de fournisseur unique)."}
           </p>
         </div>
         <button onClick={load} className="px-4 py-2 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/15 text-[11px] font-semibold text-kurla-amber flex items-center gap-1.5">
