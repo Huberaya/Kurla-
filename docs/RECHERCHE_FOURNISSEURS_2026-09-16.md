@@ -157,3 +157,61 @@ C'est votre marque : il faut la **faire fabriquer**. Voici des façonniers fran�
 | **6** | Demander l'agrément **Pierre Fabre** et **NAOS** | 4 produits ; la décision de 2008 facilite la vente en ligne. |
 
 **Et une décision à prendre, qui ne peut plus attendre :** 36 de ces 52 produits sont en boutique au titre de fiches de test, sans fournisseur et sans droits visuels. Si les marques ne sont pas approvisionnables — c'est le cas probable de The Ordinary, La Roche-Posay et L'Oréal Paris, soit 18 fiches —, les maintenir en vitrine revient à vendre ce qu'on ne peut pas livrer.
+
+---
+
+## 7. Ce qui a été écrit, le 16/09/2026 (après accord)
+
+La proposition du §5 a été exécutée. Bilan mesuré sur la base après écriture :
+
+| | avant | après |
+|---|---|---|
+| Produits sans fournisseur | 52 | **27** |
+| Fiches au référentiel | 16 | **29** |
+| Produits portant une trace datée | 26 | **52** |
+
+**13 entités créées**, toutes sourcées (raison sociale, pays, site, type, source) :
+
+| Entité | Type | Pays | Rôle |
+|---|---|---|---|
+| Laboratoire IN'OYA SAS | laboratoire | FR | Priorité 1 — rattaché |
+| WELEDA S.A. | marque | FR | rattaché (2 produits) |
+| Laboratoire Gravier Production | laboratoire | FR | Cosmo Naturel — rattaché |
+| Pierre Fabre Dermo-Cosmétique | laboratoire | FR | Avène, Klorane, Ducray — rattaché (3) |
+| NAOS France | laboratoire | FR | Bioderma — rattaché |
+| Beiersdorf | marque | DE | Eucerin — rattaché (2) |
+| ISDIN | marque | ES | rattaché (2) |
+| L'Oréal | marque | FR | La Roche-Posay (7), L'Oréal Paris (1) |
+| Qogita | distributeur | — | The INKEY List — rattaché |
+| Qudo Beauty *(fiche existante, enrichie)* | distributeur | RO | COSRX (3), Beauty of Joseon (1) |
+| Oomylab | façonnier | FR | marque propre — **non choisi** |
+| Les Laboratoires Phytodia | façonnier | FR | marque propre — **non choisi** |
+| Sparcos · MiiN Trade | distributeur | PL · ES | voies de repli coréennes |
+
+**Restent sans fournisseur, et c'est un résultat et non un échec :**
+
+- **The Ordinary (10)** — aucun canal de gros identifié. Rattacher DECIEM aurait fait croire qu'on peut commander. La fiche DECIEM existe et porte le constat.
+- **KURLA Skincare (16)** — marque propre : il leur faut un façonnier, et choisir entre Oomylab et Phytodia relève d'une comparaison de devis.
+- **Isntree (1)** — aucun grossiste européen identifié.
+
+### Ce que l'écriture a révélé
+
+26 de ces produits portaient déjà une note du **14/09/2026** : une campagne d'e-mails préparée et non envoyée (n°7 IN'OYA direct, n°8 Weleda pro, n°9 Cosmo Naturel, n°10 grossiste dermo, n°1–2 Pibukare/EOLYS). Le script s'est arrêté net en la découvrant, plutôt que de l'écraser. Les notes sont **fusionnées** : les 26 traces du 14/09 sont intactes, vérifié après écriture.
+
+Deux recoupements utiles entre les deux travaux :
+
+- le « grossiste dermo — à identifier » du 14/09 a une réponse pour **The INKEY List** : Qogita, place de marché B2B, sans compte direct ;
+- cette même piste est **probablement sans issue pour The Ordinary** — c'est précisément l'objet du §2 et de la priorité 5.
+
+### Une distinction introduite dans les notes
+
+Pour le bloc dermo (La Roche-Posay, Avène, Ducray, Klorane, Bioderma, Eucerin, ISDIN, L'Oréal Paris), le rattachement désigne le **propriétaire de la marque** : celui qui détient le droit de revente et doit donner l'autorisation. Il ne dit pas encore **à qui l'on commandera**, qui sera un grossiste dermo agréé — à identifier. Les notes le disent explicitement, pour que personne ne lise « fournisseur : L'Oréal » comme « on peut passer commande ».
+
+### Traçabilité et annulation
+
+- Annulation exacte, produit par produit : `docs/RATTACHEMENT_FOURNISSEURS_2026-09-16_annulation.sql`. Elle restaure la note d'origine de chacun des 52 produits — y compris celles du 14/09 — plutôt que de tout remettre à vide.
+- Script d'écriture : `scripts/rattacheFournisseursTrouves.ts` (simulation par défaut, écriture sur `APPLIQUER=1`, arrêt si la base a bougé entre la lecture et l'écriture).
+- Banc : `tests/rattachement_fournisseurs.test.ts`, chaîné dans `npm test`.
+- Défaut corrigé en cours de chantier : 24 notes sur 52 n'étaient pas datées. Une annotation sans date n'est plus attribuable six mois plus tard ; toutes portent désormais celle du 16/09, et le banc l'exige.
+
+**Aucune donnée inventée.** Ce qui n'a pas pu être vérifié est vide, et le vide est signalé dans les notes plutôt que passé sous silence — le banc l'exige aussi.

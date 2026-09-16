@@ -2963,3 +2963,50 @@ le contact trouvé avec un bouton « copier » — l'enregistrement reste humain
 - « Matrice sourcing par pays » : chaque ligne pays affiche désormais les fournisseurs RÉELLEMENT identifiés (référentiel complet) avec le nombre de produits rattachés ; pays sans fournisseur nommé « piste encore vierge » ; FR_make lit les fournisseurs FR (même territoire). Dégradation honnête si le référentiel échoue.
 - Données mesurées 16/09 : 138 produits (52 sans fournisseur), 16 fournisseurs (FR×8, CN×2, ES/GH/RO/EU/SI×1, 1 sans pays), 86 produits déjà rattachés à 6 fournisseurs distincts.
 - Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations) sur l'arbre FUSIONNÉ (merge propre avec docs Agent Kurla, 0 conflit). Push 805c0e3 vérifié sur le distant.
+
+## 2026-09-16 — Rattachement des fournisseurs trouvés (Agent Kurla)
+
+**Cette section concerne directement quiconque touche à `suppliers` ou à
+`products` : j'ai écrit dans les deux.**
+
+Suite du chantier « 52 produits sans fournisseur ». La recherche documentaire
+est dans `docs/RECHERCHE_FOURNISSEURS_2026-09-16.md` ; voici ce qui est
+maintenant EN BASE.
+
+**Écrit le 16/09/2026 (mesuré après écriture)**
+- 13 fiches créées dans `suppliers` (16 → 29). 2 fiches existantes enrichies :
+  `sup-qudo-beauty-ro` et `sup-deciem-the-ordinary`.
+- 25 produits rattachés (`supplier_id`), 27 restent sans fournisseur.
+- Les 52 produits portent une `supplier_authorization_note` datée du 16/09.
+
+**Attention : 26 de ces produits portaient déjà une note du 14/09** — campagne
+d'e-mails préparée et non envoyée (n°7 IN'OYA, n°8 Weleda pro, n°9 Cosmo
+Naturel, n°10 grossiste dermo, n°1–2 Pibukare/EOLYS). Le script s'est arrêté
+en la découvrant au lieu de l'écraser, puis les notes ont été **fusionnées**
+(trace du 14/09 intacte, vérifié après écriture : 0 écrasée). Si vous écrivez
+sur `supplier_authorization_note`, fusionnez, ne remplacez pas.
+
+**Convention introduite, à reprendre si vous étendez le modèle.** Pour le bloc
+dermo (La Roche-Posay, Avène, Ducray, Klorane, Bioderma, Eucerin, ISDIN,
+L'Oréal Paris), `supplier_id` désigne le **propriétaire de la marque** : celui
+qui détient le droit de revente et doit donner l'autorisation. Il ne dit PAS
+encore à qui l'on commande — ce sera un grossiste dermo agréé, à identifier.
+Les notes le précisent. Ne lisez donc pas « fournisseur : L'Oréal » comme « on
+peut commander ».
+
+**Volontairement NON rattaché, malgré une entité identifiée**
+- The Ordinary (10) : aucun canal de gros identifié. DECIEM reste au
+  référentiel, sans produit lié.
+- KURLA Skincare (16) : marque propre, il faut un façonnier. Oomylab et
+  Phytodia sont créés mais **aucun n'est choisi** : c'est une comparaison de
+  devis, donc une décision.
+- Isntree (1) : aucun grossiste européen identifié.
+
+**Annulation** : `docs/RATTACHEMENT_FOURNISSEURS_2026-09-16_annulation.sql`
+restaure la valeur exacte des 52 produits (y compris les notes du 14/09) et
+supprime les 13 fiches créées, nommément.
+
+**Fichiers** : `scripts/rattacheFournisseursTrouves.ts` (simulation par défaut,
+arrêt si la base a bougé), `tests/rattachement_fournisseurs.test.ts` (chaîné
+dans `npm test` avant `npm run lint`). Aucun écran ni route modifié :
+l'inventaire de routes ne bouge pas.
