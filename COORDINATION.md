@@ -2957,3 +2957,9 @@ le contact trouvé avec un bouton « copier » — l'enregistrement reste humain
 `src/server/routes/prospects.ts` et monté un panneau dans `AdminDashboardPage`
 (sous-onglet `dir`). Les deux inventaires de routes sont régénérés
 (335 routes, 96 routes admin). Rien d'existant n'a été modifié ni déplacé.
+
+## 2026-09-16 — Sections retravaillées sur données réelles (Agent Arena)
+- « Fournisseur par produit » (mode complet, nouvel onglet uniquement) : catalogue ADMIN entier — 138 fiches au lieu des 63 publiques, kits inclus (Atelier KURLA = vrai fournisseur d'assemblage, 10 produits liés mesurés) — et les 16 fournisseurs affectables (?all=1). Ancien onglet inchangé (prop fullCatalog).
+- « Matrice sourcing par pays » : chaque ligne pays affiche désormais les fournisseurs RÉELLEMENT identifiés (référentiel complet) avec le nombre de produits rattachés ; pays sans fournisseur nommé « piste encore vierge » ; FR_make lit les fournisseurs FR (même territoire). Dégradation honnête si le référentiel échoue.
+- Données mesurées 16/09 : 138 produits (52 sans fournisseur), 16 fournisseurs (FR×8, CN×2, ES/GH/RO/EU/SI×1, 1 sans pays), 86 produits déjà rattachés à 6 fournisseurs distincts.
+- Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations) sur l'arbre FUSIONNÉ (merge propre avec docs Agent Kurla, 0 conflit). Push 805c0e3 vérifié sur le distant.
