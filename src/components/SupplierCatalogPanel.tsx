@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { ChevronRight, Factory } from 'lucide-react';
 
 /**
@@ -70,6 +71,25 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }>
       .sort((a, b) => b.items.length - a.items.length || String(a.supplier.legalName || '').localeCompare(String(b.supplier.legalName || '')));
   }, [suppliers, bySupplier]);
 
+  // Filtres par champ (17/09) : « quel fournisseur italien », « lesquels n'ont
+  // encore aucun produit rattaché » — sans filtre, la réponse demande de
+  // dérouler les 29 blocs. Même calcul partagé que partout ailleurs.
+  const SUPPLIER_CATALOG_FILTER_KEYS = ['supplier', 'country', 'items', 'products'] as const;
+  const supplierCatalogFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'supplier', kind: 'text', get: (row: any) => row.supplier.tradeName, extra: (row: any) => [row.supplier.legalName, row.supplier.id] },
+    { key: 'country', kind: 'text', get: (row: any) => row.supplier.country },
+    { key: 'items', kind: 'numeric', get: (row: any) => row.items.length, unit: ' produit(s)' },
+    { key: 'products', kind: 'enum', get: (row: any) => (row.items.length > 0 ? 'avec' : 'sans'), options: [
+      { value: 'avec', label: 'Avec produits rattachés' },
+      { value: 'sans', label: 'Sans produit rattaché' },
+    ] },
+  ], []);
+  const [supplierCatalogFilterState, setSupplierCatalogFilterState] = useState(() => emptyFilterState(SUPPLIER_CATALOG_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const visibleRows = useMemo(
+    () => applyColumnFilters(rows, supplierCatalogFilters, supplierCatalogFilterState),
+    [rows, supplierCatalogFilters, supplierCatalogFilterState]
+  );
+
   const assignedProducts = rows.reduce((n, r) => n + r.items.length, 0);
 
   if (loading) return <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 text-xs text-kurla-cream/50">Chargement du catalogue par fournisseur…</div>;
@@ -85,7 +105,15 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }>
       </div>
 
       <div className="space-y-2">
-        {rows.map(({ supplier, items }) => (
+        <ColumnFilterStrip
+          filters={supplierCatalogFilters}
+          state={supplierCatalogFilterState}
+          onChange={(key, value) => setSupplierCatalogFilterState(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setSupplierCatalogFilterState(emptyFilterState(SUPPLIER_CATALOG_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+          total={rows.length}
+          shown={visibleRows.length}
+        />
+        {visibleRows.map(({ supplier, items }) => (
           <details key={supplier.id} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink overflow-hidden" open={items.length > 0 && items.length <= 12}>
             <summary className="cursor-pointer px-4 py-3 flex flex-wrap items-center gap-2 text-sm hover:bg-kurla-cream/[0.03]">
               <ChevronRight className="w-4 h-4 text-kurla-copper transition-transform [[open]>&]:rotate-90" />

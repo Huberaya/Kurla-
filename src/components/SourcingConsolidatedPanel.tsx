@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { Copy, Mail, Search, Store } from 'lucide-react';
 
 /**
@@ -56,6 +57,31 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
     return low ? all.filter((r: any) => `${r.name} ${r.brand || ''} ${r.supplierName || ''}`.toLowerCase().includes(low)) : all;
   }, [data, filter, stateFilter]);
 
+  // Filtres par champ (17/09), après l'état et la recherche existants :
+  // type de ligne, marque, format, fournisseur, contact obtenu ou non, prix.
+  const CONSOLIDATED_FILTER_KEYS = ['name', 'kind', 'brand', 'format', 'supplier', 'contact', 'price'] as const;
+  const consolidatedFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'name', kind: 'text', get: (row: any) => row.name },
+    { key: 'kind', kind: 'enum', get: (row: any) => row.kind, options: [
+      { value: 'product', label: 'Produit' },
+      { value: 'candidate', label: 'Candidat' },
+      { value: 'position', label: 'Position' },
+    ] },
+    { key: 'brand', kind: 'text', get: (row: any) => row.brand },
+    { key: 'format', kind: 'text', get: (row: any) => row.format },
+    { key: 'supplier', kind: 'text', get: (row: any) => row.supplierName, presentLabels: { filled: 'Fournisseur nommé', empty: 'À qualifier' } },
+    { key: 'contact', kind: 'enum', get: (row: any) => (row.supplierContact ? 'avec' : 'sans'), options: [
+      { value: 'avec', label: 'Contact obtenu' },
+      { value: 'sans', label: 'Contact à obtenir' },
+    ] },
+    { key: 'price', kind: 'numeric', get: (row: any) => (row.priceEur == null ? NaN : row.priceEur), unit: ' €' },
+  ], []);
+  const [consolidatedFilterState, setConsolidatedFilterState] = useState(() => emptyFilterState(CONSOLIDATED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const visibleRows = useMemo(
+    () => applyColumnFilters(rows, consolidatedFilters, consolidatedFilterState),
+    [rows, consolidatedFilters, consolidatedFilterState]
+  );
+
   const copyEmail = async (block: any) => {
     const text = `${block.emailSubject}\n\n${block.emailBody}`;
     try {
@@ -112,7 +138,15 @@ export const SourcingConsolidatedPanel: React.FC<{ headers: Record<string, strin
           <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher produit, marque, fournisseur…" className="sm:w-80 px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" />
         </div>
         <div className="space-y-1.5 max-h-[560px] overflow-y-auto pr-1">
-          {rows.map((row: any) => (
+          <ColumnFilterStrip
+            filters={consolidatedFilters}
+            state={consolidatedFilterState}
+            onChange={(key, value) => setConsolidatedFilterState(prev => ({ ...prev, [key]: value }))}
+            onReset={() => setConsolidatedFilterState(emptyFilterState(CONSOLIDATED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+            total={rows.length}
+            shown={visibleRows.length}
+          />
+          {visibleRows.map((row: any) => (
             <div key={`${row.kind}-${row.id}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.kind === 'product' ? 'bg-sky-500/15 text-sky-300' : row.kind === 'candidate' ? 'bg-violet-500/15 text-violet-300' : 'bg-kurla-copper/15 text-kurla-copper'}`}>{row.kind === 'product' ? 'produit' : row.kind === 'candidate' ? 'candidat' : 'position'}</span>
               <span className="font-semibold flex-1 min-w-[180px]">{row.name}{row.brand ? <span className="text-kurla-cream/50 font-normal"> · {row.brand}</span> : null}{row.format ? <span className="text-kurla-cream/40 font-normal"> · {row.format}</span> : null}</span>

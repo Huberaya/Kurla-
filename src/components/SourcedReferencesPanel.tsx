@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { Boxes, ChevronRight, Search } from 'lucide-react';
 
 /**
@@ -89,13 +90,31 @@ export const SourcedReferencesPanel: React.FC<{ headers: Record<string, string> 
     return map;
   }, [prospects]);
 
-  const filtered = useMemo(() => {
+  const searchFiltered = useMemo(() => {
     const low = search.trim().toLowerCase();
     if (!low) return candidates;
     return candidates.filter(c =>
       `${c.brand || ''} ${c.product || ''} ${c.routineStep || ''} ${prospectName.get(String(c.prospectId || '')) || ''}`.toLowerCase().includes(low),
     );
   }, [candidates, search, prospectName]);
+
+  // Filtres par champ (17/09), posés APRÈS la recherche existante : la
+  // recherche reste le réflexe, les filtres précisent (marque exacte, piste,
+  // gouvernance, prix). 121 candidats en base — dérouler n'est pas tenable.
+  const SOURCED_FILTER_KEYS = ['brand', 'prospect', 'gov', 'purchase', 'public', 'margin'] as const;
+  const sourcedFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'brand', kind: 'text', get: (c: Candidate) => c.brand, extra: (c: Candidate) => [c.product] },
+    { key: 'prospect', kind: 'text', get: (c: Candidate) => prospectName.get(String(c.prospectId || '')) || '' },
+    { key: 'gov', kind: 'enum', get: (c: Candidate) => String(c.governanceStatus || 'blocked'), options: Object.entries(GOVERNANCE_LABELS).map(([value, meta]) => ({ value, label: meta.label })) },
+    { key: 'purchase', kind: 'numeric', get: (c: Candidate) => (c.purchasePriceCents == null ? NaN : c.purchasePriceCents / 100), unit: ' €' },
+    { key: 'public', kind: 'numeric', get: (c: Candidate) => (c.publicPriceCents == null ? NaN : c.publicPriceCents / 100), unit: ' €' },
+    { key: 'margin', kind: 'numeric', get: (c: Candidate) => (typeof c.marginPct === 'number' ? c.marginPct : NaN), unit: ' %' },
+  ], [prospectName]);
+  const [sourcedFilterState, setSourcedFilterState] = useState(() => emptyFilterState(SOURCED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const filtered = useMemo(
+    () => applyColumnFilters(searchFiltered, sourcedFilters, sourcedFilterState),
+    [searchFiltered, sourcedFilters, sourcedFilterState]
+  );
 
   // catégorie → usage → références. Ordre des catégories : les plus fournies d'abord.
   const grouped = useMemo(() => {
@@ -134,6 +153,15 @@ export const SourcedReferencesPanel: React.FC<{ headers: Record<string, string> 
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrer (marque, produit, usage, fournisseur)…" className="pl-8 pr-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] text-kurla-cream w-64 focus:outline-none focus:border-kurla-copper" />
         </div>
       </div>
+
+      <ColumnFilterStrip
+        filters={sourcedFilters}
+        state={sourcedFilterState}
+        onChange={(key, value) => setSourcedFilterState(prev => ({ ...prev, [key]: value }))}
+        onReset={() => setSourcedFilterState(emptyFilterState(SOURCED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+        total={searchFiltered.length}
+        shown={filtered.length}
+      />
 
       {grouped.length === 0 && <p className="text-xs text-kurla-cream/45 italic">Aucune référence ne correspond à ce filtre.</p>}
 

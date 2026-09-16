@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
 import { AssortmentPlanPanel } from './AssortmentPlanPanel';
 import { PurchasingDeskPanel } from './PurchasingDeskPanel';
@@ -112,6 +113,31 @@ function badge(cls: { label: string; color: string }): string {
 export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSuccess }) => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+
+  // Filtres par colonne (17/09) : 121 candidats en base — « lesquels sont
+  // bloqués », « quelle marque », « quelle marge » doivent se répondre sans
+  // faire défiler. Calcul partagé avec le reste du dashboard (columnFilters) :
+  // un booléen faux est une information, il passe par un choix oui/non et non
+  // par « rempli/vide ».
+  const CANDIDATE_FILTER_KEYS = ['product', 'brand', 'step', 'purchase', 'public', 'margin', 'qty', 'inci', 'visuals', 'gov'] as const;
+  const candidateFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'product', kind: 'text', get: (c: Candidate) => c.product, extra: (c: Candidate) => [c.category, c.notes] },
+    { key: 'brand', kind: 'text', get: (c: Candidate) => c.brand },
+    { key: 'step', kind: 'enum', get: (c: Candidate) => c.routineStep || '', options: Array.from(new Set(candidates.map(c => c.routineStep || '').filter(Boolean))).map(step => ({ value: step, label: step })) },
+    { key: 'purchase', kind: 'numeric', get: (c: Candidate) => (c.purchasePriceCents == null ? NaN : c.purchasePriceCents / 100), unit: ' €' },
+    { key: 'public', kind: 'numeric', get: (c: Candidate) => (c.publicPriceCents == null ? NaN : c.publicPriceCents / 100), unit: ' €' },
+    { key: 'margin', kind: 'numeric', get: (c: Candidate) => (c.marginPct == null ? NaN : c.marginPct), unit: ' %' },
+    { key: 'qty', kind: 'numeric', get: (c: Candidate) => (c.firstOrderQty == null ? NaN : c.firstOrderQty), unit: ' u' },
+    { key: 'inci', kind: 'enum', get: (c: Candidate) => (c.inciReceived ? 'oui' : 'non'), options: [{ value: 'oui', label: 'INCI reçue' }, { value: 'non', label: 'INCI manquante' }] },
+    { key: 'visuals', kind: 'enum', get: (c: Candidate) => (c.visualsReceived ? 'oui' : 'non'), options: [{ value: 'oui', label: 'Visuels reçus' }, { value: 'non', label: 'Visuels manquants' }] },
+    { key: 'gov', kind: 'enum', get: (c: Candidate) => c.governanceStatus, options: Object.entries(GOV_LABELS).map(([value, meta]) => ({ value, label: meta.label })) },
+  ], [candidates]);
+  const [candidateFilterState, setCandidateFilterState] = useState(() => emptyFilterState(CANDIDATE_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
+  const setCandidateFilter = (key: string, value: string) => setCandidateFilterState(prev => ({ ...prev, [key]: value }));
+  const visibleCandidates = useMemo(
+    () => applyColumnFilters(candidates, candidateFilters, candidateFilterState),
+    [candidates, candidateFilters, candidateFilterState]
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'desk' | 'plan' | 'prospects' | 'candidates'>('desk');
@@ -335,9 +361,21 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                   <th key={h} className="px-3 py-2 font-semibold whitespace-nowrap">{h}</th>
                 ))}
               </tr>
+              <tr className="bg-kurla-ink/40">
+                <th className="px-3 py-2"><ColumnFilterText placeholder="Produit…" value={candidateFilterState.product} onChange={value => setCandidateFilter('product', value)} ariaLabel="Filtrer par produit" /></th>
+                <th className="px-3 py-2"><ColumnFilterText placeholder="Marque…" value={candidateFilterState.brand} onChange={value => setCandidateFilter('brand', value)} ariaLabel="Filtrer par marque" /></th>
+                <th className="px-3 py-2"><ColumnFilterSelect value={candidateFilterState.step} onChange={value => setCandidateFilter('step', value)} ariaLabel="Filtrer par étape" options={Array.from(new Set(candidates.map(c => c.routineStep || '').filter(Boolean))).map(step => ({ value: step, label: step }))} /></th>
+                <th className="px-3 py-2"><ColumnFilterText placeholder="2-9 €" value={candidateFilterState.purchase} onChange={value => setCandidateFilter('purchase', value)} ariaLabel="Filtrer par prix d’achat" /></th>
+                <th className="px-3 py-2"><ColumnFilterText placeholder="10-30 €" value={candidateFilterState.public} onChange={value => setCandidateFilter('public', value)} ariaLabel="Filtrer par prix public" /></th>
+                <th className="px-3 py-2"><ColumnFilterText placeholder="50-" value={candidateFilterState.margin} onChange={value => setCandidateFilter('margin', value)} ariaLabel="Filtrer par marge" /></th>
+                <th className="px-3 py-2"><ColumnFilterText placeholder="30-" value={candidateFilterState.qty} onChange={value => setCandidateFilter('qty', value)} ariaLabel="Filtrer par quantité" /></th>
+                <th className="px-3 py-2"><ColumnFilterSelect value={candidateFilterState.inci} onChange={value => setCandidateFilter('inci', value)} ariaLabel="Filtrer par INCI" options={[{ value: 'oui', label: 'Reçue' }, { value: 'non', label: 'Manquante' }]} /></th>
+                <th className="px-3 py-2"><ColumnFilterSelect value={candidateFilterState.visuals} onChange={value => setCandidateFilter('visuals', value)} ariaLabel="Filtrer par visuels" options={[{ value: 'oui', label: 'Reçus' }, { value: 'non', label: 'Manquants' }]} /></th>
+                <th className="px-3 py-2"><ColumnFilterSelect value={candidateFilterState.gov} onChange={value => setCandidateFilter('gov', value)} ariaLabel="Filtrer par gouvernance" options={Object.entries(GOV_LABELS).map(([value, meta]) => ({ value, label: meta.label }))} /></th>
+              </tr>
             </thead>
             <tbody>
-              {candidates.map((c) => {
+              {visibleCandidates.map((c) => {
                 const gov = GOV_LABELS[c.governanceStatus] || GOV_LABELS.blocked;
                 return (
                   <tr key={c.id} className="border-t border-kurla-cream/5 align-top">
@@ -380,6 +418,13 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
               })}
             </tbody>
           </table>
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-[11px] text-kurla-cream/50 border-t border-kurla-cream/10">
+            <span><span className="font-bold text-kurla-cream">{visibleCandidates.length}</span>/{candidates.length} candidat{candidates.length > 1 ? 's' : ''}</span>
+            {visibleCandidates.length !== candidates.length && (
+              <button type="button" onClick={() => setCandidateFilterState(emptyFilterState(CANDIDATE_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))} className="underline hover:text-kurla-cream">Réinitialiser les filtres</button>
+            )}
+            {visibleCandidates.length === 0 && candidates.length > 0 && <span className="text-kurla-cream/45">Aucun candidat ne correspond à ces filtres.</span>}
+          </div>
         </div>
       )}
 

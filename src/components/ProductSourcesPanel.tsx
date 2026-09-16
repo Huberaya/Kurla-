@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link2, Plus, Star, Power } from 'lucide-react';
 import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
+import { applyColumnFilters, type ColumnFilter } from '../lib/columnFilters';
 
 /**
  * SAISIE DES SOURCES PAR PRODUIT — l'écran qui alimente le routeur.
@@ -89,11 +90,21 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
     else setSources([]);
   };
 
+  // Filtre « rattachement » (17/09) : cet écran sert à qualifier les sources —
+  // ce qu'il faut y voir en premier, ce sont les fiches qui n'ont encore
+  // personne. Posé après la recherche existante, avant le plafond de 60.
+  const sourceAttachFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'attached', kind: 'enum', get: (product: any) => (product.supplierId ? 'avec' : 'sans'), options: [
+      { value: 'sans', label: 'Sans fournisseur' },
+      { value: 'avec', label: 'Déjà rattaché' },
+    ] },
+  ], []);
+  const [sourceAttach, setSourceAttach] = useState('');
   const filtered = useMemo(() => {
     const low = search.toLowerCase();
     const list = low ? products.filter(p => `${p.name} ${p.brand || ''}`.toLowerCase().includes(low)) : products;
-    return list.slice(0, 60);
-  }, [products, search]);
+    return applyColumnFilters(list, sourceAttachFilters, { attached: sourceAttach }).slice(0, 60);
+  }, [products, search, sourceAttach, sourceAttachFilters]);
 
   const submit = async () => {
     if (!selectedId) return;
@@ -184,6 +195,11 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="space-y-2">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un produit (nom, marque)…" className={`w-full ${field}`} />
+            <select value={sourceAttach} onChange={e => setSourceAttach(e.target.value)} aria-label="Filtrer par rattachement fournisseur" className="px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[11px] text-kurla-cream focus:outline-none focus:border-kurla-copper">
+              <option value="">Tous les produits</option>
+              <option value="sans">Sans fournisseur</option>
+              <option value="avec">Déjà rattaché</option>
+            </select>
           <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
             {filtered.map(product => (
               <button key={product.id} type="button" onClick={() => selectProduct(String(product.id))} className={`w-full text-left px-3 py-2 rounded-xl border text-[11px] ${String(product.id) === selectedId ? 'bg-kurla-copper/15 border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/5 hover:border-kurla-copper/25'}`}>
