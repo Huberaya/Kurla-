@@ -2893,3 +2893,17 @@ explicite.
 - Entonnoir de négociation : `GET /api/admin/sourcing/workflow/summary` (état courant = dernier événement tracé, défaut « identifié ») + composant SourcingWorkflowFunnel en tête de l'écran 2 · Négocier (8 étapes chiffrées + pistes non transformées).
 - Outils de chantier à codes (C16 cahier actifs, C22 mails J0, J3-J7 whitecast) passés en archives repliables <details> dans les écrans 2 et 4.
 - Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations, routage) sur l'arbre FUSIONNÉ ; push fd77a3a, fichiers confirmés sur le distant.
+
+## Réparation CI : fixtures d'inventaire du chantier B (17/09/2026)
+
+Le push `3fd4474` (« Chantier B complet ») ajoutait la route
+`GET /api/admin/sourcing/workflow/summary` sans régénérer les inventaires de
+référence : la suite `npm test` était **rouge** sur le distant
+(`test:route-inventory` + `test:admin-route-inventory` — le piège documenté
+en tête de ce fichier). Réparé : régénération `KURLA_UPDATE_FIXTURE=1` des
+deux fixtures, diff lu et volontaire — **une seule route ajoutée**
+(`GET /api/admin/sourcing/workflow/summary`), aucune retirée, le reste =
+décalages de lignes dans `sourcing.ts`/`suppliers.ts` + l'appelant
+`SourcingWorkflowFunnel.tsx`. `store_api_inventory` inchangé (334 méthodes).
+Suite complète revérifiée **exit 0** sur l'arbre fusionné (170 [PASS] +
+bancs pipeline/mode-strict, tsc propre).

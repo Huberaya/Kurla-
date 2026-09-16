@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T06:40:55.027Z",
+  "generatedAt": "2026-09-16T07:01:29.471Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -65,6 +65,7 @@
     "GET /api/admin/sourcing/sources",
     "GET /api/admin/sourcing/strategy",
     "GET /api/admin/sourcing/workflow/events",
+    "GET /api/admin/sourcing/workflow/summary",
     "GET /api/admin/strategy/cockpit",
     "GET /api/admin/suppliers",
     "GET /api/admin/suppliers/:supplierId",
