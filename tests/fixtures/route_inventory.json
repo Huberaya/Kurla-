@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T07:07:48.237Z",
+  "generatedAt": "2026-09-16T07:41:58.491Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",

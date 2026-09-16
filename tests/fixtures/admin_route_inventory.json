@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T07:11:56.392Z",
+  "generatedAt": "2026-09-16T07:41:59.088Z",
   "routes": [
     {
       "method": "GET",
@@ -240,6 +240,7 @@
         "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
+        "src/components/ProductSupplierPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186"
       ]
@@ -260,6 +261,7 @@
         "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
+        "src/components/ProductSupplierPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186"
       ]
@@ -590,7 +592,7 @@
       "file": "src/server/routes/suppliers.ts:176",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSupplierPanel.tsx:78"
+        "src/components/ProductSupplierPanel.tsx:82"
       ]
     },
     {
@@ -766,7 +768,7 @@
         "src/components/PeauGoLiveC24Panel.tsx:28",
         "src/components/PeauJ0MailTrackingPanel.tsx:59",
         "src/components/PeauJ3J7WhitecastLotPanel.tsx:45",
-        "src/components/SourcingCountryStrategyPanel.tsx:43",
+        "src/components/SourcingCountryStrategyPanel.tsx:47",
         "src/components/SourcingProspectsPanel.tsx:105"
       ]
     },
@@ -781,7 +783,7 @@
         "src/components/PeauGoLiveC24Panel.tsx:28",
         "src/components/PeauJ0MailTrackingPanel.tsx:59",
         "src/components/PeauJ3J7WhitecastLotPanel.tsx:45",
-        "src/components/SourcingCountryStrategyPanel.tsx:43",
+        "src/components/SourcingCountryStrategyPanel.tsx:47",
         "src/components/SourcingProspectsPanel.tsx:105"
       ]
     },
@@ -847,7 +849,7 @@
       "file": "src/server/routes/sourcingStrategy.ts:7",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingCountryStrategyPanel.tsx:42"
+        "src/components/SourcingCountryStrategyPanel.tsx:46"
       ]
     },
     {
@@ -912,9 +914,11 @@
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
-        "src/components/ProductSupplierPanel.tsx:41",
+        "src/components/ProductSupplierPanel.tsx:45",
+        "src/components/ProductSupplierPanel.tsx:45",
         "src/components/PurchaseProposalPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:187",
+        "src/components/SourcingCountryStrategyPanel.tsx:48",
         "src/components/SupplierAdminPanel.tsx:103",
         "src/components/SupplierAdminPanel.tsx:103",
         "src/components/SupplierAdminPanel.tsx:140"
@@ -933,9 +937,11 @@
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
-        "src/components/ProductSupplierPanel.tsx:41",
+        "src/components/ProductSupplierPanel.tsx:45",
+        "src/components/ProductSupplierPanel.tsx:45",
         "src/components/PurchaseProposalPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:187",
+        "src/components/SourcingCountryStrategyPanel.tsx:48",
         "src/components/SupplierAdminPanel.tsx:103",
         "src/components/SupplierAdminPanel.tsx:103",
         "src/components/SupplierAdminPanel.tsx:140"
