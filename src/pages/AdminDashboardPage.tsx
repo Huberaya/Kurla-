@@ -54,7 +54,9 @@ type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // Union des deux chantiers parallèles : `pipeline` (Agent Kurla, mise en
 // vente 6 stades) + `supply_v2_*` (Agent Arena, Appro par étapes) — aucun
 // des deux travaux n'est écrasé.
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_sourcing' | 'skin_batches' | 'skin_demand' | 'skin_pros';
+// skin_sourcing / skin_batches / skin_demand retirés le 16/09 : doublons
+// exacts d'onglets existants (voir le commentaire dans la navigation).
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_pros';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -683,14 +685,18 @@ export const AdminDashboardPage: React.FC = () => {
           ];
           const skinNavGroups = workspace === 'skin' ? [
             {
+              // Doublons supprimés le 16/09 : « Kits & lots », « Preuves &
+              // fournisseurs » et « Demande peau » remontaient exactement les
+              // mêmes panneaux que « Lots & traçabilité », « Fournisseurs &
+              // sourcing » et « Demande précommandes » (mesuré : 6 panneaux
+              // montés 2 à 3 fois). Chaque outil n'existe plus qu'à un endroit
+              // dans l'ancien espace — la comparaison avec « Appro par étapes »
+              // reste valable, elle porte sur l'organisation, pas sur des copies.
               id: 'skin-governance', label: 'Gouvernance Skin', icon: Shield,
               tabs: [
                 { id: 'skin_overview', label: 'Vue d’ensemble peau', icon: TrendingUp },
                 { id: 'skin_readiness', label: 'Gates C1 / C5', icon: Shield },
                 { id: 'skin_catalog', label: 'Fiches peau', icon: Package },
-                { id: 'skin_batches', label: 'Kits & lots', icon: Boxes },
-                { id: 'skin_sourcing', label: 'Preuves & fournisseurs', icon: Truck },
-                { id: 'skin_demand', label: 'Demande peau', icon: ListChecks, badge: demand?.totals?.firmOrders || undefined },
               ],
             },
           ] : [];
@@ -802,7 +808,7 @@ export const AdminDashboardPage: React.FC = () => {
               scope="skin"
               headers={adminHeaders}
               onSuccess={(message) => { setActionSuccess(message); loadData(); setTimeout(() => setActionSuccess(''), 4000); }}
-              onOpenGuide={() => setActiveTab('skin_sourcing')}
+              onOpenGuide={() => setActiveTab('suppliers')}
             />
             <CatalogGatePanel headers={adminHeaders} />
             <DerogationsPanel headers={adminHeaders} />
@@ -810,24 +816,9 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'skin_sourcing' && workspace === 'skin' && (
-          <div className="space-y-10">
-            <PeauSourcingCahierPanel />
-            <PeauJ0MailTrackingPanel headers={adminHeaders} />
-            <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
-            <SourcingCountryStrategyPanel headers={adminHeaders} />
-            <ProductSupplierPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
-            <SupplierAdminPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
-          </div>
-        )}
-
-        {activeTab === 'skin_batches' && workspace === 'skin' && (
-          <div className="space-y-10">
-            <PeauKitsCoutServiPanel headers={adminHeaders} />
-            <KittingAdminPanel />
-            <BatchAdminPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); loadData(); setTimeout(() => setActionSuccess(''), 5000); }} />
-          </div>
-        )}
+        {/* Onglets « Preuves & fournisseurs », « Kits & lots » et « Demande peau »
+            supprimés le 16/09 : doublons exacts de « Fournisseurs & sourcing »,
+            « Lots & traçabilité » et « Demande précommandes ». */}
 
         {/* TAB 1: COMMERCIAL DASHBOARD ANALYTICS */}
         {activeTab === 'analytics' && (
@@ -1174,12 +1165,6 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {activeTab === 'skin_demand' && workspace === 'skin' && (
-          <div className="space-y-10">
-            <PeauDemandStockGapPanel headers={adminHeaders} />
           </div>
         )}
 
@@ -1649,6 +1634,7 @@ export const AdminDashboardPage: React.FC = () => {
               <h2 className="text-lg font-bold text-kurla-cream">Qui me fournit — et sur quelle preuve</h2>
               <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés — y compris ceux pas encore utilisés, avec leur usage réel par espace —, quel fournisseur sert chaque produit, et la stratégie pays.</p>
             </div>
+            <SupplierDossierPanel headers={adminHeaders} />
             <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <ProductSupplierPanel headers={adminHeaders} fullCatalog onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
