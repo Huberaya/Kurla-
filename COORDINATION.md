@@ -3080,3 +3080,9 @@ les seules fiches servies — les retirer viderait la vitrine), et supprimer les
 - Demande utilisateur : un moyen d'ajouter les contacts + un filtre sur toutes les colonnes.
 - `SupplierAdminPanel` : cellule Contact éditable en ligne (« + ajouter » / « modifier » → champs nom + e-mail → OK/✕), même route PATCH `/api/admin/suppliers/:id` que la fiche détaillée (aucune nouvelle route). Un filtre sous chaque colonne : raison sociale (texte), métier (liste), pays (texte), contact (tous/avec e-mail/sans e-mail), MOQ et délai (renseigné/vide), preuves (avec/sans/périmée), usage réel (Hair/Skin/non utilisé), statut (vérifié/en attente/non fourni) — combinables entre eux ; recherche globale conservée + bouton « Réinitialiser les filtres ».
 - Vérifications : tsc 0, 4 bancs [PASS], build 0, bundle local 9/9 chaînes, push FF_OK (remote HEAD = acadc7b).
+
+## 2026-09-17 — Fournisseur par produit, option 3 (Agent Arena, `c26d9c4`, poussé)
+- Décision utilisateur après analyse (27 orphelins mesurés : KURLA Skincare 16, The Ordinary 10, Isntree 1 ; l'écran Catalogue sait déjà écrire la même affectation) : garder mais modifier.
+- `ProductSupplierPanel` (mode complet uniquement, ancien mode inchangé) : s'ouvre sur le filtre « Sans fournisseur » (la file réelle), liste repliable par défaut (« Déplier la liste — N produit(s) à traiter »), marque affichée sur chaque ligne.
+- Suggestions sourcées du registre 14/09, jamais enregistrées sans clic : Isntree → Qudo Beauty (RO) PRÉ-SÉLECTIONNÉ (seul canal B2B réel : MOQ 300 €, CPNP+RP+INCI écrits ; « marque officielle à confirmer » rappelé) ; The Ordinary → DECIEM nommé, aucun canal de gros (compte pro à ouvrir) ; KURLA Skincare → Oomylab/Phytodia en comparaison de devis, aucun choisi — l'affectation reste une décision humaine.
+- Vérifications : tsc 0, 4 bancs [PASS], build 0, bundle local (6 chaînes + `sup-qudo-beauty-ro`), push FF_OK (remote HEAD = c26d9c4).
