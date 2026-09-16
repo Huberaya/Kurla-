@@ -2887,3 +2887,9 @@ appelant = le panneau pipeline), `store_api_inventory` (334 méthodes,
 table existe, l'interrupteur du panneau devient actif sans aucun autre
 changement de code ; le mode strict reste OFF par défaut jusqu'à armement
 explicite.
+
+## 2026-09-16 — Chantier B COMPLET : Appro par étapes = vrai espace (Agent Arena)
+- Référentiel COMPLET : `/api/admin/suppliers?all=1` (additif, ancien onglet inchangé) renvoie les 16 fournisseurs avec usage réel (linkedHairCount/linkedSkinCount) ; colonne « Usage réel » dans SupplierAdminPanel (showAll) — les 10 fournisseurs sans produit lié (dont BLACKETIQUE) sont enfin visibles, nommés « non utilisé » au lieu de disparaître.
+- Entonnoir de négociation : `GET /api/admin/sourcing/workflow/summary` (état courant = dernier événement tracé, défaut « identifié ») + composant SourcingWorkflowFunnel en tête de l'écran 2 · Négocier (8 étapes chiffrées + pistes non transformées).
+- Outils de chantier à codes (C16 cahier actifs, C22 mails J0, J3-J7 whitecast) passés en archives repliables <details> dans les écrans 2 et 4.
+- Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations, routage) sur l'arbre FUSIONNÉ ; push fd77a3a, fichiers confirmés sur le distant.
