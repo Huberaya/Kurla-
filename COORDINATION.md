@@ -2907,3 +2907,53 @@ décalages de lignes dans `sourcing.ts`/`suppliers.ts` + l'appelant
 `SourcingWorkflowFunnel.tsx`. `store_api_inventory` inchangé (334 méthodes).
 Suite complète revérifiée **exit 0** sur l'arbre fusionné (170 [PASS] +
 bancs pipeline/mode-strict, tsc propre).
+
+## 2026-09-16 — Chantier B : le dossier fournisseur (Agent Kurla)
+
+**Ce que c'est.** Voir un fournisseur en un seul endroit : identité, contact
+réel, les huit pièces d'achat, **ce qui manque nommément**, ses candidats
+rattachés, l'état de la relance — plus une synthèse (joignables, injoignables,
+pièces les plus souvent absentes, prioritaires au nombre de candidats).
+
+**État mesuré en production avant d'écrire une ligne** (et c'est ce qui a
+décidé du périmètre) :
+
+    28 fournisseurs · 3 avec un e-mail · 25 injoignables
+    0 nom de contact · 0 date de relance · 0 MOQ · 0 délai
+    complétude moyenne : 0 %
+
+Tentative de rapprochement : les blocs fournisseurs de la vue consolidée
+(portée par l'autre agent) ne portent un contact que pour 3 d'entre eux.
+**Les contacts n'existent dans aucun système** — ils restent à acquérir. Aucun
+mécanisme ne peut les créer ; le dossier sert donc à nommer le manque, pas à
+le combler par une invention.
+
+**Ce qui est livré**
+- `src/lib/supplierDossier.ts` — module pur : pièces, manques, relance,
+  rattachement, synthèse. Aucun accès base.
+- `GET /api/admin/sourcing/supplier-dossier` (gardée admin + espace de
+  travail), montée dans `src/server/routes/prospects.ts`.
+- `src/components/SupplierDossierPanel.tsx` — monté en tête du sous-onglet
+  « Fournisseurs » (onglet Fournisseurs → volet `dir`).
+- `tests/kurla_supplier_dossier.test.ts` — chaîné avant `npm run lint`.
+
+**Règles tenues, et ce sont les seules défendables**
+1. un champ vide est « inconnu », jamais « non » — on ne transforme pas une
+   absence d'information en refus du fournisseur ;
+2. un contact trouvé ailleurs est **proposé, jamais écrit** : `contactEmail`
+   reste nul tant qu'un humain n'a pas adopté, et la source est citée ;
+3. « sans objet » (`na`) compte comme obtenu, pas manquant ;
+4. une pièce « en attente » (demandée) est distinguée d'une pièce
+   « inconnue » (jamais demandée) : la première se relance, la seconde se
+   demande ;
+5. une relance échue cesse de l'être dès qu'une décision est prise.
+
+**Non fait, volontairement.** L'adoption du contact proposé (bouton) : l'écrire
+demande un endpoint dédié qui journalise la source, pas un `upsert` qui
+écraserait le prospect. Prochaine incrément. En attendant, le panneau affiche
+le contact trouvé avec un bouton « copier » — l'enregistrement reste humain.
+
+**Pour l'autre agent.** J'ai ajouté une route dans
+`src/server/routes/prospects.ts` et monté un panneau dans `AdminDashboardPage`
+(sous-onglet `dir`). Les deux inventaires de routes sont régénérés
+(335 routes, 96 routes admin). Rien d'existant n'a été modifié ni déplacé.

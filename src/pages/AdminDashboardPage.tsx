@@ -15,6 +15,7 @@ import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { GlobalSearchPanel } from '../components/GlobalSearchPanel';
 import { SourcingWorkflowPanel } from '../components/SourcingWorkflowPanel';
 import { SourcingWorkflowFunnel } from '../components/SourcingWorkflowFunnel';
+import { SupplierDossierPanel } from '../components/SupplierDossierPanel';
 import { ProductNeedsEditor } from '../components/ProductNeedsEditor';
 import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
@@ -1571,6 +1572,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             {supplierSub === 'dir' && (
               <div className="space-y-10">
+                <SupplierDossierPanel headers={adminHeaders} />
                 <SupplierAdminPanel
                   headers={adminHeaders}
                   onSuccess={(message) => {
