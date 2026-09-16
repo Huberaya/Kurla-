@@ -3010,3 +3010,10 @@ supprime les 13 fiches créées, nommément.
 arrêt si la base a bougé), `tests/rattachement_fournisseurs.test.ts` (chaîné
 dans `npm test` avant `npm run lint`). Aucun écran ni route modifié :
 l'inventaire de routes ne bouge pas.
+
+## 2026-09-16 — Dédoublonnage Appro (Agent Arena)
+- Mesure : 17 panneaux montés 2 à 3 fois dans l'Appro. Doublons réels supprimés = 3 onglets de Gouvernance Skin qui remontaient exactement les mêmes panneaux que des onglets existants : « Preuves & fournisseurs » (skin_sourcing), « Kits & lots » (skin_batches), « Demande peau » (skin_demand). Référence onOpenGuide redirigée vers suppliers. AdminTab nettoyé.
+- Aucun panneau perdu : tout reste accessible dans « Fournisseurs & sourcing », « Lots & traçabilité », « Demande précommandes » (ancien espace) et « Appro par étapes » (nouveau). La comparaison ancien/nouveau reste l'unique doublon VOLONTAIRE.
+- Parité : SupplierDossierPanel (ajouté par Agent Kurla dans l'ancien onglet) monté aussi dans « 1 · Qui me fournit » du nouvel espace.
+- Merge propre du travail distant (rattachement fournisseurs 52→27 sans provenance, banc rattachement-fournisseurs [PASS] localement).
+- Vérifications : tsc 0 + build 0 + bancs [PASS] (gate, 10 cas achat, dérogations, rattachement) sur l'arbre fusionné. Push 552ba0e FF_OK vérifié.
