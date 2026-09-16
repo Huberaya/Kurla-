@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T16:51:34.519Z",
+  "generatedAt": "2026-09-16T19:43:08.124Z",
   "routes": [
     {
       "method": "GET",
@@ -240,7 +240,7 @@
         "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
-        "src/components/ProductSupplierPanel.tsx:46",
+        "src/components/ProductSupplierPanel.tsx:68",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186",
         "src/components/SupplierCatalogPanel.tsx:39"
@@ -262,7 +262,7 @@
         "src/components/PeauKitsCoutServiPanel.tsx:27",
         "src/components/ProductNeedsEditor.tsx:29",
         "src/components/ProductSourcesPanel.tsx:51",
-        "src/components/ProductSupplierPanel.tsx:46",
+        "src/components/ProductSupplierPanel.tsx:68",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186",
         "src/components/SupplierCatalogPanel.tsx:39"
@@ -594,7 +594,7 @@
       "file": "src/server/routes/suppliers.ts:176",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSupplierPanel.tsx:82"
+        "src/components/ProductSupplierPanel.tsx:114"
       ]
     },
     {
@@ -920,14 +920,14 @@
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
-        "src/components/ProductSupplierPanel.tsx:45",
-        "src/components/ProductSupplierPanel.tsx:45",
+        "src/components/ProductSupplierPanel.tsx:67",
+        "src/components/ProductSupplierPanel.tsx:67",
         "src/components/PurchaseProposalPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:187",
         "src/components/SourcingCountryStrategyPanel.tsx:48",
-        "src/components/SupplierAdminPanel.tsx:103",
-        "src/components/SupplierAdminPanel.tsx:103",
-        "src/components/SupplierAdminPanel.tsx:140",
+        "src/components/SupplierAdminPanel.tsx:118",
+        "src/components/SupplierAdminPanel.tsx:118",
+        "src/components/SupplierAdminPanel.tsx:155",
         "src/components/SupplierCatalogPanel.tsx:38"
       ]
     },
@@ -944,14 +944,14 @@
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
         "src/components/ProductSourcesPanel.tsx:52",
-        "src/components/ProductSupplierPanel.tsx:45",
-        "src/components/ProductSupplierPanel.tsx:45",
+        "src/components/ProductSupplierPanel.tsx:67",
+        "src/components/ProductSupplierPanel.tsx:67",
         "src/components/PurchaseProposalPanel.tsx:46",
         "src/components/PurchaseProposalPanel.tsx:187",
         "src/components/SourcingCountryStrategyPanel.tsx:48",
-        "src/components/SupplierAdminPanel.tsx:103",
-        "src/components/SupplierAdminPanel.tsx:103",
-        "src/components/SupplierAdminPanel.tsx:140",
+        "src/components/SupplierAdminPanel.tsx:118",
+        "src/components/SupplierAdminPanel.tsx:118",
+        "src/components/SupplierAdminPanel.tsx:155",
         "src/components/SupplierCatalogPanel.tsx:38"
       ]
     },
@@ -961,9 +961,10 @@
       "file": "src/server/routes/suppliers.ts:105",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:121",
-        "src/components/SupplierAdminPanel.tsx:172",
-        "src/components/SupplierAdminPanel.tsx:194"
+        "src/components/SupplierAdminPanel.tsx:136",
+        "src/components/SupplierAdminPanel.tsx:187",
+        "src/components/SupplierAdminPanel.tsx:210",
+        "src/components/SupplierAdminPanel.tsx:230"
       ]
     },
     {
@@ -972,9 +973,10 @@
       "file": "src/server/routes/suppliers.ts:148",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:121",
-        "src/components/SupplierAdminPanel.tsx:172",
-        "src/components/SupplierAdminPanel.tsx:194"
+        "src/components/SupplierAdminPanel.tsx:136",
+        "src/components/SupplierAdminPanel.tsx:187",
+        "src/components/SupplierAdminPanel.tsx:210",
+        "src/components/SupplierAdminPanel.tsx:230"
       ]
     },
     {
@@ -983,7 +985,7 @@
       "file": "src/server/routes/suppliers.ts:160",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SupplierAdminPanel.tsx:214"
+        "src/components/SupplierAdminPanel.tsx:250"
       ]
     }
   ]

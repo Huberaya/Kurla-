@@ -35,21 +35,7 @@ import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 import { GrowthControlCenterPanel } from '../components/GrowthControlCenterPanel';
 import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
-import { PeauSourcingCahierPanel } from '../components/PeauSourcingCahierPanel';
-import { PeauKitsCoutServiPanel } from '../components/PeauKitsCoutServiPanel';
-import { PeauDemandStockGapPanel } from '../components/PeauDemandStockGapPanel';
-import { PeauGatesCockpitPanel } from '../components/PeauGatesCockpitPanel';
-import { PeauCatalogPublishPanel } from '../components/PeauCatalogPublishPanel';
 import { TestPhaseGatesPanel } from '../components/TestPhaseGatesPanel';
-import { PeauQAFatouC21Panel } from '../components/PeauQAFatouC21Panel';
-import { PeauJ0MailTrackingPanel } from '../components/PeauJ0MailTrackingPanel';
-import { PeauJ3J7WhitecastLotPanel } from '../components/PeauJ3J7WhitecastLotPanel';
-import { PeauFacturationSuiviPanel } from '../components/PeauFacturationSuiviPanel';
-import { PeauGoLiveC24Panel } from '../components/PeauGoLiveC24Panel';
-import { PeauC25ToutPanel } from '../components/PeauC25ToutPanel';
-import { PeauC26FinalPanel } from '../components/PeauC26FinalPanel';
-import { PeauC27ScalePanel } from '../components/PeauC27ScalePanel';
-import { PeauC28ToutPanel } from '../components/PeauC28ToutPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 
 type AdminWorkspace = 'skin' | 'hair' | 'copilot';
@@ -58,7 +44,7 @@ type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // des deux travaux n'est écrasé.
 // skin_sourcing / skin_batches / skin_demand retirés le 16/09 : doublons
 // exacts d'onglets existants (voir le commentaire dans la navigation).
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir' | 'skin_overview' | 'skin_readiness' | 'skin_catalog' | 'skin_pros';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -69,7 +55,7 @@ const initialAdminWorkspace = (): AdminWorkspace | null => {
 /** Onglet ouvert à l'arrivée, selon l'espace demandé dans l'URL. */
 const tabInitial = (): AdminTab => {
   const espace = initialAdminWorkspace();
-  if (espace === 'skin') return 'skin_overview';
+  // 17/09 : Skin et Hair ont la même configuration — même onglet d'arrivée.
   if (espace === 'copilot') return 'copilote';
   return 'analytics';
 };
@@ -145,7 +131,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   const selectWorkspace = (next: AdminWorkspace) => {
     setWorkspace(next);
-    setActiveTab(next === 'skin' ? 'skin_overview' : next === 'copilot' ? 'copilote' : 'analytics');
+    // 17/09 : Skin et Hair ont la même configuration — même onglet d'arrivée.
+    setActiveTab(next === 'copilot' ? 'copilote' : 'analytics');
     setProsFilter(next === 'skin' ? 'peau' : 'all');
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -564,7 +551,7 @@ export const AdminDashboardPage: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-kurla-cream flex items-center gap-3">
               <Shield className={`w-7 h-7 ${workspace === 'skin' ? 'text-emerald-300' : workspace === 'copilot' ? 'text-sky-300' : 'text-kurla-copper'}`} /> {workspace === 'skin' ? 'KURLA Skin — Administration' : workspace === 'copilot' ? 'Copilote — Chiffres de la plateforme' : 'KURLA Hair — Administration & Operations'}
             </h1>
-            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Pilotage séparé peau & teint : preuves C1/C5, catalogue skincare et sourcing.' : workspace === 'copilot' ? 'Visites, inscriptions, diagnostics, ventes et santé — lus, jamais estimés.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
+            <p className="text-xs text-kurla-cream/60">{workspace === 'skin' ? 'Supervision des commandes, expéditions, retours, support et métriques peau & teint.' : workspace === 'copilot' ? 'Visites, inscriptions, diagnostics, ventes et santé — lus, jamais estimés.' : 'Supervision des commandes, expéditions, retours, support et métriques cheveux.'}</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -646,7 +633,7 @@ export const AdminDashboardPage: React.FC = () => {
                 { id: 'orders', label: 'Commandes', icon: ShoppingBag, badge: serverOrders.length },
                 { id: 'returns', label: 'Retours & Remboursements', icon: RotateCcw, badge: returnsList.length },
                 { id: 'support', label: 'Support Client', icon: MessageSquare, badge: supportTickets.length },
-                { id: 'pros', label: workspace === 'skin' ? 'Professionnels peau & Hair' : 'Certifications Pro', icon: Users },
+                { id: 'pros', label: 'Certifications Pro', icon: Users },
               ],
             },
             {
@@ -685,24 +672,17 @@ export const AdminDashboardPage: React.FC = () => {
               ],
             },
           ];
-          const skinNavGroups = workspace === 'skin' ? [
-            {
-              // Doublons supprimés le 16/09 : « Kits & lots », « Preuves &
-              // fournisseurs » et « Demande peau » remontaient exactement les
-              // mêmes panneaux que « Lots & traçabilité », « Fournisseurs &
-              // sourcing » et « Demande précommandes » (mesuré : 6 panneaux
-              // montés 2 à 3 fois). Chaque outil n'existe plus qu'à un endroit
-              // dans l'ancien espace — la comparaison avec « Appro par étapes »
-              // reste valable, elle porte sur l'organisation, pas sur des copies.
-              id: 'skin-governance', label: 'Gouvernance Skin', icon: Shield,
-              tabs: [
-                { id: 'skin_overview', label: 'Vue d’ensemble peau', icon: TrendingUp },
-                { id: 'skin_readiness', label: 'Gates C1 / C5', icon: Shield },
-                { id: 'skin_catalog', label: 'Fiches peau', icon: Package },
-              ],
-            },
-          ] : [];
-          const navGroups = [...sharedNavGroups, ...skinNavGroups];
+          // 17/09, demande utilisateur : les deux espaces (Skin et Hair) ont la
+          // MÊME configuration — mêmes familles, mêmes onglets, mêmes sections.
+          // Le groupe « Gouvernance Skin » est retiré de la navigation. Ses
+          // outils de catalogue (porte de publication, dérogations datées,
+          // phase test, besoins) ne sont pas perdus : ils vivent désormais dans
+          // l'onglet partagé « Catalogue produits », visibles dans les DEUX
+          // espaces (un cosmétique cheveux est soumis au même Règlement
+          // 1223/2009). Les blocs de rendu skin_overview / skin_readiness /
+          // skin_catalog restent intacts plus bas — onglets simplement non
+          // offerts, rien n'est supprimé, tout reste remontable.
+          const navGroups = sharedNavGroups;
           const activeGroup = navGroups.find(g => g.tabs.some(t => t.id === activeTab)) ?? navGroups[0];
           const GroupIcon = activeGroup.icon;
 
@@ -772,51 +752,13 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* KURLA SKIN — espace dédié, séparé du dashboard Hair */}
-        {activeTab === 'skin_overview' && workspace === 'skin' && (
-          <div className="space-y-8">
-            <div className="p-8 rounded-3xl bg-emerald-950/30 border border-emerald-400/20 shadow-xl">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-emerald-300 font-bold">Base KURLA Skin</p>
-              <h2 className="mt-2 text-2xl font-serif-title font-bold text-emerald-100">Peau & teint sous gouvernance C1/C5</h2>
-              <p className="mt-2 max-w-3xl text-sm text-emerald-100/65">Cet espace ne mélange pas les fiches cheveux. Il centralise les preuves peau, les phototypes, les sous-tons, la photoprotection, les kits et le sourcing skincare.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCell label="Fiches peau" value="—" hint="Lire le rapport C1 pour la valeur réelle" tone="text-emerald-300" />
-              <KpiCell label="Ready to buy" value="0 sans preuves" hint="Aucun SKU ne franchit la Truth Layer sans dossier" tone="text-amber-300" />
-              <KpiCell label="SPF / C5" value="Contrôlé" hint="Whitecast, IV–VI, sous-tons et lumière visible" tone="text-sky-300" />
-              <KpiCell label="Formulations cibles" value="Séparées" hint="Jamais présentées comme du stock" tone="text-violet-300" />
-            </div>
-            <PeauGatesCockpitPanel headers={adminHeaders} />
-          </div>
-        )}
-
-        {activeTab === 'skin_readiness' && workspace === 'skin' && (
-          <div className="space-y-10">
-            <PeauGatesCockpitPanel headers={adminHeaders} />
-            <PeauQAFatouC21Panel headers={adminHeaders} />
-            <PeauFacturationSuiviPanel headers={adminHeaders} />
-            <PeauGoLiveC24Panel headers={adminHeaders} />
-            <PeauC25ToutPanel headers={adminHeaders} />
-            <PeauC26FinalPanel headers={adminHeaders} />
-            <PeauC27ScalePanel headers={adminHeaders} />
-            <PeauC28ToutPanel headers={adminHeaders} />
-          </div>
-        )}
-
-        {activeTab === 'skin_catalog' && workspace === 'skin' && (
-          <div className="space-y-10">
-            <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />
-            <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />
-            <CatalogAdminPanel
-              scope="skin"
-              headers={adminHeaders}
-              onSuccess={(message) => { setActionSuccess(message); loadData(); setTimeout(() => setActionSuccess(''), 4000); }}
-              onOpenGuide={() => setActiveTab('suppliers')}
-            />
-            <CatalogGatePanel headers={adminHeaders} />
-            <DerogationsPanel headers={adminHeaders} />
-            <ProductNeedsEditor headers={adminHeaders} />
-          </div>
-        )}
+        {/* Onglets « Gouvernance Skin » retirés le 17/09 (demande utilisateur) :
+            Skin et Hair ont désormais la même configuration. Les outils de
+            gouvernance catalogue (porte de publication C4, dérogations datées
+            C5, phase test, besoins) vivent dans l'onglet partagé « Catalogue
+            produits ». Les panneaux peau spécifiques (C1/C5 cockpit, cahiers
+            C21-C28, whitecast J3-J7, suivi mails J0, coût servi kits) restent
+            dans src/components/ — non montés, remontables à la demande. */}
 
         {/* Onglets « Preuves & fournisseurs », « Kits & lots » et « Demande peau »
             supprimés le 16/09 : doublons exacts de « Fournisseurs & sourcing »,
@@ -1170,10 +1112,9 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB DEMANDE PRÉCOMMANDES (sourcing premier lot) — KURLA Hair */}
+        {/* TAB DEMANDE PRÉCOMMANDES (sourcing premier lot) */}
         {activeTab === 'demand' && (
           <div className="space-y-10">
-            {workspace === 'skin' && <PeauDemandStockGapPanel headers={adminHeaders} />}
           <div className="p-8 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-6 shadow-xl">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
@@ -1489,12 +1430,11 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5: PRODUCT CATALOG — C20 peau publication TEST contrôlée */}
+        {/* TAB 5: PRODUCT CATALOG — gouvernance partagée Skin & Hair (17/09) */}
         {activeTab === 'catalog' && (
           <div className="space-y-10">
             <BoutiqueAnomalyBanner headers={adminHeaders} onOpenPipeline={() => setActiveTab('pipeline')} />
             <CatalogClaimsAuditPanel headers={adminHeaders} />
-            {workspace === 'skin' && <PeauCatalogPublishPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),4000); }} />}
             <CatalogAdminPanel
               scope={workspace === 'skin' ? 'skin' : 'hair'}
               headers={adminHeaders}
@@ -1507,6 +1447,13 @@ export const AdminDashboardPage: React.FC = () => {
               }}
               onOpenGuide={() => setActiveTab('guide_dropship')}
             />
+            {/* Gouvernance catalogue — mêmes outils dans les deux espaces
+                (17/09) : un cosmétique cheveux est soumis au même Règlement
+                1223/2009 qu'un soin peau. */}
+            <CatalogGatePanel headers={adminHeaders} />
+            <DerogationsPanel headers={adminHeaders} />
+            <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />
+            <ProductNeedsEditor headers={adminHeaders} />
           </div>
         )}
 
@@ -1526,7 +1473,6 @@ export const AdminDashboardPage: React.FC = () => {
               scopeKey={workspace === 'skin' ? 'skin' : 'hair'}
               onNavigate={navigateFromQueue}
             />
-            {workspace === 'skin' && <PeauGatesCockpitPanel headers={adminHeaders} />}
             <OperationsCockpitPanel
               headers={adminHeaders}
               onSuccess={(message) => {
@@ -1580,8 +1526,6 @@ export const AdminDashboardPage: React.FC = () => {
             {supplierSub === 'sourcing' && (
               <div className="space-y-10">
                 <PurchaseProposalPanel headers={adminHeaders} />
-                {workspace === 'skin' && <PeauSourcingCahierPanel />}
-                {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
             <GlobalSearchPanel headers={adminHeaders} />
             <SupplyOpsPanel headers={adminHeaders} />
             <ProductSourcesPanel headers={adminHeaders} />
@@ -1612,7 +1556,6 @@ export const AdminDashboardPage: React.FC = () => {
                     Ouvrir Lots &amp; traçabilité →
                   </button>
                 </div>
-                {workspace === 'skin' && <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />}
                 <TamponOrderPanel />
                 <FulfillmentContactPanel />
                 <KittingAdminPanel />
@@ -1656,15 +1599,6 @@ export const AdminDashboardPage: React.FC = () => {
             <SourcingProspectsPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingWorkflowPanel headers={adminHeaders} />
             <PurchaseProposalPanel headers={adminHeaders} />
-            {workspace === 'skin' && (
-              <details className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.02]">
-                <summary className="cursor-pointer px-5 py-3 text-xs font-bold text-kurla-cream/60 hover:text-kurla-cream">Outils de chantier peau (cahier actifs C16, suivi mails J0) — déplier</summary>
-                <div className="px-5 pb-5 space-y-6">
-                  <PeauSourcingCahierPanel />
-                  <PeauJ0MailTrackingPanel headers={adminHeaders} />
-                </div>
-              </details>
-            )}
           </div>
         )}
 
@@ -1698,21 +1632,12 @@ export const AdminDashboardPage: React.FC = () => {
             <KittingAdminPanel />
             <TamponOrderPanel />
             <FulfillmentContactPanel />
-            {workspace === 'skin' && (
-              <details className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.02]">
-                <summary className="cursor-pointer px-5 py-3 text-xs font-bold text-kurla-cream/60 hover:text-kurla-cream">Outil de chantier peau (contrôle whitecast lots J3-J7) — déplier</summary>
-                <div className="px-5 pb-5">
-                  <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
-                </div>
-              </details>
-            )}
           </div>
         )}
 
         {/* TAB 5C: LOTS ET TRAÇABILITÉ — écran du chantier 16D */}
         {activeTab === 'batches' && (
           <div className="space-y-10">
-            {workspace === 'skin' && <PeauKitsCoutServiPanel headers={adminHeaders} />}
             <BatchAdminPanel
               headers={adminHeaders}
               focusProductId={queueNav?.tab === 'batches' ? queueNav.focusProductId : undefined}
