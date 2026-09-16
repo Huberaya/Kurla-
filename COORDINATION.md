@@ -2826,3 +2826,11 @@ watch → actif avec audit / rollback 1 clic / kill switch), **4** (F :
 scorecard fournisseurs + réassort min/max). **C3 (mode strict) est bloqué sur
 le jeton DDL + la table `publication_policy`** — à soulever avec le porteur ;
 d'ici là le mode strict est OFF et l'aperçu est en lecture seule.
+
+## 2026-09-16 — Chantier B : onglet parallèle « Appro par étapes » (Agent Arena)
+- Nouvelle famille de navigation « Appro par étapes (nouveau) » dans le dashboard (Hair ET Skin), EN PARALLÈLE de « Fournisseurs & sourcing » — rien d'existant n'est supprimé, comparaison possible avant de trancher.
+- 4 écrans par intention, panneaux existants remontés SANS modification : 1 · Qui me fournit (SupplierAdmin + ProductSupplier + CountryStrategy + GlobalSearch) · 2 · Négocier (Prospects + Workflow 8 étapes + Proposition d'achat + peau: C16/J0) · 3 · Acheter & marges (ProductSources + SupplyOps + Consolidated) · 4 · Recevoir (lien Lots + Kitting + Tampon + Contacts + peau: Whitecast).
+- Bandeau bleu « Espace restructuré — en comparaison » en tête de chaque écran.
+- Merge avec le travail d'Agent Kurla résolu (union AdminTab : `pipeline` + `supply_v2_*`) — les deux chantiers coexistent. suppliers.ts enrichi par Kurla (complianceDocs, additif).
+- Vérifications : tsc 0 + build 0 (110 pages) + bancs [PASS] (gate, 10 cas achat, dérogations) sur l'arbre FUSIONNÉ. Push 2bc586b vérifié sur le distant.
+- Rappel du bug fournisseur (chantier A, pas encore lancé) : /api/admin/suppliers filtre par workspace → 4/16 visibles en Hair, 3/16 en Skin, 10 fournisseurs invisibles partout (dont BLACKETIQUE).
