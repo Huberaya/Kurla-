@@ -11,6 +11,9 @@
  *      la section visible surlignée (scrollspy) et un saut fluide au clic,
  *   3. montre la progression de lecture de la page et un retour en haut.
  *
+ * Plafond : 12 sections (voir MAX_SECTIONS) — mesuré sur l'onglet le plus
+ * long du dashboard, « Catalogue produits ».
+ *
  * Détection : à chaque changement d'onglet + MutationObserver débouncé
  * (les panels chargent leur contenu en asynchrone). Les ids sont stables par
  * libellé (hash), donc le scrollspy survive aux re-scans.
@@ -31,7 +34,12 @@ function stableHash(text: string): string {
   return (h >>> 0).toString(36);
 }
 
-const MAX_SECTIONS = 8;
+// Plafond porté de 8 à 12 le 17/09 (mesure, pas confort) : l'onglet
+// « Catalogue produits » compte 12 titres h2/h3 une fois les outils de
+// gouvernance dépliés. À 8, la barre de saut s'arrêtait au milieu de la page
+// et les derniers panneaux étaient injoignables par la barre — le plafond
+// censé éviter le bruit produisait l'inverse : des sections invisibles.
+const MAX_SECTIONS = 12;
 const MIN_SECTIONS = 3;
 
 /** Forme minimale d'un titre de section lue par collectSections (testable sans DOM). */

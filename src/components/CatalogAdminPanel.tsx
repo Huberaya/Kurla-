@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { ReturnInsightSummary } from '../lib/returnInsight';
 import { evaluateKurlaReady } from '../lib/kurlaReadyScore';
 import { Check, CheckCircle2, FileText, Image as ImageIcon, Package, Plus, RefreshCw, Save, Upload, X, ArrowRight } from 'lucide-react';
+import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 
 type CatalogAdminPanelProps = {
   headers: HeadersInit;
@@ -222,17 +223,21 @@ export const CatalogAdminPanel: React.FC<CatalogAdminPanelProps> = ({ headers, o
     setBusy(true);
     setError('');
     try {
-      const [catalogResponse, taxonomyResponse, importsResponse, suppliersResponse] = await Promise.all([
-        fetch(`/api/admin/catalog/products?scope=${scope}`, { headers }),
+      // Liste produits via le chargement partagé (17/09) : trois panneaux de
+      // cet onglet la demandaient séparément — une seule requête au montage.
+      // `?scope=` a disparu de l'URL : readWorkspaceScope donne la priorité à
+      // l'en-tête x-kurla-workspace, toujours présent, donc le paramètre ne
+      // changeait rien. Le filtre par catégorie est conservé tel quel (il est
+      // idempotent sur une liste déjà bornée à l'espace).
+      const catalog = await fetchAdminCatalogProducts(headers);
+      const [taxonomyResponse, importsResponse, suppliersResponse] = await Promise.all([
         fetch('/api/admin/catalog/taxonomy', { headers }),
         fetch('/api/admin/catalog/imports', { headers }),
         fetch('/api/admin/suppliers', { headers })
       ]);
-      const catalog = await catalogResponse.json();
       const taxonomy = await taxonomyResponse.json();
       const importData = await importsResponse.json();
       const suppliersData = await suppliersResponse.json().catch(() => ({}));
-      if (!catalogResponse.ok) throw new Error(catalog.error || 'Catalogue indisponible.');
       const allProducts = catalog.products || [];
       setProducts(scope === 'all' ? allProducts : allProducts.filter((product: any) => (scope === 'skin' ? product.category === 'peau' : product.category !== 'peau')));
       setCategories(taxonomy.categories || []);

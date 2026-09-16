@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T19:43:08.124Z",
+  "generatedAt": "2026-09-16T21:27:37.485Z",
   "routes": [
     {
       "method": "GET",
@@ -11,7 +11,7 @@
         "src/components/AdminActionQueue.tsx:207",
         "src/components/BatchAdminPanel.tsx:110",
         "src/components/BatchAdminPanel.tsx:170",
-        "src/components/CatalogAdminPanel.tsx:310",
+        "src/components/CatalogAdminPanel.tsx:315",
         "src/components/PeauC26FinalPanel.tsx:62",
         "src/components/PeauDemandStockGapPanel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:21",
@@ -34,7 +34,7 @@
         "src/components/AdminActionQueue.tsx:207",
         "src/components/BatchAdminPanel.tsx:110",
         "src/components/BatchAdminPanel.tsx:170",
-        "src/components/CatalogAdminPanel.tsx:310",
+        "src/components/CatalogAdminPanel.tsx:315",
         "src/components/PeauC26FinalPanel.tsx:62",
         "src/components/PeauDemandStockGapPanel.tsx:27",
         "src/components/PeauGoLiveC24Panel.tsx:21",
@@ -189,7 +189,7 @@
       "file": "src/server/routes/catalogGovernance.ts:294",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:436"
+        "src/components/CatalogAdminPanel.tsx:441"
       ]
     },
     {
@@ -198,7 +198,7 @@
       "file": "src/server/routes/catalogGovernance.ts:315",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:451"
+        "src/components/CatalogAdminPanel.tsx:456"
       ]
     },
     {
@@ -207,7 +207,7 @@
       "file": "src/server/routes/catalogGovernance.ts:126",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:228"
+        "src/components/CatalogAdminPanel.tsx:235"
       ]
     },
     {
@@ -231,19 +231,16 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:111",
-        "src/components/BoutiqueAnomalyBanner.tsx:25",
-        "src/components/CatalogAdminPanel.tsx:226",
-        "src/components/CatalogAdminPanel.tsx:421",
+        "src/components/CatalogAdminPanel.tsx:426",
         "src/components/CatalogPipelinePanel.tsx:54",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27",
-        "src/components/ProductNeedsEditor.tsx:29",
-        "src/components/ProductSourcesPanel.tsx:51",
         "src/components/ProductSupplierPanel.tsx:68",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186",
-        "src/components/SupplierCatalogPanel.tsx:39"
+        "src/components/SupplierCatalogPanel.tsx:39",
+        "src/lib/adminCatalogProducts.ts:35"
       ]
     },
     {
@@ -253,19 +250,16 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:111",
-        "src/components/BoutiqueAnomalyBanner.tsx:25",
-        "src/components/CatalogAdminPanel.tsx:226",
-        "src/components/CatalogAdminPanel.tsx:421",
+        "src/components/CatalogAdminPanel.tsx:426",
         "src/components/CatalogPipelinePanel.tsx:54",
         "src/components/PeauCatalogPublishPanel.tsx:30",
         "src/components/PeauGoLiveC24Panel.tsx:19",
         "src/components/PeauKitsCoutServiPanel.tsx:27",
-        "src/components/ProductNeedsEditor.tsx:29",
-        "src/components/ProductSourcesPanel.tsx:51",
         "src/components/ProductSupplierPanel.tsx:68",
         "src/components/PurchaseProposalPanel.tsx:44",
         "src/components/PurchaseProposalPanel.tsx:186",
-        "src/components/SupplierCatalogPanel.tsx:39"
+        "src/components/SupplierCatalogPanel.tsx:39",
+        "src/lib/adminCatalogProducts.ts:35"
       ]
     },
     {
@@ -274,9 +268,9 @@
       "file": "src/server/routes/catalogGovernance.ts:147",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:329",
-        "src/components/CatalogAdminPanel.tsx:421",
-        "src/components/ProductNeedsEditor.tsx:76"
+        "src/components/CatalogAdminPanel.tsx:334",
+        "src/components/CatalogAdminPanel.tsx:426",
+        "src/components/ProductNeedsEditor.tsx:82"
       ]
     },
     {
@@ -287,8 +281,8 @@
       "callers": [
         "src/components/AdminActionQueue.tsx:44",
         "src/components/AdminActionQueue.tsx:204",
-        "src/components/BoutiqueAnomalyBanner.tsx:26",
-        "src/components/CatalogAdminPanel.tsx:244",
+        "src/components/BoutiqueAnomalyBanner.tsx:29",
+        "src/components/CatalogAdminPanel.tsx:249",
         "src/components/CatalogPipelinePanel.tsx:55",
         "src/components/PeauCatalogPublishPanel.tsx:29",
         "src/components/PeauGoLiveC24Panel.tsx:27",
@@ -332,7 +326,7 @@
       "file": "src/server/routes/catalogGovernance.ts:120",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:227"
+        "src/components/CatalogAdminPanel.tsx:234"
       ]
     },
     {
@@ -648,7 +642,7 @@
       "file": "src/server/routes/chantierA.ts:242",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:464"
+        "src/components/CatalogAdminPanel.tsx:469"
       ]
     },
     {
@@ -826,8 +820,8 @@
       "file": "src/server/routes/sourcing.ts:135",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:69",
-        "src/components/ProductSourcesPanel.tsx:105"
+        "src/components/ProductSourcesPanel.tsx:75",
+        "src/components/ProductSourcesPanel.tsx:111"
       ]
     },
     {
@@ -836,8 +830,8 @@
       "file": "src/server/routes/sourcing.ts:153",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:69",
-        "src/components/ProductSourcesPanel.tsx:105"
+        "src/components/ProductSourcesPanel.tsx:75",
+        "src/components/ProductSourcesPanel.tsx:111"
       ]
     },
     {
@@ -846,7 +840,7 @@
       "file": "src/server/routes/sourcing.ts:204",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:140"
+        "src/components/ProductSourcesPanel.tsx:146"
       ]
     },
     {
@@ -914,12 +908,12 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:112",
-        "src/components/CatalogAdminPanel.tsx:229",
+        "src/components/CatalogAdminPanel.tsx:236",
         "src/components/CatalogPipelinePanel.tsx:56",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
-        "src/components/ProductSourcesPanel.tsx:52",
+        "src/components/ProductSourcesPanel.tsx:60",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/PurchaseProposalPanel.tsx:46",
@@ -938,12 +932,12 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:112",
-        "src/components/CatalogAdminPanel.tsx:229",
+        "src/components/CatalogAdminPanel.tsx:236",
         "src/components/CatalogPipelinePanel.tsx:56",
         "src/components/PeauGatesCockpitPanel.tsx:33",
         "src/components/PeauGoLiveC24Panel.tsx:57",
         "src/components/PeauQAFatouC21Panel.tsx:37",
-        "src/components/ProductSourcesPanel.tsx:52",
+        "src/components/ProductSourcesPanel.tsx:60",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/ProductSupplierPanel.tsx:67",
         "src/components/PurchaseProposalPanel.tsx:46",

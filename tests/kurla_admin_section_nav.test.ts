@@ -8,7 +8,8 @@
  *   - uniquement les titres visibles (offsetParent null = masqué → ignoré),
  *   - h2 et h3 reconnus (niveau conservé), doublons de libellé dédupliqués,
  *   - marge de saut posée sur l'élément (atterrissage sous la barre collante),
- *   - plafonné à 8 sections (les pages ne sont pas des index).
+ *   - plafonné à 12 sections (mesuré sur « Catalogue produits », l'onglet
+ *     le plus long : à 8, ses derniers panneaux étaient hors de la barre).
  */
 import { strict as assert } from 'node:assert';
 import { collectSections, type SectionHeadingEl } from '../src/components/AdminSectionNav';
@@ -62,10 +63,10 @@ function rootOf(...heads: SectionHeadingEl[]) {
   const dup2 = heading('h3', 'Doublon');
   const list = collectSections(rootOf(hidden, dup1, dup2));
   assert.deepEqual(list.map(s => s.label), ['Doublon'], 'masqué ignoré, doublon dédupliqué (le premier reste)');
-  const many = Array.from({ length: 12 }, (_, i) => heading('h2', `Section ${i + 1}`));
-  assert.equal(collectSections(rootOf(...many)).length, 8, 'plafonné à 8 sections');
+  const many = Array.from({ length: 18 }, (_, i) => heading('h2', `Section ${i + 1}`));
+  assert.equal(collectSections(rootOf(...many)).length, 12, 'plafonné à 12 sections');
   assert.deepEqual(collectSections(rootOf()).length, 0, 'conteneur vide → liste vide');
-  console.log('✓ visibilité, déduplication, plafond 8, conteneur vide');
+  console.log('✓ visibilité, déduplication, plafond 12, conteneur vide');
 }
 
 /* 4. Ids distincts pour des libellés distincts. */

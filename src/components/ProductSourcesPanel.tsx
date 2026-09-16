@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link2, Plus, Star, Power } from 'lucide-react';
 import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
+import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 
 /**
  * SAISIE DES SOURCES PAR PRODUIT — l'écran qui alimente le routeur.
@@ -47,13 +48,18 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
   useEffect(() => {
     (async () => {
       try {
-        const [productsResponse, suppliersResponse] = await Promise.all([
-          fetch('/api/admin/catalog/products?scope=all', { headers }),
+        // `?scope=all` retiré le 17/09, comme dans ProductNeedsEditor : le
+        // serveur donne la priorité à l'en-tête x-kurla-workspace (toujours
+        // présent) sur le paramètre d'URL, et `all` n'est ni 'skin' ni 'hair'.
+        // Le paramètre était mort ; la liste servie a toujours été celle de
+        // l'espace courant. Passé par le chargement partagé : cet écran est
+        // monté deux fois (Appro et Appro par étapes) et demandait la même
+        // liste que le catalogue.
+        const [productsBody, suppliersResponse] = await Promise.all([
+          fetchAdminCatalogProducts(headers),
           fetch('/api/admin/suppliers', { headers }),
         ]);
-        const productsBody = await productsResponse.json();
         const suppliersBody = await suppliersResponse.json();
-        if (!productsResponse.ok) throw new Error(productsBody.error || 'Produits indisponibles.');
         setProducts(productsBody.products || []);
         setSuppliers(suppliersBody.suppliers || []);
       } catch (e: any) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen, Workflow } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen, Workflow, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
@@ -112,6 +112,11 @@ export const AdminDashboardPage: React.FC = () => {
 
   const [workspace, setWorkspace] = useState<AdminWorkspace | null>(initialAdminWorkspace);
   const [activeTab, setActiveTab] = useState<AdminTab>(tabInitial);
+  // Outils de gouvernance du catalogue : repliés par défaut (17/09). Quatre
+  // panneaux d'usage ponctuel vivaient à la suite du catalogue dans le même
+  // onglet ; la page s'ouvrait sur un mur et lançait leurs requêtes à chaque
+  // visite. Repliés, ils ne chargent rien tant qu'on ne les demande pas.
+  const [governanceOpen, setGovernanceOpen] = useState(false);
   // Racine du panel actif : AdminSectionNav détecte les h2/h3 pour la navigation par sections.
   const panelRootRef = useRef<HTMLDivElement | null>(null);
   // « À faire aujourd'hui » (17/09 phase 1) : la file d'actions mène à un onglet
@@ -1449,11 +1454,36 @@ export const AdminDashboardPage: React.FC = () => {
             />
             {/* Gouvernance catalogue — mêmes outils dans les deux espaces
                 (17/09) : un cosmétique cheveux est soumis au même Règlement
-                1223/2009 qu'un soin peau. */}
-            <CatalogGatePanel headers={adminHeaders} />
-            <DerogationsPanel headers={adminHeaders} />
-            <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />
-            <ProductNeedsEditor headers={adminHeaders} />
+                1223/2009 qu'un soin peau. Repliés par défaut : quatre outils
+                ponctuels (porte de publication, dérogations datées, phase
+                test, besoins) n'ont pas à s'imposer à chaque visite du
+                catalogue, ni à charger leurs données tant qu'on ne les ouvre
+                pas. */}
+            <section className="rounded-3xl border border-kurla-cream/10 bg-kurla-espresso/60">
+              <div className="flex flex-wrap items-center gap-3 p-5">
+                <div className="min-w-[240px] flex-1">
+                  <h2 className="font-bold flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-kurla-amber" /> Gouvernance du catalogue</h2>
+                  <p className="text-[11px] text-kurla-cream/60 mt-1">Porte de publication, dérogations datées, phase test, besoins par fiche. Outils ponctuels — identiques dans les deux espaces.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGovernanceOpen(open => !open)}
+                  aria-expanded={governanceOpen}
+                  className="px-3 py-1.5 rounded-xl border border-kurla-cream/15 bg-kurla-ink text-[11px] font-bold text-kurla-cream/80 hover:border-kurla-amber/40 hover:text-kurla-cream flex items-center gap-1.5"
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${governanceOpen ? 'rotate-180' : ''}`} />
+                  {governanceOpen ? 'Replier les 4 outils' : 'Déplier les 4 outils de gouvernance'}
+                </button>
+              </div>
+              {governanceOpen && (
+                <div className="space-y-10 px-5 pb-5">
+                  <CatalogGatePanel headers={adminHeaders} />
+                  <DerogationsPanel headers={adminHeaders} />
+                  <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />
+                  <ProductNeedsEditor headers={adminHeaders} />
+                </div>
+              )}
+            </section>
           </div>
         )}
 

@@ -11,6 +11,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { findBoutiqueAnomalies } from '../lib/catalogPipeline';
+import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 
 export const BoutiqueAnomalyBanner: React.FC<{
   headers: HeadersInit;
@@ -22,7 +23,9 @@ export const BoutiqueAnomalyBanner: React.FC<{
     let cancelled = false;
     (async () => {
       const [products, readiness] = await Promise.allSettled([
-        fetch('/api/admin/catalog/products', { headers }).then(r => r.json()),
+        // Chargement partagé (17/09) : la même liste est demandée par trois
+        // panneaux de cet onglet — une seule requête réseau au montage.
+        fetchAdminCatalogProducts(headers),
         fetch('/api/admin/catalog/publication-readiness', { headers }).then(r => r.json())
       ]);
       if (cancelled) return;

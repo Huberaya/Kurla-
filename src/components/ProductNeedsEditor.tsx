@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Tags, Save } from 'lucide-react';
 import { SKIN_NEEDS } from '../lib/skinTaxonomy';
+import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 
 /**
  * ÉDITION DES BESOINS PAR FICHE (§12, mission 16/09/2026).
@@ -26,9 +27,14 @@ export const ProductNeedsEditor: React.FC<{ headers: Record<string, string> }> =
   useEffect(() => {
     (async () => {
       try {
-        const response = await fetch('/api/admin/catalog/products?scope=all', { headers });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error || 'Produits indisponibles.');
+        // `?scope=all` a été retiré le 17/09 : le serveur lit l'espace dans
+        // readWorkspaceScope, qui donne la priorité à l'en-tête
+        // x-kurla-workspace (toujours présent via adminHeaders) sur le
+        // paramètre d'URL — et `all` n'est ni 'skin' ni 'hair'. Le paramètre
+        // était donc mort : il laissait croire à une liste tous espaces alors
+        // que la liste de l'espace courant était servie. Le comportement ne
+        // change pas ; le libellé mentait, plus maintenant.
+        const body = await fetchAdminCatalogProducts(headers);
         setProducts(body.products || []);
       } catch (e: any) {
         setError(e.message || 'Erreur de chargement.');
