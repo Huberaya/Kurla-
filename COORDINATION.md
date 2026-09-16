@@ -3094,3 +3094,45 @@ les seules fiches servies — les retirer viderait la vitrine), et supprimer les
 - **Pour l'autre agent — rien n'est supprimé** : la gouvernance catalogue (CatalogGatePanel, DerogationsPanel, TestPhaseGatesPanel, ProductNeedsEditor) est déplacée dans l'onglet partagé « Catalogue produits » (visible dans les DEUX espaces). Les panneaux peau spécifiques (PeauGatesCockpitPanel, PeauQAFatouC21Panel, PeauFacturationSuiviPanel, PeauGoLiveC24Panel, PeauC25–C28, PeauSourcingCahierPanel, PeauJ0MailTrackingPanel, PeauJ3J7WhitecastLotPanel, PeauKitsCoutServiPanel, PeauDemandStockGapPanel, PeauCatalogPublishPanel) sont DÉMONTÉS mais leurs fichiers restent dans src/components/ — remontables en une ligne.
 - Référence `tests/fixtures/admin_route_inventory.json` régénérée : dérive mesurée = décalages de lignes + 4e appelant de suppliers/:id (saveRowContact du chantier « contact en ligne ») — aucun changement de surface de routes.
 - Vérifications : tsc 0, 7 bancs [PASS] (gate, supply-model, dérogations, doublons, section-nav, route-inventory, dashboard), build 0, bundle local (chaînes skin = 0), push FF_OK.
+
+---
+
+## Rectificatif — nombre de panneaux peau démontés (17/09/2026, mesuré)
+
+**Ce que j'avais écrit plus haut était faux** : « 11 panneaux peau démontés ».
+Mesuré ce jour, `ls -1 src/components/Peau*.tsx | wc -l` → **14 fichiers** :
+
+PeauC25ToutPanel · PeauC26FinalPanel · PeauC27ScalePanel · PeauC28ToutPanel ·
+PeauCatalogPublishPanel · PeauDemandStockGapPanel · PeauFacturationSuiviPanel ·
+PeauGatesCockpitPanel · PeauGoLiveC24Panel · PeauJ0MailTrackingPanel ·
+PeauJ3J7WhitecastLotPanel · PeauKitsCoutServiPanel · PeauQAFatouC21Panel ·
+PeauSourcingCahierPanel.
+
+(La liste nominative ci-dessus était, elle, complète : « PeauC25–C28 » couvrait
+les 4 fichiers manquants au compte. C'est le chiffre qui était faux, pas l'inventaire.)
+
+**Ces 14 fichiers restent sous contrôle des types.** `tsconfig.json` n'a pas de
+clause `include` : le programme `tsc` est donc calculé depuis `src` et englobe les
+fichiers non importés. Vérifié par sonde : une erreur de type volontaire ajoutée à
+`PeauC28ToutPanel.tsx` fait échouer `npm run lint`
+(`src/components/PeauC28ToutPanel.tsx(223,7): error TS2322`, exit 2), sonde retirée
+ensuite (`git diff` vide). Autrement dit : démontés de la navigation ≠ hors
+surveillance. Ils ne peuvent pas pourrir silencieusement.
+
+## État mesuré de la configuration partagée (17/09/2026)
+
+- **6 familles, 19 onglets, identiques dans les deux espaces** (`navGroups =
+  sharedNavGroups`). Les 8 `workspace === 'skin'` restants dans
+  `AdminDashboardPage.tsx` sont tous des libellés (en-tête, noms de familles) ou le
+  `scope` de données passé aux panneaux (lignes 1439, 1473) — **aucune ne change le
+  contenu d'un onglet**. C'est la preuve que les onglets et sections sont les mêmes.
+- **Onglet partagé « Catalogue produits » = 7 panneaux empilés** (27 lignes de JSX) :
+  BoutiqueAnomalyBanner, CatalogClaimsAuditPanel, CatalogAdminPanel, puis les 4
+  outils de gouvernance déplacés. C'est l'onglet le plus lourd du tableau de bord.
+  Au montage il déclenche ~10 requêtes dont **3× `/api/admin/catalog/products`**
+  (BoutiqueAnomalyBanner, CatalogAdminPanel, ProductNeedsEditor) et
+  **2× `/api/admin/catalog/publication-readiness`**.
+- `ProductNeedsEditor` demande `?scope=all` (ligne 29) mais le serveur filtre sur le
+  scope de session (`readWorkspaceScope(req)` + `isProductInWorkspace`,
+  `src/server/routes/catalogGovernance.ts` lignes 110-113) : le paramètre est ignoré,
+  aucune fuite entre espaces. Le libellé est trompeur, le comportement est sain.
