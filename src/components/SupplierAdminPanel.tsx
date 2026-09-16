@@ -75,6 +75,10 @@ function inputClass(): string {
 function labelClass(): string {
   return 'text-[10px] uppercase tracking-wider font-bold text-kurla-amber';
 }
+// Contrôles de filtre glissés sous chaque en-tête de colonne (17/09).
+function headerFilterClass(): string {
+  return 'w-full min-w-[88px] px-2 py-1 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-[11px] font-normal normal-case tracking-normal focus:outline-none focus:border-kurla-copper';
+}
 
 export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: SupplierAdminPanelProps) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
@@ -84,10 +88,17 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Filtres demandés le 17/09 : retrouver un fournisseur par nom/pays/contact,
-  // et isoler ceux qu'on ne peut pas encore joindre (aucun e-mail enregistré).
-  const [filterText, setFilterText] = useState('');
-  const [onlyMissingContact, setOnlyMissingContact] = useState(false);
+  // Filtres par colonne (17/09) : chaque colonne du tableau a son filtre,
+  // combinables entre eux. Aucun filtre = liste complète.
+  const [filters, setFilters] = useState({
+    search: '', name: '', type: '', country: '', contact: '', moq: '', lead: '', docs: '', usage: '', status: ''
+  });
+  const setFilter = (key: keyof typeof filters, value: string) => setFilters(prev => ({ ...prev, [key]: value }));
+  const hasFilters = Object.values(filters).some(Boolean);
+  // Édition en ligne du contact (17/09) : ajouter ou compléter un contact
+  // directement dans la liste, sans ouvrir la fiche complète.
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [contactEdit, setContactEdit] = useState({ contactName: '', contactEmail: '' });
 
   const [draft, setDraft] = useState({
     legalName: '', tradeName: '', supplierType: 'unknown', country: '', website: '',
@@ -190,6 +201,27 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
     }
   };
 
+  // Enregistrement du contact édité en ligne dans le tableau (17/09) :
+  // même route PATCH que la fiche détaillée, rechargement de la liste ensuite.
+  const saveRowContact = async (supplier: SupplierRow) => {
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/suppliers/${encodeURIComponent(supplier.id)}`, {
+        method: 'PATCH', headers, body: JSON.stringify(contactEdit)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Contact non enregistré.');
+      onSuccess?.(`Contact de « ${supplier.legalName} » enregistré.`);
+      setEditingContactId(null);
+      await load();
+    } catch (contactError: any) {
+      setError(contactError.message || 'Contact non enregistré.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveContact = async () => {
     if (!detail) return;
     setBusy(true);
@@ -235,17 +267,37 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
     }
   };
 
-  // Liste filtrée : recherche texte (nom, métier, pays, contact) + isolement
-  // des fournisseurs sans e-mail enregistré. Aucun filtre = liste complète.
-  const filterQuery = filterText.trim().toLowerCase();
+  // Liste filtrée : recherche globale + un filtre par colonne, combinables
+  // entre eux. Aucun filtre = liste complète.
+  const searchQuery = filters.search.trim().toLowerCase();
+  const nameQuery = filters.name.trim().toLowerCase();
+  const countryQuery = filters.country.trim().toLowerCase();
   const visibleSuppliers = suppliers.filter(supplier => {
-    if (onlyMissingContact && supplier.contactEmail) return false;
-    if (!filterQuery) return true;
-    return [
-      supplier.legalName, supplier.tradeName, supplier.country,
-      SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType,
-      supplier.contactEmail, supplier.contactName
-    ].filter(Boolean).join(' ').toLowerCase().includes(filterQuery);
+    if (searchQuery) {
+      const haystack = [
+        supplier.legalName, supplier.tradeName, supplier.country,
+        SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType,
+        supplier.contactEmail, supplier.contactName
+      ].filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(searchQuery)) return false;
+    }
+    if (nameQuery && !`${supplier.legalName} ${supplier.tradeName || ''}`.toLowerCase().includes(nameQuery)) return false;
+    if (filters.type && supplier.supplierType !== filters.type) return false;
+    if (countryQuery && !String(supplier.country || '').toLowerCase().includes(countryQuery)) return false;
+    if (filters.contact === 'avec' && !supplier.contactEmail) return false;
+    if (filters.contact === 'sans' && supplier.contactEmail) return false;
+    if (filters.moq === 'oui' && !supplier.moqUnits) return false;
+    if (filters.moq === 'non' && supplier.moqUnits) return false;
+    if (filters.lead === 'oui' && !supplier.leadTimeDays) return false;
+    if (filters.lead === 'non' && supplier.leadTimeDays) return false;
+    if (filters.docs === 'avec' && supplier.documentCount === 0) return false;
+    if (filters.docs === 'sans' && supplier.documentCount > 0) return false;
+    if (filters.docs === 'perimees' && supplier.expiredDocumentCount === 0) return false;
+    if (filters.usage === 'hair' && !(supplier.linkedHairCount || 0)) return false;
+    if (filters.usage === 'skin' && !(supplier.linkedSkinCount || 0)) return false;
+    if (filters.usage === 'non' && ((supplier.linkedHairCount || 0) + (supplier.linkedSkinCount || 0)) > 0) return false;
+    if (filters.status && supplier.verificationStatus !== filters.status) return false;
+    return true;
   });
 
   return (
@@ -274,18 +326,20 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <input
             className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-xs focus:outline-none focus:border-kurla-copper w-64"
-            placeholder="Filtrer : nom, métier, pays, contact…"
-            value={filterText}
-            onChange={event => setFilterText(event.target.value)}
+            placeholder="Recherche globale : nom, métier, pays, contact…"
+            value={filters.search}
+            onChange={event => setFilter('search', event.target.value)}
           />
-          <button
-            onClick={() => setOnlyMissingContact(value => !value)}
-            className={`px-3 py-2 rounded-xl border text-xs ${onlyMissingContact ? 'border-amber-300/50 bg-amber-500/15 text-amber-200' : 'border-kurla-cream/15 text-kurla-cream/70 hover:border-kurla-copper'}`}
-          >
-            Sans contact ({suppliers.filter(s => !s.contactEmail).length})
-          </button>
-          {(filterText || onlyMissingContact) && (
-            <span className="text-[11px] text-kurla-cream/50">{visibleSuppliers.length} affiché(s) sur {suppliers.length}</span>
+          {hasFilters && (
+            <>
+              <span className="text-[11px] text-kurla-cream/50">{visibleSuppliers.length} affiché(s) sur {suppliers.length}</span>
+              <button
+                onClick={() => setFilters({ search: '', name: '', type: '', country: '', contact: '', moq: '', lead: '', docs: '', usage: '', status: '' })}
+                className="px-3 py-2 rounded-xl border border-kurla-cream/15 text-xs text-kurla-cream/70 hover:border-kurla-copper"
+              >
+                Réinitialiser les filtres
+              </button>
+            </>
           )}
         </div>
         {suppliers.length === 0 ? (
@@ -309,6 +363,73 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
                   <th className="py-2 pr-3">Statut</th>
                   <th className="py-2" />
                 </tr>
+                {/* Un filtre sous chaque colonne (17/09) : texte libre pour
+                    raison sociale et pays, listes déroulantes pour les
+                    colonnes à valeurs connues. Filtres combinables. */}
+                <tr>
+                  <th className="pb-2 pr-3">
+                    <input className={headerFilterClass()} placeholder="Nom…" value={filters.name} onChange={event => setFilter('name', event.target.value)} />
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.type} onChange={event => setFilter('type', event.target.value)}>
+                      <option value="">Tous</option>
+                      {(supplierTypes.length ? supplierTypes : Object.keys(SUPPLIER_TYPE_LABELS)).map(type => (
+                        <option key={type} value={type}>{SUPPLIER_TYPE_LABELS[type] || type}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <input className={headerFilterClass()} placeholder="Pays…" value={filters.country} onChange={event => setFilter('country', event.target.value)} />
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.contact} onChange={event => setFilter('contact', event.target.value)}>
+                      <option value="">Tous</option>
+                      <option value="avec">Avec e-mail</option>
+                      <option value="sans">Sans e-mail</option>
+                    </select>
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.moq} onChange={event => setFilter('moq', event.target.value)}>
+                      <option value="">Tous</option>
+                      <option value="oui">Renseigné</option>
+                      <option value="non">Vide</option>
+                    </select>
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.lead} onChange={event => setFilter('lead', event.target.value)}>
+                      <option value="">Tous</option>
+                      <option value="oui">Renseigné</option>
+                      <option value="non">Vide</option>
+                    </select>
+                  </th>
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.docs} onChange={event => setFilter('docs', event.target.value)}>
+                      <option value="">Toutes</option>
+                      <option value="avec">Avec preuve</option>
+                      <option value="sans">Sans preuve</option>
+                      <option value="perimees">Périmée(s)</option>
+                    </select>
+                  </th>
+                  {showAll && (
+                    <th className="pb-2 pr-3">
+                      <select className={headerFilterClass()} value={filters.usage} onChange={event => setFilter('usage', event.target.value)}>
+                        <option value="">Tous</option>
+                        <option value="hair">Utilisé Hair</option>
+                        <option value="skin">Utilisé Skin</option>
+                        <option value="non">Non utilisé</option>
+                      </select>
+                    </th>
+                  )}
+                  <th className="pb-2 pr-3">
+                    <select className={headerFilterClass()} value={filters.status} onChange={event => setFilter('status', event.target.value)}>
+                      <option value="">Tous</option>
+                      <option value="verified">Vérifié</option>
+                      <option value="pending">En attente</option>
+                      <option value="not_provided">Non fourni</option>
+                    </select>
+                  </th>
+                  <th className="pb-2" />
+                </tr>
               </thead>
               <tbody>
                 {visibleSuppliers.length === 0 && (
@@ -326,11 +447,42 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
                       <td className="py-2 pr-3 text-kurla-cream/70">{SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{supplier.country || '—'}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">
-                        {supplier.contactEmail
-                          ? <a href={`mailto:${supplier.contactEmail}`} className="text-kurla-copper hover:underline">{supplier.contactEmail}</a>
-                          : supplier.contactName
-                            ? <span title="E-mail à compléter">{supplier.contactName}</span>
-                            : <span className="text-amber-300/80">à compléter</span>}
+                        {editingContactId === supplier.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              className={headerFilterClass()}
+                              placeholder="Nom du contact"
+                              value={contactEdit.contactName}
+                              onChange={event => setContactEdit({ ...contactEdit, contactName: event.target.value })}
+                            />
+                            <input
+                              type="email"
+                              className={headerFilterClass()}
+                              placeholder="E-mail"
+                              value={contactEdit.contactEmail}
+                              onChange={event => setContactEdit({ ...contactEdit, contactEmail: event.target.value })}
+                            />
+                            <button onClick={() => void saveRowContact(supplier)} disabled={busy}
+                              className="px-2 py-1 rounded-lg bg-kurla-copper text-kurla-ink text-[10px] font-bold disabled:opacity-40">OK</button>
+                            <button onClick={() => setEditingContactId(null)}
+                              className="px-2 py-1 rounded-lg border border-kurla-cream/15 text-[10px] text-kurla-cream/70">✕</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {supplier.contactEmail
+                              ? <a href={`mailto:${supplier.contactEmail}`} className="text-kurla-copper hover:underline">{supplier.contactEmail}</a>
+                              : supplier.contactName
+                                ? <span title="E-mail à compléter">{supplier.contactName}</span>
+                                : <span className="text-amber-300/80">à compléter</span>}
+                            <button
+                              onClick={() => { setEditingContactId(supplier.id); setContactEdit({ contactName: supplier.contactName || '', contactEmail: supplier.contactEmail || '' }); }}
+                              className="text-[10px] text-kurla-cream/45 hover:text-kurla-copper whitespace-nowrap"
+                              title="Ajouter ou modifier le contact"
+                            >
+                              {supplier.contactEmail || supplier.contactName ? 'modifier' : '+ ajouter'}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{supplier.moqUnits ? `${supplier.moqUnits} u.` : '—'}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{supplier.leadTimeDays ? `${supplier.leadTimeDays} j` : '—'}</td>
