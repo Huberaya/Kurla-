@@ -5,7 +5,7 @@ type Props = { headers: HeadersInit; onSuccess?: (message: string) => void; full
 
 type Supplier = { id: string; legalName: string; tradeName?: string; supplierType: string; country?: string };
 type Product = {
-  id: string; name: string; slug: string; category: string;
+  id: string; name: string; slug: string; category: string; brand?: string | null;
   supplierId?: string | null; supplierSku?: string | null; sourceSupplier?: string | null;
 };
 
@@ -26,11 +26,33 @@ const TYPE_LABEL: Record<string, string> = {
  * par référence, d'où vient le produit et à quel coût approximatif — base du
  * pilotage de la marge et du sourcing « bas coût ».
  */
+// Suggestions issues de la recherche du 14/09 (docs/sourcing/REGISTRE_SOURCING_
+// FOND_75_PRODUITS_2026-09-14.csv) et du point du 16/09. Affichées comme
+// suggestions : rien n'est enregistré sans clic. Seules les marques dont une
+// source est réellement identifiée apparaissent ; une pré-sélection n'est
+// faite que là où un canal B2B concret existe (Isntree → Qudo Beauty).
+const BRAND_SUGGESTIONS: Record<string, { supplierId?: string; note: string }> = {
+  'Isntree': {
+    supplierId: 'sup-qudo-beauty-ro',
+    note: 'Recherche 14/09 : Qudo Beauty (RO) — MOQ 300 €, CPNP + RP UE + INCI déclarés par écrit. Marque officielle à confirmer avant commande.'
+  },
+  'The Ordinary': {
+    note: 'Recherche 14/09 : DECIEM — aucun canal de gros identifié, compte pro à ouvrir. Non rattaché tant qu\'aucune source réelle n\'existe.'
+  },
+  'KURLA Skincare': {
+    note: 'Marque propre — façonniers Oomylab / Phytodia en comparaison de devis, aucun choisi (16/09). L\'affectation est une décision, pas une suggestion.'
+  }
+};
+
 export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, fullCatalog = false }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'unassigned'>('all');
+  // Option 3 (17/09) : en mode complet, l'écran s'ouvre sur la file de travail
+  // réelle (les produits sans fournisseur) et la liste reste repliée — c'est
+  // un outil ponctuel, pas une lecture quotidienne. L'ancien mode est inchangé.
+  const [filter, setFilter] = useState<'all' | 'unassigned'>(fullCatalog ? 'unassigned' : 'all');
+  const [expanded, setExpanded] = useState(!fullCatalog);
   const [drafts, setDrafts] = useState<Record<string, { supplierId: string; supplierSku: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -56,13 +78,23 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
       const prodList: Product[] = (fullCatalog ? rawProducts : rawProducts.filter((p: any) => String(p.id).startsWith('launch-')))
         .map((p: any) => ({
           id: String(p.id), name: p.name, slug: p.slug, category: p.category,
+          brand: (p as any).brand ?? null,
           supplierId: (p as any).supplierId ?? (p as any).supplier_id ?? null,
           supplierSku: (p as any).supplierSku ?? (p as any).supplier_sku ?? null,
           sourceSupplier: (p as any).sourceSupplier ?? (p as any).source_supplier ?? null
         }));
       setProducts(prodList);
       const init: Record<string, { supplierId: string; supplierSku: string }> = {};
-      for (const p of prodList) init[p.id] = { supplierId: p.supplierId || '', supplierSku: p.supplierSku || '' };
+      for (const p of prodList) {
+        // Pré-suggestion (17/09) : un produit sans fournisseur dont la marque a
+        // un canal B2B réellement identifié démarre avec ce fournisseur
+        // présélectionné — jamais enregistré sans clic sur « Enregistrer ».
+        const suggestion = BRAND_SUGGESTIONS[String(p.brand || '')];
+        const preselect = !p.supplierId && suggestion?.supplierId
+          && supList.some(s => s.id === suggestion.supplierId)
+          ? suggestion.supplierId : '';
+        init[p.id] = { supplierId: p.supplierId || preselect, supplierSku: p.supplierSku || '' };
+      }
       setDrafts(init);
     } catch (e) {
       console.error('Erreur chargement affectation fournisseurs', e);
@@ -137,6 +169,12 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
             </button>
           ))}
         </div>
+        {fullCatalog && !loading && suppliers.length > 0 && (
+          <button onClick={() => setExpanded(v => !v)}
+            className="ml-auto px-3 py-1.5 rounded-full text-[11px] font-bold border border-kurla-cream/15 bg-kurla-ink text-kurla-cream/70 hover:border-kurla-copper whitespace-nowrap">
+            {expanded ? 'Replier la liste' : `Déplier la liste — ${visible.length} produit(s) à traiter`}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -144,6 +182,10 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
       ) : suppliers.length === 0 ? (
         <p className="text-xs text-amber-300/80 bg-amber-950/30 border border-amber-500/20 rounded-2xl p-4">
           Aucun fournisseur enregistré. Créez d'abord des fournisseurs dans le panneau ci-dessous (ou lancez le script de seed sourcing).
+        </p>
+      ) : !expanded ? (
+        <p className="text-xs text-kurla-cream/50 italic">
+          Liste repliée — outil ponctuel d'affectation. Le compteur ci-dessus reste à jour ; dépliez pour traiter les produits sans fournisseur.
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -160,11 +202,19 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
               {visible.map(p => {
                 const draft = drafts[p.id] || { supplierId: '', supplierSku: '' };
                 const dirty = draft.supplierId !== (p.supplierId || '') || draft.supplierSku !== (p.supplierSku || '');
+                // Suggestion du 14/09 : affichée tant que le produit n'a pas de
+                // fournisseur enregistré — une piste sourcée, jamais une vérité.
+                const suggestion = !p.supplierId ? BRAND_SUGGESTIONS[String(p.brand || '')] : undefined;
                 return (
                   <tr key={p.id} className="align-middle">
                     <td className="py-2.5 px-2">
                       <span className="font-semibold text-kurla-cream">{p.name}</span>
-                      <p className="text-[10px] text-kurla-cream/40 font-mono">{p.id} · {p.category}</p>
+                      <p className="text-[10px] text-kurla-cream/40 font-mono">{p.id} · {p.category}{p.brand ? ` · ${p.brand}` : ''}</p>
+                      {suggestion && (
+                        <p className="text-[10px] text-amber-300/85 mt-1 max-w-sm">
+                          Suggestion — {suggestion.note}
+                        </p>
+                      )}
                     </td>
                     <td className="py-2.5 px-2">
                       <select
