@@ -3069,3 +3069,9 @@ le fournisseur d'abord.
 **Non fait** : déplacer les 10 kits capillaires hors de l'espace peau (ce sont
 les seules fiches servies — les retirer viderait la vitrine), et supprimer les
 4 fiches « (Démo) » (destructif, et déjà refusé une fois pour `p15`).
+
+## 2026-09-17 — Réorganisation « Qui me fournit » (Agent Arena, `a1977d3`, poussé)
+- Demande utilisateur : voir d'abord les fournisseurs et leurs contacts avec un filtre ; « Dossier fournisseur » et « Fournisseur par produit » en bas.
+- `SupplierAdminPanel` : titre « Référentiel (N) » → **« Fournisseurs (N) »**, barre de filtres ajoutée (recherche texte nom/métier/pays/contact + bouton « Sans contact (N) » qui isole les fournisseurs sans e-mail enregistré — mesuré : 25/29). Colonne Contact inchangée (e-mail cliquable, « à compléter » si absent — jamais inventé).
+- Ordre de l'onglet : Fournisseurs (filtrable) → Ce que chaque fournisseur fournit → Matrice pays → Recherche → **en bas** Dossier fournisseur + Fournisseur par produit.
+- Merge du travail distant `a7800c6` (« Publié doit dire vrai », 40 candidates peau retirées de la vitrine, banc doublons-catalogue) — revérifié sur l'arbre fusionné : tsc 0, 4 bancs [PASS], build 0, bundle local OK (« Référentiel ( » = 0 occurrence).
