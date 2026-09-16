@@ -17,6 +17,7 @@ import { evaluateCosmeticCompliance, requiresCpnp } from '../cosmeticCompliance'
 import { evaluateCatalogSourcingReadiness, type CatalogSourcingReadiness } from '../catalogSourcingReadiness';
 import { getCatalogTruth, isTestListableProduct, isTestListingProduct, type OriginProvenance } from '../catalogTruth';
 import { evaluateTestPhaseGates, type TestPhaseGates } from '../testPhaseGates';
+import { readPublicationPolicy } from './publicationPolicyStore';
 
 /** Statuts de provenance acceptés, alignés sur la contrainte de base. */
 const ORIGIN_STATUS_VALUES: string[] = ['verified', 'declared', 'pending', 'not_provided'];
@@ -389,8 +390,53 @@ export async function getProductForAdministration(store: SupabaseServerStore, id
     return products.find(p => String(p.id) === idOrSlug || String(p.slug) === idOrSlug);
   }
 
+/**
+ * C3 — MODE STRICT DE LA BOUTIQUE (politique de publication).
+ *
+ * Quand `strict_mode` est armé (politique persistée, OFF par défaut), la liste
+ * publique ne sert que les fiches dont la publication-readiness est AU VERT
+ * (même rapport que la vue admin : source unique, pas de logique dupliquée).
+ * Les fiches publiées mais non conformes ne sont PAS déspubliées — elles sont
+ * masquées de la liste publique tant que le mode strict est armé, et
+ * réapparaissent au désarmement. Aucune donnée n'est modifiée.
+ *
+ * Coût : le jeu des ids conformes est calculé par le rapport de readiness
+ * (déjà batché, sans N× requêtes) et mis en cache 60 s en processus — même
+ * ordre de fraîcheur que le cache CDN de /api/products. Quand le mode est OFF
+ * (l'état par défaut), `strictModeReadyIds` ne lit que la politique (une
+ * ligne) et ne charge PAS le rapport : le chemin chaud reste au poids d'avant.
+ */
+let strictModeCache: { computedAt: number; policyAvailable: boolean; strict: boolean; ids: Set<string> } | null = null;
+const STRICT_MODE_CACHE_TTL_MS = 60_000;
+
+/**
+ * Jeu des ids conformes si le mode strict est armé, sinon `null`
+ * (null = aucun filtrage : état OFF, comportement d'avant, zéro surcoût).
+ */
+async function strictModeReadyIds(store: SupabaseServerStore): Promise<Set<string> | null> {
+  if (strictModeCache && Date.now() - strictModeCache.computedAt < STRICT_MODE_CACHE_TTL_MS) {
+    return strictModeCache.strict ? strictModeCache.ids : null;
+  }
+  const policy = await readPublicationPolicy(store);
+  let ids = new Set<string>();
+  if (policy.available && policy.strictMode) {
+    const report = await getCatalogPublicationReadinessReport(store);
+    ids = new Set(report.perProduct.filter(p => p.ready).map(p => String(p.productId)));
+  }
+  strictModeCache = { computedAt: Date.now(), policyAvailable: policy.available, strict: policy.available && policy.strictMode, ids };
+  return strictModeCache.strict ? ids : null;
+}
+
+/** Réinitialise le cache mode strict (utilisé par le banc et après un armement). */
+export function resetStrictModeCache(): void {
+  strictModeCache = null;
+}
+
 export async function getPublicProducts(store: SupabaseServerStore, options: { testListings?: boolean } = {}): Promise<any[]> {
-    return (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct);
+    const produits = (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct);
+    // C3 — mode strict armé : ne servir que les fiches conformes (readiness au vert).
+    const readyIds = await strictModeReadyIds(store);
+    return readyIds ? produits.filter(p => readyIds.has(String(p.id))) : produits;
   }
 
   /**
@@ -410,7 +456,12 @@ export async function getPublicProducts(store: SupabaseServerStore, options: { t
     // `getProducts` lit TOUTES les fiches actives en une requête et ne retire
     // les fiches test qu'ensuite, en mémoire : demander le mode test ne coûte
     // donc aucune lecture de plus, et retirer les fiches test ici non plus.
-    const lignes = await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true });
+    let lignes = await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true });
+    // C3 — mode strict armé : le même jeu de fiches conformes filtre la liste
+    // publique ET le catalogue des devis de kits — une fiche masquée de la
+    // boutique ne doit pas être vendue dans un kit. Mode OFF : aucun filtrage.
+    const readyIds = await strictModeReadyIds(store);
+    if (readyIds) lignes = lignes.filter(ligne => readyIds.has(String(ligne.id)));
     // Les devis de kits restent calculés sur le catalogue STRICT, y compris en
     // mode test : une fiche test n'a pas de prix KURLA et ne doit jamais
     // entrer dans un devis. Même discriminant que `publishedGate`.

@@ -22,6 +22,7 @@ import {
   buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
   PIPELINE_STAGES, type PipelineResult, type PipelineStage
 } from '../lib/catalogPipeline';
+import type { PublicationPolicyState } from '../lib/db/publicationPolicyStore';
 
 type ConsolidatedRow = { kind: 'product' | 'candidate'; id: string; name: string; supplierName: string | null; priceEur: number | null };
 
@@ -40,6 +41,10 @@ export const CatalogPipelinePanel: React.FC<{
   const [criterionFilter, setCriterionFilter] = useState<string | null>(null);
   const [unpublishingId, setUnpublishingId] = useState<string | null>(null);
   const [flash, setFlash] = useState('');
+  // C3 — politique de publication (mode strict) : lue à part, un échec de
+  // lecture ne bloque jamais le reste du panneau (état « non mesurable »).
+  const [policy, setPolicyState] = useState<PublicationPolicyState | null>(null);
+  const [arming, setArming] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,6 +61,16 @@ export const CatalogPipelinePanel: React.FC<{
       if (r.status === 'rejected' || !r.value || r.value.error) failed.push(names[i]);
     });
     setUnavailable(failed);
+
+    // C3 — politique de publication : lecture indépendante (ne bloque pas le
+    // panneau). Table absente → available:false + raison, affichée telle quelle.
+    fetch('/api/admin/publication-policy', { headers })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data: any) => { if (data?.policy) setPolicyState(data.policy); })
+      .catch(() => setPolicyState({
+        available: false, strictMode: false, activatedAt: null, activatedBy: null, note: null, updatedAt: null,
+        reason: 'lecture de la politique impossible (vérifier la session admin)'
+      }));
 
     const consolidatedValue = consolidated.status === 'fulfilled' ? (consolidated.value as any) : null;
     const consolidatedRows: ConsolidatedRow[] = (consolidatedValue?.rows || [])
@@ -126,6 +141,33 @@ export const CatalogPipelinePanel: React.FC<{
     }
   };
 
+  // C3 — armement / désarmement du mode strict. Un acte explicite, confirmé
+  // (window.confirm), écrit via la route admin (guardée + journalisée).
+  const applyPolicy = (strictMode: boolean) => {
+    const message = strictMode
+      ? 'Armer le MODE STRICT ? La boutique (liste, fiches, devis de kits) ne servira plus que les fiches dont les critères de vente sont tous au vert, jusqu’au désarmement. Les fiches actuellement visibles mais non conformes seront masquées le temps de compléter leur dossier. L’armement est daté, nommé et journalisé.'
+      : 'Désarmer le MODE STRICT ? La boutique redevient l’état actuel : les fiches publiées sont servies telles quelles, les non conformes restant signalées par l’alarme anomalies. Le désarmement est journalisé.';
+    if (!window.confirm(message)) return;
+    setArming(true);
+    setFlash('');
+    fetch('/api/admin/publication-policy', {
+      method: 'PATCH', headers, body: JSON.stringify({ strictMode, note: strictMode ? 'armé depuis le dashboard admin' : 'désarmé depuis le dashboard admin' })
+    })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok && data?.policy) {
+          setPolicyState(data.policy);
+          setFlash(strictMode
+            ? 'Mode strict ARMÉ — la boutique ne sert désormais que les fiches conformes (reflet immédiat côté serveur, CDN : quelques minutes au plus).'
+            : 'Mode strict DÉSARMÉ — la boutique est retournée à l’état actuel.');
+        } else {
+          setFlash(`Échec de l’écriture : ${data?.error || 'erreur inconnue'}${data?.detail ? ` — ${data.detail}` : ''}.`);
+        }
+      })
+      .catch(() => setFlash('Erreur réseau lors de l’écriture de la politique — état inchangé.'))
+      .finally(() => setArming(false));
+  };
+
   const visibleRows = useMemo(() => {
     if (!result) return [];
     const q = search.trim().toLowerCase();
@@ -158,6 +200,37 @@ export const CatalogPipelinePanel: React.FC<{
 
       {result && !loading && (
         <>
+          {/* C3 — MODE STRICT : la politique de publication, armée ou non */}
+          <section className={`rounded-2xl border p-4 space-y-2 ${policy?.available && policy.strictMode ? 'border-amber-500/40 bg-amber-500/[0.08]' : 'border-kurla-cream/10 bg-kurla-ink/40'}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Store className={`w-4 h-4 ${policy?.available && policy.strictMode ? 'text-amber-300' : 'text-kurla-cream/40'}`} />
+              <h3 className="text-sm font-bold text-kurla-cream">Mode strict — politique de publication</h3>
+              {policy?.available && (
+                policy.strictMode
+                  ? <span className="px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/40 text-[10px] font-bold text-amber-200">ARMÉ — boutique restreinte aux fiches conformes</span>
+                  : <span className="px-2 py-0.5 rounded-full bg-kurla-cream/10 border border-kurla-cream/20 text-[10px] font-bold text-kurla-cream/60">Désarmé (état par défaut)</span>
+              )}
+            </div>
+            {policy?.available ? (
+              <>
+                <p className="text-[11px] text-kurla-cream/60 max-w-4xl">
+                  {policy.strictMode
+                    ? <>Armé le {policy.activatedAt ? `${new Date(policy.activatedAt).toLocaleDateString('fr-FR')} à ${new Date(policy.activatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : '—'} par {policy.activatedBy || '—'}{policy.note ? <> — {policy.note}</> : null}. Jusqu’au désarmement, la boutique ne sert que les fiches conformes ; une fiche redevient visible dès que ses critères passent au vert.</>
+                    : <>État par défaut : la boutique sert les fiches publiées telles quelles, les non conformes restant signalées par l’alarme anomalies. Armé, le mode strict ne laisse en boutique que les fiches dont tous les critères de vente sont au vert — l’aperçu lecture seule « Conformes uniquement » ci-dessous montre déjà ce résultat.</>}
+                </p>
+                <button type="button" onClick={() => applyPolicy(!policy.strictMode)} disabled={arming}
+                  className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold disabled:opacity-50 ${policy.strictMode ? 'bg-kurla-ink border-kurla-cream/25 text-kurla-cream/80 hover:border-kurla-cream/40' : 'bg-amber-500/20 border-amber-500/40 text-amber-200 hover:bg-amber-500/30'}`}>
+                  {arming ? 'Écriture en cours…' : policy.strictMode ? 'Désarmer le mode strict' : 'Armer le mode strict'}
+                </button>
+              </>
+            ) : (
+              <p className="text-[11px] text-kurla-cream/60 max-w-4xl">
+                État <span className="font-bold text-amber-200/90">non mesurable</span> — {policy?.reason || 'erreur de lecture inconnue'}.
+                Le bouton « Conformes uniquement » ci-dessous reste un aperçu lecture seule ; l’interrupteur ci-dessus devient réel dès que la politique est lisible.
+              </p>
+            )}
+          </section>
+
           {/* KPIs / compteurs de stades */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             <button type="button" onClick={() => { setStageFilter('all'); setConformOnly(false); }}

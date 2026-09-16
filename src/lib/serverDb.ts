@@ -142,6 +142,8 @@ import type { MembershipRecord } from './membership';
  */
 export class SupabaseServerStore {
   public inMemoryProducts: any[] = [];
+  /** C3 — politique de publication (mode strict). null = table non appliquée (état nommé, repli OFF). */
+  public inMemoryPublicationPolicy: { id: number; strict_mode: boolean; activated_at: string | null; activated_by: string | null; note: string | null; updated_at: string } | null = null;
   /** CHANTIER 10 (bloc B1) — référentiel d'ingrédients et liaisons produit × ingrédient. */
   public inMemoryIngredients: any[] = [];
   public inMemoryProductIngredients: import('./ingredientGraph').ProductIngredientLink[] = [];
