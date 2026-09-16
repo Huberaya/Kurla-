@@ -3075,3 +3075,8 @@ les seules fiches servies — les retirer viderait la vitrine), et supprimer les
 - `SupplierAdminPanel` : titre « Référentiel (N) » → **« Fournisseurs (N) »**, barre de filtres ajoutée (recherche texte nom/métier/pays/contact + bouton « Sans contact (N) » qui isole les fournisseurs sans e-mail enregistré — mesuré : 25/29). Colonne Contact inchangée (e-mail cliquable, « à compléter » si absent — jamais inventé).
 - Ordre de l'onglet : Fournisseurs (filtrable) → Ce que chaque fournisseur fournit → Matrice pays → Recherche → **en bas** Dossier fournisseur + Fournisseur par produit.
 - Merge du travail distant `a7800c6` (« Publié doit dire vrai », 40 candidates peau retirées de la vitrine, banc doublons-catalogue) — revérifié sur l'arbre fusionné : tsc 0, 4 bancs [PASS], build 0, bundle local OK (« Référentiel ( » = 0 occurrence).
+
+## 2026-09-17 — Fournisseurs : contact en ligne + filtres par colonne (Agent Arena, `acadc7b`, poussé)
+- Demande utilisateur : un moyen d'ajouter les contacts + un filtre sur toutes les colonnes.
+- `SupplierAdminPanel` : cellule Contact éditable en ligne (« + ajouter » / « modifier » → champs nom + e-mail → OK/✕), même route PATCH `/api/admin/suppliers/:id` que la fiche détaillée (aucune nouvelle route). Un filtre sous chaque colonne : raison sociale (texte), métier (liste), pays (texte), contact (tous/avec e-mail/sans e-mail), MOQ et délai (renseigné/vide), preuves (avec/sans/périmée), usage réel (Hair/Skin/non utilisé), statut (vérifié/en attente/non fourni) — combinables entre eux ; recherche globale conservée + bouton « Réinitialiser les filtres ».
+- Vérifications : tsc 0, 4 bancs [PASS], build 0, bundle local 9/9 chaînes, push FF_OK (remote HEAD = acadc7b).
