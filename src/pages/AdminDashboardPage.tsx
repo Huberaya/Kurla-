@@ -15,6 +15,8 @@ import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { GlobalSearchPanel } from '../components/GlobalSearchPanel';
 import { SourcingWorkflowPanel } from '../components/SourcingWorkflowPanel';
 import { SourcingWorkflowFunnel } from '../components/SourcingWorkflowFunnel';
+import { SourcedReferencesPanel } from '../components/SourcedReferencesPanel';
+import { SupplierCatalogPanel } from '../components/SupplierCatalogPanel';
 import { SupplierDossierPanel } from '../components/SupplierDossierPanel';
 import { ProductNeedsEditor } from '../components/ProductNeedsEditor';
 import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
@@ -1636,6 +1638,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
             <SupplierDossierPanel headers={adminHeaders} />
             <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <SupplierCatalogPanel headers={adminHeaders} />
             <ProductSupplierPanel headers={adminHeaders} fullCatalog onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <GlobalSearchPanel headers={adminHeaders} />
@@ -1649,6 +1652,7 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">D'abord l'entonnoir : où en est chaque référence sur les 8 étapes. Ensuite les outils : pistes, pilotage étape par étape, proposition d'achat du premier lot.</p>
             </div>
             <SourcingWorkflowFunnel headers={adminHeaders} />
+            <SourcedReferencesPanel headers={adminHeaders} />
             <SourcingProspectsPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingWorkflowPanel headers={adminHeaders} />
             <PurchaseProposalPanel headers={adminHeaders} />
