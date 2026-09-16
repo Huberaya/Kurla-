@@ -59,6 +59,45 @@ export interface SourcingProspect {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** Fiche fournisseur validée à laquelle cette piste a abouti (migration 20261004). */
+  supplierId?: string | null;
+  /** Identité du fournisseur, rejointe à la lecture — jamais recopiée. */
+  supplier?: SupplierIdentity | null;
+  /**
+   * Vrai quand le contact affiché vient de la fiche fournisseur, la piste n'en
+   * ayant pas. Sans cette mention, l'exploitant croirait corriger la fiche en
+   * retapant l'e-mail ici — il créerait en fait une deuxième valeur, qui
+   * divergerait dès la prochaine mise à jour du fournisseur.
+   */
+  contactFromSupplier?: boolean;
+}
+
+/**
+ * Identité du fournisseur validé, rejointe à la piste.
+ *
+ * Pourquoi rejoindre plutôt que recopier : une piste est une démarche, un
+ * fournisseur une fiche validée. Recopier `contact_email` ou `country` dans la
+ * piste créerait une deuxième valeur, qui divergerait dès la prochaine mise à
+ * jour — c'est exactement la panne qu'on est en train de réparer. On joint.
+ *
+ * Mesuré le 16/09/2026 : sur 28 pistes, 3 seulement ont un e-mail de contact,
+ * aucune n'a de pays, de site ni de statut de vérification. Côté fournisseurs :
+ * 24 e-mails, 28 pays, 23 sites, 30 statuts. **L'information vit dans la fiche
+ * fournisseur** ; la piste ne la portait pas.
+ */
+export interface SupplierIdentity {
+  id: string;
+  legalName: string;
+  tradeName?: string;
+  supplierType?: string;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  moqUnits?: number | null;
+  leadTimeDays?: number | null;
+  certifications?: string[];
+  verificationStatus?: string;
 }
 
 export interface ProductCandidate {
@@ -112,7 +151,45 @@ function bool(value: unknown): boolean {
   return value === true || value === 'true' || value === 1 || value === '1';
 }
 
-function mapProspect(row: any): SourcingProspect {
+function mapSupplierIdentity(row: any): SupplierIdentity | null {
+  if (!row) return null;
+  const certifications = Array.isArray(row.certifications)
+    ? row.certifications.filter((c: unknown) => typeof c === 'string')
+    : typeof row.certifications === 'string' && row.certifications.trim()
+      ? [row.certifications]
+      : undefined;
+  return {
+    id: String(row.id),
+    legalName: String(row.legal_name ?? row.legalName ?? ''),
+    tradeName: row.trade_name ?? row.tradeName ?? undefined,
+    supplierType: row.supplier_type ?? row.supplierType ?? undefined,
+    country: row.country ?? undefined,
+    website: row.website ?? undefined,
+    contactName: row.contact_name ?? row.contactName ?? undefined,
+    contactEmail: row.contact_email ?? row.contactEmail ?? undefined,
+    moqUnits: typeof row.moq_units === 'number' ? row.moq_units : null,
+    leadTimeDays: typeof row.lead_time_days === 'number' ? row.lead_time_days : null,
+    certifications,
+    verificationStatus: row.verification_status ?? row.verificationStatus ?? undefined,
+  };
+}
+
+/**
+ * La piste garde ce qu'elle sait de particulier — un contact précis démarché —
+ * et la fiche fournisseur comble le reste. C'est ce sens-là qui fait qu'une
+ * information saisie sur le fournisseur apparaît dans les écrans de sourcing,
+ * sans jamais écraser ce que la piste a de plus précis.
+ */
+/**
+ * Exposé pour être vérifié par un banc : la fusion piste ↔ fournisseur est
+ * l'endroit où une erreur silencieuse coûterait le plus cher — une piste qui
+ * afficherait l'adresse d'une autre maison.
+ */
+export function mapProspect(row: any, supplierRow?: any): SourcingProspect {
+  const supplier = mapSupplierIdentity(supplierRow);
+  const propre = row.contact_email ?? row.contactEmail;
+  const contactEmail = propre ?? supplier?.contactEmail;
+  const contactName = row.contact_name ?? row.contactName ?? supplier?.contactName;
   return {
     id: String(row.id),
     name: String(row.name ?? ''),
@@ -120,8 +197,8 @@ function mapProspect(row: any): SourcingProspect {
     contactType: (oneOf(PROSPECT_CONTACT_TYPES, row.contact_type ?? row.contactType) ?? 'brand_fr') as ProspectContactType,
     specialty: row.specialty ?? undefined,
     sourceUrl: row.source_url ?? row.sourceUrl ?? undefined,
-    contactEmail: row.contact_email ?? row.contactEmail ?? undefined,
-    contactName: row.contact_name ?? row.contactName ?? undefined,
+    contactEmail: contactEmail ?? undefined,
+    contactName: contactName ?? undefined,
     channel: row.channel ?? undefined,
     status: (oneOf(PROSPECT_STATUSES, row.status) ?? 'to_contact') as ProspectStatus,
     firstContactedOn: row.first_contacted_on ?? row.firstContactedOn ?? undefined,
@@ -140,6 +217,9 @@ function mapProspect(row: any): SourcingProspect {
     notes: row.notes ?? undefined,
     createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? row.updatedAt ?? new Date().toISOString(),
+    supplierId: row.supplier_id ?? row.supplierId ?? supplier?.id ?? null,
+    supplier,
+    contactFromSupplier: !propre && Boolean(supplier?.contactEmail),
   };
 }
 
@@ -210,6 +290,30 @@ function seedCandidates(): ProductCandidate[] {
   }));
 }
 
+/**
+ * Rejoint les fiches fournisseurs aux pistes qui les référencent.
+ *
+ * Une seule requête pour toutes les pistes, pas une par ligne : ces écrans
+ * s'ouvrent à chaque chargement du dashboard.
+ *
+ * `supplier_id` vient de la migration 20261004. Si elle n'a pas été appliquée,
+ * la colonne est absente des lignes : aucune jointure, aucun plantage. Ce qui
+ * marche déjà continue de marcher.
+ */
+async function joindreFournisseurs(rows: any[]): Promise<Map<string, any>> {
+  const ids = [...new Set(
+    rows
+      .map(row => row?.supplier_id)
+      .filter((v): v is string => typeof v === 'string' && v.length > 0)
+  )];
+  if (ids.length === 0) return new Map();
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return new Map();
+  const { data, error } = await supabase.from('suppliers').select('*').in('id', ids);
+  if (error) return new Map();
+  return new Map((data ?? []).map(row => [String(row.id), row]));
+}
+
 // ------------------------------------------------------------------ Lecture
 
 export async function listProspects(store: SupabaseServerStore): Promise<SourcingProspect[]> {
@@ -217,7 +321,10 @@ export async function listProspects(store: SupabaseServerStore): Promise<Sourcin
   if (supabase) {
     const { data, error } = await supabase.from('sourcing_prospects').select('*').order('route').order('id');
     ensureDatabaseSuccess('lecture des prospects', error);
-    if (data && data.length > 0) return data.map(mapProspect);
+    if (data && data.length > 0) {
+      const fiches = await joindreFournisseurs(data);
+      return data.map(row => mapProspect(row, row.supplier_id ? fiches.get(String(row.supplier_id)) : undefined));
+    }
     // Base connectée mais table vide : on renvoie l'amorçage mémoire pour que
     // l'écran soit utilisable avant que la migration soit appliquée.
   }
@@ -229,7 +336,10 @@ export async function getProspect(store: SupabaseServerStore, id: string): Promi
   if (supabase) {
     const { data, error } = await supabase.from('sourcing_prospects').select('*').eq('id', id).maybeSingle();
     ensureDatabaseSuccess('lecture d’un prospect', error);
-    if (data) return mapProspect(data);
+    if (data) {
+      const fiches = await joindreFournisseurs([data]);
+      return mapProspect(data, data.supplier_id ? fiches.get(String(data.supplier_id)) : undefined);
+    }
   }
   return store.inMemoryProspects.find((p) => p.id === id);
 }

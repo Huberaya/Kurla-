@@ -3356,3 +3356,45 @@ Panneaux sans filtre identifiés par mesure, dans l'ordre d'utilité :
 « Gardes-fous complets » 1, « Aucune dérogation ne correspond » 1.
 **Non vérifié** : le rendu réel en navigateur (pas de session admin en local) —
 les filtres sont vérifiés par leurs fonctions pures, les types et le bundle.
+
+## 2026-09-16 — Lien piste → fournisseur : APPLIQUÉ (Agent Kurla)
+
+La migration `20261004000000_supplier_link.sql` a été appliquée par
+l'exploitant. Le chantier est donc allé au bout.
+
+**Données :** 3 pistes reliées à leur fiche fournisseur — Dina Afro Shop,
+BLACKETIQUE SASU, EOLYS Beaute. 0 ambiguïté, 25 pistes sans correspondance
+(c'est normal : ce sont des démarches en cours, pas des fournisseurs validés).
+
+**Code :** la jointure est faite **côté serveur, en un seul endroit**
+(`src/lib/db/prospectStore.ts`) — une requête pour toutes les pistes, pas une
+par ligne. Elle alimente donc tous les écrans qui lisent les prospects, sans
+avoir eu à les retoucher un par un.
+
+Règle de fusion retenue, et elle compte : **la fiche fournisseur comble la
+piste, elle ne l'écrase pas.** Ce que la piste sait de particulier — un contact
+précis démarché — prime. Mesuré : 3 pistes sur 28 ont un e-mail propre, 0 ont
+un pays, 0 un site ; côté fournisseurs, 24 e-mails, 28 pays, 23 sites.
+L'information vivait bien dans la fiche fournisseur.
+
+**Origine désignée :** `contactFromSupplier` indique quand la valeur affichée
+vient de la fiche. Sans cette mention, l'exploitant croirait corriger la fiche
+en retapant l'e-mail dans la piste — il créerait en fait une deuxième valeur,
+qui divergerait à la prochaine mise à jour du fournisseur. Le panneau
+l'affiche : « Email contact · fiche fournisseur ».
+
+**Écran :** `SourcingProspectsPanel` montre désormais un bloc « Fiche
+fournisseur — source unique » (raison sociale, pays, site, type, statut de
+vérification) avec la mention « Lu depuis la fiche fournisseur, jamais recopié.
+Modifier un champ ci-dessous ne le change que pour cette piste. »
+
+**Sans migration appliquée, rien ne casse :** la colonne absente des lignes
+donne simplement aucune jointure. Vérifié par un banc.
+
+**Garde-fous :** `tests/lien_fournisseur.test.ts` (fusion, priorité, origine,
+absence de migration) et `tests/rapprochement_fournisseurs.test.ts`
+(rapprochement, ambiguïté jamais résolue en douce).
+
+**Reste — le champ libre `products.source_supplier` :** 79 produits sur 111
+affichent un nom qui ne correspond pas au fournisseur lié. C'est le deuxième
+visage du même problème, et le plus visible par la cliente.

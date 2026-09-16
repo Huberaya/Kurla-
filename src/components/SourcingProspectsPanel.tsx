@@ -5,6 +5,21 @@ import { PurchasingDeskPanel } from './PurchasingDeskPanel';
 
 type PanelProps = { headers: HeadersInit; onSuccess?: (message: string) => void };
 
+type SupplierJoint = {
+  id: string;
+  legalName: string;
+  tradeName?: string;
+  supplierType?: string;
+  country?: string;
+  website?: string;
+  contactName?: string;
+  contactEmail?: string;
+  moqUnits?: number | null;
+  leadTimeDays?: number | null;
+  certifications?: string[];
+  verificationStatus?: string;
+};
+
 type Prospect = {
   id: string;
   name: string;
@@ -21,6 +36,11 @@ type Prospect = {
   samplesReceived?: string;
   decision?: string;
   notes?: string;
+  /** Fiche fournisseur validée (migration 20261004) — rejointe, jamais recopiée. */
+  supplierId?: string | null;
+  supplier?: SupplierJoint | null;
+  /** Le contact affiché vient de la fiche fournisseur, pas de la piste. */
+  contactFromSupplier?: boolean;
 };
 
 type Candidate = {
@@ -246,6 +266,21 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                 </summary>
                 <div className="px-4 pb-4 pt-1 space-y-3">
                   <p className="text-[11px] text-kurla-cream/60">{p.specialty} {p.sourceUrl && <span className="text-kurla-copper/80">· {p.sourceUrl}</span>}</p>
+                  {p.supplier && (
+                    <div className="rounded-xl bg-emerald-500/[0.06] border border-emerald-400/20 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Fiche fournisseur — source unique</p>
+                      <p className="text-[11px] text-kurla-cream/75 mt-1">
+                        {p.supplier.legalName}
+                        {p.supplier.country ? ` · ${p.supplier.country}` : ''}
+                        {p.supplier.website ? ` · ${p.supplier.website}` : ''}
+                        {p.supplier.supplierType ? ` · ${p.supplier.supplierType}` : ''}
+                        {p.supplier.verificationStatus ? ` · ${p.supplier.verificationStatus}` : ''}
+                      </p>
+                      <p className="text-[10px] text-kurla-cream/45 mt-0.5">
+                        Lu depuis la fiche fournisseur, jamais recopié. Modifier un champ ci-dessous ne le change que pour cette piste.
+                      </p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <label className="text-[10px] text-kurla-cream/50">Statut
                       <select value={p.status} onChange={(e) => patchProspect(p.id, { status: e.target.value })} className={inputClass() + ' mt-1'}>
@@ -256,6 +291,7 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                       <input type="date" value={p.followUpOn?.slice(0, 10) || ''} onChange={(e) => patchProspect(p.id, { followUpOn: e.target.value })} className={inputClass() + ' mt-1'} />
                     </label>
                     <label className="text-[10px] text-kurla-cream/50">Email contact
+                      {p.contactFromSupplier && <span className="text-emerald-300"> · fiche fournisseur</span>}
                       <input type="email" placeholder="contact@marque.com" value={p.contactEmail || ''} onChange={(e) => patchProspect(p.id, { contactEmail: e.target.value })} className={inputClass() + ' mt-1'} />
                     </label>
                     <label className="text-[10px] text-kurla-cream/50">Décision
