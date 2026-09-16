@@ -281,6 +281,50 @@ export function registerSourcingRoutes(app: Express): void {
   }));
 
   /**
+   * CHANTIER B — SYNTHÈSE DU WORKFLOW (l'entonnoir de négociation).
+   * Où en est CHAQUE candidat sur les 8 étapes, en un seul appel : état
+   * courant = dernier événement tracé, défaut « identifié » quand aucune
+   * transition n'a encore eu lieu (jamais d'étape devinée). Compte aussi
+   * les prospects restés sans candidat. Aucun chiffre inventé : ce sont
+   * les mêmes règles que le panneau de pilotage, agrégées côté serveur.
+   */
+  app.get('/api/admin/sourcing/workflow/summary', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const supabase = getSupabaseServerClient();
+      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
+      const [candidatesRes, eventsRes, prospectsRes] = await Promise.all([
+        supabase.from('sourcing_product_candidates').select('id'),
+        supabase.from('sourcing_workflow_events').select('entity_id, entity_type, to_state, created_at').order('created_at', { ascending: false }).limit(2000),
+        supabase.from('sourcing_prospects').select('id'),
+      ]);
+      if (candidatesRes.error) throw candidatesRes.error;
+      if (eventsRes.error) throw eventsRes.error;
+      if (prospectsRes.error) throw prospectsRes.error;
+      // Dernier événement par entité (la liste arrive déjà triée desc).
+      const latestByEntity = new Map<string, string>();
+      for (const event of eventsRes.data || []) {
+        const key = `${event.entity_type}:${event.entity_id}`;
+        if (!latestByEntity.has(key) && event.to_state) latestByEntity.set(key, String(event.to_state));
+      }
+      const stages: Record<string, number> = {};
+      for (const candidate of candidatesRes.data || []) {
+        const state = latestByEntity.get(`candidate:${candidate.id}`) || 'identified';
+        stages[state] = (stages[state] || 0) + 1;
+      }
+      res.json({
+        candidateTotal: (candidatesRes.data || []).length,
+        prospectTotal: (prospectsRes.data || []).length,
+        stages,
+      });
+    } catch (error) {
+      console.error('[Sourcing] workflow summary error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Synthèse du workflow impossible.') });
+    }
+  }));
+
+  /**
    * VUE OPS (§23) — KPI + alertes + marge/routage par produit.
    * Toute valeur absente est affichée « à obtenir », jamais inventée.
    */

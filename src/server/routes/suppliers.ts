@@ -41,9 +41,30 @@ export function registerSupplierRoutes(app: Express): void {
     if (!admin) return;
     try {
       const scope = readWorkspaceScope(req);
+      // CHANTIER B — mode référentiel complet (`?all=1`) : le référentiel est
+      // la liste de TOUS les fournisseurs identifiés, pas seulement ceux déjà
+      // liés à un produit du workspace. Sans ce mode, 10 fournisseurs sur 16
+      // (dont BLACKETIQUE, canal cheveux principal) étaient invisibles
+      // partout. Le mode par défaut reste inchangé pour l'ancien onglet.
+      const includeAll = String(req.query.all || '') === '1';
       const supplierIds = await workspaceSupplierIds(scope);
       const allSuppliers = await serverDb.listSuppliers();
-      const suppliers = supplierIds ? allSuppliers.filter(supplier => supplierIds.has(String(supplier.id))) : allSuppliers;
+      const suppliers = !includeAll && supplierIds ? allSuppliers.filter(supplier => supplierIds.has(String(supplier.id))) : allSuppliers;
+      // Nombre de produits liés par fournisseur et par workspace : en mode
+      // complet, l'écran doit pouvoir dire « non utilisé » plutôt que laisser
+      // croire que le fournisseur a disparu.
+      let linkedCounts = new Map<string, { hair: number; skin: number }>();
+      if (includeAll) {
+        const products = await serverDb.getAdminCatalogProducts();
+        for (const product of products) {
+          const supplierId = String(product.supplierId || product.supplier_id || '');
+          if (!supplierId) continue;
+          const entry = linkedCounts.get(supplierId) || { hair: 0, skin: 0 };
+          if (isProductInWorkspace(product, 'skin')) entry.skin += 1;
+          else entry.hair += 1;
+          linkedCounts.set(supplierId, entry);
+        }
+      }
       // Le nombre de preuves est calculé par entité : « vérifié » sans document
       // serait un affichage mensonger, donc l'écran reçoit de quoi le voir.
       const TRACKED_TYPES = new Set(['cpnp_notification', 'responsible_person', 'cpsr', 'pif']);
@@ -57,11 +78,14 @@ export function registerSupplierRoutes(app: Express): void {
         const complianceDocs = documents
           .filter(document => TRACKED_TYPES.has(document.documentType) && document.expiresOn)
           .map(document => ({ documentType: document.documentType, expiresOn: document.expiresOn }));
+        const linked = includeAll ? linkedCounts.get(String(supplier.id)) : undefined;
         return {
           ...supplier,
           documentCount: documents.length,
           expiredDocumentCount: documents.filter(document => document.expiresOn && document.expiresOn < today).length,
-          complianceDocs
+          complianceDocs,
+          // Additif, uniquement en mode complet : de quoi afficher l'usage réel.
+          ...(linked ? { linkedHairCount: linked.hair, linkedSkinCount: linked.skin } : {})
         };
       }));
       res.json({
@@ -69,7 +93,8 @@ export function registerSupplierRoutes(app: Express): void {
         count: detailed.length,
         supplierTypes: SUPPLIER_TYPES,
         documentTypes: SUPPLIER_DOCUMENT_TYPES,
-        scope: scope || 'all'
+        scope: scope || 'all',
+        ...(includeAll ? { all: true } : {})
       });
     } catch (error) {
       console.error('[Suppliers] list error:', error);

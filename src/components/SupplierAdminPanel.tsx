@@ -6,6 +6,11 @@ import { COSMETIC_REQUIRED_DOCS, COSMETIC_DOC_LABELS, COSMETIC_DOC_REASONS } fro
 type SupplierAdminPanelProps = {
   headers: HeadersInit;
   onSuccess?: (message: string) => void;
+  // Chantier B : `showAll` affiche le référentiel COMPLET (les 16 fournisseurs
+  // identifiés, y compris ceux encore sans produit lié) avec leur usage réel
+  // par workspace. Sans ce mode, le panel garde le comportement historique
+  // filtré par workspace — l'ancien onglet n'est pas touché.
+  showAll?: boolean;
 };
 
 type SupplierRow = {
@@ -23,6 +28,9 @@ type SupplierRow = {
   leadTimeDays: number | null;
   documentCount: number;
   expiredDocumentCount: number;
+  // Additif, présent uniquement en mode référentiel complet (?all=1).
+  linkedHairCount?: number;
+  linkedSkinCount?: number;
 };
 
 type SupplierDetail = {
@@ -68,7 +76,7 @@ function labelClass(): string {
   return 'text-[10px] uppercase tracking-wider font-bold text-kurla-amber';
 }
 
-export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelProps) {
+export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: SupplierAdminPanelProps) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [supplierTypes, setSupplierTypes] = useState<string[]>([]);
   const [documentTypes, setDocumentTypes] = useState<string[]>([]);
@@ -92,7 +100,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/suppliers', { headers });
+      const response = await fetch(showAll ? '/api/admin/suppliers?all=1' : '/api/admin/suppliers', { headers });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Référentiel fournisseurs indisponible.');
       setSuppliers(data.suppliers || []);
@@ -103,7 +111,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
     } finally {
       setLoading(false);
     }
-  }, [headers]);
+  }, [headers, showAll]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -263,6 +271,7 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                   <th className="py-2 pr-3">MOQ</th>
                   <th className="py-2 pr-3">Délai</th>
                   <th className="py-2 pr-3">Preuves</th>
+                  {showAll && <th className="py-2 pr-3">Usage réel</th>}
                   <th className="py-2 pr-3">Statut</th>
                   <th className="py-2" />
                 </tr>
@@ -290,6 +299,19 @@ export function SupplierAdminPanel({ headers, onSuccess }: SupplierAdminPanelPro
                           <span className="ml-2 text-amber-300">dont {supplier.expiredDocumentCount} périmée(s)</span>
                         )}
                       </td>
+                      {showAll && (
+                        <td className="py-2 pr-3 text-kurla-cream/70">
+                          {(supplier.linkedHairCount || 0) + (supplier.linkedSkinCount || 0) > 0 ? (
+                            <span className="whitespace-nowrap">
+                              {supplier.linkedHairCount ? <span className="text-kurla-copper">{supplier.linkedHairCount} Hair</span> : null}
+                              {supplier.linkedHairCount && supplier.linkedSkinCount ? ' · ' : ''}
+                              {supplier.linkedSkinCount ? <span className="text-emerald-300">{supplier.linkedSkinCount} Skin</span> : null}
+                            </span>
+                          ) : (
+                            <span className="text-amber-300/80" title="Fournisseur identifié mais aucun produit du catalogue ne lui est rattaché — il reste dans le référentiel, il n'est pas perdu.">non utilisé</span>
+                          )}
+                        </td>
+                      )}
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${status.color}`}>{status.label}</span>
                       </td>

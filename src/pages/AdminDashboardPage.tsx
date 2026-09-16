@@ -14,6 +14,7 @@ import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
 import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { GlobalSearchPanel } from '../components/GlobalSearchPanel';
 import { SourcingWorkflowPanel } from '../components/SourcingWorkflowPanel';
+import { SourcingWorkflowFunnel } from '../components/SourcingWorkflowFunnel';
 import { ProductNeedsEditor } from '../components/ProductNeedsEditor';
 import { OrderFulfillmentPanel } from '../components/OrderFulfillmentPanel';
 import { SourcingProspectsPanel } from '../components/SourcingProspectsPanel';
@@ -1636,7 +1637,7 @@ export const AdminDashboardPage: React.FC = () => {
             langage métier ; les panneaux sont les composants existants, non modifiés. */}
         {activeTab.startsWith('supply_v2_') && (
           <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-400/30 text-[11px] text-sky-100/85 leading-relaxed">
-            <span className="font-bold">Espace restructuré — en comparaison.</span> Ce sont les mêmes outils que « Fournisseurs & sourcing », réorganisés par étape : 1 · Qui me fournit → 2 · Négocier → 3 · Acheter &amp; marges → 4 · Recevoir. L'ancien onglet reste intact — rien n'est supprimé tant que tu n'as pas tranché.
+            <span className="font-bold">Espace restructuré — en comparaison.</span> Le travail d'approvisionnement découpé en 4 étapes : 1 · Qui me fournit → 2 · Négocier → 3 · Acheter &amp; marges → 4 · Recevoir. Ici le référentiel affiche <span className="font-bold">tous</span> les fournisseurs identifiés (y compris sans produit lié) et l'entonnoir de négociation est chiffré. L'ancien onglet « Fournisseurs & sourcing » reste intact pour la comparaison.
           </div>
         )}
 
@@ -1644,9 +1645,9 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="space-y-10">
             <div>
               <h2 className="text-lg font-bold text-kurla-cream">Qui me fournit — et sur quelle preuve</h2>
-              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés, quel fournisseur sert chaque produit, et la stratégie pays. C'est l'écran « annuaire » : on y vient pour savoir avec qui on travaille.</p>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Le référentiel complet des fournisseurs identifiés — y compris ceux pas encore utilisés, avec leur usage réel par espace —, quel fournisseur sert chaque produit, et la stratégie pays.</p>
             </div>
-            <SupplierAdminPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
+            <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <ProductSupplierPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <GlobalSearchPanel headers={adminHeaders} />
@@ -1657,13 +1658,21 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="space-y-10">
             <div>
               <h2 className="text-lg font-bold text-kurla-cream">Négocier — du premier contact à la première commande</h2>
-              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Les pistes (prospects), les références en cours d'évaluation (candidats), l'avancement de chacune sur les 8 étapes, et la proposition d'achat du premier lot.</p>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">D'abord l'entonnoir : où en est chaque référence sur les 8 étapes. Ensuite les outils : pistes, pilotage étape par étape, proposition d'achat du premier lot.</p>
             </div>
+            <SourcingWorkflowFunnel headers={adminHeaders} />
             <SourcingProspectsPanel headers={adminHeaders} onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
             <SourcingWorkflowPanel headers={adminHeaders} />
             <PurchaseProposalPanel headers={adminHeaders} />
-            {workspace === 'skin' && <PeauSourcingCahierPanel />}
-            {workspace === 'skin' && <PeauJ0MailTrackingPanel headers={adminHeaders} />}
+            {workspace === 'skin' && (
+              <details className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.02]">
+                <summary className="cursor-pointer px-5 py-3 text-xs font-bold text-kurla-cream/60 hover:text-kurla-cream">Outils de chantier peau (cahier actifs C16, suivi mails J0) — déplier</summary>
+                <div className="px-5 pb-5 space-y-6">
+                  <PeauSourcingCahierPanel />
+                  <PeauJ0MailTrackingPanel headers={adminHeaders} />
+                </div>
+              </details>
+            )}
           </div>
         )}
 
@@ -1697,7 +1706,14 @@ export const AdminDashboardPage: React.FC = () => {
             <KittingAdminPanel />
             <TamponOrderPanel />
             <FulfillmentContactPanel />
-            {workspace === 'skin' && <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />}
+            {workspace === 'skin' && (
+              <details className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.02]">
+                <summary className="cursor-pointer px-5 py-3 text-xs font-bold text-kurla-cream/60 hover:text-kurla-cream">Outil de chantier peau (contrôle whitecast lots J3-J7) — déplier</summary>
+                <div className="px-5 pb-5">
+                  <PeauJ3J7WhitecastLotPanel headers={adminHeaders} />
+                </div>
+              </details>
+            )}
           </div>
         )}
 
