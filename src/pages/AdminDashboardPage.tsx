@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
 import { CatalogGatePanel } from '../components/CatalogGatePanel';
+import { SalesCriteriaPanel } from '../components/SalesCriteriaPanel';
 import { DerogationsPanel } from '../components/DerogationsPanel';
 import { CatalogClaimsAuditPanel } from '../components/CatalogClaimsAuditPanel';
 import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
@@ -1477,7 +1478,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-3 p-5">
                 <div className="min-w-[240px] flex-1">
                   <h2 className="font-bold flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-kurla-amber" /> Gouvernance du catalogue</h2>
-                  <p className="text-[11px] text-kurla-cream/60 mt-1">Porte de publication, dérogations datées, phase test, besoins par fiche. Outils ponctuels — identiques dans les deux espaces.</p>
+                  <p className="text-[11px] text-kurla-cream/60 mt-1">Carte des critères versionnée, porte de publication, dérogations datées, phase test, besoins par fiche. Outils ponctuels — identiques dans les deux espaces.</p>
                 </div>
                 <button
                   type="button"
@@ -1486,11 +1487,12 @@ export const AdminDashboardPage: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl border border-kurla-cream/15 bg-kurla-ink text-[11px] font-bold text-kurla-cream/80 hover:border-kurla-amber/40 hover:text-kurla-cream flex items-center gap-1.5"
                 >
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${governanceOpen ? 'rotate-180' : ''}`} />
-                  {governanceOpen ? 'Replier les 4 outils' : 'Déplier les 4 outils de gouvernance'}
+                  {governanceOpen ? 'Replier les 5 outils' : 'Déplier les 5 outils de gouvernance'}
                 </button>
               </div>
               {governanceOpen && (
                 <div className="space-y-10 px-5 pb-5">
+                  <SalesCriteriaPanel headers={adminHeaders} />
                   <CatalogGatePanel headers={adminHeaders} />
                   <DerogationsPanel headers={adminHeaders} />
                   <TestPhaseGatesPanel headers={adminHeaders} onSuccess={(m)=>{ setActionSuccess(m); setTimeout(()=>setActionSuccess(''),5000); }} />

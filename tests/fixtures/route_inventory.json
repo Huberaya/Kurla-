@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T16:51:33.970Z",
+  "generatedAt": "2026-09-17T13:59:59.988Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -21,6 +21,7 @@
     "GET /api/admin/catalog/:productId/readiness",
     "GET /api/admin/catalog/:productId/validation",
     "GET /api/admin/catalog/claims-audit",
+    "GET /api/admin/catalog/criteria",
     "GET /api/admin/catalog/derogations",
     "GET /api/admin/catalog/imports",
     "GET /api/admin/catalog/ingredient-coverage",

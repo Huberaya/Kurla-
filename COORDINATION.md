@@ -3737,3 +3737,46 @@ lien, mais ne permet pas non plus de le créer.
 74 appelées, +1 appelant réel sur `GET /api/admin/suppliers`
 (`src/lib/adminRecordsStore.ts:354`). Rendu navigateur **toujours non vérifié** :
 pas de session admin en local.
+## 2026-09-17 — Chantier A : la carte des critères de mise en vente (Agent Kurla — lot 3, première moitié)
+
+Consigne (proposition validée du 15/09) : « un module `SALES_CRITERIA` (id, libellé,
+famille, règle, source de donnée) = la source unique consommée par le moteur de
+readiness, l'UI et l'automate. Écran « Critères » : liste nommée, version, ce que
+chaque critère lit. Acceptation : la carte correspond exactement au comportement
+existant (aucune règle ne change), versionnée, banc qui fige la liste. »
+
+### Livré
+- `src/lib/salesCriteria.ts` — la carte : **33 critères** versionnés
+  (`SALES_CRITERIA_VERSION = '1.0.0'`), 4 familles (légale / éditoriale / visuelle /
+  commerciale), 3 portées (tous / cosmétiques / produits catégorisés). Chaque entrée
+  porte `id` = la **clé de champ que le moteur émet réellement** (jamais un libellé
+  libre), le libellé canonique = la sortie exacte du moteur, `rule` et `source`.
+  - 15 critères de la porte de base (`evaluateCatalogPublicationReadiness`),
+  - 6 de la porte CPNP (dont l'agrégat rapport « aucun fournisseur rattaché », les 3
+    documents bloquants CPSR / CPNP / Personne Responsable, fournisseur trouvé/vérifié),
+  - 12 de la porte de gouvernance sourcing (provenance, SKU, format, prix TTC, TVA,
+    variantes, délai, retours, photo, INCI, stock…).
+  - Libellés dynamiques (ids cités, documents expirés) listés en `labelVariants` ;
+    `matchCriterion` reconcilie n'importe quel libellé émis vers son critère.
+- `GET /api/admin/catalog/criteria` (requireAdmin) : `{ version, families, criteria }`
+  — données statiques du module, zéro requête. Inventaires régénérés : 339 routes /
+  100 admin (+1).
+- `src/components/SalesCriteriaPanel.tsx` — écran « Critères » : version, comptes par
+  famille, tableau (critère / famille / portée / règle / source / « bloque X fiches »
+  mesuré sur la publication-readiness du moment), note explicite « cet écran décrit le
+  moteur : il ne change aucune règle ». Branché dans Gouvernance du catalogue (5ᵉ
+  outil, en tête — la carte fonde la porte).
+- `tests/kurla_sales_criteria.test.ts` (dans la chaîne) — prouve les DEUX sens :
+  - **couverture** : tous les champs émis par les 3 portes sur une batterie de cas
+    construits existent dans la carte (zéro blocage sans critère nommé) ;
+  - **zéro fantôme** : chaque critère de la carte est réellement émis par le moteur
+    (la carte ne décrit pas de règle inexistante) ;
+  - produit intégralement vérifié = aucun blocage (comportement existant figé) ;
+  - tous les libellés émis sont reconciliables (canoniques ou variantes).
+
+### Contrôles
+- tsc propre, banc `test:sales-criteria` vert, inventaires : 339 routes / 100 admin
+  (diff vérifié : +1 seule route, aucun retrait).
+- Aucune règle du moteur modifiée — la carte est une description, pas un patch.
+- La version sera inscrite dans chaque décision d'auto-publication (chantier E,
+  seconde moitié du lot 3).

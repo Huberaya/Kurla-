@@ -9,6 +9,7 @@ import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { readPublicationPolicy, setPublicationPolicy } from '../../lib/db/publicationPolicyStore';
 import { resetStrictModeCache } from '../../lib/db/catalogStore';
+import { SALES_CRITERIA, SALES_CRITERIA_VERSION, criteriaByFamily } from '../../lib/salesCriteria';
 import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
@@ -392,6 +393,23 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
     const scope = readWorkspaceScope(req);
     const report = await serverDb.getCatalogPublicationReadinessReport();
     res.json(await scopePublicationReport(report, scope));
+  }));
+
+  /**
+   * CHANTIER A — CARTE DES CRITÈRES DE MISE EN VENTE.
+   * Source unique versionnée (src/lib/salesCriteria.ts) : elle DECRIE le
+   * comportement du moteur de readiness, elle ne le change pas. L'écran admin
+   * « Critères » et l'automate d'auto-publication (chantier E) la consomment —
+   * jamais une copie. Version inscrite dans chaque décision d'audit.
+   */
+  app.get('/api/admin/catalog/criteria', rateLimit('admin-criteria', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    res.json({
+      version: SALES_CRITERIA_VERSION,
+      families: criteriaByFamily(),
+      criteria: SALES_CRITERIA,
+    });
   }));
 
   /**
