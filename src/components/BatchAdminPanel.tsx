@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, columnFilterClass, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ProductSheet } from './ProductSheet';
+import { SupplierSheet, useAdminRecords } from './SupplierSheet';
+import { getAdminRecordsVersion } from '../lib/adminRecordsStore';
 import { AlertTriangle, Boxes, GitBranch, Link2, RefreshCw, Save, Search } from 'lucide-react';
 
 type BatchAdminPanelProps = {
@@ -113,6 +116,12 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
   ] as ColumnFilter[]));
   const setBatchFilter = (key: string, value: string) => setBatchFilters(prev => ({ ...prev, [key]: value }));
   const [showAllBatches, setShowAllBatches] = useState(false);
+  // Fiches flottantes (17/09) : un lot renvoie à son produit et à son
+  // fournisseur — on complète la fiche là où l'on constate le manque.
+  const [sheetProduct, setSheetProduct] = useState<string | null>(null);
+  const [sheetSupplier, setSheetSupplier] = useState<string | null>(null);
+  const records = useAdminRecords();
+  useEffect(() => { if (records.version > 0) void load(); }, [records.version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [draft, setDraft] = useState({
     lotReference: '', productId: '', supplierId: '', sourcingItemId: '',
@@ -379,8 +388,8 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                 {shownBatches.map(batch => (
                   <tr key={batch.id} className="border-t border-kurla-cream/10">
                     <td className="py-2 pr-3 text-kurla-cream font-mono">{batch.lotReference}</td>
-                    <td className="py-2 pr-3 text-kurla-cream/70">{productName(batch.productId)}</td>
-                    <td className="py-2 pr-3 text-kurla-cream/70">{supplierName(batch.supplierId)}</td>
+                    <td className="py-2 pr-3"><button type="button" onClick={() => setSheetProduct(String(batch.productId))} title="Ouvrir la fiche produit" className="text-kurla-cream/70 hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2 text-left">{productName(batch.productId)}</button></td>
+                    <td className="py-2 pr-3">{batch.supplierId ? <button type="button" onClick={() => setSheetSupplier(String(batch.supplierId))} title="Ouvrir la fiche fournisseur" className="text-kurla-cream/70 hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplierName(batch.supplierId)}</button> : <span className="text-kurla-cream/70">{supplierName(batch.supplierId)}</span>}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{batch.quantityReceived}</td>
                     <td className="py-2 pr-3 text-kurla-cream">{euros(batch.servedCostCents, batch.currency)}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{batch.receivedOn}</td>
@@ -516,6 +525,23 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
             Un fournisseur qui n'en a qu'une partie n'est pas une alternative.
           </p>
         </section>
+      )}
+      {sheetProduct && (
+        <ProductSheet
+          productId={sheetProduct}
+          headers={headers}
+          suppliers={suppliers.map((supplier: any) => ({ id: String(supplier.id), legalName: supplier.legalName, tradeName: supplier.tradeName }))}
+          onOpenSupplier={supplierId => { setSheetProduct(null); setSheetSupplier(supplierId); }}
+          onClose={() => setSheetProduct(null)}
+        />
+      )}
+      {sheetSupplier && (
+        <SupplierSheet
+          supplierId={sheetSupplier}
+          headers={headers}
+          linkedProducts={products.filter((product: any) => String(product.supplierId || '') === String(sheetSupplier)).length}
+          onClose={() => setSheetSupplier(null)}
+        />
       )}
     </div>
   );

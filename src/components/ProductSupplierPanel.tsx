@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ProductSheet } from './ProductSheet';
+import { useAdminRecords } from './SupplierSheet';
 import { RefreshCw, Save, Package, Truck, CheckCircle2 } from 'lucide-react';
 
 type Props = { headers: HeadersInit; onSuccess?: (message: string) => void; fullCatalog?: boolean };
@@ -53,6 +55,11 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
   // un outil ponctuel, pas une lecture quotidienne. L'ancien mode est inchangé.
   const [filter, setFilter] = useState<'all' | 'unassigned'>(fullCatalog ? 'unassigned' : 'all');
   const [expanded, setExpanded] = useState(!fullCatalog);
+  // Fiche produit flottante (17/09) : compléter une fiche depuis l'écran
+  // d'affectation, sans aller chercher le catalogue.
+  const [sheetProduct, setSheetProduct] = useState<string | null>(null);
+  const records = useAdminRecords();
+  useEffect(() => { if (records.version > 0) load(); }, [records.version]); // eslint-disable-line react-hooks/exhaustive-deps
   const [drafts, setDrafts] = useState<Record<string, { supplierId: string; supplierSku: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -227,7 +234,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
                 return (
                   <tr key={p.id} className="align-middle">
                     <td className="py-2.5 px-2">
-                      <span className="font-semibold text-kurla-cream">{p.name}</span>
+                      <button type="button" onClick={() => setSheetProduct(String(p.id))} title="Ouvrir la fiche produit" className="font-semibold text-kurla-cream hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2 text-left">{p.name}</button>
                       <p className="text-[10px] text-kurla-cream/40 font-mono">{p.id} · {p.category}{p.brand ? ` · ${p.brand}` : ''}</p>
                       {suggestion && (
                         <p className="text-[10px] text-amber-300/85 mt-1 max-w-sm">
@@ -279,6 +286,14 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
         <Truck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
         Levier « prix type Action » : les façonniers private label (Chine, MOQ 100–500) descendent le coût des produits finis à ~1–4 $/pièce ; les grossistes karité en UE évitent les droits de douane pour le premier lot. Vérifier conformité UE (CPNP, allergènes) et demander des échantillons avant toute commande.
       </p>
+      {sheetProduct && (
+        <ProductSheet
+          productId={sheetProduct}
+          headers={headers}
+          suppliers={suppliers.map((supplier: any) => ({ id: String(supplier.id), legalName: supplier.legalName, tradeName: supplier.tradeName }))}
+          onClose={() => setSheetProduct(null)}
+        />
+      )}
     </div>
   );
 };
