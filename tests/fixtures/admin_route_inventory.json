@@ -1,6 +1,53 @@
 {
-  "generatedAt": "2026-09-17T14:23:43.066Z",
+  "generatedAt": "2026-09-17T14:51:38.148Z",
   "routes": [
+    {
+      "method": "POST",
+      "path": "/api/admin/auto-publication/pause",
+      "file": "src/server/routes/catalogGovernance.ts:457",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AutoPublicationPanel.tsx:93"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/auto-publication/rollback",
+      "file": "src/server/routes/catalogGovernance.ts:563",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AutoPublicationPanel.tsx:115"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/auto-publication/run",
+      "file": "src/server/routes/catalogGovernance.ts:479",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AutoPublicationPanel.tsx:101"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/auto-publication/stage",
+      "file": "src/server/routes/catalogGovernance.ts:444",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AutoPublicationPanel.tsx:85"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/auto-publication/state",
+      "file": "src/server/routes/catalogGovernance.ts:438",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/AdminActionQueue.tsx:61",
+        "src/components/AdminActionQueue.tsx:227",
+        "src/components/AutoPublicationPanel.tsx:51"
+      ]
+    },
     {
       "method": "GET",
       "path": "/api/admin/batches",
@@ -8,7 +55,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:58",
-        "src/components/AdminActionQueue.tsx:207",
+        "src/components/AdminActionQueue.tsx:226",
         "src/components/BatchAdminPanel.tsx:140",
         "src/components/BatchAdminPanel.tsx:200",
         "src/components/CatalogAdminPanel.tsx:372",
@@ -23,7 +70,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:58",
-        "src/components/AdminActionQueue.tsx:207",
+        "src/components/AdminActionQueue.tsx:226",
         "src/components/BatchAdminPanel.tsx:140",
         "src/components/BatchAdminPanel.tsx:200",
         "src/components/CatalogAdminPanel.tsx:372",
@@ -108,14 +155,14 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/:productId/readiness",
-      "file": "src/server/routes/catalogGovernance.ts:597",
+      "file": "src/server/routes/catalogGovernance.ts:801",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/claims-audit",
-      "file": "src/server/routes/catalogGovernance.ts:531",
+      "file": "src/server/routes/catalogGovernance.ts:735",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogClaimsAuditPanel.tsx:57"
@@ -124,7 +171,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/criteria",
-      "file": "src/server/routes/catalogGovernance.ts:405",
+      "file": "src/server/routes/catalogGovernance.ts:406",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SalesCriteriaPanel.tsx:39"
@@ -133,7 +180,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/derogations",
-      "file": "src/server/routes/catalogGovernance.ts:184",
+      "file": "src/server/routes/catalogGovernance.ts:185",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/DerogationsPanel.tsx:38"
@@ -142,7 +189,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/derogations/:productId/renew",
-      "file": "src/server/routes/catalogGovernance.ts:204",
+      "file": "src/server/routes/catalogGovernance.ts:205",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/DerogationsPanel.tsx:56",
@@ -152,7 +199,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/derogations/alert-email",
-      "file": "src/server/routes/catalogGovernance.ts:228",
+      "file": "src/server/routes/catalogGovernance.ts:229",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/DerogationsPanel.tsx:76"
@@ -161,7 +208,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/gate/apply",
-      "file": "src/server/routes/catalogGovernance.ts:259",
+      "file": "src/server/routes/catalogGovernance.ts:260",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogGatePanel.tsx:59"
@@ -170,7 +217,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/gate/scan",
-      "file": "src/server/routes/catalogGovernance.ts:170",
+      "file": "src/server/routes/catalogGovernance.ts:171",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogGatePanel.tsx:43"
@@ -179,7 +226,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/import/csv",
-      "file": "src/server/routes/catalogGovernance.ts:295",
+      "file": "src/server/routes/catalogGovernance.ts:296",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:498"
@@ -188,7 +235,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/import/supplier",
-      "file": "src/server/routes/catalogGovernance.ts:316",
+      "file": "src/server/routes/catalogGovernance.ts:317",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:513"
@@ -197,7 +244,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/imports",
-      "file": "src/server/routes/catalogGovernance.ts:127",
+      "file": "src/server/routes/catalogGovernance.ts:128",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:243"
@@ -220,7 +267,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/products",
-      "file": "src/server/routes/catalogGovernance.ts:107",
+      "file": "src/server/routes/catalogGovernance.ts:108",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:141",
@@ -236,7 +283,7 @@
     {
       "method": "POST",
       "path": "/api/admin/catalog/products",
-      "file": "src/server/routes/catalogGovernance.ts:133",
+      "file": "src/server/routes/catalogGovernance.ts:134",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:141",
@@ -252,7 +299,7 @@
     {
       "method": "PATCH",
       "path": "/api/admin/catalog/products/:productId",
-      "file": "src/server/routes/catalogGovernance.ts:148",
+      "file": "src/server/routes/catalogGovernance.ts:149",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:391",
@@ -265,11 +312,11 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/publication-readiness",
-      "file": "src/server/routes/catalogGovernance.ts:390",
+      "file": "src/server/routes/catalogGovernance.ts:391",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:44",
-        "src/components/AdminActionQueue.tsx:204",
+        "src/components/AdminActionQueue.tsx:223",
         "src/components/BoutiqueAnomalyBanner.tsx:29",
         "src/components/CatalogAdminPanel.tsx:257",
         "src/components/CatalogPipelinePanel.tsx:89",
@@ -281,35 +328,35 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/skin-evidence",
-      "file": "src/server/routes/catalogGovernance.ts:495",
+      "file": "src/server/routes/catalogGovernance.ts:699",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "POST",
       "path": "/api/admin/catalog/skin-evidence",
-      "file": "src/server/routes/catalogGovernance.ts:506",
+      "file": "src/server/routes/catalogGovernance.ts:710",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/skin-readiness",
-      "file": "src/server/routes/catalogGovernance.ts:482",
+      "file": "src/server/routes/catalogGovernance.ts:686",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/sourcing-readiness",
-      "file": "src/server/routes/catalogGovernance.ts:470",
+      "file": "src/server/routes/catalogGovernance.ts:674",
       "guard": "requireAdmin(",
       "callers": []
     },
     {
       "method": "GET",
       "path": "/api/admin/catalog/taxonomy",
-      "file": "src/server/routes/catalogGovernance.ts:121",
+      "file": "src/server/routes/catalogGovernance.ts:122",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogAdminPanel.tsx:242"
@@ -318,7 +365,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/test-phase",
-      "file": "src/server/routes/catalogGovernance.ts:456",
+      "file": "src/server/routes/catalogGovernance.ts:660",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/TestPhaseGatesPanel.tsx:75"
@@ -327,7 +374,7 @@
     {
       "method": "GET",
       "path": "/api/admin/catalog/vocabulary-audit",
-      "file": "src/server/routes/catalogGovernance.ts:590",
+      "file": "src/server/routes/catalogGovernance.ts:794",
       "guard": "requireAdmin(",
       "callers": []
     },
@@ -579,21 +626,21 @@
     {
       "method": "GET",
       "path": "/api/admin/publication-policy",
-      "file": "src/server/routes/catalogGovernance.ts:423",
+      "file": "src/server/routes/catalogGovernance.ts:627",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogPipelinePanel.tsx:101",
-        "src/components/CatalogPipelinePanel.tsx:188"
+        "src/components/CatalogPipelinePanel.tsx:189"
       ]
     },
     {
       "method": "PATCH",
       "path": "/api/admin/publication-policy",
-      "file": "src/server/routes/catalogGovernance.ts:429",
+      "file": "src/server/routes/catalogGovernance.ts:633",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogPipelinePanel.tsx:101",
-        "src/components/CatalogPipelinePanel.tsx:188"
+        "src/components/CatalogPipelinePanel.tsx:189"
       ]
     },
     {
@@ -680,7 +727,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:48",
-        "src/components/AdminActionQueue.tsx:205",
+        "src/components/AdminActionQueue.tsx:224",
         "src/components/BatchAdminPanel.tsx:143",
         "src/components/OperationsCockpitPanel.tsx:119"
       ]
@@ -692,7 +739,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:48",
-        "src/components/AdminActionQueue.tsx:205",
+        "src/components/AdminActionQueue.tsx:224",
         "src/components/BatchAdminPanel.tsx:143",
         "src/components/OperationsCockpitPanel.tsx:119"
       ]

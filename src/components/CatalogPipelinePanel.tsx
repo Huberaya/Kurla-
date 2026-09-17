@@ -103,7 +103,8 @@ export const CatalogPipelinePanel: React.FC<{
       .then((data: any) => { if (data?.policy) setPolicyState(data.policy); })
       .catch(() => setPolicyState({
         available: false, strictMode: false, activatedAt: null, activatedBy: null, note: null, updatedAt: null,
-        reason: 'lecture de la politique impossible (vérifier la session admin)'
+        reason: 'lecture de la politique impossible (vérifier la session admin)',
+        autoPublishAvailable: false, autoPublishStage: 'off', autoPublishPausedAt: null, autoPublishPausedBy: null, autoPublishLastBatch: null
       }));
 
     const consolidatedValue = consolidated.status === 'fulfilled' ? (consolidated.value as any) : null;

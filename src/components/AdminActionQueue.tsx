@@ -57,6 +57,11 @@ export interface QueueInputs {
   demandProducts?: Array<{ productId: string; name: string; isKit?: boolean; qtyFirm: number }> | null;
   /** /api/admin/batches → ids de produits ayant au moins un lot enregistré */
   batchProductIds?: string[] | null;
+  /**
+   * /api/admin/auto-publication/state → dernière vague auto-publiée (chantier E).
+   * Optionnelle : absente ou vide = pas de ligne (comportement d'avant inchangé).
+   */
+  autoPublished?: { count: number; at: string | null; batchId: string } | null;
 }
 
 export interface QueueResult {
@@ -87,6 +92,20 @@ export function buildActionQueue(input: QueueInputs, now: Date = new Date()): Qu
   const lot: QueueAction[] = [];
   const relance: QueueAction[] = [];
   const rfq: QueueAction[] = [];
+
+  // Chantier E — la machine vient de publier : c'est la vérification la plus
+  // fraîche, elle prend la tête de la file (le rollback y est en un clic).
+  const autoPublished = input.autoPublished;
+  if (autoPublished && autoPublished.count > 0) {
+    unblock.push({
+      key: `auto-${autoPublished.batchId || 'latest'}`,
+      kind: 'unblock',
+      title: 'Auto-publié',
+      context: `${autoPublished.count} fiche${autoPublished.count > 1 ? 's' : ''} auto-publiée${autoPublished.count > 1 ? 's' : ''} — à vérifier`,
+      detail: autoPublished.at ? `vague publiée le ${new Date(autoPublished.at).toLocaleString('fr-FR')}` : 'vague la plus récente',
+      tab: 'catalog'
+    });
+  }
 
   const listable = input.readiness?.publishedButNotListableProducts || [];
   for (const product of listable) {
@@ -200,24 +219,29 @@ export const AdminActionQueue: React.FC<{
     setUnavailable([]);
     // Promise.allSettled : une source en panne ne masque pas les autres ;
     // la file est alors affichée partielle et l'indisponibilité est nommée.
-    const [readiness, items, demand, batches] = await Promise.allSettled([
+    const [readiness, items, demand, batches, autoPub] = await Promise.allSettled([
       fetch('/api/admin/catalog/publication-readiness', { headers }).then(r => r.json()),
       fetch('/api/admin/sourcing/items', { headers }).then(r => r.json()),
       fetch('/api/admin/preorder-demand', { headers }).then(r => r.json()),
-      fetch('/api/admin/batches', { headers }).then(r => r.json())
+      fetch('/api/admin/batches', { headers }).then(r => r.json()),
+      fetch('/api/admin/auto-publication/state', { headers }).then(r => r.json())
     ]);
     const failed: string[] = [];
-    const names = ['l’état de publication', 'les besoins de sourcing', 'la demande précommandes', 'les lots reçus'];
-    [readiness, items, demand, batches].forEach((result, index) => {
+    const names = ['l’état de publication', 'les besoins de sourcing', 'la demande précommandes', 'les lots reçus', 'l’état d’auto-publication'];
+    [readiness, items, demand, batches, autoPub].forEach((result, index) => {
       if (result.status === 'rejected' || !result.value || result.value.error) failed.push(names[index]);
     });
     setUnavailable(failed);
+    const lastBatch = autoPub.status === 'fulfilled' ? (autoPub.value as any)?.policy?.autoPublishLastBatch : null;
     setQueue(buildActionQueue({
       readiness: readiness.status === 'fulfilled' ? readiness.value : null,
       items: items.status === 'fulfilled' && Array.isArray((items.value as any)?.items) ? (items.value as any).items : null,
       demandProducts: demand.status === 'fulfilled' && Array.isArray((demand.value as any)?.products) ? (demand.value as any).products : null,
       batchProductIds: batches.status === 'fulfilled' && Array.isArray((batches.value as any)?.batches)
         ? (batches.value as any).batches.map((batch: any) => String(batch.productId ?? batch.product_id ?? ''))
+        : null,
+      autoPublished: lastBatch && Array.isArray(lastBatch.productIds) && lastBatch.productIds.length > 0
+        ? { count: lastBatch.productIds.length, at: lastBatch.at, batchId: String(lastBatch.batchId || 'latest') }
         : null
     }));
     setLoading(false);

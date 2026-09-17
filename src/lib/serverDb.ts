@@ -142,8 +142,16 @@ import type { MembershipRecord } from './membership';
  */
 export class SupabaseServerStore {
   public inMemoryProducts: any[] = [];
-  /** C3 — politique de publication (mode strict). null = table non appliquée (état nommé, repli OFF). */
-  public inMemoryPublicationPolicy: { id: number; strict_mode: boolean; activated_at: string | null; activated_by: string | null; note: string | null; updated_at: string } | null = null;
+  /** C3 — politique de publication (mode strict) + E (auto-publication). null = table non appliquée (état nommé, repli OFF). Les colonnes du chantier E sont optionnelles : absentes = migration non appliquée (machine off, état nommé). */
+  public inMemoryPublicationPolicy: {
+    id: number; strict_mode: boolean; activated_at: string | null; activated_by: string | null; note: string | null; updated_at: string;
+    auto_publish_stage?: 'off' | 'watch' | 'active';
+    auto_publish_paused_at?: string | null;
+    auto_publish_paused_by?: string | null;
+    auto_publish_last_batch_id?: string | null;
+    auto_publish_last_batch_at?: string | null;
+    auto_publish_last_batch_product_ids?: string[] | null;
+  } | null = null;
   /** CHANTIER 10 (bloc B1) — référentiel d'ingrédients et liaisons produit × ingrédient. */
   public inMemoryIngredients: any[] = [];
   public inMemoryProductIngredients: import('./ingredientGraph').ProductIngredientLink[] = [];

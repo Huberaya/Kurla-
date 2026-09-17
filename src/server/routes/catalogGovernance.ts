@@ -7,9 +7,10 @@ import { SYSTEM_PROMPT_ASSISTANT_BEAUTE } from '../../lib/ai/systemPrompt';
 import { formatKnowledgeContext } from '../../lib/ai/knowledgeBase';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
-import { readPublicationPolicy, setPublicationPolicy } from '../../lib/db/publicationPolicyStore';
+import { readPublicationPolicy, setPublicationPolicy, setAutoPublishStage, setAutoPublishPaused, recordAutoPublishBatch } from '../../lib/db/publicationPolicyStore';
 import { resetStrictModeCache } from '../../lib/db/catalogStore';
 import { SALES_CRITERIA, SALES_CRITERIA_VERSION, criteriaByFamily } from '../../lib/salesCriteria';
+import { planAutoPublication, planAutoPublishRollback, evaluateAutoPublishGate } from '../../lib/autoPublication';
 import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 import { asyncRoute, rateLimit, safeApiError } from '../http';
 import { authenticateRequest, bearerToken, requireAdmin } from '../auth';
@@ -410,6 +411,209 @@ export function registerCatalogGovernanceRoutes(app: Express): void {
       families: criteriaByFamily(),
       criteria: SALES_CRITERIA,
     });
+  }));
+
+  // ---- CHANTIER E — AUTO-PUBLICATION (watch → active) ----------------------
+  // La machine publie les fiches draft TOUS CRITÈRES AU VERT (carte du
+  // chantier A, version inscrite dans chaque décision) — et rien d'autre.
+  //   off    = éteinte (défaut),
+  //   watch  = journalise ce qui deviendrait publié, RIEN n'est écrit,
+  //   active = publie, auditée, rollback de la dernière vague en un clic.
+  // La pause est un interrupteur daté et nommé. L'état de la machine vit
+  // dans la même ligne publication_policy que le mode strict (C3) : un
+  // interrupteur sans journal n'est pas un interrupteur.
+
+  /** Consignation locale (audit_logs) — ne lève jamais, retourne l'échec. */
+  async function writeAutoPublishAudit(action: string, details: any): Promise<{ ecrit: boolean; raison?: string }> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return { ecrit: false, raison: 'base_non_configuree' };
+    try {
+      const { error } = await supabase.from('audit_logs').insert({ action, user_id: details.parId || null, details });
+      return error ? { ecrit: false, raison: error.message } : { ecrit: true };
+    } catch {
+      return { ecrit: false, raison: 'consignation en échec' };
+    }
+  }
+
+  app.get('/api/admin/auto-publication/state', rateLimit('admin-auto-publication-state', 30, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    res.json({ policy: await readPublicationPolicy(serverDb) });
+  }));
+
+  app.post('/api/admin/auto-publication/stage', rateLimit('admin-auto-publication-stage', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const body = (req.body || {}) as { stage?: unknown; note?: unknown };
+    if (typeof body.stage !== 'string') return res.status(400).json({ error: 'stage (off|watch|active) requis.' });
+    const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 500) : undefined;
+    const result = await setAutoPublishStage(serverDb, { stage: body.stage as any, note }, { id: admin.id, email: admin.email });
+    if (!result.ok) {
+      return res.status(409).json({ error: 'Réarmement de la machine impossible — état inchangé.', detail: result.reason });
+    }
+    res.json({ policy: result.state, audit: result.audit });
+  }));
+
+  app.post('/api/admin/auto-publication/pause', rateLimit('admin-auto-publication-pause', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const body = (req.body || {}) as { paused?: unknown; note?: unknown };
+    if (typeof body.paused !== 'boolean') return res.status(400).json({ error: 'paused (boolean) requis.' });
+    const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 500) : undefined;
+    const result = await setAutoPublishPaused(serverDb, { paused: body.paused, note }, { id: admin.id, email: admin.email });
+    if (!result.ok) {
+      return res.status(409).json({ error: 'Pause/reprise impossible — état inchangé.', detail: result.reason });
+    }
+    res.json({ policy: result.state, audit: result.audit });
+  }));
+
+  /**
+   * ÉVALUATION (le déclencheur de la machine). `trigger` nomme ce qui a
+   * déclenché l'évaluation ('manuel' aujourd'hui ; les événements — import,
+   * document, rattachement fournisseur, expiration — appelleront la même
+   * route). watch : rien n'est écrit, le plan est journalisé. active : les
+   * fiches éligibles (draft, au vert, non exclues) sont publiées, chaque
+   * décision est journalisée avec la version des critères, et la vague est
+   * consignée pour le rollback.
+   */
+  app.post('/api/admin/auto-publication/run', rateLimit('admin-auto-publication-run', 20, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const trigger = typeof req.body?.trigger === 'string' && req.body.trigger.trim()
+      ? req.body.trigger.trim().slice(0, 80)
+      : 'manuel';
+    const policy = await readPublicationPolicy(serverDb);
+    const gate = evaluateAutoPublishGate({
+      available: policy.available,
+      autoPublishAvailable: policy.autoPublishAvailable,
+      stage: policy.autoPublishStage,
+      pausedAt: policy.autoPublishPausedAt,
+      reason: policy.reason
+    });
+    if (!gate.allowed) {
+      return res.status(gate.httpStatus).json({ error: gate.error, detail: gate.detail || (policy.autoPublishPausedBy ? `par ${policy.autoPublishPausedBy}` : undefined) });
+    }
+
+    const [products, report] = await Promise.all([
+      serverDb.getAdminCatalogProducts(),
+      serverDb.getCatalogPublicationReadinessReport()
+    ]);
+    const plan = planAutoPublication(products, report.perProduct, { trigger });
+    const actor = { id: admin.id, email: admin.email };
+    const actorLabel = admin.email || admin.id || 'admin inconnu';
+
+    if (policy.autoPublishStage === 'watch') {
+      // E1 — rien n'est écrit : le plan EST le journal.
+      const audit = await writeAutoPublishAudit('auto_publish_watch', {
+        batchId: plan.batchId, criteriaVersion: plan.criteriaVersion, trigger, parId: admin.id, par: actorLabel,
+        deviendraientPublies: plan.eligible.length,
+        fiches: plan.eligible.map(e => e.productId),
+        exclusions: plan.excluded.length,
+        survenuLe: plan.evaluatedAt
+      });
+      return res.json({ mode: 'watch', plan, audit, note: 'Rien n’a été écrit — ce plan décrit ce qui deviendrait publié.' });
+    }
+
+    // E2 — active : publie les fiches éligibles, une à une, chacune auditée.
+    const published: Array<{ productId: string; title: string }> = [];
+    let firstError: string | null = null;
+    for (const eligible of plan.eligible) {
+      try {
+        await serverDb.saveCatalogProduct(admin.id, {
+          id: eligible.productId,
+          catalog_status: 'published',
+          catalogStatus: 'published',
+          is_active: true,
+          isActive: true
+        });
+        await writeAutoPublishAudit('auto_publish', {
+          batchId: plan.batchId, criteriaVersion: plan.criteriaVersion, trigger,
+          parId: admin.id, par: actorLabel,
+          productId: eligible.productId, productName: eligible.title,
+          avant: { catalogStatus: 'draft' }, apres: { catalogStatus: 'published' },
+          survenuLe: plan.evaluatedAt
+        });
+        published.push(eligible);
+      } catch (error) {
+        // On s'arrête net : la vague partielle reste rollbackable (c'est le filet).
+        firstError = error instanceof Error ? error.message : String(error);
+        break;
+      }
+    }
+    let batchRecorded = false;
+    if (published.length > 0) {
+      const recorded = await recordAutoPublishBatch(serverDb, { batchId: plan.batchId, at: plan.evaluatedAt, productIds: published.map(p => p.productId) });
+      batchRecorded = recorded.ok;
+      if (!recorded.ok) console.error('[AutoPublication] consigne de la vague impossible :', recorded.reason);
+    }
+    if (firstError) {
+      return res.status(207).json({
+        mode: 'active', plan, published, batchRecorded,
+        error: `Auto-publication partielle — ${published.length} publiée(s), puis arrêtée : ${firstError}. La vague est rollbackable (bouton « Annuler »).`
+      });
+    }
+    res.json({ mode: 'active', plan, published, batchRecorded });
+  }));
+
+  /**
+   * ROLLBACK de la dernière vague (ou d'une vague nommée) : les fiches de la
+   * vague TOUJOURS publiées repartent en draft, une à une, chacune auditée.
+   * Ce qu'un admin a touché depuis n'est pas écrasé (plan du moteur pur).
+   */
+  app.post('/api/admin/auto-publication/rollback', rateLimit('admin-auto-publication-rollback', 10, 60_000), asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const policy = await readPublicationPolicy(serverDb);
+    if (!policy.available || !policy.autoPublishAvailable) {
+      return res.status(409).json({ error: 'Politique de publication non lisible — rien à annuler.', detail: policy.reason });
+    }
+    const batchId = typeof req.body?.batchId === 'string' && req.body.batchId.trim()
+      ? req.body.batchId.trim().slice(0, 120)
+      : policy.autoPublishLastBatch?.batchId;
+    if (!batchId) return res.status(409).json({ error: 'Aucune vague auto-publiée à annuler.' });
+    if (batchId !== policy.autoPublishLastBatch?.batchId) {
+      return res.status(409).json({ error: `Seule la dernière vague est annulable en un clic (dernière : ${policy.autoPublishLastBatch?.batchId || 'aucune'}).` });
+    }
+    const batch = policy.autoPublishLastBatch;
+    const products = await serverDb.getAdminCatalogProducts();
+    const actions = planAutoPublishRollback(products, batch ? batch.productIds : []);
+    const actorLabel = admin.email || admin.id || 'admin inconnu';
+    const now = new Date().toISOString();
+    const rolledBack: Array<{ productId: string; title: string }> = [];
+    for (const action of actions) {
+      try {
+        await serverDb.saveCatalogProduct(admin.id, {
+          id: action.productId,
+          catalog_status: 'draft',
+          catalogStatus: 'draft',
+          is_active: false,
+          isActive: false
+        });
+        await writeAutoPublishAudit('auto_publish_rollback', {
+          batchId, criteriaVersion: SALES_CRITERIA_VERSION,
+          parId: admin.id, par: actorLabel,
+          productId: action.productId, productName: action.title,
+          avant: { catalogStatus: 'published' }, apres: { catalogStatus: 'draft' },
+          survenuLe: now
+        });
+        rolledBack.push({ productId: action.productId, title: action.title });
+      } catch (error) {
+        return res.status(207).json({
+          rolledBack, batchId,
+          error: `Rollback partiel — ${rolledBack.length} dépubliée(s), puis arrêtée : ${error instanceof Error ? error.message : String(error)}.`
+        });
+      }
+    }
+    // La vague annulée n'est plus « la dernière » : le bouton devient inopérant.
+    const cleared = await recordAutoPublishBatch(serverDb, { batchId: '', at: now, productIds: [] });
+    if (cleared.ok) {
+      await writeAutoPublishAudit('auto_publish_rollback', {
+        batchId, parId: admin.id, par: actorLabel,
+        note: 'vague annulée et désarmée du bouton rollback',
+        count: rolledBack.length, survenuLe: now
+      });
+    }
+    res.json({ batchId, rolledBack, count: rolledBack.length });
   }));
 
   /**

@@ -3780,3 +3780,81 @@ existant (aucune règle ne change), versionnée, banc qui fige la liste. »
 - Aucune règle du moteur modifiée — la carte est une description, pas un patch.
 - La version sera inscrite dans chaque décision d'auto-publication (chantier E,
   seconde moitié du lot 3).
+
+## 2026-09-17 — Chantier E : l'auto-publication, watch → active (Agent Kurla — lot 3, seconde moitié)
+
+Consigne (proposition validée du 15/09) : « E1 — mode watch : à chaque événement
+déclencheur, le moteur ré-évalue et journalise ce qui serait publié (« N fiches
+deviendraient conformes ») — rien d'écrit. E2 — mode actif : draft → published
+quand tous les critères sont verts, avec audit complet (produit, version des
+critères, déclencheur, date), rollback 1 clic de la dernière action, exclusions
+(fiches test, kits, drapeau « publication manuelle » par produit), interrupteur
+pause global, ligne « À faire aujourd'hui » « X a été auto-publié — vérifier ».
+Acceptation : banc prouve qu'aucune fiche non conforme n'est auto-publiée (tous
+les cas de bord), audit complet, pause + rollback fonctionnent. »
+
+### Livré
+- `src/lib/autoPublication.ts` (nouveau) — le moteur, **fonction pure** :
+  - `planAutoPublication(produits, readiness, {trigger})` : la loi de la
+    machine, dans l'ordre (première raison gagne, toujours nommée) :
+    fiche de test → kit → publication manuelle → déjà publiée → non conforme
+    / readiness illisible (fail-closed) → sinon ÉLIGIBLE (draft + tous
+    critères au vert). Chaque exclusion porte sa raison + un détail cité
+    (premier manquement, les autres comptés).
+  - `evaluateAutoPublishGate(...)` : la porte — politique illisible /
+    migration absente / pause / stage off = refus nommé (409) ; watch et
+    active = admis.
+  - `planAutoPublishRollback(produits, idsDeLaVague)` : seules les fiches de
+    la vague TOUJOURS publiées repartent en draft (idempotent ; une publication
+    manuelle hors vague n'est pas touchée).
+  - Détection des kits = convention existante de la plateforme
+    (`id « launch-k… »` ou catégorie kit), fiches test = `is_test_listing`,
+    drapeau = `manual_publish_only` (les deux orthographes lues).
+- `publication_policy` (même ligne unique que C3 — un interrupteur sans
+  journal n'est pas un interrupteur) : colonnes `auto_publish_stage`
+  (off par défaut / watch / active, CHECK), `auto_publish_paused_at/by`
+  (pause en un clic, datée et nommée — la pause ne réarme pas le stage),
+  `auto_publish_last_batch_*` (la dernière vague exécutée : c'est elle que le
+  rollback rejoue). DDL : `supabase/migrations/20261004000000_auto_publication.sql`
+  (idempotent, application MANUELLE dans l'éditeur SQL — comme C3). Colonnes
+  absentes = machine off + état nommé dans l'écran (jamais une erreur muette).
+- Store `publicationPolicyStore` : `setAutoPublishStage` / `setAutoPublishPaused`
+  / `recordAutoPublishBatch` — chaque écriture journalisée dans `audit_logs`
+  (`auto_publish_stage_change`, `auto_publish_pause`), le mode strict (C3)
+  n'est jamais touché par la machine.
+- Routes admin (`catalogGovernance.ts`, requireAdmin + rate-limit) :
+  `GET /api/admin/auto-publication/state` · `POST …/stage` · `POST …/pause` ·
+  `POST …/run` (trigger nommé ; watch = plan journalisé `auto_publish_watch`,
+  RIEN n'est écrit ; active = publication une à une, chacune auditée
+  `auto_publish` avec produit + version de la carte + trigger + date, vague
+  consignée ; échec en cours = 207 + vague partielle rollbackable) ·
+  `POST …/rollback` (dernière vague ou nommée ; chaque dépublication auditée
+  `auto_publish_rollback` ; vague désarmée du bouton après rollback).
+- Écran « Auto-publication » (`AutoPublicationPanel`, Gouvernance du catalogue,
+  2ᵉ outil après la carte des critères) : stage en 3 boutons, pause/reprise
+  en un clic avec date + acteur, note pour le journal, « Évaluer » (watch :
+  « N fiches deviendraient publiées — rien n'a été écrit » ; active : « N
+  auto-publiées — à vérifier »), liste des décisions avec leurs raisons
+  nommées, dernière vague + « Annuler (rollback) » en un clic.
+- File « À faire aujourd'hui » : une vague publiée (toujours en place) devient
+  une ligne en tête de file « N fiches auto-publiées — à vérifier » → catalogue.
+  Sans vague : comportement d'avant inchangé (banc existant conservé tel quel).
+
+### Contrôles
+- Banc `tests/kurla_auto_publication.test.ts` (dans la chaîne, `test:auto-publication`)
+  : 6 blocs — la loi de la machine sur une batterie de cas de bord (propriété
+  critique testée dans les deux sens : éligibles exacts ET aucune non-conforme
+  éligible, y compris readiness illisible) ; exclusions nommées ; porte
+  fail-closed (illisible / migration absente / pause / off) ; rollback
+  idempotent ; store mémoire (armement, pause datée+nommée, consigne de vague,
+  fail-closed sans colonnes, le mode strict C3 intact) ; file « à vérifier ».
+- tsc propre · suite complète relancée · inventaires régénérés :
+  **344 routes / 105 admin** (les 5 routes de la machine sont appelées par un
+  écran ; 0 retrait).
+- **Le déclencheur d'aujourd'hui est l'action manuelle** (bouton Évaluer). Les
+  événements (document enregistré, fournisseur rattaché, import, validation,
+  expiration) appelleront la même route `POST …/run` avec leur `trigger` nommé —
+  même moteur, même porte, même audit. C'est la passe suivante, pas une machine
+  parallèle.
+- La version de la carte (chantier A) est inscrite dans chaque décision :
+  l'audit d'auto-publication date la règle qui a décidé.
