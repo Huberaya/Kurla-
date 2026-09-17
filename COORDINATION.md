@@ -3487,3 +3487,69 @@ compte qui ne doit **jamais** baisser. Une baisse signifierait qu'un marqueur a
 **Leçon à garder :** avant d'« aligner » deux valeurs qui ne correspondent pas,
 vérifier laquelle fait foi — et si l'une des deux sert de garde-fou. J'allais
 supprimer un dispositif de sécurité au nom de la cohérence des données.
+
+---
+
+## Chantier « fiches liées » (17/09/2026, commit 0133345)
+
+**Demande** : « impossible de rajouter les informations d'un fournisseur et d'un
+produit en particulier » ; une modification faite dans l'approvisionnement doit
+apparaître dans le catalogue et partout où ce produit et ce fournisseur sont
+mentionnés.
+
+### Ce qui a été mesuré avant d'écrire (base prod, Management API)
+- 30 fournisseurs · 28 pistes de sourcing dont **3 liées** · 138 produits dont
+  **111 liés** (27 orphelins).
+- **`products.source_supplier` n'est PAS une copie du nom du fournisseur.** Il
+  est rempli sur 138/138, mais c'est une note libre de sourcing : « Candidat —
+  The Ordinary », « Assemblage interne KURLA », « Peignes, bonnets satin,
+  vaporisateurs ». Les 79 écarts avec le fournisseur lié sont donc **deux
+  informations différentes**. Rien à recopier — et recopier aurait créé une
+  deuxième source de vérité, exactement ce que la migration `supplier_link`
+  évite.
+- `sourcing_prospects.supplier_id` **existe déjà en prod** (migration
+  20261004000000 appliquée) et `sourcing.ts:174` l'écrit. Le lien manquait côté
+  écrans, pas côté base.
+- Toutes les écritures fournisseur passaient par **un seul** panneau
+  (`SupplierAdminPanel`, 5 appelants de la route PATCH, tous dans ce fichier).
+
+### Livré
+| Fichier | Rôle |
+|---|---|
+| `src/lib/adminRecordsStore.ts` | Magasin partagé (`useSyncExternalStore`). Une fiche lue une fois est relue partout ; après écriture la `version` s'incrémente et les panneaux abonnés rechargent. Optimiste **restauré** en cas d'échec, erreur réelle du serveur remontée, écritures serialisées. |
+| `src/lib/recordCompleteness.ts` | Manques **nommés** avec leur raison (pas un score). Fournisseur : uniquement les champs que `updateSupplier` accepte ; `legalName` exclue (le serveur la refuse). **Un 0 n'est jamais un manque.** Produit : grille KURLA Ready reprise telle quelle + rattachement, SKU fournisseur, catégorie, prix. |
+| `src/components/SupplierSheet.tsx` | Fiche fournisseur flottante, ouvrable de partout. Raison sociale en lecture seule (l'identifiant en dérive). |
+| `src/components/ProductSheet.tsx` | Fiche produit flottante ; ouvre la fiche de son fournisseur d'un clic. |
+| `tests/kurla_linked_records.test.ts` | 14 blocs. |
+
+**Câblées dans 4 panneaux** : Catalogue produits (nom de fiche + nom de
+fournisseur cliquables), Lots & traçabilité (produit et fournisseur du lot),
+Affectation fournisseurs (nom de fiche), Catalogue par fournisseur (nom du
+fournisseur). Chaque panneau se recharge après une écriture.
+
+### Piège évité, à retenir
+Le rattachement produit↔fournisseur passe par une **route dédiée**
+(`PATCH /api/admin/products/:id/supplier`, celle qu'utilise déjà
+`ProductSupplierPanel`) — **pas** par `PATCH /api/admin/catalog/products/:id`.
+Passer par la mauvaise route aurait produit un enregistrement qui « réussit » à
+l'écran sans rien écrire en base : exactement le symptôme que ce chantier devait
+supprimer. `writeProductSupplierLink` existe pour ça, et son banc vérifie l'URL.
+
+### Contrôles
+`npm run lint` exit 0 sur l'arbre fusionné · **16 bancs exit 0** (dont
+`linked-records`, `admin-route-inventory` régénéré : 5 appelants ajoutés, tous
+dans `adminRecordsStore.ts`, diff vérifié · `marqueurs-securite` et
+`lien-fournisseur`, les bancs de l'autre agent) · build exit 0 · bundle local
+`AdminDashboardPage-C2xjEL0n.js` : « Fiche fournisseur » 3, « Fiche produit » 2,
+« Ouvrir la fiche fournisseur » 4, « Ce qui manque » 4, « Fiche enregistrée » 2.
+
+**Non vérifié** : le rendu réel en navigateur (pas de session admin en local).
+Les écritures sont prouvées par le banc (optimiste restauré, route exacte,
+legalName jamais envoyée), pas par un clic.
+
+### Reste ouvert
+- Câbler les fiches dans les panneaux restants (proposition d'achat, sourcing
+  consolidé, références sourcées, cockpit) — le magasin et les fiches sont
+  réutilisables tels quels.
+- Relier les 25 pistes de sourcing restantes à un fournisseur quand la
+  correspondance existe (décision humaine, pas de rapprochement automatique).
