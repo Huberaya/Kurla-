@@ -3553,3 +3553,38 @@ legalName jamais envoyée), pas par un clic.
   réutilisables tels quels.
 - Relier les 25 pistes de sourcing restantes à un fournisseur quand la
   correspondance existe (décision humaine, pas de rapprochement automatique).
+
+## Correction exploitant (17/09) : un fournisseur se modifie dans la base de l'Approvisionnement, nulle part ailleurs
+
+> « les modifications ne concernent pas les fournisseurs, on a une base fournisseurs dans approvisionnement, c'est là que les modifications doivent être faites »
+
+Ce que j'avais fait de travers : j'avais monté la fiche fournisseur **éditable** dans
+`CatalogAdminPanel` (onglet Catalogue produits), `BatchAdminPanel` (onglet Lots) et
+`SupplierCatalogPanel`. Cela créait une deuxième surface d'édition hors de la base —
+exactement le genre de divergence que la base est censée éviter.
+
+Règle à tenir :
+
+| Fiche | Où on l'ouvre | Où on la modifie |
+| --- | --- | --- |
+| Fournisseur | onglet **Approvisionnement** → base (`SupplierAdminPanel`), bouton « Compléter la fiche » | **là, et seulement là** |
+| Produit | partout où son nom apparaît (catalogue, lots, affectation) | dans sa fiche flottante (`ProductSheet`) |
+
+Ailleurs, un nom de fournisseur reste cliquable mais **renvoie** vers la base
+(`onOpenSupplierBase` → onglet `suppliers`, sous-onglet `dir`, prop `focusSupplierId`
+qui rouvre la fiche demandée). `ProductSheet` ne propose plus d'éditer un fournisseur :
+son bouton dit « Ouvrir dans la base fournisseurs » et renvoie.
+
+Vérification à refaire si quelqu'un remonte une surface d'édition :
+`grep -rn "<SupplierSheet" src/` doit renvoyer **une seule ligne**, dans
+`SupplierAdminPanel.tsx`.
+
+### État du déploiement au moment de ce message (à reprendre)
+
+- `e4f797b` poussé sur `main` ; lint exit 0, 11 bancs exit 0, build local exit 0
+  (`AdminDashboardPage-ClitUlB1.js` avec « Ouvrir dans la base fournisseurs » ×4,
+  « Compléter la fiche » ×1, « Ouvrir la fiche fournisseur » ×0).
+- **Prod `kurlabeauty.vercel.app` encore sur `AdminDashboardPage-Bfy3PHTy.js`** (le
+  libellé précédent y apparaît 4 fois, le nouveau 0 fois) mesuré à 10:47 UTC, soit
+  après ~7 min d'attente. Le déploiement de `e4f797b` n'était pas en ligne.
+  À remesurer avant d'annoncer que la correction est visible.
