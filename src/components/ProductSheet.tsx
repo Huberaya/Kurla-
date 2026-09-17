@@ -45,6 +45,9 @@ export const ProductSheet: React.FC<{
   onClose: () => void;
   /** Fournisseurs déjà chargés par le panneau appelant (pas de requête en douce). */
   suppliers?: Array<{ id: string; legalName?: string; tradeName?: string }>;
+  /** Renvoie vers la base fournisseurs de l'Approvisionnement (17/09). Le
+   *  fournisseur ne se modifie pas ici : cette fiche produit nomme le
+   *  rattachement, la saisie se fait dans l'unique base. */
   onOpenSupplier?: (supplierId: string) => void;
 }> = ({ productId, headers, onClose, suppliers, onOpenSupplier }) => {
   useAdminRecords();
@@ -177,7 +180,7 @@ export const ProductSheet: React.FC<{
                     : <span className="text-amber-300">e-mail à compléter</span>}
                   {onOpenSupplier && product.supplierId && (
                     <button type="button" onClick={() => onOpenSupplier(String(product.supplierId))} className="px-2 py-1 rounded-lg border border-kurla-copper/40 text-kurla-copper font-bold hover:bg-kurla-copper/10">
-                      Ouvrir la fiche fournisseur
+                      Ouvrir dans la base fournisseurs
                     </button>
                   )}
                 </div>

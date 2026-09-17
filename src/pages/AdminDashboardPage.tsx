@@ -122,6 +122,17 @@ export const AdminDashboardPage: React.FC = () => {
   // « À faire aujourd'hui » (17/09 phase 1) : la file d'actions mène à un onglet
   // avec le contexte présélectionné (fiche focalisée / produit présélectionné au lot).
   const [queueNav, setQueueNav] = useState<{ tab: AdminTab; focusProductId?: string; focusLabel?: string } | null>(null);
+  // Base fournisseurs (17/09) : un fournisseur se modifie dans l'Approvisionnement,
+  // là où vit sa base — nulle part ailleurs. Les autres écrans (catalogue, lots,
+  // catalogue par fournisseur) renvoient vers cette fiche au lieu de proposer
+  // une deuxième surface d'édition qui divergerait.
+  const [supplierFocus, setSupplierFocus] = useState<string | null>(null);
+  const openSupplierBase = (supplierId: string) => {
+    setSupplierFocus(supplierId);
+    setSupplierSub('dir');
+    setActiveTab('suppliers');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
   const navigateFromQueue = (nav: { tab: 'catalog' | 'batches' | 'suppliers'; focusProductId?: string; focusLabel?: string }) => {
     setQueueNav(nav);
     // Les actions sourcing (relance RFQ, RFQ à envoyer) atterrissent directement
@@ -1444,6 +1455,7 @@ export const AdminDashboardPage: React.FC = () => {
             <CatalogClaimsAuditPanel headers={adminHeaders} />
             <CatalogAdminPanel
               scope={workspace === 'skin' ? 'skin' : 'hair'}
+              onOpenSupplierBase={openSupplierBase}
               headers={adminHeaders}
               focusProductId={queueNav?.tab === 'catalog' ? queueNav.focusProductId : undefined}
               focusLabel={queueNav?.tab === 'catalog' ? queueNav.focusLabel : undefined}
@@ -1540,6 +1552,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <SupplierDossierPanel headers={adminHeaders} />
                 <SupplierAdminPanel
                   headers={adminHeaders}
+                  focusSupplierId={supplierFocus || undefined}
                   onSuccess={(message) => {
                     setActionSuccess(message);
                     setTimeout(() => setActionSuccess(''), 5000);
@@ -1612,7 +1625,7 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">D'abord les fournisseurs et leurs contacts (filtrables), puis ce que chacun fournit et la stratégie pays. En bas : le dossier de complétude (ce qu'on sait, ce qui manque) et l'affectation produit par produit.</p>
             </div>
             <SupplierAdminPanel headers={adminHeaders} showAll onSuccess={(message) => { setActionSuccess(message); setTimeout(() => setActionSuccess(''), 5000); }} />
-            <SupplierCatalogPanel headers={adminHeaders} />
+            <SupplierCatalogPanel headers={adminHeaders} onOpenSupplierBase={openSupplierBase} />
             <SourcingCountryStrategyPanel headers={adminHeaders} />
             <GlobalSearchPanel headers={adminHeaders} />
             <SupplierDossierPanel headers={adminHeaders} />
@@ -1672,6 +1685,7 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="space-y-10">
             <BatchAdminPanel
               headers={adminHeaders}
+              onOpenSupplierBase={openSupplierBase}
               focusProductId={queueNav?.tab === 'batches' ? queueNav.focusProductId : undefined}
               focusLabel={queueNav?.tab === 'batches' ? queueNav.focusLabel : undefined}
               onSuccess={(message) => {

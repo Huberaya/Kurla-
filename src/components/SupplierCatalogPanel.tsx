@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
-import { SupplierSheet, useAdminRecords } from './SupplierSheet';
+import { useAdminRecords } from './SupplierSheet';
 import { ChevronRight, Factory } from 'lucide-react';
 
 /**
@@ -18,7 +18,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   hommes: 'Hommes', enfants: 'Enfants', maquillage: 'Maquillage',
 };
 
-export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }> = ({ headers }) => {
+export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string>; onOpenSupplierBase?: (supplierId: string) => void }> = ({ headers, onOpenSupplierBase }) => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -28,7 +28,6 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }>
   // fournisseur fournit — c'est donc ici qu'on doit pouvoir compléter sa fiche.
   // Le jeton de rechargement entre dans les dépendances du chargement : après
   // un enregistrement depuis la fiche, la liste se recharge toute seule.
-  const [sheetSupplier, setSheetSupplier] = useState<string | null>(null);
   const records = useAdminRecords();
   const [reloadToken, setReloadToken] = useState(0);
   useEffect(() => { if (records.version > 0) setReloadToken(token => token + 1); }, [records.version]);
@@ -127,7 +126,7 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }>
           <details key={supplier.id} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink overflow-hidden" open={items.length > 0 && items.length <= 12}>
             <summary className="cursor-pointer px-4 py-3 flex flex-wrap items-center gap-2 text-sm hover:bg-kurla-cream/[0.03]">
               <ChevronRight className="w-4 h-4 text-kurla-copper transition-transform [[open]>&]:rotate-90" />
-              <button type="button" onClick={event => { event.preventDefault(); setSheetSupplier(String(supplier.id)); }} title="Ouvrir la fiche fournisseur" className="font-bold text-kurla-cream hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplier.tradeName || supplier.legalName || supplier.id}</button>
+              <button type="button" onClick={event => { event.preventDefault(); onOpenSupplierBase?.(String(supplier.id)); }} title="Ouvrir dans la base fournisseurs — Approvisionnement" className="font-bold text-kurla-cream hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplier.tradeName || supplier.legalName || supplier.id}</button>
               {supplier.tradeName && supplier.legalName && supplier.tradeName !== supplier.legalName && <span className="text-[10px] text-kurla-cream/40">{supplier.legalName}</span>}
               {supplier.country && <span className="px-1.5 py-0.5 rounded bg-kurla-espresso border border-kurla-cream/10 text-[9px] text-kurla-cream/60 font-bold">{supplier.country}</span>}
               <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold border ${items.length > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/25 text-amber-300'}`}>
@@ -151,14 +150,6 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string> }>
           </details>
         ))}
       </div>
-      {sheetSupplier && (
-        <SupplierSheet
-          supplierId={sheetSupplier}
-          headers={headers}
-          linkedProducts={(bySupplier.get(String(sheetSupplier)) || []).length}
-          onClose={() => setSheetSupplier(null)}
-        />
-      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { SupplierSheet } from './SupplierSheet';
 import { AlertTriangle, Building2, FileCheck2, Package, Plus, RefreshCw, Save, ShieldCheck } from 'lucide-react';
 import { SUPPLIER_DOCUMENT_LABELS } from '../lib/sourcingDocuments';
 import { COSMETIC_REQUIRED_DOCS, COSMETIC_DOC_LABELS, COSMETIC_DOC_REASONS } from '../lib/cosmeticCompliance';
@@ -11,6 +12,9 @@ type SupplierAdminPanelProps = {
   // par workspace. Sans ce mode, le panel garde le comportement historique
   // filtré par workspace — l'ancien onglet n'est pas touché.
   showAll?: boolean;
+  /** Fiche à ouvrir à l'arrivée (17/09) : un autre écran renvoie vers la base
+   *  fournisseurs au lieu de proposer une deuxième surface d'édition. */
+  focusSupplierId?: string;
 };
 
 type SupplierRow = {
@@ -80,11 +84,12 @@ function headerFilterClass(): string {
   return 'w-full min-w-[88px] px-2 py-1 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-kurla-cream text-[11px] font-normal normal-case tracking-normal focus:outline-none focus:border-kurla-copper';
 }
 
-export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: SupplierAdminPanelProps) {
+export function SupplierAdminPanel({ headers, onSuccess, showAll = false, focusSupplierId }: SupplierAdminPanelProps) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [supplierTypes, setSupplierTypes] = useState<string[]>([]);
   const [documentTypes, setDocumentTypes] = useState<string[]>([]);
   const [detail, setDetail] = useState<SupplierDetail | null>(null);
+  const [sheetSupplierId, setSheetSupplierId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -129,6 +134,13 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
   }, [headers, showAll]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Ouverture demandée depuis un autre écran : la modification se fait ICI,
+  // dans la base fournisseurs de l'Approvisionnement — pas dans une fiche
+  // flottante dupliquée ailleurs dans le dashboard.
+  useEffect(() => {
+    if (focusSupplierId) void openDetail(focusSupplierId);
+  }, [focusSupplierId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openDetail = async (supplierId: string) => {
     setError('');
@@ -556,11 +568,25 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false }: Supp
         </button>
       </section>
 
+      {/* Fiche flottante (17/09) : elle vit ICI, dans la base fournisseurs de
+          l'Approvisionnement. Ailleurs dans le dashboard, un nom de fournisseur
+          renvoie vers cette base — il n'y a qu'une surface d'édition. */}
+      {sheetSupplierId && (
+        <SupplierSheet
+          supplierId={sheetSupplierId}
+          headers={headers}
+          linkedProducts={detail && detail.supplier.id === sheetSupplierId ? detail.products.length : undefined}
+          documentCount={detail && detail.supplier.id === sheetSupplierId ? detail.documents.length : undefined}
+          onSaved={() => { void load(); if (detail) void openDetail(detail.supplier.id); }}
+          onClose={() => setSheetSupplierId(null)}
+        />
+      )}
       {detail && (
         <section className="rounded-2xl border border-kurla-copper/40 bg-kurla-copper/[0.06] p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h3 className="text-sm font-bold text-kurla-cream">{detail.supplier.legalName}</h3>
+              <button type="button" onClick={() => setSheetSupplierId(detail.supplier.id)} className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 hover:border-kurla-copper/40 hover:text-kurla-cream">Compléter la fiche</button>
               <p className="text-[11px] text-kurla-cream/60">
                 {SUPPLIER_TYPE_LABELS[detail.supplier.supplierType] || detail.supplier.supplierType}
                 {detail.supplier.country ? ` · ${detail.supplier.country}` : ''} · identifiant <code>{detail.supplier.id}</code>

@@ -56,11 +56,13 @@ export const SupplierSheet: React.FC<{
   supplierId: string;
   headers: HeadersInit;
   onClose: () => void;
+  /** Appelé après un enregistrement accepté : l'appelant recharge sa liste. */
+  onSaved?: () => void;
   /** Nombre de produits réellement rattachés, si le panneau appelant le sait. */
   linkedProducts?: number;
   /** Documents enregistrés, si le panneau appelant les a lus. */
   documentCount?: number;
-}> = ({ supplierId, headers, onClose, linkedProducts, documentCount }) => {
+}> = ({ supplierId, headers, onClose, onSaved, linkedProducts, documentCount }) => {
   useAdminRecords();
   const supplier = readSupplier(supplierId);
   const [draft, setDraft] = useState<Record<string, any>>({});
@@ -108,6 +110,7 @@ export const SupplierSheet: React.FC<{
     const result = await writeSupplier(supplierId, changedPatch, headers);
     if (!result.ok) { setError(result.error || 'Enregistrement refusé.'); return; }
     setSaved('Fiche enregistrée — les autres écrans affichent la nouvelle valeur.');
+    onSaved?.();
   };
 
   const missingByKey = useMemo(() => new Map(completeness.missing.map(field => [field.key, field])), [completeness]);
