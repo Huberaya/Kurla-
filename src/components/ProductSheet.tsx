@@ -49,7 +49,9 @@ export const ProductSheet: React.FC<{
    *  fournisseur ne se modifie pas ici : cette fiche produit nomme le
    *  rattachement, la saisie se fait dans l'unique base. */
   onOpenSupplier?: (supplierId: string) => void;
-}> = ({ productId, headers, onClose, suppliers, onOpenSupplier }) => {
+  /** Appelé après un enregistrement accepté : l'appelant recharge sa liste. */
+  onSaved?: () => void;
+}> = ({ productId, headers, onClose, suppliers, onOpenSupplier, onSaved }) => {
   useAdminRecords();
   const product = readProduct(productId);
   const [draft, setDraft] = useState<Record<string, any>>({});
@@ -113,6 +115,7 @@ export const ProductSheet: React.FC<{
       if (!result.ok) { setError(result.error || 'Rattachement refusé.'); return; }
     }
     setSaved('Fiche enregistrée — les autres écrans affichent la nouvelle valeur.');
+    onSaved?.();
   };
 
   const linkedSupplier = readSupplier(product?.supplierId || '');

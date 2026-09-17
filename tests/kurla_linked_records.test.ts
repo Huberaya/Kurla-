@@ -14,14 +14,18 @@
  * Aucun fetch réel : `fetchImpl` est injecté.
  */
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   getAdminRecordsSnapshot,
   getAdminRecordsVersion,
   isWritingAdminRecords,
   loadProduct,
   loadSupplier,
+  loadSupplierDirectory,
   readSupplier,
   resetAdminRecords,
+  resetSupplierDirectory,
   subscribeAdminRecords,
   supplierDisplayName,
   writeProduct,
@@ -273,4 +277,136 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ rattachement refusé : erreur réelle remontée, verrou relâché');
 }
 
-console.log('\n14 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route.');
+/* ---------- 17/09, 2e demande : tout est modifiable dans l'espace Approvisionnement ---------- */
+
+/* 15. Le référentiel fournisseurs est lu UNE fois, puis servi depuis le magasin.
+   Chaque panneau de cet espace affiche des fournisseurs : sans cache, un écran
+   de 8 panneaux déclencherait 8 requêtes identiques. */
+{
+  resetSupplierDirectory();
+  const { calls, fetchImpl } = recorder(async () => jsonResponse({
+    suppliers: [{ id: 'sup-a', legalName: 'Aquarius' }, { id: 'sup-b', legalName: 'Baraka' }],
+  }));
+
+  const first = await loadSupplierDirectory(HEADERS, { fetchImpl });
+  const second = await loadSupplierDirectory(HEADERS, { fetchImpl });
+  const concurrent = await loadSupplierDirectory(HEADERS, { fetchImpl });
+
+  assert.equal(first.length, 2, 'les deux fournisseurs sont rendus');
+  assert.deepEqual(second, first, 'la seconde lecture rend la même liste');
+  assert.deepEqual(concurrent, first, 'la troisième aussi');
+  assert.equal(calls.length, 1, `une seule requête pour trois lecteurs (mesuré : ${calls.length})`);
+  assert.ok(calls[0].url.includes('/api/admin/suppliers?all=1'), 'route réelle, sans filtre d\'espace : ce référentiel sert les deux familles');
+  console.log('✓ référentiel fournisseurs : 3 lecteurs, 1 requête');
+}
+
+/* 16. Un référentiel indisponible ne rend pas une liste vide qui ferait croire
+   qu'aucun fournisseur n'existe : l'erreur remonte, et rien n'est mis en cache. */
+{
+  resetSupplierDirectory();
+  const failing = recorder(async () => jsonResponse({ error: 'Référentiel indisponible.' }, false, 500));
+  await assert.rejects(
+    () => loadSupplierDirectory(HEADERS, { fetchImpl: failing.fetchImpl }),
+    /Référentiel indisponible/
+  );
+  assert.equal(failing.calls.length, 1, 'la tentative échouée est comptée');
+
+  const recovered = recorder(async () => jsonResponse({ suppliers: [{ id: 'sup-a', legalName: 'Aquarius' }] }));
+  const list = await loadSupplierDirectory(HEADERS, { fetchImpl: recovered.fetchImpl });
+  assert.equal(list.length, 1, `l'échec n'a rien mis en cache : la liste est relue (mesuré : ${list.length})`);
+  console.log('✓ référentiel indisponible : erreur réelle remontée, aucune liste vide en cache');
+}
+
+/* 17. `refresh` force la relecture : après la création d'un fournisseur, la
+   liste des rattachements proposés doit contenir le nouveau, pas l'ancienne. */
+{
+  resetSupplierDirectory();
+  // Le compteur est tenu DANS le gestionnaire : `calls` est rempli avant que le
+  // gestionnaire ne tourne, il ne peut donc pas servir à distinguer les tours.
+  let served = 0;
+  const { calls, fetchImpl } = recorder(async () => {
+    served += 1;
+    return jsonResponse({ suppliers: served === 1 ? [{ id: 'sup-a' }] : [{ id: 'sup-a' }, { id: 'sup-nouveau' }] });
+  });
+  await loadSupplierDirectory(HEADERS, { fetchImpl });
+  const stale = await loadSupplierDirectory(HEADERS, { fetchImpl });
+  const fresh = await loadSupplierDirectory(HEADERS, { fetchImpl, refresh: true });
+  assert.equal(stale.length, 1, 'sans refresh, la liste en cache est rendue');
+  assert.equal(fresh.length, 2, `avec refresh, le fournisseur créé apparaît (mesuré : ${fresh.length})`);
+  assert.equal(calls.length, 2, 'deux requêtes : la mise en cache puis la relecture forcée');
+  console.log('✓ refresh : le fournisseur créé devient proposable au rattachement');
+}
+
+/* 18. GARDE-FOU DE STRUCTURE — ce que l'exploitant a corrigé deux fois.
+   Règle 1 : la fiche fournisseur ÉDITABLE ne se monte que dans la base de
+   l'Approvisionnement (`SupplierAdminPanel`). Ailleurs, un nom de fournisseur
+   passe par `SupplierName`, qui ouvre cette même fiche.
+   Règle 2 : dans l'espace Approvisionnement, chaque panneau qui affiche un
+   fournisseur ou un produit rattaché au catalogue propose de le modifier.
+   Ce bloc lit les sources : si quelqu'un remonte une surface d'édition
+   concurrente, ou retire un accès, le banc échoue au lieu de laisser passer. */
+{
+  const sourceDir = join(process.cwd(), 'src');
+  const read = (relative: string) => readFileSync(join(sourceDir, relative), 'utf8');
+
+  /** Panneaux de cet espace qui affichent des FICHES (fournisseur, ou produit du
+   *  catalogue rattaché) : chacun doit proposer de les modifier. */
+  const panelsAvecFiches = [
+    'components/SupplierAdminPanel.tsx',      // la base : édition complète
+    'components/SupplierCatalogPanel.tsx',    // fournisseur + produits rattachés
+    'components/SupplierDossierPanel.tsx',    // piste reliée à une fiche fournisseur
+    'components/ProductSupplierPanel.tsx',    // affectation + fiche produit
+    'components/PurchaseProposalPanel.tsx',   // référence + fournisseur rattaché
+    'components/GlobalSearchPanel.tsx',       // résultats fournisseur et catalogue
+    'components/SourcingProspectsPanel.tsx',  // piste + fiche fournisseur liée
+    'components/ProductSourcesPanel.tsx',     // sources d'achat par produit
+    'components/SourcingWorkflowPanel.tsx',   // transitions d'étape écrites
+  ];
+  /** Panneaux de cet espace qui n'affichent AUCUNE fiche : totaux, agrégats par
+   *  pays, ou entités qui ne sont pas des fiches (piste sans fiche liée, kit,
+   *  message prêt à envoyer à un transporteur). Les rendre « modifiables »
+   *  reviendrait à inventer un champ à écrire. */
+  const panelsSansFiche = [
+    'components/SupplyOpsPanel.tsx',            // compteurs : fournisseurs sans contact
+    'components/SourcingCountryStrategyPanel.tsx', // agrégat par pays
+    'components/SourcingConsolidatedPanel.tsx', // vue consolidée, noms de pistes
+    'components/SourcingCountryStrategyPanel.tsx',
+    'components/TamponOrderPanel.tsx',          // message 3PL, destinataires fixes
+    'components/KittingAdminPanel.tsx',         // composition de kits
+  ];
+
+  const mounted = [...panelsAvecFiches, ...panelsSansFiche].filter(panel => read(panel).includes('<SupplierSheet'));
+  assert.deepEqual(mounted, ['components/SupplierAdminPanel.tsx'],
+    `la fiche fournisseur éditable ne se monte QUE dans la base (mesuré : ${mounted.join(', ') || 'nulle part'})`);
+
+  const modifiable = (panel: string) => {
+    const code = read(panel);
+    return code.includes('<SupplierName') || code.includes('<ProductName')
+      || code.includes('<ProductSheet') || code.includes('<SupplierSheet')
+      || /method: '(PATCH|PUT|POST)'/.test(code);
+  };
+  const sansAcces = panelsAvecFiches.filter(panel => !modifiable(panel));
+  assert.deepEqual(sansAcces, [],
+    `tout panneau qui affiche une fiche propose de la modifier (sans accès : ${sansAcces.join(', ') || 'aucun'})`);
+
+  // Aucun panneau de l'espace ne doit rester sans classification : sinon un
+  // nouveau panneau échapperait silencieusement à ce contrôle.
+  const attendus = new Set([...panelsAvecFiches, ...panelsSansFiche]);
+  for (const panel of [
+    'components/SupplierAdminPanel.tsx', 'components/SupplierCatalogPanel.tsx',
+    'components/SupplierDossierPanel.tsx', 'components/ProductSupplierPanel.tsx',
+    'components/PurchaseProposalPanel.tsx', 'components/GlobalSearchPanel.tsx',
+    'components/SourcingProspectsPanel.tsx', 'components/ProductSourcesPanel.tsx',
+    'components/SourcingWorkflowPanel.tsx', 'components/SupplyOpsPanel.tsx',
+    'components/SourcingCountryStrategyPanel.tsx', 'components/SourcingConsolidatedPanel.tsx',
+    'components/TamponOrderPanel.tsx', 'components/KittingAdminPanel.tsx',
+  ]) assert.ok(attendus.has(panel), `panneau non classé : ${panel}`);
+
+  // Le référentiel doit être atteignable depuis un panneau qui n'a pas de liste
+  // en props : c'est ce qui rend le rattachement possible partout.
+  assert.ok(read('components/EditableRecordName.tsx').includes('loadSupplierDirectory'),
+    'la fiche produit ouverte depuis un panneau charge le référentiel elle-même');
+  console.log('✓ garde-fou : une seule fiche fournisseur éditable, chaque panneau de l\'espace propose une modification');
+}
+
+console.log('\n18 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur.');

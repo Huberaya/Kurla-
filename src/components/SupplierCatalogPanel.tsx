@@ -1,3 +1,4 @@
+import { ProductName, SupplierName } from './EditableRecordName';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { useAdminRecords } from './SupplierSheet';
@@ -126,7 +127,9 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string>; o
           <details key={supplier.id} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink overflow-hidden" open={items.length > 0 && items.length <= 12}>
             <summary className="cursor-pointer px-4 py-3 flex flex-wrap items-center gap-2 text-sm hover:bg-kurla-cream/[0.03]">
               <ChevronRight className="w-4 h-4 text-kurla-copper transition-transform [[open]>&]:rotate-90" />
-              <button type="button" onClick={event => { event.preventDefault(); onOpenSupplierBase?.(String(supplier.id)); }} title="Ouvrir dans la base fournisseurs — Approvisionnement" className="font-bold text-kurla-cream hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplier.tradeName || supplier.legalName || supplier.id}</button>
+              {/* 17/09, 2e demande : ce panneau est DANS l'espace Approvisionnement,
+                  donc le fournisseur s'y modifie directement — plus de renvoi. */}
+              <SupplierName id={String(supplier.id)} label={supplier.tradeName || supplier.legalName || String(supplier.id)} headers={allHeaders} onSaved={() => setReloadToken(t => t + 1)} />
               {supplier.tradeName && supplier.legalName && supplier.tradeName !== supplier.legalName && <span className="text-[10px] text-kurla-cream/40">{supplier.legalName}</span>}
               {supplier.country && <span className="px-1.5 py-0.5 rounded bg-kurla-espresso border border-kurla-cream/10 text-[9px] text-kurla-cream/60 font-bold">{supplier.country}</span>}
               <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold border ${items.length > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/25 text-amber-300'}`}>
@@ -140,7 +143,8 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string>; o
                 <div className="flex flex-wrap gap-1.5">
                   {items.map(p => (
                     <span key={String(p.id)} className="px-2 py-1 rounded-lg border border-kurla-cream/10 bg-kurla-espresso text-[10px] text-kurla-cream/75" title={String(p.id)}>
-                      {String(p.name || p.id)}
+                      {/* Le produit rattaché est modifiable ici aussi, sans quitter l'espace. */}
+                      <ProductName id={String(p.id)} label={String(p.name || p.id)} headers={allHeaders} className="text-[10px] font-bold" onSaved={() => setReloadToken(t => t + 1)} />
                       <span className="text-kurla-cream/40"> · {CATEGORY_LABELS[String(p.category || '')] || p.category || '—'}</span>
                     </span>
                   ))}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { SupplierName } from './EditableRecordName';
 import { Copy, Mail, Search, Users } from 'lucide-react';
 
 /**
@@ -178,6 +179,13 @@ export const SupplierDossierPanel: React.FC<{ headers: Record<string, string> }>
                     <div>
                       <h4 className="font-bold text-sm">
                         {r.name}
+                        {/* 17/09, 2e demande : quand la piste est reliée à une fiche
+                            fournisseur, cette fiche est modifiable d'ici. */}
+                        {r.supplierId && (
+                          <span className="ml-2 text-[10px] font-normal">
+                            fiche : <SupplierName id={String(r.supplierId)} label="ouvrir et modifier" headers={headers} className="text-[10px]" onSaved={() => void load()} />
+                          </span>
+                        )}
                         <span className="ml-2 text-[10px] font-normal text-kurla-cream/50">
                           {r.contactType} · voie {r.route} · {r.status}
                         </span>

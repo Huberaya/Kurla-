@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { SupplierName } from './EditableRecordName';
 import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
 import { AssortmentPlanPanel } from './AssortmentPlanPanel';
@@ -296,7 +297,9 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                     <div className="rounded-xl bg-emerald-500/[0.06] border border-emerald-400/20 px-3 py-2">
                       <p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Fiche fournisseur — source unique</p>
                       <p className="text-[11px] text-kurla-cream/75 mt-1">
-                        {p.supplier.legalName}
+                        {/* 17/09, 2e demande : cette fiche se modifie ici, elle n'est
+                            plus seulement lue. Le lien reste la source unique. */}
+                        <SupplierName id={p.supplierId || null} label={p.supplier.legalName} headers={headers} className="text-[11px]" onSaved={() => void load()} />
                         {p.supplier.country ? ` · ${p.supplier.country}` : ''}
                         {p.supplier.website ? ` · ${p.supplier.website}` : ''}
                         {p.supplier.supplierType ? ` · ${p.supplier.supplierType}` : ''}

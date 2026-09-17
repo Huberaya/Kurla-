@@ -51,6 +51,8 @@ export type ContactProposal = {
 
 export type SupplierDossierRow = {
   id: string;
+  /** Identifiant de la fiche fournisseur rattachée, null si la piste n'en a pas. */
+  supplierId: string | null;
   name: string;
   route: string;
   contactType: string;
@@ -198,6 +200,12 @@ export function buildSupplierDossier(args: {
 
     return {
       id: p.id,
+      /** Fiche fournisseur rattachée à la piste (migration 20261004) : remonte
+       *  l'identifiant pour que le dossier puisse ouvrir ET modifier la fiche.
+       *  Jamais une recopie des champs — la fiche reste la source unique. */
+      supplierId: isFilled((p as unknown as Record<string, unknown>).supplierId)
+        ? String((p as unknown as Record<string, unknown>).supplierId)
+        : null,
       name: p.name,
       route: p.route,
       contactType: p.contactType,

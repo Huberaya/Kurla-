@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProductSheet } from './ProductSheet';
+import { SupplierName } from './EditableRecordName';
 import { useAdminRecords } from './SupplierSheet';
 import { RefreshCw, Save, Package, Truck, CheckCircle2 } from 'lucide-react';
 
@@ -253,6 +254,18 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
                           <option key={s.id} value={s.id}>{s.tradeName || s.legalName} ({TYPE_LABEL[s.supplierType] || s.supplierType})</option>
                         ))}
                       </select>
+                      {/* 17/09, 2e demande : affecter un fournisseur ne suffisait pas —
+                          sa fiche devait rester incomplète sans aucun moyen de la
+                          compléter d'ici. Le nom rattaché ouvre la fiche et la modifie. */}
+                      <div className="mt-1">
+                        <SupplierName
+                          id={draft.supplierId || null}
+                          label={supplierName(draft.supplierId) ? (supplierName(draft.supplierId)!.tradeName || supplierName(draft.supplierId)!.legalName) : 'Ouvrir la fiche du fournisseur rattaché'}
+                          headers={headers}
+                          className="text-[10px]"
+                          onSaved={() => void load()}
+                        />
+                      </div>
                     </td>
                     <td className="py-2.5 px-2">
                       <input

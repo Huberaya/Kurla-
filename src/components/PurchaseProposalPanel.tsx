@@ -15,6 +15,7 @@
  * acte humain (vue consolidée, mailto/copier).
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { ProductName, SupplierName } from './EditableRecordName';
 import { ColumnFilterPresence, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { Download, FileText } from 'lucide-react';
 
@@ -29,6 +30,9 @@ export interface PurchaseProposalRow {
   stockOnHand: number;
   qtyToOrder: number;
   supplierName: string | null;
+  /** Identifiant de la fiche fournisseur — permet d'ouvrir et de modifier la
+   *  fiche depuis cette ligne (17/09, 2e demande : tout est modifiable ici). */
+  supplierId: string | null;
   moqUnits: number | null;
   leadTimeDays: number | null;
   unitCostEur: number | null;
@@ -121,6 +125,7 @@ export function buildPurchaseProposal(input: PurchaseProposalInput): PurchasePro
       stockOnHand,
       qtyToOrder,
       supplierName: supplierName || null,
+      supplierId: supplier ? String(supplier.id) : null,
       moqUnits,
       leadTimeDays,
       unitCostEur,
@@ -174,6 +179,9 @@ export function purchaseProposalToCsv(result: PurchaseProposalResult): string {
 
 export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ headers }) => {
   const [result, setResult] = useState<PurchaseProposalResult | null>(null);
+  /** Incrémenté après une modification faite depuis une ligne : le tableau relit
+   *  ses cinq sources et affiche la nouvelle valeur sans recharger la page. */
+  const [reloadToken, setReloadToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState<string[]>([]);
   const [exported, setExported] = useState(false);
@@ -236,7 +244,7 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
     return () => { cancelled = true; };
     // headers récréé à chaque rendu du dashboard : lecture une seule fois au montage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [headers, reloadToken]);
 
   const downloadCsv = () => {
     if (!result || result.rows.length === 0) return;
@@ -336,7 +344,8 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
                 {visibleProposals.map(row => (
                   <tr key={row.productId} className={`border-t border-kurla-cream/10 ${row.qtyToOrder === 0 ? 'opacity-55' : ''}`}>
                     <td className="px-3 py-2.5">
-                      <span className="font-semibold text-kurla-cream">{row.name}</span>
+                      {/* 17/09, 2e demande : la référence est modifiable d'ici. */}
+                      <ProductName id={row.productId} label={row.name} headers={headers} className="text-xs font-semibold" onSaved={() => setReloadToken(t => t + 1)} />
                       {row.isKit && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 text-[9px] font-bold">kit</span>}
                       {row.isPreorder && !row.isKit && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 text-[9px] font-bold">préco</span>}
                       <span className="block text-[10px] text-kurla-cream/40 font-mono">{row.slug || row.productId}</span>
@@ -344,7 +353,11 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
                     <td className="px-3 py-2.5 text-right text-kurla-cream/80">{row.qtyDemand}</td>
                     <td className="px-3 py-2.5 text-right text-kurla-cream/60">{row.stockOnHand}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-kurla-copper">{row.qtyToOrder > 0 ? row.qtyToOrder : 'couvert'}</td>
-                    <td className="px-3 py-2.5">{row.supplierName || <span className="text-amber-300/80">à sourcer</span>}</td>
+                    <td className="px-3 py-2.5">
+                      {row.supplierId
+                        ? <SupplierName id={row.supplierId} label={row.supplierName} headers={headers} className="text-xs" onSaved={() => setReloadToken(t => t + 1)} />
+                        : <span className="text-amber-300/80">à sourcer — aucun fournisseur rattaché à cette référence</span>}
+                    </td>
                     <td className="px-3 py-2.5 text-right text-kurla-cream/70">{row.moqUnits != null ? row.moqUnits : '—'}</td>
                     <td className="px-3 py-2.5 text-right text-kurla-cream/70">{row.leadTimeDays != null ? `${row.leadTimeDays} j` : '—'}</td>
                     <td className="px-3 py-2.5 text-right">

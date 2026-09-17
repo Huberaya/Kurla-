@@ -326,6 +326,52 @@ export async function writeProductSupplierLink(
 }
 
 /** Vide le magasin (changement d'espace, déconnexion, test). */
+/**
+ * Référentiel des fournisseurs (17/09, 2e demande de la journée).
+ *
+ * Un panneau de l'Approvisionnement qui affiche un produit doit pouvoir
+ * proposer le rattachement à n'importe quel fournisseur — donc il lui faut la
+ * liste. Plutôt que chaque panneau refasse son `fetch`, la liste est lue et
+ * gardée ICI, à côté des fiches : une seule requête pour tout l'écran, et les
+ * panneaux qui n'ont pas de liste en props (`ProductSheet`) en disposent quand
+ * même.
+ *
+ * `refresh` force une relecture (après la création d'un fournisseur).
+ */
+let supplierDirectory: SupplierRecord[] | null = null;
+let supplierDirectoryInflight: Promise<SupplierRecord[]> | null = null;
+
+export async function loadSupplierDirectory(
+  headers: HeadersInit,
+  options: { fetchImpl?: typeof fetch; baseUrl?: string; refresh?: boolean } = {}
+): Promise<SupplierRecord[]> {
+  if (supplierDirectory && !options.refresh) return supplierDirectory;
+  if (supplierDirectoryInflight && !options.refresh) return supplierDirectoryInflight;
+
+  const doFetch = options.fetchImpl || fetch;
+  const base = options.baseUrl || '';
+  const request = (async () => {
+    const response = await doFetch(`${base}/api/admin/suppliers?all=1`, { headers: headersWith(headers) });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body?.error || 'Référentiel fournisseurs indisponible.');
+    const suppliers: SupplierRecord[] = Array.isArray(body?.suppliers) ? body.suppliers : [];
+    supplierDirectory = suppliers;
+    return suppliers;
+  })();
+
+  supplierDirectoryInflight = request;
+  try {
+    return await request;
+  } finally {
+    supplierDirectoryInflight = null;
+  }
+}
+
+/** Vide le référentiel en cache (test, ou après création d'un fournisseur). */
+export function resetSupplierDirectory(): void {
+  supplierDirectory = null;
+}
+
 export function resetAdminRecords(): void {
   inflightSuppliers.clear();
   inflightProducts.clear();

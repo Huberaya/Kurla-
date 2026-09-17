@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ProductName, SupplierName } from './EditableRecordName';
 import { Search } from 'lucide-react';
 
 /**
@@ -62,7 +63,18 @@ export const GlobalSearchPanel: React.FC<{ headers: Record<string, string> }> = 
               return (
                 <div key={`${hit.kind}-${hit.id}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${kind.className}`}>{kind.label}</span>
-                  <span className="font-semibold flex-1 min-w-[180px]">{hit.name}</span>
+                  <span className="font-semibold flex-1 min-w-[180px]">
+                    {/* 17/09, 2e demande : trouver une fiche ne suffit pas, il faut
+                        pouvoir la compléter là où on la trouve. Seuls les résultats
+                        qui SONT une fiche (fournisseur, catalogue) s'ouvrent : une
+                        position ou un candidat de sourcing n'a pas d'identifiant de
+                        fiche, on ne promet donc pas de bouton qui ne mène à rien. */}
+                    {hit.kind === 'supplier'
+                      ? <SupplierName id={String(hit.id)} label={String(hit.name)} headers={headers} className="text-[11px] font-semibold" />
+                      : hit.kind === 'product'
+                        ? <ProductName id={String(hit.id)} label={String(hit.name)} headers={headers} className="text-[11px] font-semibold" />
+                        : String(hit.name)}
+                  </span>
                   {hit.detail && <span className="text-kurla-cream/55">{hit.detail}</span>}
                   <span className="text-kurla-amber/80">via {hit.matchedOn.join(', ')}</span>
                 </div>

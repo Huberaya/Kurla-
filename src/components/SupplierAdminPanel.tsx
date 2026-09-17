@@ -520,7 +520,11 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false, focusS
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${status.color}`}>{status.label}</span>
                       </td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 text-right whitespace-nowrap">
+                        {/* 17/09, 2e demande : dans cet espace, tout fournisseur affiché
+                            est modifiable — la fiche s'ouvre aussi depuis la liste, pas
+                            seulement depuis la vue détaillée. */}
+                        <button type="button" onClick={() => setSheetSupplierId(supplier.id)} className="mr-3 text-kurla-cream/70 hover:text-kurla-amber hover:underline">Compléter</button>
                         <button onClick={() => void openDetail(supplier.id)} className="text-kurla-copper hover:underline">Ouvrir</button>
                       </td>
                     </tr>
