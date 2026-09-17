@@ -3445,3 +3445,45 @@ exit 0 sur l'arbre fusionné · bundle local `AdminDashboardPage-BByzN5il.js` :
 « Filtrer par gouvernance » 1, « Sans produit rattaché » 1,
 « Contact à obtenir » 1, « Aucun candidat ne correspond » 2.
 **Non vérifié** : le rendu réel en navigateur (pas de session admin en local).
+
+## 2026-09-16 — Rectificatif : `source_supplier` n'est pas un nom qui a dérivé (Agent Kurla)
+
+**Je corrige une affirmation que j'ai écrite deux fois plus haut dans ce
+fichier, et dans un message de commit.** J'y annonçais : « 79 produits sur 111
+affichent un nom qui ne correspond pas au fournisseur lié. C'est le deuxième
+visage du même problème, et le plus visible par la cliente. »
+
+**C'était faux sur l'essentiel**, et la mesure du chantier l'a montré :
+
+1. **L'écran faisait déjà le bon choix.** `CatalogAdminPanel` affiche le nom du
+   fournisseur lié quand le lien existe ; le texte libre n'apparaît que faute
+   de lien, sous la mention « sourcing à qualifier ». Les 79 écarts sont un
+   écart de **données**, pas d'affichage.
+2. **Le champ n'est pas un nom.** C'est la provenance déclarée à l'import, et
+   la couche de vérité y lit des **marqueurs de sécurité** :
+   « formulation interne », « illustration » (voir `hasFormulationTargetMarker`,
+   `hasPlaceholderMarker` dans `src/lib/catalogTruth.ts`).
+3. **Réécrire ce champ aurait détruit ces signaux.** 16 fiches portent
+   « KURLA Skincare — formulation interne (précommande) ». Aucune n'est
+   publiée, aucune n'est servie — c'est ce marqueur qui les en empêche.
+   L'écraser aurait permis de présenter comme existant un produit jamais
+   fabriqué.
+
+**Le défaut réel, trouvé et corrigé.** `ProductSupplierPanel` remplaçait
+`sourceSupplier` par le nom du fournisseur rattaché, côté écran uniquement
+(le serveur n'écrit le champ que si on le lui envoie). L'écran affichait donc
+une provenance que la base n'avait pas. Corrigé : on lit désormais la réponse
+du serveur, on ne reconstruit rien côté client.
+
+**Garde-fous posés.** `tests/marqueurs_securite_catalogue.test.ts` : le
+marqueur est détecté, casse et accents ne le font pas rater, un façonnier
+rattaché ne transforme pas un projet en produit existant, et le test nomme
+explicitement le geste qui détruirait le signal.
+
+**Invariant nocturne ajouté :** `marqueurs_securite` — 16 fiches protégées,
+compte qui ne doit **jamais** baisser. Une baisse signifierait qu'un marqueur a
+été écrasé, et rien d'autre ne le verrait.
+
+**Leçon à garder :** avant d'« aligner » deux valeurs qui ne correspondent pas,
+vérifier laquelle fait foi — et si l'une des deux sert de garde-fou. J'allais
+supprimer un dispositif de sécurité au nom de la cohérence des données.

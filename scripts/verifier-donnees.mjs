@@ -122,6 +122,28 @@ async function compterDoublonsPublies() {
   }
 }
 
+/**
+ * Compte les fiches dont la provenance déclarée porte un marqueur de sécurité.
+ *
+ * Ces marqueurs sont lus par la couche de vérité (`isFormulationTarget`,
+ * `hasPlaceholderMarker`) pour ne jamais présenter un projet de formulation ou
+ * un visuel d'illustration comme un produit existant. Le compte ne doit pas
+ * baisser : une baisse signifie qu'un marqueur a été écrasé par un nom de
+ * fournisseur, et rien d'autre ne le verrait.
+ */
+async function compterMarqueursSecurite() {
+  try {
+    const reponse = await fetch(`${urlBase}/rest/v1/products?select=id,source_supplier`, { headers: entetes });
+    if (!reponse.ok) return { valeur: null, erreur: `HTTP ${reponse.status} sur les provenances` };
+    const lignes = await reponse.json();
+    if (!Array.isArray(lignes)) return { valeur: null, erreur: 'réponse inattendue (tableau attendu)' };
+    const valeur = lignes.filter((l) => /formulation|illustration/i.test(String(l.source_supplier || ''))).length;
+    return { valeur };
+  } catch (erreur) {
+    return { valeur: null, erreur: erreur?.message || String(erreur) };
+  }
+}
+
 console.log(`Contrôle des données — ${new URL(urlBase).host}${prodUrl ? ` · ${prodUrl}` : ' (base seule)'}`);
 
 const [
@@ -167,7 +189,8 @@ const mesures = {
   provenance_manquante: sansFournisseurId,
   doublons_publies: doublonsPublies,
   publies_inactifs: publiesInactifs,
-  updated_at_manquant: sansMiseAJour
+  updated_at_manquant: sansMiseAJour,
+  marqueurs_securite: await compterMarqueursSecurite()
 };
 
 const manquants = invariantsNonEvalues(mesures);

@@ -120,6 +120,25 @@ export const INVARIANTS = [
     libelle: 'produits sans date de mise à jour',
     pourquoi: 'aucun trigger ne la maintient : une écriture qui l’oublie fausse le SEO et les caches',
     attendu: 0
+  },
+  {
+    // AJOUTÉ LE 16/09/2026. J'allais réécrire `source_supplier` pour
+    // l'aligner sur le fournisseur lié : 79 fiches sur 111 portent un texte
+    // qui ne correspond pas. La mesure a arrêté le geste — ce champ n'est pas
+    // un nom, c'est la provenance déclarée, et la couche de vérité y lit des
+    // marqueurs de sécurité : « formulation interne », « illustration ».
+    //
+    // 16 fiches portent « KURLA Skincare — formulation interne
+    // (précommande) ». Aucune n'est publiée, aucune n'est servie : c'est ce
+    // marqueur qui les en empêche. L'écraser permettrait de présenter comme
+    // existant un produit jamais fabriqué.
+    //
+    // Ce compte ne doit JAMAIS baisser. Une baisse signifie qu'un marqueur a
+    // été détruit — et c'est invisible partout ailleurs.
+    id: 'marqueurs_securite',
+    libelle: 'fiches protégées par un marqueur de sécurité',
+    pourquoi: '« formulation interne » et « illustration » empêchent de présenter un projet ou un visuel comme un produit réel ; ce compte ne doit jamais baisser',
+    baisse: true
   }
 ];
 

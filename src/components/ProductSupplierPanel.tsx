@@ -117,9 +117,28 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Échec');
+      //
+      // La réponse du serveur fait foi, on ne reconstruit rien côté écran.
+      //
+      // Pourquoi : ce panneau remplaçait `sourceSupplier` par le nom du
+      // fournisseur qu'on vient de rattacher. Or ce champ n'est pas un nom —
+      // c'est la provenance déclarée à l'import, et la couche de vérité y lit
+      // des marqueurs de sécurité : « formulation interne », « illustration ».
+      // Mesuré le 16/09/2026 : 16 fiches portent « KURLA Skincare — formulation
+      // interne (précommande) ». Rattacher un façonnier à l'une d'elles
+      // remplaçait ce texte par son nom, et la couche de vérité cessait de la
+      // signaler comme projet de formulation — un produit qui n'existe pas
+      // encore pouvait alors être présenté comme existant.
+      //
+      // Le serveur, lui, n'écrit le champ que si on le lui envoie. L'écran
+      // affichait donc une valeur que la base n'avait pas, jusqu'au
+      // rafraîchissement. On lit désormais ce qu'il renvoie.
+      const maj = data?.product;
       setProducts(prev => prev.map(p => p.id === product.id
-        ? { ...p, supplierId: draft.supplierId || null, supplierSku: draft.supplierSku || null,
-            sourceSupplier: draft.supplierId ? (supplierName(draft.supplierId)?.tradeName || supplierName(draft.supplierId)?.legalName || null) : null }
+        ? { ...p,
+            supplierId: maj?.supplier_id ?? draft.supplierId ?? null,
+            supplierSku: maj?.supplier_sku ?? draft.supplierSku ?? null,
+            sourceSupplier: maj?.source_supplier ?? p.sourceSupplier }
         : p));
       onSuccess?.(`Fournisseur enregistré pour ${product.name}.`);
     } catch (e: any) {
