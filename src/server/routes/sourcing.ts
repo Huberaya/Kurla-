@@ -61,22 +61,38 @@ export function registerSourcingRoutes(app: Express): void {
     try {
       const supabase = getSupabaseServerClient();
       if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
-      const [products, candidates, positions, prospects, suppliers, rfqs] = await Promise.all([
+      const [products, candidates, positions, prospects, suppliers, rfqs, items] = await Promise.all([
         serverDb.getAdminCatalogProducts(),
         supabase.from('sourcing_product_candidates').select('*'),
         supabase.from('sourcing_fond_positions').select('*'),
         supabase.from('sourcing_prospects').select('*'),
         supabase.from('suppliers').select('*'),
         supabase.from('rfqs').select('*'),
+        supabase.from('sourcing_items').select('id, wave, title'),
       ]);
-      res.json(buildConsolidatedSourcing({
+      // CHANTIER D — publication-readiness : si elle n'est pas mesurable, le
+      // registre reste lisible mais AUCUNE fiche n'est déclarée « conforme »
+      // (fail-closed) ; l'écran nomme l'état via `readinessAvailable`.
+      let readiness: Array<{ productId: string; ready: boolean; missing?: string[]; catalogStatus?: string }> = [];
+      try {
+        const report = await serverDb.getCatalogPublicationReadinessReport();
+        readiness = (report.perProduct || []).map(p => ({
+          productId: p.productId, ready: p.ready, missing: p.missing, catalogStatus: p.catalogStatus
+        }));
+      } catch (readinessError) {
+        console.error('[Sourcing] publication-readiness indisponible (registre en fail-closed) :', readinessError);
+      }
+      const body = buildConsolidatedSourcing({
         products,
         candidates: candidates.data || [],
         positions: positions.data || [],
         prospects: prospects.data || [],
         suppliers: suppliers.data || [],
         rfqs: rfqs.data || [],
-      }));
+        readiness,
+        items: items.data || [],
+      });
+      res.json({ ...body, itemsCount: (items.data || []).length });
     } catch (error) {
       console.error('[Sourcing] consolidated error:', error);
       res.status(500).json({ error: safeApiError(error, 'Impossible de charger la vue sourcing consolidée.') });

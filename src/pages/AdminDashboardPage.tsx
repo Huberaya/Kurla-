@@ -1575,7 +1575,7 @@ export const AdminDashboardPage: React.FC = () => {
             <SupplyOpsPanel headers={adminHeaders} />
             <ProductSourcesPanel headers={adminHeaders} />
             <SourcingWorkflowPanel headers={adminHeaders} />
-            <SourcingConsolidatedPanel headers={adminHeaders} />
+            <SourcingConsolidatedPanel headers={adminHeaders} onOpenCatalog={(productId) => navigateFromQueue({ tab: 'catalog', focusProductId: productId })} />
             <SourcingProspectsPanel
                   headers={adminHeaders}
                   onSuccess={(message) => {
@@ -1655,7 +1655,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
             <ProductSourcesPanel headers={adminHeaders} />
             <SupplyOpsPanel headers={adminHeaders} />
-            <SourcingConsolidatedPanel headers={adminHeaders} />
+            <SourcingConsolidatedPanel headers={adminHeaders} onOpenCatalog={(productId) => navigateFromQueue({ tab: 'catalog', focusProductId: productId })} />
           </div>
         )}
 

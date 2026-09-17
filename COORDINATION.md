@@ -3632,3 +3632,54 @@ affiché, et le « Réinitialiser » global couvre les deux niveaux (`hasActiveF
 - Aucune nouvelle route serveur → pas de régénération d’inventaires.
 - Aucune donnée inventée : catégories issues du catalogue admin, comptes issus des
   lignes réelles du pipeline.
+
+## 2026-09-17 — Chantier D : le registre approvisionné (Agent Kurla — lot 2 « Pipeline de mise en vente »)
+
+Consigne du 15/09 (proposition validée) : « la vue consolidée devient le registre unique :
+statut de pipeline par ligne (identifié / fiche créée / conforme / publié — dérivé, jamais
+supposé), fournisseur + contact + e-mail prêt, filtres (fournisseur, statut, vague),
+export CSV du registre entier, et par ligne Créer la fiche / Voir dans le catalogue /
+Copier l'e-mail. »
+
+### Livré
+- `src/lib/sourcingConsolidated.ts` (logique pure, bancée) :
+  - `RegistryStage` = Identifié / Fiche créée / Conforme / Publié (+ libellés + ordre).
+  - Chaque ligne porte : `registryStage` (dérivé, jamais supposé), `ready`
+    (null = non mesurable), `missing` (critères manquants nommés), `wave` (vague de
+    l'item de sourcing, null si inconnue — jamais supposée), `linkedProductId` /
+    `linkedCandidateId` (réconciliation par id).
+  - Dérivation : Publié = fait de catalogue (une fiche publiée non conforme reste
+    « publiée » et ses manquants sont nommés) → Conforme exige la publication-readiness
+    au vert → sinon Fiche créée → sans fiche = Identifié. Un candidat ayant une fiche
+    liée (`draft_product_id`) porte le stade de SA fiche. Fail-closed : readiness non
+    mesurée ⇒ aucune fiche « Conforme » + `readinessAvailable: false` à nommer.
+  - `applyRegistryFilter` / `registryFilterOptions` : filtres cumulables (fournisseur,
+    stade, vague, recherche) + options avec comptes réels, jamais supposés.
+  - `registryToCsv` : CSV du registre entier — BOM + CRLF, séparateur `;` (Excel FR),
+    échappement rigoureux, prix en euros à virgule, absence = vide (jamais 0).
+  - `buildRowEmail` : e-mail d'une référence seule, données réelles uniquement, mêmes
+    attentes standard que l'e-mail du bloc (`STANDARD_ASKS` désormais partagé — zéro
+    dérive de texte).
+- `src/server/routes/sourcing.ts` : `GET /api/admin/sourcing/consolidated` charge
+  désormais aussi la publication-readiness (try/catch isolé : si elle échoue, le
+  registre reste lisible mais rien n'est déclaré « conforme ») et `sourcing_items`
+  (les vagues). **Aucune nouvelle route.**
+- `src/components/SourcingConsolidatedPanel.tsx` : le registre — chips des 4 stades
+  (comptes réels), selects fournisseur/vague, recherche, **Export CSV** (registre
+  entier, non filtré), Réinitialiser, compteur affichées/total ; par ligne :
+  **Créer la fiche** (uniquement les candidats sans fiche), **Voir dans le catalogue**
+  (deep link `onOpenCatalog`), **Copier l'e-mail** (le RFQ réel quand l'état est « prêt »,
+  sinon le texte généré). Fiche publiée non conforme = ligne rouge, manquants nommés.
+- `src/pages/AdminDashboardPage.tsx` : `onOpenCatalog` branché sur les deux montages
+  du registre (même deep link que le panneau pipeline).
+- `tests/kurla_sourcing_consolidated.test.ts` : bloc 2 « registre approvisionné »
+  (dérivation fail-closed, réconciliation par id, vague réelle, filtres cumulables,
+  options sans invention, CSV CRLF échappé, e-mail par ligne sans donnée inventée).
+
+### Contrôles
+- Suite : exit 0 (210 [PASS], tsc propre).
+- Aucune nouvelle route serveur → pas de régénération d'inventaires.
+- « Créer la fiche » = la route existante `POST /api/admin/sourcing/candidates/:id/create-fiche`
+  (import gardé `importCatalogRecords`, audité, idempotent) — zéro écriture hors route.
+- Aucune donnée inventée : vagues issues de `sourcing_items`, stades issus de la
+  readiness, prix constatés ou vides.
