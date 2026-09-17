@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, L
 import type { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { buildDiagnosticResultModel, type DiagnosticResultModel, type DiagnosticRoutineStep } from '../lib/diagnosticResult';
+import { SKIN_EMPTY_COPY } from '../lib/skinCommerce';
 import { readDiagnosticSession, type DiagnosticSession } from '../lib/diagnosticSession';
 
 interface DiagnosticResultPageProps {
@@ -55,7 +56,9 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
   const profileLabel = model.isSkin ? 'profil cosmétique peau' : 'profil cosmétique cheveux';
   const noProductsMessage = catalogError
     ? 'Le catalogue publié ne répond pas. Aucun prix ni produit de remplacement n’est affiché.'
-    : 'Aucun produit recommandé n’est actuellement renvoyé par le catalogue serveur. La routine reste consultable sans promesse de disponibilité.';
+    : model.isSkin
+      ? SKIN_EMPTY_COPY.text
+      : 'Aucun produit recommandé n’est actuellement renvoyé par le catalogue serveur. La routine reste consultable sans promesse de disponibilité.';
 
   return (
     <div className="min-h-screen bg-kurla-ink pt-28 pb-24 text-kurla-cream">

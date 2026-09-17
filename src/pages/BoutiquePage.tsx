@@ -22,6 +22,7 @@ import { comparerProduits, pointsDeDivergence } from '../lib/productCompare';
 import { SKIN_BUDGET_CAPS, scoreSkinProduct } from '../lib/skinRecommendation';
 import { PRICE_BANDS, PRICE_BAND_ALL, isPriceBandId, matchesPriceBand, type PriceBandId } from '../lib/priceBands';
 import { PEAU_KITS } from '../lib/peauKits';
+import { canShowAddToCart, isSkinCosmeticProduct, SKIN_EMPTY_COPY } from '../lib/skinCommerce';
 import { getCountryConfig, getStripeModeForCountry, COUNTRY_SCORES_SORTED } from '../lib/countryFulfillment';
 
 interface BoutiquePageProps {
@@ -73,14 +74,13 @@ const SKIN_NEEDS: NeedOption[] = SKIN_TAXONOMY_NEEDS.map(need => ({
 const EMPTY_CATEGORY_HUB: Record<string, { icon: React.ElementType; title: string; text: string; href: string; cta: string; waitlistLabel: string }> = {
   peau: {
     icon: Sun,
-    title: 'La gamme peau s’étoffe',
+    title: SKIN_EMPTY_COPY.title,
     waitlistLabel: 'soins visage',
-    // C-07 — l'ancien texte annonçait « la gamme s'enrichit chaque semaine ».
-    // Aucun soin peau n'a été publié depuis : la promesse d'un mouvement qui
-    // n'a pas lieu est une urgence fabriquée. On dit l'état réel.
-    text: 'Aucun soin peau n’est encore publié. Les seize fiches de la gamme KURLA sont en cours de formulation et visibles telles quelles — actifs retenus, formule cible, préoccupation visée. Votre diagnostic peau reste gratuit.',
+    // C14 — empty state honnête tant que 0 SKU Skin publié. Pas de promesse
+    // d’enrichissement hebdo, pas de panier fantôme.
+    text: SKIN_EMPTY_COPY.text,
     href: '/peau/gamme',
-    cta: 'Voir la gamme en cours de formulation',
+    cta: SKIN_EMPTY_COPY.ctaGamme,
   },
   hommes: {
     icon: UserCheck,
@@ -429,6 +429,8 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
       // Main Category Filter
       if (activeCategory === 'cheveux' && p.category !== 'cheveux') return false;
       if (activeCategory === 'peau' && p.category !== 'peau') return false;
+      // C14 — un besoin peau ne doit jamais afficher un SKU Hair avec « Ajouter ».
+      if (selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId) && !isSkinCosmeticProduct(p)) return false;
       if (activeCategory === 'accessoires' && p.category !== 'accessoires') return false;
       if (activeCategory === 'hommes' && p.category !== 'hommes') return false;
       if (activeCategory === 'enfants' && p.category !== 'enfants') return false;
@@ -606,6 +608,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
   const toggleCompare = (productId: string) => {
     setCompareIds(current => current.includes(productId) ? current.filter(id => id !== productId) : current.length < 3 ? [...current, productId] : current);
   };
+  // C14 — rayon / besoin peau vide → hub peau honnête, pas une grille Hair.
+  const skinNeedActive = Boolean(selectedNeedId && SKIN_NEEDS.some(n => n.id === selectedNeedId));
+  const emptyHubKey = (activeCategory === 'peau' || skinNeedActive) ? 'peau' : activeCategory;
 
   return (
     <div className="min-h-screen pt-28 pb-24 bg-kurla-ivory text-kurla-carbon">
@@ -623,7 +628,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                 La boutique peau — filtrée pour votre carnation
               </h1>
               <p className="text-sm sm:text-base text-kurla-carbon/75 font-light leading-relaxed max-w-2xl mx-auto">
-                15 besoins peau, filtre budget, <strong className="font-semibold text-kurla-carbon">sans parfum</strong> et <strong className="font-semibold text-kurla-carbon">SPF sans trace blanche</strong>. Taches = HPI, jamais “éclaircir”.
+                {filteredProducts.length === 0 && !loading
+                  ? SKIN_EMPTY_COPY.text
+                  : <>15 besoins peau, filtre budget, <strong className="font-semibold text-kurla-carbon">sans parfum</strong> et <strong className="font-semibold text-kurla-carbon">SPF sans trace blanche</strong>. Taches = HPI, jamais “éclaircir”.</>}
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
                 <a href="/peau/diagnostic" className="px-4 py-2 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white font-bold">Passer le diagnostic peau →</a>
@@ -1185,9 +1192,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               <RefreshCw className="w-3.5 h-3.5" /> Réessayer la connexion
             </button>
           </div>
-        ) : filteredProducts.length === 0 && EMPTY_CATEGORY_HUB[activeCategory] ? (
+        ) : filteredProducts.length === 0 && EMPTY_CATEGORY_HUB[emptyHubKey] ? (
           (() => {
-            const hub = EMPTY_CATEGORY_HUB[activeCategory];
+            const hub = EMPTY_CATEGORY_HUB[emptyHubKey];
             const HubIcon = hub.icon;
             return (
               <div className="text-center py-16 bg-kurla-sand rounded-3xl border border-kurla-stone p-8">
@@ -1210,13 +1217,13 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
 
                 {/* Le rayon est vide : on enregistre l'intention au lieu de
                     renvoyer la visiteuse vers une page qui n'a rien à vendre. */}
-                {waitlistSourceForCategory(activeCategory) && (
+                {waitlistSourceForCategory(emptyHubKey) && (
                   <div className="mt-8 max-w-md mx-auto">
                     <p className="text-[11px] uppercase tracking-widest font-bold text-kurla-copper mb-3">
                       Être prévenue à l’ouverture
                     </p>
                     <CategoryWaitlist
-                      source={waitlistSourceForCategory(activeCategory)!}
+                      source={waitlistSourceForCategory(emptyHubKey)!}
                       label={hub.waitlistLabel}
                     />
                   </div>
@@ -1464,11 +1471,11 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                         <AffiliatePartnerCta offer={affiliateOffer} tone="light" />
                       ) : (
                       <button
-                        onClick={() => onAddToCart(product)}
+                        onClick={() => { if (canShowAddToCart(product)) onAddToCart(product); }}
                         disabled={!canOrderProduct}
                         className="px-4 py-2.5 rounded-full bg-kurla-copper hover:bg-kurla-cocoa text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40"
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? 'Indisponible' : isPreorderProduct ? 'Précommander' : 'Ajouter'}
+                        <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? (product.testListing ? 'Non achetable' : isSkinCosmeticProduct(product) ? 'Non vendable' : 'Indisponible') : isPreorderProduct ? 'Précommander' : 'Ajouter'}
                       </button>
                       )}
                     </div>
@@ -1483,12 +1490,3 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
     </div>
   );
 };
-
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-};
-

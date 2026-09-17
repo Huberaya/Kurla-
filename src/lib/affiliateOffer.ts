@@ -131,6 +131,7 @@ export function selectAffiliateSource(sources: ProductSource[]): ProductSource |
 }
 
 export function readAffiliateOffer(product: {
+  id?: unknown;
   affiliateOffer?: unknown;
   affiliateUrl?: unknown;
   brand?: unknown;
@@ -158,7 +159,7 @@ export function affiliateBlocksCheckout(product: unknown): boolean {
 export function attachCustomerAffiliateOffers<T extends { id?: unknown }>(
   products: T[],
   sources: ProductSource[],
-): T[] {
+): Array<T & { affiliateOffer?: CustomerAffiliateOffer }> {
   const byProduct = new Map<string, ProductSource[]>();
   for (const source of sources) {
     const list = byProduct.get(source.productId) || [];

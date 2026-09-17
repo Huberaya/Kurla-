@@ -1,9 +1,8 @@
 /**
  * CHANTIER 2 — Vue admin des identifiés (~500), hors boutique.
  *
- * Montée dans les DEUX espaces. Lecture du consolidé déjà là ; l'import
- * est une prévisualisation (cible fond/candidat, jamais `published`).
- * L'écriture de masse = chantier 13.
+ * Montée dans les DEUX espaces. Import 500 (C13) : CSV / Excel / JSON →
+ * fond ou candidats, jamais `published`.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bookmark, FilePlus2, RefreshCw, Upload } from 'lucide-react';
@@ -52,6 +51,10 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
   const [importText, setImportText] = useState('');
   const [plan, setPlan] = useState<IdentifiedImportPlan | null>(null);
   const [importError, setImportError] = useState('');
+  const [xlsxBase64, setXlsxBase64] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [applyNotice, setApplyNotice] = useState('');
   const [addBrand, setAddBrand] = useState('');
   const [addTitle, setAddTitle] = useState('');
   const [addNotice, setAddNotice] = useState('');
@@ -130,16 +133,84 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
     }
   };
 
-  const runPreview = () => {
+  const bytesToBase64 = (bytes: Uint8Array): string => {
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  };
+
+  const runPreview = async () => {
     setImportError('');
+    setApplyNotice('');
     try {
+      if (xlsxBase64) {
+        const response = await fetch('/api/admin/sourcing/identified-import', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ xlsxBase64, fileName, dryRun: true }),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || 'Prévisualisation refusée.');
+        setPlan(body.plan);
+        return;
+      }
       const drafts = parseIdentifiedImportText(importText);
-      const next = planIdentifiedImport(drafts, records || []);
-      setPlan(next);
+      setPlan(planIdentifiedImport(drafts, records || []));
     } catch (e: any) {
       setPlan(null);
       setImportError(e.message || 'Fichier illisible.');
     }
+  };
+
+  const applyImport = async () => {
+    setApplying(true);
+    setImportError('');
+    setApplyNotice('');
+    try {
+      const payload = xlsxBase64
+        ? { xlsxBase64, fileName, dryRun: false }
+        : { text: importText, fileName, dryRun: false };
+      const response = await fetch('/api/admin/sourcing/identified-import', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Import refusé.');
+      setPlan(body.plan);
+      setApplyNotice(
+        `${body.imported} identifié(s) écrits`
+        + ` · fond ${body.fondWritten}`
+        + ` · candidats ${body.candidateWritten}`
+        + ` · doublons ignorés ${body.skippedDuplicates}`
+        + ` · refusés ${body.rejected}`
+        + ` · publiés ${body.published}. Hors boutique.`,
+      );
+      await load();
+    } catch (e: any) {
+      setImportError(e.message || 'Écriture refusée.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const onPickFile = async (file: File | undefined) => {
+    if (!file) return;
+    setFileName(file.name);
+    setPlan(null);
+    setApplyNotice('');
+    setImportError('');
+    if (/\.xlsx$/i.test(file.name)) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      setXlsxBase64(bytesToBase64(bytes));
+      setImportText('');
+      return;
+    }
+    setXlsxBase64('');
+    setImportText(await file.text());
   };
 
   const addIdentified = async (e: React.FormEvent) => {
@@ -329,26 +400,40 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
           })()}
           {ficheNotice && <p className="text-[11px] text-kurla-cream/70 border-t border-kurla-cream/10 pt-2">{ficheNotice}</p>}
           {dups.length > 0 && (
-            <p className="text-[11px] text-amber-200/80">{dups.length} groupe(s) de doublons (marque+nom normalisés). L’import 500 s’appuiera sur cette clé — chantier 13.</p>
+            <p className="text-[11px] text-amber-200/80">{dups.length} groupe(s) de doublons (marque+nom normalisés). L’import les ignore à l’écriture.</p>
           )}
         </div>
       )}
 
       <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
-        <h3 className="font-bold text-kurla-cream flex items-center gap-2"><Upload className="w-4 h-4 text-kurla-amber" /> Import identifié — prévisualisation</h3>
+        <h3 className="font-bold text-kurla-cream flex items-center gap-2"><Upload className="w-4 h-4 text-kurla-amber" /> Import identifié — CSV, Excel, JSON</h3>
         <p className="text-[11px] text-kurla-cream/55 max-w-3xl">
-          CSV (`marque,nom,besoin,canal,ean`) ou JSON. Plafond {IDENTIFIED_IMPORT_LIMIT}.
-          Une ligne avec `published` / `products` est **refusée**. Rien n’est écrit ici : le chantier 13 branchera l’écriture sur les mêmes cibles.
+          CSV (marque, nom, besoin, canal, ean), JSON, ou fichier .xlsx. Plafond {IDENTIFIED_IMPORT_LIMIT}.
+          Besoin 1–50 → fond (si l’item existe et un rang 1–5 est libre), sinon candidat.
+          Une ligne published / products est refusée. 0 publié. Pas l’import catalogue Hair.
         </p>
+        <input
+          type="file"
+          accept=".csv,.json,.xlsx,.txt"
+          onChange={e => { void onPickFile(e.target.files?.[0]); e.target.value = ''; }}
+          className="block text-[11px] text-kurla-cream/70 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-kurla-copper file:text-white file:text-[11px] file:font-bold"
+        />
+        {fileName && <p className="text-[10px] text-kurla-cream/45 font-mono">{fileName}{xlsxBase64 ? ' · Excel' : ''}</p>}
         <textarea
           value={importText}
-          onChange={e => setImportText(e.target.value)}
+          onChange={e => { setImportText(e.target.value); setXlsxBase64(''); }}
           rows={6}
           placeholder={'marque,nom,besoin,canal,ean\nCeraVe,Crème lavante,24,pharmacie,\n'}
           className="w-full p-3 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-mono text-kurla-cream focus:outline-none focus:border-kurla-copper"
         />
-        <button type="button" onClick={runPreview} className="px-4 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold">Prévisualiser (n’écrit pas)</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => { void runPreview(); }} className="px-4 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/20 text-kurla-cream text-xs font-bold">Prévisualiser (n’écrit pas)</button>
+          <button type="button" onClick={() => { void applyImport(); }} disabled={applying || (!importText.trim() && !xlsxBase64)} className="px-4 py-2 rounded-xl bg-kurla-copper text-white text-xs font-bold disabled:opacity-40">
+            {applying ? 'Écriture…' : 'Écrire les identifiés'}
+          </button>
+        </div>
         {importError && <p className="text-xs text-rose-300">{importError}</p>}
+        {applyNotice && <p className="text-xs text-emerald-300/90">{applyNotice}</p>}
         {plan && (
           <div className="text-[11px] text-kurla-cream/70 space-y-1">
             <p>

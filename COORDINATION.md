@@ -4121,3 +4121,176 @@ Affichage « Lien partenaire » / « Publicité — lien affilié ». Pas de fau
 ### Contrôles
 
 npm run test:affiliate-offer
+
+## 17/09/2026 — Chantier 11 Skin : 3PL tampon année 1 (pas de WMS)
+
+**Territoire** : tampon / partenaire = `product_sources.model=3pl` (C4).
+Procédure manuelle (PO inbound + mailto). Cosmétique Skin : 3PL tampon OK,
+≠ badge dropship 24–48h. Hair tampon 75 inchangé.
+
+### Ce qui a été fait
+
+- `src/lib/threePlProcedure.ts` — `THREE_PL_WMS_LIVE = false`. Qté tampon Hair
+  lue sur `TAMPON_3PL` (p01/p04/p08/p09/p12 ×15 = 75). Skin : quantité à
+  obtenir, pas de 15 inventé. PO + annonce de réception = mailto, pas un ASN.
+- `ProductSourcesPanel` : checklist + copier PO / annonce + mailto sur une
+  offre 3PL. Logisticien = fiche du référentiel.
+- `TamponOrderPanel` : une ligne honnête (Hair constantes / Skin `product_sources`).
+  Tableau 5 SKU intact.
+- Guide dropship : 3PL tampon mailto, pas de WMS Huboo/Cubyn. Réparation du
+  TSX cassé (étape 5/6 + garbage post-`};` hérités de C9).
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas d’API Huboo / Cubyn / Etx, pas d’ASN électronique, pas de 7ᵉ onglet
+  catalogue, pas de SQL, pas de stock 3PL inventé.
+- `fulfillment.ts` / `launchCatalog.ts` / checkout / Kurla Fit intacts.
+
+### Contrôles
+
+npm run test:threepl-procedure
+
+
+## 17/09/2026 — Chantier 12 Skin : dashboard honnête (pas le CA Hair)
+
+**Territoire** : KPI du tableau de bord commercial. Les kits restent dans
+`isProductInWorkspace('skin')` (vitrine). Leur CA n’est plus présenté comme
+des ventes Skin. Même bandeau Hair / Skin (parité).
+
+### Ce qui a été fait
+
+- `src/lib/workspacePulse.ts` — cosmétique peau = `isSkinCosmeticCategory`.
+  Skin : `displayRevenueEur` = lignes soins ; kits = `leakedRevenueEur` (Hair).
+  Catalogue non chargé : on ne zéroise pas. RFQ / docs non lus = `null`.
+- `getAdminAnalyticsMetrics` : champ additif `workspacePulse` (pas de
+  `revenueTest: 0` hardcodé, pas de nouvelle route).
+- `WorkspacePulsePanel` monté sur l’onglet analytics **des deux** espaces :
+  SKU publiables · ventes · pipeline · RFQ · docs.
+- Cartes CA / AOV / commandes / marge / stock / populaires + onglet demande
+  (`firmRevenue`) lisent les champs `display*` / `honestZeroSales`.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas de déplacement des kits hors Skin (`workspace_scope` intact).
+- Pas de JSX `{workspace === 'skin' && <`.
+- Pas de SQL / route nouvelle, pas de rewrite `fulfillment.ts` /
+  `launchCatalog.ts` / checkout / Kurla Fit.
+- C13 Import 500 non commencé.
+
+### Contrôles
+
+npm run test:workspace-pulse
+
+## 17/09/2026 — Chantier 13 Skin : import identifié 500 (CSV / Excel / JSON)
+
+**Territoire** : écriture de masse des identifiés. Cible C2 :
+`sourcing_fond_positions` (besoin 1–50, rang 1–5) ou
+`sourcing_product_candidates`. **0 publié.** Pas l'import CSV Hair
+(`POST /api/admin/catalog/import/csv`).
+
+### Ce qui a été fait
+
+- `src/lib/identifiedImport.ts` — parse .xlsx (ZIP+XML, inlineStr / nombres,
+  sans paquet `xlsx`) ; `.xls` binaire refusé nommément. `commitIdentifiedImport`
+  saute les doublons marque+nom, n'invente pas de `sourcing_items`, bascule
+  en candidat si l'item fond manque ou si les rangs 1–5 sont saturés. Prix
+  seulement s'il est dans le fichier (jamais 0).
+- Store `identifiedImportStore` : `listFondPositions` + `applyIdentifiedImport`
+  (`dryRun` = preview). Repli `inMemoryFondPositions`.
+- `POST /api/admin/sourcing/identified-import` (requireAdmin).
+- `IdentifiedProductsPanel` : fichier + prévisualisation + écriture.
+
+### Ce qui n'a pas été fait (volontaire)
+
+- Pas de table `identified_products`. Pas d'écriture `products` / `published`.
+- Pas de create-fiche automatique (C8 reste un acte humain).
+- `fulfillment.ts` / `launchCatalog.ts` / checkout / Kurla Fit intacts.
+- C11+C12 restent non commités.
+
+### Contrôles
+
+npm run test:identified-import
+
+
+## 17/09/2026 — Chantier 14 Skin : UX empty state honnête, pas de panier fantôme
+
+**Territoire** : boutique / diagnostic / landing / fiche. Tant que 0 SKU Skin
+publié et achetable, empty state honnête. Pas d’« Ajouter au panier » sur
+draft, test listing, cible de formulation, ou SKU Hair dans un contexte peau.
+
+### Ce qui a été fait
+
+- `src/lib/skinCommerce.ts` — `isSellableSkinSku` / `canShowAddToCart` /
+  `skinShelfEmpty` (fail-closed). Hair accessoires inchangés.
+- Boutique : besoin peau n’affiche plus de SKU Hair ; hub empty réutilisé ;
+  CTA panier gated.
+- Diagnostic peau : handles Hair exclus ; `actionable` && `canShowAddToCart`.
+- Landing : compteur = SKU Skin vendables, pas `category + price`.
+- Fiche : `handleAdd` refuse test listing / Skin non vendable.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas de remount `Peau*.tsx`. Pas de déplacement kits hors Skin (C12).
+- Pas d’SKU inventé, pas de critère inventé.
+- `fulfillment.ts` / `launchCatalog.ts` / checkout / Kurla Fit intacts.
+- C11+C12+C13 restent non commités.
+
+### Contrôles
+
+npm run test:skin-ux
+
+## 17/09/2026 — Chantier 15 Skin : recettes Hair + portes publish / docs
+
+**Territoire** : tests / sécu. Recettes Hair non-régression + portes
+publish/docs. Sortie « Hair inchangé ». Gate à chaque merge (`test:hair-publish-gates`
+dans `npm test`). Pas le dashboard admin 15A/15B, pas les connecteurs API (C16).
+
+### Ce qui a été fait
+
+- `src/lib/hairPublishGates.ts` — lecture : IDs lancement p01–p18, tampon
+  3PL p01/p04/p08/p09/p12 ×15 = 75, outils dropship p35…, tables
+  identifié ≠ `products`, portes boutique / C4 / C8.
+- `tests/kurla_hair_publish_gates.test.ts` — fige Hair + Kurla Fit 100 +
+  workspace kits Skin / accessoires Hair + draft/formulation/test listing
+  jamais listables + import identifié `requireAdmin` + politique stricte
+  OFF par défaut.
+- Chaîne `test:hair-publish-gates` après `test:skin-ux`.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- **Aucun rewrite** de `launchCatalog.ts` / `fulfillment.ts` / checkout /
+  Kurla Fit / `isProductInWorkspace`.
+- C16 (connecteurs API) non commencé.
+- C11–C14 restent non commités.
+
+### Contrôles
+
+npm run test:hair-publish-gates
+
+## 17/09/2026 — Chantier 16 Skin : connecteurs API (fail-closed)
+
+**Territoire** : audit §9 #16. Un connecteur ne vit que s’il y a **API réelle +
+contrat nommé**. Aucun contrat dans le dépôt → **0 appel réseau**. Pas
+l’ancien chantier 16A/B fournisseurs, pas AliExpress.
+
+### Ce qui a été fait
+
+- `src/lib/apiConnectors.ts` — registre AfricanFabs / Afro Wholesale / Etx /
+  Huboo / Cubyn / réseau affilié : `live=false`, `signedContractId=null`.
+  `attemptConnectorCall` refuse toujours (contrat absent, contrat inventé,
+  agrégateur, cosmétique Skin). C9–C11 restent mailto.
+- Note honnête sur Sources d’approvisionnement + guide dropship.
+- `tests/kurla_api_connectors.test.ts` — scan `src/` : aucun `fetch` vers ces
+  hôtes. Hair p35 sans API.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas d’HTTP AfricanFabs / Huboo / Cubyn / Awin.
+- Pas d’agrégateur (AliExpress, CJ, Spocket).
+- Pas de secret / variable d’env inventée.
+- `launchCatalog.ts` / `fulfillment.ts` / checkout / Kurla Fit intacts.
+- C11–C15 restent non commités.
+
+### Contrôles
+
+npm run test:api-connectors

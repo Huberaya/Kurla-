@@ -3,8 +3,8 @@
  *
  * Population : `sourcing_fond_positions` + `sourcing_product_candidates`
  * encore au stade `identified`. Jamais une fiche `products` publiée.
- * L'import 500 (chantier 13) écrira ici ; ce module en fige la **cible**
- * et la prévisualisation. Aucune ligne n'atterrit en `published`.
+ * L'import 500 (chantier 13) écrit via `identifiedImport` ; ce module en fige
+ * la **cible** et la prévisualisation. Aucune ligne n'atterrit en `published`.
  */
 
 import { DOCUMENTED_SKIN_NEEDS, documentedNeed, skinNeedForDocumentedNeed } from './skinNeedMapping';
@@ -156,6 +156,11 @@ export type IdentifiedImportDraft = {
   ean: string | null;
   /** Présent seulement si le fichier le demande — alors on refuse. */
   forbiddenTarget?: string | null;
+  /** Rang 1–5 du fond, si le fichier le donne. Hors plage = ignoré. */
+  rang?: number | null;
+  format?: string | null;
+  /** Prix public fourni par l'opérateur. null = à obtenir, jamais 0 inventé. */
+  priceEur?: number | null;
 };
 
 export type IdentifiedImportDecision = {
@@ -178,8 +183,46 @@ function cell(value: unknown): string {
 
 function needNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
+  const n = Number(String(value).replace(',', '.').replace(/[^\d.+-]/g, ''));
   return Number.isInteger(n) && n >= 1 && n <= 50 ? n : null;
+}
+
+function rangNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+}
+
+function priceNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(String(value).replace(/\s/g, '').replace(',', '.').replace(/[^\d.+-]/g, ''));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function normalizeHeader(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/^\ufeff/, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9#]+/g, ' ')
+    .trim();
+}
+
+function headerIndex(headers: string[], aliases: string[]): number {
+  const norm = headers.map(normalizeHeader);
+  for (const alias of aliases) {
+    const wanted = normalizeHeader(alias);
+    const exact = norm.findIndex(h => h === wanted);
+    if (exact >= 0) return exact;
+  }
+  for (const alias of aliases) {
+    const wanted = normalizeHeader(alias);
+    if (wanted.length < 3) continue;
+    const fuzzy = norm.findIndex(h => h === wanted || h.includes(wanted));
+    if (fuzzy >= 0) return fuzzy;
+  }
+  return -1;
 }
 
 function splitCsvLine(line: string): string[] {
@@ -204,16 +247,48 @@ function splitCsvLine(line: string): string[] {
   return out;
 }
 
-function draftFromObject(raw: Record<string, unknown>): IdentifiedImportDraft {
-  const forbidden = cell(raw.catalog_status || raw.catalogStatus || raw.target || raw.table || '');
+export function draftFromObject(raw: Record<string, unknown>): IdentifiedImportDraft {
+  const forbidden = cell(raw.catalog_status || raw.catalogStatus || raw.target || raw.table || raw.cible || '');
   return {
     brand: cell(raw.brand || raw.marque),
     title: cell(raw.title || raw.name || raw.produit || raw.product),
     documentedNeed: needNumber(raw.need || raw.documentedNeed || raw.besoin),
-    channelLabel: cell(raw.channel || raw.fournisseur || raw.fournisseur_canal) || null,
-    ean: cell(raw.ean || raw.barcode) || null,
+    channelLabel: cell(raw.channel || raw.fournisseur || raw.fournisseur_canal || raw['fournisseur / canal']) || null,
+    ean: cell(raw.ean || raw.barcode || raw.gtin) || null,
     forbiddenTarget: forbidden || null,
+    rang: rangNumber(raw.rang || raw['#']),
+    format: cell(raw.format) || null,
+    priceEur: priceNumber(raw.priceEur || raw.price || raw.prix || raw['prix constate']),
   };
+}
+
+/** Tableau (en-tête + lignes) → brouillons. CSV et 1ʳᵉ feuille Excel. */
+export function draftsFromTabularRows(rows: string[][]): IdentifiedImportDraft[] {
+  if (!rows.length) return [];
+  const header = rows[0].map(cell => String(cell || ''));
+  const looksLikeHeader = headerIndex(header, ['brand', 'marque', 'name', 'produit', 'product', 'title', 'need', 'besoin']) >= 0;
+  const start = looksLikeHeader ? 1 : 0;
+  const iBrand = looksLikeHeader ? headerIndex(header, ['brand', 'marque']) : 0;
+  const iTitle = looksLikeHeader ? headerIndex(header, ['produit', 'product', 'name', 'nom', 'title']) : 1;
+  const iNeed = looksLikeHeader ? headerIndex(header, ['besoin', 'need', 'documentedneed']) : 2;
+  const iChannel = looksLikeHeader ? headerIndex(header, ['fournisseur canal', 'fournisseur', 'channel', 'canal']) : 3;
+  const iEan = looksLikeHeader ? headerIndex(header, ['ean', 'barcode', 'gtin']) : 4;
+  const iStatus = looksLikeHeader ? headerIndex(header, ['catalog_status', 'catalogstatus', 'cible', 'target', 'table']) : -1;
+  const iRang = looksLikeHeader ? headerIndex(header, ['rang', '#']) : -1;
+  const iFormat = looksLikeHeader ? headerIndex(header, ['format']) : -1;
+  const iPrice = looksLikeHeader ? headerIndex(header, ['prix constate', 'prix', 'price']) : -1;
+  const at = (cols: string[], i: number) => (i >= 0 ? cols[i] || '' : '');
+  return rows.slice(start, start + IDENTIFIED_IMPORT_LIMIT).map((cols) => ({
+    brand: at(cols, iBrand),
+    title: at(cols, iTitle),
+    documentedNeed: needNumber(at(cols, iNeed)),
+    channelLabel: at(cols, iChannel) || null,
+    ean: at(cols, iEan) || null,
+    forbiddenTarget: iStatus >= 0 ? at(cols, iStatus) || null : null,
+    rang: rangNumber(at(cols, iRang)),
+    format: at(cols, iFormat) || null,
+    priceEur: priceNumber(at(cols, iPrice)),
+  }));
 }
 
 export function parseIdentifiedImportText(raw: string): IdentifiedImportDraft[] {
@@ -227,28 +302,7 @@ export function parseIdentifiedImportText(raw: string): IdentifiedImportDraft[] 
   }
   const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   if (lines.length === 0) return [];
-  const header = splitCsvLine(lines[0]).map(h => h.toLowerCase().replace(/^\ufeff/, ''));
-  const looksLikeHeader = header.some(h => ['brand', 'marque', 'name', 'produit', 'product', 'title', 'need', 'besoin'].includes(h));
-  const start = looksLikeHeader ? 1 : 0;
-  const idx = (aliases: string[]) => header.findIndex(h => aliases.includes(h));
-  const iBrand = looksLikeHeader ? idx(['brand', 'marque']) : 0;
-  const iTitle = looksLikeHeader ? idx(['name', 'title', 'produit', 'product', 'nom']) : 1;
-  const iNeed = looksLikeHeader ? idx(['need', 'besoin', 'documentedneed']) : 2;
-  const iChannel = looksLikeHeader ? idx(['channel', 'fournisseur', 'fournisseur_canal', 'canal']) : 3;
-  const iEan = looksLikeHeader ? idx(['ean', 'barcode', 'gtin']) : 4;
-  const iStatus = looksLikeHeader ? idx(['catalog_status', 'catalogstatus', 'status', 'cible', 'target', 'table']) : -1;
-  return lines.slice(start, start + IDENTIFIED_IMPORT_LIMIT).map((line) => {
-    const cols = splitCsvLine(line);
-    const at = (i: number) => (i >= 0 ? cols[i] || '' : '');
-    return {
-      brand: at(iBrand),
-      title: at(iTitle),
-      documentedNeed: needNumber(at(iNeed)),
-      channelLabel: at(iChannel) || null,
-      ean: at(iEan) || null,
-      forbiddenTarget: iStatus >= 0 ? at(iStatus) || null : null,
-    };
-  });
+  return draftsFromTabularRows(lines.map(splitCsvLine));
 }
 
 const FORBIDDEN_PUBLISH = /^(published|publie|boutique|products|catalogue|catalog)$/i;

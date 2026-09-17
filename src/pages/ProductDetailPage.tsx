@@ -32,6 +32,7 @@ import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT,
 import { getNextBatchShortLabel } from '../lib/fulfillment';
 import { readAffiliateOffer } from '../lib/affiliateOffer';
 import { AffiliatePartnerCta } from '../components/AffiliatePartnerCta';
+import { canShowAddToCart } from '../lib/skinCommerce';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -158,7 +159,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const isDropshipTool = isDropshipProduct(product as any);
   const isPreorder = rawIsPreorder && !isDropshipTool;
   // Une précommande peut être commandée sans être affichée comme « en stock ».
-  const canOrder = isPreorder || effectiveInStock;
+  // C14 — cosmétique Skin / fiche test : jamais un panier fantôme.
+  const canOrder = Boolean(product) && canShowAddToCart({ ...product, inStock: effectiveInStock }) && (isPreorder || effectiveInStock);
 
   useEffect(() => {
     if (!product) return;
@@ -186,7 +188,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const clearAction = () => { setActionMessage(null); setActionError(null); };
 
   const handleAdd = () => {
-    if (!product || readAffiliateOffer(product) || !canOrder || !sellableInCountry) return;
+    if (!product || readAffiliateOffer(product) || !canOrder || !sellableInCountry || product.testListing) return;
     clearAction();
     onAddToCart(product, selectedVariant);
     setActionMessage(isPreorder ? 'Précommande ajoutée au panier.' : 'Article ajouté au panier.');

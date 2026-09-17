@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T15:14:50.254Z",
+  "generatedAt": "2026-09-17T17:52:27.493Z",
   "methods": [
     "activateMembership/2",
     "addAiMessage/3",
@@ -9,6 +9,7 @@
     "addSupportMessage/4",
     "allocateBatchToOrderItem/2",
     "answerProductQuestion/4",
+    "applyIdentifiedImport/2",
     "applyLoyaltyEvent/4",
     "assignSupportTicket/3",
     "attachBrandInvoiceCheckoutSession/2",
@@ -216,6 +217,7 @@
     "listAllocatableOrderItems/1",
     "listBatches/1",
     "listCandidates/1",
+    "listFondPositions/0",
     "listGrowthCampaigns/0",
     "listGrowthMarkets/0",
     "listGrowthTasks/0",

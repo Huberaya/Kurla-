@@ -3,6 +3,8 @@ import { Link2, Plus, Star, Power, FileText, Copy, Mail } from 'lucide-react';
 import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
 import { buildDropshipPurchaseOrder, dropshipYear1Checklist, isSkinCosmeticCategory } from '../lib/dropshipProcedure';
 import { isHttpAffiliateUrl, offerFromProductSource, PARTNER_LINK_LABEL } from '../lib/affiliateOffer';
+import { apiConnectorsAdminNote } from '../lib/apiConnectors';
+import { buildThreePlInboundNotice, buildThreePlInboundPo, tamponQtyForProduct, threePlYear1Checklist } from '../lib/threePlProcedure';
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 import { applyColumnFilters, type ColumnFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
@@ -201,7 +203,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
   return (
     <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
       <h3 className="font-bold flex items-center gap-2"><Link2 className="w-4 h-4 text-kurla-amber" /> Sources d'approvisionnement par produit</h3>
-      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA). La source ★ principale se projette sur le fournisseur du produit. Coût inconnu = laisser vide — jamais 0. Affiliation : {PARTNER_LINK_LABEL} http(s) obligatoire. Commission et cookie = saisis, non mesurés (pas de pixel). Un nom libre n’est pas une offre : choisissez une fiche du référentiel.</p>
+      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA). La source ★ principale se projette sur le fournisseur du produit. Coût inconnu = laisser vide — jamais 0. Affiliation : {PARTNER_LINK_LABEL} http(s) obligatoire. 3PL : logisticien nommé, tampon / consignation, pas de WMS. Un nom libre n’est pas une offre : choisissez une fiche du référentiel. {apiConnectorsAdminNote()}</p>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -272,6 +274,49 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
                           </div>
                         );
                       })()}
+                      {source.model === '3pl' && (() => {
+                        const supplier = source.supplierId ? suppliers.find(s => String(s.id) === String(source.supplierId)) : null;
+                        const email = typeof supplier?.contactEmail === 'string' ? supplier.contactEmail : null;
+                        const inbound = {
+                          poNumber: `KURLA-3PL-${String(selected.id).slice(-6)}`,
+                          productName: String(selected.name || selected.id),
+                          productId: String(selected.id),
+                          quantity: tamponQtyForProduct(String(selected.id)),
+                          unitCostEur: source.costCents != null ? source.costCents / 100 : null,
+                          logisticianName: supplierName(source),
+                          logisticianEmail: email,
+                          supplierName: supplierName(source),
+                          shipsFrom: source.shipsFrom,
+                          category: selected.category,
+                        };
+                        const po = buildThreePlInboundPo(inbound);
+                        const notice = buildThreePlInboundNotice(inbound);
+                        const checklist = threePlYear1Checklist({ product: selected, source, logisticianEmail: email });
+                        return (
+                          <div className="mt-1 p-2 rounded-lg bg-kurla-espresso/80 border border-kurla-cream/10 space-y-1.5">
+                            <p className="text-[10px] font-bold text-kurla-amber">Procédure 3PL an 1 — tampon, mailto · pas de WMS</p>
+                            {isSkinCosmeticCategory(selected.category) && (
+                              <p className="text-[10px] text-rose-200/85">Cosmétique Skin : 3PL tampon OK. Pas de badge 24–48h. Quantité à obtenir — pas le tampon Hair 75.</p>
+                            )}
+                            <ul className="text-[10px] text-kurla-cream/55 space-y-0.5">
+                              {checklist.items.map(item => (
+                                <li key={item.id}>{item.ok ? '✓' : '·'} {item.label}</li>
+                              ))}
+                            </ul>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button type="button" onClick={() => { try { void navigator.clipboard.writeText(po.body); setMessage('Bon 3PL copié — rien n’est envoyé.'); } catch { setMessage('Copie impossible — utilisez mailto.'); } }} className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold inline-flex items-center gap-1">
+                                <Copy className="w-3 h-3" /> Copier le PO 3PL
+                              </button>
+                              <button type="button" onClick={() => { try { void navigator.clipboard.writeText(notice.body); setMessage('Annonce réception copiée — pas un ASN WMS.'); } catch { setMessage('Copie impossible — utilisez mailto.'); } }} className="px-2 py-0.5 rounded-lg bg-kurla-copper/10 border border-kurla-cream/20 text-kurla-cream/80 text-[9px] font-bold inline-flex items-center gap-1">
+                                <Copy className="w-3 h-3" /> Copier l’annonce
+                              </button>
+                              {po.mailtoHref
+                                ? <a href={po.mailtoHref} className="px-2 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[9px] font-bold inline-flex items-center gap-1"><Mail className="w-3 h-3" /> mailto 3PL</a>
+                                : <span className="text-[9px] text-amber-200/80"><FileText className="w-3 h-3 inline" /> e-mail logisticien à obtenir</span>}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {source.model === 'dropshipping' && (() => {
                         const supplier = source.supplierId ? suppliers.find(s => String(s.id) === String(source.supplierId)) : null;
                         const email = typeof supplier?.contactEmail === 'string' ? supplier.contactEmail : null;
@@ -328,6 +373,9 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
                   </select>
                   {form.model === 'dropshipping' && isSkinCosmeticCategory(selected.category) && (
                     <p className="col-span-2 text-[10px] text-rose-200/80">Cosmétique Skin : le modèle dropshipping n’ouvre pas le badge 24–48h. Préférer affiliation ou 3PL tampon.</p>
+                  )}
+                  {form.model === '3pl' && (
+                    <p className="col-span-2 text-[10px] text-kurla-cream/55">3PL tampon : le logisticien est une fiche du référentiel. Livraison chez le 3PL, 0 carton Paris. Pas de WMS Huboo/Cubyn.</p>
                   )}
                   <input value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))} placeholder="Coût € (vide = inconnu)" className={field} />
                   <input value={form.fee} onChange={e => setForm(f => ({ ...f, fee: e.target.value }))} placeholder="Frais € (vide = inconnu)" className={field} />

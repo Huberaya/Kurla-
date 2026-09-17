@@ -162,6 +162,27 @@ export function registerProspectRoutes(app: Express): void {
   }));
 
   /**
+   * CHANTIER 13 — import identifié (CSV / Excel / JSON).
+   * Écrit fond ou candidats. Jamais `products`, jamais `published`.
+   * `dryRun: true` = prévisualisation serveur (Excel compris).
+   */
+  app.post('/api/admin/sourcing/identified-import', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const result = await serverDb.applyIdentifiedImport(admin.id, req.body || {});
+      res.json({
+        ...result,
+        published: 0,
+        writeTarget: 'sourcing_fond_positions | sourcing_product_candidates',
+      });
+    } catch (error) {
+      console.error('[IdentifiedImport] error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Import identifié refusé.') });
+    }
+  }));
+
+  /**
    * DOSSIER FOURNISSEUR (chantier B, 16/09/2026) — voir un fournisseur en un
    * seul endroit : son identité, son contact réel (ou l'endroit du système qui
    * en propose un, jamais écrit à sa place), les huit pièces d'achat avec leur

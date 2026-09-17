@@ -41,6 +41,8 @@ import { TestPhaseGatesPanel } from '../components/TestPhaseGatesPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
 import { ProductLifecyclePanel } from '../components/ProductLifecyclePanel';
 import { IdentifiedProductsPanel } from '../components/IdentifiedProductsPanel';
+import { WorkspacePulsePanel } from '../components/WorkspacePulsePanel';
+import { buildWorkspacePulse } from '../lib/workspacePulse';
 
 type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // Union des deux chantiers parallèles : `pipeline` (Agent Kurla, mise en
@@ -169,8 +171,13 @@ export const AdminDashboardPage: React.FC = () => {
     try { return localStorage.getItem('kurla_admin_ad_spend') || ''; } catch { return ''; }
   });
   const adSpendValue = Number(adSpend.replace(',', '.'));
-  const cacValue = Number.isFinite(adSpendValue) && adSpendValue > 0 && metrics?.uniqueCustomers > 0
-    ? adSpendValue / metrics.uniqueCustomers
+  const pulseWorkspace: 'skin' | 'hair' = workspace === 'skin' ? 'skin' : 'hair';
+  const commercial = metrics?.workspacePulse && metrics.workspacePulse.workspace === pulseWorkspace
+    ? metrics.workspacePulse
+    : (metrics ? buildWorkspacePulse({ workspace: pulseWorkspace, products: [], metrics }) : null);
+  const uniqueForCac = commercial?.displayUniqueCustomers ?? metrics?.uniqueCustomers;
+  const cacValue = Number.isFinite(adSpendValue) && adSpendValue > 0 && uniqueForCac > 0
+    ? adSpendValue / uniqueForCac
     : null;
   const handleAdSpendChange = (value: string) => {
     setAdSpend(value);
@@ -790,16 +797,22 @@ export const AdminDashboardPage: React.FC = () => {
         {/* TAB 1: COMMERCIAL DASHBOARD ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-8">
+            <WorkspacePulsePanel
+              workspace={pulseWorkspace}
+              headers={adminHeaders}
+              pulse={commercial}
+              metrics={metrics}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
                 <div className="flex items-center justify-between text-kurla-amber">
-                  <span className="text-xs font-semibold">Chiffre d'Affaires Test</span>
+                  <span className="text-xs font-semibold">{commercial?.revenueLabel || "Chiffre d'Affaires Test"}</span>
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-kurla-cream block">
-                  {metrics ? `${metrics.revenueTest.toFixed(2)} €` : '—'}
+                  {metrics ? `${Number(commercial?.displayRevenueEur ?? metrics.revenueTest).toFixed(2)} €` : '—'}
                 </span>
-                <span className="text-[11px] text-kurla-cream/50 block">Commandes réglées, moins les remboursements persistés</span>
+                <span className="text-[11px] text-kurla-cream/50 block">{commercial?.revenueHint || 'Commandes réglées, moins les remboursements persistés'}</span>
               </div>
 
               <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
@@ -808,9 +821,9 @@ export const AdminDashboardPage: React.FC = () => {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-kurla-cream block">
-                  {metrics ? `${metrics.avgOrderValue.toFixed(2)} €` : '—'}
+                  {metrics ? `${Number(commercial?.displayAovEur ?? metrics.avgOrderValue).toFixed(2)} €` : '—'}
                 </span>
-                <span className="text-[11px] text-kurla-cream/50 block">Valeur moyenne par commande payée</span>
+                <span className="text-[11px] text-kurla-cream/50 block">{commercial?.honestZeroSales ? '0 vente Skin — AOV non applicable' : 'Valeur moyenne par commande payée'}</span>
               </div>
 
               <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
@@ -819,9 +832,9 @@ export const AdminDashboardPage: React.FC = () => {
                   <ShoppingBag className="w-5 h-5" />
                 </div>
                 <span className="text-3xl font-bold text-kurla-cream block">
-                  {metrics ? metrics.totalOrders : '—'}
+                  {metrics ? (commercial?.displayOrders ?? metrics.totalOrders) : '—'}
                 </span>
-                <span className="text-[11px] text-kurla-cream/50 block">{metrics ? metrics.todayOrdersCount : '—'} aujourd'hui</span>
+                <span className="text-[11px] text-kurla-cream/50 block">{commercial?.honestZeroSales ? '0 commande Skin' : `${metrics ? metrics.todayOrdersCount : '—'} aujourd'hui`}</span>
               </div>
 
               <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-2 shadow-xl">
@@ -840,7 +853,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-rose-300">Remboursements persistés</span><strong className="text-2xl block">{metrics ? metrics.refundsCount : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Transactions pending ou finalisées</span></div>
               <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-amber-300">Recherches sans résultat</span><strong className="text-2xl block">{metrics ? metrics.searchesWithoutResultsCount : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Événements persistés, requêtes ≥ 2 caractères</span></div>
               <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-sky-300">Utilisation IA</span><strong className="text-2xl block">{metrics?.aiUsageRate == null ? (metrics ? 'Non calculable' : '—') : `${metrics.aiUsageRate.toFixed(1)} %`}</strong><span className="text-[11px] text-kurla-cream/45">Utilisateurs inscrits ayant utilisé l’IA</span></div>
-              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? (metrics.popularProducts?.length || 0) : '—'}</strong><span className="text-[11px] text-kurla-cream/45">Classement issu des lignes de commandes réglées</span></div>
+              <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-1 shadow-xl"><span className="text-xs text-emerald-300">Produits populaires</span><strong className="text-2xl block">{metrics ? ((commercial?.popularProducts ?? metrics.popularProducts)?.length || 0) : '—'}</strong><span className="text-[11px] text-kurla-cream/45">{commercial?.honestZeroSales ? 'Aucun soin peau vendu' : 'Classement issu des lignes de commandes réglées'}</span></div>
             </div>
 
             {/* ── Pilotage économique : marge / LTV / CAC / acquisition ── */}
@@ -852,16 +865,16 @@ export const AdminDashboardPage: React.FC = () => {
                 </span>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCell label="Marge estimée" value={metrics ? `${metrics.estimatedMargin.toFixed(2)} €` : '—'} hint="CA net − coûts d'achat cibles − port" tone="text-emerald-300" />
-                <KpiCell label="Taux de marge estimé" value={metrics?.estimatedMarginRate == null ? (metrics ? '—' : '—') : `${metrics.estimatedMarginRate.toFixed(0)} %`} hint="Sur coûts cibles du plan" tone="text-emerald-300" />
-                <KpiCell label="Clients uniques" value={metrics ? metrics.uniqueCustomers : '—'} hint="Emails distincts ayant commandé" tone="text-kurla-cream" />
-                <KpiCell label="Taux de réachat" value={metrics?.repeatRate == null ? '—' : `${metrics.repeatRate.toFixed(0)} %`} hint="Clients avec ≥ 2 commandes" tone="text-sky-300" />
-                <KpiCell label="LTV proxy" value={metrics?.ltvProxy == null ? '—' : `${metrics.ltvProxy.toFixed(2)} €`} hint="CA net / clients uniques" tone="text-kurla-amber" />
+                <KpiCell label="Marge estimée" value={metrics ? `${Number(commercial?.displayMarginEur ?? metrics.estimatedMargin).toFixed(2)} €` : '—'} hint={commercial?.honestZeroSales ? '0 vente Skin — pas de marge Hair ici' : "CA net − coûts d'achat cibles − port"} tone="text-emerald-300" />
+                <KpiCell label="Taux de marge estimé" value={(commercial?.displayMarginRate ?? metrics?.estimatedMarginRate) == null ? '—' : `${Number(commercial?.displayMarginRate ?? metrics.estimatedMarginRate).toFixed(0)} %`} hint="Sur coûts cibles du plan" tone="text-emerald-300" />
+                <KpiCell label="Clients uniques" value={metrics ? (commercial?.displayUniqueCustomers ?? metrics.uniqueCustomers) : '—'} hint="Emails distincts ayant commandé" tone="text-kurla-cream" />
+                <KpiCell label="Taux de réachat" value={(commercial?.displayRepeatRate ?? metrics?.repeatRate) == null ? '—' : `${Number(commercial?.displayRepeatRate ?? metrics.repeatRate).toFixed(0)} %`} hint="Clients avec ≥ 2 commandes" tone="text-sky-300" />
+                <KpiCell label="LTV proxy" value={(commercial?.displayLtv ?? metrics?.ltvProxy) == null ? '—' : `${Number(commercial?.displayLtv ?? metrics.ltvProxy).toFixed(2)} €`} hint="CA net / clients uniques" tone="text-kurla-amber" />
                 <KpiCell
                   label="CAC"
                   value={cacValue == null ? '—' : `${cacValue.toFixed(2)} €`}
-                  hint={cacValue == null ? 'Saisir les dépenses d’acquisition ci-dessous' : `${adSpendValue.toFixed(0)} € dépensés / ${metrics.uniqueCustomers} clients`}
-                  tone={cacValue == null ? 'text-kurla-cream/70' : (metrics?.ltvProxy != null && cacValue > metrics.ltvProxy / 3 ? 'text-rose-300' : 'text-emerald-300')}
+                  hint={cacValue == null ? 'Saisir les dépenses d’acquisition ci-dessous' : `${adSpendValue.toFixed(0)} € dépensés / ${uniqueForCac} clients`}
+                  tone={cacValue == null ? 'text-kurla-cream/70' : ((commercial?.displayLtv ?? metrics?.ltvProxy) != null && cacValue > Number(commercial?.displayLtv ?? metrics.ltvProxy) / 3 ? 'text-rose-300' : 'text-emerald-300')}
                 />
                 <KpiCell label="Liste d'attente (emails)" value={metrics ? metrics.waitlistCount : '—'} hint="Emails capturés sur la home" tone="text-rose-300" />
                 <KpiCell label="Inscrits (comptes)" value={metrics ? metrics.registeredUsersCount : '—'} hint="Profils créés" tone="text-kurla-cream/70" />
@@ -888,9 +901,9 @@ export const AdminDashboardPage: React.FC = () => {
               </p>
             </div>
 
-            {(metrics?.topZeroResultSearches?.length > 0 || metrics?.popularProducts?.length > 0) && <div className="grid lg:grid-cols-2 gap-6">
+            {(metrics?.topZeroResultSearches?.length > 0 || (commercial?.popularProducts ?? metrics?.popularProducts)?.length > 0) && <div className="grid lg:grid-cols-2 gap-6">
               {metrics?.topZeroResultSearches?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Requêtes à examiner</h2><div className="flex flex-wrap gap-2">{metrics.topZeroResultSearches.map((item: any) => <span key={item.query} className="px-3 py-2 rounded-xl bg-kurla-ink text-xs text-kurla-amber">{item.query} · {item.count}</span>)}</div></div>}
-              {metrics?.popularProducts?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{metrics.popularProducts.map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
+              {(commercial?.popularProducts ?? metrics?.popularProducts)?.length > 0 && <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 shadow-xl"><h2 className="text-sm font-bold mb-4">Produits populaires</h2><div className="space-y-2">{(commercial?.popularProducts ?? metrics.popularProducts).map((item: any) => <div key={item.productId} className="flex justify-between text-xs"><span>{item.name}</span><span className="font-mono text-emerald-300">{item.quantity} vendus</span></div>)}</div></div>}
             </div>}
 
             {/* L3 — Funnel de conversion (diagnostic → routine → panier → payé) */}
@@ -901,15 +914,18 @@ export const AdminDashboardPage: React.FC = () => {
               <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" /> Alertes Stock & Inventaire
               </h2>
+              {commercial?.stockAlertsAreHairKits && (
+                <p className="text-xs text-amber-200/80">Les ruptures listées ailleurs sont des kits capillaires (CA Hair), pas un stock Skin.</p>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-5 rounded-2xl bg-kurla-ink border border-amber-500/20 space-y-3">
                   <h3 className="text-xs font-bold uppercase text-amber-400 tracking-wider">Stock Faible (&lt; 5 unités)</h3>
-                  {metrics?.lowStockProducts?.length === 0 ? (
+                  {(commercial?.displayLowStock ?? metrics?.lowStockProducts)?.length === 0 ? (
                     <p className="text-xs text-kurla-cream/40 italic">Aucune alerte de stock faible.</p>
                   ) : (
                     <div className="space-y-2">
-                      {metrics?.lowStockProducts?.map((p: any) => (
+                      {(commercial?.displayLowStock ?? metrics?.lowStockProducts)?.map((p: any) => (
                         <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-kurla-cream/5">
                           <span className="font-medium text-kurla-cream">{p.name}</span>
                           <span className="font-mono text-amber-400 font-bold">{p.stockQuantity} restants</span>
@@ -921,11 +937,11 @@ export const AdminDashboardPage: React.FC = () => {
 
                 <div className="p-5 rounded-2xl bg-kurla-ink border border-rose-500/20 space-y-3">
                   <h3 className="text-xs font-bold uppercase text-rose-400 tracking-wider">Rupture de Stock (0 unité)</h3>
-                  {metrics?.outOfStockProducts?.length === 0 ? (
+                  {(commercial?.displayOutOfStock ?? metrics?.outOfStockProducts)?.length === 0 ? (
                     <p className="text-xs text-kurla-cream/40 italic">Aucun produit en rupture totale.</p>
                   ) : (
                     <div className="space-y-2">
-                      {metrics?.outOfStockProducts?.map((p: any) => (
+                      {(commercial?.displayOutOfStock ?? metrics?.outOfStockProducts)?.map((p: any) => (
                         <div key={p.id} className="flex items-center justify-between text-xs py-1.5 border-b border-kurla-cream/5">
                           <span className="font-medium text-kurla-cream">{p.name}</span>
                           <span className="font-mono text-rose-400 font-bold">Rupture</span>
@@ -1146,6 +1162,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </h2>
                 <p className="text-xs text-kurla-cream/55 mt-1 max-w-2xl">
                   Quantités fermement réservées (commandes réglées) sur les précommandes, avec le déroulage des kits en composants pour caler les quantités à commander aux fournisseurs.
+                  {commercial?.hairRevenueLeak ? ' Les kits capillaires restent du CA Hair — pas des ventes Skin.' : ''}
                 </p>
               </div>
               <button onClick={fetchDemand} className="px-4 py-2 rounded-full bg-kurla-ink hover:bg-kurla-bark border border-kurla-cream/15 text-[11px] font-semibold text-kurla-amber flex items-center gap-1.5">
@@ -1176,9 +1193,9 @@ export const AdminDashboardPage: React.FC = () => {
                     <p className="text-[10px] text-kurla-cream/45">intentions non confirmées</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
-                    <p className="text-[11px] text-kurla-amber font-bold uppercase">CA commandes fermes</p>
-                    <p className="text-2xl font-bold text-kurla-cream mt-1">{Number(demand.totals.firmRevenue).toFixed(2)} €</p>
-                    <p className="text-[10px] text-kurla-cream/45">toutes commandes réglées (TTC)</p>
+                    <p className="text-[11px] text-kurla-amber font-bold uppercase">{commercial?.honestZeroSales ? 'CA Skin (précommandes)' : 'CA commandes fermes'}</p>
+                    <p className="text-2xl font-bold text-kurla-cream mt-1">{Number(commercial?.honestZeroSales ? 0 : (commercial?.workspace === 'skin' && commercial.hairRevenueLeak ? commercial.displayRevenueEur : demand.totals.firmRevenue)).toFixed(2)} €</p>
+                    <p className="text-[10px] text-kurla-cream/45">{commercial?.honestZeroSales ? '0 vente Skin — le CA kits est du Hair' : 'toutes commandes réglées (TTC)'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-kurla-ink border border-indigo-500/25">
                     <p className="text-[11px] text-indigo-300 font-bold uppercase">Unités à sourcer</p>

@@ -28,6 +28,7 @@ import { pickHairProblemCards, pickSkinProblemCards, type ProblemCard } from './
 import { pickSkinScienceInsights } from './knowledge/skinScience';
 import type { ScienceInsight } from './knowledge/hairScience';
 import { buildHairKit, buildSkinKit, type CareKit } from './knowledge/careKit';
+import { canShowAddToCart, isSkinCosmeticProduct } from './skinCommerce';
 
 export type DiagnosticAvailability = 'available' | 'preorder' | 'pending_validation' | 'formulation_target' | 'unavailable';
 
@@ -279,7 +280,12 @@ export function buildDiagnosticResultModel(input: {
     hyperpigmentationTendency: typeof answers.hyperpigmentationTendency === 'string' ? answers.hyperpigmentationTendency : undefined,
   }) : null;
   const handles = new Set(result?.productHandles || []);
-  const productsInResult = products.filter(product => handles.has(product.slug) || handles.has(product.id));
+  const productsInResult = products.filter(product => {
+    if (!handles.has(product.slug) && !handles.has(product.id)) return false;
+    // C14 — diagnostic peau : jamais un SKU Hair / test / hors cosmétique Skin.
+    if (isSkin && !isSkinCosmeticProduct(product)) return false;
+    return true;
+  });
   const productCards = productsInResult.map(product => {
     const availability = availabilityFor(product);
     return {
@@ -288,7 +294,7 @@ export function buildDiagnosticResultModel(input: {
       availabilityLabel: availability.label,
       availabilityMessage: availability.message,
       actionLabel: availability.action,
-      actionable: availability.actionable,
+      actionable: availability.actionable && canShowAddToCart(product),
       countryLabel: countryLabel(product),
       price: (availability.availability === 'available' || availability.availability === 'preorder') && Number.isFinite(product.price) ? product.price : null,
       why: whyFor(product, priorities),

@@ -123,6 +123,9 @@ KURLA Beauty — ${senderEmail || '[email]'} | ${senderPhone || '[tél]'}
         <p className="text-[11px] text-kurla-cream/70 mt-1.5 leading-relaxed">
           5 héros qui font 80% des ventes. Immobilisation <b className="text-kurla-cream">~485€ HT / 532,50€ TTC</b> + <b className="text-kurla-cream">20€/mois 0,5m²</b>. Effet : 60% expédiés en 24–48h, moyenne <b className="text-emerald-300">2,6j</b> vs 4,2j sans tampon. Livraison <b className="text-amber-300">DIRECT chez 3PL</b>, jamais à Paris.
         </p>
+        <p className="text-[10px] text-kurla-cream/50 mt-2 leading-relaxed">
+          Hair tampon 75 = constantes <code className="font-mono text-kurla-amber">fulfillment.ts</code> (p01–p12), <code className="font-mono">launchCatalog.ts</code> inchangé. Une offre Skin 3PL se saisit dans Sources d’approvisionnement (<code className="font-mono">product_sources.model=3pl</code>). Pas de WMS, pas d’ASN électronique.
+        </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
           <label className="block">
             <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-amber">Fournisseur</span>

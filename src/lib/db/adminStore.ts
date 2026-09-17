@@ -18,6 +18,12 @@ import {
 import { ensureDatabaseSuccess, isUuid, mapOrderVatFields, mapOrderCouponFields } from './internal';
 import { mapRefundRow } from './refundSupport';
 import { isProductInWorkspace, orderForWorkspace, orderInWorkspace, type WorkspaceScope } from '../../server/workspaceScope';
+import {
+  buildWorkspacePulse,
+  cosmeticProductIds,
+  kitProductIds,
+  sumLineRevenueForIds,
+} from '../workspacePulse';
 
 import type {
   CustomerRefund,
@@ -760,7 +766,31 @@ export async function getAdminAnalyticsMetrics(store: SupabaseServerStore, scope
       newCustomers: workspaceUnattributable ? null : newCustomers,
       waitlistCount: workspaceUnattributable ? null : supaWaitlistCount,
       stripeMode: (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_') ? 'live'
-        : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown'
+        : (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : 'unknown',
+      // C12 — KPI honnêtes : le CA Skin n'absorbe pas les lignes kits (Hair).
+      // Additive : revenueTest reste le total scopé (tests / growth). L'UI lit pulse.
+      workspacePulse: scope === 'skin' || scope === 'hair'
+        ? buildWorkspacePulse({
+            workspace: scope,
+            products: scopedProducts,
+            metrics: {
+              revenueTest,
+              avgOrderValue,
+              totalOrders: sourceOrders.length,
+              paidOrdersCount: paidOrders.length,
+              uniqueCustomers,
+              estimatedMargin,
+              estimatedMarginRate,
+              ltvProxy,
+              repeatRate,
+              popularProducts,
+              lowStockProducts,
+              outOfStockProducts,
+            },
+            cosmeticRevenueEur: sumLineRevenueForIds(paidOrders, cosmeticProductIds(scopedProducts)),
+            kitRevenueEur: sumLineRevenueForIds(paidOrders, kitProductIds(scopedProducts)),
+          })
+        : undefined,
     };
   }
 

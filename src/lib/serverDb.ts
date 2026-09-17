@@ -112,6 +112,7 @@ import * as skinEvidenceStore from './db/skinEvidenceStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as prospectStore from './db/prospectStore';
+import * as identifiedImportStore from './db/identifiedImportStore';
 import * as productSourceStore from './db/productSourceStore';
 import * as sourcingStrategyStore from './db/sourcingStrategyStore';
 import * as operationsCockpit from './db/operationsCockpit';
@@ -213,6 +214,8 @@ export class SupabaseServerStore {
   /** CHANTIER CATALOGUE RÉEL — prospects de sourcing et références à intégrer. */
   public inMemoryProspects: import('./db/prospectStore').SourcingProspect[] = [];
   public inMemoryCandidates: import('./db/prospectStore').ProductCandidate[] = [];
+  /** CHANTIER 13 — positions de fond (repli mémoire). */
+  public inMemoryFondPositions: import('./db/identifiedImportStore').FondPositionRecord[] = [];
   public inMemoryCatalogValidationEvents: Array<{ id: string; productId: string; checkType: string; status: string; evidenceUrl?: string; note?: string; createdAt: string }> = [];
   public inMemoryBeautyProfiles: Map<string, BeautyProfileRecord> = new Map();
   public inMemoryBeautyProfileHistory: Map<string, BeautyProfileHistoryEntry[]> = new Map();
@@ -535,6 +538,10 @@ bindDomain(storeInstance, {
   upsertCandidate: prospectStore.upsertCandidate,
   linkProspectSupplier: prospectStore.linkProspectSupplier,
 });
+bindDomain(storeInstance, {
+  listFondPositions: identifiedImportStore.listFondPositions,
+  applyIdentifiedImport: identifiedImportStore.applyIdentifiedImport,
+});
 // CHANTIER 4 — offres N:N. Sous-ensemble explicite (pas de constante exportée).
 bindDomain(storeInstance, {
   listProductSources: productSourceStore.listProductSources,
@@ -605,6 +612,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof brandContractStore>
   & Curried<typeof brandInvoiceStore>
   & Curried<typeof prospectStore>
+  & Curried<typeof identifiedImportStore>
   & Curried<typeof productSourceStore>
   & Curried<typeof sourcingStrategyStore>
   & Curried<typeof incidentStore>

@@ -43,7 +43,7 @@ export const CANONICAL_TABLES = {
 
 /**
  * Où écrire selon le stade. L'import ~500 atterrit en identifié, jamais en
- * `published`. Le chantier 13 branchera l'import sur cette règle.
+ * `published`. Le chantier 13 (`applyIdentifiedImport`) applique cette règle.
  */
 export const WRITE_TARGET_BY_INTENT = {
   import_identified: 'sourcing_fond_positions | sourcing_product_candidates',

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T15:13:32.056Z",
+  "generatedAt": "2026-09-17T17:54:35.945Z",
   "routes": [
     {
       "method": "POST",
@@ -58,7 +58,7 @@
         "src/components/AdminActionQueue.tsx:226",
         "src/components/BatchAdminPanel.tsx:141",
         "src/components/BatchAdminPanel.tsx:201",
-        "src/components/CatalogAdminPanel.tsx:373",
+        "src/components/CatalogAdminPanel.tsx:374",
         "src/components/PurchaseProposalPanel.tsx:53",
         "src/components/PurchaseProposalPanel.tsx:220"
       ]
@@ -73,7 +73,7 @@
         "src/components/AdminActionQueue.tsx:226",
         "src/components/BatchAdminPanel.tsx:141",
         "src/components/BatchAdminPanel.tsx:201",
-        "src/components/CatalogAdminPanel.tsx:373",
+        "src/components/CatalogAdminPanel.tsx:374",
         "src/components/PurchaseProposalPanel.tsx:53",
         "src/components/PurchaseProposalPanel.tsx:220"
       ]
@@ -229,7 +229,7 @@
       "file": "src/server/routes/catalogGovernance.ts:296",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:499"
+        "src/components/CatalogAdminPanel.tsx:500"
       ]
     },
     {
@@ -238,7 +238,7 @@
       "file": "src/server/routes/catalogGovernance.ts:317",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:514"
+        "src/components/CatalogAdminPanel.tsx:515"
       ]
     },
     {
@@ -247,7 +247,7 @@
       "file": "src/server/routes/catalogGovernance.ts:128",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:244"
+        "src/components/CatalogAdminPanel.tsx:245"
       ]
     },
     {
@@ -271,7 +271,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:142",
-        "src/components/CatalogAdminPanel.tsx:484",
+        "src/components/CatalogAdminPanel.tsx:485",
         "src/components/CatalogPipelinePanel.tsx:89",
         "src/components/ProductSupplierPanel.tsx:76",
         "src/components/PurchaseProposalPanel.tsx:49",
@@ -287,7 +287,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:142",
-        "src/components/CatalogAdminPanel.tsx:484",
+        "src/components/CatalogAdminPanel.tsx:485",
         "src/components/CatalogPipelinePanel.tsx:89",
         "src/components/ProductSupplierPanel.tsx:76",
         "src/components/PurchaseProposalPanel.tsx:49",
@@ -302,8 +302,8 @@
       "file": "src/server/routes/catalogGovernance.ts:149",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:392",
-        "src/components/CatalogAdminPanel.tsx:484",
+        "src/components/CatalogAdminPanel.tsx:393",
+        "src/components/CatalogAdminPanel.tsx:485",
         "src/components/ProductNeedsEditor.tsx:84",
         "src/lib/adminRecordsStore.ts:148",
         "src/lib/adminRecordsStore.ts:248"
@@ -318,7 +318,7 @@
         "src/components/AdminActionQueue.tsx:44",
         "src/components/AdminActionQueue.tsx:223",
         "src/components/BoutiqueAnomalyBanner.tsx:29",
-        "src/components/CatalogAdminPanel.tsx:258",
+        "src/components/CatalogAdminPanel.tsx:259",
         "src/components/CatalogPipelinePanel.tsx:90",
         "src/components/PurchaseProposalPanel.tsx:55",
         "src/components/PurchaseProposalPanel.tsx:221",
@@ -359,7 +359,7 @@
       "file": "src/server/routes/catalogGovernance.ts:122",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:243"
+        "src/components/CatalogAdminPanel.tsx:244"
       ]
     },
     {
@@ -437,7 +437,7 @@
     {
       "method": "GET",
       "path": "/api/admin/global-search",
-      "file": "src/server/routes/sourcing.ts:405",
+      "file": "src/server/routes/sourcing.ts:423",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/GlobalSearchPanel.tsx:33"
@@ -591,7 +591,7 @@
     {
       "method": "GET",
       "path": "/api/admin/order-routes",
-      "file": "src/server/routes/sourcing.ts:364",
+      "file": "src/server/routes/sourcing.ts:382",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OrderFulfillmentPanel.tsx:29"
@@ -600,7 +600,7 @@
     {
       "method": "POST",
       "path": "/api/admin/order-routes/:orderId/freeze",
-      "file": "src/server/routes/sourcing.ts:389",
+      "file": "src/server/routes/sourcing.ts:407",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OrderFulfillmentPanel.tsx:55"
@@ -667,7 +667,7 @@
       "file": "src/server/routes/chantierA.ts:242",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/CatalogAdminPanel.tsx:527"
+        "src/components/CatalogAdminPanel.tsx:528"
       ]
     },
     {
@@ -676,7 +676,7 @@
       "file": "src/server/routes/prospects.ts:111",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/IdentifiedProductsPanel.tsx:121",
+        "src/components/IdentifiedProductsPanel.tsx:221",
         "src/components/SourcedReferencesPanel.tsx:69",
         "src/components/SourcingProspectsPanel.tsx:156",
         "src/components/SourcingWorkflowPanel.tsx:34"
@@ -688,7 +688,7 @@
       "file": "src/server/routes/prospects.ts:150",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/IdentifiedProductsPanel.tsx:121",
+        "src/components/IdentifiedProductsPanel.tsx:221",
         "src/components/SourcedReferencesPanel.tsx:69",
         "src/components/SourcingProspectsPanel.tsx:156",
         "src/components/SourcingWorkflowPanel.tsx:34"
@@ -709,49 +709,62 @@
       "file": "src/server/routes/sourcing.ts:108",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/IdentifiedProductsPanel.tsx:122",
         "src/components/SourcingConsolidatedPanel.tsx:61"
       ]
     },
     {
       "method": "GET",
       "path": "/api/admin/sourcing/consolidated",
-      "file": "src/server/routes/sourcing.ts:56",
+      "file": "src/server/routes/sourcing.ts:57",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/CatalogPipelinePanel.tsx:88",
-        "src/components/IdentifiedProductsPanel.tsx:62",
-        "src/components/ProductLifecyclePanel.tsx:55",
+        "src/components/IdentifiedProductsPanel.tsx:70",
+        "src/components/ProductLifecyclePanel.tsx:60",
         "src/components/SourcingConsolidatedPanel.tsx:44"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sourcing/identified-import",
+      "file": "src/server/routes/prospects.ts:169",
+      "guard": "requireAdmin(",
+      "callers": [
+        "src/components/IdentifiedProductsPanel.tsx:150",
+        "src/components/IdentifiedProductsPanel.tsx:176"
       ]
     },
     {
       "method": "GET",
       "path": "/api/admin/sourcing/items",
-      "file": "src/server/routes/sourcing.ts:433",
+      "file": "src/server/routes/sourcing.ts:451",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:48",
         "src/components/AdminActionQueue.tsx:224",
         "src/components/BatchAdminPanel.tsx:144",
-        "src/components/OperationsCockpitPanel.tsx:119"
+        "src/components/OperationsCockpitPanel.tsx:119",
+        "src/components/WorkspacePulsePanel.tsx:69"
       ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items",
-      "file": "src/server/routes/sourcing.ts:472",
+      "file": "src/server/routes/sourcing.ts:490",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/AdminActionQueue.tsx:48",
         "src/components/AdminActionQueue.tsx:224",
         "src/components/BatchAdminPanel.tsx:144",
-        "src/components/OperationsCockpitPanel.tsx:119"
+        "src/components/OperationsCockpitPanel.tsx:119",
+        "src/components/WorkspacePulsePanel.tsx:69"
       ]
     },
     {
       "method": "GET",
       "path": "/api/admin/sourcing/items/:itemId",
-      "file": "src/server/routes/sourcing.ts:488",
+      "file": "src/server/routes/sourcing.ts:506",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:139"
@@ -760,7 +773,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/award",
-      "file": "src/server/routes/sourcing.ts:548",
+      "file": "src/server/routes/sourcing.ts:566",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:205"
@@ -769,7 +782,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/items/:itemId/rfqs",
-      "file": "src/server/routes/sourcing.ts:505",
+      "file": "src/server/routes/sourcing.ts:523",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:166"
@@ -778,11 +791,12 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/ops",
-      "file": "src/server/routes/sourcing.ts:294",
+      "file": "src/server/routes/sourcing.ts:312",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductLifecyclePanel.tsx:57",
-        "src/components/SupplyOpsPanel.tsx:32"
+        "src/components/ProductLifecyclePanel.tsx:62",
+        "src/components/SupplyOpsPanel.tsx:32",
+        "src/components/WorkspacePulsePanel.tsx:74"
       ]
     },
     {
@@ -828,7 +842,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/responses",
-      "file": "src/server/routes/sourcing.ts:534",
+      "file": "src/server/routes/sourcing.ts:552",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:190"
@@ -837,7 +851,7 @@
     {
       "method": "POST",
       "path": "/api/admin/sourcing/rfqs/:rfqId/send",
-      "file": "src/server/routes/sourcing.ts:520",
+      "file": "src/server/routes/sourcing.ts:538",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/OperationsCockpitPanel.tsx:176"
@@ -846,30 +860,30 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/sources",
-      "file": "src/server/routes/sourcing.ts:149",
+      "file": "src/server/routes/sourcing.ts:158",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:76",
-        "src/components/ProductSourcesPanel.tsx:122"
+        "src/components/ProductSourcesPanel.tsx:79",
+        "src/components/ProductSourcesPanel.tsx:125"
       ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/sources",
-      "file": "src/server/routes/sourcing.ts:167",
+      "file": "src/server/routes/sourcing.ts:176",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:76",
-        "src/components/ProductSourcesPanel.tsx:122"
+        "src/components/ProductSourcesPanel.tsx:79",
+        "src/components/ProductSourcesPanel.tsx:125"
       ]
     },
     {
       "method": "PATCH",
       "path": "/api/admin/sourcing/sources/:id",
-      "file": "src/server/routes/sourcing.ts:179",
+      "file": "src/server/routes/sourcing.ts:188",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductSourcesPanel.tsx:160"
+        "src/components/ProductSourcesPanel.tsx:163"
       ]
     },
     {
@@ -884,7 +898,7 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/supplier-dossier",
-      "file": "src/server/routes/prospects.ts:175",
+      "file": "src/server/routes/prospects.ts:196",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SupplierDossierPanel.tsx:60"
@@ -893,7 +907,7 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/workflow/events",
-      "file": "src/server/routes/sourcing.ts:229",
+      "file": "src/server/routes/sourcing.ts:243",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SourcingWorkflowPanel.tsx:48"
@@ -902,17 +916,17 @@
     {
       "method": "GET",
       "path": "/api/admin/sourcing/workflow/summary",
-      "file": "src/server/routes/sourcing.ts:254",
+      "file": "src/server/routes/sourcing.ts:268",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/SourcingWorkflowFunnel.tsx:12",
-        "src/components/SourcingWorkflowFunnel.tsx:22"
+        "src/components/ProductLifecyclePanel.tsx:63",
+        "src/components/SourcingWorkflowFunnel.tsx:20"
       ]
     },
     {
       "method": "POST",
       "path": "/api/admin/sourcing/workflow/transition",
-      "file": "src/server/routes/sourcing.ts:198",
+      "file": "src/server/routes/sourcing.ts:207",
       "guard": "requireAdmin(",
       "callers": [
         "src/components/SourcingWorkflowPanel.tsx:91"
@@ -935,9 +949,9 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:143",
-        "src/components/CatalogAdminPanel.tsx:245",
+        "src/components/CatalogAdminPanel.tsx:246",
         "src/components/CatalogPipelinePanel.tsx:91",
-        "src/components/ProductSourcesPanel.tsx:61",
+        "src/components/ProductSourcesPanel.tsx:64",
         "src/components/ProductSupplierPanel.tsx:75",
         "src/components/ProductSupplierPanel.tsx:75",
         "src/components/PurchaseProposalPanel.tsx:51",
@@ -957,9 +971,9 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/BatchAdminPanel.tsx:143",
-        "src/components/CatalogAdminPanel.tsx:245",
+        "src/components/CatalogAdminPanel.tsx:246",
         "src/components/CatalogPipelinePanel.tsx:91",
-        "src/components/ProductSourcesPanel.tsx:61",
+        "src/components/ProductSourcesPanel.tsx:64",
         "src/components/ProductSupplierPanel.tsx:75",
         "src/components/ProductSupplierPanel.tsx:75",
         "src/components/PurchaseProposalPanel.tsx:51",

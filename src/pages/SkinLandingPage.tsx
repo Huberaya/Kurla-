@@ -3,6 +3,7 @@ import { Sparkles, Sun, Droplets, Heart, Layers, Search, ArrowRight, Star, Shiel
 import { isSkinProfessional } from '../lib/professionalCategory';
 import { fetchVerifiedProfessionals } from '../services/intelligenceService';
 import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS } from '../lib/skinTaxonomy';
+import { countSellableSkinSkus } from '../lib/skinCommerce';
 
 /**
  * PAGE 1 — KURLA SKIN LANDING /peau
@@ -53,7 +54,7 @@ export const SkinLandingPage: React.FC = () => {
       .then(r => (r.ok ? r.json() : null))
       .then(body => {
         const products = (body && body.products) || [];
-        setSkinShelfCount(products.filter((p: any) => p.category === 'peau' && p.price != null).length);
+        setSkinShelfCount(countSellableSkinSkus(products));
       })
       .catch(() => setSkinShelfCount(null));
   }, []);
