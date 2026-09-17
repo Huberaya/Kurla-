@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseServerClient } from '../supabaseClient';
 import { ensureDatabaseSuccess } from './internal';
 import { getSupplierById } from './supplierStore';
+import { assertAffiliateUrl } from '../affiliateOffer';
 import {
   isSupplyModel,
   mapProductSource,
@@ -171,10 +172,8 @@ export async function createProductSource(
 
   const model = isSupplyModel(input?.model) ? input.model : null;
   if (!model) throw new Error(`Modèle invalide — attendu : ${SUPPLY_MODELS.join(', ')}.`);
-  const affiliateUrl = text(input?.affiliateUrl ?? input?.affiliate_url, 2000) || null;
-  if (model === 'affiliation' && !affiliateUrl) {
-    throw new Error('Une source en affiliation exige le lien d’affiliation réel.');
-  }
+  const affiliateUrlRaw = text(input?.affiliateUrl ?? input?.affiliate_url, 2000) || null;
+  const affiliateUrl = model === 'affiliation' ? assertAffiliateUrl(affiliateUrlRaw) : affiliateUrlRaw;
 
   const existing = await listProductSources(store, productId);
   const isPrimary = input?.isPrimary === true || input?.is_primary === true || existing.length === 0;
@@ -257,6 +256,16 @@ export async function updateProductSource(
   if ('fulfillmentCostCents' in (patch || {}) || 'fulfillment_cost_cents' in (patch || {})) {
     next.fulfillmentCostCents = intOrNull(patch.fulfillmentCostCents ?? patch.fulfillment_cost_cents);
   }
+  if ('commissionPct' in (patch || {}) || 'commission_pct' in (patch || {})) {
+    next.commissionPct = numberOrNull(patch.commissionPct ?? patch.commission_pct);
+  }
+  if ('cookieDays' in (patch || {}) || 'cookie_days' in (patch || {})) {
+    next.cookieDays = intOrNull(patch.cookieDays ?? patch.cookie_days);
+  }
+  if ('affiliateUrl' in (patch || {}) || 'affiliate_url' in (patch || {})) {
+    const url = text(patch.affiliateUrl ?? patch.affiliate_url, 2000) || null;
+    next.affiliateUrl = next.model === 'affiliation' ? assertAffiliateUrl(url) : url;
+  }
   const makePrimary = patch?.isPrimary === true || patch?.is_primary === true;
   if (makePrimary) next.isPrimary = true;
 
@@ -294,6 +303,9 @@ export async function updateProductSource(
   row.fee_cents = next.feeCents;
   row.fulfillment_cost_cents = next.fulfillmentCostCents;
   row.is_primary = next.isPrimary;
+  row.commission_pct = next.commissionPct;
+  row.cookie_days = next.cookieDays;
+  row.affiliate_url = next.affiliateUrl;
   row.updated_at = now;
   if (makePrimary) await projectPrimarySupplier(store, current.productId);
   return mapProductSource(row);

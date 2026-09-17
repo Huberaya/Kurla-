@@ -16,8 +16,6 @@ import {
   BUSINESS_STAGES,
   CANONICAL_TABLES,
   WRITE_TARGET_BY_INTENT,
-  countByStage,
-  publiclyListableCount,
   parseConsolidatedPositionId,
   unifyCandidate,
   unifyFondPosition,
@@ -25,6 +23,13 @@ import {
   type BusinessStage,
   type UnifiedRecord,
 } from '../lib/productLifecycle';
+import {
+  BOUTIQUE_GATE,
+  PURCHASE_GATE,
+  PURCHASE_STEPS,
+  buildUniqueFunnel,
+  purchaseStepLabel,
+} from '../lib/sourcingWorkflow';
 
 type ProductLifecyclePanelProps = {
   headers: HeadersInit;
@@ -51,16 +56,21 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
 
   const load = async () => {
     setLoading(true);
-    const [consolidated, products, ops] = await Promise.allSettled([
+    const [consolidated, products, ops, workflow] = await Promise.allSettled([
       fetch('/api/admin/sourcing/consolidated', { headers }).then(r => r.json()),
       fetchAdminCatalogProducts(headers),
       fetch('/api/admin/sourcing/ops', { headers }).then(r => r.json()),
+      fetch('/api/admin/sourcing/workflow/summary', { headers }).then(r => r.json()),
     ]);
     const failed: string[] = [];
     if (consolidated.status !== 'fulfilled' || consolidated.value?.error) failed.push('vue consolidée');
     if (products.status !== 'fulfilled') failed.push('catalogue');
     if (ops.status !== 'fulfilled' || (ops.status === 'fulfilled' && ops.value?.error)) failed.push('sources d’offre');
+    if (workflow.status !== 'fulfilled' || workflow.value?.error) failed.push('workflow achat');
     setUnavailable(failed);
+    const currentByCandidate: Record<string, string> = workflow.status === 'fulfilled' && workflow.value?.currentByCandidate
+      ? workflow.value.currentByCandidate
+      : {};
 
     const consolidatedValue = consolidated.status === 'fulfilled' ? consolidated.value : null;
     const productsValue = products.status === 'fulfilled' ? products.value : null;
@@ -109,6 +119,7 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
           isPubliclyListable: linked?.truth?.isPubliclyListable === true,
           publicationReady: undefined,
           sourcesCount: linked ? sourcesByProduct.get(String(linked.id)) : 0,
+          workflowState: currentByCandidate[String(row.id)] || null,
         }));
         continue;
       }
@@ -137,8 +148,10 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const counts = useMemo(() => (records ? countByStage(records) : null), [records]);
-  const publicCount = records ? publiclyListableCount(records) : 0;
+  const funnel = useMemo(() => (records ? buildUniqueFunnel(records) : null), [records]);
+  const counts = funnel?.stages ?? null;
+  const publicCount = funnel?.publicCount ?? 0;
+  const purchaseMeasured = !unavailable.includes('workflow achat');
   const staged = useMemo(() => {
     if (!records) return [];
     return stageFilter === 'all' ? records : records.filter(record => record.lifecycle.stage === stageFilter);
@@ -168,12 +181,14 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-serif-title font-bold text-kurla-cream flex items-center gap-2">
-            <GitMerge className="w-5 h-5 text-kurla-copper" /> Cycle de vie — lecture
+            <GitMerge className="w-5 h-5 text-kurla-copper" /> Entonnoir unique — cycle de vie
           </h2>
           <p className="text-xs text-kurla-cream/55 mt-1 max-w-3xl">
-            Un seul graphe, les tables déjà là. Identifié n’est pas publié. L’offre vit dans
-            <code className="mx-1 text-kurla-amber">{CANONICAL_TABLES.offer}</code>
-            (N fournisseurs), pas dans un nom libre. Import 500 → {WRITE_TARGET_BY_INTENT.import_identified}, jamais la boutique.
+            Un vocabulaire : identifié → sourcing → catalogue → publié / refusé. Offre et validé sont des faits, pas un 5ᵉ stade.
+            Porte boutique = <code className="mx-1 text-kurla-amber">{BOUTIQUE_GATE}</code>.
+            Porte achat = <code className="mx-1 text-kurla-amber">{PURCHASE_GATE}</code> (8 étapes, n’ouvre pas la boutique).
+            L’offre vit dans <code className="mx-1 text-kurla-amber">{CANONICAL_TABLES.offer}</code>.
+            Import 500 → {WRITE_TARGET_BY_INTENT.import_identified}, jamais la boutique.
           </p>
         </div>
         <button type="button" onClick={load} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-amber flex items-center gap-1.5">
@@ -198,11 +213,39 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
         </div>
       )}
 
-      {records && !loading && (
-        <p className="text-[11px] text-kurla-cream/50">
-          Publiques (listables, hors test) : <strong className="text-kurla-cream">{publicCount}</strong>.
-          Une offre est un fait (colonne), pas un stade — un identifié peut avoir un devis sans être en boutique.
-        </p>
+      {records && !loading && funnel && (
+        <div className="space-y-3">
+          <p className="text-[11px] text-kurla-cream/50">
+            Publiques (listables, hors test) : <strong className="text-kurla-cream">{publicCount}</strong>.
+            Offre / validé = faits, pas des cases du funnel.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <span className="px-2.5 py-1 rounded-full border border-emerald-400/25 bg-emerald-500/5 text-[11px] text-emerald-200">
+              Offre (fait) · {funnel.withOffer}
+            </span>
+            <span className="px-2.5 py-1 rounded-full border border-kurla-copper/30 bg-kurla-copper/[0.08] text-[11px] text-kurla-amber">
+              Validé (fait) · {funnel.validated}
+            </span>
+          </div>
+          {purchaseMeasured ? (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-kurla-cream/45 mb-1.5">Sous-piste achat — 8 étapes (≠ boutique)</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
+                {PURCHASE_STEPS.map(step => (
+                  <div key={step} className="rounded-xl border border-kurla-cream/10 bg-kurla-ink p-2 text-center">
+                    <p className={`text-lg font-bold ${(funnel.purchase[step] || 0) > 0 ? 'text-kurla-cream' : 'text-kurla-cream/25'}`}>{funnel.purchase[step] || 0}</p>
+                    <p className="text-[9px] leading-tight text-kurla-cream/55 mt-0.5">{purchaseStepLabel(step)}</p>
+                  </div>
+                ))}
+              </div>
+              {(funnel.purchase.refused || 0) > 0 && (
+                <p className="text-[10px] text-rose-300/80 mt-1">Refusés (porte achat, reconsidérables) : {funnel.purchase.refused}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] text-amber-200/80">Sous-piste achat non mesurable — synthèse workflow indisponible.</p>
+          )}
+        </div>
       )}
 
       {records && !loading && (
@@ -225,6 +268,9 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
                     <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${STAGE_TONE[record.lifecycle.stage]}`}>
                       {BUSINESS_STAGE_LABELS[record.lifecycle.stage]}
                     </span>
+                    {record.purchaseStep && record.kind === 'candidate' && (
+                      <span className="block text-[9px] text-kurla-cream/40 mt-0.5">{purchaseStepLabel(record.purchaseStep)}</span>
+                    )}
                   </td>
                   <td className="py-2 pr-3">
                     <span className="font-semibold text-kurla-cream">{record.title}</span>

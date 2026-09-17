@@ -3,14 +3,12 @@ import { Filter } from 'lucide-react';
 import { SUPPLY_WORKFLOW_LABELS, SUPPLY_WORKFLOW_STATES, type SupplyWorkflowState } from '../lib/supplyModel';
 
 /**
- * CHANTIER B — L'ENTONNOIR DE NÉGOCIATION.
+ * CHANTIER 6 — sous-piste ACHAT (8 étapes).
  *
- * Une seule question, répondue en un coup d'œil : « où en sont mes
- * références en cours de sourcing ? ». Chaque étape du workflow 8 étapes
- * affiche son nombre réel de candidats (dernier événement tracé ; sans
- * trace = « identifié », jamais une étape devinée). Les chiffres viennent
- * de `/api/admin/sourcing/workflow/summary` — la même règle de calcul que
- * le panneau de pilotage, agrégée côté serveur. Aucun chiffre inventé.
+ * Ce n'est PAS l'entonnoir unique : celui-là vit dans « Entonnoir unique —
+ * cycle de vie » (Pilotage catalogue), en langage C1. Ici on chiffre la
+ * porte achat (`sourcing_workflow_events`). `published` / `active` ici
+ * n'ouvrent PAS la boutique.
  */
 export const SourcingWorkflowFunnel: React.FC<{ headers: Record<string, string> }> = ({ headers }) => {
   const [summary, setSummary] = useState<{ candidateTotal: number; prospectTotal: number; stages: Record<string, number> } | null>(null);
@@ -37,7 +35,7 @@ export const SourcingWorkflowFunnel: React.FC<{ headers: Record<string, string> 
   return (
     <div className="p-5 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="font-bold flex items-center gap-2 text-kurla-cream"><Filter className="w-4 h-4 text-kurla-amber" /> Où en est le sourcing</h3>
+        <h3 className="font-bold flex items-center gap-2 text-kurla-cream"><Filter className="w-4 h-4 text-kurla-amber" /> Porte achat — 8 étapes</h3>
         <p className="text-[11px] text-kurla-cream/55">
           {summary.candidateTotal} référence(s) en cours · {summary.prospectTotal} piste(s) pas encore transformées en référence
         </p>
@@ -58,7 +56,11 @@ export const SourcingWorkflowFunnel: React.FC<{ headers: Record<string, string> 
           );
         })}
       </div>
-      <p className="text-[10px] text-kurla-cream/40">État courant = dernière transition tracée ; sans trace, la référence compte comme « Identifié ». Piloter une référence : panneau « Workflow candidat » ci-dessous.</p>
+      <p className="text-[10px] text-kurla-cream/40">
+        Porte achat ≠ porte boutique. « Publié / Actif » ici n’écrit pas catalog_status.
+        L’entonnoir unique (identifié / sourcing / catalogue / publié / refusé) est le Cycle de vie, onglet Pilotage catalogue.
+        État courant = dernière transition tracée ; sans trace = Identifié, jamais une étape devinée.
+      </p>
     </div>
   );
 };

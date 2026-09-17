@@ -6,7 +6,7 @@
  * L'écriture de masse = chantier 13.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bookmark, RefreshCw, Upload } from 'lucide-react';
+import { Bookmark, FilePlus2, RefreshCw, Upload } from 'lucide-react';
 
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
@@ -26,18 +26,21 @@ import {
 } from '../lib/identifiedProducts';
 import { BUSINESS_STAGE_LABELS, WRITE_TARGET_BY_INTENT } from '../lib/productLifecycle';
 import { evaluateIdentifiedSkinCriteria } from '../lib/skinCriteria';
+import { catalogEntryEligibility, candidateIdFromIdentified } from '../lib/skinCatalog';
 import { SKIN_NEEDS, skinNeedLabel } from '../lib/skinTaxonomy';
 import { SkinCriteriaChecklist } from './SkinCriteriaChecklist';
 
 type IdentifiedProductsPanelProps = {
   headers: HeadersInit;
   onOpenSupplier?: (supplierId: string) => void;
+  onOpenCatalog?: (productId: string) => void;
 };
 
 const FILTER_KEYS = ['title', 'kind', 'need', 'skin', 'supplier'] as const;
 
 export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = ({
   headers,
+  onOpenCatalog,
 }) => {
   const [records, setRecords] = useState<ReturnType<typeof identifiedFromConsolidated> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,8 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
   const [addNotice, setAddNotice] = useState('');
   const [adding, setAdding] = useState(false);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
+  const [creating, setCreating] = useState<string | null>(null);
+  const [ficheNotice, setFicheNotice] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -101,6 +106,30 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
     [prefiltered, columnFilters, columnState]
   );
 
+  const createFiche = async (record: NonNullable<typeof records>[number]) => {
+    const candidateId = candidateIdFromIdentified(record);
+    const eligibility = catalogEntryEligibility(record);
+    if (!candidateId || !eligibility.ok) {
+      setFicheNotice(eligibility.reason);
+      return;
+    }
+    setCreating(record.uid);
+    setFicheNotice('');
+    try {
+      const response = await fetch(`/api/admin/sourcing/candidates/${candidateId}/create-fiche`, { method: 'POST', headers });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Création impossible.');
+      setFicheNotice(body.alreadyLinked
+        ? `Fiche déjà liée : ${body.product.id} — draft, hors boutique.`
+        : `Fiche catalogue créée : ${body.product.name} (${body.product.id}) — draft, inactive, hors boutique. La porte C4 décidera de la publication.`);
+      await load();
+    } catch (err: any) {
+      setFicheNotice(`Échec : ${err.message || 'erreur'}`);
+    } finally {
+      setCreating(null);
+    }
+  };
+
   const runPreview = () => {
     setImportError('');
     try {
@@ -147,6 +176,7 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
             <p className="text-xs text-kurla-cream/55 mt-1 max-w-3xl">
               Fond 50 besoins × 5 et candidats sourcing, unifiés. Aucun n’est un SKU vendable.
               Import 500 → {WRITE_TARGET_BY_INTENT.import_identified}. Jamais {IDENTIFIED_WRITE_TABLES.coverage === 'sourcing_fond_positions' ? 'la boutique' : 'products.published'}.
+              Entrée catalogue (C8) = fiche <code className="font-mono">draft</code> inactive — 0 publication accidentelle.
             </p>
           </div>
           <button type="button" onClick={load} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-amber flex items-center gap-1.5">
@@ -231,6 +261,7 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
                   <th className="py-2 pr-3">Boutique</th>
                   <th className="py-2 pr-3">Fournisseur</th>
                   <th className="py-2 pr-3">Public</th>
+                  <th className="py-2 pr-3">Catalogue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-kurla-cream/5">
@@ -255,10 +286,32 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
                       )}
                     </td>
                     <td className="py-2 pr-3"><span className="text-kurla-cream/35">non</span></td>
+                    <td className="py-2 pr-3" onClick={e => e.stopPropagation()}>
+                      {(() => {
+                        const eligibility = catalogEntryEligibility(record);
+                        if (record.linkedProductId && onOpenCatalog) {
+                          return (
+                            <button type="button" onClick={() => onOpenCatalog(record.linkedProductId!)}
+                              className="px-2 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[9px] font-bold">
+                              Voir le draft →
+                            </button>
+                          );
+                        }
+                        if (eligibility.ok) {
+                          return (
+                            <button type="button" onClick={() => createFiche(record)} disabled={creating === record.uid}
+                              className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold hover:bg-kurla-copper/25 disabled:opacity-40 inline-flex items-center gap-1">
+                              <FilePlus2 className="w-3 h-3" /> {creating === record.uid ? 'Création…' : 'Créer la fiche (draft)'}
+                            </button>
+                          );
+                        }
+                        return <span className="text-[9px] text-kurla-cream/40" title={eligibility.reason}>{eligibility.reason}</span>;
+                      })()}
+                    </td>
                   </tr>
                 ))}
                 {visible.length === 0 && (
-                  <tr><td colSpan={6} className="py-6 text-center text-kurla-cream/40 italic">Aucun identifié pour ces filtres — rien n’est inventé.</td></tr>
+                  <tr><td colSpan={7} className="py-6 text-center text-kurla-cream/40 italic">Aucun identifié pour ces filtres — rien n’est inventé.</td></tr>
                 )}
               </tbody>
             </table>
@@ -274,6 +327,7 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
               />
             );
           })()}
+          {ficheNotice && <p className="text-[11px] text-kurla-cream/70 border-t border-kurla-cream/10 pt-2">{ficheNotice}</p>}
           {dups.length > 0 && (
             <p className="text-[11px] text-amber-200/80">{dups.length} groupe(s) de doublons (marque+nom normalisés). L’import 500 s’appuiera sur cette clé — chantier 13.</p>
           )}

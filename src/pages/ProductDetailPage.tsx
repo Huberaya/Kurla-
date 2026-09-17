@@ -30,6 +30,8 @@ import { ProductCommunityQuestions } from '../components/product/ProductCommunit
 import { ProductComplianceBanner } from '../components/product/ProductComplianceBanner';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, TOOL_DISPATCH_SENTENCE, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
+import { readAffiliateOffer } from '../lib/affiliateOffer';
+import { AffiliatePartnerCta } from '../components/AffiliatePartnerCta';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -184,7 +186,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const clearAction = () => { setActionMessage(null); setActionError(null); };
 
   const handleAdd = () => {
-    if (!product || !canOrder || !sellableInCountry) return;
+    if (!product || readAffiliateOffer(product) || !canOrder || !sellableInCountry) return;
     clearAction();
     onAddToCart(product, selectedVariant);
     setActionMessage(isPreorder ? 'Précommande ajoutée au panier.' : 'Article ajouté au panier.');
@@ -214,6 +216,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
   const targetTypes = [...(product.targetHairTypes || []), ...(product.targetSkinTypes || [])];
   const certifications = product.certifications || [];
   const originNote = originProvenanceNote(product.originCountryStatus, product.originCountrySource);
+  const affiliateOffer = readAffiliateOffer(product);
   // KURLA SKIN — helpers peau
   const isSkinProduct = product.category === 'peau';
   const haySkin = `${product.name} ${product.description} ${(product.badges||[]).join(' ')} ${(product.keyIngredients||[]).join(' ')} ${product.inci||''}`.toLowerCase();
@@ -292,11 +295,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onAd
               onVerdictChange={sellable => setSellableInCountry(sellable)}
             />
 
-            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-5 flex flex-wrap items-center justify-between gap-4"><div>{product.testListing ? (<><span className="text-xl font-bold text-amber-300">Prix à contractualiser</span><span className="block text-[11px] text-kurla-cream/50">Fiche test : prix et droits visuels fournisseur non contractualisés — fiche non achetable.</span></>) : (<><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-kurla-cream/50">Prix affiché avant les frais de livraison</span></>)}{!isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-kurla-cream/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div><button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : (product.testListing ? 'Fiche test — non achetable' : 'Indisponible')}</button></div>
+            <div className="rounded-2xl border border-kurla-cream/10 bg-kurla-espresso p-5 flex flex-wrap items-center justify-between gap-4"><div>{product.testListing ? (<><span className="text-xl font-bold text-amber-300">Prix à contractualiser</span><span className="block text-[11px] text-kurla-cream/50">Fiche test : prix et droits visuels fournisseur non contractualisés — fiche non achetable.</span></>) : (<><span className="text-3xl font-bold">{effectivePrice.toFixed(2)} €</span><span className="block text-[11px] text-kurla-cream/50">{affiliateOffer ? 'Prix constaté chez le partenaire — KURLA n’encaisse pas' : 'Prix affiché avant les frais de livraison'}</span></>)}{!affiliateOffer && !isDropshipTool && canOrder && <span className="block text-[11px] text-amber-300/90 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {DISPATCH_SENTENCE} <span className="text-kurla-cream/60">· {getNextBatchShortLabel(new Date())}</span></span>}</div>{affiliateOffer ? <AffiliatePartnerCta offer={affiliateOffer} /> : <button onClick={handleAdd} disabled={!canOrder || !sellableInCountry} className="px-7 py-3 rounded-full bg-gradient-to-r from-kurla-copper to-kurla-amber text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{!sellableInCountry ? 'Non commercialisable ici' : canOrder ? (isDropshipTool ? 'Ajouter au panier' : isPreorder ? 'Précommander' : 'Ajouter au panier') : (product.testListing ? 'Fiche test — non achetable' : 'Indisponible')}</button>}</div>
 
             {/* Bande de garanties — lève les freins à la précommande. Honnête :
                 ce sont de vrais engagements (CGV), pas des logos décoratifs. */}
-            <TrustGuarantees isPreorder={product.isPreorder === true} />
+            {!affiliateOffer && <TrustGuarantees isPreorder={product.isPreorder === true} />}
 
             {isSkinProduct && (
               <section className="rounded-3xl border border-kurla-copper/30 bg-gradient-to-br from-kurla-espresso to-kurla-ink p-5 sm:p-6 space-y-4">

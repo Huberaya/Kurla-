@@ -220,6 +220,13 @@ export interface Product {
   galleryImages?: ProductGalleryImage[];
   isIllustrativeVisual?: boolean;
   illustrativeNotice?: string;
+  /** C10 — offre affiliation primaire. Absent = KURLA peut vendre. */
+  affiliateOffer?: {
+    url: string;
+    partnerName?: string | null;
+    disclosure: string;
+    ctaLabel: string;
+  };
 }
 
 export interface RoutineBundle {

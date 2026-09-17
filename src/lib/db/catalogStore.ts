@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 import { CATALOG_AUDIENCES, CATALOG_CATEGORIES, CATALOG_DEPARTMENTS, catalogCsvRowToInput, normalizeDepartment, parseBoolean, parseCatalogCsv, parseJsonCell } from '../catalogManagement';
 import { checkProductVocabulary } from './taxonomyStore';
+import { attachCustomerAffiliateOffers } from '../affiliateOffer';
 import { getSupplierById, getSupplierCompliance, listSupplierDocuments, listSuppliers, registerSupplierByName } from './supplierStore';
+import { listProductSources } from './productSourceStore';
 import { getSupabaseServerClient } from '../supabaseClient';
 import {
   effectiveCatalogPrice,
@@ -432,8 +434,19 @@ export function resetStrictModeCache(): void {
   strictModeCache = null;
 }
 
+async function withCustomerAffiliateOffers(store: SupabaseServerStore, products: any[]): Promise<any[]> {
+  try {
+    return attachCustomerAffiliateOffers(products, await listProductSources(store));
+  } catch {
+    return products;
+  }
+}
+
 export async function getPublicProducts(store: SupabaseServerStore, options: { testListings?: boolean } = {}): Promise<any[]> {
-    const produits = (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct);
+    const produits = await withCustomerAffiliateOffers(
+      store,
+      (await getProducts(store, { publishedOnly: true, includeTestListings: options.testListings === true })).map(toPublicProduct),
+    );
     // C3 — mode strict armé : ne servir que les fiches conformes (readiness au vert).
     const readyIds = await strictModeReadyIds(store);
     return readyIds ? produits.filter(p => readyIds.has(String(p.id))) : produits;
@@ -468,7 +481,7 @@ export async function getPublicProducts(store: SupabaseServerStore, options: { t
     const catalogue = options.testListings === true
       ? lignes.filter(ligne => !isTestListingProduct(ligne))
       : lignes;
-    return { produitsPublics: lignes.map(toPublicProduct), catalogue };
+    return { produitsPublics: await withCustomerAffiliateOffers(store, lignes.map(toPublicProduct)), catalogue };
   }
 
 /**

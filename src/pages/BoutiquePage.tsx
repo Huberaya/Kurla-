@@ -14,6 +14,8 @@ import { readShopCategory, waitlistSourceForCategory } from '../lib/shopCategori
 import { CategoryWaitlist } from '../components/CategoryWaitlist';
 import { DISPATCH_LEGAL, DISPATCH_SENTENCE, DISPATCH_SHORT, TOOL_DISPATCH_SHORT, isDropshipProduct } from '../lib/preorderPromise';
 import { getNextBatchShortLabel } from '../lib/fulfillment';
+import { readAffiliateOffer } from '../lib/affiliateOffer';
+import { AffiliatePartnerCta } from '../components/AffiliatePartnerCta';
 import { BOUTIQUE_NEED_ALIAS } from '../lib/productNeedsCorrection';
 import { SKIN_NEEDS as SKIN_TAXONOMY_NEEDS, SKIN_ACTIVE_FILTERS, SKIN_PHOTOTYPE_FILTERS, SKIN_TEXTURE_FILTERS, SKIN_FINISH_FILTERS, SKIN_SENSITIVITY_FILTERS } from '../lib/skinTaxonomy';
 import { comparerProduits, pointsDeDivergence } from '../lib/productCompare';
@@ -1291,6 +1293,7 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
               const compatibleWithProfile = hasKurlaProfile && isProductCompatible(product);
               const isPreorderProduct = product.isPreorder === true || (product as any).availabilityState === 'preorder';
               const canOrderProduct = product.inStock === true || isPreorderProduct;
+              const affiliateOffer = readAffiliateOffer(product);
 
               return (
                 <div
@@ -1326,6 +1329,10 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       {product.testListing ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-amber-500 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                           <AlertTriangle className="w-3 h-3" /> MODE TEST — non achetable
+                        </span>
+                      ) : affiliateOffer ? (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-kurla-copper backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                          Lien partenaire
                         </span>
                       ) : isDropshipProduct(product as any) ? (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-600 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
@@ -1453,6 +1460,9 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       <button onClick={() => toggleCompare(product.id)} className={`px-3 py-2 rounded-full border text-[11px] font-semibold transition-colors ${compareIds.includes(product.id) ? 'border-kurla-copper text-kurla-copper bg-kurla-copper/10' : 'border-kurla-stone text-kurla-carbon/60 hover:border-kurla-copper'}`}>
                         {compareIds.includes(product.id) ? 'Comparé' : 'Comparer'}
                       </button>
+                      {affiliateOffer ? (
+                        <AffiliatePartnerCta offer={affiliateOffer} tone="light" />
+                      ) : (
                       <button
                         onClick={() => onAddToCart(product)}
                         disabled={!canOrderProduct}
@@ -1460,11 +1470,20 @@ export const BoutiquePage: React.FC<BoutiquePageProps> = ({ onAddToCart, selecte
                       >
                         <ShoppingBag className="w-3.5 h-3.5" /> {!canOrderProduct ? 'Indisponible' : isPreorderProduct ? 'Précommander' : 'Ajouter'}
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
           </div>
         )}
 

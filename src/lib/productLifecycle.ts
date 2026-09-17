@@ -23,7 +23,7 @@
  * Hair et Skin partagent ce graphe. Skin = `products.category === 'peau'`.
  */
 
-import { selectPrimarySource, type ProductSource, type SupplyModel } from './supplyModel';
+import { isSupplyWorkflowState, selectPrimarySource, type ProductSource, type SupplyModel, type SupplyWorkflowState } from './supplyModel';
 import type { PipelineStage } from './catalogPipeline';
 import { documentedNeedFromSourcingItemId, skinNeedForDocumentedNeed } from './skinNeedMapping';
 import type { SkinNeed } from './skinTaxonomy';
@@ -101,12 +101,16 @@ export type LifecycleResolution = {
   reasons: string[];
 };
 
+/** Étapes d'achat qui disent « on travaille encore ». `published` / `active`
+ *  de la PORTE ACHAT, sans fiche `products`, restent hors boutique. */
 const SOURCING_WORKFLOW = new Set([
   'supplier_identified',
   'evaluation',
   'validated',
   'approved',
   'ready_to_publish',
+  'published',
+  'active',
 ]);
 
 const VALIDATED_WORKFLOW = new Set([
@@ -282,7 +286,15 @@ export type UnifiedRecord = {
   lifecycle: LifecycleResolution;
   linkedProductId: string | null;
   sourcingItemId: string | null;
+  /** Porte achat (8 étapes). Null = hors piste (fond, fiche sans event). */
+  purchaseStep: SupplyWorkflowState | null;
 };
+
+function purchaseStepOf(kind: RecordKind, workflowState?: string | null): SupplyWorkflowState | null {
+  if (isSupplyWorkflowState(workflowState)) return workflowState;
+  if (kind === 'candidate') return 'identified';
+  return null;
+}
 
 function nullPrice(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
@@ -355,6 +367,7 @@ export function unifyFondPosition(position: {
     lifecycle,
     linkedProductId: null,
     sourcingItemId: sourcingItemId || null,
+    purchaseStep: null,
   };
 }
 
@@ -415,6 +428,7 @@ export function unifyCandidate(candidate: {
     lifecycle,
     linkedProductId,
     sourcingItemId: null,
+    purchaseStep: purchaseStepOf('candidate', candidate.workflowState),
   };
 }
 
@@ -475,6 +489,7 @@ export function unifyProduct(product: {
     lifecycle,
     linkedProductId: id,
     sourcingItemId: null,
+    purchaseStep: purchaseStepOf('product', product.workflowState),
   };
 }
 

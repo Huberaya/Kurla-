@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link2, Plus, Star, Power } from 'lucide-react';
+import { Link2, Plus, Star, Power, FileText, Copy, Mail } from 'lucide-react';
 import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
+import { buildDropshipPurchaseOrder, dropshipYear1Checklist, isSkinCosmeticCategory } from '../lib/dropshipProcedure';
+import { isHttpAffiliateUrl, offerFromProductSource, PARTNER_LINK_LABEL } from '../lib/affiliateOffer';
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 import { applyColumnFilters, type ColumnFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
@@ -10,8 +12,8 @@ import { SupplierName } from './EditableRecordName';
  *
  * Un produit × plusieurs fournisseurs × modèles (dropshipping, affiliation,
  * 3PL, stock KURLA). Coût inconnu = champ vide (NULL en base), jamais 0.
- * L'affiliation exige le lien réel — le serveur refuse sans lui : aucune
- * intégration n'est simulée.
+ * L'affiliation exige le lien partenaire http(s) réel — le serveur refuse
+ * sans lui. Commission et cookie sont saisis, jamais mesurés : pas de pixel.
  */
 
 const eurInput = (cents: number | null | undefined) => (cents == null ? '' : String(cents / 100));
@@ -108,7 +110,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
 
   const submit = async () => {
     if (!selectedId) return;
-    if (form.model === 'affiliation' && !form.affiliateUrl.trim()) {
+    if (form.model === 'affiliation' && !isHttpAffiliateUrl(form.affiliateUrl)) {
       setMessage('Une source en affiliation exige le lien d’affiliation réel.');
       return;
     }
@@ -199,7 +201,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
   return (
     <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
       <h3 className="font-bold flex items-center gap-2"><Link2 className="w-4 h-4 text-kurla-amber" /> Sources d'approvisionnement par produit</h3>
-      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA). La source ★ principale se projette sur le fournisseur du produit. Coût inconnu = laisser vide — jamais 0. Affiliation : le lien réel est obligatoire. Un nom libre n’est pas une offre : choisissez une fiche du référentiel.</p>
+      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA). La source ★ principale se projette sur le fournisseur du produit. Coût inconnu = laisser vide — jamais 0. Affiliation : {PARTNER_LINK_LABEL} http(s) obligatoire. Commission et cookie = saisis, non mesurés (pas de pixel). Un nom libre n’est pas une offre : choisissez une fiche du référentiel.</p>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -250,13 +252,64 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
                         coût : <span className="text-kurla-cream/85 font-semibold">{source.costCents != null ? `${(source.costCents / 100).toFixed(2).replace('.', ',')} €` : 'à obtenir'}</span>
                         {' · '}
                         {source.model === 'affiliation'
-                          ? <>commission : <span className="text-emerald-300 font-semibold">{margin.commissionCents != null ? `${(margin.commissionCents / 100).toFixed(2).replace('.', ',')} €` : 'à obtenir'}</span>{source.cookieDays != null && <span className="text-kurla-cream/45"> · cookie {source.cookieDays} j</span>}</>
+                          ? <>{(() => { const offer = offerFromProductSource(source, supplierName(source)); return offer ? offer.commissionNote : 'commission à obtenir — pas de chiffre inventé'; })()}</>
                           : <>marge : <span className={`font-semibold ${margin.marginCents != null && margin.marginCents <= 0 ? 'text-rose-300' : 'text-emerald-300'}`}>{margin.marginCents != null ? `${(margin.marginCents / 100).toFixed(2).replace('.', ',')} €${margin.marginPct != null ? ` (${margin.marginPct} %)` : ''}` : 'à obtenir'}</span></>}
                         {source.leadTimeDays != null && <span className="text-kurla-cream/45"> · délai {source.leadTimeDays} j</span>}
                         {source.shipsFrom && <span className="text-kurla-cream/45"> · depuis {source.shipsFrom}</span>}
                       </p>
                       {margin.missing.length > 0 && <p className="text-[10px] text-amber-300/75">à obtenir pour calculer : {margin.missing.join(', ')}</p>}
-                      {source.affiliateUrl && <p className="text-[10px] text-kurla-cream/45 truncate">lien : {source.affiliateUrl}</p>}
+                      {source.model === 'affiliation' && (() => {
+                        const offer = offerFromProductSource(source, supplierName(source));
+                        return (
+                          <div className="mt-1 p-2 rounded-lg bg-kurla-espresso/80 border border-kurla-cream/10 space-y-1">
+                            <p className="text-[10px] font-bold text-kurla-amber">{PARTNER_LINK_LABEL} — KURLA n’est pas le vendeur</p>
+                            <p className="text-[10px] text-kurla-cream/70">{offer?.disclosure || 'Publicité — lien affilié'}</p>
+                            {source.affiliateUrl
+                              ? <p className="text-[10px] text-kurla-cream/45 truncate">{PARTNER_LINK_LABEL} : {source.affiliateUrl}</p>
+                              : <p className="text-[10px] text-amber-200/80">lien partenaire à obtenir</p>}
+                            <p className="text-[10px] text-kurla-cream/45">{offer?.cookieNote || 'durée cookie à obtenir'}</p>
+                            <p className="text-[10px] text-kurla-cream/40">Pas de pixel, pas de postback, pas de suivi KURLA.</p>
+                          </div>
+                        );
+                      })()}
+                      {source.model === 'dropshipping' && (() => {
+                        const supplier = source.supplierId ? suppliers.find(s => String(s.id) === String(source.supplierId)) : null;
+                        const email = typeof supplier?.contactEmail === 'string' ? supplier.contactEmail : null;
+                        const po = buildDropshipPurchaseOrder({
+                          poNumber: `KURLA-DS-${String(selected.id).slice(-6)}`,
+                          productName: String(selected.name || selected.id),
+                          productId: String(selected.id),
+                          quantity: 1,
+                          unitCostEur: source.costCents != null ? source.costCents / 100 : null,
+                          supplierName: supplierName(source),
+                          supplierEmail: email,
+                          shipsFrom: source.shipsFrom,
+                          leadTimeDays: source.leadTimeDays,
+                          category: selected.category,
+                        });
+                        const checklist = dropshipYear1Checklist({ product: selected, source, supplierEmail: email });
+                        return (
+                          <div className="mt-1 p-2 rounded-lg bg-kurla-espresso/80 border border-kurla-cream/10 space-y-1.5">
+                            <p className="text-[10px] font-bold text-kurla-amber">Procédure dropship an 1 — badge, PO, mailto · pas d’API</p>
+                            {isSkinCosmeticCategory(selected.category) && (
+                              <p className="text-[10px] text-rose-200/85">Cosmétique Skin ≠ promesse 24–48h. Le mailto pose la commande ; le badge boutique reste éteint.</p>
+                            )}
+                            <ul className="text-[10px] text-kurla-cream/55 space-y-0.5">
+                              {checklist.items.map(item => (
+                                <li key={item.id}>{item.ok ? '✓' : '·'} {item.label}</li>
+                              ))}
+                            </ul>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button type="button" onClick={() => { try { void navigator.clipboard.writeText(po.body); setMessage('Bon de commande copié — rien n’est envoyé.'); } catch { setMessage('Copie impossible — utilisez mailto.'); } }} className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold inline-flex items-center gap-1">
+                                <Copy className="w-3 h-3" /> Copier le PO
+                              </button>
+                              {po.mailtoHref
+                                ? <a href={po.mailtoHref} className="px-2 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[9px] font-bold inline-flex items-center gap-1"><Mail className="w-3 h-3" /> mailto fournisseur</a>
+                                : <span className="text-[9px] text-amber-200/80"><FileText className="w-3 h-3 inline" /> e-mail fournisseur à obtenir</span>}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -273,11 +326,15 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
                   <select value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value as SupplyModel }))} className={field}>
                     {Object.entries(SUPPLY_MODEL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                   </select>
+                  {form.model === 'dropshipping' && isSkinCosmeticCategory(selected.category) && (
+                    <p className="col-span-2 text-[10px] text-rose-200/80">Cosmétique Skin : le modèle dropshipping n’ouvre pas le badge 24–48h. Préférer affiliation ou 3PL tampon.</p>
+                  )}
                   <input value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))} placeholder="Coût € (vide = inconnu)" className={field} />
                   <input value={form.fee} onChange={e => setForm(f => ({ ...f, fee: e.target.value }))} placeholder="Frais € (vide = inconnu)" className={field} />
                   <input value={form.fulfillmentCost} onChange={e => setForm(f => ({ ...f, fulfillmentCost: e.target.value }))} placeholder="Fulfillment € (vide = inconnu)" className={field} />
-                  <input value={form.commissionPct} onChange={e => setForm(f => ({ ...f, commissionPct: e.target.value }))} placeholder="Commission % (affiliation)" className={field} />
-                  <input value={form.affiliateUrl} onChange={e => setForm(f => ({ ...f, affiliateUrl: e.target.value }))} placeholder="Lien affilié (obligatoire en affiliation)" className={field} />
+                  <input value={form.commissionPct} onChange={e => setForm(f => ({ ...f, commissionPct: e.target.value }))} placeholder="Commission % attendue (non mesurée)" className={field} />
+                  <input value={form.affiliateUrl} onChange={e => setForm(f => ({ ...f, affiliateUrl: e.target.value }))} placeholder={`${PARTNER_LINK_LABEL} http(s) — obligatoire en affiliation`} className={field} />
+                  <input value={form.cookieDays} onChange={e => setForm(f => ({ ...f, cookieDays: e.target.value }))} placeholder="Cookie j annoncé (pas de pixel KURLA)" className={field} />
                   <input value={form.leadTimeDays} onChange={e => setForm(f => ({ ...f, leadTimeDays: e.target.value }))} placeholder="Délai (jours)" className={field} />
                   <input value={form.shipsFrom} onChange={e => setForm(f => ({ ...f, shipsFrom: e.target.value }))} placeholder="Expédié depuis (pays)" className={field} />
                   <label className="flex items-center gap-1.5 text-[11px] text-kurla-cream/70 col-span-2">

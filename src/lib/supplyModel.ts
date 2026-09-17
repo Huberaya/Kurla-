@@ -28,9 +28,13 @@ export const isSupplyModel = (value: unknown): value is SupplyModel =>
   typeof value === 'string' && (SUPPLY_MODELS as readonly string[]).includes(value);
 
 /**
- * Les 8 étapes du workflow produit. `refused` est un état terminal relatif :
- * un refus peut être reconsidéré (`evaluation`), jamais effacé — la trace
- * reste dans `sourcing_workflow_events`.
+ * Les 8 étapes de la PORTE ACHAT + un refus. `refused` est un état terminal
+ * relatif : un refus peut être reconsidéré (`evaluation`), jamais effacé —
+ * la trace reste dans `sourcing_workflow_events`.
+ *
+ * Chantier 6 : les libellés parlent le langage demandé (identifié / sourcing /
+ * validé / catalogue / publié / refusé). `published` et `active` ici sont la
+ * porte ACHAT, pas la boutique (`catalog_status` + `isPublishableProduct`).
  */
 export const SUPPLY_WORKFLOW_STATES = [
   'identified',
@@ -45,15 +49,18 @@ export const SUPPLY_WORKFLOW_STATES = [
 ] as const;
 export type SupplyWorkflowState = typeof SUPPLY_WORKFLOW_STATES[number];
 
+export const isSupplyWorkflowState = (value: unknown): value is SupplyWorkflowState =>
+  typeof value === 'string' && (SUPPLY_WORKFLOW_STATES as readonly string[]).includes(value);
+
 export const SUPPLY_WORKFLOW_LABELS: Record<SupplyWorkflowState, string> = {
-  identified: '1. Produit identifié',
-  supplier_identified: '2. Fournisseur identifié',
-  evaluation: '3. En évaluation',
-  validated: '4. Validé (critères KURLA)',
-  approved: '5. Approuvé pour le catalogue',
-  ready_to_publish: '6. Prêt à publier',
-  published: '7. Publié',
-  active: '8. Actif en vente',
+  identified: '1. Identifié',
+  supplier_identified: '2. En sourcing — fournisseur',
+  evaluation: '3. En sourcing — évaluation',
+  validated: '4. Validé (porte achat)',
+  approved: '5. Approuvé (porte achat)',
+  ready_to_publish: '6. Prêt à publier (porte achat)',
+  published: '7. Publié (porte achat ≠ boutique)',
+  active: '8. Actif (porte achat ≠ boutique)',
   refused: 'Refusé',
 };
 

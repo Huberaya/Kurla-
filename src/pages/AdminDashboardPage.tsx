@@ -1522,6 +1522,7 @@ export const AdminDashboardPage: React.FC = () => {
             <IdentifiedProductsPanel
               headers={adminHeaders}
               onOpenSupplier={openSupplierBase}
+              onOpenCatalog={(productId) => navigateFromQueue({ tab: 'catalog', focusProductId: productId })}
             />
           </div>
         )}
@@ -1657,8 +1658,8 @@ export const AdminDashboardPage: React.FC = () => {
         {activeTab === 'supply_v2_negocier' && (
           <div className="space-y-10">
             <div>
-              <h2 className="text-lg font-bold text-kurla-cream">Négocier — du premier contact à la première commande</h2>
-              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">D'abord l'entonnoir : où en est chaque référence sur les 8 étapes. Ensuite les outils : pistes, pilotage étape par étape, proposition d'achat du premier lot.</p>
+              <h2 className="text-lg font-bold text-kurla-cream">Négocier — porte achat (8 étapes)</h2>
+              <p className="text-xs text-kurla-cream/55 mt-1 max-2xl">Sous-piste d’achat : où en est chaque référence sur les 8 étapes (≠ boutique). L’entonnoir unique (identifié / sourcing / catalogue / publié) est dans Pilotage catalogue. Ensuite : pistes, pilotage étape par étape, proposition d’achat du premier lot. Appro v1 reste intact pour comparaison.</p>
             </div>
             <SourcingWorkflowFunnel headers={adminHeaders} />
             <SourcedReferencesPanel headers={adminHeaders} />

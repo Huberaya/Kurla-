@@ -63,6 +63,13 @@ export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ on
           </p>
         </div>
         <p className="text-[11px] text-kurla-cream/35">Règle d’or Année 1 : <code className="font-mono">launchCatalog.ts</code> ne bouge jamais. Les outils dropship sont une <em>couche fulfillment</em> (<code className="font-mono">fulfillment.ts</code> + <code className="font-mono">badges</code>).</p>
+        <div className="p-3 rounded-2xl bg-rose-950/30 border border-rose-500/25 space-y-1">
+          <p className="text-xs font-bold text-rose-200">Cosmétique Skin ≠ dropship 24–48h</p>
+          <p className="text-[11px] text-kurla-cream/65 leading-relaxed">
+            L’offre année 1 vit dans <code className="font-mono text-kurla-amber">product_sources</code> (modèle dropshipping / affiliation / 3PL) — pas une API AfricanFabs.
+            Un soin peau n’obtient jamais le badge boutique 24–48h (CPNP / douane). Procédure : bon de commande + mailto depuis Sources d’approvisionnement. Hair accessoires : <code className="font-mono">fulfillment.ts</code> IDs <code className="font-mono">p*</code> inchangés.
+          </p>
+        </div>
       </div>
 
       {/* 1 — Critères */}
@@ -166,15 +173,7 @@ export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ on
 
           <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
             <h4 className="text-xs font-bold text-kurla-amber flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-kurla-copper text-white grid place-items-center text-[11px]">5</span> Vérif boutique (1 min)</h4>
-            <ul className="text-[11px] text-kurla-cream/60 space-y-1 list-disc list-inside">
-              <li><code>/boutique?cat=accessoires</code> → carte badge vert <code className="text-emerald-300">24–48h</code> + ligne verte <em>En stock partenaire — expédié en 24–48h</em> + bouton <code>Ajouter</code></li>
-              <li><code>/produit/ta-brosse</code> → même badge</li>
-              <li>Panier : 1 soin + 1 outil → <em>“Panier mixte : outils 24–48h + soins 3–5j — 1 seul colis via 3PL (délai global 3–5j)”</em></li>
-            </ul>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
-            <h4 className="text-xs font-bold text-kurla-amber flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-kurla-copper text-white grid place-items-center text-[11px]">6</span> Test commande (conseillé)</h4>
+            <ul className="text-[11px] text-kurla-cream/60 space-y-1 list-disc liid place-items-center text-[11px]">6</span> Test commande (conseillé)</h4>
             <p className="text-[11px] text-kurla-cream/60">Commande test 1€ Stripe TEST avec l’outil seul → <code>Admin → Commandes</code> = <code>paid</code> → bon fournisseur (portail B2B/email) → suivi DPD → 3PL si mixte.</p>
           </div>
 
@@ -278,6 +277,15 @@ export const DropshipGuidePanel: React.FC<{ onCreateTool?: () => void }> = ({ on
           <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10">
             <p className="font-bold text-kurla-cream">TikTok “hair tools 2025”</p>
             <p className="text-kurla-cream/55 mt-1">Repère le viral (peigne LED), vérifie chez grossiste UE avant Chine (MOQ 500 KO)</p>
+          </div>
+        </div>
+        <p className="text-[11px] text-kurla-cream/40">Besoin d’un bon de commande ? Accessoire : <code className="text-kurla-amber">Admin → Approvisionnement → Sources d’approvisionnement</code> (PO + mailto sur l’offre <code className="font-mono">product_sources</code>) ou Tampon 75 pour le stock 3PL Hair. Rien n’est envoyé tant que tu n’ouvres pas mailto.</p>
+        <p className="text-[10px] text-kurla-cream/30">Source : <code>src/lib/fulfillment.ts</code> + <code>src/lib/preorderPromise.ts</code> — Catalogue <code>launchCatalog.ts</code> inchangé.</p>
+      </div>
+    </div>
+  );
+};
+Name="text-kurla-cream/55 mt-1">Repère le viral (peigne LED), vérifie chez grossiste UE avant Chine (MOQ 500 KO)</p>
           </div>
         </div>
         <p className="text-[11px] text-kurla-cream/40">Besoin d’un bon de commande ? Va dans <code className="text-kurla-amber">Admin → Approvisionnement → Fournisseurs & sourcing → Tampon 75</code> : bloc “Bon de commande” pré-rempli — remplace les 5 lignes héros par ton outil à l’unité.</p>

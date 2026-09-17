@@ -4016,3 +4016,108 @@ catalogue. Aucun critère inventé.
 ### Contrôles
 
 npm run test:skin-criteria
+
+---
+
+## 17/09/2026 — Chantier 6 Skin : workflow sourcing (vocabulaire + entonnoir unique)
+
+**Territoire** : un vocabulaire, 8 étapes alignées, **entonnoir unique**. Recaler, pas un 5ᵉ enum. `catalog_status` = porte boutique ; `SUPPLY_WORKFLOW_STATES` = porte achat.
+
+### Ce qui a été fait
+
+- `src/lib/sourcingWorkflow.ts` — 8 steps + `refused` ; `workflowPublishesToBoutique` toujours false ; `buildUniqueFunnel` via C1 `countByStage` + faits offre/validé.
+- Relabel `SUPPLY_WORKFLOW_LABELS` (clés / FORWARD_FLOW **intacts**). `published` / `active` UI = porte achat ≠ boutique.
+- Entonnoir unique = `ProductLifecyclePanel` (5 stades C1 + chips Offre/Validé + sous-piste 8 étapes). `SourcingWorkflowFunnel` = sous-piste achat, pas un 2ᵉ vocabulaire.
+- `GET .../workflow/summary` additif `currentByCandidate` ; `workflowState` passé à `unifyCandidate`. `SOURCING_WORKFLOW` inclut `published`/`active` → candidat sans fiche = **sourcing**, jamais boutique.
+- Transition : warning JSON additif `publishesToBoutique: false` ; n’écrit pas `catalog_status`.
+- Appro v1 **gardé**.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas d’API dropship, pas de critères inventés, pas de SQL.
+- C7–C13, `fulfillment.ts`, `launchCatalog.ts` intacts.
+- `lifeFilters` non rendus dans ProductLifecyclePanel = hors C6.
+
+### Contrôles
+
+npm run test:sourcing-workflow
+
+---
+
+## 17/09/2026 — Chantier 8 Skin : drafts catalogue hors boutique
+
+**Territoire** : identifié → fiche `products` **draft inactive**. 0 publication accidentelle.
+Réutilise `POST .../create-fiche` (C3). Pas de nouvelle table / API / SQL. C7 sauté.
+
+### Ce qui a été fait
+
+- `src/lib/skinCatalog.ts` — `enterCatalogFromCandidate` scelle `catalog_status=draft`,
+  `is_active=false`. Skin : catégorie `peau`, pas de `sourceSupplier` recopié du prospect.
+  Ids `src-` / `p*` / `launch-p` refusés. Prix réel obligatoire (pas 0 inventé).
+- Route create-fiche : wrap additif `publishesToBoutique: false` + `isPublic: false`.
+  N’écrit pas `catalog_status: published`.
+- `IdentifiedProductsPanel` : bouton « Créer la fiche (draft) » via `catalogEntryEligibility`
+  (candidats seulement ; fond refuse). Dashboard : `onOpenCatalog`.
+- Hair inchangé (`launchCatalog.ts` / `fulfillment.ts` / checkout / `normalizeCatalogProductInput`).
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas de porte de publication (C4). Pas d’API dropship. Pas de critères inventés.
+- Appro v1 **gardé**. Pas d’onglet catalogue supplémentaire.
+
+### Contrôles
+
+npm run test:skin-catalog
+
+---
+
+## 17/09/2026 — Chantier 9 Skin : dropship année 1 (pas d’API)
+
+**Territoire** : procédure an 1 (badge, PO, mailto) branchée sur `product_sources`.
+Cosmétique Skin ≠ dropship 24–48h. Aucune API fournisseur.
+
+### Ce qui a été fait
+
+- `src/lib/dropshipProcedure.ts` — `promisesDropship24h` refuse peau/teint/soins_visage
+  même avec badge `dropship_24_48h`. Accessoire + offre dropshipping : 24–48h si
+  délai ≤ 2 j ou inconnu. Compat Hair : `fulfillment.ts` IDs `p*` inchangés.
+- Toggle catalogue : Skin ne persiste plus le badge 24–48h.
+- `ProductSourcesPanel` : PO + mailto sur une offre dropshipping (copie, pas d’envoi).
+- Guide dropship : rappel Skin + `product_sources`.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas d’API AfricanFabs / Afro Wholesale / agrégateur.
+- `fulfillment.ts` / `launchCatalog.ts` / checkout / Appro v1 intacts.
+- C10 affiliation tracking, C11 3PL WMS.
+
+### Contrôles
+
+npm run test:dropship-procedure
+
+
+## 17/09/2026 — Chantier 10 Skin : affiliation honnête (pas de tracking)
+
+**Territoire** : saisie URL / commission / cookie sur `product_sources`.
+Affichage « Lien partenaire » / « Publicité — lien affilié ». Pas de faux tracking.
+
+### Ce qui a été fait
+
+- `src/lib/affiliateOffer.ts` — URL http(s) obligatoire, lien recopié tel quel
+  (aucun UTM profil). Commission nulle = « à obtenir ». Cookie = annoncé, pas
+  mesuré. Checkout affiliation = false. Payload boutique sans commission.
+- `productSourceStore` : `assertAffiliateUrl` à la création ; PATCH commission /
+  cookie / URL. Pas de colonne `products.fulfillment_model`.
+- Admin `ProductSourcesPanel` : champ cookie j + mentions honnêtes.
+- Boutique / fiche : CTA `rel="sponsored"` à la place du panier si l’offre ★
+  est affiliation. Hair p35 / dropship inchangés si la primaire n’est pas affiliation.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas de pixel, postback, réseau (Awin/Impact), génération de lien.
+- `calculateKurlaFit` / `fulfillment.ts` / `launchCatalog.ts` / Stripe intacts.
+- C6–C9 restent non commités.
+
+### Contrôles
+
+npm run test:affiliate-offer

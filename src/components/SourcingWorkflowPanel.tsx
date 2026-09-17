@@ -101,7 +101,10 @@ export const SourcingWorkflowPanel: React.FC<{ headers: Record<string, string> }
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Transition refusée.');
-      setMessage(`Transition enregistrée : ${SUPPLY_WORKFLOW_LABELS[currentState]} → ${SUPPLY_WORKFLOW_LABELS[to]}.`);
+      const boutiqueNote = body.publishesToBoutique === false || to === 'published' || to === 'active'
+        ? ' Enregistré côté porte achat. La boutique ne change pas (catalog_status / isPublishableProduct).'
+        : '';
+      setMessage(`Transition enregistrée : ${SUPPLY_WORKFLOW_LABELS[currentState]} → ${SUPPLY_WORKFLOW_LABELS[to]}.${boutiqueNote}`);
       setReason('');
       await loadEvents(selectedId);
     } catch (e: any) {
@@ -115,8 +118,8 @@ export const SourcingWorkflowPanel: React.FC<{ headers: Record<string, string> }
 
   return (
     <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
-      <h3 className="font-bold flex items-center gap-2"><GitBranch className="w-4 h-4 text-kurla-amber" /> Workflow candidat — 8 étapes tracées</h3>
-      <p className="text-[11px] text-kurla-cream/60">Identifié → Fournisseur identifié → Évaluation → Validé → Approuvé → Prêt à publier → Publié → Actif. Seules les transitions légales sont proposées ; un refus exige une raison ; chaque action est horodatée et attribuée.</p>
+      <h3 className="font-bold flex items-center gap-2"><GitBranch className="w-4 h-4 text-kurla-amber" /> Workflow candidat — porte achat (8 étapes)</h3>
+      <p className="text-[11px] text-kurla-cream/60">Identifié → En sourcing (fournisseur / évaluation) → Validé (porte achat) → Approuvé → Prêt à publier → Publié / Actif (porte achat ≠ boutique). Une transition n’ouvre pas la boutique. Seules les transitions légales sont proposées ; un refus exige une raison ; chaque action est horodatée et attribuée.</p>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="space-y-2">

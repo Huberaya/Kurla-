@@ -6,7 +6,7 @@ import { requireAdmin, type AuthenticatedRequest } from '../auth';
 import { readWorkspaceScope, sourcingItemInWorkspace, type WorkspaceScope } from '../workspaceScope';
 import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { buildConsolidatedSourcing } from '../../lib/sourcingConsolidated';
-import { buildFicheFromCandidate } from '../../lib/sourcingFicheLink';
+import { enterCatalogFromCandidate } from '../../lib/skinCatalog';
 import { searchAcrossCatalog } from '../../lib/globalSearch';
 import { freezeOrderRouting } from '../payments/orderRoutingHook';
 import {
@@ -19,6 +19,7 @@ import {
   type ProductSource,
   type SupplyWorkflowState,
 } from '../../lib/supplyModel';
+import { workflowPublishesToBoutique } from '../../lib/sourcingWorkflow';
 
 /**
  * CHANTIER 16C — ROUTES DE SOURCING.
@@ -98,12 +99,11 @@ export function registerSourcingRoutes(app: Express): void {
   }));
 
   /**
-   * CHANTIER C3 (15/09/2026) — créer une fiche catalogue depuis un candidat
-   * sourcing. Données réelles uniquement (buildFicheFromCandidate), fiche en
-   * draft inactive, liaison bidirectionnelle par clés :
-   * products.source_candidate_id ↔ sourcing_product_candidates.draft_product_id
-   * (migration 20260928000000). Idempotent : un candidat déjà lié renvoie sa
-   * fiche existante au lieu d'en créer une seconde.
+   * CHANTIER C3 + C8 — créer une fiche catalogue depuis un candidat sourcing.
+   * Données réelles (C3), scellée draft inactive hors boutique (C8).
+   * Liaison : products.source_candidate_id ↔ candidates.draft_product_id.
+   * Idempotent : un candidat déjà lié renvoie sa fiche existante.
+   * 0 publication accidentelle : catalog_status n’est jamais `published`.
    */
   app.post('/api/admin/sourcing/candidates/:id/create-fiche', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
@@ -120,12 +120,17 @@ export function registerSourcingRoutes(app: Express): void {
       if (candidateError) throw candidateError;
       if (!candidate) return res.status(404).json({ error: 'Candidat sourcing introuvable.' });
       if (candidate.draft_product_id) {
-        return res.json({ product: { id: candidate.draft_product_id }, alreadyLinked: true });
+        return res.json({
+          product: { id: candidate.draft_product_id },
+          alreadyLinked: true,
+          isPublic: false,
+          publishesToBoutique: false,
+        });
       }
       const prospect = candidate.prospect_id
         ? (await supabase.from('sourcing_prospects').select('*').eq('id', String(candidate.prospect_id)).maybeSingle()).data
         : null;
-      const payload = buildFicheFromCandidate(candidate, prospect);
+      const payload = enterCatalogFromCandidate(candidate, prospect);
       const result = await serverDb.importCatalogRecords(admin.id, [payload], 'manual');
       if (result.rejected > 0) return res.status(400).json({ error: result.errors[0]?.message || 'Fiche refusée par le catalogue.' });
       const product = result.products[0];
@@ -134,7 +139,11 @@ export function registerSourcingRoutes(app: Express): void {
         .update({ draft_product_id: product.id })
         .eq('id', candidateId);
       if (linkError) console.error('[Sourcing] liaison candidat→fiche échouée (fiche créée quand même) :', linkError.message);
-      res.status(201).json({ product: { id: product.id, slug: product.slug, name: product.name } });
+      res.status(201).json({
+        product: { id: product.id, slug: product.slug, name: product.name, catalogStatus: 'draft', isActive: false },
+        isPublic: false,
+        publishesToBoutique: false,
+      });
     } catch (error) {
       console.error('[Sourcing] create-fiche error:', error);
       res.status(400).json({ error: safeApiError(error, 'Impossible de créer la fiche depuis ce candidat.') });
@@ -219,7 +228,12 @@ export function registerSourcingRoutes(app: Express): void {
         created_by: admin.id,
       }).select();
       if (error) throw error;
-      res.status(201).json({ event: data?.[0] || null });
+      // Chantier 6 : la transition est la porte ACHAT. Elle n'écrit pas
+      // catalog_status. Clé additive — les clients existants ignorent le champ.
+      res.status(201).json({
+        event: data?.[0] || null,
+        publishesToBoutique: workflowPublishesToBoutique(String(to) as SupplyWorkflowState),
+      });
     } catch (error) {
       console.error('[Sourcing] workflow transition error:', error);
       res.status(400).json({ error: safeApiError(error, 'Transition impossible.') });
@@ -272,14 +286,18 @@ export function registerSourcingRoutes(app: Express): void {
         if (!latestByEntity.has(key) && event.to_state) latestByEntity.set(key, String(event.to_state));
       }
       const stages: Record<string, number> = {};
+      const currentByCandidate: Record<string, string> = {};
       for (const candidate of candidatesRes.data || []) {
         const state = latestByEntity.get(`candidate:${candidate.id}`) || 'identified';
+        currentByCandidate[String(candidate.id)] = state;
         stages[state] = (stages[state] || 0) + 1;
       }
       res.json({
         candidateTotal: (candidatesRes.data || []).length,
         prospectTotal: (prospectsRes.data || []).length,
         stages,
+        currentByCandidate,
+        publishesToBoutique: workflowPublishesToBoutique(),
       });
     } catch (error) {
       console.error('[Sourcing] workflow summary error:', error);
