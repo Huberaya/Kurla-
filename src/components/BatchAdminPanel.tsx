@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, columnFilterClass, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { ProductSheet } from './ProductSheet';
+import { SupplierName } from './EditableRecordName';
 import { useAdminRecords } from './SupplierSheet';
 import { getAdminRecordsVersion } from '../lib/adminRecordsStore';
 import { AlertTriangle, Boxes, GitBranch, Link2, RefreshCw, Save, Search } from 'lucide-react';
@@ -391,7 +392,7 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                   <tr key={batch.id} className="border-t border-kurla-cream/10">
                     <td className="py-2 pr-3 text-kurla-cream font-mono">{batch.lotReference}</td>
                     <td className="py-2 pr-3"><button type="button" onClick={() => setSheetProduct(String(batch.productId))} title="Ouvrir la fiche produit" className="text-kurla-cream/70 hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2 text-left">{productName(batch.productId)}</button></td>
-                    <td className="py-2 pr-3">{batch.supplierId && onOpenSupplierBase ? <button type="button" onClick={() => onOpenSupplierBase(String(batch.supplierId))} title="Ouvrir dans la base fournisseurs — Approvisionnement" className="text-kurla-cream/70 hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplierName(batch.supplierId)}</button> : <span className="text-kurla-cream/70">{supplierName(batch.supplierId)}</span>}</td>
+                    <td className="py-2 pr-3">{batch.supplierId ? <SupplierName id={String(batch.supplierId)} label={supplierName(batch.supplierId)} headers={headers} className="text-[11px]" /> : <span className="text-kurla-cream/70">—</span>}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{batch.quantityReceived}</td>
                     <td className="py-2 pr-3 text-kurla-cream">{euros(batch.servedCostCents, batch.currency)}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{batch.receivedOn}</td>
@@ -510,12 +511,16 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                     {row.hasSecondSource === false && <span className="ml-2 text-amber-300">aucun second fournisseur qualifié</span>}
                   </div>
                   <div className="text-[10px] text-kurla-cream/50 mt-1">
-                    {row.batches} lot(s) · fournisseur(s) actuel(s) : {row.incumbentSupplierIds.map(supplierName).join(', ') || '—'}
+                    {row.batches} lot(s) · fournisseur(s) actuel(s) : {row.incumbentSupplierIds.length === 0 ? '—' : row.incumbentSupplierIds.map((id, index) => (
+                      <span key={id}>{index > 0 ? ', ' : ''}<SupplierName id={id} label={supplierName(id)} headers={headers} className="text-[10px]" /></span>
+                    ))}
                     {row.requiredDocuments.length > 0 && ` · exigés : ${row.requiredDocuments.join(', ')}`}
                   </div>
                   {row.qualifiedAlternatives.length > 0 && (
                     <div className="text-[10px] text-emerald-300/80 mt-1">
-                      Alternative(s) qualifiée(s) : {row.qualifiedAlternatives.map(entry => entry.legalName).join(', ')}
+                      Alternative(s) qualifiée(s) : {row.qualifiedAlternatives.map((entry, index) => (
+                        <span key={entry.supplierId}>{index > 0 ? ', ' : ''}<SupplierName id={entry.supplierId} label={entry.legalName} headers={headers} className="text-[10px]" /></span>
+                      ))}
                     </div>
                   )}
                 </li>

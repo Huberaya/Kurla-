@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen, Workflow, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Shield, Users, ShoppingBag, Sparkles, Lock, LogOut, CheckCircle2, RotateCcw, MessageSquare, AlertTriangle, TrendingUp, DollarSign, Package, Clock, RefreshCw, Send, Check, X, Truck, Gauge, Boxes, LayoutDashboard, BarChart3, Store, Settings, Target, ListChecks, Factory, MailWarning, BookOpen, Workflow, ChevronDown, ShieldCheck, Bookmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CopilotePanel } from '../components/CopilotePanel';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
@@ -39,6 +39,8 @@ import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
 import { TestPhaseGatesPanel } from '../components/TestPhaseGatesPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
+import { ProductLifecyclePanel } from '../components/ProductLifecyclePanel';
+import { IdentifiedProductsPanel } from '../components/IdentifiedProductsPanel';
 
 type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // Union des deux chantiers parallèles : `pipeline` (Agent Kurla, mise en
@@ -46,7 +48,7 @@ type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // des deux travaux n'est écrasé.
 // skin_sourcing / skin_batches / skin_demand retirés le 16/09 : doublons
 // exacts d'onglets existants (voir le commentaire dans la navigation).
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir';
+type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'identified' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -659,6 +661,7 @@ export const AdminDashboardPage: React.FC = () => {
               tabs: [
                 { id: 'pipeline', label: 'Pipeline de mise en vente', icon: Workflow },
                 { id: 'cockpit', label: 'Pilotage catalogue', icon: Gauge },
+                { id: 'identified', label: 'Identifiés (hors boutique)', icon: Bookmark },
                 { id: 'catalog', label: 'Catalogue produits', icon: Package },
                 { id: 'batches', label: 'Lots & traçabilité', icon: Boxes },
                 { id: 'guide_dropship', label: 'Guide dropship 0 carton', icon: BookOpen },
@@ -1514,12 +1517,26 @@ export const AdminDashboardPage: React.FC = () => {
           <StrategyCockpitPanel headers={adminHeaders} />
         )}
 
+        {activeTab === 'identified' && (
+          <div className="space-y-10">
+            <IdentifiedProductsPanel
+              headers={adminHeaders}
+              onOpenSupplier={openSupplierBase}
+            />
+          </div>
+        )}
+
         {activeTab === 'cockpit' && (
           <div className="space-y-10">
             <AdminActionQueue
               headers={adminHeaders}
               scopeKey={workspace === 'skin' ? 'skin' : 'hair'}
               onNavigate={navigateFromQueue}
+            />
+            <ProductLifecyclePanel
+              headers={adminHeaders}
+              onOpenCatalog={(productId) => navigateFromQueue({ tab: 'catalog', focusProductId: productId })}
+              onOpenSupplier={openSupplierBase}
             />
             <OperationsCockpitPanel
               headers={adminHeaders}

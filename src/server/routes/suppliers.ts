@@ -107,10 +107,9 @@ export function registerSupplierRoutes(app: Express): void {
     if (!admin) return;
     try {
       const scope = readWorkspaceScope(req);
-      const supplierIds = await workspaceSupplierIds(scope);
-      if (supplierIds && !supplierIds.has(req.params.supplierId)) {
-        return res.status(404).json({ error: 'Fournisseur introuvable dans cet espace.' });
-      }
+      // CHANTIER 3 : une fiche ouverte par identifiant (conversion piste, lot,
+      // pipeline) doit se lire même si aucun SKU de l'espace n'est encore
+      // rattaché. La *liste* reste scopée ; le GET par id est l'identité.
       const detail = await serverDb.getSupplierDetail(req.params.supplierId);
       if (scope) {
         const allowedProductIds = new Set((await serverDb.getAdminCatalogProducts())

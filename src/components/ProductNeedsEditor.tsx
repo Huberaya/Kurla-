@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Tags, Save } from 'lucide-react';
 import { SKIN_NEEDS } from '../lib/skinTaxonomy';
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
+import { evaluateCatalogSkinCriteria } from '../lib/skinCriteria';
+import { SkinCriteriaChecklist } from './SkinCriteriaChecklist';
 
 /**
  * ÉDITION DES BESOINS PAR FICHE (§12, mission 16/09/2026).

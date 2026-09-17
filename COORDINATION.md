@@ -3858,3 +3858,161 @@ les cas de bord), audit complet, pause + rollback fonctionnent. »
   parallèle.
 - La version de la carte (chantier A) est inscrite dans chaque décision :
   l'audit d'auto-publication date la règle qui a décidé.
+
+---
+
+## 17/09/2026 — Chantier 1 Skin : architecture + modèle (lecture)
+
+**Territoire** : cycle de vie produit (Skin **et** Hair, même graphe). Pas de
+second PIM.
+
+### Ce qui a été fait
+
+Couche de **lecture** uniquement — aucune table nouvelle, aucune migration
+destructive, `launchCatalog.ts` / `fulfillment.ts` / checkout intacts.
+
+- `src/lib/productLifecycle.ts` — stade métier dérivé des tables déjà là :
+  identifié / sourcing / catalogue / publié / refusé. L’**offre** et la
+  **validation** sont des faits (flags), pas un 5ᵉ enum en base.
+- Offre canonique = `product_sources`. `products.supplier_id` = projection de
+  la source primaire. Un nom libre (canal, piste, `source_supplier`) n’est
+  **pas** un fournisseur.
+- Import 500 : cible déclarée = `sourcing_fond_positions` /
+  `sourcing_product_candidates`, jamais `published`.
+- `src/lib/skinNeedMapping.ts` — les 50 besoins documentés mappés sur les 15
+  `SKIN_NEEDS` existants. Aucune 16ᵉ valeur. Éducation / cuir chevelu /
+  maquillage → `skinNeed: null` (volontaire).
+- Vue admin `ProductLifecyclePanel` montée dans **les deux** espaces (parité),
+  onglet Pilotage catalogue. Aucun écran Skin-only.
+
+### Ce qui n’a pas été fait (volontaire)
+
+- Pas d’API dropship, pas d’envoi mail RFQ, pas d’import 500, pas de
+  suppression d’Appro v1, pas de bascule `products.supplier_id`.
+- Cosmétique Skin en dropship 24–48h : toujours interdit (`dropshipEligibility`).
+
+### Contrôles
+
+`npm run test:product-lifecycle` · parité des espaces · inventaire admin à
+mettre à jour (nouveaux appelants sur consolidated / ops / catalog products,
+pas de route nouvelle).
+
+---
+
+## 17/09/2026 — Chantier 2 Skin : produits identifiés
+
+**Territoire** : vue unique des identifiés (fond 50×5 + candidats), **hors
+boutique**. Même graphe Hair/Skin (parité). Pas de table `identified_products`.
+
+### Ce qui a été fait
+
+- `src/lib/identifiedProducts.ts` — sélection du stade `identified`, filtres
+  besoin 1–50 / 15 `SKIN_NEEDS` / origine, dédoublon marque+nom, **plan
+  d'import** : cible `sourcing_fond_positions` (si besoin documenté) ou
+  `sourcing_product_candidates`. Toute cible `published` / `products` est
+  refusée.
+- Onglet partagé **Identifiés (hors boutique)** + `IdentifiedProductsPanel`
+  (liste cliquable, filtres colonne partagés, prévisualisation d'import sans
+  écriture, ajout unitaire via `POST /api/admin/sourcing/candidates` déjà là).
+- Aucune fiche n'est créée dans `products`. Pas d'auto-publish.
+
+### Ce qui n'a pas été fait (volontaire)
+
+- Import 500 réel (Excel/JSON/écriture de masse) = chantier 13.
+- Conversion identifié → fiche catalogue = inchangée (`create-fiche`, C8).
+- `launchCatalog.ts` / `fulfillment.ts` / checkout / Appro v1 intacts.
+
+### Contrôles
+
+`npm run test:identified-products` · parité · filtres catalogue (nouvel onglet)
+· inventaire admin (appelants consolidated + POST candidates).
+
+---
+
+## 17/09/2026 — Chantier 3 Skin : fournisseurs
+
+**Territoire** : fiches cliquables partout (`SupplierName` → la même
+`SupplierSheet`), conversion piste → fournisseur, **0 nom libre** présenté
+comme une fiche.
+
+### Ce qui a été fait
+
+- `linkProspectSupplier` — unique écriture de `sourcing_prospects.supplier_id`.
+  `upsertProspect` ne l'écrit toujours pas. Un lien déjà posé n'est pas écrasé.
+  Ambiguïté de nom = 409, rien n'est choisi en silence.
+- Route `POST /api/admin/sourcing/prospects/:id/supplier` (`create: true` ou
+  `supplierId`).
+- UI Contacts : « Créer la fiche fournisseur » / lier à une fiche existante.
+- `SupplierName` posé sur catalogue, lots, pipeline, identifiés, cycle de vie,
+  sources. Un canal / nom libre s'affiche comme **pas une fiche**.
+- GET `/api/admin/suppliers/:id` : lisible par identifiant même sans SKU de
+  l'espace (la liste reste scopée).
+
+### Ce qui n'a pas été fait (volontaire)
+
+- Offres N:N / `product_sources` = chantier 4.
+- `partnerName` à la saisie des sources : encore accepté (C4), mais affiché
+  comme nom libre.
+- Appro v1 non supprimé. `launchCatalog.ts` / `fulfillment.ts` / checkout
+  intacts.
+
+### Contrôles
+
+`npm run test:prospect-supplier-link` · parité · inventaire admin · store API.
+
+---
+
+## 17/09/2026 — Chantier 4 Skin : offres N:N (product_sources)
+
+**Territoire** : écriture des offres. Même graphe C1 (offer = product_sources).
+products.supplier_id reste : c'est la **projection** de la source ★.
+Pas de table offers. Pas d'API dropship.
+
+### Ce qui a été fait
+
+- src/lib/db/productSourceStore.ts + repli inMemoryProductSources.
+- POST/PATCH /api/admin/sourcing/sources passent par le store : fournisseur
+  enregistré obligatoire, partnerName refusé comme identité, première source
+  auto-★, unique ★, projection vers products.supplier_id.
+- Une primaire héritée sans supplier_id **ne vide pas** Hair.
+- PATCH products/:id/supplier inchangé (1:1, ne crée pas de source).
+- UI ProductSourcesPanel : plus de champ nom libre ; ?all=1 ; héritage
+  affiché « nom libre, pas une fiche ».
+- GET /api/admin/sourcing/ops expose primarySupplierId.
+
+### Ce qui n'a pas été fait (volontaire)
+
+- fulfillment.ts / launchCatalog.ts / checkout / Appro v1 intacts.
+- C5 critères, C9 dropship, C10 affiliation tracking, C11 3PL, C13 import 500.
+
+### Contrôles
+
+npm run test:product-sources · inventaire store (méthodes ajoutées).
+
+---
+
+## 17/09/2026 — Chantier 5 Skin : critères (checklist)
+
+**Territoire** : brancher les critères **déjà dans le projet** sur identifié et
+catalogue. Aucun critère inventé.
+
+### Ce qui a été fait
+
+- src/lib/skinCriteria.ts — même grille partout :
+  50 besoins documentés, 15 SKIN_NEEDS, SKIN_REQUIRED_METADATA.
+- Identifié : besoin 1-50 + filtre boutique ; métadonnées catalogue = n/a
+  (pas une fiche), jamais un faux manque.
+- Catalogue peau : 15 besoins lus sur concerns/needs + evaluateSkinMetadata.
+- Catalogue Hair : grille Skin non applicable.
+- UI SkinCriteriaChecklist sur IdentifiedProductsPanel (clic ligne) et
+  ProductNeedsEditor.
+
+### Ce qui n'a pas été fait (volontaire)
+
+- Pas de 16e SKIN_NEED, pas de 3e grille, pas de porte de publication nouvelle.
+- C6 workflow, C8 catalogue Skin, C9 dropship, C13 import 500.
+- fulfillment.ts / launchCatalog.ts / checkout / Appro v1 intacts.
+
+### Contrôles
+
+npm run test:skin-criteria

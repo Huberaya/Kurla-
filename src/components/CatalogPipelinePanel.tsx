@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, hasActiveFilter, type ColumnFilter } from '../lib/columnFilters';
+import { SupplierName } from './EditableRecordName';
 import { AlertTriangle, Boxes, Clock, FileCheck2, GitBranch, PackageSearch, Search, ShieldAlert, Store } from 'lucide-react';
 import {
   applyPipelineFilters, buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
@@ -270,7 +271,11 @@ export const CatalogPipelinePanel: React.FC<{
         {row.isTest && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[8px] font-bold shrink-0">test</span>}
       </div>
       <p className="text-[10px] text-kurla-cream/45 truncate mt-0.5">
-        {row.supplierName || (row.kind === 'candidate' ? 'fournisseur à qualifier' : 'fournisseur non rattaché')}
+        {row.supplierId
+          ? <SupplierName id={row.supplierId} label={row.supplierName} headers={headers} className="text-[10px]" />
+          : (row.supplierName
+            ? <span>{row.supplierName} — canal, pas une fiche</span>
+            : (row.kind === 'candidate' ? 'à qualifier — pas un fournisseur' : 'fournisseur non rattaché'))}
       </p>
       {row.missing.length > 0 && (
         <p className="text-[9px] text-amber-300/80 truncate mt-0.5" title={row.missing.join(' · ')}>
@@ -571,7 +576,7 @@ export const CatalogPipelinePanel: React.FC<{
                   {alert.state === 'expired' ? 'Expiré' : `J-${alert.daysLeft}`}
                 </span>
                 <span className="text-xs font-semibold text-kurla-cream">{documentTypeLabel(alert.documentType)}</span>
-                <span className="text-[11px] text-kurla-cream/55">{alert.supplierName}</span>
+                <SupplierName id={alert.supplierId} label={alert.supplierName} headers={headers} className="text-[11px]" />
                 <span className="text-[10px] text-kurla-cream/40 font-mono">au {alert.expiresOn}</span>
                 {alert.affectedProducts.length > 0 && (
                   <span className="text-[10px] text-amber-200/80 ml-auto" title={alert.affectedProducts.map(p => p.name).join(', ')}>

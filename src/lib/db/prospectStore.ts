@@ -10,6 +10,7 @@ import {
   PROSPECT_STATUSES,
   TRI_STATES,
 } from '../prospectSeed';
+import { createSupplier, getSupplierById, listSuppliers, type Supplier, type SupplierType } from './supplierStore';
 
 import type { SupabaseServerStore } from '../serverDb';
 
@@ -314,6 +315,103 @@ async function joindreFournisseurs(rows: any[]): Promise<Map<string, any>> {
   return new Map((data ?? []).map(row => [String(row.id), row]));
 }
 
+function joinMemorySupplier(store: SupabaseServerStore, prospect: SourcingProspect): SourcingProspect {
+  if (!prospect.supplierId) return { ...prospect, supplier: prospect.supplier ?? null };
+  const raw = store.inMemorySuppliers.find(row => String(row.id) === String(prospect.supplierId));
+  return mapProspect({ ...prospect, supplier_id: prospect.supplierId }, raw);
+}
+
+/** Type fournisseur dérivé du type de piste — jamais inventé hors de cette table. */
+export const PROSPECT_CONTACT_TO_SUPPLIER_TYPE: Record<ProspectContactType, SupplierType> = {
+  brand_fr: 'brand',
+  brand_eu: 'brand',
+  skin_solar: 'brand',
+  distributor: 'distributor',
+  contract_manufacturer: 'contract_manufacturer',
+};
+
+export type ProspectSupplierLinkResult = {
+  prospect: SourcingProspect;
+  supplier: Supplier;
+  created: boolean;
+};
+
+/**
+ * CHANTIER 3 — conversion piste → fournisseur.
+ *
+ * Acte explicite, jamais un matching silencieux :
+ *  - `supplierId` : lier une fiche déjà au référentiel ;
+ *  - `create: true` : créer la fiche (raison sociale = nom de la piste) puis
+ *    lier. Une ambiguïté de nom remonte (`SupplierAmbiguityError`), rien n'est
+ *    choisi à la place de l'humain ;
+ *  - un lien déjà posé n'est **pas** écrasé.
+ *
+ * `upsertProspect` n'écrit toujours pas `supplier_id`.
+ */
+export async function linkProspectSupplier(
+  store: SupabaseServerStore,
+  adminId: string | null,
+  prospectId: string,
+  input: { supplierId?: string | null; create?: boolean } = {},
+): Promise<ProspectSupplierLinkResult> {
+  const id = text(prospectId, 80);
+  if (!id) throw new Error('Piste obligatoire.');
+  const prospect = await getProspect(store, id);
+  if (!prospect) throw new Error('Piste introuvable.');
+
+  const requestedId = text(input?.supplierId ?? undefined, 80) || null;
+
+  if (prospect.supplierId) {
+    if (requestedId && requestedId !== prospect.supplierId) {
+      throw new Error(`Cette piste est déjà liée à « ${prospect.supplierId} ». Le lien existant n’est pas écrasé.`);
+    }
+    const current = await getSupplierById(store, prospect.supplierId);
+    if (!current) throw new Error('Fournisseur lié introuvable.');
+    return { prospect, supplier: current, created: false };
+  }
+
+  let supplier: Supplier;
+  let created = false;
+  if (requestedId) {
+    const found = await getSupplierById(store, requestedId);
+    if (!found) throw new Error('Fournisseur introuvable.');
+    supplier = found;
+  } else if (input?.create === true) {
+    const prior = await listSuppliers(store);
+    const priorIds = new Set(prior.map(row => row.id));
+    supplier = await createSupplier(store, adminId, {
+      legalName: prospect.name,
+      tradeName: prospect.name,
+      supplierType: PROSPECT_CONTACT_TO_SUPPLIER_TYPE[prospect.contactType] || 'unknown',
+      contactEmail: prospect.contactEmail,
+      contactName: prospect.contactName,
+      website: prospect.sourceUrl && /^https?:\/\//i.test(prospect.sourceUrl) ? prospect.sourceUrl : undefined,
+    });
+    created = !priorIds.has(supplier.id);
+  } else {
+    throw new Error('Indiquez un fournisseur existant ou demandez la création de la fiche.');
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    const { error } = await supabase
+      .from('sourcing_prospects')
+      .update({ supplier_id: supplier.id, updated_at: now })
+      .eq('id', prospect.id);
+    ensureDatabaseSuccess('liaison piste → fournisseur', error);
+  } else {
+    const index = store.inMemoryProspects.findIndex(row => row.id === prospect.id);
+    if (index >= 0) {
+      store.inMemoryProspects[index] = { ...store.inMemoryProspects[index], supplierId: supplier.id, updatedAt: now };
+    }
+  }
+
+  const linked = await getProspect(store, prospect.id);
+  if (!linked) throw new Error('Piste introuvable après liaison.');
+  return { prospect: linked, supplier, created };
+}
+
 // ------------------------------------------------------------------ Lecture
 
 export async function listProspects(store: SupabaseServerStore): Promise<SourcingProspect[]> {
@@ -328,7 +426,9 @@ export async function listProspects(store: SupabaseServerStore): Promise<Sourcin
     // Base connectée mais table vide : on renvoie l'amorçage mémoire pour que
     // l'écran soit utilisable avant que la migration soit appliquée.
   }
-  return [...store.inMemoryProspects].sort((a, b) => a.id.localeCompare(b.id));
+  return [...store.inMemoryProspects]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(prospect => joinMemorySupplier(store, prospect));
 }
 
 export async function getProspect(store: SupabaseServerStore, id: string): Promise<SourcingProspect | undefined> {
@@ -341,7 +441,8 @@ export async function getProspect(store: SupabaseServerStore, id: string): Promi
       return mapProspect(data, data.supplier_id ? fiches.get(String(data.supplier_id)) : undefined);
     }
   }
-  return store.inMemoryProspects.find((p) => p.id === id);
+  const found = store.inMemoryProspects.find((p) => p.id === id);
+  return found ? joinMemorySupplier(store, found) : undefined;
 }
 
 export async function listCandidates(store: SupabaseServerStore, prospectId?: string): Promise<ProductCandidate[]> {
@@ -400,6 +501,11 @@ export async function upsertProspect(store: SupabaseServerStore, adminId: string
     notes: text(input?.notes, 8000) ?? existing?.notes,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    // CHANTIER 3 : le lien piste → fiche n'est posé que par
+    // `linkProspectSupplier`. On le conserve ici (mémoire) pour qu'une mise
+    // à jour de statut ne l'efface pas ; on ne le lit JAMAIS depuis l'entrée
+    // et le payload Supabase ci-dessous omet `supplier_id`.
+    supplierId: existing?.supplierId ?? null,
   };
 
   const supabase = getSupabaseServerClient();

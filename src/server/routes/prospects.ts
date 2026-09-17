@@ -8,6 +8,7 @@ import { getSupabaseServerClient } from '../../lib/supabaseClient';
 import { buildConsolidatedSourcing, type SupplierEmailBlock } from '../../lib/sourcingConsolidated';
 import { buildSupplierDossier, summarizeSupplierDossier } from '../../lib/supplierDossier';
 import type { ProductCandidate } from '../../lib/db/prospectStore';
+import { SupplierAmbiguityError } from '../../lib/db/supplierStore';
 
 async function candidateMatchesScope(candidate: any, scope: WorkspaceScope): Promise<boolean> {
   if (candidate?.prospectId || candidate?.prospect_id) {
@@ -67,6 +68,42 @@ export function registerProspectRoutes(app: Express): void {
     } catch (error) {
       console.error('[Prospects] create error:', error);
       res.status(400).json({ error: safeApiError(error, 'Prospect non créé.') });
+    }
+  }));
+
+  /**
+   * CHANTIER 3 — conversion piste → fournisseur.
+   * `upsertProspect` n'écrit pas `supplier_id`. Cette route est l'unique
+   * écriture du lien : créer une fiche (create:true) ou lier un id existant.
+   * Une ambiguïté de nom = 409, rien n'est choisi en silence.
+   */
+  app.post('/api/admin/sourcing/prospects/:id/supplier', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const existing = await serverDb.getProspect(req.params.id);
+      if (!existing) return res.status(404).json({ error: 'Piste introuvable.' });
+      const scope = readWorkspaceScope(req);
+      if (scope && !prospectInWorkspace(existing, scope)) return res.status(404).json({ error: 'Piste introuvable dans cet espace.' });
+      const result = await serverDb.linkProspectSupplier(admin.id, req.params.id, {
+        supplierId: typeof req.body?.supplierId === 'string' ? req.body.supplierId : undefined,
+        create: req.body?.create === true,
+      });
+      res.json({
+        prospect: result.prospect,
+        supplier: result.supplier,
+        created: result.created,
+      });
+    } catch (error) {
+      if (error instanceof SupplierAmbiguityError) {
+        return res.status(409).json({
+          error: error.message,
+          ambiguousSupplier: error.requestedName,
+          candidates: error.candidates.map(candidate => ({ id: candidate.id, legalName: candidate.legalName })),
+        });
+      }
+      console.error('[Prospects] convert supplier error:', error);
+      res.status(400).json({ error: safeApiError(error, 'Conversion piste → fournisseur refusée.') });
     }
   }));
 

@@ -114,6 +114,9 @@ function badge(cls: { label: string; color: string }): string {
 export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSuccess }) => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [directory, setDirectory] = useState<Array<{ id: string; legalName: string }>>([]);
+  const [convertNotice, setConvertNotice] = useState('');
+  const [ambiguous, setAmbiguous] = useState<Array<{ prospectId: string; candidates: Array<{ id: string; legalName: string }> }>>([]);
 
   // Filtres par colonne (17/09) : 121 candidats en base — « lesquels sont
   // bloqués », « quelle marque », « quelle marge » doivent se répondre sans
@@ -164,6 +167,36 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
   }, [headers]);
 
   useEffect(() => { load(); }, [load]);
+
+  const convertProspect = async (id: string, body: { create?: boolean; supplierId?: string }) => {
+    setSavingId(id);
+    setConvertNotice('');
+    setAmbiguous(prev => prev.filter(row => row.prospectId !== id));
+    try {
+      const res = await fetch(`/api/admin/sourcing/prospects/${encodeURIComponent(id)}/supplier`, {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.status === 409 && Array.isArray(data.candidates)) {
+        setAmbiguous(prev => [...prev.filter(row => row.prospectId !== id), { prospectId: id, candidates: data.candidates }]);
+        setError(data.error || 'Plusieurs fiches correspondent — tranchez.');
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'Conversion refusée.');
+      setProspects(prev => prev.map(p => (p.id === id ? data.prospect : p)));
+      if (data.supplier && !directory.some(s => s.id === data.supplier.id)) {
+        setDirectory(prev => [...prev, { id: String(data.supplier.id), legalName: data.supplier.legalName }]);
+      }
+      setConvertNotice(data.created
+        ? `Fiche créée : ${data.supplier?.legalName} (${data.supplier?.id}). Hors boutique, non vérifiée.`
+        : `Piste liée à ${data.supplier?.legalName}.`);
+      onSuccess?.(data.created ? 'Fiche fournisseur créée depuis la piste.' : 'Piste liée à une fiche fournisseur.');
+    } catch (e: any) {
+      setError(e.message || 'Conversion échouée.');
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const patchProspect = async (id: string, patch: Partial<Prospect>) => {
     setSavingId(id);
@@ -297,8 +330,6 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                     <div className="rounded-xl bg-emerald-500/[0.06] border border-emerald-400/20 px-3 py-2">
                       <p className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Fiche fournisseur — source unique</p>
                       <p className="text-[11px] text-kurla-cream/75 mt-1">
-                        {/* 17/09, 2e demande : cette fiche se modifie ici, elle n'est
-                            plus seulement lue. Le lien reste la source unique. */}
                         <SupplierName id={p.supplierId || null} label={p.supplier.legalName} headers={headers} className="text-[11px]" onSaved={() => void load()} />
                         {p.supplier.country ? ` · ${p.supplier.country}` : ''}
                         {p.supplier.website ? ` · ${p.supplier.website}` : ''}
@@ -308,6 +339,31 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
                       <p className="text-[10px] text-kurla-cream/45 mt-0.5">
                         Lu depuis la fiche fournisseur, jamais recopié. Modifier un champ ci-dessous ne le change que pour cette piste.
                       </p>
+                    </div>
+                  )}
+                  {!p.supplier && (
+                    <div className="rounded-xl border border-kurla-cream/15 bg-kurla-ink px-3 py-2 space-y-2">
+                      <p className="text-[10px] text-kurla-cream/55">
+                        Cette piste n’est pas une fiche fournisseur. La conversion est un acte explicite — jamais un matching silencieux.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button type="button" disabled={savingId === p.id} onClick={() => void convertProspect(p.id, { create: true })}
+                          className="px-3 py-1.5 rounded-lg bg-kurla-copper text-white text-[10px] font-bold disabled:opacity-50">
+                          Créer la fiche fournisseur
+                        </button>
+                        <select defaultValue="" disabled={savingId === p.id}
+                          onChange={e => { const value = e.target.value; if (value) void convertProspect(p.id, { supplierId: value }); e.target.value = ''; }}
+                          className={inputClass() + ' max-w-[240px]'}>
+                          <option value="">Lier à une fiche existante…</option>
+                          {directory.map(s => <option key={s.id} value={s.id}>{s.legalName}</option>)}
+                        </select>
+                      </div>
+                      {ambiguous.find(row => row.prospectId === p.id)?.candidates.map(c => (
+                        <button key={c.id} type="button" onClick={() => void convertProspect(p.id, { supplierId: c.id })}
+                          className="block text-[10px] text-kurla-copper font-bold hover:underline">
+                          Trancher : {c.legalName} ({c.id})
+                        </button>
+                      ))}
                     </div>
                   )}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">

@@ -59,6 +59,8 @@ export interface PipelineRow {
   /** Critères manquants nommés (publication-readiness). */
   missing: string[];
   supplierName: string | null;
+  /** Identifiant de fiche fournisseur s'il existe — un nom de canal n'en est pas un. */
+  supplierId?: string | null;
   catalogStatus: string | null;
   priceEur: number | null;
   /** Catégorie/département (null pour les candidats et fiches sans catégorie). */
@@ -122,6 +124,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       rows.push({
         id: String(row.id), kind: 'candidate', name: row.name, stage: 'identified',
         anomaly: false, isTest: false, missing: [], supplierName: row.supplierName,
+        supplierId: null,
         catalogStatus: null, priceEur: row.priceEur, category: null
       });
       continue;
@@ -133,6 +136,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       rows.push({
         id: String(row.id), kind: 'product', name: row.name, stage: 'identified',
         anomaly: false, isTest: false, missing: [], supplierName: row.supplierName,
+        supplierId: null,
         catalogStatus: null, priceEur: row.priceEur, category: null
       });
       continue;
@@ -146,6 +150,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       isTest: !!product.isTestListing,
       missing: readiness?.missing || [],
       supplierName: row.supplierName,
+      supplierId: product.supplierId || null,
       catalogStatus: product.catalogStatus || null,
       priceEur: row.priceEur,
       category: product.category || null,

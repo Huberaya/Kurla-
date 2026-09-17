@@ -112,6 +112,7 @@ import * as skinEvidenceStore from './db/skinEvidenceStore';
 import * as supplierStore from './db/supplierStore';
 import * as sourcingStore from './db/sourcingStore';
 import * as prospectStore from './db/prospectStore';
+import * as productSourceStore from './db/productSourceStore';
 import * as sourcingStrategyStore from './db/sourcingStrategyStore';
 import * as operationsCockpit from './db/operationsCockpit';
 import * as batchStore from './db/batchStore';
@@ -204,6 +205,8 @@ export class SupabaseServerStore {
   /** CHANTIER 16D — lots reçus et allocations lot → ligne de commande. */
   public inMemoryProductBatches: any[] = [];
   public inMemoryBatchAllocations: any[] = [];
+  /** CHANTIER 4 — offres N:N produit × fournisseur (`product_sources`). */
+  public inMemoryProductSources: any[] = [];
   public inMemorySourcingItems: any[] = [];
   public inMemoryRfqs: any[] = [];
   public inMemoryRfqResponses: any[] = [];
@@ -529,7 +532,16 @@ bindDomain(storeInstance, {
   getProspect: prospectStore.getProspect,
   listCandidates: prospectStore.listCandidates,
   upsertProspect: prospectStore.upsertProspect,
-  upsertCandidate: prospectStore.upsertCandidate
+  upsertCandidate: prospectStore.upsertCandidate,
+  linkProspectSupplier: prospectStore.linkProspectSupplier,
+});
+// CHANTIER 4 — offres N:N. Sous-ensemble explicite (pas de constante exportée).
+bindDomain(storeInstance, {
+  listProductSources: productSourceStore.listProductSources,
+  getProductSource: productSourceStore.getProductSource,
+  createProductSource: productSourceStore.createProductSource,
+  updateProductSource: productSourceStore.updateProductSource,
+  projectPrimarySupplier: productSourceStore.projectPrimarySupplier,
 });
 bindDomain(storeInstance, {
   listSourcingStrategy: sourcingStrategyStore.listSourcingStrategy
@@ -593,6 +605,7 @@ export const serverDb = storeInstance as SupabaseServerStore
   & Curried<typeof brandContractStore>
   & Curried<typeof brandInvoiceStore>
   & Curried<typeof prospectStore>
+  & Curried<typeof productSourceStore>
   & Curried<typeof sourcingStrategyStore>
   & Curried<typeof incidentStore>
   & Curried<typeof copiloteStore>;

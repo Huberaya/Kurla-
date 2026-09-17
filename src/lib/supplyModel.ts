@@ -6,6 +6,9 @@
  * fournisseur en dropshipping, un autre en 3PL, un troisième en affiliation.
  * KURLA choisit la source, elle ne la subit pas.
  *
+ * Langage métier (identifié / sourcing / catalogue / publié) : lecture dans
+ * `src/lib/productLifecycle.ts` — pas un 5ᵉ enum en base.
+ *
  * Aucune donnée inventée : un coût inconnu reste `null`, une source sans
  * prix ne produit pas de marge fictive — elle remonte en alerte.
  */
@@ -107,11 +110,13 @@ export function mapProductSource(row: any): ProductSource {
   };
   return {
     id: row?.id != null ? String(row.id) : undefined,
-    productId: String(row?.product_id ?? ''),
-    supplierId: row?.supplier_id != null ? String(row.supplier_id) : null,
-    partnerName: typeof row?.partner_name === 'string' && row.partner_name.trim() !== '' ? row.partner_name.trim() : null,
+    productId: String(row?.product_id ?? row?.productId ?? ''),
+    supplierId: row?.supplier_id != null ? String(row.supplier_id) : (row?.supplierId != null ? String(row.supplierId) : null),
+    partnerName: typeof (row?.partner_name ?? row?.partnerName) === 'string' && String(row?.partner_name ?? row?.partnerName).trim() !== ''
+      ? String(row?.partner_name ?? row?.partnerName).trim()
+      : null,
     model: isSupplyModel(row?.model) ? row.model : 'other',
-    isPrimary: row?.is_primary === true,
+    isPrimary: row?.is_primary === true || row?.isPrimary === true,
     costCents: intOrNull(row?.cost_cents),
     feeCents: intOrNull(row?.fee_cents),
     fulfillmentCostCents: intOrNull(row?.fulfillment_cost_cents),

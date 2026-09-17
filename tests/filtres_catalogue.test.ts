@@ -27,7 +27,7 @@ import path from 'node:path';
 const RACINE = process.cwd();
 
 /** Onglets de la famille « Catalogue & Stock ». */
-const ONGLETS_CATALOGUE = ['pipeline', 'cockpit', 'catalog', 'batches', 'guide_dropship'];
+const ONGLETS_CATALOGUE = ['pipeline', 'cockpit', 'identified', 'catalog', 'batches', 'guide_dropship'];
 
 /**
  * Panneaux dispensés, avec la raison. Un guide n'affiche pas de liste : lui

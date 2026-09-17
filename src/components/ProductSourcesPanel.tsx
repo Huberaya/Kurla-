@@ -3,6 +3,7 @@ import { Link2, Plus, Star, Power } from 'lucide-react';
 import { evaluateMargin, SUPPLY_MODEL_LABELS, type SupplyModel } from '../lib/supplyModel';
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 import { applyColumnFilters, type ColumnFilter } from '../lib/columnFilters';
+import { SupplierName } from './EditableRecordName';
 
 /**
  * SAISIE DES SOURCES PAR PRODUIT — l'écran qui alimente le routeur.
@@ -22,7 +23,6 @@ const centsOrUndef = (value: string) => {
 
 const EMPTY_FORM = {
   supplierId: '',
-  partnerName: '',
   model: 'dropshipping' as SupplyModel,
   cost: '',
   fee: '',
@@ -58,7 +58,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
         // liste que le catalogue.
         const [productsBody, suppliersResponse] = await Promise.all([
           fetchAdminCatalogProducts(headers),
-          fetch('/api/admin/suppliers', { headers }),
+          fetch('/api/admin/suppliers?all=1', { headers }),
         ]);
         const suppliersBody = await suppliersResponse.json();
         setProducts(productsBody.products || []);
@@ -112,8 +112,8 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
       setMessage('Une source en affiliation exige le lien d’affiliation réel.');
       return;
     }
-    if (!form.supplierId && !form.partnerName.trim()) {
-      setMessage('Choisis un fournisseur enregistré ou nomme le partenaire.');
+    if (!form.supplierId) {
+      setMessage('Choisis un fournisseur enregistré. Un nom libre n’est pas une offre.');
       return;
     }
     setBusy(true);
@@ -124,8 +124,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
         headers,
         body: JSON.stringify({
           productId: selectedId,
-          supplierId: form.supplierId || null,
-          partnerName: form.partnerName.trim() || null,
+          supplierId: form.supplierId,
           model: form.model,
           isPrimary: form.isPrimary,
           costCents: centsOrUndef(form.cost) ?? null,
@@ -140,9 +139,13 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Création impossible.');
-      setMessage('Source ajoutée.');
+      setMessage('Source ajoutée. Le fournisseur principal du produit est la source ★.');
       setForm({ ...EMPTY_FORM });
       await loadSources(selectedId);
+      try {
+        const refreshed = await fetchAdminCatalogProducts(headers);
+        setProducts(refreshed.products || []);
+      } catch { /* la source est enregistrée ; le filtre « sans fournisseur » se mettra à jour au prochain chargement */ }
     } catch (e: any) {
       setMessage(`Échec : ${e.message || 'erreur inconnue'}`);
     } finally {
@@ -163,6 +166,12 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
       if (!response.ok) throw new Error(body.error || 'Mise à jour impossible.');
       setMessage(label);
       if (selectedId) await loadSources(selectedId);
+      if (patch.isPrimary === true) {
+        try {
+          const refreshed = await fetchAdminCatalogProducts(headers);
+          setProducts(refreshed.products || []);
+        } catch { /* la ★ est posée ; le filtre « sans fournisseur » se mettra à jour au prochain chargement */ }
+      }
     } catch (e: any) {
       setMessage(`Échec : ${e.message || 'erreur inconnue'}`);
     } finally {
@@ -190,7 +199,7 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
   return (
     <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-4">
       <h3 className="font-bold flex items-center gap-2"><Link2 className="w-4 h-4 text-kurla-amber" /> Sources d'approvisionnement par produit</h3>
-      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA) ; la source ★ principale décide du routage des commandes. Coût inconnu = laisser vide — jamais 0. Affiliation : le lien réel est obligatoire.</p>
+      <p className="text-[11px] text-kurla-cream/60">Un produit peut avoir plusieurs sources (dropshipping, affiliation, 3PL, stock KURLA). La source ★ principale se projette sur le fournisseur du produit. Coût inconnu = laisser vide — jamais 0. Affiliation : le lien réel est obligatoire. Un nom libre n’est pas une offre : choisissez une fiche du référentiel.</p>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -232,7 +241,9 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
                       <div className="flex flex-wrap items-center gap-2">
                         <button type="button" title="Définir comme source principale" onClick={() => patchSource(source.id, { isPrimary: true }, 'Source principale mise à jour.')} disabled={busy || source.isPrimary} className={`px-1.5 py-0.5 rounded text-[10px] ${source.isPrimary ? 'text-kurla-amber' : 'text-kurla-cream/30 hover:text-kurla-amber'}`}><Star className="w-3 h-3" fill={source.isPrimary ? 'currentColor' : 'none'} /></button>
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-copper/15 text-kurla-copper">{SUPPLY_MODEL_LABELS[source.model as SupplyModel] || source.model}</span>
-                        <span className="font-semibold">{supplierName(source)}</span>
+                        {source.supplierId
+                          ? <SupplierName id={source.supplierId} label={supplierName(source)} headers={headers} className="text-[11px]" />
+                          : <span className="font-semibold text-kurla-cream/55">{source.partnerName ? `${source.partnerName} — nom libre, pas une fiche` : 'partenaire à nommer'}</span>}
                         <button type="button" onClick={() => patchSource(source.id, { available: !source.available }, source.available ? 'Source marquée indisponible.' : 'Source de nouveau disponible.')} disabled={busy} className={`ml-auto px-1.5 py-0.5 rounded text-[9px] font-bold border ${source.available ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300' : 'bg-rose-500/10 border-rose-500/25 text-rose-300'}`}><Power className="w-2.5 h-2.5 inline mr-1" />{source.available ? 'disponible' : 'indisponible'}</button>
                       </div>
                       <p className="text-kurla-cream/60">
@@ -255,11 +266,10 @@ export const ProductSourcesPanel: React.FC<{ headers: Record<string, string> }> 
               <div className="p-3 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
                 <p className="text-[11px] font-bold text-kurla-amber">Ajouter une source</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))} className={field}>
-                    <option value="">Fournisseur enregistré…</option>
+                  <select value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))} className={`${field} col-span-2`}>
+                    <option value="">Fournisseur enregistré (obligatoire)…</option>
                     {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.legalName || supplier.tradeName}</option>)}
                   </select>
-                  <input value={form.partnerName} onChange={e => setForm(f => ({ ...f, partnerName: e.target.value }))} placeholder="…ou nom du partenaire" className={field} />
                   <select value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value as SupplyModel }))} className={field}>
                     {Object.entries(SUPPLY_MODEL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                   </select>

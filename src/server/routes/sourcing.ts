@@ -13,8 +13,6 @@ import {
   canTransitionSupplyWorkflow,
   evaluateMargin,
   evaluateSupplyAlerts,
-  isSupplyModel,
-  mapProductSource,
   routeFulfillment,
   transitionRequiresReason,
   SUPPLY_MODELS,
@@ -152,65 +150,26 @@ export function registerSourcingRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const supabase = getSupabaseServerClient();
-      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
       const productId = typeof req.query.productId === 'string' ? req.query.productId : undefined;
-      let query = supabase.from('product_sources').select('*');
-      if (productId) query = query.eq('product_id', productId);
-      const { data, error } = await query;
-      if (error) throw error;
-      res.json({ sources: (data || []).map(mapProductSource) });
+      const sources = await serverDb.listProductSources(productId);
+      res.json({ sources });
     } catch (error) {
       console.error('[Sourcing] sources list error:', error);
       res.status(500).json({ error: safeApiError(error, 'Lecture des sources impossible.') });
     }
   }));
 
+  /**
+   * CHANTIER 4 — une offre est un fournisseur enregistré × un modèle.
+   * `partnerName` n'est plus une identité. La source ★ se projette sur
+   * `products.supplier_id`.
+   */
   app.post('/api/admin/sourcing/sources', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const supabase = getSupabaseServerClient();
-      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
-      const body = req.body || {};
-      const productId = String(body.productId || '').trim();
-      if (!productId) return res.status(400).json({ error: 'productId requis.' });
-      const model = isSupplyModel(body.model) ? body.model : null;
-      if (!model) return res.status(400).json({ error: `modèle invalide — attendu : ${SUPPLY_MODELS.join(', ')}.` });
-      if (model === 'affiliation' && !String(body.affiliateUrl || '').trim()) {
-        return res.status(400).json({ error: 'Une source en affiliation exige le lien d’affiliation réel.' });
-      }
-      const intOrNull = (value: unknown) => {
-        if (value === null || value === undefined || value === '') return null;
-        const n = Number(value);
-        return Number.isFinite(n) ? Math.round(n) : null;
-      };
-      const row = {
-        product_id: productId,
-        supplier_id: body.supplierId ? String(body.supplierId) : null,
-        partner_name: body.partnerName ? String(body.partnerName).trim() : null,
-        model,
-        is_primary: body.isPrimary === true,
-        cost_cents: intOrNull(body.costCents),
-        fee_cents: intOrNull(body.feeCents),
-        fulfillment_cost_cents: intOrNull(body.fulfillmentCostCents),
-        commission_pct: body.commissionPct === null || body.commissionPct === undefined || body.commissionPct === '' ? null : Number(body.commissionPct),
-        affiliate_url: body.affiliateUrl ? String(body.affiliateUrl).trim() : null,
-        cookie_days: intOrNull(body.cookieDays),
-        lead_time_days: intOrNull(body.leadTimeDays),
-        ships_from: body.shipsFrom ? String(body.shipsFrom).trim() : null,
-        currency: body.currency ? String(body.currency).trim() : 'EUR',
-        available: body.available !== false,
-        notes: body.notes ? String(body.notes).trim() : null,
-        created_by: admin.id,
-        updated_at: new Date().toISOString(),
-      };
-      if (row.is_primary) {
-        await supabase.from('product_sources').update({ is_primary: false }).eq('product_id', productId);
-      }
-      const { data, error } = await supabase.from('product_sources').insert(row).select();
-      if (error) throw error;
-      res.status(201).json({ source: mapProductSource(data?.[0]) });
+      const source = await serverDb.createProductSource(admin.id, req.body || {});
+      res.status(201).json({ source });
     } catch (error) {
       console.error('[Sourcing] source create error:', error);
       res.status(400).json({ error: safeApiError(error, 'Création de la source impossible.') });
@@ -221,23 +180,11 @@ export function registerSourcingRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const supabase = getSupabaseServerClient();
-      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
-      const id = String(req.params.id || '');
-      const body = req.body || {};
-      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-      if ('available' in body) patch.available = body.available !== false;
-      if ('costCents' in body) patch.cost_cents = body.costCents === null || body.costCents === '' ? null : Math.round(Number(body.costCents));
-      if ('isPrimary' in body && body.isPrimary === true) {
-        const { data: current } = await supabase.from('product_sources').select('product_id').eq('id', id).maybeSingle();
-        if (current?.product_id) await supabase.from('product_sources').update({ is_primary: false }).eq('product_id', String(current.product_id));
-        patch.is_primary = true;
-      }
-      const { data, error } = await supabase.from('product_sources').update(patch).eq('id', id).select();
-      if (error) throw error;
-      if (!data || data.length === 0) return res.status(404).json({ error: 'Source introuvable.' });
-      res.json({ source: mapProductSource(data[0]) });
+      const source = await serverDb.updateProductSource(admin.id, String(req.params.id || ''), req.body || {});
+      res.json({ source });
     } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('introuvable')) return res.status(404).json({ error: safeApiError(error, 'Source introuvable.') });
       console.error('[Sourcing] source update error:', error);
       res.status(400).json({ error: safeApiError(error, 'Mise à jour de la source impossible.') });
     }
@@ -348,41 +295,39 @@ export function registerSourcingRoutes(app: Express): void {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     try {
-      const supabase = getSupabaseServerClient();
-      if (!supabase) return res.status(503).json({ error: 'Base indisponible.' });
-      const [products, sourcesRows, suppliersRows] = await Promise.all([
+      const [products, sources, supplierRows] = await Promise.all([
         serverDb.getAdminCatalogProducts(),
-        supabase.from('product_sources').select('*'),
-        supabase.from('suppliers').select('*'),
+        serverDb.listProductSources(),
+        serverDb.listSuppliers(),
       ]);
       const sourcesByProduct: Record<string, ProductSource[]> = {};
-      for (const row of sourcesRows.data || []) {
-        const source = mapProductSource(row);
+      for (const source of sources) {
         (sourcesByProduct[source.productId] = sourcesByProduct[source.productId] || []).push(source);
       }
-      const suppliers = (suppliersRows.data || []).map((s: any) => ({ id: String(s.id), legalName: s.legal_name || s.trade_name || null, contactEmail: s.contact_email || null }));
+      const suppliers = supplierRows.map(s => ({ id: String(s.id), legalName: s.legalName || s.tradeName || null, contactEmail: s.contactEmail || null }));
       const supplierNameById: Record<string, string> = {};
       for (const s of suppliers) if (s.legalName) supplierNameById[s.id] = s.legalName;
 
       const catalogRows = products
         .filter((p: any) => String(p.catalogStatus || p.catalog_status) !== 'unavailable')
         .map((p: any) => {
-          const sources = sourcesByProduct[String(p.id)] || [];
+          const productSources = sourcesByProduct[String(p.id)] || [];
           const price = Number(p.basePrice ?? p.price);
           const priceCents = Number.isFinite(price) && price > 0 ? Math.round(price * 100) : null;
-          const primary = sources.find(s => s.isPrimary) || sources.find(s => s.available) || null;
+          const primary = productSources.find(s => s.isPrimary) || productSources.find(s => s.available) || null;
           const margin = primary
             ? evaluateMargin({ model: primary.model, salePriceCents: priceCents, costCents: primary.costCents, feeCents: primary.feeCents, fulfillmentCostCents: primary.fulfillmentCostCents, commissionPct: primary.commissionPct })
             : null;
-          const route = routeFulfillment({ sources, supplierNameById });
+          const route = routeFulfillment({ sources: productSources, supplierNameById });
           return {
             id: String(p.id),
             name: String(p.name || p.id),
             catalogStatus: String(p.catalogStatus || p.catalog_status || 'draft'),
             priceCents,
             proofCompliant: p.truth?.proofState === 'compliant',
-            sourcesCount: sources.length,
+            sourcesCount: productSources.length,
             primaryModel: primary?.model || null,
+            primarySupplierId: primary?.supplierId || null,
             margin,
             route,
           };

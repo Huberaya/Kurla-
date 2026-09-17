@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T14:46:30.701Z",
+  "generatedAt": "2026-09-17T15:13:37.870Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -255,6 +255,7 @@
     "POST /api/admin/sourcing/items/:itemId/award",
     "POST /api/admin/sourcing/items/:itemId/rfqs",
     "POST /api/admin/sourcing/prospects",
+    "POST /api/admin/sourcing/prospects/:id/supplier",
     "POST /api/admin/sourcing/rfqs/:rfqId/responses",
     "POST /api/admin/sourcing/rfqs/:rfqId/send",
     "POST /api/admin/sourcing/sources",
