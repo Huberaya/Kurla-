@@ -17,10 +17,12 @@
  * (fonctions pures, banc `kurla_catalog_pipeline`).
  */
 import React, { useEffect, useMemo, useState } from 'react';
+
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, Boxes, Clock, FileCheck2, GitBranch, PackageSearch, Search, ShieldAlert, Store } from 'lucide-react';
 import {
   buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
-  PIPELINE_STAGES, type PipelineResult, type PipelineStage
+  PIPELINE_STAGES, type PipelineResult, type PipelineRow, type PipelineStage
 } from '../lib/catalogPipeline';
 import type { PublicationPolicyState } from '../lib/db/publicationPolicyStore';
 
@@ -180,6 +182,30 @@ export const CatalogPipelinePanel: React.FC<{
     });
   }, [result, stageFilter, conformOnly, criterionFilter, search]);
 
+  // Filtres par champ (17/09) : même motif que le reste du catalogue. Ils
+  // s'appliquent APRÈS la recherche et les filtres rapides — ils précisent,
+  // ils ne remplacent pas.
+  const columnFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'name', kind: 'text', get: (r: PipelineRow) => r.name, extra: (r: PipelineRow) => [r.slug] },
+    { key: 'supplier', kind: 'text', get: (r: PipelineRow) => r.supplierName || '', presentLabels: { filled: 'Fournisseur rattaché', empty: 'Fournisseur à qualifier' } },
+    { key: 'kind', kind: 'enum', get: (r: PipelineRow) => r.kind, options: [
+      { value: 'product', label: 'Fiche produit' },
+      { value: 'candidate', label: 'Candidate sourcing' },
+    ] },
+    { key: 'missing', kind: 'text', get: (r: PipelineRow) => r.missing.join(' ') },
+    { key: 'anomaly', kind: 'enum', get: (r: PipelineRow) => (r.anomaly ? 'yes' : 'no'), options: [
+      { value: 'yes', label: 'Anomalie' },
+      { value: 'no', label: 'Sans anomalie' },
+    ] },
+    { key: 'price', kind: 'numeric', get: (r: PipelineRow) => (r.priceEur == null ? NaN : Number(r.priceEur)), unit: ' €' },
+  ], []);
+  const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
+  const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
+  const filteredRows = useMemo(
+    () => applyColumnFilters(visibleRows, columnFilters, columnFilterState),
+    [visibleRows, columnFilters, columnFilterState]
+  );
+
   const fmtPrice = (n: number | null) => (n == null ? null : `${n.toFixed(2).replace('.', ',')} €`);
 
   return (
@@ -317,10 +343,19 @@ export const CatalogPipelinePanel: React.FC<{
             )}
           </div>
 
+          <ColumnFilterStrip
+            filters={columnFilters}
+            state={columnFilterState}
+            onChange={setColumnFilter}
+            onReset={() => setColumnFilterState(emptyFilterState(columnFilters))}
+            total={visibleRows.length}
+            shown={filteredRows.length}
+          />
+
           {/* Kanban 6 stades */}
           <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
             {PIPELINE_STAGES.map(stage => {
-              const colRows = visibleRows.filter(r => r.stage === stage.id);
+              const colRows = filteredRows.filter(r => r.stage === stage.id);
               return (
                 <div key={stage.id} className="w-72 shrink-0 rounded-2xl border border-kurla-cream/10 bg-kurla-ink/60 p-2.5">
                   <div className="flex items-center justify-between px-1 pb-2">

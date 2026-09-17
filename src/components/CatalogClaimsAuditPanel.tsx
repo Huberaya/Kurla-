@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, FileWarning, RefreshCw, ShieldCheck } from 'lucide-react';
 
 type ClaimHit = {
@@ -35,6 +37,12 @@ type ClaimsAudit = {
   perProduct: ClaimProduct[];
 };
 
+/** Options d'un filtre enum, déduites des valeurs réellement présentes. */
+function enumOptions(valeurs: Array<string | null | undefined>): Array<{ value: string; label: string }> {
+  const uniques = [...new Set(valeurs.filter((v): v is string => typeof v === 'string' && v.trim() !== ''))].sort((a, b) => a.localeCompare(b, 'fr'));
+  return uniques.map(v => ({ value: v, label: v }));
+}
+
 type Props = { headers: HeadersInit };
 
 export const CatalogClaimsAuditPanel: React.FC<Props> = ({ headers }) => {
@@ -59,6 +67,33 @@ export const CatalogClaimsAuditPanel: React.FC<Props> = ({ headers }) => {
   }, [headers]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Filtres par champ (17/09) : même motif que le catalogue produits et les
+  // panneaux d'approvisionnement — un filtre par colonne, combinables, aucun
+  // filtre = liste complète. Le calcul vient de src/lib/columnFilters.
+  //
+  // Le filtre « terme » mérite une explication : il cherche dans l'extrait et
+  // dans le terme relevé, ce qui permet de répondre à « quelles fiches
+  // emploient encore ce mot » sans ouvrir chaque fiche l'une après l'autre.
+  const lignes = useMemo(() => audit?.perProduct ?? [], [audit]);
+  const columnFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'title', kind: 'text', get: (p: ClaimProduct) => p.title, extra: (p: ClaimProduct) => [p.productId, p.slug] },
+    { key: 'category', kind: 'enum', get: (p: ClaimProduct) => p.category ?? '', options: enumOptions(lignes.map(p => p.category)) },
+    { key: 'status', kind: 'enum', get: (p: ClaimProduct) => p.catalogStatus, options: enumOptions(lignes.map(p => p.catalogStatus)) },
+    { key: 'verdict', kind: 'enum', get: (p: ClaimProduct) => (p.clean ? 'clean' : 'flagged'), options: [
+      { value: 'flagged', label: 'À revoir' },
+      { value: 'clean', label: 'Sans signal' },
+    ] },
+    { key: 'rule', kind: 'enum', get: (p: ClaimProduct) => p.hits.map(h => h.ruleLabel), options: enumOptions(lignes.flatMap(p => p.hits.map(h => h.ruleLabel))) },
+    { key: 'term', kind: 'text', get: (p: ClaimProduct) => p.hits.map(h => `${h.term} ${h.excerpt} ${h.fieldLabel}`).join(' ') },
+    { key: 'hits', kind: 'numeric', get: (p: ClaimProduct) => Number(p.hitCount || 0) },
+  ], [lignes]);
+  const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
+  const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
+  const perProduct = useMemo(
+    () => applyColumnFilters(lignes, columnFilters, columnFilterState),
+    [lignes, columnFilters, columnFilterState]
+  );
 
   return (
     <section className="rounded-3xl bg-kurla-espresso border border-kurla-cream/10 p-6 sm:p-8 space-y-5 shadow-xl">
@@ -106,11 +141,20 @@ export const CatalogClaimsAuditPanel: React.FC<Props> = ({ headers }) => {
             </div>
           </div>
 
-          {audit.perProduct.length === 0 ? (
-            <p className="text-xs text-kurla-cream/45 italic">Aucune fiche dans cet espace.</p>
+          <ColumnFilterStrip
+            filters={columnFilters}
+            state={columnFilterState}
+            onChange={setColumnFilter}
+            onReset={() => setColumnFilterState(emptyFilterState(columnFilters))}
+            total={lignes.length}
+            shown={perProduct.length}
+          />
+
+          {perProduct.length === 0 ? (
+            <p className="text-xs text-kurla-cream/45 italic">{lignes.length === 0 ? 'Aucune fiche dans cet espace.' : 'Aucune fiche ne correspond à ces filtres.'}</p>
           ) : (
             <div className="space-y-3">
-              {audit.perProduct.map(product => (
+              {perProduct.map(product => (
                 <article key={product.productId} className={`rounded-2xl border p-4 ${product.clean ? 'border-emerald-500/20 bg-emerald-950/10' : 'border-amber-500/30 bg-amber-950/10'}`}>
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>

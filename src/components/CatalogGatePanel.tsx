@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ShieldCheck, Play, Check, X } from 'lucide-react';
+
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 
 /**
  * CHANTIER C4 — PORTE DE PUBLICATION (mode proposition).
@@ -13,6 +15,26 @@ export const CatalogGatePanel: React.FC<{ headers: Record<string, string> }> = (
   const [busy, setBusy] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+
+  // Filtres par champ (17/09) : même motif que le reste du catalogue. Le
+  // scan peut remonter des dizaines de propositions ; sans filtre, retrouver
+  // « les retraits proposés sur la gamme peau » oblige à tout relire.
+  const lignes = useMemo(() => proposals ?? [], [proposals]);
+  const columnFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'name', kind: 'text', get: (p: any) => p.name, extra: (p: any) => [p.productId] },
+    { key: 'action', kind: 'enum', get: (p: any) => String(p.action || ''), options: [
+      { value: 'publish', label: 'Publier' },
+      { value: 'withdraw', label: 'Retirer' },
+    ] },
+    { key: 'reason', kind: 'text', get: (p: any) => String(p.reason || '') },
+    { key: 'score', kind: 'numeric', get: (p: any) => (Number.isFinite(Number(p.score)) ? Number(p.score) : NaN) },
+  ], []);
+  const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
+  const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
+  const shown = useMemo(
+    () => applyColumnFilters(lignes, columnFilters, columnFilterState),
+    [lignes, columnFilters, columnFilterState]
+  );
 
   const scan = async () => {
     setBusy(true);
@@ -61,8 +83,17 @@ export const CatalogGatePanel: React.FC<{ headers: Record<string, string> }> = (
       <p className="text-[11px] text-kurla-cream/60">La porte compare chaque fiche aux critères (score KURLA Ready) : elle <span className="text-emerald-300">propose de publier</span> les fiches prêtes encore en brouillon, et <span className="text-rose-300">propose de retirer</span> les fiches publiées devenues non conformes. Rien n'est appliqué sans votre clic ; chaque décision est journalisée. Les fiches test (dérogations) ne sont jamais proposées au retrait.</p>
       {message && <p className="text-[11px] text-kurla-cream/75">{message}</p>}
       {proposals && proposals.length > 0 && (
-        <div className="space-y-1.5">
-          {proposals.map(proposal => (
+        <>
+          <ColumnFilterStrip
+            filters={columnFilters}
+            state={columnFilterState}
+            onChange={setColumnFilter}
+            onReset={() => setColumnFilterState(emptyFilterState(columnFilters))}
+            total={lignes.length}
+            shown={shown.length}
+          />
+          <div className="space-y-1.5">
+            {shown.map(proposal => (
             <div key={`${proposal.productId}-${proposal.action}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${proposal.action === 'publish' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>{proposal.action === 'publish' ? 'publier' : 'retirer'}</span>
               <span className="font-semibold">{proposal.name}</span>
@@ -73,7 +104,11 @@ export const CatalogGatePanel: React.FC<{ headers: Record<string, string> }> = (
               </button>
             </div>
           ))}
-        </div>
+          {shown.length === 0 && (
+            <p className="text-[11px] text-kurla-cream/45">Aucune proposition ne correspond à ces filtres.</p>
+          )}
+          </div>
+        </>
       )}
       {proposals && proposals.length === 0 && !message && <p className="text-[11px] text-emerald-300">Aucune décision en attente.</p>}
     </div>

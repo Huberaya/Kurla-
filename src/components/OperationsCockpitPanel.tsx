@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState , useMemo } from 'react';
+
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, FileCheck2, Gauge, Package, RefreshCw, Send, Trophy } from 'lucide-react';
 
 type OperationsCockpitPanelProps = {
@@ -21,6 +23,12 @@ type ProductRow = {
   servedCostReason: string;
   batchCount: number;
 };
+
+/** Options d'un filtre enum, déduites des valeurs réellement présentes. */
+function enumOptions(valeurs: Array<string | null | undefined>): Array<{ value: string; label: string }> {
+  const uniques = [...new Set(valeurs.filter((v): v is string => typeof v === 'string' && v.trim() !== ''))].sort((a, b) => a.localeCompare(b, 'fr'));
+  return uniques.map(v => ({ value: v, label: v }));
+}
 
 type Cockpit = {
   generatedAt: string;
@@ -208,6 +216,29 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
     { label: 'Avec coût servi réel', value: cockpit.productsWithServedCost, tone: cockpit.productsWithServedCost > 0 ? 'text-emerald-300' : 'text-kurla-cream/50' }
   ] : [];
 
+  // Filtres par champ (17/09) : même motif que le reste du catalogue. Le
+  // tableau « Produit par produit » reprend les colonnes une par une, ce qui
+  // est le cas d'usage exact des filtres par colonne.
+  const lignes = useMemo(() => cockpit?.rows ?? [], [cockpit]);
+  const columnFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'title', kind: 'text', get: (r: ProductRow) => r.title, extra: (r: ProductRow) => [r.productId, r.slug] },
+    { key: 'status', kind: 'enum', get: (r: ProductRow) => r.catalogStatus, options: enumOptions(lignes.map(r => r.catalogStatus)) },
+    { key: 'ready', kind: 'enum', get: (r: ProductRow) => (r.ready ? 'yes' : 'no'), options: [
+      { value: 'yes', label: 'Vendable' },
+      { value: 'no', label: 'Non vendable' },
+    ] },
+    { key: 'missing', kind: 'text', get: (r: ProductRow) => r.missing.join(' ') },
+    { key: 'supplier', kind: 'text', get: (r: ProductRow) => r.supplierName || '', presentLabels: { filled: 'Provenance connue', empty: 'Sans fournisseur' } },
+    { key: 'documents', kind: 'text', get: (r: ProductRow) => [...r.documentsHeld, ...r.expiredDocuments].join(' ') },
+    { key: 'cost', kind: 'numeric', get: (r: ProductRow) => (r.servedCostCents == null ? NaN : Number(r.servedCostCents) / 100), unit: ' €' },
+  ], [lignes]);
+  const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
+  const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
+  const rows = useMemo(
+    () => applyColumnFilters(lignes, columnFilters, columnFilterState),
+    [lignes, columnFilters, columnFilterState]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -276,6 +307,14 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
             <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
               <Package size={13} /> Produit par produit
             </h3>
+            <ColumnFilterStrip
+              filters={columnFilters}
+              state={columnFilterState}
+              onChange={setColumnFilter}
+              onReset={() => setColumnFilterState(emptyFilterState(columnFilters))}
+              total={lignes.length}
+              shown={rows.length}
+            />
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -290,7 +329,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                   </tr>
                 </thead>
                 <tbody>
-                  {cockpit.rows.map(row => (
+                  {rows.map(row => (
                     <tr key={row.productId} className="border-t border-kurla-cream/10 align-top">
                       <td className="py-2 pr-3 text-kurla-cream">{row.title}<div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div></td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{row.catalogStatus}</td>
