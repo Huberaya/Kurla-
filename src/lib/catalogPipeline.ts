@@ -42,6 +42,8 @@ export interface PipelineProductInput {
   catalogStatus?: string;
   isTestListing?: boolean;
   supplierId?: string | null;
+  /** Catégorie/département de la fiche (les candidats n'en ont pas → « Non catégorisé »). */
+  category?: string | null;
   truth?: { isPubliclyListable?: boolean; isCheckoutEligible?: boolean } | null;
 }
 
@@ -59,9 +61,14 @@ export interface PipelineRow {
   supplierName: string | null;
   catalogStatus: string | null;
   priceEur: number | null;
+  /** Catégorie/département (null pour les candidats et fiches sans catégorie). */
+  category: string | null;
   /** Pour le deep link vers le catalogue (fiches uniquement). */
   focusProductId?: string;
 }
+
+/** Libellé du groupe des lignes sans catégorie connue (candidats, fiches sans département). */
+export const PIPELINE_UNCATAGORIZED = 'Non catégorisé';
 
 export interface PipelineInput {
   /** Lignes consolidées (produits + candidats) — la population « 250+ ». */
@@ -115,7 +122,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       rows.push({
         id: String(row.id), kind: 'candidate', name: row.name, stage: 'identified',
         anomaly: false, isTest: false, missing: [], supplierName: row.supplierName,
-        catalogStatus: null, priceEur: row.priceEur
+        catalogStatus: null, priceEur: row.priceEur, category: null
       });
       continue;
     }
@@ -126,7 +133,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       rows.push({
         id: String(row.id), kind: 'product', name: row.name, stage: 'identified',
         anomaly: false, isTest: false, missing: [], supplierName: row.supplierName,
-        catalogStatus: null, priceEur: row.priceEur
+        catalogStatus: null, priceEur: row.priceEur, category: null
       });
       continue;
     }
@@ -141,6 +148,7 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
       supplierName: row.supplierName,
       catalogStatus: product.catalogStatus || null,
       priceEur: row.priceEur,
+      category: product.category || null,
       focusProductId: String(product.id)
     });
   }
@@ -163,6 +171,143 @@ export function buildCatalogPipeline(input: PipelineInput): PipelineResult {
     .map(([label, count]) => ({ label, count }));
 
   return { rows, counts, total: rows.length, anomalies, testCount, topCriteria };
+}
+
+/* ------------------------------------------------------------------ */
+/* Organisation — filtres, classements, regroupements (purs, bancés)   */
+/* ------------------------------------------------------------------ */
+
+export type PipelineSortKey = 'categorie' | 'nom' | 'prix' | 'fournisseur';
+
+export type PipelineSpecialFilter = 'test' | 'sans-prix' | 'sans-fournisseur';
+
+/**
+ * Filtres cumulables du pipeline. Tout est optionnel : un filtre absent
+ * ne filtre pas. `category`/`supplier` sont des valeurs exactes (les chips
+ * ne proposent que des valeurs présentes dans les données).
+ */
+export interface PipelineFilters {
+  search?: string;
+  stage?: PipelineStage | 'all';
+  conformOnly?: boolean;
+  category?: string | null;
+  supplier?: string | null;
+  special?: PipelineSpecialFilter | null;
+  criterion?: string | null;
+}
+
+/** Recherche : nom de la ligne + fournisseur (jamais de champ inventé). */
+export function applyPipelineFilters(rows: PipelineRow[], f: PipelineFilters): PipelineRow[] {
+  const q = (f.search || '').trim().toLowerCase();
+  return rows.filter(row => {
+    if (f.stage && f.stage !== 'all' && row.stage !== f.stage) return false;
+    if (f.conformOnly && row.stage !== 'conforme' && row.stage !== 'publie' && row.stage !== 'vendable') return false;
+    if (f.category && (row.category || PIPELINE_UNCATAGORIZED) !== f.category) return false;
+    if (f.supplier && row.supplierName !== f.supplier) return false;
+    if (f.criterion && !row.missing.includes(f.criterion)) return false;
+    if (f.special === 'test' && !row.isTest) return false;
+    if (f.special === 'sans-prix' && row.priceEur != null) return false;
+    if (f.special === 'sans-fournisseur' && row.supplierName) return false;
+    if (q) {
+      const hay = `${row.name} ${row.supplierName || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Classements. `categorie` = par catégorie puis nom (« Non catégorisé »
+ * en dernier) ; `prix`/`fournisseur` : les valeurs absentes en dernier
+ * (une absence n'est pas un zéro).
+ */
+export function sortPipelineRows(rows: PipelineRow[], key: PipelineSortKey): PipelineRow[] {
+  const sorted = [...rows];
+  const byName = (a: PipelineRow, b: PipelineRow) => a.name.localeCompare(b.name, 'fr');
+  switch (key) {
+    case 'nom':
+      sorted.sort(byName);
+      break;
+    case 'prix':
+      sorted.sort((a, b) => (a.priceEur ?? Number.MAX_SAFE_INTEGER) - (b.priceEur ?? Number.MAX_SAFE_INTEGER) || byName(a, b));
+      break;
+    case 'fournisseur':
+      sorted.sort((a, b) => (a.supplierName || '\uFFFF').localeCompare(b.supplierName || '\uFFFF', 'fr') || byName(a, b));
+      break;
+    case 'categorie':
+    default:
+      sorted.sort((a, b) => {
+        const ca = a.category || PIPELINE_UNCATAGORIZED;
+        const cb = b.category || PIPELINE_UNCATAGORIZED;
+        const caLast = ca === PIPELINE_UNCATAGORIZED ? 1 : 0;
+        const cbLast = cb === PIPELINE_UNCATAGORIZED ? 1 : 0;
+        return caLast - cbLast || ca.localeCompare(cb, 'fr') || byName(a, b);
+      });
+  }
+  return sorted;
+}
+
+export interface PipelineCategoryGroup {
+  category: string;
+  rows: PipelineRow[];
+}
+
+/** Regroupement par catégorie pour l'affichage en sous-groupes dans les colonnes. */
+export function groupRowsByCategory(rows: PipelineRow[]): PipelineCategoryGroup[] {
+  const map = new Map<string, PipelineRow[]>();
+  for (const row of rows) {
+    const cat = row.category || PIPELINE_UNCATAGORIZED;
+    const list = map.get(cat) || [];
+    list.push(row);
+    map.set(cat, list);
+  }
+  const groups: PipelineCategoryGroup[] = [...map.entries()].map(([category, rows]) => ({ category, rows }));
+  groups.sort((a, b) => {
+    const aLast = a.category === PIPELINE_UNCATAGORIZED ? 1 : 0;
+    const bLast = b.category === PIPELINE_UNCATAGORIZED ? 1 : 0;
+    return aLast - bLast || a.category.localeCompare(b.category, 'fr');
+  });
+  return groups;
+}
+
+export interface PipelineFilterCounts {
+  /** [catégorie, nombre] — triées par nombre décroissant puis nom. */
+  categories: Array<[string, number]>;
+  /** [fournisseur, nombre] — triées par nombre décroissant puis nom. */
+  suppliers: Array<[string, number]>;
+  test: number;
+  sansPrix: number;
+  sansFournisseur: number;
+}
+
+/**
+ * Comptes pour les chips de filtres — calculés sur les données réelles,
+ * jamais supposés : une catégorie ou un fournisseur absent du pipeline
+ * n'apparaît pas (zéro ligne = zéro chip).
+ */
+export function pipelineFilterCounts(rows: PipelineRow[]): PipelineFilterCounts {
+  const categories = new Map<string, number>();
+  const suppliers = new Map<string, number>();
+  let test = 0;
+  let sansPrix = 0;
+  let sansFournisseur = 0;
+  for (const row of rows) {
+    const cat = row.category || PIPELINE_UNCATAGORIZED;
+    categories.set(cat, (categories.get(cat) || 0) + 1);
+    if (row.supplierName) suppliers.set(row.supplierName, (suppliers.get(row.supplierName) || 0) + 1);
+    if (row.isTest) test += 1;
+    if (row.priceEur == null) sansPrix += 1;
+    if (!row.supplierName) sansFournisseur += 1;
+  }
+  const byCount = (entries: Array<[string, number]>) =>
+    entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
+  return {
+    categories: byCount([...categories.entries()]),
+    suppliers: byCount([...suppliers.entries()]),
+    test,
+    sansPrix,
+    sansFournisseur
+  };
 }
 
 /* ------------------------------------------------------------------ */

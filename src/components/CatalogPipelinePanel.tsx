@@ -18,29 +18,61 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, hasActiveFilter, type ColumnFilter } from '../lib/columnFilters';
 import { AlertTriangle, Boxes, Clock, FileCheck2, GitBranch, PackageSearch, Search, ShieldAlert, Store } from 'lucide-react';
 import {
-  buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
-  PIPELINE_STAGES, type PipelineResult, type PipelineRow, type PipelineStage
+  applyPipelineFilters, buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
+  groupRowsByCategory, pipelineFilterCounts, sortPipelineRows,
+  PIPELINE_STAGES, PIPELINE_UNCATAGORIZED,
+  type PipelineResult, type PipelineRow, type PipelineSortKey, type PipelineSpecialFilter, type PipelineStage
 } from '../lib/catalogPipeline';
 import type { PublicationPolicyState } from '../lib/db/publicationPolicyStore';
 
 type ConsolidatedRow = { kind: 'product' | 'candidate'; id: string; name: string; supplierName: string | null; priceEur: number | null };
+
+/**
+ * Filtres persistés (sessionStorage) : changer d'onglet du dashboard ne fait
+ * plus perdre l'organisation choisie (catégorie, fournisseur, classements).
+ */
+const PIPELINE_FILTERS_KEY = 'kurla_pipeline_filters_v1';
+type PersistedPipelineFilters = {
+  category: string | null;
+  supplier: string | null;
+  special: PipelineSpecialFilter | null;
+  sortBy: PipelineSortKey;
+  conformOnly: boolean;
+};
+function readPersistedPipelineFilters(): PersistedPipelineFilters {
+  try {
+    const raw = sessionStorage.getItem(PIPELINE_FILTERS_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as Partial<PersistedPipelineFilters>;
+      const sortBy: PipelineSortKey = p.sortBy === 'nom' || p.sortBy === 'prix' || p.sortBy === 'fournisseur' || p.sortBy === 'categorie' ? p.sortBy : 'categorie';
+      const special: PipelineSpecialFilter | null = p.special === 'test' || p.special === 'sans-prix' || p.special === 'sans-fournisseur' ? p.special : null;
+      return { category: typeof p.category === 'string' ? p.category : null, supplier: typeof p.supplier === 'string' ? p.supplier : null, special, sortBy, conformOnly: p.conformOnly === true };
+    }
+  } catch { /* stockage corrompu → filtres par défaut, jamais un plantage */ }
+  return { category: null, supplier: null, special: null, sortBy: 'categorie', conformOnly: false };
+}
 
 export const CatalogPipelinePanel: React.FC<{
   headers: HeadersInit;
   /** Deep link vers le catalogue (fiche focalisée) pour « Compléter le dossier ». */
   onOpenCatalog: (productId: string) => void;
 }> = ({ headers, onOpenCatalog }) => {
+  const persisted = useMemo(readPersistedPipelineFilters, []);
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<ReturnType<typeof buildExpiryWatch>>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<PipelineStage | 'all'>('all');
-  const [conformOnly, setConformOnly] = useState(false); // aperçu « mode strict » (lecture seule)
+  const [conformOnly, setConformOnly] = useState(persisted.conformOnly); // aperçu « mode strict » (lecture seule)
   const [search, setSearch] = useState('');
   const [criterionFilter, setCriterionFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(persisted.category);
+  const [supplierFilter, setSupplierFilter] = useState<string | null>(persisted.supplier);
+  const [specialFilter, setSpecialFilter] = useState<PipelineSpecialFilter | null>(persisted.special);
+  const [sortBy, setSortBy] = useState<PipelineSortKey>(persisted.sortBy);
   const [unpublishingId, setUnpublishingId] = useState<string | null>(null);
   const [flash, setFlash] = useState('');
   // C3 — politique de publication (mode strict) : lue à part, un échec de
@@ -92,6 +124,7 @@ export const CatalogPipelinePanel: React.FC<{
       catalogStatus: p.catalogStatus,
       isTestListing: p.isTestListing === true || p.is_test_listing === true || p.truth?.isTestListing === true,
       supplierId: p.supplierId || p.supplier_id || null,
+      category: p.category || p.department || null,
       truth: p.truth || null
     }));
 
@@ -170,17 +203,26 @@ export const CatalogPipelinePanel: React.FC<{
       .finally(() => setArming(false));
   };
 
+  // Filtres cumulables — logique pure (banc `kurla_catalog_pipeline`).
   const visibleRows = useMemo(() => {
     if (!result) return [];
-    const q = search.trim().toLowerCase();
-    return result.rows.filter(row => {
-      if (stageFilter !== 'all' && row.stage !== stageFilter) return false;
-      if (conformOnly && !['conforme', 'publie', 'vendable'].includes(row.stage)) return false;
-      if (criterionFilter && !row.missing.some(m => m === criterionFilter)) return false;
-      if (q && !`${row.name} ${row.slug || ''} ${row.supplierName || ''}`.toLowerCase().includes(q)) return false;
-      return true;
+    return applyPipelineFilters(result.rows, {
+      search, stage: stageFilter, conformOnly, category: categoryFilter,
+      supplier: supplierFilter, special: specialFilter, criterion: criterionFilter
     });
-  }, [result, stageFilter, conformOnly, criterionFilter, search]);
+  }, [result, search, stageFilter, conformOnly, categoryFilter, supplierFilter, specialFilter, criterionFilter]);
+
+  // Comptes des chips : sur les données réelles du pipeline, jamais supposés.
+  const filterCounts = useMemo(() => (result ? pipelineFilterCounts(result.rows) : null), [result]);
+
+  // Persistance de l'organisation (onglet → autre onglet → retour).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(PIPELINE_FILTERS_KEY, JSON.stringify({
+        category: categoryFilter, supplier: supplierFilter, special: specialFilter, sortBy, conformOnly
+      }));
+    } catch { /* stockage indisponible : pas de persistance, pas de plantage */ }
+  }, [categoryFilter, supplierFilter, specialFilter, sortBy, conformOnly]);
 
   // Filtres par champ (17/09) : même motif que le reste du catalogue. Ils
   // s'appliquent APRÈS la recherche et les filtres rapides — ils précisent,
@@ -206,7 +248,44 @@ export const CatalogPipelinePanel: React.FC<{
     [visibleRows, columnFilters, columnFilterState]
   );
 
+  // « Tout » / « Réinitialiser » : la barre d'organisation ET les filtres par colonne.
+  const hasActiveFilters =
+    stageFilter !== 'all' || conformOnly || !!search.trim() || !!criterionFilter ||
+    !!categoryFilter || !!supplierFilter || !!specialFilter || hasActiveFilter(columnFilterState);
+  const resetAllFilters = () => {
+    setStageFilter('all'); setConformOnly(false); setSearch(''); setCriterionFilter(null);
+    setCategoryFilter(null); setSupplierFilter(null); setSpecialFilter(null);
+    setColumnFilterState(emptyFilterState(columnFilters));
+  };
+
   const fmtPrice = (n: number | null) => (n == null ? null : `${n.toFixed(2).replace('.', ',')} €`);
+
+  /** Carte d'une ligne du kanban (partagée entre rendu plat et regroupé par catégorie). */
+  const renderRowCard = (row: PipelineRow) => (
+    <div className={`rounded-xl border px-2.5 py-2 ${row.anomaly ? 'border-rose-500/40 bg-rose-500/[0.07]' : 'border-kurla-cream/10 bg-kurla-espresso'}`}>
+      <div className="flex items-center gap-1.5">
+        {row.anomaly && <AlertTriangle className="w-3 h-3 text-rose-300 shrink-0" />}
+        <p className="text-[11px] font-semibold text-kurla-cream truncate flex-1" title={row.name}>{row.name}</p>
+        {row.isTest && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[8px] font-bold shrink-0">test</span>}
+      </div>
+      <p className="text-[10px] text-kurla-cream/45 truncate mt-0.5">
+        {row.supplierName || (row.kind === 'candidate' ? 'fournisseur à qualifier' : 'fournisseur non rattaché')}
+      </p>
+      {row.missing.length > 0 && (
+        <p className="text-[9px] text-amber-300/80 truncate mt-0.5" title={row.missing.join(' · ')}>
+          ⛔ {row.missing[0]}{row.missing.length > 1 ? ` +${row.missing.length - 1}` : ''}
+        </p>
+      )}
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-kurla-cream/40">{row.priceEur != null ? fmtPrice(row.priceEur) : '—'}</span>
+        {row.kind === 'candidate'
+          ? <span className="text-[9px] text-sky-300/70 font-bold">candidat appro</span>
+          : (
+            <button type="button" onClick={() => onOpenCatalog(row.focusProductId!)} className="text-[9px] text-kurla-copper font-bold hover:underline">Ouvrir →</button>
+          )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -226,6 +305,8 @@ export const CatalogPipelinePanel: React.FC<{
 
       {result && !loading && (
         <>
+          {/* SECTION 1 — Vue d'ensemble : mode strict + les 6 stades */}
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-kurla-copper/70 scroll-mt-28">Vue d’ensemble — les 6 stades</h2>
           {/* C3 — MODE STRICT : la politique de publication, armée ou non */}
           <section className={`rounded-2xl border p-4 space-y-2 ${policy?.available && policy.strictMode ? 'border-amber-500/40 bg-amber-500/[0.08]' : 'border-kurla-cream/10 bg-kurla-ink/40'}`}>
             <div className="flex flex-wrap items-center gap-2">
@@ -276,7 +357,9 @@ export const CatalogPipelinePanel: React.FC<{
             })}
           </div>
 
-          {/* C1 — Anomalies en boutique : signalées, jamais masquées */}
+          {/* SECTION 2 — Anomalies boutique : signalées, jamais masquées */}
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-kurla-copper/70 scroll-mt-28 mt-2">Anomalies boutique</h2>
+          {/* C1 — signalées, jamais masquées */}
           {result.anomalies > 0 ? (
             <section className="rounded-2xl border border-rose-500/30 bg-rose-500/[0.06] p-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -316,33 +399,96 @@ export const CatalogPipelinePanel: React.FC<{
 
           {flash && <div className="rounded-xl border border-kurla-copper/30 bg-kurla-copper/[0.07] px-3 py-2 text-[11px] text-kurla-cream/80">{flash}</div>}
 
-          {/* Filtres */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => { setStageFilter('all'); setConformOnly(false); setCriterionFilter(null); }}
-              className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold ${stageFilter === 'all' && !conformOnly && !criterionFilter ? 'bg-kurla-copper/20 text-kurla-copper border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
-              Tous ({result.rows.length})
-            </button>
-            <button type="button" onClick={() => { setConformOnly(v => !v); setStageFilter('all'); }}
-              className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold inline-flex items-center gap-1.5 ${conformOnly ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
-              <Store className="w-3.5 h-3.5" /> Conformes uniquement <span className="text-[9px] opacity-70">(aperçu mode strict)</span>
-            </button>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-kurla-cream/35" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher (nom, fournisseur)…" className="pl-8 pr-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs w-64" />
+          {/* SECTION 3 — Pipeline par stades : filtres cumulables + kanban */}
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-kurla-copper/70 scroll-mt-28 mt-2">Pipeline par stades</h2>
+
+          {/* Barre de filtres sticky — toujours accessible en défilant les colonnes */}
+          <div className="sticky top-[104px] z-20 rounded-2xl border border-kurla-cream/10 bg-kurla-espresso/95 backdrop-blur p-3 space-y-2.5 shadow-lg shadow-black/20">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => { setStageFilter('all'); setConformOnly(false); setCriterionFilter(null); setCategoryFilter(null); setSupplierFilter(null); setSpecialFilter(null); setSearch(''); }}
+                className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold ${!hasActiveFilters ? 'bg-kurla-copper/20 text-kurla-copper border-kurla-copper/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
+                Tout ({result.rows.length})
+              </button>
+              <button type="button" onClick={() => { setConformOnly(v => !v); setStageFilter('all'); }}
+                className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold inline-flex items-center gap-1.5 ${conformOnly ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>
+                <Store className="w-3.5 h-3.5" /> Conformes <span className="text-[9px] opacity-70">(aperçu strict)</span>
+              </button>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-kurla-cream/35" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher (nom, fournisseur)…" className="pl-8 pr-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs w-56" />
+              </div>
+              {filterCounts && filterCounts.suppliers.length > 0 && (
+                <select value={supplierFilter || ''} onChange={e => setSupplierFilter(e.target.value || null)}
+                  className="px-2.5 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 max-w-[180px]">
+                  <option value="">Tous les fournisseurs ({filterCounts.suppliers.length})</option>
+                  {filterCounts.suppliers.map(([name, count]) => (
+                    <option key={name} value={name}>{name.length > 28 ? name.slice(0, 27) + '…' : name} ({count})</option>
+                  ))}
+                </select>
+              )}
+              <select value={sortBy} onChange={e => setSortBy(e.target.value as PipelineSortKey)}
+                className="px-2.5 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70">
+                <option value="categorie">Classement : catégorie → nom</option>
+                <option value="nom">Classement : nom A→Z</option>
+                <option value="prix">Classement : prix croissant</option>
+                <option value="fournisseur">Classement : fournisseur A→Z</option>
+              </select>
+              {hasActiveFilters && (
+                <button type="button" onClick={resetAllFilters} className="px-2.5 py-1.5 rounded-xl border border-kurla-cream/20 text-[10px] font-bold text-kurla-cream/50 hover:text-kurla-cream/80 hover:border-kurla-cream/40">
+                  ✕ Réinitialiser
+                </button>
+              )}
+              <span className="ml-auto text-[10px] font-bold text-kurla-cream/45 tabular-nums" title="Lignes affichées dans les colonnes / total du pipeline">
+                {filteredRows.length} / {result.rows.length} fiches
+              </span>
             </div>
-            {result.topCriteria.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 ml-auto">
-                <span className="text-[10px] uppercase tracking-wider text-kurla-cream/35">Critères manquants :</span>
-                {result.topCriteria.map(c => (
-                  <button key={c.label} type="button" onClick={() => setCriterionFilter(cur => cur === c.label ? null : c.label)}
-                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${criterionFilter === c.label ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-amber-400/40'}`}>
-                    {c.label.length > 34 ? c.label.slice(0, 33) + '…' : c.label} ({c.count})
+
+            {filterCounts && filterCounts.categories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-kurla-cream/35">Catégorie :</span>
+                {filterCounts.categories.map(([cat, count]) => (
+                  <button key={cat} type="button" onClick={() => setCategoryFilter(cur => cur === cat ? null : cat)}
+                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${categoryFilter === cat ? 'bg-kurla-copper/20 text-kurla-copper border-kurla-copper/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-kurla-copper/40'}`}>
+                    {cat} ({count})
                   </button>
                 ))}
               </div>
             )}
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-kurla-cream/35">Spécifique :</span>
+              {filterCounts && (
+                <>
+                  <button type="button" onClick={() => setSpecialFilter(cur => cur === 'test' ? null : 'test')}
+                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${specialFilter === 'test' ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-amber-400/40'}`}>
+                    Fiches test ({filterCounts.test})
+                  </button>
+                  <button type="button" onClick={() => setSpecialFilter(cur => cur === 'sans-prix' ? null : 'sans-prix')}
+                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${specialFilter === 'sans-prix' ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-amber-400/40'}`}>
+                    Sans prix ({filterCounts.sansPrix})
+                  </button>
+                  <button type="button" onClick={() => setSpecialFilter(cur => cur === 'sans-fournisseur' ? null : 'sans-fournisseur')}
+                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${specialFilter === 'sans-fournisseur' ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-amber-400/40'}`}>
+                    Sans fournisseur ({filterCounts.sansFournisseur})
+                  </button>
+                </>
+              )}
+              {result.topCriteria.length > 0 && (
+                <>
+                  <span className="ml-2 text-[10px] uppercase tracking-wider text-kurla-cream/35">Critères manquants :</span>
+                  {result.topCriteria.map(c => (
+                    <button key={c.label} type="button" onClick={() => setCriterionFilter(cur => cur === c.label ? null : c.label)}
+                      className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold ${criterionFilter === c.label ? 'bg-amber-500/20 text-amber-200 border-amber-400/50' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/55 hover:border-amber-400/40'}`}>
+                      {c.label.length > 34 ? c.label.slice(0, 33) + '…' : c.label} ({c.count})
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
 
+          {/* Filtres par colonne (motif partagé du catalogue) — précisent APRES
+              la barre d'organisation ci-dessus, ne la remplacent pas */}
           <ColumnFilterStrip
             filters={columnFilters}
             state={columnFilterState}
@@ -352,44 +498,51 @@ export const CatalogPipelinePanel: React.FC<{
             shown={filteredRows.length}
           />
 
-          {/* Kanban 6 stades */}
+          {/* Kanban 6 stades — trié selon le classement choisi, sous-groupes par
+              catégorie quand le classement est « catégorie → nom » */}
           <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
             {PIPELINE_STAGES.map(stage => {
-              const colRows = filteredRows.filter(r => r.stage === stage.id);
+              const colRows = sortPipelineRows(filteredRows.filter(r => r.stage === stage.id), sortBy);
+              const groups = sortBy === 'categorie' ? groupRowsByCategory(colRows) : null;
+              // Plafond de lisibilité : 60 cartes par colonne, au total
+              // (dans l'ordre des groupes quand le classement est par catégorie).
+              const flatIds: string[] = [];
+              if (groups) {
+                outer: for (const g of groups) for (const r of g.rows) {
+                  if (flatIds.length >= 60) break outer;
+                  flatIds.push(r.id);
+                }
+              } else {
+                for (const r of colRows.slice(0, 60)) flatIds.push(r.id);
+              }
+              const renderedSet = new Set(flatIds);
+              const hiddenCount = colRows.length - flatIds.length;
               return (
                 <div key={stage.id} className="w-72 shrink-0 rounded-2xl border border-kurla-cream/10 bg-kurla-ink/60 p-2.5">
                   <div className="flex items-center justify-between px-1 pb-2">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-kurla-amber">{stage.label}</p>
-                    <span className="text-[11px] font-bold text-kurla-cream/60">{colRows.length}</span>
+                    <span className="text-[11px] font-bold text-kurla-cream/60 tabular-nums">{colRows.length}</span>
                   </div>
                   <div className="space-y-1.5 max-h-[420px] overflow-y-auto [scrollbar-width:thin]">
-                    {colRows.length === 0 && <p className="text-[10px] text-kurla-cream/30 px-1 py-2">Aucun produit.</p>}
-                    {colRows.slice(0, 60).map(row => (
-                      <div key={row.id} className={`rounded-xl border px-2.5 py-2 ${row.anomaly ? 'border-rose-500/40 bg-rose-500/[0.07]' : 'border-kurla-cream/10 bg-kurla-espresso'}`}>
-                        <div className="flex items-center gap-1.5">
-                          {row.anomaly && <AlertTriangle className="w-3 h-3 text-rose-300 shrink-0" />}
-                          <p className="text-[11px] font-semibold text-kurla-cream truncate flex-1" title={row.name}>{row.name}</p>
-                          {row.isTest && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[8px] font-bold shrink-0">test</span>}
-                        </div>
-                        <p className="text-[10px] text-kurla-cream/45 truncate mt-0.5">
-                          {row.supplierName || (row.kind === 'candidate' ? 'fournisseur à qualifier' : 'fournisseur non rattaché')}
-                        </p>
-                        {row.missing.length > 0 && (
-                          <p className="text-[9px] text-amber-300/80 truncate mt-0.5" title={row.missing.join(' · ')}>
-                            ⛔ {row.missing[0]}{row.missing.length > 1 ? ` +${row.missing.length - 1}` : ''}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[10px] text-kurla-cream/40">{row.priceEur != null ? fmtPrice(row.priceEur) : '—'}</span>
-                          {row.kind === 'candidate'
-                            ? <span className="text-[9px] text-sky-300/70 font-bold">candidat appro</span>
-                            : (
-                              <button type="button" onClick={() => onOpenCatalog(row.focusProductId!)} className="text-[9px] text-kurla-copper font-bold hover:underline">Ouvrir →</button>
-                            )}
-                        </div>
-                      </div>
-                    ))}
-                    {colRows.length > 60 && <p className="text-[10px] text-kurla-cream/35 px-1 py-1">+ {colRows.length - 60} — affiner avec un filtre.</p>}
+                    {colRows.length === 0 && <p className="text-[10px] text-kurla-cream/30 px-1 py-2">{hasActiveFilters ? 'Aucun produit avec ces filtres.' : 'Aucun produit.'}</p>}
+                    {groups
+                      ? groups.map(group => {
+                          const groupRows = group.rows.filter(r => renderedSet.has(r.id));
+                          if (groupRows.length === 0) return null;
+                          return (
+                            <div key={group.category}>
+                              <p className="px-1 pt-1 pb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-kurla-copper/60 border-b border-kurla-cream/10 mb-1.5 flex items-center justify-between">
+                                {group.category}
+                                <span className="text-kurla-cream/35 font-normal tabular-nums">{group.rows.length}</span>
+                              </p>
+                              <div className="space-y-1.5">
+                                {groupRows.map(row => <div key={row.id}>{renderRowCard(row)}</div>)}
+                              </div>
+                            </div>
+                          );
+                        })
+                      : colRows.filter(r => renderedSet.has(r.id)).map(row => renderRowCard(row))}
+                    {hiddenCount > 0 && <p className="text-[10px] text-kurla-cream/35 px-1 py-1">+ {hiddenCount} — affiner avec un filtre.</p>}
                   </div>
                 </div>
               );

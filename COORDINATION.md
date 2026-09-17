@@ -3588,3 +3588,47 @@ Vérification à refaire si quelqu'un remonte une surface d'édition :
   libellé précédent y apparaît 4 fois, le nouveau 0 fois) mesuré à 10:47 UTC, soit
   après ~7 min d'attente. Le déploiement de `e4f797b` n'était pas en ligne.
   À remesurer avant d'annoncer que la correction est visible.
+
+## 2026-09-17 — Pipeline de mise en vente : organisation (Agent Kurla — `9123e81`)
+
+Consigne du fondateur : « organise la pipeline : avec des filtres, un classement par
+catégorie, une navigation plus intéressante ».
+
+### Livré
+- `src/lib/catalogPipeline.ts` (logique pure, bancée) :
+  - `category` sur `PipelineProductInput`/`PipelineRow` (fiche = `product.category` du
+    `/api/admin/catalog/products` ; candidat/orphelin = `null`).
+  - `applyPipelineFilters` : filtres cumulables — recherche, stade, conformOnly,
+    catégorie, fournisseur, statuts spéciaux (test / sans prix / sans fournisseur),
+    critère manquant.
+  - `sortPipelineRows` : 4 classements (catégorie → nom, nom A→Z, prix croissant,
+    fournisseur A→Z) ; les absences sont toujours en dernier.
+  - `groupRowsByCategory` : sous-groupes par catégorie (« Non catégorisé » dernier).
+  - `pipelineFilterCounts` : comptes réels pour les chips (jamais supposés).
+- `src/components/CatalogPipelinePanel.tsx` :
+  - Barre de filtres sticky (sous la nav de sections) : catégorie (chips + comptes),
+    fournisseur (select), statuts spéciaux, critères manquants, recherche, aperçu
+    strict, compteur « X / Y fiches », bouton Réinitialiser.
+  - Classement sélectable ; « catégorie → nom » = sous-groupes par catégorie dans
+    chaque colonne du kanban (en-tête de groupe + compte).
+  - 4 sections h2 (Vue d’ensemble / Anomalies / Pipeline par stades / Veille)
+    collectées par la navigation de sections du dashboard.
+  - Persistance des filtres en sessionStorage : l’organisation survit au
+    changement d’onglet.
+- `tests/kurla_catalog_pipeline.test.ts` : bloc 6 « organisation » (8 assertions ;
+  les 4 ordres de tri sont mesurés en collation FR, jamais devinés).
+
+### Fusion avec le travail parallèle
+Entre deux de mes actions, l’autre intervenant a doté ce même panneau de la
+`ColumnFilterStrip` partagée (familles `c85cb8b`/`acadc7b`). Rebase de mon commit
+sur `2238058`, 2 conflits (imports + kanban) résolus en gardant les deux :
+deux niveaux complémentaires — la barre d’organisation réduise, les filtres par
+colonne précisent ensuite. Le kanban est alimenté par `filteredRows` (APRÈS les
+filtres par colonne), le compteur « X / Y fiches » de la barre = l’ensemble final
+affiché, et le « Réinitialiser » global couvre les deux niveaux (`hasActiveFilter`).
+
+### Contrôles
+- Suite sur l’arbre fusionné : `NPM_TEST_EXIT=0` (234 [PASS], tsc propre).
+- Aucune nouvelle route serveur → pas de régénération d’inventaires.
+- Aucune donnée inventée : catégories issues du catalogue admin, comptes issus des
+  lignes réelles du pipeline.

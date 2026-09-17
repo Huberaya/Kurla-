@@ -26,7 +26,13 @@ import {
   buildCatalogPipeline,
   findBoutiqueAnomalies,
   buildExpiryWatch,
-  type PipelineProductInput
+  applyPipelineFilters,
+  sortPipelineRows,
+  groupRowsByCategory,
+  pipelineFilterCounts,
+  PIPELINE_UNCATAGORIZED,
+  type PipelineProductInput,
+  type PipelineRow
 } from '../src/lib/catalogPipeline';
 
 /* 1. derivePipelineStage — les six stades, porte par porte, fail-closed. */
@@ -283,4 +289,61 @@ import {
   console.log('✓ constantes (60 j, 4 types, 6 stades), libellés, déterminisme');
 }
 
-console.log('\n5 blocs de contrôles « Pipeline de mise en vente » validés — 6 stades, anomalies boutique signalées, veille expiration bornée, zéro donnée inventée.');
+/* 6. Organisation — filtres cumulables, classements, regroupements, comptes. */
+{
+  const rows: PipelineRow[] = [
+    { id: 'r1', kind: 'product', name: 'Sérum Kératine', stage: 'dossier', anomaly: false, isTest: false, missing: ['CPNP'], supplierName: 'EOLYS', catalogStatus: 'draft', priceEur: 12.5, category: 'cheveux' },
+    { id: 'r2', kind: 'product', name: 'Crème Barrière', stage: 'conforme', anomaly: false, isTest: true, missing: [], supplierName: 'EOLYS', catalogStatus: 'draft', priceEur: 18, category: 'peau' },
+    { id: 'r3', kind: 'candidate', name: 'Candidat BOJ', stage: 'identified', anomaly: false, isTest: false, missing: [], supplierName: null, catalogStatus: null, priceEur: null, category: null },
+    { id: 'r4', kind: 'product', name: 'Peigne Soie', stage: 'publie', anomaly: true, isTest: false, missing: ['Visuel produit'], supplierName: 'Blacketique', catalogStatus: 'published', priceEur: 4.9, category: 'accessoires' },
+    { id: 'r5', kind: 'product', name: 'Shampoing Doux', stage: 'vendable', anomaly: false, isTest: false, missing: [], supplierName: 'EOLYS', catalogStatus: 'published', priceEur: 8.9, category: 'cheveux' }
+  ];
+
+  // Recherche sur nom ET fournisseur.
+  assert.deepEqual(applyPipelineFilters(rows, { search: 'sérum' }).map(r => r.id), ['r1']);
+  assert.deepEqual(applyPipelineFilters(rows, { search: 'eolys' }).map(r => r.id).sort(), ['r1', 'r2', 'r5']);
+
+  // Filtres exacts, cumulables.
+  assert.deepEqual(applyPipelineFilters(rows, { category: 'cheveux' }).map(r => r.id).sort(), ['r1', 'r5']);
+  assert.deepEqual(applyPipelineFilters(rows, { supplier: 'EOLYS', category: 'cheveux' }).map(r => r.id).sort(), ['r1', 'r5']);
+  assert.deepEqual(applyPipelineFilters(rows, { category: 'peau', supplier: 'EOLYS' }).map(r => r.id), ['r2']);
+  // « Non catégorisé » filtre les candidats/fiches sans catégorie.
+  assert.deepEqual(applyPipelineFilters(rows, { category: PIPELINE_UNCATAGORIZED }).map(r => r.id), ['r3']);
+
+  // Statuts spéciaux.
+  assert.deepEqual(applyPipelineFilters(rows, { special: 'test' }).map(r => r.id), ['r2']);
+  assert.deepEqual(applyPipelineFilters(rows, { special: 'sans-prix' }).map(r => r.id), ['r3']);
+  assert.deepEqual(applyPipelineFilters(rows, { special: 'sans-fournisseur' }).map(r => r.id), ['r3']);
+  // Cumuls : chaque filtre resserre, un seul résultat.
+  assert.deepEqual(applyPipelineFilters(rows, { stage: 'publie', conformOnly: true, category: 'accessoires' }).map(r => r.id), ['r4']);
+  assert.deepEqual(applyPipelineFilters(rows, { category: 'peau', special: 'test' }).map(r => r.id), ['r2']);
+  assert.deepEqual(applyPipelineFilters(rows, { search: 'shampoing', supplier: 'EOLYS', special: 'sans-fournisseur' }).map(r => r.id), [], 'cumul contradictoire = vide (pas de triche)');
+  assert.deepEqual(applyPipelineFilters(rows, { criterion: 'CPNP' }).map(r => r.id), ['r1']);
+  // Rien d'actif = tout, inchangé.
+  assert.equal(applyPipelineFilters(rows, {}).length, 5);
+
+  // Classements.
+  assert.deepEqual(sortPipelineRows(rows, 'nom').map(r => r.id), ['r3', 'r2', 'r4', 'r1', 'r5'], 'nom : ordre alphabétique FR (Candidat, Crème, Peigne, Sérum, Shampoing)');
+  assert.deepEqual(sortPipelineRows(rows, 'prix').map(r => r.id), ['r4', 'r5', 'r1', 'r2', 'r3'], 'prix croissant, sans prix en dernier');
+  assert.deepEqual(sortPipelineRows(rows, 'fournisseur').map(r => r.id), ['r4', 'r2', 'r1', 'r5', 'r3'], 'fournisseur A→Z puis nom, non rattaché en dernier');
+  assert.deepEqual(sortPipelineRows(rows, 'categorie').map(r => r.id), ['r4', 'r1', 'r5', 'r2', 'r3'], 'catégorie A→Z (Non catégorisé dernier), puis nom');
+
+  // Regroupement par catégorie : sous-groupes ordonnés, Non catégorisé dernier.
+  const groups = groupRowsByCategory(rows);
+  assert.deepEqual(groups.map(g => [g.category, g.rows.length]), [
+    ['accessoires', 1], ['cheveux', 2], ['peau', 1], [PIPELINE_UNCATAGORIZED, 1]
+  ]);
+
+  // Comptes des chips : sur les données réelles uniquement.
+  const counts = pipelineFilterCounts(rows);
+  // Tri par nombre décroissant, puis nom : les trois catégories à 1 suivent l'alphabet FR.
+  assert.deepEqual(counts.categories, [['cheveux', 2], ['accessoires', 1], [PIPELINE_UNCATAGORIZED, 1], ['peau', 1]]);
+  assert.deepEqual(counts.suppliers, [['EOLYS', 3], ['Blacketique', 1]]);
+  assert.equal(counts.test, 1);
+  assert.equal(counts.sansPrix, 1);
+  assert.equal(counts.sansFournisseur, 1);
+
+  console.log('✓ organisation : filtres cumulables (catégorie/fournisseur/statuts/critères), 4 classements, regroupement, comptes réels');
+}
+
+console.log('\n6 blocs de contrôles « Pipeline de mise en vente » validés — 6 stades, anomalies boutique signalées, veille expiration bornée, organisation filtrée/clasée, zéro donnée inventée.');
