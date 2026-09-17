@@ -3683,3 +3683,57 @@ Copier l'e-mail. »
   (import gardé `importCatalogRecords`, audité, idempotent) — zéro écriture hors route.
 - Aucune donnée inventée : vagues issues de `sourcing_items`, stades issus de la
   readiness, prix constatés ou vides.
+
+## 17/09, 2e correction de la journée : dans l'Approvisionnement, TOUT est modifiable
+
+> « Approvisionne → Fournisseurs & sourcing : tous les fournisseurs qui sont dans
+> cet espace, dans les différents onglets et sections doivent pouvoir être
+> modifiables. […] tous les produits qui sont dans cet espace, dans les
+> différents onglets et sections doivent pouvoir être modifiables. »
+
+Les deux demandes du jour se combinent, elles ne s'opposent pas :
+
+| Où | Fournisseur | Produit |
+| --- | --- | --- |
+| **Approvisionnement → Fournisseurs & sourcing** | modifiable sur place, partout où il est affiché | modifiable sur place, partout où il est affiché |
+| Ailleurs (catalogue, lots, affectation hors Appro) | renvoi vers la base de l'Appro | fiche flottante |
+
+La fiche fournisseur éditable ne se monte **toujours** que dans
+`SupplierAdminPanel` (`grep -rn "<SupplierSheet" src/` = 1 ligne). Ailleurs dans
+l'Appro, on passe par `<SupplierName>` / `<ProductName>`
+(`src/components/EditableRecordName.tsx`), qui montent cette même fiche : une
+seule surface d'écriture, plusieurs portes d'entrée.
+
+Câblé : base (bouton « Compléter » par ligne), catalogue par fournisseur
+(fournisseur + produits rattachés), fournisseur par produit, proposition d'achat
+(référence + fournisseur), pistes, recherche globale (résultats fournisseur et
+catalogue), dossier fournisseur.
+
+### Ce qui ne peut PAS être modifiable ici, et pourquoi (ne pas « corriger »)
+
+- `SupplyOpsPanel`, `SourcingCountryStrategyPanel` : totaux et agrégats par pays,
+  aucune fiche derrière.
+- `SourcingConsolidatedPanel`, `SourcedReferencesPanel` : les noms affichés sont
+  des **pistes** (`sourcing_prospects`). La table `sourcing_product_candidates`
+  (migration `20260877000000`) n'a **ni colonne produit ni colonne fournisseur** :
+  `product` est du texte libre. Aucun identifiant de fiche à ouvrir.
+- `TamponOrderPanel`, `KittingAdminPanel` : destinataires fixes et kits.
+
+Mettre un bouton là aurait été promettre un champ à écrire qui n'existe pas.
+
+### Piège vérifié deux fois ce jour
+
+`upsertProspect` (`src/lib/db/prospectStore.ts:376`) n'écrit **pas**
+`supplier_id`. La colonne existe (migration `20261004000000`) et le serveur la
+lit (`prospectStore.ts:220`), mais aucune route ne l'écrit : le lien
+piste → fournisseur est posé par la migration / `create-fiche`, pas par
+l'édition d'une piste. Conséquence à retenir : éditer une piste ne casse pas le
+lien, mais ne permet pas non plus de le créer.
+
+### Contrôles de cette passe
+
+`npm run lint` exit 0 · chaîne complète `npm run test` exit 0 (18 blocs
+`linked-records`) · build exit 0 · inventaire des routes régénéré : 99 routes,
+74 appelées, +1 appelant réel sur `GET /api/admin/suppliers`
+(`src/lib/adminRecordsStore.ts:354`). Rendu navigateur **toujours non vérifié** :
+pas de session admin en local.
