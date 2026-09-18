@@ -4514,3 +4514,66 @@ Comportement conservé : **commandes facturables** — sans filtre, les 5 derni�
 Mesure après cette passe : **63 filtres à liste, 23 panneaux scannés**, 2
 saisies libres nominatives inchangées (extrait d'allégation, date par mois).
 Le banc les couvre automatiquement (scan de tout importateur du module partagé).
+## 18/09/2026 (3e passe) — Audit ligne par ligne des textes par type de coiffage
+
+**Territoire** : consigne du 18/09 — « vérifie pour tous les types de coiffages,
+les réponses générées doivent répondre aux besoins et aux attentes, textes
+lignes par lignes, question par question. »
+
+### Méthode
+
+Dump complet de chaque profil (13 profils : locks, locks+pousse, locks+cuirs,
+tresses, twists, perruque, naturel crépu, naturel bouclé, transition naturel,
+transition braids, enfant, texture « coiffure protectrice », naturel+pousse) —
+résumé, colonnes (action/pourquoi/comment/à attendre), 5 focus par segment,
+leçons, observations — puis relecture ligne par ligne.
+
+### Défauts trouvés et corrigés
+
+1. **Focus qui recopiaient la base** (le défaut exact signalé : « générique ») :
+   6 étapes focus réécrites pour être réellement additives —
+   - `prot_cuirs` → « Sous la coiffure : lire le signal, pas empiler » (méthode
+     de diagnostic : tension / sécheresse / résidus → la bonne réponse à chacune)
+   - `wig_cuirs` → « Le dessous qui tire : identifier la cause » (tension de
+     l'installation / transpiration / produit)
+   - `wig_transpiration` → « Les jours chargés : le protocole fraîcheur »
+     (avant de sortir / pendant la journée / le soir — la base couvre le jour ordinaire)
+   - `enf_cuirs` → « Quand l'enfant se gratte : la réponse » (le grattage comme
+     signal à lire, pas un comportement à faire cesser)
+   - `trans_melanges` → « Deux textures, une seule coiffure : les règles »
+     (règles de coiffage : raie par la ligne, coiffer dans le sens de chaque texture)
+   - `prot_tension` → les **edges** maintenant nommés et couverts (baby hairs :
+     ne jamais tirer pour nettoyer le contour) — la question le disait, l'étape ne le faisait pas
+2. **Résumé** : « Votre texture est en locks » / « Votre texture est en
+   coiffure protectrice » (phrases cassées — ce ne sont pas des textures) →
+   supprimées, la ligne de coiffage les reprend ; le cycle **naturel** est
+   maintenant annoncé dans le résumé (« la routine suit le cycle naturel —
+   lavage doux, hydratation scellée, entretien léger »).
+3. **Banc** : 4 nouvelles paires focus→signal (l'étape additive est présente
+   avec le focus, absente sans), edges exigés dans `prot_tension`, assertions
+   résumé (pas de phrase cassée, cycle naturel annoncé).
+
+### Vérifié correct (inchangé)
+
+- locks : cycle complet + 5 focus réellement distincts (préservation des
+  pointes, lavage profond anti-buildup, soin aqueux entre locks, rythme du
+  retwist, douceur à l'eau) ; priorité pousse → « aucun produit n'accélère la
+  pousse » + étape sans tension ; priorité cuirs → étape « apaiser en douceur »
+  bien présente (la promesse du résumé est tenue).
+- twists : textes « tressé ou twisté » / « tresses ou twists » corrects.
+- enfant : cycle propre (rituel court, démêlage sans larmes, observation
+  cuir chevelu, « ajuster le rituel, pas le forcer »).
+- transition : deux zones + ligne de démarcation en point de contrôle ;
+  {défrisée + tresses} → segment protectrice (le coiffage actuel domine) avec
+  leçon transition + résumé qui mentionne la transition : cohérent.
+- Leçon LCO présente aux profils naturels ; leçons ≤ 3, sourcées, sans
+  doublon ; observations J+7/14/30 par segment ; zéro vocabulaire médical
+  réservé ; mobile : zéro overflow, titres segmentés.
+
+### Contrôles
+
+- tsc standalone exit 0 · 11 bancs verts (routine-segments, hair-advisory,
+  diagnostic-advisory, diagnostic-segments, care-kit, c4-diagnostic-result,
+  routine-minimale, adaptive-routines, c3-kits-routine, diagnostic-session,
+  skin-ux) · live POST tresses/perruque/naturel : résumé + étapes conformes ·
+  capture mobile perruque+focus : zéro overflow, étape focus affichée.

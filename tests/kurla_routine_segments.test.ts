@@ -112,8 +112,14 @@ function main(): void {
     ['prot_tension', { texture: 'frisee', style: 'braids', priority: 'casse', focus: 'prot_tension', ...BASE }, 'morning', 'installer sans tension'],
     ['prot_longueurs', { texture: 'crepue', style: 'twists', priority: 'hydratation', focus: 'prot_longueurs', ...BASE }, 'morning', 'hydrater les longueurs'],
     ['wig_edges', { texture: 'crepue', style: 'wig', priority: 'casse', focus: 'wig_edges', ...BASE }, 'morning', 'contour'],
-    ['enf_cuirs', { texture: 'crepue', style: 'enfant', priority: 'demelage_enfant', focus: 'enf_cuirs', ...BASE }, 'morning', 'observer'],
+    ['enf_cuirs', { texture: 'crepue', style: 'enfant', priority: 'demelage_enfant', focus: 'enf_cuirs', ...BASE }, 'morning', 'se gratte'],
     ['trans_ligne', { texture: 'defrisee', style: 'naturel', priority: 'definition', focus: 'trans_ligne', ...BASE }, 'weekly', 'inspecter, noter, agir'],
+    // Les focus ne reprennent pas la base : ils ajoutent une méthode (lecture du signal,
+    // protocole situationnel, règle de coiffage) — signal distinct des étapes de base.
+    ['prot_cuirs', { texture: 'frisee', style: 'braids', priority: 'cuir_chevelu', focus: 'prot_cuirs', ...BASE }, 'evening', 'lire le signal'],
+    ['wig_cuirs', { texture: 'crepue', style: 'wig', priority: 'cuir_chevelu', focus: 'wig_cuirs', ...BASE }, 'evening', 'identifier la cause'],
+    ['wig_transpiration', { texture: 'crepue', style: 'wig', priority: 'hydratation', focus: 'wig_transpiration', ...BASE }, 'evening', 'jours chargés'],
+    ['trans_melanges', { texture: 'defrisee', style: 'naturel', priority: 'definition', focus: 'trans_melanges', ...BASE }, 'morning', 'une seule coiffure'],
     ['boucle_frisottis', { texture: 'frisee', style: 'naturel', priority: 'definition', focus: 'boucle_frisottis', ...BASE }, 'evening', 'friction'],
     ['cresp_demelage', { texture: 'crepue', style: 'naturel', priority: 'casse', focus: 'cresp_demelage', ...BASE }, 'evening', 'démêlage d’entretien'],
   ];
@@ -126,6 +132,12 @@ function main(): void {
     assert.ok(!foundWithout, `focus ${focus} : sans préoccupation déclarée, l'étape n'est pas inventée`);
     invariants(`focus ${focus}`, ctx);
   }
+
+  // La préoccupation « tension / edges » doit nommer les edges (spécificité tresses/twists).
+  const tensionStep = buildHairAdvisoryRoutine({ texture: 'frisee', style: 'braids', priority: 'casse', focus: 'prot_tension', ...BASE }).morning
+    .find(s => s.action.toLowerCase().includes('installer sans tension'));
+  assert.ok(tensionStep, 'prot_tension : l\'étape d\'installation sans tension est présente');
+  assert.ok(`${tensionStep!.why} ${tensionStep!.how}`.toLowerCase().includes('edges'), 'prot_tension : les edges sont nommés (spécificité du besoin déclaré)');
 
   /* ————————————————— 3. Invariants sur tous les segments × tous les foci ————————————————— */
 
@@ -155,6 +167,13 @@ function main(): void {
   assert.ok(wigSummary.toLowerCase().includes('perruque'), 'résumé : le cycle perruque est repris');
   const transitionSummary = buildHairAdvisorySummary({ texture: 'defrisee', style: 'naturel', priority: 'definition', ...BASE });
   assert.ok(transitionSummary.toLowerCase().includes('transition'), 'résumé : la transition est reprise');
+  assert.ok(locksSummary.toLowerCase().includes('cycle locks'), 'résumé locks : le cycle locks est annoncé');
+  assert.ok(!locksSummary.toLowerCase().includes('votre texture est en locks'), 'résumé locks : plus de « votre texture est en locks »');
+  const naturelSummary = buildHairAdvisorySummary({ texture: 'crepue', style: 'naturel', priority: 'hydratation', ...BASE });
+  assert.ok(naturelSummary.toLowerCase().includes('cycle naturel'), 'résumé naturel : le cycle naturel est annoncé');
+  const texProtectiveSummary = buildHairAdvisorySummary({ texture: 'protective', style: 'naturel', priority: 'hydratation', ...BASE });
+  assert.ok(texProtectiveSummary.toLowerCase().includes('coiffure protectrice'), 'résumé (texture « coiffure protectrice ») : la phrase est grammaticale et le cycle est annoncé');
+  assert.ok(!texProtectiveSummary.toLowerCase().includes('votre texture est en coiffure protectrice'), 'résumé (texture « coiffure protectrice ») : pas de phrase cassée');
 
   // La page résultat (modèle client) porte bien les titres segmentés.
   const modelBraids = buildDiagnosticResultModel({
