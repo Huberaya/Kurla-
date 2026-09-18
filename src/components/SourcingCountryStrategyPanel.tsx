@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { SupplierName } from './EditableRecordName';
 import { Globe, AlertTriangle, RefreshCw, CheckCircle2, XCircle, Clock, Package, Factory } from 'lucide-react';
 
 type StrategyRow = {
@@ -143,7 +144,7 @@ export const SourcingCountryStrategyPanel: React.FC<Props> = ({ headers }) => {
                 const total = (s.linkedHairCount || 0) + (s.linkedSkinCount || 0);
                 return (
                   <span key={s.id} className={`px-2 py-1 rounded-lg border text-[10px] flex items-center gap-1 ${total > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-kurla-cream/10 bg-kurla-espresso text-kurla-cream/60'}`} title={`${s.legalName}${total > 0 ? ` — ${total} produit(s) rattaché(s)` : ' — identifié, aucun produit rattaché'}`}>
-                    {s.tradeName || s.legalName}
+                    <SupplierName id={s.id} label={s.tradeName || s.legalName} headers={headers} className="text-[10px]" />
                     <span className="opacity-60">{total > 0 ? `· ${total} produit(s)` : '· non utilisé'}</span>
                   </span>
                 );

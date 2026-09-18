@@ -4619,3 +4619,47 @@ n'en affichait que **8** : slug, sous-catégorie, image et note de sourcing
 Les candidates et positions de fond n'ont PAS d'id produit réel : les rendre
 cliquables aurait ouvert une fiche sur un identifiant inexistant. Le clic n'est
 posé que sur les lignes qui portent une vraie fiche.
+
+## 18/09 — Approvisionnement : tous les fournisseurs cliquables, fiche complète
+
+> « Fais la meme chose pour tous les fournisseurs présents dans Approvisionnement
+> qu'on soit capable de cliqué sur le fournisseurs de voir ses informations et de
+> les renseignées si elles manquent »
+
+### Mesure avant
+
+La fiche fournisseur (`SupplierSheet`) était déjà **complète** : les 11 champs du
+contrat serveur (`updateSupplier`) tous présents au formulaire, et une section
+« Ce qui manque (N) » qui nomme les champs vides. Contrairement à la fiche
+produit, rien à ajouter côté champs. Le manque était l'**accès** :
+
+- Base fournisseurs : le nom en tableau n'était pas cliquable (seul le bouton
+  « Compléter » ouvrait la fiche) ;
+- Vue consolidée (Sourcing & RFQ) : noms en texte — alors que les lignes produit
+  portent un `supplierId` réel (mesuré : `sourcingConsolidated.ts:201`) et que
+  les pistes peuvent être liées à une fiche (`sourcing_prospects.supplier_id`) ;
+- Stratégie pays : les chips affichaient des fiches fournisseurs réelles
+  (state avec `id`) en texte simple.
+
+### Fait
+
+- **Base** : le nom (tableau + titre de la vue détaillée) ouvre la fiche d'un
+  clic — le bouton « Compléter » reste.
+- **Vue consolidée** : `supplierId` remonté du serveur pour les lignes qui ont
+  une vraie fiche derrière (fiche rattachée, ou piste liée à une fiche) ;
+  `SupplierName` posé sur ces lignes. **Les noms en texte libre (canal, piste
+  non liée) restent en texte** : aucun id réel = aucune fiche à ouvrir, on
+  n'invente pas de lien.
+- **Stratégie pays** : chips → `SupplierName`.
+- **Banc linked-records** : les deux panneaux reclassés « avec fiches » (ils
+  étaient « sans fiche » tant que les noms n'étaient que du texte) ; doublon
+  retiré dans la liste ; **bloc 20** ajouté — nom cliquable dans la base, les
+  11 champs dans le formulaire, manques nommés, consolidé cliquable seulement
+  sur fiche réelle.
+
+### État final de l'espace Appro
+
+16 panneaux : 13 affichent des fournisseurs cliquables (fiche flottante) ;
+3 n'affichent aucune fiche (compteurs SupplyOps, message 3PL fixe, kits) —
+classification tenue par le banc, qui échoue si un panneau change de côté
+sans mise à jour explicite.

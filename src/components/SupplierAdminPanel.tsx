@@ -463,7 +463,9 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false, focusS
                   const status = STATUS_LABELS[supplier.verificationStatus] || STATUS_LABELS.not_provided;
                   return (
                     <tr key={supplier.id} className="border-t border-kurla-cream/10">
-                      <td className="py-2 pr-3 text-kurla-cream">{supplier.legalName}{supplier.tradeName ? <span className="text-kurla-cream/40"> · {supplier.tradeName}</span> : null}</td>
+                      {/* 18/09 — « cliquer sur le fournisseur » : le nom lui-même
+                          ouvre la fiche, pas seulement le bouton « Compléter ». */}
+                      <td className="py-2 pr-3 text-kurla-cream"><button type="button" onClick={() => setSheetSupplierId(supplier.id)} title="Ouvrir la fiche fournisseur et la modifier" className="text-left font-semibold hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{supplier.legalName}{supplier.tradeName ? <span className="text-kurla-cream/40 font-normal"> · {supplier.tradeName}</span> : null}</button></td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{SUPPLIER_TYPE_LABELS[supplier.supplierType] || supplier.supplierType}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{supplier.country || '—'}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">
@@ -597,7 +599,7 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false, focusS
         <section className="rounded-2xl border border-kurla-copper/40 bg-kurla-copper/[0.06] p-5">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h3 className="text-sm font-bold text-kurla-cream">{detail.supplier.legalName}</h3>
+              <h3 className="text-sm font-bold text-kurla-cream"><button type="button" onClick={() => setSheetSupplierId(detail.supplier.id)} title="Ouvrir la fiche fournisseur et la modifier" className="text-left hover:text-kurla-amber underline decoration-kurla-copper/40 underline-offset-2">{detail.supplier.legalName}</button></h3>
               <button type="button" onClick={() => setSheetSupplierId(detail.supplier.id)} className="px-3 py-1.5 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px] font-bold text-kurla-cream/70 hover:border-kurla-copper/40 hover:text-kurla-cream">Compléter la fiche</button>
               <p className="text-[11px] text-kurla-cream/60">
                 {SUPPLIER_TYPE_LABELS[detail.supplier.supplierType] || detail.supplier.supplierType}

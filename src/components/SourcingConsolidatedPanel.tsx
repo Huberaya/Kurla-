@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { SupplierName } from './EditableRecordName';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import {
   applyRegistryFilter, buildRowEmail, emptyRegistryFilter, registryFilterOptions, registryToCsv,
@@ -265,7 +266,9 @@ export const SourcingConsolidatedPanel: React.FC<{
                 {row.priceEur != null ? `${row.priceEur.toFixed(2).replace('.', ',')} €` : 'à obtenir'}
                 {row.priceEur != null && <span className="block text-[9px] text-kurla-cream/40 font-normal">{row.priceLabel}</span>}
               </span>
-              <span className="w-44 truncate text-kurla-cream/70">{row.supplierName || 'fournisseur à qualifier'}</span>
+              <span className="w-44 truncate text-kurla-cream/70">{row.supplierId
+                ? <SupplierName id={row.supplierId} label={row.supplierName || undefined} headers={headers} className="text-[10px]" />
+                : (row.supplierName || 'fournisseur à qualifier')}</span>
               <span className="w-40 truncate">{row.supplierContact ? <span className="text-kurla-amber">{row.supplierContact}</span> : <span className="text-amber-300/80">contact à obtenir</span>}</span>
               {row.supplierName && (
                 <button type="button" onClick={() => copyRowEmail(row)} title={row.emailState === 'pret' ? 'Copier le RFQ du fournisseur' : 'Copier l’e-mail généré pour cette référence'}

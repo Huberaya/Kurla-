@@ -36,6 +36,11 @@ export type ConsolidatedRow = {
   priceEur: number | null;
   priceLabel: 'prix catalogue' | 'prix public constaté' | 'à obtenir';
   supplierName: string | null;
+  /** 18/09 — « cliquer sur le fournisseur » : l'id de la FICHE fournisseur
+   *  derrière le nom, quand il existe (fiche rattachée ou piste liée à une
+   *  fiche). Null = le nom est du texte libre (canal, piste non liée) : aucune
+   *  fiche à ouvrir, on n'invente pas de lien. */
+  supplierId: string | null;
   supplierContact: string | null;
   supplierWebsite: string | null;
   emailState: 'pret' | 'a_preparer';
@@ -215,6 +220,7 @@ export function buildConsolidatedSourcing(args: {
         ? (product.isTestListing || product.is_test_listing ? 'prix public constaté' : 'prix catalogue')
         : 'à obtenir',
       supplierName: supplier ? str(supplier.legal_name) || str(supplier.trade_name) : str(product.sourceSupplier) ,
+      supplierId: supplier ? String(supplier.id) : null,
       supplierContact: supplier ? str(supplier.contact_email) : null,
       supplierWebsite: supplier ? str(supplier.website) : null,
       emailState: 'a_preparer',
@@ -259,6 +265,10 @@ export function buildConsolidatedSourcing(args: {
       priceEur: price,
       priceLabel: price != null ? 'prix public constaté' : 'à obtenir',
       supplierName: prospect ? str(prospect.name) : null,
+      supplierId: (() => {
+        const linkedId = prospect ? str(prospect.supplier_id) : null;
+        return linkedId && supplierById.has(linkedId) ? linkedId : null;
+      })(),
       supplierContact: prospect ? str(prospect.contact_email) : null,
       supplierWebsite: prospect ? str(prospect.source_url) : null,
       emailState: 'a_preparer',
@@ -290,6 +300,7 @@ export function buildConsolidatedSourcing(args: {
       priceEur: price,
       priceLabel: price != null ? 'prix public constaté' : 'à obtenir',
       supplierName: str(position.fournisseur_canal),
+      supplierId: null,
       supplierContact: null, // le canal n'a pas de contact direct : il passe par les prospects/fournisseurs
       supplierWebsite: null,
       emailState: 'a_preparer',

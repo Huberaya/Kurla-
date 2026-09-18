@@ -361,6 +361,9 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
     'components/SourcingProspectsPanel.tsx',  // piste + fiche fournisseur liée
     'components/ProductSourcesPanel.tsx',     // sources d'achat par produit
     'components/SourcingWorkflowPanel.tsx',   // transitions d'étape écrites
+    // 18/09 — « cliquer sur le fournisseur » partout dans l'Appro :
+    'components/SourcingConsolidatedPanel.tsx',   // fiche quand la ligne porte un supplierId réel
+    'components/SourcingCountryStrategyPanel.tsx', // chips pays = fiches fournisseurs réelles
   ];
   /** Panneaux de cet espace qui n'affichent AUCUNE fiche : totaux, agrégats par
    *  pays, ou entités qui ne sont pas des fiches (piste sans fiche liée, kit,
@@ -368,9 +371,6 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
    *  reviendrait à inventer un champ à écrire. */
   const panelsSansFiche = [
     'components/SupplyOpsPanel.tsx',            // compteurs : fournisseurs sans contact
-    'components/SourcingCountryStrategyPanel.tsx', // agrégat par pays
-    'components/SourcingConsolidatedPanel.tsx', // vue consolidée, noms de pistes
-    'components/SourcingCountryStrategyPanel.tsx',
     'components/TamponOrderPanel.tsx',          // message 3PL, destinataires fixes
     'components/KittingAdminPanel.tsx',         // composition de kits
   ];
@@ -446,4 +446,35 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ famille catalogue : 9 panneaux offrent l\'édition produit ; fiche = 12 champs + rattachement sur la route dédiée');
 }
 
-console.log('\n19 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue entièrement modifiable.');
+// ---------------------------------------------------------------------------
+// 20. FOURNISSEURS (18/09) — « cliquer sur le fournisseur, voir ses
+//     informations, les renseigner si elles manquent » :
+//     a) le nom dans la base est lui-même cliquable (pas seulement le bouton) ;
+//     b) la fiche fournisseur expose les 11 champs du contrat serveur ;
+//     c) la vue consolidée ne rend le nom cliquable que si une vraie fiche
+//        existe derrière (supplierId réel) — jamais sur du texte libre.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const base = read('components/SupplierAdminPanel.tsx');
+  assert.ok(
+    /onClick=\{\(\) => setSheetSupplierId\(supplier\.id\)\}[^>]*>\s*\{?[^<]*\{supplier\.legalName\}|setSheetSupplierId\(supplier\.id\)\} title="Ouvrir la fiche fournisseur/.test(base) || base.includes('setSheetSupplierId(supplier.id)} title='),
+    'SupplierAdminPanel : le nom du fournisseur dans le tableau doit ouvrir la fiche.'
+  );
+
+  const sheet = read('components/SupplierSheet.tsx');
+  for (const champ of ['tradeName', 'supplierType', 'country', 'website', 'contactName', 'contactEmail', 'moqUnits', 'leadTimeDays', 'certifications', 'verificationStatus', 'notes']) {
+    assert.ok(sheet.includes(`setField('${champ}'`), `SupplierSheet : le champ « ${champ} » n'est pas éditable dans le formulaire.`);
+  }
+  assert.ok(sheet.includes('missingSupplierFields'), 'SupplierSheet : les manques ne sont plus nommés.');
+
+  const consolidated = read('lib/sourcingConsolidated.ts');
+  assert.ok(consolidated.includes('supplierId: supplier ? String(supplier.id) : null'), 'Vue consolidée : le supplierId des fiches rattachées n\'est plus remonté.');
+  const consolidatedPanel = read('components/SourcingConsolidatedPanel.tsx');
+  assert.ok(consolidatedPanel.includes('row.supplierId') && consolidatedPanel.includes('<SupplierName'), 'Vue consolidée : le nom cliquable a disparu.');
+
+  console.log('✓ fournisseurs : nom cliquable dans la base, fiche = 11 champs + manques nommés, consolidé cliquable seulement sur fiche réelle');
+}
+
+console.log('\n20 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables.');
