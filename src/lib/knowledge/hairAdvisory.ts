@@ -1,3 +1,5 @@
+import { getSegmentFocusLabel } from '../diagnosticSegments';
+
 /**
  * KURLA HAIR — couche « conseil » du résultat de diagnostic cheveux.
  *
@@ -121,11 +123,12 @@ export const HAIR_FREQUENCY_VALUES: Record<string, string> = {
 };
 
 interface HairFlags {
-  texture: string; style: string; priority: string; porosity: string; scalp: string; frequency: string;
+  texture: string; style: string; priority: string; porosity: string; scalp: string; frequency: string; focus: string;
   isCoily: boolean; isCurly: boolean; isLocked: boolean; isProtective: boolean;
   isWig: boolean; isKid: boolean; isBreakage: boolean; isDefinition: boolean;
   isGrowth: boolean; isScalp: boolean; scalpTrouble: boolean;
   highPorosity: boolean; lowPorosity: boolean; isBeginner: boolean;
+  isTransition: boolean;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -135,11 +138,12 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
   const porosity = String(ctx.porosity ?? '');
   const scalp = String(ctx.scalp ?? '');
   const frequency = String(ctx.frequency ?? '');
+  const focus = String(ctx.focus ?? '');
   const scalpTrouble = scalp === 'sec' || scalp === 'demangeaisons' || scalp === 'pellicules' || scalp === 'irritation';
   return {
-    texture, style, priority, porosity, scalp, frequency,
+    texture, style, priority, porosity, scalp, frequency, focus,
     isCoily: texture === 'crepue',
-    isCurly: texture === 'frisee' || priority === 'definition',
+    isCurly: texture === 'frisee' || texture === 'bouclee' || priority === 'definition',
     isLocked: texture === 'locksee' || style === 'locks',
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
@@ -152,16 +156,47 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     highPorosity: porosity === 'forte',
     lowPorosity: porosity === 'faible',
     isBeginner: frequency === 'debutante',
+    isTransition: texture === 'defrisee' || style === 'defrise',
   };
 }
 
 /**
- * « Jour de lavage » — le cycle complet, dans l’ordre qui protège la fibre.
+ * Cycle principal de la routine — même ordre de priorité que les segments
+ * du diagnostic (enfant > locks > perruque > protectrice > transition > naturel).
+ * La routine n'est PAS une liste générique : chaque cycle a ses colonnes,
+ * ses titres et ses gestes propres.
+ */
+type HairCycleKey = 'locks' | 'protective' | 'wig' | 'enfant' | 'transition' | 'naturel';
+
+function cycleKey(f: HairFlags): HairCycleKey {
+  if (f.isKid) return 'enfant';
+  if (f.isLocked) return 'locks';
+  if (f.isWig) return 'wig';
+  if (f.isProtective) return 'protective';
+  if (f.isTransition) return 'transition';
+  return 'naturel';
+}
+
+/**
+ * Titres des trois colonnes — ils changent avec le cycle : une coiffure
+ * protectrice n'a pas de « jour de lavage » hebdomadaire, elle a un cycle
+ * avant / pendant / à la dépose. La page résultat affiche ces titres.
+ */
+export function hairRoutineTitles(ctx: HairAdvisoryContext): { morning: string; evening: string; weekly: string } {
+  switch (cycleKey(flags(ctx))) {
+    case 'protective': return { morning: 'Avant de se faire coiffer', evening: 'Pendant la coiffure', weekly: 'À la dépose' };
+    case 'wig': return { morning: 'Avant chaque pose', evening: 'Pendant la portée', weekly: 'À la dépose' };
+    default: return { morning: 'Jour de lavage', evening: 'Entre deux lavages', weekly: 'À faire chaque semaine' };
+  }
+}
+
+type HairStepDraft = Omit<HairAdvisoryStep, 'label'>;
+
+/**
+ * « Jour de lavage » — cycle complet naturel / locks / enfant.
  * Chaque étape est contextuelle : le *pourquoi* change selon le profil
  * déclaré (casse, cuir chevelu, porosité, enfant, locks…).
  */
-type HairStepDraft = Omit<HairAdvisoryStep, 'label'>;
-
 function buildWashDay(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
@@ -247,10 +282,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
   return steps;
 }
 
-/**
- * « Entre deux lavages » — les gestes d’entretien du quotidien, selon la
- * coiffure usuelle déclarée (locks, tresses, perruque, naturel, enfant).
- */
+/** « Entre deux lavages » — cycle naturel et locks (la perruque a son propre cycle). */
 function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
@@ -260,21 +292,6 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
       why: 'Entre deux lavages, la lock vit de l’eau et d’une régularité légère : un rafraîchissement à l’eau garde la souplesse sans déposer de matière qui attirerait les résidus.',
       how: 'Une brume d’eau sur les pointes, un léger retwist en racine seulement si besoin, palm rolling léger. Ne pas toucher les longueurs plus que nécessaire : la manipulation excessive casse et amincit.',
       expect: 'Des locks souples et propres entre deux lavages. Un signe de dépôt — rêche, odeur — appelle un lavage, pas plus de produit.',
-    });
-  } else if (f.isProtective) {
-    steps.push({
-      action: 'Entretenir sous la coiffure',
-      why: 'Sous tresses ou twists, le cuir chevelu vit isolé : sans soin léger, il tire et gratte, et les résidus s’accumulent plus vite qu’en coiffure naturelle. Le cuir chevelu est le seul point d’attention — et il veut du léger, de l’aqueux.',
-      how: 'Une brume aqueuse sur le cuir chevelu, une à deux fois par semaine, avec les pulpes des doigts. Jamais de beurre ni d’huile épaisse sous une coiffure attachée : ça fait dépôt, pas soin.',
-      expect: 'Une coiffure confortable sur toute sa durée. Gratte ou tiraillement, c’est le signal de détendre la coiffure, pas d’endurer : une coiffure protectrice doit être confortable dès le premier jour.',
-    });
-  }
-  if (f.isWig) {
-    steps.push({
-      action: 'Entretenir le dessous',
-      why: 'Sous perruque ou tissage, le cuir chevelu et les racines vivent à l’abri de la coiffure : sans entretien, sécheresse, résidus et tension s’installent pendant que la coiffure paraît impeccable. Le dessous est le capital — la coiffure est la vitrine.',
-      how: 'Le cuir chevelu propre, sec et sans tension (raie, tempes) avant chaque pose ; pendant la portée, un soin léger et aqueux, une à deux fois par semaine, sans dépôt.',
-      expect: 'Des portées de plusieurs semaines sans dégât : le dessous, à la sortie de la coiffure, doit rester fort, souple et sans casse. Sinon, la prochaine pose repartira de plus loin.',
     });
   }
   if ((f.isCurly || f.isCoily) && !f.isLocked) {
@@ -288,20 +305,13 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
     });
   }
 
-  // Nuit en satin — universelle (version adaptée si coiffure portée).
-  steps.push(f.isWig
-    ? {
-        action: 'Nuit : le dessous respire',
-        why: 'Le cuir chevelu sous coiffure a besoin de respirer la nuit : la friction du coton et la transpiration fatiguent le cuir chevelu comme la coiffure. Bonnet ou taie en satin, et cuir chevelu propre et sec avant de dormir.',
-        how: 'Vérifier que le cuir chevelu est sec, bonnet ou taie en satin chaque nuit, coiffure détendue.',
-        expect: 'Un cuir chevelu moins irrité, une coiffure qui tient plus longtemps. La différence se voit après quelques nuits, pas après une.',
-      }
-    : {
-        action: 'Nuit en satin',
-        why: 'Le coton absorbe l’hydratation et frotte la nuit : bonnet ou taie en satin garde l’hydratation en place et limite la casse aux extrémités. C’est le geste le moins coûteux de toute la routine.',
-        how: 'Bonnet ou taie en satin chaque nuit, coiffure détendue — rien ne doit tirer sur la raie ni les tempes.',
-        expect: 'Moins de casse aux extrémités, une définition qui tient, un réveil sans nœuds. La différence se voit après quelques nuits, pas après une.',
-      });
+  // Nuit en satin — universelle.
+  steps.push({
+    action: 'Nuit en satin',
+    why: 'Le coton absorbe l’hydratation et frotte la nuit : bonnet ou taie en satin garde l’hydratation en place et limite la casse aux extrémités. C’est le geste le moins coûteux de toute la routine.',
+    how: 'Bonnet ou taie en satin chaque nuit, coiffure détendue — rien ne doit tirer sur la raie ni les tempes.',
+    expect: 'Moins de casse aux extrémités, une définition qui tient, un réveil sans nœuds. La différence se voit après quelques nuits, pas après une.',
+  });
 
   if (f.isGrowth) {
     steps.push({
@@ -315,7 +325,7 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
   return steps;
 }
 
-/** « À faire chaque semaine » — le soin en profondeur et les gestes correcteurs. */
+/** « À faire chaque semaine » — cycle naturel et locks. */
 function buildWeekly(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
@@ -334,7 +344,7 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Nettoyage profond occasionnel',
       why: 'Les résidus — coiffants, eau calcaire, dépôts de produits — s’installent sur le cuir chevelu et les longueurs : un nettoyage profond, occasionnel, redonne de la légèreté et fait que les autres soins recommencent à agir.',
-      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de la définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.',
+      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de sa définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.',
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise. Après un nettoyage profond, l’hydratation repart plus vite : c’est le signe que les résidus étaient le problème.',
     });
   }
@@ -351,17 +361,611 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
   return steps;
 }
 
-/** Routine cheveux complète — déterministe, contextuelle, sans champ vide. */
+/* ------------------------------------------------------------------ */
+/* Cycle protectrice (tresses / twists) — avant / pendant / à la dépose */
+/* ------------------------------------------------------------------ */
+
+function buildProtectiveMorning(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Laver en profondeur avant la coiffure',
+      why: 'C’est le seul moment où tout est accessible : cuir chevelu, longueurs, nœuds. Ce qui reste en résidu avant d’être tressé ou twisté s’installe pour des semaines — l’odeur et la sécheresse sous la coiffure commencent ici. Un nettoyant doux, sans décaper, remet tout à zéro.',
+      how: 'Cheveux mouillés, section par section : masser le cuir chevelu avec les pulpes dans chaque raie, rincer long à l’eau tiède, sans frotter les longueurs. Si des résidus pèsent encore, c’est un nettoyage profond, pas un second shampoing agressif.',
+      expect: 'Un cuir chevelu propre et léger, des longueurs sans résidu : c’est la base d’une coiffure qui tiendra proprement jusqu’à la dépose. La fraîcheur qui dure des semaines commence ici.',
+    },
+    {
+      action: 'Démêler complètement, avant de coiffer',
+      why: 'Sous tresses ou twists, le démêlage ne se refait pas : chaque nœud non réglé avant l’installation devient un point de casse à la dépose. C’est la dernière occasion de le faire bien — sur cheveu mouillé et glissant, sans précipitation.',
+      how: 'Sur cheveu mouillé et conditionné : démêler des pointes vers la racine, mèche par mèche, outil à dents larges. Si une zone accroche : plus d’eau et de produit, on recule d’un pas. Ne jamais installer sur un cheveu encore noué.',
+      expect: 'Un cheveu entièrement démêlé avant l’installation : c’est ce qui fera que la dépose se passera sans arrachage. À la sortie de la coiffure, le démêlage doit rester facile — c’est le test honnête.',
+    },
+    {
+      action: 'Préparer le cuir chevelu en léger',
+      why: 'Le cuir chevelu qui part sous une coiffure a besoin de léger : les beurres et huiles épaisses posés avant l’installation feront dépôt pendant des semaines et entretiennent gratte et irritation. Une base aqueuse, c’est tout ce dont il a besoin pour partir.',
+      how: 'Après le lavage, sur cuir chevelu à peine humide : une brume aqueuse ou un soin léger à base d’eau, massé aux pulpes. Ne poser aucun produit épais avant l’installation — le cuir chevelu recevra son entretien pendant la coiffure.',
+      expect: 'Un cuir chevelu à l’aise dès le premier jour de coiffure : pas de tiraillement, pas de gratte. Le confort du premier jour est le prédictif du confort des semaines suivantes.',
+    },
+  ];
+  if (f.isScalp) {
+    steps.push({
+      action: 'Cuir chevelu en souffrance : apaiser avant de coiffer',
+      why: 'Installer une coiffure sur un cuir chevelu qui tire ou gratte, c’est sceller l’inconfort pour des semaines : la sécheresse et les résidus s’aggravent à l’abri de la coiffure. Si le cuir chevelu n’est pas à l’aise avant, il ne le sera pas pendant — l’apaisement passe avant l’installation.',
+      how: 'Un soin cuir chevelu léger et aqueux, appliqué et massé avant le coiffage ; espacer les jours de coiffure serrée si les inconforts reviennent. Des plaques, une douleur ou des chutes localisées : c’est un avis professionnel, pas une routine.',
+      expect: 'Un cuir chevelu confortable avant l’installation, qui le reste pendant. Si les inconforts persistent malgré un cuir chevelu apaisé, la cause est ailleurs — la tension de la coiffure en premier lieu.',
+    });
+  }
+  return steps;
+}
+
+function buildProtectiveEvening(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Cuir chevelu : brume aqueuse, 1 à 2 fois par semaine',
+      why: 'Sous tresses ou twists, le cuir chevelu vit isolé : sans son entretien léger, il tire, gratte, et les résidus s’accumulent plus vite qu’en coiffure naturelle. Le protocole tient en deux mots — aqueux et régulier : une brume à base d’eau, jamais de matière épaisse sous une coiffure attachée.',
+      how: 'Une à deux fois par semaine : une brume aqueuse sur le cuir chevelu, massée aux pulpes des doigts, sans eau ni rinçage. Ne jamais appliquer de beurre ni d’huile épaisse sous la coiffure : ça fait dépôt, pas soin.',
+      expect: 'Un cuir chevelu à l’aise sur toute la durée de la coiffure : pas de tiraillement, pas de gratte au réveil. La fraîcheur qui dure est le signe que le protocole tient.',
+    },
+    {
+      action: 'Confort dès le premier jour, sinon détendre',
+      why: 'Une coiffure protectrice doit être confortable immédiatement : un tiraillement en racine, en raie ou aux tempes le premier jour ne « s’habitue pas » — il use la racine pendant des semaines. Le signal d’inconfort se traite par la détente, jamais par l’endurance.',
+      how: 'Vérifier chaque jour les points sensibles : raie, tempes, attache. Si ça tire : détendre la coiffure immédiatement, ou la refaire plus souple. Ne jamais coiffer en forçant sur une zone qui résiste.',
+      expect: 'Aucun point de tension sur la durée de la coiffure, et une raie intacte à la dépose. C’est l’observation la plus importante de tout le cycle protectrice — la racine se juge à la sortie, pas pendant.',
+    },
+    {
+      action: 'Nuit en satin, coiffure détendue',
+      why: 'La nuit, le frottement du coton et la pression de l’oreiller usent la coiffure et le cuir chevelu à la fois : bonnet ou taie en satin protège la tenue de la coiffure et l’hydratation en même temps — et rien ne doit tirer pendant le sommeil.',
+      how: 'Bonnet ou taie en satin chaque nuit, coiffure vérifiée détendue avant de dormir. Si la coiffure bouge la nuit, la cause est souvent une attache trop lâche ou trop serrée — ajuster, pas enfoncer.',
+      expect: 'Une coiffure qui garde sa forme, un cuir chevelu moins irrité au réveil. La tenue qui dure des semaines se joue sur les nuits, pas sur les jours.',
+    },
+  ];
+  if (f.isGrowth) {
+    steps.push({
+      action: 'Zéro tension : la règle des longueurs',
+      why: 'Garder des longueurs sous coiffure protectrice, c’est d’abord ne rien casser : la tension en racine et aux tempes est la première cause de perte — elle s’installe lentement, se voit vite à la dépose. Une coiffure qui tient sans tirer est une coiffure qui protège.',
+      how: 'Rien ne doit tirer sur la raie ni les tempes : vérifier les attaches, détendre au moindre tiraillement. Les coiffures qui « finissent » le contour (edges serrées) sont les plus usantes — les éviter sous coiffure protectrice.',
+      expect: 'Raie et tempes intactes à la dépose, semaine après semaine. La préservation des longueurs se mesure à la sortie de la coiffure — c’est là que le verdict tombe.',
+    });
+  }
+  return steps;
+}
+
+function buildProtectiveWeekly(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Déposer sans arracher',
+      why: 'La dépose est le moment le plus casse de tout le cycle protectrice : les nœuds installés pendant la coiffure cèdent mal, et c’est en tirant qu’ils cassent la fibre. La méthode — couper et libérer, section par section — vaut plus que n’importe quel démêlant.',
+      how: 'Commencer par les pointes : couper les petits nœuds plutôt que de les forcer, libérer section par section de l’extérieur vers l’intérieur. Cheveux mouillés et conditionnés pour le démêlage final, des pointes vers la racine.',
+      expect: 'Une dépose sans arrachage : peu de cheveux sur l’outil, pas de zone qui cède avec violence. Si une section résiste vraiment, c’est qu’il faut plus d’eau et de produit — pas plus de force.',
+    },
+    {
+      action: 'Démêler et réhydrater après la dépose',
+      why: 'Sortie de coiffure, les longueurs repartent de zéro : elles ont vécu isolées, sans les soins du quotidien. Le démêlage final — humide et glissant — est suivi d’une hydratation qui relance la routine avant la prochaine coiffure ou la période naturelle.',
+      how: 'Sur cheveux mouillés et conditionnés : démêlage final des pointes vers la racine, puis hydratation de la routine (selon la texture). Laisser reposer le cuir chevelu quelques jours avant la prochaine coiffure serrée.',
+      expect: 'Un cheveu souple et démêlé après la dépose, un cuir chevelu qui respire. L’état des longueurs à la sortie dit si le cycle a tenu — c’est l’indicateur à noter.',
+    },
+    {
+      action: 'Nettoyage profond avant la prochaine coiffure',
+      why: 'Chaque cycle protectrice dépose un peu de résidus — coiffants, eau calcaire, produits. Sans nettoyage profond occasionnel, les cycles s’additionnent : le cheveu pèse, le cuir chevelu s’irrite, et les soins ne travaillent plus. C’est le geste qui remet le compteur à zéro.',
+      how: 'Une fois par mois, ou entre deux coiffures : un nettoyant clarifiant doux, massage du cuir chevelu section par section, rince long. Ensuite, repartir sur des soins légers — l’hydratation repart plus vite quand les résidus partent.',
+      expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise, une définition ou une souplesse qui repart. Si le cheveu pèse déjà avant un mois, c’est un signal de soins trop lourds au quotidien.',
+    },
+  ];
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cycle perruque / tissage — le dessous est le capital                */
+/* ------------------------------------------------------------------ */
+
+function buildWigMorning(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Le dessous d’abord : propre, sec, sans tension',
+      why: 'Sous une pose, le cuir chevelu et les racines vivent plusieurs semaines à l’abri de la coiffure : leur état le jour de la pose décide de la tenue. Un cuir chevelu propre et sec, une raie et des tempes sans tension — c’est la condition d’une portée sans dégât, avant même la qualité de la perruque.',
+      how: 'Avant chaque pose : cuir chevelu lavé et parfaitement sec, raie et tempes contrôlées (cassure, irritation, usure), cheveux détachés ou attachés sans tension. Poser la perruque sans serrer : elle doit tenir sans tirer.',
+      expect: 'Une pose qui commence sur un dessous à l’aise : pas de tiraillement dès le premier jour. Le confort du premier jour est le prédictif de toute la portée — et de l’état du dessous à la dépose.',
+    },
+    {
+      action: 'Soin léger et aqueux du cuir chevelu',
+      why: 'Le cuir chevelu sous une pose a besoin d’eau, pas de matière : un soin léger à base d’eau garde le confort sans dépôt, pendant que les beurres et huiles épaisses collent, chauffent et entretiennent l’irritation. La règle est la même qu’en coiffure protectrice — aqueux et régulier.',
+      how: 'Une brume aqueuse ou un soin léger sur le cuir chevelu, une à deux fois par semaine, massé aux pulpes, sans rinçage. Ne poser aucun produit épais sous la pose : le cuir chevelu ne doit pas être alourdi pendant des semaines.',
+      expect: 'Un cuir chevelu frais et à l’aise pendant toute la portée, sans odeur ni irritation. La fraîcheur qui dure plusieurs semaines est le signe que la routine tenue est la bonne.',
+    },
+  ];
+  if (f.isScalp) {
+    steps.push({
+      action: 'Cuir chevelu sensible : apaiser avant la pose',
+      why: 'Poser une perruque sur un cuir chevelu qui tire, gratte ou s’irrite, c’est sceller l’inconfort pendant des semaines : la sécheresse s’aggrave à l’abri de la coiffure. Si le cuir chevelu n’est pas apaisé avant, il ne le sera pas pendant — l’apaisement passe avant l’installation.',
+      how: 'Un soin cuir chevelu léger et aqueux avant la pose ; espacer les portées serrées si les inconforts reviennent. Des plaques, une douleur ou des chutes localisées : c’est un avis professionnel, pas une routine.',
+      expect: 'Un cuir chevelu confortable avant la pose, qui le reste pendant. Si les inconforts persistent malgré l’apaisement, la cause est la tension de la pose — à régler avant la prochaine.',
+    });
+  }
+  return steps;
+}
+
+function buildWigEvening(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Pendant la portée : fraîcheur et propreté',
+      why: 'La portée se vit au quotidien : transpiration, chaleur, frottement — l’entretien léger et régulier est ce qui fait qu’une pose de plusieurs semaines reste confortable. Ce n’est pas un ajout de produit, c’est de la propreté : linge propre, soin aqueux, cuir chevelu sec.',
+      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, laisser le cuir chevelu respirer sans la pose le plus possible.',
+      expect: 'Une journée sans odeur, un cuir chevelu sec au toucher le soir. Si l’odeur revient malgré la propreté, c’est un signal de lavage en profondeur, pas d’ajout de parfum.',
+    },
+    {
+      action: 'Nuit en satin, pose détendue',
+      why: 'La nuit sous une pose, la friction du coton et la transpiration fatiguent le cuir chevelu et la pose à la fois : bonnet ou taie en satin protège les deux, et une pose trop serrée la nuit use la raie et les tempes sans qu’on le voie.',
+      how: 'Bonnet ou taie en satin chaque nuit, pose vérifiée détendue avant de dormir. Si la pose bouge la nuit, ajuster la taille ou l’attache — un ajustement tient mieux que dix nuits serrées.',
+      expect: 'Une pose qui tient, un cuir chevelu moins irrité au réveil, une raie qui reste intacte sur la durée de la portée.',
+    },
+  ];
+  return steps;
+}
+
+function buildWigWeekly(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'À la dépose : contrôler raie et tempes',
+      why: 'La dépose est l’heure de vérité du cycle perruque : c’est là que se voit ce que la portée a coûté au dessous — casse en raie, usure des tempes, tiraillements. Le contrôle régulier est ce qui fait que la prochaine pose repart de plus loin, pas de plus près.',
+      how: 'À chaque dépose : examiner la raie, les tempes, le contour — casse, irritation, zones qui tirent. Noter ce qui change d’une portée à l’autre. Si une zone s’use : changer la pose ou la tension avant la prochaine, sans exception.',
+      expect: 'Un dessous qui reste fort et souple porté après porté : c’est l’indicateur honnête que les poses ne coûtent rien aux racines. Une usure qui revient à la même place, c’est un signal à traiter avant la suite.',
+    },
+    {
+      action: 'Laisser le cuir chevelu respirer entre deux poses',
+      why: 'Un cuir chevelu qui passe d’une pose à l’autre sans relâche ne se repose jamais : sécheresse, fatigue et irritation s’installent dans l’intervalle. Quelques jours sans pose — avec la routine légère d’entretien — sont ce qui fait durer les portées suivantes.',
+      how: 'Quelques jours entre deux poses : cuir chevelu propre, soin aqueux léger si sécheresse, coiffure détendue, satin la nuit. Ne jamais reposer une perruque sur un cuir chevelu qui tire ou gratte.',
+      expect: 'Un cuir chevelu qui repart frais à chaque nouvelle pose, des portées qui restent confortables semaine après semaine. La régularité de l’intervalle est le geste le plus sous-estimé du cycle perruque.',
+    },
+    {
+      action: 'Nettoyage profond occasionnel',
+      why: 'Sous une pose, les résidus — transpiration, produits, eau calcaire — s’installent plus vite que d’habitude : un nettoyage profond occasionnel remet le cuir chevelu et les racines à zéro avant la prochaine portée. C’est un geste correcteur, pas un rythme.',
+      how: 'Entre deux poses, une fois par mois ou quand le cuir chevelu pèse ou tire : un nettoyant doux, massage aux pulpes, rince long. Si le cuir chevelu a besoin d’un nettoyage chaque semaine, la cause est en amont — un soin trop lourd, ou une pose trop serrée.',
+      expect: 'Un cuir chevelu plus léger, plus à l’aise, et des portées suivantes plus confortables. Après le nettoyage, l’hydratation légère repart plus vite — c’est le signe que les résidus étaient le problème.',
+    },
+  ];
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cycle enfant — le rituel est l’objectif                             */
+/* ------------------------------------------------------------------ */
+
+function buildKidEvening(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Rafraîchissement léger si besoin',
+      why: 'Entre deux lavages, les cheveux de l’enfant sèchent comme les autres — mais la routine doit rester courte : un geste, pas une chaîne. Une brume d’eau sur les zones sèches suffit, et le « pas besoin aujourd’hui » est une réponse tout à fait correcte.',
+      how: 'Une brume d’eau sur les longueurs sèches, une petite quantité de soin léger si la fibre tire, et on en reste là. Ne pas enchaîner les gestes : le rituel qui tient est le rituel court.',
+      expect: 'Des cheveux souples au quotidien, sans routine interminable. Avec un enfant, la régularité d’un petit geste vaut mieux que la perfection d’une grande routine.',
+    },
+    {
+      action: 'Nuit en satin, en douceur',
+      why: 'Le frottement du coton la nuit casse les pointes et gâche le démêlage du lendemain : la taie en satin est le geste le plus simple du cycle enfant — et celui qui change le plus le réveil, sans demander aucun effort à l’enfant.',
+      how: 'Taie en satin chaque nuit ; si l’enfant préfère un bonnet léger, c’est bon aussi. Le geste se fait dans la routine du soir, sans moment de lutte : il tient parce qu’il est invisible.',
+      expect: 'Un réveil sans nœuds, un démêlage du matin plus facile, moins de cheveux cassés aux pointes. La différence se voit en quelques semaines de régularité.',
+    },
+  ];
+  return steps;
+}
+
+function buildKidWeekly(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Observer le cuir chevelu de l’enfant',
+      why: 'Le cuir chevelu d’un enfant est plus fin et plus sensible : sécheresse et irritations y reviennent vite, et l’enfant ne sait pas toujours les formuler. L’observation régulière — grattage, rougeurs, plaques — est le premier geste de protection, avant tout produit.',
+      how: 'Après chaque lavage, examiner le cuir chevelu pendant le séchage : rougeurs, pellicules, plaques, zones qui grattent. Soin léger et aqueux uniquement en cas de sécheresse, jamais de produit parfumé ou agressif. Noter ce qui revient, et quand.',
+      expect: 'Un cuir chevelu sans irritation, et un œil entraîné : ce qui revient, quand, après quoi. Des plaques, une douleur ou une chute localisée, c’est un signal pour un avis professionnel — pas un problème de routine.',
+    },
+    {
+      action: 'Ajuster le rituel, pas le forcer',
+      why: 'La routine enfant se juge sur un seul critère : l’enfant accepte-t-il de revenir la semaine suivante ? Un rituel qui se termine en lutte est un rituel qui ne tiendra pas — et c’est le rituel qui protège les cheveux, pas la liste des produits.',
+      how: 'Chaque semaine, une question simple : qu’est-ce qui s’est bien passé, qu’est-ce qui a posé problème ? Raccourcir ce qui fatigue, déplacer ce qui ne tient pas, garder ce qui fonctionne. La routine grandit avec l’enfant, pas avant.',
+      expect: 'Un rituel stable que l’enfant accepte — c’est lui le critère. Moins de lutte, plus de confiance, et des cheveux qui se portent mieux parce que la routine se tient.',
+    },
+  ];
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cycle transition (défrisage) — deux textures, une ligne fragile     */
+/* ------------------------------------------------------------------ */
+
+function buildTransitionMorning(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Laver en douceur, raie d’abord',
+      why: 'En transition, le cuir chevelu et la zone de démarcation — la frontière entre racines naturelles et longueurs traitées — sont les points les plus sollicités : c’est là que les deux textures se rencontrent et que la tension s’installe. Le lavage commence par la raie, en douceur, sans décaper.',
+      how: 'Commencer par masser le cuir chevelu et la zone de démarcation avec les pulpes, nettoyant doux, rince à l’eau tiède. Les longueurs traitées supportent mal les produits trop lourds comme les racines naturelles les supportent mal trop secs — adapter par zone.',
+      expect: 'Un cuir chevelu propre, une zone de démarcation qui ne tire pas, et des longueurs légères. Si la ligne pèse ou gratte après le lavage, la cause est plus souvent un résidu qu’un produit agressif.',
+    },
+    {
+      action: 'Conditionner : deux zones, deux besoins',
+      why: 'Deux types de fibre dans la même chevelure n’ont pas le même besoin : les racines naturelles (crépues) demandent de l’hydratation et de la douceur au démêlage ; les longueurs traitées demandent de la légèreté et de la protection. Un soin unique appliqué partout ne sert personne.',
+      how: 'Conditionneur sur les racines naturelles, démêlage humide et glissant des pointes vers la racine ; sur les longueurs traitées, un soin plus léger, sans surcharge. La raie reste libre : ne jamais coiffer en tirant d’un côté et de l’autre de la ligne.',
+      expect: 'Des racines souples et démêlées, des longueurs nettes et légères, et une ligne de démarcation intacte. L’harmonie des deux zones vient de l’adaptation par zone, pas d’un produit unique.',
+    },
+    {
+      action: 'Hydrater par zone, sans alourdir',
+      why: 'Les nouvelles racines non traitées redemandent ce que les longueurs ne demandent plus : de l’hydratation régulière. Les longues traitées, elles, cassent plus vite quand on les surcharge — l’hydratation en transition est une hydratation de précision, zone par zone.',
+      how: 'Sur cheveux essorés : un leave-in plus riche sur les racines naturelles, une brume ou un leave-in fin sur les longueurs traitées. Ne jamais mélanger les textures sous tension — la raie reste libre, le satin la protège la nuit.',
+      expect: 'Des racines souples, des longueurs qui ne pèsent pas, et une démarcation qui ne casse pas. Le test est simple : chaque zone se porte à son rythme, sans que l’une en souffre pour l’autre.',
+    },
+  ];
+  return steps;
+}
+
+function buildTransitionEvening(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Protéger la ligne de démarcation',
+      why: 'La frontière entre racines naturelles et longueurs traitées est la zone la plus fragile de la chevelure en transition : c’est là que la casse s’installe, là que les coiffures tirent d’un côté et de l’autre. La protéger chaque jour — satin, coiffures sans tension, hydratation légère — est le geste central du cycle.',
+      how: 'Chaque soir : une brume légère sur la zone de démarcation si elle tire, coiffure sans tension sur la raie, satin la nuit. Éviter les coiffures qui tirent les racines naturelles d’un côté et les longueurs traitées de l’autre.',
+      expect: 'Une ligne nette, sans casse ni usure au contour, semaine après semaine. Sur un mois, la démarcation reste intacte — c’est l’indicateur que les coiffures ne coûtent rien à la zone fragile.',
+    },
+    {
+      action: 'Nuit en satin, coiffure détendue',
+      why: 'La nuit, la friction du coton use les deux textures à la fois — et la ligne de démarcation en premier : bonnet ou taie en satin protège l’hydratation des racines, la forme des longueurs, et la zone qui fait le lien entre les deux.',
+      how: 'Taie en satin ou bonnet léger chaque nuit, coiffure détendue avant de dormir. Rien ne doit tirer sur la raie ni les tempes pendant le sommeil — vérifier la coiffure du soir avant de s’allonger.',
+      expect: 'Un réveil sans nœuds, une ligne de démarcation intacte, des racines moins sèches. La protection de la nuit est le geste le moins visible et le plus rentable du cycle transition.',
+    },
+  ];
+  return steps;
+}
+
+function buildTransitionWeekly(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [
+    {
+      action: 'Examiner la ligne de démarcation',
+      why: 'La ligne de démarcation est le point de contrôle du cycle transition : c’est là que se voient la casse, l’usure et l’effet des coiffures. Une inspection régulière et notée est ce qui permet de distinguer ce qui s’use de ce qui est normal, et d’agir sur la vraie cause.',
+      how: 'Chaque semaine, examiner la ligne : casse en longueur, tiraillement en raie, forme de la démarcation, zones qui cèdent. Noter ce qui change d’une semaine à l’autre. Si une zone s’use : changer la coiffure ou la tension avant la suivante, sans exception.',
+      expect: 'Une ligne qui reste nette sur un mois, sans casse ni usure au contour. Les notes hebdomadaires racontent la tendance — c’est elle qui oriente le choix des coiffures et des soins.',
+    },
+    {
+      action: 'Le choix honnête : fade ou continuité',
+      why: 'La transition pose un choix qui n’en est pas un : faire progressivement place aux racines naturelles, ou continuer le défrisage — les deux sont des choix valides. Ce qui est hors sujet, c’est de coiffer les deux textures comme une seule : la routine s’adapte au choix, pas l’inverse.',
+      how: 'Décider du cap (progressif ou continué) et aligner la routine dessus : coiffures, fréquence de lavage, soins par zone. La ligne de démarcation se protège dans les deux cas — c’est la seule constante du cycle transition.',
+      expect: 'Une routine cohérente avec le choix, une ligne de démarcation protégée, et des semaines qui avancent sans casse au contour. La transition se gagne par la cohérence des gestes, pas par la vitesse.',
+    },
+  ];
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Préoccupation déclarée (question adaptative) — l'étape qui la sert  */
+/* ------------------------------------------------------------------ */
+
+type FocusStep = { slot: 'morning' | 'evening' | 'weekly'; step: HairStepDraft };
+
+const FOCUS_STEPS: Record<string, FocusStep> = {
+  // — locks
+  locks_allonger: {
+    slot: 'weekly',
+    step: {
+      action: 'Préserver chaque centimètre',
+      why: 'Avec des locks, la longueur se gagne par la préservation : ce qui casse ou s’amincit en longueur est perdu. Les pointes filantes et les micro-cassures s’installent sans bruit — l’inspection régulière est ce qui les arrête avant qu’elles ne montent.',
+      how: 'Après chaque lavage, inspecter les locks : repérer les cassures en longueur et les pointes filantes. Couper seulement l’extrémité des pointes cassées, jamais en longueur, et réduire la manipulation des locks qui s’amincissent.',
+      expect: 'Moins de cheveux cassés au fil des semaines, des locks qui gardent leur épaisseur. La longueur se juge en mois : c’est la régularité de l’inspection qui paie, pas le produit.',
+    },
+  },
+  locks_propre: {
+    slot: 'weekly',
+    step: {
+      action: 'Lavage profond contre le dépôt',
+      why: 'Le buildup — accumulation de produits — est le premier ennemi des locks : il durcit la lock, attise l’odeur et la sécheresse, et empêche l’eau et les soins légers de travailler. Un lavage profond, occasionnel, remet le cycle à zéro.',
+      how: 'Une fois par mois (ou dès que la lock devient rêche et que l’odeur revient) : un nettoyant clarifiant doux sur le cuir chevelu et dans les locks, massage appuyé des racines, rince long. Ensuite, repartir sur des soins aqueux et légers uniquement.',
+      expect: 'Des locks plus légères, une odeur qui disparaît, une hydratation qui repart mieux. Si l’odeur revient en quelques jours, la cause est un soin trop lourd — pas un lavage de plus.',
+    },
+  },
+  locks_cuirs: {
+    slot: 'morning',
+    step: {
+      action: 'Cuir chevelu entre les locks : soin aqueux',
+      why: 'Entre les locks, le cuir chevelu est ombragé et sèche plus vite : tiraillements, gratte et pellicules y reviennent d’abord. Le soin passe par l’eau et des textures légères — les beurres et huiles y laissent un dépôt qui entretient l’irritation.',
+      how: 'À chaque lavage, masser le cuir chevelu lock par lock avec les pulpes ; entre les lavages, une brume aqueuse, une à deux fois par semaine, en écartant les locks. Ne jamais appliquer de beurre ni d’huile épaisse sur le cuir chevelu entre les locks.',
+      expect: 'Un cuir chevelu qui ne tire plus, la gratte qui s’espace en quelques jours. Si des plaques, douleurs ou chutes localisées apparaissent : c’est un signal pour un avis professionnel, hors du périmètre d’une routine beauté.',
+    },
+  },
+  locks_regularite: {
+    slot: 'weekly',
+    step: {
+      action: 'Le rythme du retwist : ni trop, ni trop tard',
+      why: 'Une lock qui se resserre le doit à un rythme, pas à l’effort : retwister trop souvent ou trop serré casse et amincit ; trop rarement, la racine mat et la forme se perd. Le rythme juste, c’est les nouvelles racines seulement, à intervalles réguliers, sans tension.',
+      how: 'Toutes les deux semaines environ : retwist léger des nouvelles racines, palm rolling des pointes vers la racine, sans serrer. Ne pas retwister les longueurs déjà formées — l’eau et le soin suffisent. Un calendrier simple vaut mieux qu’un effort intense.',
+      expect: 'Des racines qui se resserrent sans mat ni casse en longueur. Le résultat se voit en mois : la régularité du geste est le seul paramètre qui compte, pas la fréquence des efforts.',
+    },
+  },
+  locks_douceur: {
+    slot: 'evening',
+    step: {
+      action: 'Douceur entre deux lavages : eau, pas matière',
+      why: 'Le frizz et la raideur d’une lock entre deux lavages viennent de la sécheresse, pas du manque de produit : l’eau ramollit et assouplit, les beurres et huiles lourds déposent et durcissent. La douceur qui tient se garde avec un minimum de matière, pas un maximum.',
+      how: 'Une brume d’eau sur les locks, palm rolling léger pour réaligner, et seulement si besoin une toute petite quantité d’huile légère sur les pointes — jamais sur toute la longueur. Si la lock durcit ou sent, c’est un lavage, pas un ajout de soin.',
+      expect: 'Des locks souples au toucher sur toute la semaine, sans dépôt. Le test est simple : la lock doit rester souple au pincement — si elle pince, on retire de la matière, pas on en ajoute.',
+    },
+  },
+  // — protectrice
+  prot_tension: {
+    slot: 'morning',
+    step: {
+      action: 'Installer sans tension : la règle d’or',
+      why: 'La raie et les tempes sont les zones qui cèdent en premier : chaque attache qui tire, chaque coiffure serrée, use la racine — et l’usure est lente à se voir, vite à s’installer. Une coiffure protectrice doit tenir sans tirer, dès le premier jour, sans exception.',
+      how: 'Avant l’installation, vérifier zone par zone : aucune section ne doit tirer sur la raie ni les tempes. Si la coiffure tire, la détendre immédiatement — un confort dès le premier jour est la preuve qu’elle tiendra sans dégât.',
+      expect: 'Aucun tiraillement aux racines pendant toute la durée de la coiffure. Au bout de quelques cycles, la raie et les tempes restent intactes : c’est l’observation qui compte, porté après porté.',
+    },
+  },
+  prot_cuirs: {
+    slot: 'evening',
+    step: {
+      action: 'Cuir chevelu sous la coiffure : le protocole tenue',
+      why: 'Sous tresses ou twists, le cuir chevelu vit isolé plusieurs semaines : sans son protocole, il tire, gratte, et les résidus s’installent. Le protocole tient en deux mots — aqueux et régulier : un spray à base d’eau, jamais de matière épaisse, et une vérification du confort chaque jour.',
+      how: 'Une à deux fois par semaine : une brume aqueuse sur le cuir chevelu, massée aux pulpes, sans rinçage. Chaque jour, vérifier le confort : gratte ou tiraillement, c’est le signal de détendre la coiffure avant d’ajouter quoi que ce soit.',
+      expect: 'Un cuir chevelu à l’aise jusqu’à la dépose : pas de tiraillement, pas de gratte au réveil. La fraîcheur qui dure plusieurs semaines est le signe que le protocole tient.',
+    },
+  },
+  prot_duree: {
+    slot: 'evening',
+    step: {
+      action: 'Rafraîchir les racines sans défaire',
+      why: 'Une coiffure se vieillit d’abord aux racines : les nouvelles pousses et le contour trahissent la durée. Le rafraîchissement en douceur — sans défaire ni retoucher sous tension — est ce qui prolonge la tenue propre de la coiffure jusqu’au bout.',
+      how: 'Rafraîchir les nouvelles racines avec une petite attache souple ou un gel léger, sans tirer ; contrôler le contour avec un soin léger et une brosse douce, sans presser contre le cuir chevelu. Un rafraîchissement de plus en plus léger vaut mieux qu’un refait.',
+      expect: 'Une coiffure qui reste nette jusqu’au bout, sans retouche qui abîme. La durée de vie d’une coiffure se joue sur la douceur du rafraîchissement, pas sur le nombre de produits.',
+    },
+  },
+  prot_lavage: {
+    slot: 'morning',
+    step: {
+      action: 'Laver sous la coiffure, sans tout défaire',
+      why: 'Laver sous une coiffure attachée est un art : l’eau et le produit doivent atteindre le cuir chevelu sans frotter les longueurs ni tirer les sections. C’est le geste qui évite de devoir tout défaire pour nettoyer — et qui garde la fraîcheur sur la durée de la coiffure.',
+      how: 'Cheveux mouillés, section par section : masser le cuir chevelu avec les pulpes dans la raie de chaque section, un nettoyant doux sans décaper, rincer à l’eau tiède sans frotter. Sécher à l’air avant de refermer la coiffure — jamais de coiffure posée sur du mouillé.',
+      expect: 'Un cuir chevelu propre sous la coiffure, sans odeur ni résidu, et la coiffure intacte. Si le cuir gratte après chaque lavage, la cause est plus souvent la tension ou un résidu qu’un produit agressif.',
+    },
+  },
+  prot_longueurs: {
+    slot: 'morning',
+    step: {
+      action: 'Hydrater les longueurs avant de les protéger',
+      why: 'Sous une coiffure, les longueurs ne voient plus les soins du quotidien : l’hydratation appliquée avant l’installation est celle qui tient jusqu’à la dépose. C’est l’occasion unique de les nourrir — elle ne se refait pas en cours de coiffure, il ne faut pas la manquer.',
+      how: 'Avant l’installation, sur cheveux propres et humides : un soin hydratant léger sur les longueurs (pas de beurre épais qui déposera sous la coiffure), puis installer. En cours de coiffure, les longueurs reçoivent rien — c’est voulu, c’est la méthode.',
+      expect: 'À la dépose, des longueurs souples et hydratées, pas sèches et rêches. C’est le test honnête : l’état des longueurs à la sortie dit si l’hydratation d’avant a tenu toute la durée.',
+    },
+  },
+  // — perruque
+  wig_cuirs: {
+    slot: 'evening',
+    step: {
+      action: 'Fraîcheur du cuir chevelu pendant la portée',
+      why: 'Sous une pose, le cuir chevelu transpire et sèche à la fois : la fraîcheur se tient avec un soin aqueux léger et régulier, jamais avec de la matière qui colle et dépose. C’est ce qui fait qu’une portée de plusieurs semaines reste confortable du premier au dernier jour.',
+      how: 'Une à deux fois par semaine : une brume aqueuse sur le cuir chevelu, massée aux pulpes, sans rinçage. Éviter les jours de forte transpiration — laisser le cuir chevelu respirer, et un linge propre sous la pose si besoin.',
+      expect: 'Un cuir chevelu frais et à l’aise jusqu’à la dépose, sans odeur ni irritation. La fraîcheur qui dure plusieurs semaines est le signe que la routine tenue est la bonne.',
+    },
+  },
+  wig_edges: {
+    slot: 'morning',
+    step: {
+      action: 'Racines et contour : la zone fragile de la pose',
+      why: 'Sous une pose, les racines et le contour restent la zone la plus exposée : elles portent la tension de l’installation et la friction quotidienne. C’est là que la casse s’installe sans bruit — la protection se fait avant la pose, et pendant, pas seulement à la dépose.',
+      how: 'Avant chaque pose : cuir chevelu propre, sec, aucune tension sur la raie ni le contour ; installer sans serrer. Pendant la portée, ne jamais coiffer le contour sous tension pour « finir » le style — un contour tiré est un contour qui casse.',
+      expect: 'Des racines intactes à la dépose : pas de cassure, pas de tiraillement en raie. Sur plusieurs portées, le contour reste net — c’est l’indicateur que la pose ne coûte rien aux racines.',
+    },
+  },
+  wig_transpiration: {
+    slot: 'evening',
+    step: {
+      action: 'Transpiration : garder le dessous sec',
+      why: 'La transpiration sous une pose est le facteur d’inconfort n°1 — et d’odeur : l’humidité qui stagne fatigue le cuir chevelu et accélère les résidus. La réponse n’est pas plus de produit, c’est de la propreté et de l’air — linge propre, cuir chevelu sec, pose aérée.',
+      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, aérer le cuir chevelu sans la pose le plus possible.',
+      expect: 'Une journée sans odeur, un cuir chevelu sec au toucher le soir. Si l’odeur revient malgré la propreté, c’est un signal de lavage en profondeur, pas d’ajout de parfum.',
+    },
+  },
+  wig_entretien: {
+    slot: 'weekly',
+    step: {
+      action: 'La perruque entre deux poses : l’entretien',
+      why: 'Une perruque bien entretenue vit plus longtemps et se pose plus propre : les résidus de produits, la transpiration et les nœuds s’installent entre deux poses — c’est là qu’elle s’use. L’entretien est un soin à part, pas une corvée faite au dernier moment.',
+      how: 'Après chaque dépose : démêler aux doigts sur cheveu humide avec un conditionneur, laver avec un nettoyant doux, rincer long, sécher à plat ou sur un support à l’air libre. Rangement suspendu ou sur support, à l’abri de la poussière.',
+      expect: 'Une perruque qui se repose propre, sans nœuds ni odeur, et dont la durée de vie s’allonge. Le test : elle doit être prête à se reposer directement, sans lavage de dernière minute.',
+    },
+  },
+  // — enfant
+  enf_demeler: {
+    slot: 'morning',
+    step: {
+      action: 'La méthode démêlage, du début à la fin',
+      why: 'Avec un enfant, le démêlage se joue sur la méthode, pas sur le produit : cheveu mouillé et glissant, outil à dents larges, des pointes vers la racine, et jamais de tirage — grimacer, c’est le signal de ralentir, pas de forcer. La méthode tient toute la routine.',
+      how: 'Commencer par le bas (pointes), petites sections, avancer vers la racine ; si ça accroche : plus d’eau, plus de produit, on recule d’un pas. Terminer sur un geste simple que l’enfant peut faire lui-même, pour que la méthode devienne habitude.',
+      expect: 'Un démêlage où l’enfant accepte de revenir la semaine suivante : c’est le seul objectif qui compte. Moins de tirage, moins de larmes, plus de confiance dans le rituel.',
+    },
+  },
+  enf_patience: {
+    slot: 'evening',
+    step: {
+      action: 'Trois gestes qui tiennent, pas cinq qui s’abandonnent',
+      why: 'Avec un enfant, une routine trop longue ne tient pas : mieux vaut trois gestes simples répétés que cinq gestes parfaits abandonnés. La régularité d’un rituel court est ce qui protège les cheveux — pas la complétude d’une routine de grand.',
+      how: 'Choisir trois gestes maximum : un hydratant léger sur les longueurs humides, un démêlage rapide des pointes si besoin, et la nuit en satin. Tout le reste attend — la routine grandira avec l’enfant, pas avant.',
+      expect: 'Un rituel de moins de dix minutes que l’enfant accepte — c’est lui le critère. Les cheveux se portent mieux quand la routine se tient, même courte.',
+    },
+  },
+  enf_cuirs: {
+    slot: 'morning',
+    step: {
+      action: 'Le cuir chevelu de l’enfant : observer avant de soigner',
+      why: 'Le cuir chevelu d’un enfant est plus fin et plus sensible : sécheresse et irritations y reviennent vite, et l’enfant ne sait pas toujours les formuler. L’observation régulière — grattage, rougeurs, plaques — est le premier geste de protection, avant tout produit.',
+      how: 'Après chaque lavage, examiner le cuir chevelu : rougeurs, pellicules, plaques, zones qui grattent. Soin léger et aqueux uniquement si sécheresse, jamais de produit parfumé ou agressif. Noter ce qui revient, et quand.',
+      expect: 'Un cuir chevelu sans irritation, et un œil entraîné : ce qui revient, quand, après quoi. Des plaques ou une chute localisée, c’est un signal pour un avis professionnel — pas un problème de routine.',
+    },
+  },
+  enf_texture: {
+    slot: 'morning',
+    step: {
+      action: 'Respecter la texture, sans alourdir',
+      why: 'La fibre d’un enfant est fine et fragile : elle se porte avec le minimum de produit et le maximum de douceur. Les textures lourdes (beurres épais, huiles) alourdissent et cassent plus qu’elles ne nourrissent — l’eau et un soin léger suffisent largement.',
+      how: 'Sur cheveux humides : un leave-in léger, une petite quantité, et le satin la nuit. Ne pas multiplier les produits : un bon démêlage humide et un hydratant léger valent mieux qu’une routine de grand.',
+      expect: 'Des cheveux souples, faciles à coiffer, sans effet collant. La texture de l’enfant se porte avec simplicité — c’est elle qui décidera plus tard de ce qu’elle aime.',
+    },
+  },
+  // — transition
+  trans_ligne: {
+    slot: 'weekly',
+    step: {
+      action: 'La ligne de démarcation : inspecter, noter, agir',
+      why: 'La frontière entre racines naturelles et longueurs traitées est la zone où la casse s’installe sans bruit : sans méthode, on ne voit l’usure qu’à la dépose — trop tard. Inspecter, noter, et ajuster les coiffures avant que la zone ne s’use, c’est ce qui protège la ligne sur la durée.',
+      how: 'Chaque semaine, cinq minutes : examiner la ligne en lumière (cassures, zones qui tirent, forme), noter l’observation dans le journal, et identifier la coiffure de la semaine qui a tiré sur la ligne. La semaine suivante, éliminer ou détendre cette coiffure.',
+      expect: 'Une ligne qui reste nette sur un mois, et des notes qui montrent la tendance — c’est elle qui permet d’agir avant l’usure, pas après. Les coiffures qui reviennent dans les notes sont celles à remplacer.',
+    },
+  },
+  trans_melanges: {
+    slot: 'morning',
+    step: {
+      action: 'Deux textures : soigner chaque zone à part',
+      why: 'Deux types de fibre dans la même chevelure ont deux besoins : les racines naturelles demandent de l’hydratation et de la douceur, les longueurs traitées demandent de la légèreté et de la protection. Un soin unique appliqué partout ne sert personne — on adapte par zone, sans exception.',
+      how: 'Hydrater les racines naturelles avec un soin plus riche sur cheveux humides ; garder les longueurs traitées légères (spray, leave-in fin). Coiffer sans mélanger les zones sous tension — la raie reste libre, du premier au dernier jour.',
+      expect: 'Chaque zone se porte à son rythme : les racines souples, les longueurs nettes, et une démarcation qui ne casse pas. L’harmonie vient de l’adaptation par zone, pas du produit unique.',
+    },
+  },
+  trans_fibre: {
+    slot: 'weekly',
+    step: {
+      action: 'Renforcer la fibre traitée',
+      why: 'Les longueurs traitées sont les plus cassantes : l’usure a modifié la fibre, et c’est en longueur qu’elle cède. Un soin de force, en alternance avec l’hydratation, est ce qui les tient — trop de force sans hydratation rend le cheveu rêche, l’équilibre est la technique.',
+      how: 'Une à deux fois par mois, un masque ou soin de force sur les longueurs traitées uniquement, 20 minutes sous bonnet, puis rincer. Alterner avec un masque hydratant : l’équilibre force / hydratation est ce qui fait tenir la fibre sur la durée.',
+      expect: 'Moins de casse en longueur sur les longueurs traitées, au fil des semaines. Le cheveu cassant qui redevient souple est le signe que l’alternance tient.',
+    },
+  },
+  trans_racines: {
+    slot: 'evening',
+    step: {
+      action: 'Les racines naturelles : hydratation régulière légère',
+      why: 'Les nouvelles racines non traitées redemandent ce que les longueurs ne demandent plus : de l’hydratation régulière et de la douceur. C’est la zone la plus vivante de la chevelure — et la plus sèche, car le sébum ne la sert pas : elle a besoin d’un geste régulier, léger.',
+      how: 'Chaque jour ou jour sur deux : une brume ou un leave-in léger sur les racines naturelles, sans frotter, sans tension. Le satin la nuit protège l’hydratation et la démarcation — les deux ensemble font la routine.',
+      expect: 'Des racines souples, moins sèches au toucher, et une démarcation qui ne casse pas. L’hydratation régulière des racines est ce qui fait tenir la transition au quotidien.',
+    },
+  },
+  // — naturel cresp
+  cresp_hydratation: {
+    slot: 'evening',
+    step: {
+      action: 'Rétention d’hydratation : garder l’eau dans la fibre',
+      why: 'Le cheveu très crépu perd son humidité vite : sa structure ralentit la remontée du sébum et accélère l’évaporation. La rétention — eau, puis scellement léger, à intervalles réguliers — est ce qui change la souplesse au quotidien, plus que n’importe quel masque ponctuel.',
+      how: 'Chaque matin ou soir : une brume d’eau sur les longueurs, un leave-in léger pour retenir, et le satin la nuit. Ne pas attendre que le cheveu soit sec pour réhydrater : le geste se fait sur cheveu encore souple.',
+      expect: 'Un cheveu souple au toucher toute la semaine, moins de sécheresse en pointes, un démêlage plus facile. La rétention se juge au quotidien — c’est elle qui fait la différence.',
+    },
+  },
+  cresp_demelage: {
+    slot: 'evening',
+    step: {
+      action: 'Le démêlage d’entretien, entre deux lavages',
+      why: 'Le cheveu très crépu s’emmêle plus vite qu’il ne semble : les nœuds qui s’installent entre deux lavages sont ceux qui casseront au lavage suivant. Un léger démêlage d’entretien, humide et glissant, avant que les nœuds ne s’ancrent, est ce qui protège la fibre au quotidien.',
+      how: 'Deux à trois fois par semaine : une brume d’eau sur la zone qui s’emmêle, une micro-quantité de démêlant ou de leave-in, puis un passage aux doigts et à l’outil à dents larges — des pointes vers la racine, sans forcer. Si ça accroche vraiment, c’est un lavage, pas un démêlage.',
+      expect: 'Moins de nœuds au lavage, une fibre qui casse moins au démêlage. Le test est simple : le peigne rend moins de cheveux au lavage quand l’entretien d’entre-temps tient.',
+    },
+  },
+  cresp_definir: {
+    slot: 'evening',
+    step: {
+      action: 'Définir sans cartonner : le bon équilibre',
+      why: 'La définition du cheveu très crépu se joue sur le produit léger, le geste et le séchage — pas sur la quantité. Un produit qui cartonne rigidifie et casse ; la définition souple vient d’un gel ou d’une crème légère, appliquée sur cheveu humide, et d’un séchage qui respecte la forme.',
+      how: 'Sur cheveu humide : une petite quantité de gel ou crème, scrunching ou presse des mèches, séchage à l’air ou diffuseur doux. Ne pas toucher en séchant — la définition se fige, et se réactive le matin à l’eau, sans produit.',
+      expect: 'Des mèches définies et souples, sans effet coque. La définition qui tient et reste mobile est le signe que la quantité et le séchage sont justes.',
+    },
+  },
+  cresp_longueur: {
+    slot: 'weekly',
+    step: {
+      action: 'Suivre la vraie longueur, shrinkage compris',
+      why: 'Le cheveu très crépu se rétracte fortement : la longueur « perdue » est souvent dans la rétraction, pas dans la casse. La suivre honnêtement — sur cheveu humide étiré, de temps en temps — permet de distinguer ce qui casse de ce qui se rétracte, et d’agir sur le vrai problème.',
+      how: 'Une fois par mois, mesurer ou photographier la longueur sur cheveu humide étiré (jamais sec). Noter les zones de casse (pointes, raie) et y adapter la routine : moins de manipulation, plus de protection la nuit, et une inspection des pointes régulière.',
+      expect: 'Une longueur qui se stabilise, et une lecture honnête de ses progrès : ce qui se rétracte n’est pas perdu, ce qui casse s’observe et se corrige. Les notes mensuelles racontent la tendance.',
+    },
+  },
+  // — naturel bouclé
+  boucle_definition: {
+    slot: 'evening',
+    step: {
+      action: 'La définition de la boucle : produit, geste, séchage',
+      why: 'La boucle se définit à trois conditions : un produit adapté (crème ou gel léger), le bon geste (scrunching sur cheveu humide), et un séchage qui ne l’abîme pas. Un seul des trois en défaut et la boucle perd sa forme — c’est la méthode qui compte, pas la puissance du produit.',
+      how: 'Sur cheveu humide : une crème légère, scrunching de bas en haut, séchage à l’air ou diffuseur doux, sans toucher. Le matin, réactiver à l’eau et repenser la forme — pas de nouveau produit, la méthode est déjà en place.',
+      expect: 'Des boucles nettes, répétées d’une semaine à l’autre. La régularité de la méthode — pas la puissance du produit — est ce qui donne la définition stable.',
+    },
+  },
+  boucle_frisottis: {
+    slot: 'evening',
+    step: {
+      action: 'Réduire le frizz : humidité et friction',
+      why: 'Le frizz de la boucle vient de l’humidité qui entre dans la fibre et de la friction (coton, toucher, séchage agressif). Le contrôler, c’est sceller la forme, protéger la nuit en satin, et ne plus toucher en séchant — pas empiler des produits anti-frizz qui alourdissent.',
+      how: 'Après la définition, une micro-quantité d’huile légère sur les pointes pour sceller ; satin la nuit ; séchage sans friction. Ne pas « lisser » les frisottis au produit — les prévenir par la méthode, et ne toucher qu’une fois la forme prise.',
+      expect: 'Des boucles nettes au réveil, moins d’effet broussaille en journée. Le frizz qui diminue vient de la protection, pas de la quantité de produit.',
+    },
+  },
+  boucle_hydratation: {
+    slot: 'morning',
+    step: {
+      action: 'Hydrater la boucle sans l’écraser',
+      why: 'La boucle boit l’eau vite mais la perd aussi : l’hydratation qui tient est celle qui est scellée par du léger — crème fine ou huile légère — pas par un beurre épais qui pèse et aplati la forme. L’équilibre : de l’humidité dans la boucle, pas du poids qui l’écrase.',
+      how: 'Sur cheveu humide : un leave-in hydratant, puis une micro-quantité de crème légère ou d’huile pour sceller. Si la boucle pèse et s’aplatit : retirer de la matière, pas en ajouter — la forme est le baromètre.',
+      expect: 'Des boucles hydratées et légères, qui gardent leur volume. Le test est visuel : la forme tient, l’hydratation aussi — sans effet collant ni aplati.',
+    },
+  },
+  boucle_longueur: {
+    slot: 'weekly',
+    step: {
+      action: 'Soutenir les longueurs : pointes et casse',
+      why: 'La pousse de la boucle se joue sur la préservation : les pointes sèches cassent, et la longueur « pousse » à la vitesse de ce qu’on ne perd pas. L’entretien des pointes et la réduction de la casse sont les deux leviers honnêtes — aucun produit n’accélère la fibre.',
+      how: 'Une fois par semaine, inspecter les pointes : couper les fourches nettes. Une à deux fois par mois, un masque hydratant sur les longueurs. Satin la nuit, coiffures sans tension sur la raie — la préservation est une méthode, pas un achat.',
+      expect: 'Des pointes propres, moins de casse au démêlage, une longueur qui se garde. La pousse « visible » est en réalité la casse évitée — c’est elle qu’on mesure.',
+    },
+  },
+};
+
+/** Ajoute l’étape qui sert la préoccupation déclarée (une par colonnes concernées). */
+function applyFocus(routine: { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] }, f: HairFlags): { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] } {
+  if (!f.focus) return routine;
+  const entry = FOCUS_STEPS[f.focus];
+  if (!entry) return routine;
+  const has = (step: HairStepDraft) => step.action === entry.step.action;
+  const target = { ...routine };
+  if (!target[entry.slot].some(has)) target[entry.slot] = [...target[entry.slot], entry.step];
+  return target;
+}
+
+/**
+ * Routine cheveux complète — déterministe, segmentée, contextuelle.
+ * Le cycle suit la coiffure usuelle (locks / protectrice / perruque /
+ * transition / enfant / naturel), chaque étape est adaptée au profil
+ * déclaré (casse, cuir chevelu, porosité, pousse…), et la préoccupation
+ * déclarée ajoute l’étape qui la sert.
+ */
 export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisoryRoutine {
   const f = flags(ctx);
+  const key = cycleKey(f);
+  let routine: { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] };
+  switch (key) {
+    case 'protective':
+      routine = { morning: buildProtectiveMorning(f), evening: buildProtectiveEvening(f), weekly: buildProtectiveWeekly(f) };
+      break;
+    case 'wig':
+      routine = { morning: buildWigMorning(f), evening: buildWigEvening(f), weekly: buildWigWeekly(f) };
+      break;
+    case 'enfant':
+      routine = { morning: buildWashDay(f), evening: buildKidEvening(f), weekly: buildKidWeekly(f) };
+      break;
+    case 'transition':
+      routine = { morning: buildTransitionMorning(f), evening: buildTransitionEvening(f), weekly: buildTransitionWeekly(f) };
+      break;
+    case 'locks':
+      routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
+      break;
+    default:
+      routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
+  }
+  routine = applyFocus(routine, f);
   const number = (steps: HairStepDraft[]): HairAdvisoryStep[] =>
     steps.map((step, index) => ({ ...step, label: String(index + 1) }));
   return {
-    morning: number(buildWashDay(f)),
-    evening: number(buildBetweenWashes(f)),
-    weekly: number(buildWeekly(f)),
+    morning: number(routine.morning),
+    evening: number(routine.evening),
+    weekly: number(routine.weekly),
   };
 }
+
 
 /**
  * Leçons — modules pédagogiques, chacun sourcé sur la base de connaissance
@@ -403,6 +1007,13 @@ const HAIR_LESSONS: (HairLesson & { priority: number })[] = [
     title: 'Coiffures protectrices : protéger sans étouffer',
     lesson: 'Les tresses, twists et tissages protègent les longueurs de la manipulation quotidienne — le but est de garder le cuir chevelu en dessous vivant : soin léger et aqueux, pas de scellement épais, portée de quelques semaines mais jamais sans entretien. La règle d’or : une coiffure protectrice doit être confortable dès le premier jour. S’il gratte ou tire, c’est le signal de détendre, pas d’endurer.',
     source: 'Base de connaissances KURLA Cheveux — coiffures protectrices',
+  },
+  {
+    key: 'hair_lesson_transition',
+    priority: 78,
+    title: 'La transition : deux textures, une ligne à protéger',
+    lesson: 'En transition (défrisage en cours ou terminé), la chevelure porte deux types de fibre : racines naturelles et longueurs traitées, avec des besoins différents. Le point de contrôle, c’est la ligne de démarcation — la frontière entre les deux zones : c’est là que la tension et la casse s’installent, et c’est là qu’on observe chaque semaine. Les coiffures ne doivent jamais tirer d’un côté et de l’autre de la ligne, et le satin la nuit en est la protection la plus simple. Que le choix soit de faire progressivement place aux racines naturelles ou de continuer le défrisage, la routine s’adapte au choix — la ligne se protège dans les deux cas.',
+    source: 'Base de connaissances KURLA Cheveux — transition',
   },
   {
     key: 'hair_lesson_kid',
@@ -457,6 +1068,7 @@ export function pickHairLessons(ctx: HairAdvisoryContext, max = 3): HairLesson[]
   if (f.isLocked) wanted.push('hair_lesson_locks');
   if (f.isWig) wanted.push('hair_lesson_wig');
   if (f.isProtective) wanted.push('hair_lesson_protective');
+  if (f.isTransition) wanted.push('hair_lesson_transition');
   if (f.isKid) wanted.push('hair_lesson_kid');
   if (f.isGrowth) wanted.push('hair_lesson_pousse');
   if (f.isDefinition) wanted.push('hair_lesson_definition');
@@ -506,6 +1118,11 @@ const HAIR_OBSERVATIONS: Record<string, HairObservation[]> = {
     { day: '14', question: 'Le cuir chevelu est-il visible à travers la coiffure, avec un soin léger et aqueux en place ?' },
     { day: '30', question: 'La raie et les tempes : casse ou tension visible au contour ?' },
   ],
+  transition: [
+    { day: '7', question: 'La ligne de démarcation : casse ou tiraillement en raie cette semaine ?' },
+    { day: '14', question: 'Les deux zones se portent-elles à leur rythme : racines souples, longueurs nettes — ou l’une tire sur l’autre ?' },
+    { day: '30', question: 'Le contour et la raie : usure visible depuis le départ ? C’est l’indicateur honnête du cycle transition.' },
+  ],
   wig: [
     { day: '7', question: 'Le dessous est-il à l’aise : propre, sec, sans tension sur la raie et les tempes ?' },
     { day: '14', question: 'Le soin léger et aqueux sous la coiffure est-il fait régulièrement, sans dépôt ?' },
@@ -543,6 +1160,7 @@ export function pickHairObservations(ctx: HairAdvisoryContext): HairObservation[
   else if (f.isProtective) key = 'protective';
   else if (f.isWig) key = 'wig';
   else if (f.isKid) key = 'enfant';
+  else if (f.isTransition) key = 'transition';
   else if (f.isGrowth) key = 'pousse';
   else if (f.isDefinition) key = 'definition';
   return HAIR_OBSERVATIONS[key];
@@ -562,6 +1180,23 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   } else {
     parts.push('Vous n’avez pas encore caractérisé votre texture : rien ne bloque, et elle se précisera avec l’observation — le test du verre d’eau aide, et le ressenti de vos soins aussi.');
   }
+
+  // Coiffure usuelle — la routine suit le cycle de la coiffure, pas un modèle unique.
+  const styleLine: Record<string, string> = {
+    locks: 'Vous portez vos cheveux en locks : la routine suit le cycle locks — lavage à l’eau et soins légers, entretien aqueux entre les lavages, retwist des nouvelles racines seulement.',
+    braids: 'Vous portez vos cheveux en tresses : la routine suit le cycle protectrice — préparation avant la coiffure, entretien aqueux pendant, dépose sans arrachage.',
+    twists: 'Vous portez vos cheveux en twists : la routine suit le cycle protectrice — préparation avant la coiffure, entretien aqueux pendant, dépose sans arrachage.',
+    wig: 'Vous portez perruque ou tissage : la routine protège le dessous — propre, sec, sans tension avant chaque pose, entretien aqueux pendant, contrôle du contour à la dépose.',
+    enfant: 'Contexte enfant déclaré : la routine est courte, douce, et le rituel est l’objectif — un démêlage sans larmes, c’est un démêlage où l’enfant accepte de revenir.',
+    defrise: 'Vous êtes en transition : la routine gère les deux textures — racines naturelles et longueurs traitées — et la ligne de démarcation est le point de contrôle hebdomadaire.',
+  };
+  if (f.style && styleLine[f.style]) parts.push(styleLine[f.style]);
+  else if (f.texture === 'locksee') parts.push(styleLine.locks);
+  else if (f.texture === 'defrisee') parts.push(styleLine.defrise);
+
+  // Préoccupation déclarée (question adaptative) — la routine la met au centre.
+  const focusLabel = getSegmentFocusLabel(f.focus || undefined);
+  if (focusLabel) parts.push(`Votre préoccupation principale est « ${focusLabel} » : la routine intègre l’étape qui la sert, en plus des gestes de base du cycle.`);
 
   // Priorité + pont pédagogique honnête
   const bridge: Record<string, string> = {

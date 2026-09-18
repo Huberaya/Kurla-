@@ -9,7 +9,8 @@ import { intelligenceStore } from '../../lib/intelligenceStore';
 import { buildRecommendations, explainLearning, productIngredientIds } from '../../lib/recommendationEngine';
 import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/semanticSearch';
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
-import { getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
+import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
+import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
@@ -376,6 +377,18 @@ export function registerRecommendationRoutes(app: Express): void {
       return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, generatedWithAI: false, source: 'fallback', sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });
     }
 
+    // Chantier routine segmentée : l'IA doit répondre AU profil déclaré
+    // (texture + coiffage usuel = cycle, + préoccupation), jamais une routine générique.
+    const segmentNote = diagnosticType === 'hair' ? (() => {
+      const seg = getHairDiagnosticSegment(typeof answers.texture === 'string' ? answers.texture : undefined, typeof answers.style === 'string' ? answers.style : undefined);
+      const focusLabel = getSegmentFocusLabel(typeof answers.focus === 'string' ? answers.focus : undefined);
+      const parts: string[] = [];
+      if (seg) parts.push(`Le profil déclaré est : ${seg.label} (texture ${String(answers.texture ?? 'inconnue')}, coiffage usuel ${String(answers.style ?? 'inconnu')}).`);
+      if (focusLabel) parts.push(`Préoccupation principale déclarée : « ${focusLabel} ».`);
+      if (parts.length) parts.push('Les étapes doivent suivre le cycle de ce profil précis (et servir cette préoccupation) — pas une routine générique : une tressée n’a pas le même cycle qu’une personne en locks, ni qu’une chevelure naturelle.');
+      return parts.join(' ');
+    })() : '';
+
     let parsed: any;
     let generatedWithAI = false;
     const aiClient = getGeminiClient();
@@ -385,7 +398,7 @@ export function registerRecommendationRoutes(app: Express): void {
           model: GEMINI_MODEL,
           contents: JSON.stringify({ diagnosticType, answers: answersForAi, locale, country }),
           config: {
-            systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.`,
+            systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.${segmentNote ? `\n${segmentNote}` : ''}`,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
@@ -407,11 +420,33 @@ export function registerRecommendationRoutes(app: Express): void {
     const filteredRequestedHandles = requestedHandles.filter((slug: unknown): slug is string => typeof slug === 'string' && validSlugs.has(slug) && relevantSlugs.has(slug));
     const productHandles = Array.from(new Set(filteredRequestedHandles.length > 0 ? filteredRequestedHandles : candidateSlugs));
     const isHair = diagnosticType === 'hair';
+    // Fallback sans IA : la réponse suit le profil déclaré (même moteur que
+    // la page résultat) — jamais un générique.
+    let hairFallback: { summary: string; recommendedRoutine: string; reason: string; steps: string[] } | null = null;
+    if (isHair) {
+      const advisoryCtx = {
+        texture: typeof answers.texture === 'string' ? answers.texture : undefined,
+        style: typeof answers.style === 'string' ? answers.style : undefined,
+        focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
+        priority: typeof answers.priority === 'string' ? answers.priority : undefined,
+        porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
+        scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
+        frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+      };
+      const segment = getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style);
+      const hairRoutine = buildHairAdvisoryRoutine(advisoryCtx);
+      hairFallback = {
+        summary: buildHairAdvisorySummary(advisoryCtx),
+        recommendedRoutine: `Routine KURLA — ${segment ? segment.label : 'profil déclaré'}`,
+        reason: 'Les étapes suivent le cycle du profil déclaré : texture, coiffage usuel, préoccupation, porosité et cuir chevelu — sans diagnostic médical.',
+        steps: [...hairRoutine.morning, ...hairRoutine.evening, ...hairRoutine.weekly].map(step => step.action).slice(0, 8),
+      };
+    }
     const safeResult = {
-      summary: typeof parsed?.summary === 'string' ? parsed.summary : (isHair ? 'Routine capillaire structurée à ajuster progressivement.' : 'Routine de soin de la peau structurée à ajuster progressivement.'),
-      recommendedRoutine: typeof parsed?.recommendedRoutine === 'string' ? parsed.recommendedRoutine : (isHair ? 'Routine capillaire KURLA' : 'Routine peau KURLA'),
-      reason: typeof parsed?.reason === 'string' ? parsed.reason : 'Les étapes sont proposées à partir des réponses et des produits disponibles, sans diagnostic médical.',
-      steps: Array.isArray(parsed?.steps) ? parsed.steps.filter((step: unknown): step is string => typeof step === 'string').slice(0, 8) : ['Commencer doucement et introduire un changement à la fois.', 'Observer la tolérance et ajuster la fréquence.', 'Demander un avis professionnel en cas de symptôme persistant.'],
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : (hairFallback ? hairFallback.summary : 'Routine de soin de la peau structurée à ajuster progressivement.'),
+      recommendedRoutine: typeof parsed?.recommendedRoutine === 'string' ? parsed.recommendedRoutine : (hairFallback ? hairFallback.recommendedRoutine : 'Routine peau KURLA'),
+      reason: typeof parsed?.reason === 'string' ? parsed.reason : (hairFallback ? hairFallback.reason : 'Les étapes sont proposées à partir des réponses et des produits disponibles, sans diagnostic médical.'),
+      steps: Array.isArray(parsed?.steps) ? parsed.steps.filter((step: unknown): step is string => typeof step === 'string').slice(0, 8) : (hairFallback ? hairFallback.steps : ['Commencer doucement et introduire un changement à la fois.', 'Observer la tolérance et ajuster la fréquence.', 'Demander un avis professionnel en cas de symptôme persistant.']),
       warnings: Array.isArray(parsed?.warnings) ? parsed.warnings.filter((warning: unknown): warning is string => typeof warning === 'string').slice(0, 8) : [AI_DISCLAIMER],
       productHandles,
       requiresHumanReview: parsed?.requiresHumanReview === true,

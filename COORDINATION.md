@@ -4416,6 +4416,7 @@ utilisateur attendue** : soit la règle « une seule surface » est réappliqué
 aussi, soit elle est officiellement élargie et le garde-fou + cette section sont
 mis à jour. Ne pas laisser les deux documents dire le contraire du code.
 
+<<<<<<< HEAD
 ## 17/09, 4e demande (répétition de la 3e) : listes déroulantes étendues à TOUS les tableaux
 
 La 3e demande a été redite à l'identique alors que la prod servait déjà le
@@ -4445,3 +4446,46 @@ Reste sans filtres par colonne (tableaux d'autres familles, hors de la demande
 « catalogue et pilotage ») : GrowthControlCenterPanel, PeauDemandStockGapPanel,
 PeauFacturationSuiviPanel, PeauSourcingCahierPanel, ProductSupplierPanel,
 StrategyCockpitPanel, TamponOrderPanel (5 lignes fixes). À étendre sur go.
+=======
+## 18/09/2026 (suite) — Routine segmentée : réponse précise au profil, pas au genre
+
+**Territoire** : consigne du 18/09 — « les recommandations sont génériques :
+une personne qui porte des tresses n'aura pas les mêmes besoins qu'une
+personne qui porte des locks ou une coiffure purement afro. La routine doit
+s'adapter à la demande, au besoin, au coiffage, à la texture, au résultat
+attendu. »
+
+### Ce qui a été fait
+
+- `hairAdvisory.ts` — la routine n'est plus une liste unique paramétrée :
+  **6 cycles** (locks / protectrice / perruque / enfant / transition /
+  naturel), chacun avec ses colonnes, ses gestes et **ses titres** :
+  - protectrice : « Avant de se faire coiffer / Pendant la coiffure / À la dépose »
+  - perruque : « Avant chaque pose / Pendant la portée / À la dépose »
+  - transition : deux textures + ligne de démarcation comme point de contrôle
+  - les cycles existants (locks, naturel) conservent leurs textes validés.
+- **La préoccupation déclarée (focus) ajoute l'étape qui la sert** — 31
+  étapes de focus (5 par segment), jamais plus, jamais inventées hors focus.
+- `diagnosticResult.ts` — `routineTitles` suit le cycle (fin des titres
+  figés « Jour de lavage » pour une tressée).
+- `recommendations.ts` — le **fallback sans IA** n'existe plus : résumé,
+  routine et étapes du serveur sont générés par le même moteur segmenté
+  (le générique « Routine capillaire structurée à ajuster progressivement »
+  n'est plus produit). Le prompt IA porte le segment + la préoccupation.
+- Transition : leçon dédiée (`hair_lesson_transition`, sourcée) +
+  observations J+7/J+14/J+30 sur la ligne de démarcation.
+- `tests/kurla_routine_segments.test.ts` (nouveau, dans la chaîne) :
+  différenciation des 6 cycles (paires + signatures + titres), 218
+  focus × segments (l'étape focus est présente avec le focus, absente sans),
+  invariants de qualité sur toutes les combinaisons, résumé sans générique.
+
+### Contrôles
+
+- tsc standalone exit 0 ; bancs concernés : routine-segments, hair-advisory,
+  diagnostic-advisory, diagnostic-segments, care-kit, c4-diagnostic-result,
+  routine-minimale, adaptive-routines, c3-kits-routine, diagnostic-session —
+  tous verts.
+- Live : POST /api/ai/routine-result tresses vs locks vs naturel → 3 réponses
+  distinctes (cycle, résumé, étapes) ; page résultat mobile : titres
+  segmentés, zéro overflow.
+>>>>>>> 6f805ae (Routine segmentée : la réponse suit le profil (cycle, coiffage, préoccupation), plus de générique)

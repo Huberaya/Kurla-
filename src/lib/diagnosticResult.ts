@@ -13,6 +13,7 @@ import {
 import {
   buildHairAdvisoryRoutine,
   buildHairAdvisorySummary,
+  hairRoutineTitles,
   pickHairLessons,
   pickHairObservations,
   HAIR_FREQUENCY_VALUES,
@@ -336,7 +337,7 @@ export function buildDiagnosticResultModel(input: {
     weekly: routine.weekly,
     routineTitles: isSkin
       ? { morning: 'Matin', evening: 'Soir', weekly: 'À observer chaque semaine' }
-      : { morning: 'Jour de lavage', evening: 'Entre deux lavages', weekly: 'À faire chaque semaine' },
+      : hairRoutineTitles(hairAdvisoryCtx),
     products: productCards,
     followUp: {
       firstObservation: isSkin ? 'J+0 · noter le confort et toute réaction' : 'J+0 · noter le confort du cuir chevelu et la tension du démêlage',
