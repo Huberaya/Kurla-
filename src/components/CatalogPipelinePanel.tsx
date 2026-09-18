@@ -18,8 +18,8 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, hasActiveFilter, type ColumnFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, hasActiveFilter, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, Boxes, Clock, FileCheck2, GitBranch, PackageSearch, Search, ShieldAlert, Store } from 'lucide-react';
 import {
   applyPipelineFilters, buildCatalogPipeline, buildExpiryWatch, documentTypeLabel, EXPIRY_WATCH_DAYS,
@@ -230,19 +230,21 @@ export const CatalogPipelinePanel: React.FC<{
   // s'appliquent APRÈS la recherche et les filtres rapides — ils précisent,
   // ils ne remplacent pas.
   const columnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'name', kind: 'text', get: (r: PipelineRow) => r.name, extra: (r: PipelineRow) => [r.slug] },
-    { key: 'supplier', kind: 'text', get: (r: PipelineRow) => r.supplierName || '', presentLabels: { filled: 'Fournisseur rattaché', empty: 'Fournisseur à qualifier' } },
+    { key: 'name', ...listFilter({ key: 'name', rows: result?.rows ?? [], get: (r: PipelineRow) => r.name, extra: (r: PipelineRow) => [r.slug] }) },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows: result?.rows ?? [], get: (r: PipelineRow) => r.supplierName || '', emptyLabel: 'Fournisseur à qualifier' }) },
     { key: 'kind', kind: 'enum', get: (r: PipelineRow) => r.kind, options: [
       { value: 'product', label: 'Fiche produit' },
       { value: 'candidate', label: 'Candidate sourcing' },
     ] },
-    { key: 'missing', kind: 'text', get: (r: PipelineRow) => r.missing.join(' ') },
+    // Chaque pièce manquante est une option distincte : la ligne est gardée si
+    // elle porte la pièce choisie.
+    { key: 'missing', ...listFilter({ key: 'missing', rows: result?.rows ?? [], get: (r: PipelineRow) => r.missing, emptyLabel: 'Dossier complet' }) },
     { key: 'anomaly', kind: 'enum', get: (r: PipelineRow) => (r.anomaly ? 'yes' : 'no'), options: [
       { value: 'yes', label: 'Anomalie' },
       { value: 'no', label: 'Sans anomalie' },
     ] },
     { key: 'price', kind: 'numeric', get: (r: PipelineRow) => (r.priceEur == null ? NaN : Number(r.priceEur)), unit: ' €' },
-  ], []);
+  ], [result]);
   const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
   const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
   const filteredRows = useMemo(

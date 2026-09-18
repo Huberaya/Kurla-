@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, FileWarning, RefreshCw, ShieldCheck } from 'lucide-react';
 
 type ClaimHit = {
@@ -77,7 +77,7 @@ export const CatalogClaimsAuditPanel: React.FC<Props> = ({ headers }) => {
   // emploient encore ce mot » sans ouvrir chaque fiche l'une après l'autre.
   const lignes = useMemo(() => audit?.perProduct ?? [], [audit]);
   const columnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'title', kind: 'text', get: (p: ClaimProduct) => p.title, extra: (p: ClaimProduct) => [p.productId, p.slug] },
+    { key: 'title', ...listFilter({ key: 'title', rows: lignes, get: (p: ClaimProduct) => p.title, extra: (p: ClaimProduct) => [p.productId, p.slug] }) },
     { key: 'category', kind: 'enum', get: (p: ClaimProduct) => p.category ?? '', options: enumOptions(lignes.map(p => p.category)) },
     { key: 'status', kind: 'enum', get: (p: ClaimProduct) => p.catalogStatus, options: enumOptions(lignes.map(p => p.catalogStatus)) },
     { key: 'verdict', kind: 'enum', get: (p: ClaimProduct) => (p.clean ? 'clean' : 'flagged'), options: [

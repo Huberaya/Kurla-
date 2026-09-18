@@ -4358,3 +4358,60 @@ entrée = une section) + `headerBlock`/`footerBlock`. Tout ajout de section
 = une entrée dans `pages` (avec sa condition si optionnelle). Ne pas
 réintroduire de `<section>` en dehors de l'array : il ne serait plus
 feuilleté sur mobile.
+
+## 17/09, 3e demande : listes déroulantes sur tous les tableaux + tableaux simplifiés
+
+> « je veux que dans catalogue et pilotage de catalogue tu puisse simplifier les
+> tableaux. mais des filtres avec des listes déroulants sur tout les tableaux »
+
+### Listes déroulantes — le calcul reste unique
+
+`src/lib/columnFilters.tsx` gagne un type `list` et deux fonctions :
+
+- `distinctOptions(rows, get)` : valeurs **réellement présentes**, comptées,
+  triées par fréquence puis alphabétique ; `null`, `''`, `'  '` et `[]` sont
+  regroupés en une seule option « (vide) » ; un `0` reste une valeur.
+- `listFilter({key, rows, get})` : renvoie un filtre `list` (déroulant) ou, au-delà
+  de `LIST_FILTER_MAX_OPTIONS` (60) valeurs distinctes, **retombe en saisie
+  libre** — on ne remplace pas une recherche par un menu de 400 entrées.
+
+Une ligne multi-valeurs (pièces manquantes, documents détenus) est gardée si
+l'UNE de ses valeurs est celle choisie ; chaque valeur a sa propre option.
+
+**Mesure après conversion (famille Catalogue, 8 panneaux)** : 39 filtres
+déroulants (21 listes + 17 enums + 1 rempli/vide) · 9 plages numériques ·
+**2 saisies libres restantes, toutes deux nominatives** dans le banc
+(`CatalogClaimsAuditPanel:term` = extrait d'allégation ; `DerogationsPanel:expires`
+= recherche par mois). Le bloc 4 du banc `filtres-catalogue` échoue si un filtre
+redevient une saisie libre sans dispense écrite.
+
+### Simplification — densité condensée par défaut
+
+`TableDensityToggle` (module partagé) : bascule visible « condensé / détaillé ».
+
+- **Catalogue produits** : en condensé, une fiche = nom, statuts, nombre de
+  manques (« 3 informations à compléter dont 1 bloquante »), fournisseur sur une
+  ligne. Marque/prix/stock/date, badge KURLA Ready, détail des manques et bloc
+  fournisseur complet passent en « Tout afficher ». Rien n'est supprimé.
+- **Pilotage catalogue** : « ce qui manque » donne le nombre + le premier manque ;
+  l'identifiant technique disparaît en condensé.
+
+### Piège attrapé par le banc pendant ce chantier
+
+Après un merge, `CatalogAdminPanel` avait l'état `density` déclaré et la bascule
+posée, mais **plus aucune ligne ne lisait `density`** (le bloc fiche avait été
+repris de l'amont). Le contrôle initial ne voyait que la présence de la bascule.
+Renforcé : la bascule doit piloter ≥ 2 endroits, sinon le banc échoue.
+
+### À trancher (vu en fusionnant le travail distant, non corrigé ici)
+
+Les commits distants (`17fcb26`, `5bf30be`) ont monté `<SupplierName>` (fiche
+fournisseur **éditable**) dans `CatalogPipelinePanel`, `IdentifiedProductsPanel`,
+`ProductLifecyclePanel`, `BatchAdminPanel` et la vue 360 de `CatalogAdminPanel` —
+donc hors de l'Approvisionnement, contrairement à la correction du 17/09
+(« la base fournisseurs de l'Appro est la seule surface d'édition »). Le banc
+garde-fou ne les voit pas : il ne scanne que les panneaux de l'Appro pour
+`<SupplierSheet`, et ces panneaux passent par `SupplierName`. **Décision
+utilisateur attendue** : soit la règle « une seule surface » est réappliquée là
+aussi, soit elle est officiellement élargie et le garde-fou + cette section sont
+mis à jour. Ne pas laisser les deux documents dire le contraire du code.

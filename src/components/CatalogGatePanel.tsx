@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ShieldCheck, Play, Check, X } from 'lucide-react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 
 /**
  * CHANTIER C4 — PORTE DE PUBLICATION (mode proposition).
@@ -21,14 +21,14 @@ export const CatalogGatePanel: React.FC<{ headers: Record<string, string> }> = (
   // « les retraits proposés sur la gamme peau » oblige à tout relire.
   const lignes = useMemo(() => proposals ?? [], [proposals]);
   const columnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'name', kind: 'text', get: (p: any) => p.name, extra: (p: any) => [p.productId] },
+    { key: 'name', ...listFilter({ key: 'name', rows: lignes, get: (p: any) => p.name, extra: (p: any) => [p.productId] }) },
     { key: 'action', kind: 'enum', get: (p: any) => String(p.action || ''), options: [
       { value: 'publish', label: 'Publier' },
       { value: 'withdraw', label: 'Retirer' },
     ] },
-    { key: 'reason', kind: 'text', get: (p: any) => String(p.reason || '') },
+    { key: 'reason', ...listFilter({ key: 'reason', rows: lignes, get: (p: any) => String(p.reason || ''), emptyLabel: 'Motif non précisé' }) },
     { key: 'score', kind: 'numeric', get: (p: any) => (Number.isFinite(Number(p.score)) ? Number(p.score) : NaN) },
-  ], []);
+  ], [lignes]);
   const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
   const setColumnFilter = (key: string, value: string) => setColumnFilterState(prev => ({ ...prev, [key]: value }));
   const shown = useMemo(

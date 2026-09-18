@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState , useMemo } from 'react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter, TableDensityToggle } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, FileCheck2, Gauge, Package, RefreshCw, Send, Trophy } from 'lucide-react';
 
 type OperationsCockpitPanelProps = {
@@ -220,16 +220,20 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
   // tableau « Produit par produit » reprend les colonnes une par une, ce qui
   // est le cas d'usage exact des filtres par colonne.
   const lignes = useMemo(() => cockpit?.rows ?? [], [cockpit]);
+  /** Densité (17/09) : en condensé, les cellules bavardes (« ce qui manque »,
+   *  « documents ») donnent le nombre et les deux premiers éléments ; le détail
+   *  reste à un clic. Aucune information n'est retirée du tableau. */
+  const [density, setDensity] = useState<'compact' | 'full'>('compact');
   const columnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'title', kind: 'text', get: (r: ProductRow) => r.title, extra: (r: ProductRow) => [r.productId, r.slug] },
+    { key: 'title', ...listFilter({ key: 'title', rows: lignes, get: (r: ProductRow) => r.title, extra: (r: ProductRow) => [r.productId, r.slug] }) },
     { key: 'status', kind: 'enum', get: (r: ProductRow) => r.catalogStatus, options: enumOptions(lignes.map(r => r.catalogStatus)) },
     { key: 'ready', kind: 'enum', get: (r: ProductRow) => (r.ready ? 'yes' : 'no'), options: [
       { value: 'yes', label: 'Vendable' },
       { value: 'no', label: 'Non vendable' },
     ] },
-    { key: 'missing', kind: 'text', get: (r: ProductRow) => r.missing.join(' ') },
-    { key: 'supplier', kind: 'text', get: (r: ProductRow) => r.supplierName || '', presentLabels: { filled: 'Provenance connue', empty: 'Sans fournisseur' } },
-    { key: 'documents', kind: 'text', get: (r: ProductRow) => [...r.documentsHeld, ...r.expiredDocuments].join(' ') },
+    { key: 'missing', ...listFilter({ key: 'missing', rows: lignes, get: (r: ProductRow) => r.missing, emptyLabel: 'Dossier complet' }) },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows: lignes, get: (r: ProductRow) => r.supplierName || '', emptyLabel: 'Sans fournisseur' }) },
+    { key: 'documents', ...listFilter({ key: 'documents', rows: lignes, get: (r: ProductRow) => [...r.documentsHeld, ...r.expiredDocuments], emptyLabel: 'Aucun document' }) },
     { key: 'cost', kind: 'numeric', get: (r: ProductRow) => (r.servedCostCents == null ? NaN : Number(r.servedCostCents) / 100), unit: ' €' },
   ], [lignes]);
   const [columnFilterState, setColumnFilterState] = useState(() => emptyFilterState(columnFilters));
@@ -304,9 +308,15 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
           </section>
 
           <section className="rounded-2xl border border-kurla-cream/10 bg-kurla-cream/[0.03] p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber mb-3 flex items-center gap-2">
-              <Package size={13} /> Produit par produit
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-2">
+                <Package size={13} /> Produit par produit
+              </h3>
+              {/* Densité : en condensé, « ce qui manque » donne le nombre et le
+                  premier manque, l'identifiant technique disparaît. Le détail
+                  reste à un clic, rien n'est retiré du tableau. */}
+              <TableDensityToggle density={density} onChange={setDensity} compactLabel="Condensé" fullLabel="Détaillé" />
+            </div>
             <ColumnFilterStrip
               filters={columnFilters}
               state={columnFilterState}
@@ -331,14 +341,18 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                 <tbody>
                   {rows.map(row => (
                     <tr key={row.productId} className="border-t border-kurla-cream/10 align-top">
-                      <td className="py-2 pr-3 text-kurla-cream">{row.title}<div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div></td>
+                      <td className="py-2 pr-3 text-kurla-cream">{row.title}{density === 'full' && <div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div>}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{row.catalogStatus}</td>
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${row.ready ? 'text-emerald-300 border-emerald-300/30 bg-emerald-300/10' : 'text-amber-300 border-amber-300/30 bg-amber-300/10'}`}>
                           {row.ready ? 'oui' : 'non'}
                         </span>
                       </td>
-                      <td className="py-2 pr-3 text-kurla-cream/70">{row.missing.length ? row.missing.join(' · ') : '—'}</td>
+                      <td className="py-2 pr-3 text-kurla-cream/70">{row.missing.length === 0
+                        ? '—'
+                        : density === 'compact'
+                          ? <><span className="font-bold">{row.missing.length}</span> manque{row.missing.length > 1 ? 's' : ''}<span className="text-kurla-cream/45"> · {row.missing[0]}{row.missing.length > 1 ? ' …' : ''}</span></>
+                          : row.missing.join(' · ')}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">
                         {row.supplierName || <span className="text-amber-300/90">aucune</span>}
                       </td>

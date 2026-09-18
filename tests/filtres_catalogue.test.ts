@@ -23,6 +23,7 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+import { applyColumnFilters, distinctOptions, listFilter } from '../src/lib/columnFilters';
 
 const RACINE = process.cwd();
 
@@ -100,6 +101,132 @@ assert.ok(panneaux.length >= 5, `Seulement ${panneaux.length} panneau(x) détect
 
 const avecFiltres = panneaux.filter(n => (sourceDe(n) ?? '').includes("from '../lib/columnFilters'"));
 assert.ok(avecFiltres.length >= 5, `Seulement ${avecFiltres.length} panneau(x) filtré(s).`);
+
+// ---------------------------------------------------------------------------
+// 3. LISTES DÉROULANTES (17/09, demande « des filtres avec des listes
+//    déroulantes sur tous les tableaux ») : le menu ne propose que des valeurs
+//    qui existent, il les compte, il regroupe les vides, et il refuse de devenir
+//    un menu de 300 entrées.
+// ---------------------------------------------------------------------------
+const lignes = [
+  { marque: 'Qudo', categorie: 'cheveux', stock: 0 },
+  { marque: 'Qudo', categorie: 'peau', stock: 3 },
+  { marque: 'Baraka', categorie: 'cheveux', stock: null },
+  { marque: '', categorie: null, stock: 12 },
+  { marque: '  ', categorie: undefined, stock: 1 },
+];
+
+const marques = distinctOptions(lignes, r => r.marque);
+assert.deepEqual(marques.options.map(o => o.value), ['Qudo', 'Baraka', '__empty__'],
+  `les plus fréquentes d'abord, puis l'alphabet, les vides à la fin (mesuré : ${marques.options.map(o => o.value).join(', ')})`);
+assert.equal(marques.options[0].label, 'Qudo (2)', 'le compte accompagne la valeur');
+assert.equal(marques.options[2].label, '(vide) (2)', `'' et '   ' sont regroupés en une seule option (mesuré : ${marques.options[2].label})`);
+
+// Un 0 n'est pas une absence : il doit rester une valeur du menu.
+const stocks = distinctOptions(lignes, r => r.stock);
+assert.ok(stocks.options.some(o => o.value === '0'), 'stock 0 proposé comme valeur, pas rangé dans « vide »');
+assert.ok(stocks.options.some(o => o.value === '__empty__'), 'null et undefined groupés dans « vide »');
+
+// Le filtre `list` retire exactement les lignes qui ne portent pas la valeur.
+const filtre = listFilter({ key: 'marque', rows: lignes, get: r => r.marque });
+assert.equal(filtre.kind, 'list', 'peu de valeurs distinctes → liste déroulante');
+assert.deepEqual(
+  applyColumnFilters(lignes, [filtre], { marque: 'Qudo' }).map(r => r.categorie),
+  ['cheveux', 'peau'],
+  'choisir une marque ne garde que ses lignes'
+);
+assert.equal(
+  applyColumnFilters(lignes, [filtre], { marque: '__empty__' }).length, 2,
+  "l'option « vide » rend les lignes sans marque, pas toutes les lignes"
+);
+assert.equal(
+  applyColumnFilters(lignes, [filtre], { marque: '' }).length, lignes.length,
+  'aucun choix = aucune ligne retirée'
+);
+
+// Trop de valeurs : on garde la saisie libre plutôt qu'un menu inutilisable.
+const trop = listFilter({
+  key: 'ref',
+  rows: Array.from({ length: 80 }, (_, i) => ({ ref: `ref-${i}` })),
+  get: r => r.ref,
+});
+assert.equal(trop.kind, 'text', `80 valeurs distinctes → repli en saisie libre (mesuré : ${trop.kind})`);
+assert.equal(
+  applyColumnFilters([{ ref: 'huile argan bio' }], [trop], { ref: 'argan' }).length, 1,
+  'le repli filtre toujours, par contains'
+);
+
+// Une ligne qui porte PLUSIEURS valeurs (pièces manquantes, documents détenus) :
+// le menu propose chaque valeur séparément, pas la concaténation.
+const multi = [
+  { manque: ['INCI absente', 'Marque absente'] },
+  { manque: ['INCI absente'] },
+  { manque: [] },
+];
+const manqueOptions = distinctOptions(multi, r => r.manque);
+assert.deepEqual(manqueOptions.options.map(o => o.value), ['INCI absente', 'Marque absente', '__empty__'],
+  `chaque pièce est une option distincte (mesuré : ${manqueOptions.options.map(o => o.value).join(', ')})`);
+const manqueFiltre = listFilter({ key: 'manque', rows: multi, get: r => r.manque, emptyLabel: 'Dossier complet' });
+assert.equal(applyColumnFilters(multi, [manqueFiltre], { manque: 'Marque absente' }).length, 1,
+  'choisir une pièce ne garde que les lignes qui la portent');
+assert.equal(applyColumnFilters(multi, [manqueFiltre], { manque: '__empty__' }).length, 1,
+  '« Dossier complet » ne rend que la ligne sans aucun manque');
+
+console.log('[PASS] Listes déroulantes : valeurs réelles comptées, vides groupés, lignes multi-valeurs, repli en saisie libre au-delà de 60 valeurs.');
+
+// ---------------------------------------------------------------------------
+// 4. Ce que la demande du 17/09 (« des listes déroulantes sur tous les
+//    tableaux » + « simplifier les tableaux ») doit laisser dans le code.
+//    Les dispenses sont nominatives : un filtre qui redevient une saisie libre
+//    sans raison doit faire échouer le banc, pas passer inaperçu.
+// ---------------------------------------------------------------------------
+const FAMILLE_CATALOGUE = [
+  'CatalogAdminPanel', 'CatalogPipelinePanel', 'OperationsCockpitPanel',
+  'CatalogClaimsAuditPanel', 'CatalogGatePanel', 'DerogationsPanel',
+  'TestPhaseGatesPanel', 'BatchAdminPanel',
+];
+/** Saisies libres admises, avec la raison. Tout ajout doit être justifié ici. */
+const SAISIES_LIBRES_ADMISES: Record<string, string> = {
+  // L'allégation est un texte d'extrait (« huile d'argan pressée à froid… ») :
+  // autant d'extraits que de phrases, un menu déroulant n'aurait pas de fin.
+  'CatalogClaimsAuditPanel:term': "extrait d'allégation, texte libre par nature",
+  // Une date d'expiration se cherche au mois près (« 2026-10 ») : la saisie
+  // partielle est plus rapide qu'un menu de dates exactes.
+  'DerogationsPanel:expires': 'recherche par mois, saisie partielle voulue',
+};
+
+const saisiesNonJustifiees: string[] = [];
+let listesPosees = 0;
+for (const nom of FAMILLE_CATALOGUE) {
+  const code = sourceDe(nom) ?? '';
+  listesPosees += (code.match(/listFilter\(/g) || []).length;
+  for (const ligne of code.split('\n')) {
+    const cle = /key: '([a-zA-Z]+)', kind: 'text'/.exec(ligne);
+    if (cle && !SAISIES_LIBRES_ADMISES[`${nom}:${cle[1]}`]) saisiesNonJustifiees.push(`${nom}:${cle[1]}`);
+  }
+}
+assert.deepEqual(
+  saisiesNonJustifiees, [],
+  `Filtre(s) redevenu(s) saisie libre sans dispense nominative : ${saisiesNonJustifiees.join(', ')}`
+);
+assert.ok(listesPosees >= 20, `Seulement ${listesPosees} liste(s) déroulante(s) posée(s) dans la famille Catalogue.`);
+
+// Simplification : la densité est un réglage visible, pas un comportement caché.
+for (const nom of ['CatalogAdminPanel', 'OperationsCockpitPanel']) {
+  const code = sourceDe(nom) ?? '';
+  assert.ok(code.includes('TableDensityToggle'), `${nom} n'expose plus la bascule de densité.`);
+  assert.ok(code.includes("useState<'compact' | 'full'>('compact')"), `${nom} ne démarre plus en mode condensé.`);
+  // Une bascule qui ne pilote rien est pire qu'absente : elle promet un
+  // changement d'affichage qui ne vient pas. Ce contrôle a attrapé un vrai
+  // défaut — après un merge, l'état était déclaré et la bascule posée, mais
+  // plus aucune ligne ne lisait `density`.
+  const usages = (code.match(/density === '(full|compact)'/g) || []).length;
+  assert.ok(usages >= 2, `${nom} : la bascule de densité ne pilote que ${usages} endroit(s) — elle ne sert à rien.`);
+}
+
+console.log(`[PASS] Listes déroulantes : ${listesPosees} filtres à liste dans la famille Catalogue` +
+  ` · ${Object.keys(SAISIES_LIBRES_ADMISES).length} saisie(s) libre(s) admise(s) et nominative(s)` +
+  ` · densité condensée par défaut sur les 2 tableaux principaux.`);
 
 console.log(`[PASS] Filtres du catalogue : ${avecFiltres.length} panneaux sur ${panneaux.length} utilisent le calcul partagé` +
   ` · ${Object.keys(DISPENSES).length} dispense(s) nominative(s).`);

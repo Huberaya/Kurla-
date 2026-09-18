@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, columnFilterClass, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, columnFilterClass, emptyFilterState, type ColumnFilter , listFilter, ColumnFilterField} from '../lib/columnFilters';
 import { ProductSheet } from './ProductSheet';
 import { SupplierName } from './EditableRecordName';
 import { useAdminRecords } from './SupplierSheet';
@@ -106,19 +106,29 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
   // entre eux, aucun filtre = liste complète. Calcul partagé avec le reste du
   // dashboard (src/lib/columnFilters, banc kurla_column_filters).
   const batchColumnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'lot', kind: 'text', get: (batch: Batch) => batch.lotReference },
-    { key: 'product', kind: 'text', get: (batch: Batch) => productName(batch.productId) },
-    { key: 'supplier', kind: 'text', get: (batch: Batch) => supplierName(batch.supplierId), presentLabels: { filled: 'Fournisseur nommé', empty: 'Fournisseur absent' } },
+    // 17/09, demande « listes déroulantes sur tous les tableaux » : produit,
+    // fournisseur et date de réception sont des ensembles fermés — on les
+    // propose. La référence de lot repasse en saisie libre si elle dépasse 60
+    // valeurs distinctes (une référence par lot, ça ne se déroule pas).
+    { key: 'lot', ...listFilter({ key: 'lot', rows: batches, get: (batch: Batch) => batch.lotReference }) },
+    { key: 'product', ...listFilter({ key: 'product', rows: batches, get: (batch: Batch) => productName(batch.productId), emptyLabel: 'Produit inconnu' }) },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows: batches, get: (batch: Batch) => supplierName(batch.supplierId), emptyLabel: 'Fournisseur absent' }) },
     { key: 'quantity', kind: 'numeric', get: (batch: Batch) => batch.quantityReceived, unit: ' u' },
     { key: 'cost', kind: 'numeric', get: (batch: Batch) => Number(batch.servedCostCents || 0) / 100, unit: ' €' },
-    { key: 'receivedOn', kind: 'text', get: (batch: Batch) => batch.receivedOn, everyWord: false },
+    { key: 'receivedOn', ...listFilter({ key: 'receivedOn', rows: batches, get: (batch: Batch) => batch.receivedOn, emptyLabel: 'Date non renseignée' }) },
     { key: 'status', kind: 'enum', get: (batch: Batch) => batch.status, options: Object.entries(BATCH_STATUS_LABELS).map(([value, label]) => ({ value, label })) },
-  ], [products, suppliers]);
+  ], [products, suppliers, batches]);
   const [batchFilters, setBatchFilters] = useState(() => emptyFilterState([
     { key: 'lot' }, { key: 'product' }, { key: 'supplier' }, { key: 'quantity' },
     { key: 'cost' }, { key: 'receivedOn' }, { key: 'status' },
   ] as ColumnFilter[]));
   const setBatchFilter = (key: string, value: string) => setBatchFilters(prev => ({ ...prev, [key]: value }));
+  /** Accès par clé : le rendu sous en-tête doit savoir si la colonne est une
+   *  liste (select) ou une saisie libre. */
+  const batchFilterByKey = useMemo(
+    () => Object.fromEntries(batchColumnFilters.map(filter => [filter.key, filter])) as Record<string, ColumnFilter>,
+    [batchColumnFilters]
+  );
   const [showAllBatches, setShowAllBatches] = useState(false);
   // Fiches flottantes (17/09) : un lot renvoie à son produit et à son
   // fournisseur — on complète la fiche là où l'on constate le manque.
@@ -375,12 +385,12 @@ export function BatchAdminPanel({ headers, onSuccess, focusProductId, focusLabel
                   <th className="py-2" />
                 </tr>
                 <tr>
-                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Référence…" value={batchFilters.lot} onChange={value => setBatchFilter('lot', value)} ariaLabel="Filtrer par lot" /></th>
-                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Produit…" value={batchFilters.product} onChange={value => setBatchFilter('product', value)} ariaLabel="Filtrer par produit" /></th>
-                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="Fournisseur…" value={batchFilters.supplier} onChange={value => setBatchFilter('supplier', value)} ariaLabel="Filtrer par fournisseur" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterField filter={batchFilterByKey.lot} value={batchFilters.lot} onChange={value => setBatchFilter('lot', value)} placeholder="Référence…" ariaLabel="Filtrer par lot" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterField filter={batchFilterByKey.product} value={batchFilters.product} onChange={value => setBatchFilter('product', value)} placeholder="Produit…" ariaLabel="Filtrer par produit" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterField filter={batchFilterByKey.supplier} value={batchFilters.supplier} onChange={value => setBatchFilter('supplier', value)} placeholder="Fournisseur…" ariaLabel="Filtrer par fournisseur" /></th>
                   <th className="pb-2 pr-3"><ColumnFilterText placeholder="10-500" value={batchFilters.quantity} onChange={value => setBatchFilter('quantity', value)} ariaLabel="Filtrer par quantité" /></th>
                   <th className="pb-2 pr-3"><ColumnFilterText placeholder="2-9 €" value={batchFilters.cost} onChange={value => setBatchFilter('cost', value)} ariaLabel="Filtrer par coût servi" /></th>
-                  <th className="pb-2 pr-3"><ColumnFilterText placeholder="2026-09" value={batchFilters.receivedOn} onChange={value => setBatchFilter('receivedOn', value)} ariaLabel="Filtrer par date de réception" /></th>
+                  <th className="pb-2 pr-3"><ColumnFilterField filter={batchFilterByKey.receivedOn} value={batchFilters.receivedOn} onChange={value => setBatchFilter('receivedOn', value)} placeholder="2026-09" ariaLabel="Filtrer par date de réception" /></th>
                   <th className="pb-2 pr-3">
                     <ColumnFilterSelect value={batchFilters.status} onChange={value => setBatchFilter('status', value)} ariaLabel="Filtrer par statut" options={Object.entries(BATCH_STATUS_LABELS).map(([value, label]) => ({ value, label }))} />
                   </th>

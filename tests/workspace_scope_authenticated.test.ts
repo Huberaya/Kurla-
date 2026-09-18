@@ -140,8 +140,18 @@ try {
   assert.equal(skinSupplierResponse.status, 200);
   const skinSuppliers = await skinSupplierResponse.json() as any;
   assert.deepEqual(skinSuppliers.suppliers.map((item: any) => item.id), [], 'un fournisseur rattaché uniquement à Hair ne doit pas apparaître dans Skin');
+  // Contrat mis à jour le 17/09 (commit distant 53a56b3, « CHANTIER 3 ») : la
+  // LISTE reste scopée (assertion ci-dessus), mais la fiche lue PAR IDENTIFIANT
+  // rend l'identité du fournisseur même hors espace — une conversion de piste,
+  // un lot ou une ligne de pipeline doit pouvoir ouvrir sa fiche. Ce qui reste
+  // cloisonné : les produits rattachés sont filtrés sur l'espace appelant.
+  // L'ancien contrat (404 net) cassait ces ouvertures ; si le cloisonnement
+  // strict doit revenir, c'est la route qu'il faut changer, pas ce banc.
   const foreignSupplierDetail = await requestApp(listener, '/api/admin/suppliers/supplier-hair', { headers: auth('skin') });
-  assert.equal(foreignSupplierDetail.status, 404);
+  assert.equal(foreignSupplierDetail.status, 200, 'fiche lisible par identifiant : l\'identité n\'est pas un secret entre espaces');
+  const foreignSupplierBody = await foreignSupplierDetail.json() as any;
+  assert.deepEqual(foreignSupplierBody.products ?? [], [], 'les produits Hair du fournisseur restent invisibles depuis Skin');
+  assert.equal(foreignSupplierBody.scope, 'skin');
 
   const foreignIngredientMutation = await requestApp(listener, '/api/admin/catalog/hair-product/ingredients', {
     method: 'POST',

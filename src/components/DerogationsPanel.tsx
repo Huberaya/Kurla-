@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { ShieldAlert, Mail, RotateCcw } from 'lucide-react';
 
 /**
@@ -21,15 +21,15 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
   // Même calcul partagé que partout ailleurs (src/lib/columnFilters).
   const DEROGATION_FILTER_KEYS = ['name', 'reason', 'state', 'expires'] as const;
   const derogationFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'name', kind: 'text', get: (row: any) => row.name },
-    { key: 'reason', kind: 'text', get: (row: any) => row.reason },
+    { key: 'name', ...listFilter({ key: 'name', rows, get: (row: any) => row.name }) },
+    { key: 'reason', ...listFilter({ key: 'reason', rows, get: (row: any) => row.reason, emptyLabel: 'Motif non précisé' }) },
     { key: 'state', kind: 'enum', get: (row: any) => row.state, options: [
       { value: 'active', label: 'Active' },
       { value: 'expiring_soon', label: 'Expire bientôt' },
       { value: 'expired', label: 'Expirée' },
     ] },
     { key: 'expires', kind: 'text', get: (row: any) => (row.expiresAt ? new Date(row.expiresAt).toLocaleDateString('fr-FR') : ''), everyWord: false },
-  ], []);
+  ], [rows]);
   const [derogationFilterState, setDerogationFilterState] = useState(() => emptyFilterState(DEROGATION_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visibleRows = useMemo(() => applyColumnFilters(rows, derogationFilters, derogationFilterState), [rows, derogationFilters, derogationFilterState]);
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, ShieldCheck, XCircle, Beaker, Undo2 } from 'lucide-react';
 
 type Gate = { id: string; label: string; ok: boolean; detail: string };
@@ -48,9 +48,9 @@ export const TestPhaseGatesPanel: React.FC<{ headers: HeadersInit; onSuccess?: (
   // répondre en deux clics, pas en faisant défiler.
   const TEST_FILTER_KEYS = ['name', 'brand', 'category', 'status', 'test', 'ready', 'price'] as const;
   const testFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'name', kind: 'text', get: (row: Row) => row.name, extra: (row: Row) => [row.slug] },
-    { key: 'brand', kind: 'text', get: (row: Row) => row.brand },
-    { key: 'category', kind: 'text', get: (row: Row) => row.category },
+    { key: 'name', ...listFilter({ key: 'name', rows, get: (row: Row) => row.name, extra: (row: Row) => [row.slug] }) },
+    { key: 'brand', ...listFilter({ key: 'brand', rows, get: (row: Row) => row.brand, emptyLabel: 'Marque non renseignée' }) },
+    { key: 'category', ...listFilter({ key: 'category', rows, get: (row: Row) => row.category, emptyLabel: 'Catégorie non renseignée' }) },
     { key: 'status', kind: 'enum', get: (row: Row) => row.catalogStatus, options: [
       { value: 'published', label: 'Publié' },
       { value: 'draft', label: 'Brouillon' },
@@ -64,7 +64,7 @@ export const TestPhaseGatesPanel: React.FC<{ headers: HeadersInit; onSuccess?: (
       { value: 'non', label: 'Gardes-fous manquants' },
     ] },
     { key: 'price', kind: 'numeric', get: (row: Row) => (row.price == null ? NaN : row.price), unit: ' €' },
-  ], []);
+  ], [rows]);
   const [testFilterState, setTestFilterState] = useState(() => emptyFilterState(TEST_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visibleRows = useMemo(() => applyColumnFilters(rows, testFilters, testFilterState), [rows, testFilters, testFilterState]);
 
