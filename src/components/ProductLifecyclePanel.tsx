@@ -10,7 +10,7 @@ import { GitMerge, RefreshCw } from 'lucide-react';
 
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
-import { SupplierName } from './EditableRecordName';
+import { SupplierName, ProductName } from './EditableRecordName';
 import {
   BUSINESS_STAGE_LABELS,
   BUSINESS_STAGES,
@@ -273,7 +273,9 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
                     )}
                   </td>
                   <td className="py-2 pr-3">
-                    <span className="font-semibold text-kurla-cream">{record.title}</span>
+                    {record.linkedProductId
+                      ? <ProductName id={record.linkedProductId} label={record.title} headers={headers} className="text-xs font-semibold" onSaved={() => void load()} />
+                      : <span className="font-semibold text-kurla-cream">{record.title}</span>}
                     {record.brand && <span className="block text-[10px] text-kurla-cream/45">{record.brand}</span>}
                     {record.lifecycle.isTestListing && <span className="ml-1 text-[9px] text-amber-300 font-bold">test</span>}
                   </td>

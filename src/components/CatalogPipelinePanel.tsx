@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { SupplierName } from './EditableRecordName';
+import { SupplierName, ProductName } from './EditableRecordName';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, hasActiveFilter, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, Boxes, Clock, FileCheck2, GitBranch, PackageSearch, Search, ShieldAlert, Store } from 'lucide-react';
 import {
@@ -269,7 +269,9 @@ export const CatalogPipelinePanel: React.FC<{
     <div className={`rounded-xl border px-2.5 py-2 ${row.anomaly ? 'border-rose-500/40 bg-rose-500/[0.07]' : 'border-kurla-cream/10 bg-kurla-espresso'}`}>
       <div className="flex items-center gap-1.5">
         {row.anomaly && <AlertTriangle className="w-3 h-3 text-rose-300 shrink-0" />}
-        <p className="text-[11px] font-semibold text-kurla-cream truncate flex-1" title={row.name}>{row.name}</p>
+        {row.kind === 'product'
+          ? <ProductName id={row.id} label={row.name} headers={headers} className="text-[11px] font-semibold truncate flex-1" onSaved={() => void load()} />
+          : <p className="text-[11px] font-semibold text-kurla-cream truncate flex-1" title={row.name}>{row.name}</p>}
         {row.isTest && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[8px] font-bold shrink-0">test</span>}
       </div>
       <p className="text-[10px] text-kurla-cream/45 truncate mt-0.5">
@@ -384,7 +386,9 @@ export const CatalogPipelinePanel: React.FC<{
               <ul className="space-y-1.5">
                 {result.rows.filter(r => r.anomaly).slice(0, 30).map(row => (
                   <li key={row.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-rose-500/20 bg-kurla-ink px-3 py-2">
-                    <span className="text-xs font-semibold text-kurla-cream min-w-0 truncate flex-1">{row.name}</span>
+                    {row.kind === 'product'
+                      ? <ProductName id={row.id} label={row.name} headers={headers} className="text-xs font-semibold min-w-0 truncate flex-1" onSaved={() => void load()} />
+                      : <span className="text-xs font-semibold text-kurla-cream min-w-0 truncate flex-1">{row.name}</span>}
                     {row.isTest && <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[9px] font-bold">test</span>}
                     <span className="text-[10px] text-rose-300/90">{row.missing.length} manque{row.missing.length > 1 ? 's' : ''}</span>
                     <span className="hidden xl:block text-[10px] text-kurla-cream/40 max-w-[360px] truncate" title={row.missing.join(' · ')}>

@@ -409,4 +409,41 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ garde-fou : une seule fiche fournisseur éditable, chaque panneau de l\'espace propose une modification');
 }
 
-console.log('\n18 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur.');
+// ---------------------------------------------------------------------------
+// 19. FAMILLE CATALOGUE (18/09) — « tous les produits présents dans le
+//     catalogue doivent être modifiables » : chaque panneau qui affiche des
+//     fiches produits réelles propose leur édition (fiche flottante). Les
+//     candidates/pistes (id synthétiques) restent en texte : ouvrir une fiche
+//     sur un id qui n'existe pas afficherait une erreur, pas un formulaire.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+  const panneauxCatalogue = [
+    'components/CatalogAdminPanel.tsx',        // cartes + ProductSheet
+    'components/CatalogPipelinePanel.tsx',     // lignes kind === 'product'
+    'components/OperationsCockpitPanel.tsx',   // produit par produit
+    'components/CatalogClaimsAuditPanel.tsx',  // allégations par fiche
+    'components/CatalogGatePanel.tsx',         // propositions de publication
+    'components/DerogationsPanel.tsx',         // dérogations datées
+    'components/TestPhaseGatesPanel.tsx',      // phase test
+    'components/BatchAdminPanel.tsx',          // colonne produit des lots
+    'components/ProductLifecyclePanel.tsx',    // lignes linkedProductId
+  ];
+  for (const panneau of panneauxCatalogue) {
+    const code = read(panneau);
+    const cliquable = code.includes('<ProductName') || code.includes('setSheetProduct');
+    assert.ok(cliquable, `${panneau} affiche des produits sans offrir leur édition.`);
+  }
+  // La fiche flottante elle-même : les 12 champs éditables promis par la route
+  // sont tous dans le formulaire (mesuré le 18/09 : 8 sur 12 seulement).
+  const sheet = read('components/ProductSheet.tsx');
+  for (const champ of ['name', 'slug', 'brand', 'category', 'subCategory', 'price', 'stockQuantity', 'inci', 'description', 'ean', 'image', 'sourceSupplier']) {
+    assert.ok(sheet.includes(`setField('${champ}'`), `ProductSheet : le champ « ${champ} » n'est pas éditable dans le formulaire.`);
+  }
+  // Et le rattachement — l'entrée dans le catalogue d'approvisionnement —
+  // passe par la route dédiée, jamais par le PATCH produit.
+  assert.ok(sheet.includes('writeProductSupplierLink'), 'ProductSheet : le rattachement fournisseur a disparu.');
+  console.log('✓ famille catalogue : 9 panneaux offrent l\'édition produit ; fiche = 12 champs + rattachement sur la route dédiée');
+}
+
+console.log('\n19 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue entièrement modifiable.');

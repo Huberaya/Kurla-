@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ProductName } from './EditableRecordName';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { ShieldAlert, Mail, RotateCcw } from 'lucide-react';
 
@@ -151,7 +152,7 @@ export const DerogationsPanel: React.FC<{ headers: Record<string, string> }> = (
         {visibleRows.map(row => (
           <div key={row.productId} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${row.state === 'active' ? 'bg-emerald-500/15 text-emerald-300' : row.state === 'expiring_soon' ? 'bg-amber-500/15 text-amber-300' : 'bg-rose-500/15 text-rose-300'}`}>{row.state === 'active' ? 'active' : row.state === 'expiring_soon' ? 'expire bientôt' : 'EXPIRÉE'}</span>
-            <span className="font-semibold flex-1 min-w-[160px]">{row.name}</span>
+            <span className="flex-1 min-w-[160px]"><ProductName id={row.productId} label={row.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => void load()} /></span>
             <span className="text-kurla-cream/55 flex-1 min-w-[200px]">{row.reason}</span>
             <span className="text-kurla-cream/45">échéance {new Date(row.expiresAt).toLocaleDateString('fr-FR')}</span>
             <button type="button" onClick={() => renew(row)} disabled={busy === row.productId} className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold hover:bg-kurla-copper/25 disabled:opacity-40 flex items-center gap-1">

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ProductName } from './EditableRecordName';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, ShieldCheck, XCircle, Beaker, Undo2 } from 'lucide-react';
 
@@ -173,7 +174,7 @@ export const TestPhaseGatesPanel: React.FC<{ headers: HeadersInit; onSuccess?: (
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-sm text-kurla-cream">{row.name}</span>
+                      <ProductName id={row.productId} label={row.name} headers={headers} className="text-sm font-bold" onSaved={() => void load()} />
                       <span className="font-mono text-[10px] text-kurla-cream/40">{row.slug}</span>
                       {row.isTestListing && <span className="px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px] font-bold">fiche test</span>}
                       <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${isPublished ? 'bg-kurla-copper/20 text-kurla-amber border-kurla-copper/30' : 'bg-kurla-cream/5 text-kurla-cream/50 border-kurla-cream/10'}`}>{row.catalogStatus}</span>

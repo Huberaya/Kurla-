@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState , useMemo } from 'react';
+import { ProductName } from './EditableRecordName';
 
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter, TableDensityToggle } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, FileCheck2, Gauge, Package, RefreshCw, Send, Trophy } from 'lucide-react';
@@ -359,7 +360,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                 <tbody>
                   {rows.map(row => (
                     <tr key={row.productId} className="border-t border-kurla-cream/10 align-top">
-                      <td className="py-2 pr-3 text-kurla-cream">{row.title}{density === 'full' && <div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div>}</td>
+                      <td className="py-2 pr-3 text-kurla-cream"><ProductName id={row.productId} label={row.title} headers={headers} className="text-xs" onSaved={() => void load()} />{density === 'full' && <div className="text-[10px] text-kurla-cream/40 font-mono">{row.productId}</div>}</td>
                       <td className="py-2 pr-3 text-kurla-cream/70">{row.catalogStatus}</td>
                       <td className="py-2 pr-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] ${row.ready ? 'text-emerald-300 border-emerald-300/30 bg-emerald-300/10' : 'text-amber-300 border-amber-300/30 bg-amber-300/10'}`}>

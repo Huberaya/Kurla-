@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ProductName } from './EditableRecordName';
 import { ShieldCheck, Play, Check, X } from 'lucide-react';
 
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
@@ -96,7 +97,7 @@ export const CatalogGatePanel: React.FC<{ headers: Record<string, string> }> = (
             {shown.map(proposal => (
             <div key={`${proposal.productId}-${proposal.action}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${proposal.action === 'publish' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>{proposal.action === 'publish' ? 'publier' : 'retirer'}</span>
-              <span className="font-semibold">{proposal.name}</span>
+              <ProductName id={proposal.productId} label={proposal.name} headers={headers} className="text-xs font-semibold" />
               <span className="text-kurla-cream/55 flex-1 min-w-[160px]">{proposal.reason}</span>
               <span className="text-kurla-cream/40">score {proposal.score}/100</span>
               <button type="button" onClick={() => apply(proposal)} disabled={applying === proposal.productId} className="px-2 py-0.5 rounded-lg bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-copper text-[9px] font-bold hover:bg-kurla-copper/25 disabled:opacity-40 flex items-center gap-1">

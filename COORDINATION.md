@@ -4577,3 +4577,45 @@ leçons, observations — puis relecture ligne par ligne.
   routine-minimale, adaptive-routines, c3-kits-routine, diagnostic-session,
   skin-ux) · live POST tresses/perruque/naturel : résumé + étapes conformes ·
   capture mobile perruque+focus : zéro overflow, étape focus affichée.
+
+## 18/09 — Catalogue : tous les produits modifiables, fiche complète, entrée dans l'Appro
+
+> « je veux que tous les produits présents dans le catalogue soit modifiable.
+> qu'on puisse cliqué sur le produit, renseigner les informations du produits
+> et mettre ce produits dans le catalogue d'approvisonnement »
+
+### Mesure avant
+
+La fiche flottante (`ProductSheet`) existait et le catalogue principal était
+cliquable, mais : **6 panneaux de la famille Catalogue affichaient les noms de
+produits en texte simple** (pipeline, pilotage, allégations, porte de
+publication, dérogations, phase test) — cliquer ne faisait rien. Et la fiche
+promettait 12 champs éditables (sa liste `editable`) alors que le formulaire
+n'en affichait que **8** : slug, sous-catégorie, image et note de sourcing
+étaient acceptés par la route mais impossibles à renseigner.
+
+### Fait
+
+- **Fiche produit complétée** : slug, sous-catégorie, image principale, note de
+  sourcing ajoutés au formulaire — les 12 champs de la liste `editable` sont
+  maintenant réellement saisissables (contrôle dans le bloc 19 du banc).
+- **Noms cliquables partout** : `ProductName` (fiche flottante) posé dans
+  CatalogPipelinePanel (lignes `kind === 'product'` uniquement — les candidates
+  ont des id synthétiques, ouvrir une fiche dessus afficherait une erreur),
+  OperationsCockpitPanel, CatalogClaimsAuditPanel, CatalogGatePanel,
+  DerogationsPanel, TestPhaseGatesPanel, ProductLifecyclePanel (lignes
+  `linkedProductId`). BatchAdminPanel et CatalogAdminPanel l'étaient déjà.
+- **Entrée dans l'Appro** : le rattachement fournisseur de la fiche (route
+  dédiée `PATCH /api/admin/products/:id/supplier`, jamais le PATCH produit) est
+  le mécanisme — un produit rattaché apparaît dans Approvisionnement →
+  Fournisseurs & sourcing → « ce que chaque fournisseur fournit ». Le message
+  d'enregistrement le dit maintenant explicitement.
+- **Banc linked-records : bloc 19** — les 9 panneaux de la famille Catalogue
+  doivent offrir l'édition produit ; les 12 champs doivent être dans le
+  formulaire ; le rattachement doit passer par la route dédiée.
+
+### Piège évité
+
+Les candidates et positions de fond n'ont PAS d'id produit réel : les rendre
+cliquables aurait ouvert une fiche sur un identifiant inexistant. Le clic n'est
+posé que sur les lignes qui portent une vraie fiche.

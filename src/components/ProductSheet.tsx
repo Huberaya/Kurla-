@@ -114,7 +114,9 @@ export const ProductSheet: React.FC<{
       const result = await writeProductSupplierLink(productId, { supplierId: linkSupplierId || null, supplierSku: linkSku }, headers);
       if (!result.ok) { setError(result.error || 'Rattachement refusé.'); return; }
     }
-    setSaved('Fiche enregistrée — les autres écrans affichent la nouvelle valeur.');
+    setSaved(linkChanged && linkSupplierId
+      ? 'Fiche enregistrée — le produit est rattaché : il apparaît dans Approvisionnement → Fournisseurs & sourcing (ce que chaque fournisseur fournit).'
+      : 'Fiche enregistrée — les autres écrans affichent la nouvelle valeur.');
     onSaved?.();
   };
 
@@ -247,6 +249,26 @@ export const ProductSheet: React.FC<{
               <label className="space-y-1 sm:col-span-2">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-cream/45">Description {missingByKey.has('description') && <span className="text-amber-300 normal-case">· à compléter</span>}</span>
                 <textarea className={FIELD_CLASS} rows={3} value={draft.description || ''} onChange={e => setField('description', e.target.value)} />
+              </label>
+              {/* 18/09 — « renseigner les informations du produit » : la liste
+                  des champs éditables promettait 12 champs, le formulaire n'en
+                  affichait que 8. Les 4 manquants (slug, sous-catégorie, image,
+                  note de sourcing) sont acceptés par la même route. */}
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-cream/45">Slug (URL boutique)</span>
+                <input className={FIELD_CLASS} value={draft.slug || ''} onChange={e => setField('slug', e.target.value)} placeholder="se genere depuis le nom si vide" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-cream/45">Sous-catégorie</span>
+                <input className={FIELD_CLASS} value={draft.subCategory || ''} onChange={e => setField('subCategory', e.target.value)} placeholder="shampoings, leave-in…" />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-cream/45">Image principale (URL)</span>
+                <input className={FIELD_CLASS} value={draft.image || ''} onChange={e => setField('image', e.target.value)} placeholder="https://…" />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-kurla-cream/45">Note de sourcing (texte libre — distinct du rattachement)</span>
+                <input className={FIELD_CLASS} value={draft.sourceSupplier || ''} onChange={e => setField('sourceSupplier', e.target.value)} placeholder="ex. : vu chez Baraka, à confirmer" />
               </label>
             </section>
 

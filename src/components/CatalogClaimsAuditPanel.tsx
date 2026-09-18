@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ProductName } from './EditableRecordName';
 
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter , listFilter } from '../lib/columnFilters';
 import { AlertTriangle, CheckCircle2, FileWarning, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -159,7 +160,7 @@ export const CatalogClaimsAuditPanel: React.FC<Props> = ({ headers }) => {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                       <p className="text-sm font-bold text-kurla-cream">
-                        {product.title} <span className="font-mono text-[10px] text-kurla-cream/35">{product.productId}</span>
+                        <ProductName id={product.productId} label={product.title} headers={headers} className="text-xs" onSaved={() => void load()} /> <span className="font-mono text-[10px] text-kurla-cream/35">{product.productId}</span>
                       </p>
                       <p className="text-[10px] text-kurla-cream/45 mt-1">
                         {product.category || 'catégorie inconnue'} · {product.catalogStatus} · {product.isActive ? 'active' : 'inactive'} · {product.scannedFields.length} champ(s), {product.scannedCharacters} caractère(s) lus
