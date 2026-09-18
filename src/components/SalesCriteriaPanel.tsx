@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ListChecks } from 'lucide-react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { CRITERION_FAMILIES, matchCriterion, type SalesCriterion } from '../lib/salesCriteria';
 
 /**
@@ -78,14 +78,14 @@ export const SalesCriteriaPanel: React.FC<{ headers: Record<string, string> }> =
   // autres panneaux) : recherche sur libellé/règle, famille, portée.
   const CRITERIA_FILTER_KEYS = ['label', 'family', 'appliesTo'] as const;
   const criteriaFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'label', kind: 'text', get: (c: SalesCriterion) => c.label, extra: (c: SalesCriterion) => [c.rule, c.id] },
+    { key: 'label', ...listFilter({ key: 'label', rows: (map?.criteria || []) as SalesCriterion[], get: (c: SalesCriterion) => c.label, extra: (c: SalesCriterion) => [c.rule, c.id] }) },
     { key: 'family', kind: 'enum', get: (c: SalesCriterion) => c.family, options: Object.entries(CRITERION_FAMILIES).map(([value, label]) => ({ value, label })) },
     { key: 'appliesTo', kind: 'enum', get: (c: SalesCriterion) => c.appliesTo, options: [
       { value: 'tous', label: 'Tous les produits' },
       { value: 'cosmetiques', label: 'Cosmétiques' },
       { value: 'produits_categorises', label: 'Produits catégorisés' },
     ] },
-  ], []);
+  ], [map]);
   const [criteriaFilterState, setCriteriaFilterState] = useState(() => emptyFilterState(CRITERIA_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visibleCriteria = useMemo(
     () => applyColumnFilters((map?.criteria || []) as SalesCriterion[], criteriaFilters, criteriaFilterState),

@@ -16,7 +16,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { ProductName, SupplierName } from './EditableRecordName';
-import { ColumnFilterPresence, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterPresence, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { Download, FileText } from 'lucide-react';
 
 export interface PurchaseProposalRow {
@@ -191,11 +191,11 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
   // croiser sans faire défiler 100 lignes. Calcul partagé (columnFilters).
   const PROPOSAL_FILTER_KEYS = ['reference', 'demand', 'stock', 'toOrder', 'supplier', 'moq', 'lead', 'unitCost', 'total', 'missing'] as const;
   const proposalFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'reference', kind: 'text', get: (row: any) => row.name, extra: (row: any) => [row.slug, row.productId] },
+    { key: 'reference', ...listFilter({ key: 'reference', rows: result?.rows ?? [], get: (row: any) => row.name, extra: (row: any) => [row.slug, row.productId] }) },
     { key: 'demand', kind: 'numeric', get: (row: any) => row.qtyDemand, unit: ' u' },
     { key: 'stock', kind: 'numeric', get: (row: any) => row.stockOnHand, unit: ' u' },
     { key: 'toOrder', kind: 'numeric', get: (row: any) => row.qtyToOrder, unit: ' u' },
-    { key: 'supplier', kind: 'text', get: (row: any) => row.supplierName, presentLabels: { filled: 'Fournisseur nommé', empty: 'À sourcer' } },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows: result?.rows ?? [], get: (row: any) => row.supplierName, emptyLabel: 'À sourcer' }) },
     { key: 'moq', kind: 'numeric', get: (row: any) => (row.moqUnits == null ? NaN : row.moqUnits), unit: ' u' },
     { key: 'lead', kind: 'numeric', get: (row: any) => (row.leadTimeDays == null ? NaN : row.leadTimeDays), unit: ' j' },
     { key: 'unitCost', kind: 'numeric', get: (row: any) => (row.unitCostEur == null ? NaN : row.unitCostEur), unit: ' €' },
@@ -244,7 +244,7 @@ export const PurchaseProposalPanel: React.FC<{ headers: HeadersInit }> = ({ head
     return () => { cancelled = true; };
     // headers récréé à chaque rendu du dashboard : lecture une seule fois au montage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headers, reloadToken]);
+  }, [headers, reloadToken, result]);
 
   const downloadCsv = () => {
     if (!result || result.rows.length === 0) return;

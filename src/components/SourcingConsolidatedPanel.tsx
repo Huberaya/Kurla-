@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import {
   applyRegistryFilter, buildRowEmail, emptyRegistryFilter, registryFilterOptions, registryToCsv,
   REGISTRY_STAGE_LABELS, type ConsolidatedRow, type RegistryFilter, type RegistryStage
@@ -89,21 +89,21 @@ export const SourcingConsolidatedPanel: React.FC<{
   // du registre, ne le remplacent pas.
   const CONSOLIDATED_FILTER_KEYS = ['name', 'kind', 'brand', 'format', 'supplier', 'contact', 'price'] as const;
   const consolidatedFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'name', kind: 'text', get: (row: ConsolidatedRow) => row.name },
+    { key: 'name', ...listFilter({ key: 'name', rows: allRows, get: (row: ConsolidatedRow) => row.name }) },
     { key: 'kind', kind: 'enum', get: (row: ConsolidatedRow) => row.kind, options: [
       { value: 'product', label: 'Fiche produit' },
       { value: 'candidate', label: 'Candidat' },
       { value: 'position', label: 'Position de fond' },
     ] },
-    { key: 'brand', kind: 'text', get: (row: ConsolidatedRow) => row.brand },
-    { key: 'format', kind: 'text', get: (row: ConsolidatedRow) => row.format },
-    { key: 'supplier', kind: 'text', get: (row: ConsolidatedRow) => row.supplierName || '', presentLabels: { filled: 'Fournisseur rattaché', empty: 'Fournisseur à qualifier' } },
+    { key: 'brand', ...listFilter({ key: 'brand', rows: allRows, get: (row: ConsolidatedRow) => row.brand, emptyLabel: 'Marque inconnue' }) },
+    { key: 'format', ...listFilter({ key: 'format', rows: allRows, get: (row: ConsolidatedRow) => row.format, emptyLabel: 'Format inconnu' }) },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows: allRows, get: (row: ConsolidatedRow) => row.supplierName || '', emptyLabel: 'Fournisseur à qualifier' }) },
     { key: 'contact', kind: 'enum', get: (row: ConsolidatedRow) => (row.supplierContact ? 'avec' : 'sans'), options: [
       { value: 'avec', label: 'Contact obtenu' },
       { value: 'sans', label: 'Contact à obtenir' },
     ] },
     { key: 'price', kind: 'numeric', get: (row: ConsolidatedRow) => (row.priceEur == null ? NaN : row.priceEur), unit: ' €' },
-  ], []);
+  ], [allRows]);
   const [consolidatedFilterState, setConsolidatedFilterState] = useState(() => emptyFilterState(CONSOLIDATED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visibleRows = useMemo(
     () => applyColumnFilters(filteredRows, consolidatedFilters, consolidatedFilterState),

@@ -380,7 +380,15 @@ export function SupplierAdminPanel({ headers, onSuccess, showAll = false, focusS
                     colonnes à valeurs connues. Filtres combinables. */}
                 <tr>
                   <th className="pb-2 pr-3">
-                    <input className={headerFilterClass()} placeholder="Nom…" value={filters.name} onChange={event => setFilter('name', event.target.value)} />
+                    {/* 17/09, 2e passe (« listes déroulantes sur tous les tableaux ») :
+                        30 fournisseurs — le nom se choisit, il ne se tape plus. La
+                        recherche globale au-dessus reste en saisie libre. */}
+                    <select className={headerFilterClass()} aria-label="Filtrer par nom de fournisseur" value={filters.name} onChange={event => setFilter('name', event.target.value)}>
+                      <option value="">Tous</option>
+                      {[...new Set(suppliers.map(supplier => String(supplier.tradeName || supplier.legalName || supplier.id)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')).map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                   </th>
                   <th className="pb-2 pr-3">
                     <select className={headerFilterClass()} value={filters.type} onChange={event => setFilter('type', event.target.value)}>

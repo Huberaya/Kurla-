@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { GitMerge, RefreshCw } from 'lucide-react';
 
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
 import {
   BUSINESS_STAGE_LABELS,
@@ -158,7 +158,7 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
   }, [records, stageFilter]);
   const LIFE_FILTER_KEYS = ['title', 'kind', 'supplier', 'offer'] as const;
   const lifeFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'title', kind: 'text', get: (row: UnifiedRecord) => row.title, extra: (row: UnifiedRecord) => [row.brand] },
+    { key: 'title', ...listFilter({ key: 'title', rows: staged, get: (row: UnifiedRecord) => row.title, extra: (row: UnifiedRecord) => [row.brand] }) },
     { key: 'kind', kind: 'enum', get: (row: UnifiedRecord) => row.kind, options: [
       { value: 'fond_position', label: 'Fond' },
       { value: 'candidate', label: 'Candidat' },
@@ -169,7 +169,7 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
       { value: 'oui', label: 'Avec offre' },
       { value: 'non', label: 'Sans offre' },
     ] },
-  ], []);
+  ], [staged]);
   const [lifeFilterState, setLifeFilterState] = useState(() => emptyFilterState(LIFE_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visible = useMemo(
     () => applyColumnFilters(staged, lifeFilters, lifeFilterState),

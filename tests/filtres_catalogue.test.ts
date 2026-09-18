@@ -21,7 +21,7 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { applyColumnFilters, distinctOptions, listFilter } from '../src/lib/columnFilters';
 
@@ -180,11 +180,13 @@ console.log('[PASS] Listes déroulantes : valeurs réelles comptées, vides grou
 //    Les dispenses sont nominatives : un filtre qui redevient une saisie libre
 //    sans raison doit faire échouer le banc, pas passer inaperçu.
 // ---------------------------------------------------------------------------
-const FAMILLE_CATALOGUE = [
-  'CatalogAdminPanel', 'CatalogPipelinePanel', 'OperationsCockpitPanel',
-  'CatalogClaimsAuditPanel', 'CatalogGatePanel', 'DerogationsPanel',
-  'TestPhaseGatesPanel', 'BatchAdminPanel',
-];
+// Portée élargie le 17/09 (2e passe) : « des listes déroulantes sur TOUS les
+// tableaux » — le banc scanne désormais CHAQUE panneau du dashboard qui
+// importe le module partagé, pas seulement la famille Catalogue.
+const FAMILLE_CATALOGUE = readdirSync(path.join(RACINE, 'src/components'))
+  .filter(fichier => fichier.endsWith('.tsx'))
+  .map(fichier => fichier.replace(/\.tsx$/, ''))
+  .filter(nom => (sourceDe(nom) ?? '').includes("from '../lib/columnFilters'"));
 /** Saisies libres admises, avec la raison. Tout ajout doit être justifié ici. */
 const SAISIES_LIBRES_ADMISES: Record<string, string> = {
   // L'allégation est un texte d'extrait (« huile d'argan pressée à froid… ») :
@@ -205,11 +207,14 @@ for (const nom of FAMILLE_CATALOGUE) {
     if (cle && !SAISIES_LIBRES_ADMISES[`${nom}:${cle[1]}`]) saisiesNonJustifiees.push(`${nom}:${cle[1]}`);
   }
 }
+// Le banc porte sur quelque chose : si le scan ne trouve plus de panneaux,
+// c'est qu'il est cassé, pas que tout va bien.
+assert.ok(FAMILLE_CATALOGUE.length >= 8, `Scan des panneaux cassé : ${FAMILLE_CATALOGUE.length} trouvé(s).`);
 assert.deepEqual(
   saisiesNonJustifiees, [],
   `Filtre(s) redevenu(s) saisie libre sans dispense nominative : ${saisiesNonJustifiees.join(', ')}`
 );
-assert.ok(listesPosees >= 20, `Seulement ${listesPosees} liste(s) déroulante(s) posée(s) dans la famille Catalogue.`);
+assert.ok(listesPosees >= 33, `Seulement ${listesPosees} liste(s) déroulante(s) posée(s) dans le dashboard (attendu ≥ 33).`);
 
 // Simplification : la densité est un réglage visible, pas un comportement caché.
 for (const nom of ['CatalogAdminPanel', 'OperationsCockpitPanel']) {
@@ -224,7 +229,7 @@ for (const nom of ['CatalogAdminPanel', 'OperationsCockpitPanel']) {
   assert.ok(usages >= 2, `${nom} : la bascule de densité ne pilote que ${usages} endroit(s) — elle ne sert à rien.`);
 }
 
-console.log(`[PASS] Listes déroulantes : ${listesPosees} filtres à liste dans la famille Catalogue` +
+console.log(`[PASS] Listes déroulantes : ${listesPosees} filtres à liste dans tout le dashboard (${FAMILLE_CATALOGUE.length} panneaux scannés)` +
   ` · ${Object.keys(SAISIES_LIBRES_ADMISES).length} saisie(s) libre(s) admise(s) et nominative(s)` +
   ` · densité condensée par défaut sur les 2 tableaux principaux.`);
 

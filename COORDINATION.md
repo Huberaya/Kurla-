@@ -4415,3 +4415,33 @@ garde-fou ne les voit pas : il ne scanne que les panneaux de l'Appro pour
 utilisateur attendue** : soit la règle « une seule surface » est réappliquée là
 aussi, soit elle est officiellement élargie et le garde-fou + cette section sont
 mis à jour. Ne pas laisser les deux documents dire le contraire du code.
+
+## 17/09, 4e demande (répétition de la 3e) : listes déroulantes étendues à TOUS les tableaux
+
+La 3e demande a été redite à l'identique alors que la prod servait déjà le
+premier lot (chunk `AdminDashboardPage-BmkjXO1r.js`, mesuré à 09:54 UTC). Interprétation
+retenue : « sur tout les tableaux » vise **tout le dashboard**, pas seulement la
+famille Catalogue. Ce qui restait en saisie libre et qui est converti :
+
+- 15 filtres texte → listes déroulantes dans 8 panneaux hors famille Catalogue :
+  IdentifiedProductsPanel, ProductLifecyclePanel, PurchaseProposalPanel
+  (référence + fournisseur), SalesCriteriaPanel, SourcedReferencesPanel
+  (marque + piste), SourcingConsolidatedPanel (4), SourcingProspectsPanel
+  (produit + marque), SupplierCatalogPanel (fournisseur + pays).
+- Le 2e tableau du Pilotage catalogue (« Approvisionnement — besoins ») n'avait
+  AUCUN filtre : 6 filtres posés (besoin et vague en listes, statut en
+  déroulant, docs/demandes/réponses en plages numériques).
+- SupplierAdminPanel (base fournisseurs) : le filtre « Nom » était une saisie
+  libre — devenu une liste des 30 noms réels. La recherche globale au-dessus
+  reste en saisie libre (c'est son rôle).
+
+Mesure après cette passe : **38 filtres à liste dans tout le dashboard**
+(17 panneaux scannés), 2 saisies libres nominatives inchangées. Le banc
+`filtres-catalogue` scanne désormais CHAQUE composant qui importe le module
+partagé — plus une liste de panneaux en dur : un nouveau panneau filtré est
+couvert automatiquement, et toute saisie libre non justifiée fait échouer.
+
+Reste sans filtres par colonne (tableaux d'autres familles, hors de la demande
+« catalogue et pilotage ») : GrowthControlCenterPanel, PeauDemandStockGapPanel,
+PeauFacturationSuiviPanel, PeauSourcingCahierPanel, ProductSupplierPanel,
+StrategyCockpitPanel, TamponOrderPanel (5 lignes fixes). À étendre sur go.

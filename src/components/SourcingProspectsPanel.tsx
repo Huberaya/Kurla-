@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { SupplierName } from './EditableRecordName';
-import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterPresence, ColumnFilterSelect, ColumnFilterText, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { AlertTriangle, ClipboardList, Mail, Package, RefreshCw, Save, Truck } from 'lucide-react';
 import { AssortmentPlanPanel } from './AssortmentPlanPanel';
 import { PurchasingDeskPanel } from './PurchasingDeskPanel';
@@ -125,8 +125,8 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
   // par « rempli/vide ».
   const CANDIDATE_FILTER_KEYS = ['product', 'brand', 'step', 'purchase', 'public', 'margin', 'qty', 'inci', 'visuals', 'gov'] as const;
   const candidateFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'product', kind: 'text', get: (c: Candidate) => c.product, extra: (c: Candidate) => [c.category, c.notes] },
-    { key: 'brand', kind: 'text', get: (c: Candidate) => c.brand },
+    { key: 'product', ...listFilter({ key: 'product', rows: candidates, get: (c: Candidate) => c.product, extra: (c: Candidate) => [c.category, c.notes] }) },
+    { key: 'brand', ...listFilter({ key: 'brand', rows: candidates, get: (c: Candidate) => c.brand, emptyLabel: 'Marque inconnue' }) },
     { key: 'step', kind: 'enum', get: (c: Candidate) => c.routineStep || '', options: Array.from(new Set(candidates.map(c => c.routineStep || '').filter(Boolean))).map(step => ({ value: step, label: step })) },
     { key: 'purchase', kind: 'numeric', get: (c: Candidate) => (c.purchasePriceCents == null ? NaN : c.purchasePriceCents / 100), unit: ' €' },
     { key: 'public', kind: 'numeric', get: (c: Candidate) => (c.publicPriceCents == null ? NaN : c.publicPriceCents / 100), unit: ' €' },

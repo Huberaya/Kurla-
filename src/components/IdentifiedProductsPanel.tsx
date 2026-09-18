@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bookmark, FilePlus2, RefreshCw, Upload } from 'lucide-react';
 
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
 import {
   DOCUMENTED_NEED_OPTIONS,
@@ -94,7 +94,7 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
   }, [records, search, kind, need, skin]);
 
   const columnFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'title', kind: 'text', get: (row) => row.title, extra: (row) => [row.brand] },
+    { key: 'title', ...listFilter({ key: 'title', rows: prefiltered, get: (row) => row.title, extra: (row) => [row.brand] }) },
     { key: 'kind', kind: 'enum', get: (row) => row.kind, options: [
       { value: 'fond_position', label: 'Position de fond' },
       { value: 'candidate', label: 'Candidat' },
@@ -102,7 +102,7 @@ export const IdentifiedProductsPanel: React.FC<IdentifiedProductsPanelProps> = (
     { key: 'need', kind: 'enum', get: (row) => (row.documentedNeed != null ? String(row.documentedNeed) : ''), options: DOCUMENTED_NEED_OPTIONS.map(n => ({ value: String(n.number), label: `#${n.number} ${n.title}` })) },
     { key: 'skin', kind: 'enum', get: (row) => row.skinNeed || '', options: SKIN_NEEDS.map(n => ({ value: n.value, label: n.label })) },
     { key: 'supplier', kind: 'present', get: (row) => row.supplierId, presentLabels: { filled: 'Fournisseur structuré', empty: 'Piste / canal (pas un fournisseur)' } },
-  ], []);
+  ], [prefiltered]);
   const [columnState, setColumnState] = useState(() => emptyFilterState(FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visible = useMemo(
     () => applyColumnFilters(prefiltered, columnFilters, columnState),

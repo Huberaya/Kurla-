@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { Boxes, ChevronRight, Search } from 'lucide-react';
 
 /**
@@ -103,13 +103,13 @@ export const SourcedReferencesPanel: React.FC<{ headers: Record<string, string> 
   // gouvernance, prix). 121 candidats en base — dérouler n'est pas tenable.
   const SOURCED_FILTER_KEYS = ['brand', 'prospect', 'gov', 'purchase', 'public', 'margin'] as const;
   const sourcedFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'brand', kind: 'text', get: (c: Candidate) => c.brand, extra: (c: Candidate) => [c.product] },
-    { key: 'prospect', kind: 'text', get: (c: Candidate) => prospectName.get(String(c.prospectId || '')) || '' },
+    { key: 'brand', ...listFilter({ key: 'brand', rows: searchFiltered, get: (c: Candidate) => c.brand, extra: (c: Candidate) => [c.product], emptyLabel: 'Marque inconnue' }) },
+    { key: 'prospect', ...listFilter({ key: 'prospect', rows: searchFiltered, get: (c: Candidate) => prospectName.get(String(c.prospectId || '')) || '', emptyLabel: 'Piste non rattachée' }) },
     { key: 'gov', kind: 'enum', get: (c: Candidate) => String(c.governanceStatus || 'blocked'), options: Object.entries(GOVERNANCE_LABELS).map(([value, meta]) => ({ value, label: meta.label })) },
     { key: 'purchase', kind: 'numeric', get: (c: Candidate) => (c.purchasePriceCents == null ? NaN : c.purchasePriceCents / 100), unit: ' €' },
     { key: 'public', kind: 'numeric', get: (c: Candidate) => (c.publicPriceCents == null ? NaN : c.publicPriceCents / 100), unit: ' €' },
     { key: 'margin', kind: 'numeric', get: (c: Candidate) => (typeof c.marginPct === 'number' ? c.marginPct : NaN), unit: ' %' },
-  ], [prospectName]);
+  ], [prospectName, searchFiltered]);
   const [sourcedFilterState, setSourcedFilterState] = useState(() => emptyFilterState(SOURCED_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const filtered = useMemo(
     () => applyColumnFilters(searchFiltered, sourcedFilters, sourcedFilterState),

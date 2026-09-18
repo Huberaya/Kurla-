@@ -1,6 +1,6 @@
 import { ProductName, SupplierName } from './EditableRecordName';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter } from '../lib/columnFilters';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import { useAdminRecords } from './SupplierSheet';
 import { ChevronRight, Factory } from 'lucide-react';
 
@@ -86,14 +86,14 @@ export const SupplierCatalogPanel: React.FC<{ headers: Record<string, string>; o
   // dérouler les 29 blocs. Même calcul partagé que partout ailleurs.
   const SUPPLIER_CATALOG_FILTER_KEYS = ['supplier', 'country', 'items', 'products'] as const;
   const supplierCatalogFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'supplier', kind: 'text', get: (row: any) => row.supplier.tradeName, extra: (row: any) => [row.supplier.legalName, row.supplier.id] },
-    { key: 'country', kind: 'text', get: (row: any) => row.supplier.country },
+    { key: 'supplier', ...listFilter({ key: 'supplier', rows, get: (row: any) => row.supplier.tradeName, extra: (row: any) => [row.supplier.legalName, row.supplier.id] }) },
+    { key: 'country', ...listFilter({ key: 'country', rows, get: (row: any) => row.supplier.country, emptyLabel: 'Pays non renseigné' }) },
     { key: 'items', kind: 'numeric', get: (row: any) => row.items.length, unit: ' produit(s)' },
     { key: 'products', kind: 'enum', get: (row: any) => (row.items.length > 0 ? 'avec' : 'sans'), options: [
       { value: 'avec', label: 'Avec produits rattachés' },
       { value: 'sans', label: 'Sans produit rattaché' },
     ] },
-  ], []);
+  ], [rows]);
   const [supplierCatalogFilterState, setSupplierCatalogFilterState] = useState(() => emptyFilterState(SUPPLIER_CATALOG_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visibleRows = useMemo(
     () => applyColumnFilters(rows, supplierCatalogFilters, supplierCatalogFilterState),

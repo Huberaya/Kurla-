@@ -224,6 +224,24 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
    *  « documents ») donnent le nombre et les deux premiers éléments ; le détail
    *  reste à un clic. Aucune information n'est retirée du tableau. */
   const [density, setDensity] = useState<'compact' | 'full'>('compact');
+  // Filtres du tableau « Approvisionnement — besoins » (17/09, 2e passe :
+  // « des filtres avec des listes déroulantes sur TOUS les tableaux »). Ce
+  // tableau n'en avait aucun : avec 4 vagues et des dizaines de besoins,
+  // « lesquels sont encore à sourcer » demandait de tout lire.
+  const besoinFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'besoin', ...listFilter({ key: 'besoin', rows: items, get: (item: any) => item.title }) },
+    { key: 'vague', ...listFilter({ key: 'vague', rows: items, get: (item: any) => item.wave, emptyLabel: 'Sans vague' }) },
+    { key: 'statut', kind: 'enum', get: (item: any) => item.status, options: Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })) },
+    { key: 'docs', kind: 'numeric', get: (item: any) => item.requiredDocuments.length, unit: ' doc(s)' },
+    { key: 'demandes', kind: 'numeric', get: (item: any) => item.rfqCount, unit: ' demande(s)' },
+    { key: 'reponses', kind: 'numeric', get: (item: any) => item.responseCount, unit: ' réponse(s)' },
+  ], [items]);
+  const [besoinFilterState, setBesoinFilterState] = useState(() => emptyFilterState(besoinFilters));
+  const setBesoinFilter = (key: string, value: string) => setBesoinFilterState(prev => ({ ...prev, [key]: value }));
+  const visibleItems = useMemo(
+    () => applyColumnFilters(items, besoinFilters, besoinFilterState),
+    [items, besoinFilters, besoinFilterState]
+  );
   const columnFilters = useMemo<ColumnFilter[]>(() => [
     { key: 'title', ...listFilter({ key: 'title', rows: lignes, get: (r: ProductRow) => r.title, extra: (r: ProductRow) => [r.productId, r.slug] }) },
     { key: 'status', kind: 'enum', get: (r: ProductRow) => r.catalogStatus, options: enumOptions(lignes.map(r => r.catalogStatus)) },
@@ -401,6 +419,19 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
           </div>
         )}
 
+        {items.length > 0 && (
+          <div className="mb-3">
+            <ColumnFilterStrip
+              filters={besoinFilters}
+              state={besoinFilterState}
+              onChange={setBesoinFilter}
+              onReset={() => setBesoinFilterState(emptyFilterState(besoinFilters))}
+              total={items.length}
+              shown={visibleItems.length}
+            />
+          </div>
+        )}
+
         {items.length === 0 ? (
           <p className="text-xs text-kurla-cream/50">Aucun besoin de sourcing enregistré.</p>
         ) : (
@@ -418,7 +449,7 @@ export function OperationsCockpitPanel({ headers, onSuccess }: OperationsCockpit
                 </tr>
               </thead>
               <tbody>
-                {items.map(item => (
+                {visibleItems.map(item => (
                   <tr key={item.id} className="border-t border-kurla-cream/10">
                     <td className="py-2 pr-3 text-kurla-cream">{item.title}</td>
                     <td className="py-2 pr-3 text-kurla-cream/70">{item.wave}</td>
