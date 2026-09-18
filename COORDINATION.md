@@ -4294,3 +4294,67 @@ l’ancien chantier 16A/B fournisseurs, pas AliExpress.
 ### Contrôles
 
 npm run test:api-connectors
+
+## 18/09/2026 — Diagnostic adaptatif (question EN PLUS) + feuilletage mobile du résultat
+
+**Territoire** : consigne du 18/09 — (a) après la texture (Q1) et le
+coiffage (Q2), les questions suivantes peuvent porter sur les besoins et
+problèmes du profil déclaré, **en plus des questions existantes** ; (b) sur
+téléphone, la routine du résultat se feuillette de gauche à droite.
+
+### Chantier adaptatif — ce qui a été fait
+
+- `src/lib/diagnosticSegments.ts` (nouveau, pur) — 7 segments : locks,
+  protectrice, perruque, enfant, transition, naturel cresp, naturel bouclé.
+  `getHairDiagnosticSegment(texture, style)` déterministe ; 49 couples
+  (7 textures × 7 coiffages) tous résolus, testés. Chaque segment porte une
+  question de préoccupation (4–6 options) mappée sur les needs EXISTANTS
+  (`KNOWN_DIAGNOSTIC_NEEDS`) — zéro besoin inventé.
+- `DiagnosticHairPage` — la question adaptative s'insère en Q3 **seulement
+  si un segment existe** (8 questions sinon) ; `focus` réinitialisée si le
+  segment change ; compteur « N questions » dynamique ; aucune question
+  existante supprimée ni modifiée.
+- `recommendations.ts` — `answers.focus` ajoute ses needs au pool
+  (catalogue + prompt IA) ; peau sans `focus` → aucun effet.
+- `diagnosticResult.ts` — champ « Préoccupation principale » (libellé
+  lisible, jamais l'id technique), 1re priorité de la page, contexte
+  advisory ; priorité cheveux affichée avec son libellé (plus l'id brut).
+- `careKit.ts` — style + focus dans la fiche technique du kit (champs
+  déclarés uniquement, comme avant).
+- `types.ts` — `HairDiagnosticAnswers.focus` (`''` par défaut) : les
+  réponses anciennes (sans ce champ) restent compatibles (banc).
+- `tests/kurla_diagnostic_segments.test.ts` (nouveau) — 49 couples
+  exhaustifs, déterminisme, unicité globale des ids, cas locks de la
+  consigne (texture locksee OU style locks → segment locks), ordre des
+  règles (enfant > locks > wig > protectrice > transition > naturel),
+  focus sûre (id inconnu/absent → rien), profil/priorités, rétro-compat.
+
+### Chantier scroll mobile — ce qui a été fait
+
+- `DiagnosticResultPage` — sous 640 px : les sections (1 → 10 + sources)
+  deviennent des « pages » pleine largeur, défilement horizontal snap +
+  défilement vertical interne, dots + flèches + hint de départ. Au-dessus :
+  rendu strictement inchangé. Contenu strictement identique des deux côtés.
+
+### Contrôles
+
+- tsc standalone exit 0 (code post-rebase sur `8cd0023` Skin C11–C16).
+- `npm test` chaîne : 238 [PASS] avant rebase ; après rebase, bancs des
+  deux côtés relancés (segments, care-kit, hair-advisory,
+  diagnostic-advisory, hair-publish-gates, skin-ux, c4-diagnostic-result,
+  diagnostic-session, adaptive-routines, skin-knowledge, c3-kits-routine) :
+  tous verts. Le tsc final de la chaîne meurt en sandbox (documenté) —
+  le tsc standalone reste la source de vérité.
+- Push refusé (l'autre avait poussé C11–C16) → fetch + rebase, 1 conflit
+  package.json (chaîne de tests : bancs des deux côtés conservés).
+  Poussé `17fcb26`.
+- Live dev server : GET /diagnostic + /diagnostic/resultat → 200 ;
+  POST /api/ai/routine-result avec `focus` → 200, réponse complète.
+
+### Piège noté pour l'autre
+
+`DiagnosticResultPage.tsx` est désormais structuré en `pages[]` (une
+entrée = une section) + `headerBlock`/`footerBlock`. Tout ajout de section
+= une entrée dans `pages` (avec sa condition si optionnelle). Ne pas
+réintroduire de `<section>` en dehors de l'array : il ne serait plus
+feuilleté sur mobile.
