@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProductSheet } from './ProductSheet';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, listFilter, type ColumnFilter } from '../lib/columnFilters';
 import { SupplierName } from './EditableRecordName';
 import { useAdminRecords } from './SupplierSheet';
 import { RefreshCw, Save, Package, Truck, CheckCircle2 } from 'lucide-react';
@@ -162,6 +163,18 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
     return filter === 'unassigned' ? list.filter(p => !p.supplierId) : list;
   }, [products, filter, fullCatalog]);
 
+  // Filtres à listes déroulantes (17/09, « étends ») : ~138 fiches —
+  // « quels produits de quelle catégorie n'ont pas de fournisseur » doit se
+  // répondre sans faire défiler. Calcul partagé (columnFilters).
+  const psFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'produitAffect', ...listFilter({ key: 'produitAffect', rows: visible, get: (p: Product) => p.name, extra: (p: Product) => [p.slug] }) },
+    { key: 'categorieAffect', ...listFilter({ key: 'categorieAffect', rows: visible, get: (p: Product) => p.category, emptyLabel: 'Catégorie non renseignée' }) },
+    { key: 'fournisseurAffect', ...listFilter({ key: 'fournisseurAffect', rows: visible, get: (p: Product) => { const sup = supplierName(p.supplierId); return sup ? (sup.tradeName || sup.legalName) : ''; }, emptyLabel: 'Sans fournisseur' }) },
+    { key: 'skuFourn', kind: 'present', get: (p: Product) => p.supplierSku, presentLabels: { filled: 'SKU renseigné', empty: 'SKU manquant' } },
+  ], [visible, supplierName]);
+  const [psFilterState, setPsFilterState] = useState(() => emptyFilterState(psFilters));
+  const visiblePs = useMemo(() => applyColumnFilters(visible, psFilters, psFilterState), [visible, psFilters, psFilterState]);
+
   const countable = fullCatalog ? products : products.filter(p => p.category !== 'kits');
   const assignedCount = countable.filter(p => p.supplierId).length;
   const totalCount = countable.length;
@@ -216,6 +229,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
         </p>
       ) : (
         <div className="overflow-x-auto">
+          <div className="pb-3"><ColumnFilterStrip filters={psFilters} state={psFilterState} onChange={(key, value) => setPsFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setPsFilterState(emptyFilterState(psFilters))} total={visible.length} shown={visiblePs.length} /></div>
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-kurla-cream/10 text-kurla-amber uppercase tracking-wider">
@@ -226,7 +240,7 @@ export const ProductSupplierPanel: React.FC<Props> = ({ headers, onSuccess, full
               </tr>
             </thead>
             <tbody className="divide-y divide-kurla-cream/5">
-              {visible.map(p => {
+              {visiblePs.map(p => {
                 const draft = drafts[p.id] || { supplierId: '', supplierSku: '' };
                 const dirty = draft.supplierId !== (p.supplierId || '') || draft.supplierSku !== (p.supplierSku || '');
                 // Suggestion du 14/09 : affichée tant que le produit n'a pas de

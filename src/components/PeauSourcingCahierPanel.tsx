@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Beaker, Eye, FlaskConical, Mail, Package, ShieldCheck, Sparkles, Truck, Copy, Check } from 'lucide-react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, listFilter, type ColumnFilter } from '../lib/columnFilters';
 
 /**
  * C16 — Sourcing peau V-VI safe
@@ -79,6 +80,27 @@ KURLA — pôle peau`;
 
 export const PeauSourcingCahierPanel: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  // Filtres à listes déroulantes (17/09, « étends ») : 15 actifs et 20
+  // fournisseurs cibles — « quel pays », « quelle preuve » en deux clics.
+  const actifFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'actif', ...listFilter({ key: 'actif', rows: ACTIFS, get: (a: any) => a.inci }) },
+    { key: 'famille', ...listFilter({ key: 'famille', rows: ACTIFS, get: (a: any) => a.famille }) },
+    { key: 'preuve', ...listFilter({ key: 'preuve', rows: ACTIFS, get: (a: any) => a.preuve }) },
+    { key: 'kitActif', ...listFilter({ key: 'kitActif', rows: ACTIFS, get: (a: any) => a.kit, emptyLabel: 'Hors kit' }) },
+  ], []);
+  const [actifFilterState, setActifFilterState] = useState(() => emptyFilterState(actifFilters));
+  const visibleActifs = useMemo(() => applyColumnFilters(ACTIFS, actifFilters, actifFilterState), [actifFilters, actifFilterState]);
+
+  const fournisseurRows = [...FOURNISSEURS_UE, ...FOURNISSEURS_AF] as any[];
+  const fournisseurFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'fournisseurCible', ...listFilter({ key: 'fournisseurCible', rows: fournisseurRows, get: (r: any) => r.nom }) },
+    { key: 'paysCible', ...listFilter({ key: 'paysCible', rows: fournisseurRows, get: (r: any) => r.pays }) },
+    { key: 'specialite', ...listFilter({ key: 'specialite', rows: fournisseurRows, get: (r: any) => r.spe }) },
+    { key: 'statutCible', ...listFilter({ key: 'statutCible', rows: fournisseurRows, get: (r: any) => r.statut }) },
+    { key: 'moqCible', kind: 'numeric', get: (r: any) => Number(String(r.moq).replace(/[^0-9]/g, '')) || NaN, unit: ' u' },
+  ], [fournisseurRows]);
+  const [fournisseurFilterState, setFournisseurFilterState] = useState(() => emptyFilterState(fournisseurFilters));
+  const visibleFournisseurs = (rows: any[]) => applyColumnFilters(rows, fournisseurFilters, fournisseurFilterState);
   const copyMail = async () => {
     try { await navigator.clipboard.writeText(EMAIL_TEMPLATE); setCopied(true); setTimeout(()=>setCopied(false), 2500); } catch {}
   };
@@ -123,13 +145,13 @@ export const PeauSourcingCahierPanel: React.FC = () => {
       {/* 15 actifs */}
       <div>
         <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-1.5 mb-2"><Sparkles className="w-3.5 h-3.5" /> 15 actifs documentés — source unique skinIngredients15.ts</h4>
-        <div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
+        <div className="pb-2"><ColumnFilterStrip filters={actifFilters} state={actifFilterState} onChange={(key, value) => setActifFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setActifFilterState(emptyFilterState(actifFilters))} total={ACTIFS.length} shown={visibleActifs.length} /></div><div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
           <table className="w-full text-left text-[11px] border-collapse">
             <thead className="bg-kurla-ink text-kurla-amber uppercase tracking-wider text-[10px]">
               <tr><th className="px-2.5 py-2">#</th><th className="px-2.5 py-2">Actif (INCI)</th><th className="px-2.5 py-2">Famille</th><th className="px-2.5 py-2">Preuve</th><th className="px-2.5 py-2">V-VI</th><th className="px-2.5 py-2">Rôle HPI/barrière/SPF</th><th className="px-2.5 py-2">Kit</th></tr>
             </thead>
             <tbody className="divide-y divide-kurla-cream/5">
-              {ACTIFS.map((a,i)=> (
+              {visibleActifs.map((a,i)=> (
                 <tr key={a.inci} className="hover:bg-kurla-cream/[0.02]">
                   <td className="px-2.5 py-1.5 text-kurla-cream/40">{i+1}</td>
                   <td className="px-2.5 py-1.5 font-semibold text-kurla-cream">{a.inci}</td>
@@ -165,6 +187,7 @@ export const PeauSourcingCahierPanel: React.FC = () => {
       <div className="space-y-3">
         <h4 className="text-xs font-bold uppercase tracking-wider text-kurla-amber flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> 20 fournisseurs cibles — 12 UE + 8 Afrique (MOQ 50–100, V-VI safe, ISO 22716)</h4>
         <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-200">0 contact existant. Prospection à froid — <strong>J0 : 5 mails UE + SN prioritaire</strong> (1,2,3,8,13), <strong>J1 : 6 mails</strong> (4,5,6,9,15,17), <strong>J2 : 4 mails</strong> + relance J0 à J+3. <strong>KPI J+7 : &gt;30% réponse (6/20), 3 échantillons, 1 whitecast V–VI validé</strong>.</div>
+        <ColumnFilterStrip filters={fournisseurFilters} state={fournisseurFilterState} onChange={(key, value) => setFournisseurFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setFournisseurFilterState(emptyFilterState(fournisseurFilters))} total={FOURNISSEURS_UE.length + FOURNISSEURS_AF.length} shown={visibleFournisseurs(FOURNISSEURS_UE).length + visibleFournisseurs(FOURNISSEURS_AF).length} />
         {[
           { title: 'UE — 12 cibles (stock partenaire 24–72h, précommande 3–5j)', rows: FOURNISSEURS_UE, tone: 'emerald' },
           { title: 'Afrique — 8 cibles (hub Dakar/Abidjan, Wave/MTN, français)', rows: FOURNISSEURS_AF, tone: 'sky' },
@@ -176,7 +199,7 @@ export const PeauSourcingCahierPanel: React.FC = () => {
                 <tr><th className="px-2.5 py-1.5">#</th><th className="px-2.5 py-1.5">Fournisseur</th><th className="px-2.5 py-1.5">Pays</th><th className="px-2.5 py-1.5">Spécialité</th><th className="px-2.5 py-1.5">MOQ</th><th className="px-2.5 py-1.5">Quand</th><th className="px-2.5 py-1.5">Contact</th></tr>
               </thead>
               <tbody className="divide-y divide-kurla-cream/5">
-                {group.rows.map(r=> (
+                {visibleFournisseurs(group.rows).map(r=> (
                   <tr key={r.n} className="hover:bg-kurla-cream/[0.02]">
                     <td className="px-2.5 py-1.5 text-kurla-cream/40">{r.n}</td>
                     <td className="px-2.5 py-1.5 font-semibold text-kurla-cream">{r.nom}</td>

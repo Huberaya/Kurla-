@@ -4486,3 +4486,31 @@ attendu. »
 - Live : POST /api/ai/routine-result tresses vs locks vs naturel → 3 réponses
   distinctes (cycle, résumé, étapes) ; page résultat mobile : titres
   segmentés, zéro overflow.
+
+## 17/09, 5e demande (« étends ») : filtres à listes déroulantes sur les tableaux des autres familles
+
+Go utilisateur pour étendre aux 7 panneaux listés comme restants. Fait :
+
+| Panneau | Tableaux filtrés | Filtres posés |
+| --- | --- | --- |
+| GrowthControlCenterPanel | campagnes, feuille de route mensuelle | campagne/marché/canal (listes), statut (déroulant) · mois/marché/phase (listes), clients/budget (plages) |
+| PeauDemandStockGapPanel | composants peau (~15) | composant (liste), demande/reçu/gap/à cmder (plages) |
+| PeauFacturationSuiviPanel | matrice pays, commandes payées | pays/modèle (listes), TVA/score (plages) · commande/statut/pays (listes), net HT (plage) |
+| PeauSourcingCahierPanel | 15 actifs, 20 fournisseurs cibles | actif/famille/preuve/kit (listes) · fournisseur/pays/spécialité/statut (listes), MOQ (plage) |
+| ProductSupplierPanel | ~138 fiches à affecter | produit/catégorie/fournisseur (listes), SKU (rempli/vide) |
+| StrategyCockpitPanel | top produits, top kits, ventes par canal | produit (liste), qté/CA (plages) · canal (liste), commandes/CA (plages) |
+
+Comportement conservé : **commandes facturables** — sans filtre, les 5 dernières
+(comme avant) ; dès qu'un filtre est actif, la vue filtrée s'élargit (plafond
+50) — filtrer 5 lignes figées n'aurait répondu à rien.
+
+**Dispenses assumées (pas de filtre, et pourquoi)** :
+- TamponOrderPanel : le tableau EST le bon de commande tampon 75 (5 lignes
+  fixes) qui part dans l'e-mail au 3PL — le filtrer masquerait des lignes du
+  bon envoyé.
+- StrategyCockpitPanel : vagues de conquête, KPI par catégorie, projection
+  financière — référentiels de plan de 4–8 lignes, un menu n'y masquerait rien.
+
+Mesure après cette passe : **63 filtres à liste, 23 panneaux scannés**, 2
+saisies libres nominatives inchangées (extrait d'allégation, date par mois).
+Le banc les couvre automatiquement (scan de tout importateur du module partagé).

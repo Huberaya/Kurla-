@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Boxes, Calculator, Gauge, Package, RefreshCw, TrendingUp } from 'lucide-react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, listFilter, type ColumnFilter } from '../lib/columnFilters';
 import { PEAU_KITS } from '../lib/peauKits';
 
 type DemandRow = { productId: string; name: string; isKit: boolean; qtyFirm: number; qtyPending: number; qtyFromKits: number; qtyToSource: number };
@@ -53,6 +54,18 @@ export const PeauDemandStockGapPanel: React.FC<{ headers: HeadersInit }> = ({ he
     const toOrder = gap>0 ? Math.max(moq, gap) : 0;
     return { id, ...PEAU_COMPONENTS[id], qtyFirm, qtyPending, qtyFromKits, qtyToSource, received, gap, toOrder, row };
   });
+
+  // Filtres à listes déroulantes (17/09, « étends ») : ~15 composants —
+  // « lesquels ont un gap » doit se répondre en deux clics.
+  const compFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'composant', ...listFilter({ key: 'composant', rows: comps, get: (c: any) => c.name }) },
+    { key: 'demande', kind: 'numeric', get: (c: any) => c.qtyToSource, unit: ' u' },
+    { key: 'recu', kind: 'numeric', get: (c: any) => c.received, unit: ' u' },
+    { key: 'gap', kind: 'numeric', get: (c: any) => c.gap, unit: ' u' },
+    { key: 'acmder', kind: 'numeric', get: (c: any) => c.toOrder, unit: ' u' },
+  ], [comps]);
+  const [compFilterState, setCompFilterState] = useState(() => emptyFilterState(compFilters));
+  const visibleComps = useMemo(() => applyColumnFilters(comps, compFilters, compFilterState), [comps, compFilters, compFilterState]);
 
   const totals = {
     qtyToSource: comps.reduce((s,c)=>s+c.qtyToSource,0),
@@ -150,7 +163,7 @@ export const PeauDemandStockGapPanel: React.FC<{ headers: HeadersInit }> = ({ he
       </div>
 
       {/* Composants gap */}
-      <div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
+      <div className="pb-2"><ColumnFilterStrip filters={compFilters} state={compFilterState} onChange={(key, value) => setCompFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setCompFilterState(emptyFilterState(compFilters))} total={comps.length} shown={visibleComps.length} /></div><div className="overflow-x-auto rounded-2xl border border-kurla-cream/10">
         <table className="w-full text-left text-xs border-collapse">
           <thead className="bg-kurla-ink text-kurla-amber uppercase tracking-wider text-[10px]">
             <tr>
@@ -163,7 +176,7 @@ export const PeauDemandStockGapPanel: React.FC<{ headers: HeadersInit }> = ({ he
             </tr>
           </thead>
           <tbody className="divide-y divide-kurla-cream/5">
-            {comps.map(c=> (
+            {visibleComps.map(c=> (
               <tr key={c.id} className={c.gap>0?'bg-rose-950/10':''}>
                 <td className="px-3 py-2">
                   <span className="font-semibold text-kurla-cream">{c.name}</span>

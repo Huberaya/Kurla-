@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, listFilter, type ColumnFilter } from '../lib/columnFilters';
 import {
   AlertTriangle, CheckCircle2, Circle, Loader2, RefreshCw, Target, Rocket, Crown,
   Building2, ShieldAlert, Sparkles, ShoppingBag, Users, Megaphone, TrendingUp,
@@ -106,6 +107,31 @@ function SectionTitle({ icon: Icon, title, sub }: { icon: any; title: string; su
 export function StrategyCockpitPanel({ headers }: Props) {
   const [data, setData] = useState<Cockpit | null>(null);
   const [loading, setLoading] = useState(true);
+  // Filtres à listes déroulantes (17/09, « étends ») sur les tableaux de
+  // données réelles : top produits, top kits, ventes par canal. Les tableaux
+  // de plan (vagues de conquête, KPI, projection) sont des référentiels fixes
+  // de quelques lignes — un menu déroulant n'y masquerait rien d'utile.
+  const topProductsRows = data?.performance?.topProducts ?? [];
+  const topKitsRows = data?.performance?.topKits ?? [];
+  const channelRows = data?.performance?.channels ?? [];
+  const perfRowFilters = (keyPrefix: string, rows: PerfRow[]): ColumnFilter[] => [
+    { key: `${keyPrefix}Nom`, ...listFilter({ key: `${keyPrefix}Nom`, rows, get: (r: PerfRow) => r.name }) },
+    { key: `${keyPrefix}Qty`, kind: 'numeric', get: (r: PerfRow) => r.qty, unit: ' u' },
+    { key: `${keyPrefix}Ca`, kind: 'numeric', get: (r: PerfRow) => r.revenue, unit: ' €' },
+  ];
+  const topProductFilters = useMemo(() => perfRowFilters('tp', topProductsRows), [topProductsRows]);
+  const [topProductFilterState, setTopProductFilterState] = useState<Record<string, string>>({});
+  const visibleTopProducts = useMemo(() => applyColumnFilters(topProductsRows, topProductFilters, topProductFilterState), [topProductsRows, topProductFilters, topProductFilterState]);
+  const topKitFilters = useMemo(() => perfRowFilters('tk', topKitsRows), [topKitsRows]);
+  const [topKitFilterState, setTopKitFilterState] = useState<Record<string, string>>({});
+  const visibleTopKits = useMemo(() => applyColumnFilters(topKitsRows, topKitFilters, topKitFilterState), [topKitsRows, topKitFilters, topKitFilterState]);
+  const channelFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'canal', ...listFilter({ key: 'canal', rows: channelRows, get: (c: any) => c.channel }) },
+    { key: 'commandesCanal', kind: 'numeric', get: (c: any) => c.orders, unit: ' cmd' },
+    { key: 'caCanal', kind: 'numeric', get: (c: any) => c.revenue, unit: ' €' },
+  ], [channelRows]);
+  const [channelFilterState, setChannelFilterState] = useState<Record<string, string>>({});
+  const visibleChannels = useMemo(() => applyColumnFilters(channelRows, channelFilters, channelFilterState), [channelRows, channelFilters, channelFilterState]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -270,13 +296,13 @@ export function StrategyCockpitPanel({ headers }: Props) {
                 <div className="grid lg:grid-cols-2 gap-3">
                   <Card className="!p-0 overflow-hidden">
                     <p className="text-[10px] uppercase tracking-widest text-kurla-amber font-bold px-3 pt-3 pb-2 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Top produits</p>
-                    <table className="w-full text-[11px]">
+                    <div className="px-3 pb-2"><ColumnFilterStrip filters={topProductFilters} state={topProductFilterState} onChange={(key, value) => setTopProductFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setTopProductFilterState({})} total={topProductsRows.length} shown={visibleTopProducts.length} /></div><table className="w-full text-[11px]">
                       <thead><tr className="text-left text-kurla-cream/40 border-b border-kurla-cream/10">
                         <th className="px-3 py-1.5"></th><th className="px-3 py-1.5 font-medium">Produit</th>
                         <th className="px-3 py-1.5 font-medium text-right">Qté</th><th className="px-3 py-1.5 font-medium text-right">CA</th>
                         <th className="px-3 py-1.5 font-medium text-right">Marge</th>
                       </tr></thead>
-                      <tbody>{perf.topProducts.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
+                      <tbody>{visibleTopProducts.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
                     </table>
                   </Card>
                   <Card className="!p-0 overflow-hidden">
@@ -290,7 +316,7 @@ export function StrategyCockpitPanel({ headers }: Props) {
                           <th className="px-3 py-1.5 font-medium text-right">Qté</th><th className="px-3 py-1.5 font-medium text-right">CA</th>
                           <th className="px-3 py-1.5 font-medium text-right">Marge</th>
                         </tr></thead>
-                        <tbody>{perf.topKits.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
+                        <tbody>{visibleTopKits.map((r, i) => <Row key={r.id} r={r} rank={i + 1} />)}</tbody>
                       </table>
                     )}
                   </Card>
@@ -303,6 +329,8 @@ export function StrategyCockpitPanel({ headers }: Props) {
                 {perf.channels.length === 0 ? (
                   <p className="px-3 pb-4 pt-1 text-[11px] text-kurla-cream/50">Aucune vente payée pour l’instant.</p>
                 ) : (
+                  <div className="px-3 pb-3">
+                  <ColumnFilterStrip filters={channelFilters} state={channelFilterState} onChange={(key, value) => setChannelFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setChannelFilterState({})} total={channelRows.length} shown={visibleChannels.length} />
                   <table className="w-full text-[11px]">
                     <thead><tr className="text-left text-kurla-cream/40 border-b border-kurla-cream/10">
                       <th className="px-3 py-1.5 font-medium">Canal</th>
@@ -311,7 +339,7 @@ export function StrategyCockpitPanel({ headers }: Props) {
                       <th className="px-3 py-1.5 font-medium text-right">Part du CA</th>
                     </tr></thead>
                     <tbody>
-                      {perf.channels.map((c) => {
+                      {visibleChannels.map((c) => {
                         const totalRev = perf.channels.reduce((s, x) => s + x.revenue, 0) || 1;
                         const share = Math.round((c.revenue / totalRev) * 100);
                         return (
@@ -330,6 +358,7 @@ export function StrategyCockpitPanel({ headers }: Props) {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </Card>
 

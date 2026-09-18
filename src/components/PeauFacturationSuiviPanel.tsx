@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, Copy, Check, CreditCard, Receipt, Truck, MapPin, RefreshCw, Globe, Euro, FileText, ExternalLink, ShieldCheck, Eye } from 'lucide-react';
+import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, listFilter, type ColumnFilter } from '../lib/columnFilters';
 import { COUNTRY_FULFILLMENT, getStripeModeForCountry } from '../lib/countryFulfillment';
 
 type Metrics = { stripeMode?: 'test'|'live'|'unknown'; grossRevenue?: number; netRevenue?: number; avgOrderValue?: number; paidOrdersCount?: number } | null;
@@ -128,7 +129,33 @@ export const PeauFacturationSuiviPanel: React.FC<{ headers: HeadersInit }> = ({ 
   const paidOrders = orders.filter(o=> ['paid','processing','packed','shipped','delivered','partially_refunded','refunded'].includes(o.status));
   const pendingOrders = orders.filter(o=> ['payment_pending_webhook','pending_payment','payment_failed'].includes(o.status));
   const shippedCount = Object.values(shipments).filter(s=> ['shipped','in_transit','out_for_delivery','delivered'].includes(s.status||'')).length;
-  const last5Paid = paidOrders.slice(0,5);
+
+  // Filtres à listes déroulantes (17/09, « étends »).
+  const countryRows = (Object.values(COUNTRY_FULFILLMENT) as any[]).filter(c => c.code !== 'INT').sort((a, b) => b.score - a.score);
+  const countryFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'pays', ...listFilter({ key: 'pays', rows: countryRows, get: (c: any) => c.name }) },
+    { key: 'modele', ...listFilter({ key: 'modele', rows: countryRows, get: (c: any) => c.model }) },
+    { key: 'tvaPays', kind: 'numeric', get: (c: any) => c.vatRate, unit: ' %' },
+    { key: 'score', kind: 'numeric', get: (c: any) => c.score, unit: ' pts' },
+  ], [countryRows]);
+  const [countryFilterState, setCountryFilterState] = useState(() => emptyFilterState(countryFilters));
+  const visibleCountries = useMemo(() => applyColumnFilters(countryRows, countryFilters, countryFilterState), [countryRows, countryFilters, countryFilterState]);
+
+  // Commandes payées : sans filtre, les 5 dernières (comportement d'origine) ;
+  // dès qu'un filtre est actif, la vue filtrée s'élargit (plafond 50) — filtrer
+  // 5 lignes figées ne répondrait à rien.
+  const orderFilters = useMemo<ColumnFilter[]>(() => [
+    { key: 'commande', ...listFilter({ key: 'commande', rows: paidOrders, get: (o: OrderRow) => o.id }) },
+    { key: 'statutCmd', ...listFilter({ key: 'statutCmd', rows: paidOrders, get: (o: OrderRow) => o.status }) },
+    { key: 'paysCmd', ...listFilter({ key: 'paysCmd', rows: paidOrders, get: (o: OrderRow) => ((o.vatCountry || o.shippingAddress?.country || 'FR') as string).toUpperCase() }) },
+    { key: 'netHt', kind: 'numeric', get: (o: OrderRow) => (o.netAmount == null ? NaN : Number(o.netAmount)), unit: ' €' },
+  ], [paidOrders]);
+  const [orderFilterState, setOrderFilterState] = useState(() => emptyFilterState(orderFilters));
+  const orderFilterActive = Object.values(orderFilterState).some(v => String(v ?? '').trim() !== '');
+  const visiblePaid = useMemo(() => {
+    const filtered = applyColumnFilters(paidOrders, orderFilters, orderFilterState);
+    return orderFilterActive ? filtered.slice(0, 50) : filtered.slice(0, 5);
+  }, [paidOrders, orderFilters, orderFilterState, orderFilterActive]);
 
   const copy = async (text:string, key:string)=>{
     try{ await navigator.clipboard.writeText(text); setCopyOk(key); setTimeout(()=>setCopyOk(null), 1600); }catch{ /* noop */ }
@@ -198,6 +225,7 @@ export const PeauFacturationSuiviPanel: React.FC<{ headers: HeadersInit }> = ({ 
       </div>
 
       {/* Country matrix */}
+      <ColumnFilterStrip filters={countryFilters} state={countryFilterState} onChange={(key, value) => setCountryFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setCountryFilterState(emptyFilterState(countryFilters))} total={countryRows.length} shown={visibleCountries.length} />
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse min-w-[760px]">
           <thead>
@@ -211,7 +239,7 @@ export const PeauFacturationSuiviPanel: React.FC<{ headers: HeadersInit }> = ({ 
             </tr>
           </thead>
           <tbody className="divide-y divide-kurla-cream/5">
-            { (Object.values(COUNTRY_FULFILLMENT) as any[]).filter(c=>c.code!=='INT').sort((a,b)=>b.score-a.score).map(c=>{
+            { visibleCountries.map(c=>{
               const eff = effective(c.code) as string;
               const isLive = eff==='live';
               return (
@@ -260,8 +288,11 @@ export const PeauFacturationSuiviPanel: React.FC<{ headers: HeadersInit }> = ({ 
         </div>
 
         {/* Orders facturation table */}
+        {!loading && paidOrders.length > 0 && (
+          <ColumnFilterStrip filters={orderFilters} state={orderFilterState} onChange={(key, value) => setOrderFilterState(prev => ({ ...prev, [key]: value }))} onReset={() => setOrderFilterState(emptyFilterState(orderFilters))} total={paidOrders.length} shown={visiblePaid.length} />
+        )}
         {loading ? <p className="text-xs text-kurla-cream/50 italic">Chargement commandes facturables…</p> :
-          last5Paid.length===0 ? (
+          visiblePaid.length===0 ? (
             <div className="p-4 rounded-xl bg-kurla-espresso border border-kurla-cream/10 text-center space-y-1">
               <p className="text-xs text-kurla-cream/60">Aucune commande <code>paid+</code> — facturation à vide honnête.</p>
               <p className="text-[11px] text-kurla-cream/40">Passez une précommande TEST (<code>4242 4242 4242 4242</code>) → <code>/api/orders</code> créera une ligne <code>paid</code> avec snapshot TVA complet, puis le tableau s'affichera ici.</p>
@@ -281,7 +312,7 @@ export const PeauFacturationSuiviPanel: React.FC<{ headers: HeadersInit }> = ({ 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-kurla-cream/5">
-                  {last5Paid.map(o=>{
+                  {visiblePaid.map(o=>{
                     const net = o.netAmount != null ? Number(o.netAmount).toFixed(2) : '—';
                     const vat = o.vatAmount != null ? Number(o.vatAmount).toFixed(2) : '—';
                     const vatRate = (o.vatBreakdown && Array.isArray(o.vatBreakdown) && o.vatBreakdown[0]?.ratePercent != null) ? `${o.vatBreakdown[0].ratePercent}%` : (o.shippingAddress?.vat?.ratePercent ? `${o.shippingAddress.vat.ratePercent}%` : (COUNTRY_FULFILLMENT as any)[(o.vatCountry||'FR').toUpperCase()]?.vatRate ? `${(COUNTRY_FULFILLMENT as any)[(o.vatCountry||'FR').toUpperCase()].vatRate}%` : '—');
