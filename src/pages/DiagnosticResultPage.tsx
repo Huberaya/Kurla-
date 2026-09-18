@@ -302,9 +302,9 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
                 className="flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
                 aria-label="Résultat du diagnostic — feuilletage des sections"
               >
-                <div className="h-full min-w-full shrink-0 snap-start overflow-y-auto pt-4 pb-16">{headerBlock}</div>
+                <div className="h-full w-full shrink-0 grow-0 snap-start overflow-y-auto pt-4 pb-16">{headerBlock}</div>
                 {visiblePages.map((entry, index) => (
-                  <div key={index} className="h-full min-w-full shrink-0 snap-start overflow-y-auto pt-4 pb-16">{entry}</div>
+                  <div key={index} className="h-full w-full shrink-0 grow-0 snap-start overflow-y-auto pt-4 pb-16">{entry}</div>
                 ))}
               </div>
 
