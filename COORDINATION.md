@@ -4416,7 +4416,6 @@ utilisateur attendue** : soit la règle « une seule surface » est réappliqué
 aussi, soit elle est officiellement élargie et le garde-fou + cette section sont
 mis à jour. Ne pas laisser les deux documents dire le contraire du code.
 
-<<<<<<< HEAD
 ## 17/09, 4e demande (répétition de la 3e) : listes déroulantes étendues à TOUS les tableaux
 
 La 3e demande a été redite à l'identique alors que la prod servait déjà le
@@ -4446,7 +4445,6 @@ Reste sans filtres par colonne (tableaux d'autres familles, hors de la demande
 « catalogue et pilotage ») : GrowthControlCenterPanel, PeauDemandStockGapPanel,
 PeauFacturationSuiviPanel, PeauSourcingCahierPanel, ProductSupplierPanel,
 StrategyCockpitPanel, TamponOrderPanel (5 lignes fixes). À étendre sur go.
-=======
 ## 18/09/2026 (suite) — Routine segmentée : réponse précise au profil, pas au genre
 
 **Territoire** : consigne du 18/09 — « les recommandations sont génériques :
@@ -4488,4 +4486,3 @@ attendu. »
 - Live : POST /api/ai/routine-result tresses vs locks vs naturel → 3 réponses
   distinctes (cycle, résumé, étapes) ; page résultat mobile : titres
   segmentés, zéro overflow.
->>>>>>> 6f805ae (Routine segmentée : la réponse suit le profil (cycle, coiffage, préoccupation), plus de générique)
