@@ -35,6 +35,8 @@
 export interface HairAdvisoryContext {
   texture?: string;    // crepue | frisee | locksee | protective | defrisee | inconnue
   style?: string;      // naturel | braids | twists | locks | wig | enfant
+  /** Question adaptative (segment texture+coiffage) : id d'option de préoccupation. */
+  focus?: string;
   priority?: string;   // hydratation | casse | definition | pousse | cuir_chevelu | demelage_enfant
   porosity?: string;   // forte | faible | moyenne | inconnue
   scalp?: string;      // normal | sec | demangeaisons | pellicules | irritation

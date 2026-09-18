@@ -120,7 +120,7 @@ function profileLines(fields: DiagnosticProfileField[], keys: string[], isSkin: 
 /* Cheveux                                                             */
 /* ------------------------------------------------------------------ */
 
-const HAIR_PROFILE_KEYS = ['texture', 'porosity', 'scalp', 'priority', 'frequency'];
+const HAIR_PROFILE_KEYS = ['texture', 'style', 'focus', 'porosity', 'scalp', 'priority', 'frequency'];
 
 export function buildHairKit(
   ctx: HairAdvisoryContext,

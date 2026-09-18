@@ -5,11 +5,13 @@ import { navigate } from '../lib/router';
 import { markLatestDiagnostic, mergeStoredAnswers, readStoredPrefill, storeHairAnswers } from '../lib/diagnosticSession';
 import { analytics } from '../lib/analytics';
 import { DiagnosticVisual } from '../components/diagnostic/DiagnosticVisuals';
+import { getHairDiagnosticSegment } from '../lib/diagnosticSegments';
 
 /** Défauts du formulaire cheveux — source des réponses avant tout diagnostic. */
 const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   texture: 'crepue',
   style: 'naturel',
+  focus: '',
   priority: 'hydratation',
   porosity: 'forte',
   scalp: 'sec',
@@ -28,12 +30,30 @@ export const DiagnosticHairPage: React.FC = () => {
   // Pré-remplissage : les réponses du dernier diagnostic cheveux (miroir du parcours peau).
   const [answers, setAnswers] = useState<HairDiagnosticAnswers>(() => mergeStoredAnswers(HAIR_DEFAULTS, readStoredPrefill('hair')));
 
+  // Question adaptative (chantier diagnostic) : après la texture (Q1) et le
+  // coiffage (Q2), un segment de profil peut exister — s'il existe, une
+  // question dédiée à CE profil (ses besoins et problèmes) s'insère en Q3,
+  // EN PLUS des questions existantes (qui restent intactes).
+  const segment = getHairDiagnosticSegment(answers.texture, answers.style);
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), 'priority', 'porosity', 'scalp', 'frequency', 'budget', 'email'];
+  const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
+  const totalSteps = stepIds.length;
+
   const handleNext = () => {
-    if (step < 8) {
+    if (step < totalSteps) {
       setStep(step + 1);
     } else {
       submitDiagnostic();
     }
+  };
+
+  // Choisir texture ou coiffage : si le segment change, l'ancienne réponse
+  // adaptative est réinitialisée (elle ne concernait plus le nouveau profil).
+  const pickWithSegmentReset = (patch: Partial<HairDiagnosticAnswers>) => {
+    const next = { ...answers, ...patch };
+    const nextSegment = getHairDiagnosticSegment(next.texture, next.style);
+    setAnswers(nextSegment?.id !== segment?.id ? { ...next, focus: '' } : next);
+    handleNext();
   };
 
   const handlePrev = () => {
@@ -84,19 +104,19 @@ export const DiagnosticHairPage: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3 minutes · sans abonnement
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Trouvez votre routine cheveux</h1>
-          <p className="text-sm text-kurla-cream/70 font-light max-w-md mx-auto">Répondez à 8 questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
+          <p className="text-sm text-kurla-cream/70 font-light max-w-md mx-auto">Répondez à {totalSteps} questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-10 space-y-2">
           <div className="flex justify-between text-xs text-kurla-amber font-semibold uppercase tracking-wider">
-            <span>Question {step} / 8</span>
-            <span>{Math.round((step / 8) * 100)}% complété</span>
+            <span>Question {step} / {totalSteps}</span>
+            <span>{Math.round((step / totalSteps) * 100)}% complété</span>
           </div>
           <div className="w-full h-2 rounded-full bg-kurla-espresso border border-kurla-cream/10 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-kurla-copper to-kurla-amber transition-all duration-300"
-              style={{ width: `${(step / 8) * 100}%` }}
+              style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
         </div>
@@ -105,9 +125,9 @@ export const DiagnosticHairPage: React.FC = () => {
         <div className="p-8 sm:p-12 rounded-3xl bg-kurla-espresso border border-kurla-cream/15 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-kurla-copper/10 rounded-full blur-3xl pointer-events-none" />
 
-          {step === 1 && (
+          {current === 'texture' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">1. Texture Principale</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Texture Principale</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est la texture dominante de vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -120,7 +140,7 @@ export const DiagnosticHairPage: React.FC = () => {
                 ].map(opt => (
                   <button
                     key={opt.id}
-                    onClick={() => { setAnswers({ ...answers, texture: opt.id as any }); handleNext(); }}
+                    onClick={() => pickWithSegmentReset({ texture: opt.id as any })}
                     className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                       answers.texture === opt.id
                         ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper'
@@ -138,9 +158,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 2 && (
+          {current === 'style' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">2. Coiffage Actuel</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Coiffage Actuel</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment portez-vous vos cheveux en ce moment ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -153,7 +173,7 @@ export const DiagnosticHairPage: React.FC = () => {
                 ].map(opt => (
                   <button
                     key={opt.id}
-                    onClick={() => { setAnswers({ ...answers, style: opt.id as any }); handleNext(); }}
+                    onClick={() => pickWithSegmentReset({ style: opt.id as any })}
                     className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
                       answers.style === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
                     }`}
@@ -165,9 +185,34 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 3 && (
+          {current === 'focus' && segment && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">3. Priorité Beauté</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. {segment.label} — votre préoccupation</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">{segment.question}</h2>
+              <p className="text-sm text-kurla-cream/65 font-light leading-relaxed">
+                En plus des questions à venir, KURLA concentre votre routine sur ce point précis de votre profil —
+                les besoins et les problèmes qui comptent pour {segment.label.toLowerCase()}.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {segment.options.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { setAnswers({ ...answers, focus: opt.id }); handleNext(); }}
+                    className={`p-4 rounded-2xl border text-left transition-all ${
+                      answers.focus === opt.id ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
+                    }`}
+                  >
+                    <div className="font-bold text-sm mb-1">{opt.title}</div>
+                    <div className="text-xs text-kurla-cream/60 leading-relaxed">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {current === 'priority' && (
+            <div className="space-y-6">
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Priorité Beauté</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est votre priorité ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -192,9 +237,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 4 && (
+          {current === 'porosity' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">4. Niveau de Porosité</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Niveau de Porosité</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Comment vos cheveux réagissent-ils à l’eau ?</h2>
 
               {/* Aide : test du verre d'eau */}
@@ -235,9 +280,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 5 && (
+          {current === 'scalp' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">5. Cuir Chevelu</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Cuir Chevelu</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel est l’état de votre cuir chevelu ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -261,9 +306,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 6 && (
+          {current === 'frequency' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">6. Fréquence Routine</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Fréquence Routine</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">À quelle fréquence lavez-vous vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -286,9 +331,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 7 && (
+          {current === 'budget' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">7. Budget Routine</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Budget Routine</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quel budget souhaitez-vous pour votre routine ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
@@ -311,9 +356,9 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
-          {step === 8 && (
+          {current === 'email' && (
             <div className="space-y-6">
-              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">8. Finalisation</span>
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Finalisation</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Voulez-vous recevoir votre routine par e-mail ?</h2>
               <p className="text-sm text-kurla-cream/70 font-light">
                 Votre routine s’affiche immédiatement à l’écran. L’e-mail est facultatif : il sert uniquement à vous la renvoyer et à la sauvegarder.
@@ -354,7 +399,7 @@ export const DiagnosticHairPage: React.FC = () => {
             >
               {loading ? (
                 <span>Génération KURLA en cours…</span>
-              ) : step === 8 ? (
+              ) : current === 'email' ? (
                 <>Voir ma routine <Sparkles className="w-4 h-4" /></>
               ) : (
                 <>Continuer <ArrowRight className="w-4 h-4" /></>

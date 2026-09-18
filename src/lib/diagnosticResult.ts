@@ -25,6 +25,7 @@ import {
 } from './knowledge/hairAdvisory';
 import { pickHairScienceInsights } from './knowledge/hairScience';
 import { pickHairProblemCards, pickSkinProblemCards, type ProblemCard } from './knowledge/problemCards';
+import { getSegmentFocusLabel } from './diagnosticSegments';
 import { pickSkinScienceInsights } from './knowledge/skinScience';
 import type { ScienceInsight } from './knowledge/hairScience';
 import { buildHairKit, buildSkinKit, type CareKit } from './knowledge/careKit';
@@ -177,18 +178,28 @@ function profileFields(answers: Record<string, unknown>, isSkin: boolean): Diagn
     const hairFields: Array<[string, string, Record<string, string> | undefined, unknown]> = [
       ['texture', 'Texture', HAIR_TEXTURE_VALUES, answers.texture],
       ['style', 'Coiffure usuelle', HAIR_STYLE_VALUES, answers.style],
+      ['focus', 'Préoccupation principale', undefined, answers.focus],
       ['porosity', 'Porosité', HAIR_POROSITY_VALUES, answers.porosity],
       ['scalp', 'Cuir chevelu', HAIR_SCALP_VALUES, answers.scalp],
       ['priority', 'Besoin prioritaire', HAIR_PRIORITY_VALUES, answers.priority],
       ['frequency', 'Fréquence de lavage', HAIR_FREQUENCY_VALUES, answers.frequency],
       ['budget', 'Budget', undefined, answers.budget],
     ];
-    return hairFields.map(([key, label, values, raw]) => ({
+    const fields = hairFields.map(([key, label, values, raw]) => ({
       key,
       label,
       value: isKnown(raw) ? (values?.[String(raw)] || String(raw).replaceAll('_', ' ')) : 'Non renseigné',
       known: isKnown(raw),
     }));
+    // La préoccupation est un id d'option de segment : on n'affiche que son
+    // libellé lisible — jamais l'id technique (et jamais un id inconnu).
+    const focusField = fields.find(field => field.key === 'focus');
+    if (focusField) {
+      const label = getSegmentFocusLabel(typeof answers.focus === 'string' ? answers.focus : undefined);
+      focusField.value = label || 'Non renseigné';
+      focusField.known = label !== '';
+    }
+    return fields;
   }
   const fields: Array<[string, string, unknown]> = [
     ['skinType', 'Type de peau', answers.skinType],
@@ -244,15 +255,26 @@ export function buildDiagnosticResultModel(input: {
   isSkin: boolean;
 }): DiagnosticResultModel {
   const { answers, result, products, isSkin } = input;
+  // Cheveux : la préoccupation du segment déclaré (question adaptative)
+  // vient en tête — c'est elle qui a focalisé le diagnostic, devant la
+  // priorité générale. Libellé lisible uniquement ; jamais l'id technique.
+  const focusLabel = isSkin ? '' : getSegmentFocusLabel(typeof answers.focus === 'string' ? answers.focus : undefined);
+  // Cheveux : libellé lisible de la priorité (les ids « pousse » / « casse »
+  // ne figurent pas dans LABELS généraux — on passe par HAIR_PRIORITY_VALUES).
+  const rawPriority = typeof answers.priority === 'string' ? answers.priority.trim() : '';
+  const hairPriorityLabel = !rawPriority || UNKNOWN.has(rawPriority.toLowerCase())
+    ? ''
+    : (HAIR_PRIORITY_VALUES[rawPriority] || rawPriority.replaceAll('_', ' '));
   const priorities = isSkin
     ? [...arrayValues(answers.skinConcerns), ...arrayValues(answers.skinObjectives)].filter((value, index, list) => list.indexOf(value) === index).slice(0, 3)
-    : [displayDiagnosticValue(answers.priority)].filter(value => value !== 'Non renseigné');
+    : [focusLabel, hairPriorityLabel].filter(value => value && value !== 'Non renseigné').filter((value, index, list) => list.indexOf(value) === index).slice(0, 3);
   const fields = profileFields(answers, isSkin);
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
   const hairAdvisoryCtx: HairAdvisoryContext = {
     texture: typeof answers.texture === 'string' ? answers.texture : undefined,
     style: typeof answers.style === 'string' ? answers.style : undefined,
+    focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
     priority: typeof answers.priority === 'string' ? answers.priority : undefined,
     porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
     scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,

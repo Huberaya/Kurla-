@@ -9,6 +9,7 @@ import { intelligenceStore } from '../../lib/intelligenceStore';
 import { buildRecommendations, explainLearning, productIngredientIds } from '../../lib/recommendationEngine';
 import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/semanticSearch';
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
+import { getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
@@ -309,7 +310,11 @@ export function registerRecommendationRoutes(app: Express): void {
         acne_legere: ['imperfections_acne'],
         sensibilite: ['peau_sensible']
       };
-    const needs = Array.from(new Set([...queryNeeds(`${diagnosticType} ${answerText}`, diagnosticType), ...(diagnosticPriorityMap[String(answers.priority)] || [])]));
+    // Chantier diagnostic adaptatif : la préoccupation du segment déclaré
+    // (texture + coiffage) pilote aussi les besoins — en plus des questions
+    // existantes. Pour la peau, answers.focus est absent → aucun besoin ajouté.
+    const focusNeeds = getSegmentFocusNeeds(typeof answers.focus === 'string' ? answers.focus : undefined);
+    const needs = Array.from(new Set([...queryNeeds(`${diagnosticType} ${answerText}`, diagnosticType), ...(diagnosticPriorityMap[String(answers.priority)] || []), ...focusNeeds]));
     const cards = await selectOperationalKnowledgeCards(answerText, [diagnosticType, ...needs]);
     const authenticatedUser = await authenticateRequest(req);
     if (bearerToken(req) && !authenticatedUser) return res.status(401).json({ error: 'Jeton Supabase invalide ou expiré.' });

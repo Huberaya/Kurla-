@@ -10,6 +10,13 @@ export type SkinPriority = 'taches' | 'teint_irregulier' | 'hydratation' | 'spf'
 export interface HairDiagnosticAnswers {
   texture: HairTexture;
   style: HairStyle;
+  /**
+   * Question adaptative (insérée après texture + coiffage) : la préoccupation
+   * principale du segment déclaré (id d'option `diagnosticSegments`).
+   * '' = question non posée (aucun segment) ou non renseignée — les réponses
+   * anciennes (sans ce champ) restent compatibles par ce défaut.
+   */
+  focus: string;
   priority: HairPriority;
   porosity: Porosity;
   scalp: ScalpCondition;
