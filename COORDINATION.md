@@ -5046,3 +5046,17 @@ select présent, synchronisé, sert les libellés complets, saut au choix.
   fermeture par choix / Échap / clic dehors / changement d'onglet. Le banc
   admin-section-nav (bloc 5) vérifie le nouveau contrat ; preuve Playwright
   réelle 390 px (harness jetable) : ouverture, saut, scrollspy, overflow 0.
+
+## 20/09 (suite) — Onglet « Dropshipping » dans Catalogue (agent D8)
+- Demande utilisateur : « dans catalogue il faut mettre un onglet dropshipping ».
+- Fait : onglet `dropshipping` ajouté DANS le groupe Catalogue (avant le guide
+  existant) ; `src/lib/dropshipOps.ts` (logique pure testable) croise fiches ×
+  `product_sources` × registre fournisseurs ; `DropshipOpsPanel.tsx` affiche
+  l'état réel : totaux, table produit par produit, anomalies (badge sans offre,
+  délai > 2 j, coût inconnu « à obtenir », catégorie réservée), filtre
+  « ce qui cloche », boutons vers guide/sourcing/catalogue — la saisie et le
+  bon de commande RESTENT au sourcing (zéro duplication). Pas de nouvelle route.
+- Banc `test:dropship-tab` (6 blocs, chaîné dans npm test) ; preuve navigateur
+  390 px via harness jetable : overflow 0, table à scroll interne, drapeaux
+  d'anomalies visibles (capture onglet_dropshipping_390.png à la racine du
+  workspace).
