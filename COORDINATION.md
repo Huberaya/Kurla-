@@ -5101,3 +5101,21 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
 - Bancs : `test:diagnostic-crepu` 17/17 (chaîné dans npm test) ; matrice D8
   étendue aux nouvelles réponses sur 3 404 profils ; 13 bancs diagnostic
   verts ; tsc 0 ; build 0 ; preuve Playwright 390 px du parcours complet.
+
+## 20/09 (suite 3) — D10 : audit étendu aux bouclés 3B–3C et à la transition (agent diagnostic)
+
+- **Fait** : +3 réponses diagnostiques avec effet prouvé — séchage réel et fixant réel des boucles
+  (nouvelle étape « Séchage et finition, calés sur vos habitudes », fragments par réponse), et position
+  de la transition (fade) qui **remplace** la question chaleur/chimie en profil défrisé et décide « Le
+  choix honnête ». Contradiction D9 fermée : défrisé + « aucun » ne sert plus « vierges de chaleur ».
+  Gardes moteur dans `flags()` (boucles que si frisée/bouclée naturel adulte hors locks ; transition que
+  si cycle transition réellement servi) — rémanences de payload ignorées par construction.
+- **Tuyau** : rien eu à patcher côté consommateur — la consolidation D9 (`buildHairAdvisoryCtx`) fait
+  transiter les 3 champs automatiquement.
+- **Preuves** : nouveau banc `kurla_diagnostic_boucle_transition.test.ts` 25/25 (branché dans `npm test`) ;
+  matrice personas 47/47 sur 3 404 profils étendue D10 (et corrigée : le balayage utilisait le jeton
+  inexistant `defrie` au lieu de `defrise`) ; banc D9 17/17 (F1 renforcé) ; 13 bancs voisins verts ;
+  tsc 0 ; build 0 ; Playwright 390px deux parcours complets (frisée et défrisée) 20/20, over=0, erreurs=0.
+- **Livrable** : `docs/RAPPORT_D10_BOUCELES_TRANSITION.md`. Chantier clos ; suivants candidats :
+  ondulé 2 et perruque (même audit question-par-question).
+

@@ -41,7 +41,10 @@ test('F1 la page pose les quatre questions, aux bons profils seulement', () => {
   assert.ok(src.includes("current === 'chemicalHeat'"), 'question « passé chaleur/chimie » absente du formulaire');
   // motif : crépu ET non locks ; chaleur/chimie : jamais à un enfant.
   assert.ok(src.includes("const isCrepueNow = answers.texture === 'crepue' && !lockedNow;"), 'le motif doit être posé au crépu hors locks');
-  assert.ok(/\.\.\.\(isKidNow \? \[\] : \['chemicalHeat'\]\)/.test(src), 'la question chaleur/chimie ne doit jamais être posée à un enfant');
+  // D10 : la question chaleur/chimie peut être REMPLACÉE par la position de transition
+  // (profil défrisé) — mais reste jamais posée à un enfant.
+  assert.ok(/\.\.\.\(isKidNow \? \[\] : \[isTransitionNow \? 'transitionStep' : 'chemicalHeat'\]\)/.test(src), 'la question chaleur/chimie ne doit jamais être posée à un enfant');
+  assert.ok(/const isTransitionNow = answers\.texture === 'defrisee' \|\| answers\.style === 'defrise';/.test(src), 'le remplacement transition se décide sur les deux voies du défrisage');
 });
 
 test('F2 chaque option des nouvelles questions est explicative — et « inconnu » existe partout', () => {

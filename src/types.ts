@@ -35,6 +35,12 @@ export interface HairDiagnosticAnswers {
   strandWidth?: 'fine' | 'moyenne' | 'epaisse' | 'inconnue';
   /** D9 — passé chaleur/chimie des longueurs. Jamais posée à un enfant. */
   chemicalHeat?: 'aucun' | 'chaleur' | 'produit' | 'les_deux' | 'inconnue';
+  /** D10 (20/09) — bouclés 3B–3C au naturel : séchage et fixant réels. */
+  curlyDry?: 'air' | 'diffuse_chaud' | 'diffuse_froid' | 'serviette' | 'inconnue';
+  curlyHold?: 'gel' | 'mousse' | 'creme' | 'rien' | 'inconnue';
+  /** D10 — transition : part de longueurs traitées restantes (remplace la
+   *  question chaleur/chimie, déjà répondue par la texture déclarée). */
+  transitionStep?: 'majorite' | 'minorite' | 'quasi_nulle' | 'inconnue';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

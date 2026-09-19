@@ -57,6 +57,13 @@ export interface HairAdvisoryContext {
   elasticity?: string;
   strandWidth?: string;
   chemicalHeat?: string;
+  /** D10 (20/09) — bouclés 3B–3C au naturel : séchage + fixant déclarés, pour
+   *  caler la méthode sur l'habitude réelle au lieu de la réciter. */
+  curlyDry?: string;
+  curlyHold?: string;
+  /** D10 — transition : où en sont les longueurs traitées (majorite | minorite
+   *  | quasi_nulle) — c'est ce qui décide le cap, pas le goût. */
+  transitionStep?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -165,6 +172,8 @@ interface HairFlags {
   shorten: boolean;
   /** D9 — sous-motif crépu (vide hors texture crépue), élasticité, largeur, passé chaleur/chimie (vide pour un enfant). */
   pattern: string; elasticity: string; strandWidth: string; chem: string;
+  /** D10 — séchage + fixant des boucles au naturel (vide hors ce profil) ; position de la transition. */
+  curlyDry: string; curlyHold: string; transitionStep: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -214,7 +223,27 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     strandWidth: ['fine', 'epaisse'].includes(String(ctx.strandWidth ?? '')) ? String(ctx.strandWidth) : '',
     // La question n'est jamais posée à un enfant ; si une réponse ancienne ou
     // détournée la porte quand même, le moteur l'ignore — la garde vit ici.
-    chem: (style === 'enfant' || priority === 'demelage_enfant') ? '' : (['aucun', 'chaleur', 'produit', 'les_deux'].includes(String(ctx.chemicalHeat ?? '')) ? String(ctx.chemicalHeat) : ''),
+    // D10 : un profil « défrisée » qui répondrait « jamais de chimie » se
+    // contredit lui-même ; la texture déclarée prime, la ligne de récompense
+    // n'est pas servie.
+    chem: (style === 'enfant' || priority === 'demelage_enfant') ? '' : ((texture === 'defrisee' || style === 'defrise') && String(ctx.chemicalHeat) === 'aucun') ? '' : (['aucun', 'chaleur', 'produit', 'les_deux'].includes(String(ctx.chemicalHeat ?? '')) ? String(ctx.chemicalHeat) : ''),
+    // D10 — les réponses boucles ne vivent que sur le cycle où l'on sèche
+    // et coiffe vraiment : bouclés déclarés, portés au naturel, hors locks.
+    // D10 (20/09) — séchage et fixant n'existent QUE pour le bouclés/crépu porté
+    // au naturel : locks, perruque, enfant (la question ne lui est pas posée —
+    // une réponse rémanente d'un ancien profil ne doit rien injecter chez lui).
+    curlyDry: ['frisee', 'bouclee'].includes(texture) && style === 'naturel' && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['air', 'diffuse_chaud', 'diffuse_froid', 'serviette'].includes(String(ctx.curlyDry ?? '')) ? String(ctx.curlyDry) : '',
+    curlyHold: ['frisee', 'bouclee'].includes(texture) && style === 'naturel' && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['gel', 'mousse', 'creme', 'rien'].includes(String(ctx.curlyHold ?? '')) ? String(ctx.curlyHold) : '',
+    // D10 — la position de transition ne vit qu'en transition, hors locks et
+    // hors enfant ; sinon c'est une rémanence d'un autre profil, elle est ignorée.
+    transitionStep: (texture === 'defrisee' || style === 'defrise') && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      style !== 'wig' && texture !== 'protective' && style !== 'braids' && style !== 'twists' &&
+      ['majorite', 'minorite', 'quasi_nulle'].includes(String(ctx.transitionStep ?? '')) ? String(ctx.transitionStep) : '',
   };
 }
 
@@ -266,6 +295,10 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     elasticity: str('elasticity'),
     strandWidth: str('strandWidth'),
     chemicalHeat: str('chemicalHeat'),
+    // D10
+    curlyDry: str('curlyDry'),
+    curlyHold: str('curlyHold'),
+    transitionStep: str('transitionStep'),
   };
 }
 
@@ -791,7 +824,14 @@ function buildTransitionWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'Le choix honnête : fade ou continuité',
       why: 'La transition pose un choix qui n’en est pas un : faire progressivement place aux racines naturelles, ou continuer le défrisage — les deux sont des choix valides. Ce qui est hors sujet, c’est de coiffer les deux textures comme une seule : la routine s’adapte au choix, pas l’inverse.',
-      how: 'Décider du cap (progressif ou continué) et aligner la routine dessus : coiffures, fréquence de lavage, soins par zone. La ligne de démarcation se protège dans les deux cas — c’est la seule constante du cycle transition.',
+      how: 'Décider du cap (progressif ou continué) et aligner la routine dessus : coiffures, fréquence de lavage, soins par zone. La ligne de démarcation se protège dans les deux cas — c’est la seule constante du cycle transition.'
+        + (f.transitionStep === 'majorite'
+          ? ' Longueurs traitées encore majoritaires : le cap utile n’est pas la coupe, c’est la stabilisation — alternance force/hydratation sur la ligne, coiffures qui ne brossent pas les deux textures ensemble, et retouches jamais plus rapprochées que 8 à 10 semaines.'
+          : f.transitionStep === 'minorite'
+            ? ' Le fade est engagé : la ligne recule, la zone fragile recule avec elle. Tenir le programme jusqu’à la sortie des longueurs traitées — pas avant, elles ne sont pas encore remplacées.'
+            : f.transitionStep === 'quasi_nulle'
+              ? ' Les longueurs traitées sont presque parties : le programme quitte le mode réparation. Rien à « homogénéiser » chimiquement — c’est la texture naturelle nouvelle qui mérite la routine, dans sa forme à elle.'
+              : ''),
       expect: 'Une routine cohérente avec le choix, une ligne de démarcation protégée, et des semaines qui avancent sans casse au contour. La transition se gagne par la cohérence des gestes, pas par la vitesse.',
     },
   ];
@@ -1203,6 +1243,32 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
   }
   routine = applyFocus(routine, f);
+  // D10 — bouclés au naturel : la méthode de séchage et de fixation est
+  // CALÉE sur les habitudes déclarées (une réponse inconnue = rien ajouté,
+  // pas de conseil général débité pour rien).
+  if ((f.curlyDry || f.curlyHold) && key === 'naturel') {
+    const dryText: Record<string, string> = {
+      serviette: 'Séchage : remplacez le frottement à la serviette éponge par la presse — t-shirt de coton ou microfibre, on presse sans frotter, puis on laisse la tête emmaillotée 10 à 15 minutes avant de sécher. Le frottement est votre frizz ; le produit n’y peut rien.',
+      diffuse_chaud: 'Séchage : le diffuseur garde sa place, avec deux gardes — protecteur de chaleur, et air coupé aux trois quarts du séchage. La chaleur qui finit une boucle la fige froissée ; le dernier coup d’air froid est gratuit, il ferme tout.',
+      diffuse_froid: 'Séchage : diffuseur tiède ou froid, c’est le bon réflexe — gardez-le, surtout les jours humides, où la chaleur ajoutée est exactement ce qui défait la boucle.',
+      air: 'Séchage : à l’air libre, la méthode native de la boucle, avec sa règle unique — ne plus toucher les mèches une fois le produit posé. La forme fige en séchant ; chaque retouche avant la fin casse ce figeage.',
+    };
+    const holdText: Record<string, string> = {
+      gel: 'Finition : le « carton » du gel n’est pas un défaut, c’est un moule — une fois le cheveu sec à 100 %, une goutte d’huile sur les paumes et on froisse doucement pour casser le film. Avant, on ne touche pas.',
+      mousse: 'Finition : la mousse tient léger et se pose sur cheveu très mouillé — jamais en retouche sur cheveu quasi sec, à ce stade elle redéforme au lieu de fixer.',
+      creme: 'Finition : la crème légère donne la souplesse, pas le maintien. Si la forme fond dans les 24 heures, le correctif est un gel sur les longueurs du seul jour de coiffage — pas plus de crème partout.',
+      rien: 'Finition : aucun coiffant déclaré, la routine ne force rien — à savoir malgré tout : la boucle « prend » en séchant. Si le réveil est sans forme, ce n’est pas le produit qui manque, c’est le maintien pendant le séchage. Un gel ou une mousse au seul jour de lavage pour tester ; si la forme est là, on revient à rien.',
+    };
+    const parts = [dryText[f.curlyDry], holdText[f.curlyHold]].filter(Boolean);
+    if (parts.length > 0) {
+      routine.morning.push({
+        action: 'Séchage et finition, calés sur vos habitudes',
+        why: 'Définir une boucle, c’est trois conditions : le produit, le geste, le séchage. Vos réponses disent laquelle coche chez vous — la routine corrige celle-là, pas les trois d’un coup.',
+        how: parts.join(' '),
+        expect: 'Une boucle qui se forme entre deux lavages sans y penser, un réveil qui ne se rejoue pas au produit : c’est la méthode ajustée, pas la puissance ajoutée.',
+      });
+    }
+  }
   // D2 — le journal a dit « trop long » : pas d'ajouts de confort, le socle
   // et l'étape de préoccupation restent (c'est l'inverse d'un ajout).
   if (!f.shorten) routine = applyParams(routine, f);
@@ -1497,6 +1563,29 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     les_deux: 'Chaleur et produit cumulés : la démarcation porte les deux agressions — le programme pose la règle d’espacement (jamais les deux la même semaine sur la même mèche).',
   };
   if (f.chem && chemLine[f.chem]) parts.push(chemLine[f.chem]);
+
+  // D10 — boucles et transition : la phrase ne paraît que si la réponse a un
+  // cycle où s'appliquer (garde déjà posée dans flags()).
+  const dryLine: Record<string, string> = {
+    serviette: 'Séchage déclaré à la serviette, par frottement : la routine remplace le geste — presse et maillot de coton, pas de frottement. Le frizz vient de là, pas du produit.',
+    diffuse_chaud: 'Séchage au diffuseur chaud : la routine garde l’outil et pose ses deux gardes — protecteur, et chaleur coupée avant la fin.',
+    diffuse_froid: 'Séchage au diffuseur froid ou tiède : le bon réflexe est déjà chez vous — la routine le confirme au lieu de le répéter.',
+    air: 'Séchage à l’air libre : la méthode native de la boucle ; la routine y ajoute la seule règle qui manque souvent — ne plus toucher avant la fin.',
+  };
+  if (f.curlyDry && dryLine[f.curlyDry]) parts.push(dryLine[f.curlyDry]);
+  const holdLine: Record<string, string> = {
+    gel: 'Fixation au gel : le carton s’assume et se casse à l’huile, une fois sec à 100 % — le film est un moule, pas un échec.',
+    mousse: 'Fixation à la mousse : pose sur cheveu très mouillé, jamais en retouche à mi-séchage.',
+    creme: 'Fixation à la crème : souplesse sans maintien — si la forme fond, c’est le gel du jour de coiffage qui manque, pas une couche de plus.',
+    rien: 'Aucun fixant déclaré : rien n’est imposé ; le maintien se joue pendant le séchage, et un essai au seul jour de lavage suffit pour le vérifier.',
+  };
+  if (f.curlyHold && holdLine[f.curlyHold]) parts.push(holdLine[f.curlyHold]);
+  const transStepLine: Record<string, string> = {
+    majorite: 'Transition : les longueurs traitées sont encore majoritaires — le programme stabilise la ligne de démarcation avant toute décision de coupe.',
+    minorite: 'Transition engagée : les longueurs naturelles gagnent — la routine protège la démarcation jusqu’à la sortie complète des longueurs traitées.',
+    quasi_nulle: 'Transition presque au bout : la routine quitte le mode réparation — votre forme naturelle nouvelle se protège, sans « homogénéisation » chimique.',
+  };
+  if (f.transitionStep && transStepLine[f.transitionStep]) parts.push(transStepLine[f.transitionStep]);
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

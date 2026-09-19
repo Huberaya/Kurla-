@@ -298,7 +298,13 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
         strandWidth: ['fine', 'moyenne', 'epaisse', 'inconnue'][(v >> 6) % 4],
-        chemicalHeat: (style === 'enfant' || priority === 'demelage_enfant') ? 'inconnue' : (['aucun', 'chaleur', 'produit', 'les_deux', 'inconnue'][(v >> 9) % 5])
+        chemicalHeat: (style === 'enfant' || priority === 'demelage_enfant') ? 'inconnue' : (['aucun', 'chaleur', 'produit', 'les_deux', 'inconnue'][(v >> 9) % 5]),
+        // D10 : séchage/fixant et position de transition sont balayés PARTOUT,
+        // y compris hors de leur profil — c'est voulu : l'invariant prouve que
+        // le moteur ignore toute rémanence hors segment.
+        curlyDry: ['inconnue', 'air', 'diffuse_chaud', 'diffuse_froid', 'serviette'][(v >> 12) % 5],
+        curlyHold: ['inconnue', 'gel', 'mousse', 'creme', 'rien'][(v >> 15) % 5],
+        transitionStep: ['inconnue', 'majorite', 'minorite', 'quasi_nulle'][(v >> 18) % 4]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -352,6 +358,35 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         else if (elast === 'ressort' && mask.action !== decidedActions[2]) at('élasticité bonne : pas de cure de force à prescrire');
       }
       if ((locked || trans || prot) && mask && decidedActions.includes(mask.action)) at('décision protéinée appliquée hors cycle à masque');
+      // — D10 : l'étape boucles ne vit que dans le cycle naturel des bouclées ;
+      // chaque fragment rendu est exactement celui de la réponse, jamais un autre.
+      const curlyCycle = !locked && !kid && !prot && style === 'naturel' && (texture === 'frisee' || texture === 'bouclee');
+      const dry = ctx.curlyDry as string;
+      const hold = ctx.curlyHold as string;
+      const curlyStep = (steps as any[]).find((x: any) => x.action === 'Séchage et finition, calés sur vos habitudes');
+      if (!!curlyStep !== (curlyCycle && (dry !== 'inconnue' || hold !== 'inconnue'))) at('étape séchage/finition hors de son profil ou absente alors que déclarée');
+      if (curlyStep) {
+        const howC = String(curlyStep.how ?? '');
+        const fragDry: Record<string, RegExp> = { air: /ne plus toucher/, diffuse_chaud: /air coupé/, diffuse_froid: /bon réflexe/, serviette: /presse — t-shirt/ };
+        const fragHold: Record<string, RegExp> = { gel: /casser le film/, mousse: /très mouillé/, creme: /seul jour de coiffage/, rien: /maintien pendant le séchage/ };
+        if (dry === 'inconnue' && /Séchage :/.test(howC)) at('fragment séchage servi sans réponse');
+        if (dry !== 'inconnue' && !fragDry[dry]?.test(howC)) at('fragment séchage ≠ réponse');
+        if (hold === 'inconnue' && /Finition :/.test(howC)) at('fragment finition servi sans réponse');
+        if (hold !== 'inconnue' && !fragHold[hold]?.test(howC)) at('fragment finition ≠ réponse');
+      }
+      // — D10 : la décision de transition rend son fragment dans « Le choix
+      // honnête » et le résumé ne la promet que dans le cycle transition.
+      const transCycle = !locked && !kid && !prot && style !== 'wig' && (texture === 'defrisee' || style === 'defrise');
+      const tStep = ctx.transitionStep as string;
+      const honest = (steps as any[]).find((x: any) => x.action === 'Le choix honnête : fade ou continuité');
+      const honestHow = String(honest?.how ?? '');
+      const fragT: Record<string, RegExp> = { majorite: /c’est la stabilisation/, minorite: /Le fade est engagé/, quasi_nulle: /quitte le mode réparation/ };
+      if (tStep !== 'inconnue') {
+        if (transCycle !== fragT[tStep]?.test(honestHow)) at('fragment transition ≠ cycle+réponse');
+        if ((transCycle) !== /Transition :|Transition engagée|Transition presque/.test(full)) at('résumé : promesse de transition hors cycle ou absente alors qu’elle est due');
+      } else {
+        if (/stabilisation|fade est engagé|mode réparation|Transition engagée|Transition presque/.test(full)) at('fragment de transition servi sur réponse inconnue');
+      }
       if (trans && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé transition prétend une décision que son cycle ne tient pas');
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }

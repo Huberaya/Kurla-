@@ -25,7 +25,11 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   coilyPattern: 'inconnu',
   elasticity: 'inconnu',
   strandWidth: 'inconnue',
-  chemicalHeat: 'inconnue'
+  chemicalHeat: 'inconnue',
+  // D10 : idem — défaut « inconnue » = comportement antérieur garanti.
+  curlyDry: 'inconnue',
+  curlyHold: 'inconnue',
+  transitionStep: 'inconnue'
 };
 import { useAuth } from '../context/AuthContext';
 
@@ -82,7 +86,12 @@ export const DiagnosticHairPage: React.FC = () => {
   const lockedNow = answers.texture === 'locksee' || answers.style === 'locks';
   const isCrepueNow = answers.texture === 'crepue' && !lockedNow;
   const isKidNow = answers.style === 'enfant' || answers.priority === 'demelage_enfant';
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(isKidNow ? [] : ['chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
+  // D10 : les bouclés 3B–3C portés au naturel répondent à leur tour de leur
+  // réalité (séchage, fixant) ; la transition remplace la question chaleur/
+  // chimie — déjà répondue par la texture — par celle de l'avancement du fade.
+  const isTransitionNow = answers.texture === 'defrisee' || answers.style === 'defrise';
+  const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee');
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -353,6 +362,62 @@ export const DiagnosticHairPage: React.FC = () => {
               ]}
               value={answers.chemicalHeat ?? 'inconnue'}
               onPick={id => { setAnswers({ ...answers, chemicalHeat: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'curlyDry' && (
+            <QuestionStep
+              step={step}
+              kicker="Séchage du jour de lavage"
+              title="Après le rinçage, comment finissez-vous de sécher vos boucles&nbsp;?"
+              note="Ce n’est pas une préférence cosmétique : la boucle « prend sa forme » pendant le séchage. C’est là que le frizz se fabrique — ou s’évite."
+              cols="grid-cols-1"
+              options={[
+                { id: 'air', title: 'À l’air libre, sans y toucher', desc: 'La méthode native — la routine ajoutera la seule règle qui manque souvent.' },
+                { id: 'diffuse_froid', title: 'Diffuseur, air tiède ou froid', desc: 'Le bon réflexe, celui des professionnelles — la routine le confirme.' },
+                { id: 'diffuse_chaud', title: 'Diffuseur, chaleur moyenne ou forte', desc: 'Rapide, mais la chaleur qui finit une boucle la fige froissée.' },
+                { id: 'serviette', title: 'Je frotte à la serviette éponge', desc: 'Le frottement soulève la cuticule : c’est souvent de là que vient le frizz.' },
+                { id: 'inconnue', title: 'Les deux, ça dépend des semaines', desc: 'KURLA garde la méthode standard et ajuste à l’observation.' },
+              ]}
+              value={answers.curlyDry ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, curlyDry: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'curlyHold' && (
+            <QuestionStep
+              step={step}
+              kicker="Produit de finition"
+              title="Pour que la forme tienne jusqu’au lendemain, vous utilisez…&nbsp;"
+              note="Un fixant n’est pas une obligation — c’est le moment où la forme « prend ». La routine s’adapte à ce que vous mettez déjà, pas au catalogue d’à côté."
+              cols="grid-cols-1"
+              options={[
+                { id: 'gel', title: 'Un gel (il laisse un film « carton » en séchant)', desc: 'Le carton est un moule, pas un défaut — il se casse, voilà tout.' },
+                { id: 'mousse', title: 'Une mousse', desc: 'Maintien léger : elle se pose sur cheveu très mouillé.' },
+                { id: 'creme', title: 'Une crème coiffante légère', desc: 'Souple, mais le maintien est court sur certaines boucles.' },
+                { id: 'rien', title: 'Rien — juste leave-in ou crème de soin', desc: 'La routine ne force rien ; elle expliquera où se joue la forme.' },
+                { id: 'inconnue', title: 'Je change souvent / je ne sais pas', desc: 'La méthode standard s’applique, et votre observation ajustera.' },
+              ]}
+              value={answers.curlyHold ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, curlyHold: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'transitionStep' && (
+            <QuestionStep
+              step={step}
+              kicker="Avancement de la transition"
+              title="Sur votre tête aujourd’hui, les longueurs traitées (défrisées) représentent encore…&nbsp;"
+              note="Ce n’est pas une question de courage ni de mode : la part de fibre traitée qui reste décide du programme — stabiliser la ligne, protéger le fade en cours, ou passer à l’entretien d’une texture redevenue naturelle."
+              cols="grid-cols-1"
+              options={[
+                { id: 'majorite', title: 'Plus de la moitié des longueurs', desc: 'Le cap utile n’est pas la coupe : c’est la stabilisation de la démarcation, d’abord.' },
+                { id: 'minorite', title: 'Moins de la moitié — le fade avance', desc: 'La ligne recule : la routine protège jusqu’à la sortie complète.' },
+                { id: 'quasi_nulle', title: 'Presque rien — c’est presque fini', desc: 'La routine quitte le mode réparation : votre texture nouvelle se protège, unie.' },
+                { id: 'inconnue', title: 'Je ne sais pas évaluer', desc: 'Aucun jugement : la routine garde le cap prudent, la ligne reste le point de contrôle.' },
+              ]}
+              value={answers.transitionStep ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, transitionStep: id as any }); handleNext(); }}
             />
           )}
 
