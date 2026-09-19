@@ -612,4 +612,27 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ listes déroulantes par section : règle d’or, alertes par type, produits par statut/modèle, ciblage des messages — options issues des données réelles');
 }
 
-console.log('\n24 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée, listes déroulantes par section.');
+// ---------------------------------------------------------------------------
+// 25. ENTONNOIR UNIQUE — LES SIX COLONNES EN FILTRES (19/09) : « dans
+//     entonnoir unique mets moi ces champs en filtre avec des listes
+//     déroulantes : Stade, Nom, Origine, Fournisseur, Offre, Public ».
+//     La barre de filtres doit être RENDUE (l'infrastructure existait mais
+//     aucune barre n'était affichée) et porter les six clés.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const panel = read('components/ProductLifecyclePanel.tsx');
+  assert.ok(panel.includes('<ColumnFilterStrip'), 'entonnoir unique : la barre de filtres n’est pas rendue.');
+  for (const cle of ['stade', 'nom', 'origine', 'fournisseur', 'offre', 'public']) {
+    assert.ok(panel.includes(`{ key: '${cle}'`), `entonnoir unique : le filtre « ${cle} » a disparu.`);
+  }
+  assert.ok(panel.includes('loadSupplierDirectory'), 'entonnoir unique : le filtre fournisseur ne résout plus les noms réels via le référentiel partagé.');
+  assert.ok(panel.includes("emptyLabel: 'Sans fournisseur'"), 'entonnoir unique : les lignes sans fournisseur ne sont plus groupées nommément.');
+  const stageFilter = panel.slice(panel.indexOf("{ key: 'stade'"), panel.indexOf("{ key: 'nom'"));
+  assert.ok(stageFilter.includes('BUSINESS_STAGES'), 'entonnoir unique : les options de stade ne viennent plus du vocabulaire canonique.');
+
+  console.log('✓ entonnoir unique : Stade, Nom, Origine, Fournisseur, Offre, Public en listes déroulantes — barre rendue, fournisseurs par nom réel');
+}
+
+console.log('\n25 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée, listes déroulantes par section, entonnoir unique filtrable.');

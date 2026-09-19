@@ -10,6 +10,7 @@ import { GitMerge, RefreshCw } from 'lucide-react';
 
 import { fetchAdminCatalogProducts } from '../lib/adminCatalogProducts';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
+import { loadSupplierDirectory } from '../lib/adminRecordsStore';
 import { SupplierName, ProductName } from './EditableRecordName';
 import {
   BUSINESS_STAGE_LABELS,
@@ -50,6 +51,24 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
   onOpenCatalog,
 }) => {
   const [records, setRecords] = useState<UnifiedRecord[] | null>(null);
+  /**
+   * Noms réels des fournisseurs pour le filtre « Fournisseur » — référentiel
+   * partagé (une seule requête, mise en cache). Indisponible = le filtre
+   * retombe sur les libellés de canal, jamais sur des noms inventés.
+   */
+  const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    loadSupplierDirectory(headers)
+      .then(list => {
+        if (!alive) return;
+        const names: Record<string, string> = {};
+        for (const item of list) names[String(item.id ?? '')] = String(item.legalName ?? item.tradeName ?? item.id ?? '');
+        setSupplierNames(names);
+      })
+      .catch(() => { /* référentiel indisponible : libellés de canal en repli */ });
+    return () => { alive = false; };
+  }, [headers]);
   const [unavailable, setUnavailable] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [stageFilter, setStageFilter] = useState<BusinessStage | 'all'>('all');
@@ -156,20 +175,33 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
     if (!records) return [];
     return stageFilter === 'all' ? records : records.filter(record => record.lifecycle.stage === stageFilter);
   }, [records, stageFilter]);
-  const LIFE_FILTER_KEYS = ['title', 'kind', 'supplier', 'offer'] as const;
+  /**
+   * FILTRES DE L'ENTONNOIR (19/09) — les six colonnes du tableau en listes
+   * déroulantes : Stade, Nom, Origine, Fournisseur, Offre, Public. Clés en
+   * français : la barre affiche le libellé demandé. Valeurs proposées =
+   * valeurs RÉELLES des lignes (noms de fournisseurs résolus via le
+   * référentiel partagé), jamais une nomenclature supposée.
+   */
+  const LIFE_FILTER_KEYS = ['stade', 'nom', 'origine', 'fournisseur', 'offre', 'public'] as const;
   const lifeFilters = useMemo<ColumnFilter[]>(() => [
-    { key: 'title', ...listFilter({ key: 'title', rows: staged, get: (row: UnifiedRecord) => row.title, extra: (row: UnifiedRecord) => [row.brand] }) },
-    { key: 'kind', kind: 'enum', get: (row: UnifiedRecord) => row.kind, options: [
+    { key: 'stade', kind: 'enum', get: (row: UnifiedRecord) => row.lifecycle.stage, options: BUSINESS_STAGES.map(stage => ({ value: stage as string, label: BUSINESS_STAGE_LABELS[stage] })) },
+    { key: 'nom', ...listFilter({ key: 'nom', rows: staged, get: (row: UnifiedRecord) => row.title, extra: (row: UnifiedRecord) => [row.brand] }) },
+    { key: 'origine', kind: 'enum', get: (row: UnifiedRecord) => row.kind, options: [
       { value: 'fond_position', label: 'Fond' },
       { value: 'candidate', label: 'Candidat' },
+      { value: 'sourcing_item', label: 'Besoin' },
       { value: 'product', label: 'Fiche' },
     ] },
-    { key: 'supplier', kind: 'present', get: (row: UnifiedRecord) => row.supplierId, presentLabels: { filled: 'Fournisseur structuré', empty: 'Canal / piste' } },
-    { key: 'offer', kind: 'enum', get: (row: UnifiedRecord) => (row.lifecycle.hasOffer ? 'oui' : 'non'), options: [
+    { key: 'fournisseur', ...listFilter({ key: 'fournisseur', rows: staged, get: (row: UnifiedRecord) => (row.supplierId ? (supplierNames[row.supplierId] || `fournisseur ${row.supplierId}`) : row.unresolvedSupplierLabel), emptyLabel: 'Sans fournisseur' }) },
+    { key: 'offre', kind: 'enum', get: (row: UnifiedRecord) => (row.lifecycle.hasOffer ? 'oui' : 'non'), options: [
       { value: 'oui', label: 'Avec offre' },
       { value: 'non', label: 'Sans offre' },
     ] },
-  ], [staged]);
+    { key: 'public', kind: 'enum', get: (row: UnifiedRecord) => (row.lifecycle.isPublic ? 'oui' : 'non'), options: [
+      { value: 'oui', label: 'Public (boutique)' },
+      { value: 'non', label: 'Non public' },
+    ] },
+  ], [staged, supplierNames]);
   const [lifeFilterState, setLifeFilterState] = useState(() => emptyFilterState(LIFE_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]));
   const visible = useMemo(
     () => applyColumnFilters(staged, lifeFilters, lifeFilterState),
@@ -249,7 +281,16 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
       )}
 
       {records && !loading && (
-        <div className="overflow-x-auto">
+        <div className="space-y-3">
+          <ColumnFilterStrip
+            filters={lifeFilters}
+            state={lifeFilterState}
+            onChange={(key, value) => setLifeFilterState(prev => ({ ...prev, [key]: value }))}
+            onReset={() => setLifeFilterState(emptyFilterState(LIFE_FILTER_KEYS.map(key => ({ key })) as ColumnFilter[]))}
+            total={staged.length}
+            shown={visible.length}
+          />
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-kurla-cream/10 text-kurla-amber uppercase tracking-wider text-[10px]">
@@ -304,7 +345,8 @@ export const ProductLifecyclePanel: React.FC<ProductLifecyclePanelProps> = ({
               )}
             </tbody>
           </table>
-          {visible.length > 80 && <p className="text-[10px] text-kurla-cream/40 mt-2">+ {visible.length - 80} lignes — filtrer par stade.</p>}
+          {visible.length > 80 && <p className="text-[10px] text-kurla-cream/40 mt-2">+ {visible.length - 80} lignes — affinez avec les filtres ci-dessus.</p>}
+          </div>
         </div>
       )}
 

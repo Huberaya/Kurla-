@@ -5020,3 +5020,28 @@ h2/h3 du panel actif) :
 **Banc** : `admin-section-nav` bloc 5 — fullLabel complet vs bouton tronqué,
 select présent, synchronisé, sert les libellés complets, saut au choix.
 5 blocs exit 0 · lint exit 0 · chaîne complète en cours.
+
+## 19/09 (suite 5) — Entonnoir unique : les 6 colonnes en listes déroulantes
+
+**Demande** : « dans entonnoir unique mets moi ces champs en filtre avec des
+listes déroulantes : Stade, Nom, Origine, Fournisseur, Offre, Public ».
+
+**Mesure avant** : l'infrastructure de filtres existait dans
+ProductLifecyclePanel (lifeFilters/visible câblés à applyColumnFilters) mais
+la barre ColumnFilterStrip n'était JAMAIS RENDUE — aucun filtre visible. Et
+il manquait Stade et Public ; Fournisseur était un simple « rempli/vide ».
+
+**Fait** :
+- barre `<ColumnFilterStrip>` rendue au-dessus du tableau (total/affiché,
+  reset) ;
+- 6 filtres aux clés françaises (la barre affiche Stade/Nom/Origine/
+  Fournisseur/Offre/Public) : Stade = vocabulaire canonique BUSINESS_STAGES ;
+  Nom = liste des titres réels (+ marque) ; Origine = Fond/Candidat/Besoin/
+  Fiche ; Fournisseur = liste des NOMS RÉELS (référentiel partagé
+  loadSupplierDirectory, 1 requête en cache ; libellé de canal en repli ;
+  « Sans fournisseur » groupé) ; Offre = avec/sans ; Public = boutique/non ;
+- values proposées = valeurs réelles des lignes, jamais supposées.
+
+**Bancs** : linked-records bloc 25 (barre rendue, 6 clés, noms réels,
+vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
+(63 → 64) exit 0 · lint exit 0 · chaîne complète en cours.
