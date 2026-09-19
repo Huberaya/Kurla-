@@ -136,14 +136,26 @@ export function buildHairKit(
   const isLco = actionOf(/LCO/);
   const isLowPorosity = actionOf(/Soins légers/);
   const isWaterOnly = actionOf(/à l’eau/);
-  const isLocked = isWaterOnly || actionOf(/le travail de la lock/);
+  // (D8) La détection lisait des formulations d’étapes périmées : le contrat
+  // locks est déclaré par le PROFIL — le segment prime, quelle que soit la priorité.
+  const isLocked = ctx.style === 'locks' || ctx.texture === 'locksee' || isWaterOnly || actionOf(/le travail de la lock/);
 
-  const materials: KitMaterial[] = [
-    {
-      name: 'Peigne à dents larges (démêloir)',
-      why: 'Le démêlage se fait humide, des pointes vers la racine : c’est à sec, sous tension, que la fibre casse le plus.',
-      product: pickProduct(products, /dents larges|démêloir|demeloir/i, ['accessoires']),
-    },
+  const materials: KitMaterial[] = isLocked
+    ? [
+        {
+          name: 'Crochet fin — les poils qui dépassent, rien d’autre',
+          why: 'Des locks ne se démêlent pas : l’unique outil admis est un crochet fin pour rentrer un ou deux poils récalcitrants, jamais pour défaire. Tout le reste se fait aux doigts.',
+          product: pickProduct(products, /crochet/i, ['accessoires']),
+        },
+      ]
+    : [
+        {
+          name: 'Peigne à dents larges (démêloir)',
+          why: 'Le démêlage se fait humide, des pointes vers la racine : c’est à sec, sous tension, que la fibre casse le plus.',
+          product: pickProduct(products, /dents larges|démêloir|demeloir/i, ['accessoires']),
+        },
+      ];
+  materials.push(
     {
       name: 'Serviette microfibre (ou t-shirt 100 % coton)',
       why: 'Le séchage sans friction : moins de frottement, moins de frisottis et moins de casse aux extrémités.',
@@ -154,7 +166,7 @@ export function buildHairKit(
       why: 'Le cheveu texturé vit à l’eau : la brume est l’outil de l’hydratation entre deux lavages et du rafraîchissement.',
       product: pickProduct(products, /vaporisateur/i, ['accessoires']),
     },
-  ];
+  );
   if (hasScalp) {
     materials.push({
       name: 'Flacon applicateur à embout précis',

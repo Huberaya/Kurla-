@@ -5045,3 +5045,43 @@ il manquait Stade et Public ; Fournisseur était un simple « rempli/vide ».
 **Bancs** : linked-records bloc 25 (barre rendue, 6 clés, noms réels,
 vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
 (63 → 64) exit 0 · lint exit 0 · chaîne complète en cours.
+## 20/09 — D8 livrée (à verifier par le prochain agent)
+- Programme de solidification du diagnostic — chantier D8 (« des dizaines de tests,
+  trois regards »), consigne utilisateur des 19–20/09.
+- Ce qui a été fait : banc permanent `tests/kurla_diagnostic_personas.test.ts`
+  (47 tests métier + balayage déterministe de 3 404 profils, script npm
+  `test:diagnostic-personas`, chaîné dans `npm test`). Deux vrais défauts trouvés
+  et corrigés : (1) enfant + locks — la priorité démêlage court-circuitait la
+  physique locks (hairAdvisory.ts : wash day locks inconditionnel ; nouvelle
+  dérivation `kid_methode_locks` dans diagnosticDerivations.ts) ; (2) kit matériel
+  (careKit.ts) : le démêloir était prescrit à TOUS les profils — désormais le
+  segment locks reçoit le crochet fin, les autres gardent le peigne (garde-fou
+  dans les deux sens, test K1).
+- Preuve navigateur 390 px rejouable : `scripts/d8_mobile_kid_locks.mjs`
+  (over=0, zéro démêloir sur la page locks).
+- Contrainte définitive pour tout nouveau texte du moteur : croiser chaque
+  {réponse générique × cycle spécialisé} — kit, dérivations, résumé, J+30 — car
+  la garde ne vit pas que dans les étapes.
+
+## 20/09 — Rectification « Sections » (agent D8, sur la feature d'un autre agent)
+- Demande utilisateur : la liste déroulante doit être SUR la mention
+  « Sections » — pas un <select> flottant à côté. AdminSectionNav.tsx : la
+  mention est devenue le déclencheur (aria-expanded, chevron), la liste
+  (role=listbox, libellés complets, surlignage scrollspy) s'ouvre sous elle ;
+  fermeture par choix / Échap / clic dehors / changement d'onglet. Le banc
+  admin-section-nav (bloc 5) vérifie le nouveau contrat ; preuve Playwright
+  réelle 390 px (harness jetable) : ouverture, saut, scrollspy, overflow 0.
+
+## 20/09 (suite) — Onglet « Dropshipping » dans Catalogue (agent D8)
+- Demande utilisateur : « dans catalogue il faut mettre un onglet dropshipping ».
+- Fait : onglet `dropshipping` ajouté DANS le groupe Catalogue (avant le guide
+  existant) ; `src/lib/dropshipOps.ts` (logique pure testable) croise fiches ×
+  `product_sources` × registre fournisseurs ; `DropshipOpsPanel.tsx` affiche
+  l'état réel : totaux, table produit par produit, anomalies (badge sans offre,
+  délai > 2 j, coût inconnu « à obtenir », catégorie réservée), filtre
+  « ce qui cloche », boutons vers guide/sourcing/catalogue — la saisie et le
+  bon de commande RESTENT au sourcing (zéro duplication). Pas de nouvelle route.
+- Banc `test:dropship-tab` (6 blocs, chaîné dans npm test) ; preuve navigateur
+  390 px via harness jetable : overflow 0, table à scroll interne, drapeaux
+  d'anomalies visibles (capture onglet_dropshipping_390.png à la racine du
+  workspace).

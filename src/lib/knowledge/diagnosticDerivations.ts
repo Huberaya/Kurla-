@@ -238,9 +238,15 @@ export const HAIR_DERIVATION_RULES: readonly DerivationRule[] = [
   // — enfant —
   {
     id: 'kid_methode',
-    when: c => c.isKid,
+    when: c => c.isKid && !c.isLocked,
     text: 'Le cuir chevelu d’un enfant est plus fin et ses follicules en construction : la tension y laisse des marques plus vite — démêler des pointes vers la racine et s’arrêter quand l’enfant grimace ne sont pas des précautions optionnelles, c’est la méthode qui tient.',
     keys: ['sci_kid_scalp', 'sci_kid_demelage'],
+  },
+  {
+    id: 'kid_methode_locks',
+    when: c => c.isKid && c.isLocked,
+    text: 'Le cuir chevelu d’un enfant est plus fin et ses follicules en construction : la tension y laisse des marques plus vite. Sur des locks — même petites — rien ne se démêle au peigne : le cuir chevelu se travaille du bout des doigts, section par section, et la patience de l’enfant vaut plus que n’importe quel outil. S’arrêter quand l’enfant grimace n’est pas une option, c’est la méthode qui tient.',
+    keys: ['sci_kid_scalp'],
   },
   {
     id: 'kid_scalp',

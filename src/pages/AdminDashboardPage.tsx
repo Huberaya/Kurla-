@@ -36,6 +36,7 @@ import { AdminOperationsPanel } from '../components/AdminOperationsPanel';
 import { StrategyCockpitPanel } from '../components/StrategyCockpitPanel';
 import { GrowthControlCenterPanel } from '../components/GrowthControlCenterPanel';
 import { DropshipGuidePanel } from '../components/DropshipGuidePanel';
+import { DropshipOpsPanel } from '../components/DropshipOpsPanel';
 import { KittingAdminPanel } from '../components/KittingAdminPanel';
 import { TestPhaseGatesPanel } from '../components/TestPhaseGatesPanel';
 import { ConversionFunnelPanel } from '../components/ConversionFunnelPanel';
@@ -50,7 +51,7 @@ type AdminWorkspace = 'skin' | 'hair' | 'copilot';
 // des deux travaux n'est écrasé.
 // skin_sourcing / skin_batches / skin_demand retirés le 16/09 : doublons
 // exacts d'onglets existants (voir le commentaire dans la navigation).
-type AdminTab = 'copilote' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'identified' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir';
+type AdminTab = 'copilote' | 'dropshipping' | 'analytics' | 'strategy' | 'growth' | 'cockpit' | 'pipeline' | 'identified' | 'orders' | 'returns' | 'support' | 'pros' | 'catalog' | 'suppliers' | 'batches' | 'operations' | 'demand' | 'guide_dropship' | 'supply_v2_qui' | 'supply_v2_negocier' | 'supply_v2_acheter' | 'supply_v2_recevoir';
 
 const initialAdminWorkspace = (): AdminWorkspace | null => {
   if (typeof window === 'undefined') return null;
@@ -671,6 +672,7 @@ export const AdminDashboardPage: React.FC = () => {
                 { id: 'identified', label: 'Identifiés (hors boutique)', icon: Bookmark },
                 { id: 'catalog', label: 'Catalogue produits', icon: Package },
                 { id: 'batches', label: 'Lots & traçabilité', icon: Boxes },
+                { id: 'dropshipping', label: 'Dropshipping', icon: Send },
                 { id: 'guide_dropship', label: 'Guide dropship 0 carton', icon: BookOpen },
               ],
             },
@@ -1463,6 +1465,21 @@ export const AdminDashboardPage: React.FC = () => {
                 se voit ICI, pas seulement dans la vue ops. */}
             <DropshipToolsSection headers={adminHeaders} />
             <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
+          </div>
+        )}
+
+        {/* TAB DROPSHIPPING (20/09, demande utilisateur : « dans catalogue il
+            faut mettre un onglet dropshipping ») — l'état transversal des
+            offres, branché sur les données réelles ; les gestes restent au
+            sourcing, le guide reste à côté. */}
+        {activeTab === 'dropshipping' && (
+          <div className="space-y-4">
+            <DropshipOpsPanel
+              headers={adminHeaders}
+              onOpenGuide={() => setActiveTab('guide_dropship')}
+              onOpenSourcing={() => setActiveTab('suppliers')}
+              onOpenCatalog={() => setActiveTab('catalog')}
+            />
           </div>
         )}
 
