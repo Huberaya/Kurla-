@@ -70,6 +70,10 @@ export interface HairAdvisoryContext {
   locStage?: string;
   locCare?: string;
   locDry?: string;
+  /** D12 (20/09) — perruque : fixation (glue|tape|glueless) et durée de
+   *  portée (quotidienne|une_semaine|deux_quatre|jamais_retiree). */
+  wigBond?: string;
+  wigWear?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -104,6 +108,7 @@ export interface HairObservation {
 /** Vocabulaire affiché (profil déclaré) — miroir des choix du diagnostic. */
 export const HAIR_TEXTURE_VALUES: Record<string, string> = {
   crepue: 'Crépue (4A–4C)',
+  ondulee: 'Ondulée (2A–2C)',
   frisee: 'Frisée / bouclée (3B–3C)',
   locksee: 'En locks',
   protective: 'En coiffure protectrice',
@@ -182,6 +187,10 @@ interface HairFlags {
   curlyDry: string; curlyHold: string; transitionStep: string;
   /** D11 — locks : maturité, méthode d’entretien racine, séchage (vides hors locks). */
   locStage: string; locCare: string; locDry: string;
+  /** D12 — ondulé 2 (famille des boucles, à la règle de légèreté près) ;
+   *  perruque : fixation et portée réelles (vides hors cycle perruque). */
+  isWavy: boolean;
+  wigBond: string; wigWear: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -204,7 +213,11 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
   return {
     texture, style, priority, porosity, scalp, frequency: frequencyReal, focus, length, experience,
     isCoily: texture === 'crepue',
-    isCurly: texture === 'frisee' || texture === 'bouclee' || (priority === 'definition' && !lockedNow),
+    // D12 : l'ondulé 2 appartient à la famille des boucles (mêmes gestes de
+    // forme et de fraîcheur) — sa différence tient dans la légèreté, portée
+    // par isWavy, pas dans l'exclusion du reste.
+    isCurly: texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee' || (priority === 'definition' && !lockedNow),
+    isWavy: texture === 'ondulee',
     isLocked: lockedNow,
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
@@ -240,10 +253,10 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     // D10 (20/09) — séchage et fixant n'existent QUE pour le bouclés/crépu porté
     // au naturel : locks, perruque, enfant (la question ne lui est pas posée —
     // une réponse rémanente d'un ancien profil ne doit rien injecter chez lui).
-    curlyDry: ['frisee', 'bouclee'].includes(texture) && style === 'naturel' && !lockedNow &&
+    curlyDry: ['frisee', 'bouclee', 'ondulee'].includes(texture) && style === 'naturel' && !lockedNow &&
       String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
       ['air', 'diffuse_chaud', 'diffuse_froid', 'serviette'].includes(String(ctx.curlyDry ?? '')) ? String(ctx.curlyDry) : '',
-    curlyHold: ['frisee', 'bouclee'].includes(texture) && style === 'naturel' && !lockedNow &&
+    curlyHold: ['frisee', 'bouclee', 'ondulee'].includes(texture) && style === 'naturel' && !lockedNow &&
       String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
       ['gel', 'mousse', 'creme', 'rien'].includes(String(ctx.curlyHold ?? '')) ? String(ctx.curlyHold) : '',
     // D10 — la position de transition ne vit qu'en transition, hors locks et
@@ -257,6 +270,14 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     locStage: lockedNow && ['neuve', 'ado', 'mature'].includes(String(ctx.locStage ?? '')) ? String(ctx.locStage) : '',
     locCare: lockedNow && ['palm', 'interlock', 'freeform'].includes(String(ctx.locCare ?? '')) ? String(ctx.locCare) : '',
     locDry: lockedNow && ['sec', 'seche', 'humide', 'lentes'].includes(String(ctx.locDry ?? '')) ? String(ctx.locDry) : '',
+    // D12 — les réponses perruque n'existent que dans le CYCLE perruque : un
+    // cuir chevelu en locks sous une pose répond au cycle locks (priorité D5,
+    // « locks toujours locks ») ; la question ne lui est donc pas posée et une
+    // rémanence est ignorée ici, à la source.
+    wigBond: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['glue', 'tape', 'glueless'].includes(String(ctx.wigBond ?? '')) ? String(ctx.wigBond) : '',
+    wigWear: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'].includes(String(ctx.wigWear ?? '')) ? String(ctx.wigWear) : '',
   };
 }
 
@@ -316,6 +337,9 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     locStage: str('locStage'),
     locCare: str('locCare'),
     locDry: str('locDry'),
+    // D12 — idem : le tuyau unique emporte fixation et portée de la pose.
+    wigBond: str('wigBond'),
+    wigWear: str('wigWear'),
   };
 }
 
@@ -355,7 +379,8 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
   steps.push({
     action: 'Laver en douceur',
     why: washWhy,
-    how: 'Masser le cuir chevelu avec les pulpes des doigts (pas les ongles), laisser l’écume faire le travail sur les longueurs, rincer à l’eau tiède. Jamais d’eau chaude : elle dessèche et tire sur le cuir chevelu.',
+    how: 'Masser le cuir chevelu avec les pulpes des doigts (pas les ongles), laisser l’écume faire le travail sur les longueurs, rincer à l’eau tiède. Jamais d’eau chaude : elle dessèche et tire sur le cuir chevelu.'
+      + (f.isWavy && !f.isLocked ? ' Sur ondulé, le calendrier cède à la racine : on lave quand elle alourdit ou que la forme retombe — le rythme du 2 est plus court que celui du 3, et c’est normal.' : ''),
     expect: 'Un cuir chevelu propre, sans effet collant ni tiraillement. Si le cuir chevelu gratte après chaque lavage, notez-le : la cause est plus souvent un résidu qu’un produit qui ne convient pas.',
   });
 
@@ -401,6 +426,16 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       why: 'La lock se nourrit à l’eau et aux soins légers : les beurres et huiles épais y laissent des dépôts qui attisent l’odeur et la sécheresse. L’hydratation passe par l’eau et un conditionneur, pas par la matière grasse.',
       how: 'Sur cheveux mouillés, un conditionneur léger, bien rincé, puis une brume d’eau sur les pointes. Les longueurs ne se retwistent pas : l’eau et la main suffisent.',
       expect: 'Des locks souples et propres, sans dépôt. Un cheveu rêche qui sent, c’est un signal de lavage plus profond, pas de plus de produit.',
+    });
+  } else if (f.isWavy) {
+    // D12 — la faute n°1 du 2 est la crème héritée du 3 : sur une vague fine,
+    // sceller sous l'huile couche la forme. La légèreté n'est pas un conseil
+    // esthétique, c'est la physique du segment (guides 2A–2C, r/Wavyhair).
+    steps.push({
+      action: 'Hydrater léger — la règle des ondes',
+      why: 'Sur ondulé, le sébum remonte vite : la racine graisse pendant que les longueurs boivent. Les beurres et les huiles épaisses couchent la forme plus vite qu’ils ne la nourrissent — la légèreté est le vrai soin, pas une version pauvre du soin.',
+      how: 'Après le lavage : leave-in léger à l’eau, dos noisette — jamais l’avant-bras ; mousse ou gel aérien posés sur cheveu trempé, en scrunching, sur les longueurs seulement. Pas de crème épaisse, pas d’huile en racine.',
+      expect: 'Des ondes qui se forment en séchant sans s’alourdir : le volume racinaire revient, le dessin tient la journée. Si la forme « fond » en deux heures, le suspect est le dosage, pas la nature du cheveu.',
     });
   } else {
     steps.push({
@@ -726,7 +761,10 @@ function buildWigEvening(f: HairFlags): HairStepDraft[] {
     {
       action: 'Pendant la portée : fraîcheur et propreté',
       why: 'La portée se vit au quotidien : transpiration, chaleur, frottement — l’entretien léger et régulier est ce qui fait qu’une pose de plusieurs semaines reste confortable. Ce n’est pas un ajout de produit, c’est de la propreté : linge propre, soin aqueux, cuir chevelu sec.',
-      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, laisser le cuir chevelu respirer sans la pose le plus possible.',
+      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, laisser le cuir chevelu respirer sans la pose le plus possible.'
+      + (f.wigBond === 'glue' || f.wigBond === 'tape'
+        ? ' Sous colle ou adhésif, un signal interrompt la portée sans discussion : démangeaison persistante, brûlure ou odeur sous la pose = dépose immédiate, nettoyage, contrôle — pas un linge propre de plus.'
+        : ''),
       expect: 'Une journée sans odeur, un cuir chevelu sec au toucher le soir. Si l’odeur revient malgré la propreté, c’est un signal de lavage en profondeur, pas d’ajout de parfum.',
     },
     {
@@ -744,13 +782,29 @@ function buildWigWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'À la dépose : contrôler raie et tempes',
       why: 'La dépose est l’heure de vérité du cycle perruque : c’est là que se voit ce que la portée a coûté au dessous — casse en raie, usure des tempes, tiraillements. Le contrôle régulier est ce qui fait que la prochaine pose repart de plus loin, pas de plus près.',
-      how: 'À chaque dépose : examiner la raie, les tempes, le contour — casse, irritation, zones qui tirent. Noter ce qui change d’une portée à l’autre. Si une zone s’use : changer la pose ou la tension avant la prochaine, sans exception.',
+      how: 'À chaque dépose : examiner la raie, les tempes, le contour — casse, irritation, zones qui tirent. Noter ce qui change d’une portée à l’autre. Si une zone s’use : changer la pose ou la tension avant la prochaine, sans exception.'
+      + (f.wigBond === 'glue'
+        ? ' Sous colle : la dépose se fait au solvant adapté, jamais à l’arraché ; la peau marque deux jours de repos avant la repose, et une première utilisation (ou une peau sensible) se teste 24 heures avant, pli du coude — la vérification est gratuite, l’allergie de contact dure un mois.'
+        : f.wigBond === 'tape'
+          ? ' Sous adhésif double-face : le ruban se retire dans le sens de la pousse, puis le résidu se dissout (dissolvant ou huile légère sur coton) AVANT de frotter. La trace collante laissée dans la raie est une irritation programmée.'
+          : f.wigBond === 'glueless'
+            ? ' Sans adhésif : la dépose est libre et c’est le grand avantage du glueless — le contour n’a rien à récupérer. Il se contrôle quand même à chaque fois : la tension de l’élastique ou des peignes passe exactement par là.'
+            : ''),
       expect: 'Un dessous qui reste fort et souple porté après porté : c’est l’indicateur honnête que les poses ne coûtent rien aux racines. Une usure qui revient à la même place, c’est un signal à traiter avant la suite.',
     },
     {
       action: 'Laisser le cuir chevelu respirer entre deux poses',
       why: 'Un cuir chevelu qui passe d’une pose à l’autre sans relâche ne se repose jamais : sécheresse, fatigue et irritation s’installent dans l’intervalle. Quelques jours sans pose — avec la routine légère d’entretien — sont ce qui fait durer les portées suivantes.',
-      how: 'Quelques jours entre deux poses : cuir chevelu propre, soin aqueux léger si sécheresse, coiffure détendue, satin la nuit. Ne jamais reposer une perruque sur un cuir chevelu qui tire ou gratte.',
+      how: 'Quelques jours entre deux poses : cuir chevelu propre, soin aqueux léger si sécheresse, coiffure détendue, satin la nuit. Ne jamais reposer une perruque sur un cuir chevelu qui tire ou gratte.'
+      + (f.wigWear === 'jamais_retiree'
+        ? ' Un point d’abord : porter sans dépose au-delà de six semaines n’est plus de la tenue, c’est un compromis sur le cuir chevelu — la routine commence par une dépose immédiate, lavage, contrôle raie et tempes, quelques jours de repos avant de reposer. Six semaines est un plafond, pas un objectif.'
+        : f.wigWear === 'deux_quatre'
+          ? ' Portée de deux à quatre semaines : un contrôle à blanc à mi-parcours — applicateur d’eau fraîche au ras des racines ; au premier signe (chaleur, odeur, démangeaison) la dépose est anticipée, sans négociation.'
+          : f.wigWear === 'une_semaine'
+            ? ' Une semaine de pose puis dépose : le format standard sain. Le contrôle et le lavage du dessous suivent la dépose — pas d’extension « puisque c’est bien tenu ».'
+            : f.wigWear === 'quotidienne'
+              ? ' Dépose chaque soir : ce rythme est le modèle — le dessus respire, le dessous est lavé et séché à chaque reprise. Rien à ajouter, tout à garder.'
+              : ''),
       expect: 'Un cuir chevelu qui repart frais à chaque nouvelle pose, des portées qui restent confortables semaine après semaine. La régularité de l’intervalle est le geste le plus sous-estimé du cycle perruque.',
     },
     {
@@ -1447,7 +1501,9 @@ export function pickHairLessons(ctx: HairAdvisoryContext, max = 3): HairLesson[]
   if (f.isGrowth) wanted.push('hair_lesson_pousse');
   if (f.isDefinition) wanted.push('hair_lesson_definition');
   if (f.highPorosity || f.lowPorosity) wanted.push('hair_lesson_porosite');
-  if ((f.isCoily || f.isCurly || f.priority === 'hydratation') && !f.isLocked) wanted.push('hair_lesson_lco');
+  // D12 : l'ondulé est dans la famille des boucles mais PAS dans celle du
+  // scellement — la leçon LCO contredirait sa règle de légèreté.
+  if ((f.isCoily || f.isCurly || f.priority === 'hydratation') && !f.isLocked && !f.isWavy) wanted.push('hair_lesson_lco');
   wanted.push('hair_lesson_entretien');
 
   const byKey = new Map(HAIR_LESSONS.map(l => [l.key, l]));
@@ -1587,6 +1643,9 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     '4c': 'Motif 4C : définition au doigt, jamais au peigne, et longueur réelle jugée aux pointes — le shrinkage efface une grande partie de la longueur visible, ce n’est pas de la longueur perdue.',
   };
   if (f.pattern && patternLine[f.pattern]) parts.push(patternLine[f.pattern]);
+  // D12 — la règle de l'ondulé est une phrase, pas un paragraphe : elle doit
+  // rester vraie quel que soit le reste du profil.
+  if (f.isWavy) parts.push('Ondulée 2A–2C : la règle maîtresse est la légèreté — mousse ou gel aérien sur cheveu trempé, pas de crème épaisse, lavage quand la racine alourdit.');
   // La phrase « élasticité » doit dire ce que le cycle fait vraiment : sur
   // locks, la cure protéinée n'est jamais la réponse (dépôt) ; sur enfant et
   // sous coiffure, le masque se jugera au prochain lavage complet — on pose
@@ -1667,6 +1726,22 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     lentes: 'Séchage : séchage lent déclaré — rinçage allongé, produits allégés, clarifiant seulement si l’odeur revient malgré tout.',
   };
   if (f.locDry && locDryLine[f.locDry]) parts.push(locDryLine[f.locDry]);
+
+  // D12 — perruque : fixation et portée rendues au résumé, uniquement quand la
+  // réponse existe (mêmes garde-flags que la routine).
+  const bondLine: Record<string, string> = {
+    glue: 'Pose déclarée : colle — plafond de six semaines, solvant à la dépose, test cutané 24 h avant la première utilisation.',
+    tape: 'Pose déclarée : adhésif double-face — résidu dissous avant de frotter, contrôle du contour à chaque dépose.',
+    glueless: 'Pose déclarée : sans adhésif — le choix le plus sûr pour les tempes ; l’élastique et les peignes se vérifient à la dépose comme une colle.',
+  };
+  if (f.wigBond && bondLine[f.wigBond]) parts.push(bondLine[f.wigBond]);
+  const wearLine: Record<string, string> = {
+    quotidienne: 'Rythme de pose : dépose chaque soir — le modèle ; le lavage du dessous suit le même rythme.',
+    une_semaine: 'Rythme de pose : une semaine tenue, dépose contrôlée — le format standard sain.',
+    deux_quatre: 'Rythme de pose : deux à quatre semaines — contrôle à mi-parcours, dépose anticipée au moindre signe.',
+    jamais_retiree: 'Rythme de pose : portée continue au-delà du plafond — la routine commence par une dépose, un lavage et quelques jours de repos ; c’est une remise à zéro, pas une punition.',
+  };
+  if (f.wigWear && wearLine[f.wigWear]) parts.push(wearLine[f.wigWear]);
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

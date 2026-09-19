@@ -144,7 +144,7 @@ function main(): void {
   });
   assert.ok(withFocusCtx, 'modèle construit avec focus');
 
-  console.log('[PASS] Diagnostic adaptatif : les 49 couples (texture, style) résolvent un segment unique (ou aucun), 7 segments à 4–6 options aux besoins existants, le cas locks toujours locks, focus sûre (id inconnu = rien), profil et priorités de la page résultat conformes, anciennes réponses compatibles.');
+  console.log('[PASS] Diagnostic adaptatif : les 56 couples (texture, style) résolvent un segment unique (ou aucun), 7 segments à 4–6 options aux besoins existants, le cas locks toujours locks, focus sûre (id inconnu = rien), profil et priorités de la page résultat conformes, anciennes réponses compatibles.');
 }
 
 main();

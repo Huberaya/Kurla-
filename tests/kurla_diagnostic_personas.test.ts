@@ -274,7 +274,7 @@ test('C10 enchaînement des poses : « laisser reposer le cuir chevelu » est da
 /* le défaut locks×peigne, ni servir un vocabulaire interdit.         */
 /* ================================================================== */
 
-const TEXTURES = ['crepue', 'frisee', 'bouclee', 'ondee', 'locksee', 'defrisee', 'protective'];
+const TEXTURES = ['crepue', 'frisee', 'bouclee', 'ondulee', 'locksee', 'defrisee', 'protective']; // D12 : 'ondulee' est un vrai jeton — le faux 'ondee' balayait du vide (leçon 'defrie')
 const STYLES = ['naturel', 'locks', 'twists', 'braids', 'wig', 'enfant', 'defrise'];
 const PRIORITIES = ['', 'hydratation', 'casse', 'definition', 'pousse', 'cuir_chevelu', 'demelage_enfant'];
 const POROSITIES = ['faible', 'moyenne', 'forte', 'inconnue'];
@@ -299,6 +299,9 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v2 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v3 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v4 = seed >>> 8;
+      // D12 : fixation et portée de la pose balayées PARTOUT (rémanences).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v5 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v6 = seed >>> 8;
       const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
@@ -312,7 +315,9 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         transitionStep: ['inconnue', 'majorite', 'minorite', 'quasi_nulle'][(v >> 18) % 4],
         locStage: ['inconnu', 'neuve', 'ado', 'mature'][v2 % 4],
         locCare: ['inconnu', 'palm', 'interlock', 'freeform'][v3 % 4],
-        locDry: ['inconnu', 'sec', 'seche', 'humide', 'lentes'][v4 % 5]
+        locDry: ['inconnu', 'sec', 'seche', 'humide', 'lentes'][v4 % 5],
+        wigBond: ['inconnu', 'glue', 'tape', 'glueless'][v5 % 4],
+        wigWear: ['inconnu', 'quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'][v6 % 5]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -368,7 +373,7 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       if ((locked || trans || prot) && mask && decidedActions.includes(mask.action)) at('décision protéinée appliquée hors cycle à masque');
       // — D10 : l'étape boucles ne vit que dans le cycle naturel des bouclées ;
       // chaque fragment rendu est exactement celui de la réponse, jamais un autre.
-      const curlyCycle = !locked && !kid && !prot && style === 'naturel' && (texture === 'frisee' || texture === 'bouclee');
+      const curlyCycle = !locked && !kid && !prot && style === 'naturel' && (texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee');
       const dry = ctx.curlyDry as string;
       const hold = ctx.curlyHold as string;
       const curlyStep = (steps as any[]).find((x: any) => x.action === 'Séchage et finition, calés sur vos habitudes');
@@ -418,6 +423,38 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         if (dryStep) at('étape séchage locks hors locks');
         if (/Maturité : locks|Entretien déclaré : (palm|interlocking|libre)/.test(sum3)) at('décision locks au résumé hors locks');
       }
+      // — D12 : l'ondulé a sa règle (jamais la LCO) ; perruque rend la fixation
+      // et la portée, et RIEN hors du cycle perruque (locks comprises).
+      const wavyStep = (steps as any[]).some((x: any) => x.action === 'Hydrater léger — la règle des ondes');
+      const lcoStep = (steps as any[]).some((x: any) => /^Hydrater puis sceller/.test(x.action));
+      if (texture === 'ondulee') {
+        if (lcoStep) at('LCO scellante servie à un ondulé');
+        // Le cycle ondulé doit rendre SA règle de légèreté : soit l'étape ondes,
+        // soit la branche porosité faible — qui dit la même physique (« moins,
+        // pas plus »). Les deux sont justes ; l'absence des deux serait faute.
+        const lightStep = (steps as any[]).some((x: any) => x.action === 'Soins légers, bien placés');
+        if (!locked && !kid && !prot && !trans && style === 'naturel' && !wavyStep && !lightStep) at('règle de légèreté absente du cycle naturel ondulé');
+        // L'étape ondes vit dans le buildWashDay partagé (naturel/enfant) : elle
+        // est fautive sous protectrice non-enfant (cycle propre) ou sous locks.
+        if ((locked || (prot && !kid)) && wavyStep) at('étape ondes dans un cycle qui hydrate déjà autrement');
+      }
+      const wigCycle = style === 'wig' && !locked && !kid;
+      const glueOn = /jamais à l’arraché/.test(full);
+      const tapeOn = /résidu se dissout/.test(full);
+      const freeOn = /la dépose est libre/.test(full);
+      const capOn = /Six semaines est un plafond/.test(full);
+      const midOn = /contrôle à blanc à mi-parcours/.test(full);
+      const wkOn = /format standard sain/.test(full);
+      const dailyOn = /ce rythme est le modèle/.test(full);
+      const b = ctx.wigBond as string, w = ctx.wigWear as string;
+      if (b === 'glue' && wigCycle !== glueOn) at('clause colle rendue hors pose encollée');
+      if (b === 'tape' && wigCycle !== tapeOn) at('clause adhésif rendue hors pose collante');
+      if (b === 'glueless' && wigCycle !== freeOn) at('clause glueless rendue hors cycle perruque');
+      if (w === 'jamais_retiree' && wigCycle !== capOn) at('plafond de six semaines rendu hors cycle perruque');
+      if (w === 'deux_quatre' && wigCycle !== midOn) at('contrôle à mi-parcours rendu hors pose longue');
+      if (w === 'une_semaine' && wigCycle !== wkOn) at('confirmation hebdo rendue hors cycle perruque');
+      if (w === 'quotidienne' && wigCycle !== dailyOn) at('confirmation quotidienne rendue hors cycle perruque');
+      if (/Pose déclarée :|Rythme de pose :/.test(sum3) && !wigCycle) at('décision perruque au résumé hors cycle perruque');
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }

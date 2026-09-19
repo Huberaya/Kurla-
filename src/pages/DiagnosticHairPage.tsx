@@ -33,7 +33,10 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   // D11 : idem — trois réponses locks, défaut « inconnu » = routine d'avant.
   locStage: 'inconnu',
   locCare: 'inconnu',
-  locDry: 'inconnu'
+  locDry: 'inconnu',
+  // D12 : idem — deux réponses perruque, défaut « inconnu » = cycle d'avant.
+  wigBond: 'inconnu',
+  wigWear: 'inconnu'
 };
 import { useAuth } from '../context/AuthContext';
 
@@ -94,8 +97,11 @@ export const DiagnosticHairPage: React.FC = () => {
   // réalité (séchage, fixant) ; la transition remplace la question chaleur/
   // chimie — déjà répondue par la texture — par celle de l'avancement du fade.
   const isTransitionNow = answers.texture === 'defrisee' || answers.style === 'defrise';
-  const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee');
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
+  // D12 : sous priorité « démêlage enfant », c'est le cycle enfant qui sert — la
+  // routine perruque n'existe plus : pas de question sans endroit où atterrir.
+  const isWigNow = answers.style === 'wig' && !lockedNow && answers.priority !== 'demelage_enfant';
+  const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee' || answers.texture === 'ondulee');
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -193,6 +199,7 @@ export const DiagnosticHairPage: React.FC = () => {
                 {[
                   { id: 'crepue', title: 'Crépue (4A–4C)', desc: 'Très serrée, rétrécissement important à sec.' },
                   { id: 'frisee', title: 'Frisée / Bouclée (3B-3C)', desc: 'Boucles en S bien définies ou ressorts.' },
+                { id: 'ondulee', title: 'Ondulée (2A–2C)', desc: 'Vagues en S souples, racines qui s’écrasent vite.' },
                   { id: 'locksee', title: 'Locks / Microlocks', desc: 'Cheveux ancrés en locks ou twist locks.' },
                   { id: 'protective', title: 'Coiffure protectrice', desc: 'En braids, twists ou tissage.' },
                   { id: 'defrisee', title: 'Défrisée / En transition', desc: 'Textures mixtes ou sensibilisées.' },
@@ -366,6 +373,43 @@ export const DiagnosticHairPage: React.FC = () => {
               ]}
               value={answers.chemicalHeat ?? 'inconnue'}
               onPick={id => { setAnswers({ ...answers, chemicalHeat: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'wigBond' && (
+            <QuestionStep
+              step={step}
+              kicker="Mode de fixation"
+              title="Comment votre perruque est-elle tenue sur la peau&nbsp;?"
+              note="La fixation décide de la dépose et du sort du contour : on ne prépare pas une lace frontale encollée comme un glueless à élastique. Ce n’est pas un jugement — chaque méthode a son plafond de sécurité, et la routine le pose."
+              cols="grid-cols-1"
+              options={[
+                { id: 'glue', title: 'Colle liquide (lace encollée)', desc: 'La tenue maximale — avec un cadre : solvant à la dépose, test cutané au premier pot.' },
+                { id: 'tape', title: 'Adhésif double-face (tape)', desc: 'Tenue plus courte, résidu à dissoudre avant de frotter — la routine le prévoit.' },
+                { id: 'glueless', title: 'Sans adhésif — élastique, peignes, grip', desc: 'Le plus sûr pour les tempes : la routine en fixe la vérification, pas la méfiance.' },
+                { id: 'inconnu', title: 'Ça change selon les poses', desc: 'La routine garde le cadre prudent du cycle perruque.' },
+              ]}
+              value={answers.wigBond ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, wigBond: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'wigWear' && (
+            <QuestionStep
+              step={step}
+              kicker="Durée de la portée"
+              title="Une fois posée, vous la gardez combien de temps sans la retirer&nbsp;?"
+              note="La question la plus posée par les nouvelles porteuses de perruque, et celle que le calendrier de chacun répond mal : les sources convergent — dépose tous les 7 à 14 jours avec adhésif, six semaines est un plafond absolu, jamais un objectif."
+              cols="grid-cols-1"
+              options={[
+                { id: 'quotidienne', title: 'Je la pose et la dépose chaque jour', desc: 'Le modèle : la routine confirme ce rythme et protège le dessous à chaque reprise.' },
+                { id: 'une_semaine', title: 'À peu près une semaine, puis dépose', desc: 'Le format standard sain — contrôle et lavage suivent la dépose.' },
+                { id: 'deux_quatre', title: 'Deux à quatre semaines d’affilée', desc: 'Tenue longue : la routine pose un contrôle à mi-parcours, sans drame.' },
+                { id: 'jamais_retiree', title: 'Plus longtemps, ou presque jamais retirée', desc: 'La routine commence par une remise à zéro — c’est une protection, pas un reproche.' },
+                { id: 'inconnu', title: 'Ça dépend des périodes', desc: 'Le cadre standard du cycle s’applique ; votre observation ajustera.' },
+              ]}
+              value={answers.wigWear ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, wigWear: id as any }); handleNext(); }}
             />
           )}
 

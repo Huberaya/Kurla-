@@ -71,8 +71,8 @@ function normalize(ctx: HairAdvisoryContext): Normalized {
     isWig: style === 'wig',
     isKid: style === 'enfant' || ctx.priority === 'demelage_enfant',
     isCoily: texture === 'crepue',
-    isCurly: texture === 'frisee' || texture === 'bouclee',
-    isTextured: texture === 'crepue' || texture === 'frisee' || texture === 'bouclee',
+    isCurly: texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee',
+    isTextured: texture === 'crepue' || texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee',
     scalpTrouble: scalp === 'sec' || scalp === 'demangeaisons' || scalp === 'pellicules' || scalp === 'irritation',
   };
 }

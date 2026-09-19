@@ -334,7 +334,7 @@ export function registerRecommendationRoutes(app: Express): void {
     if (authenticatedUser && diagnosticType === 'hair') {
       try {
         const textureMap: Record<string, string> = {
-          crepue: 'crépue', frisee: 'bouclée', locksee: 'locks', protective: 'protectrice', defrisee: 'défrisée', inconnue: 'inconnue'
+          crepue: 'crépue', frisee: 'bouclée', bouclee: 'bouclée', ondulee: 'ondulée', locksee: 'locks', protective: 'protectrice', defrisee: 'défrisée', inconnue: 'inconnue'
         };
         const porosityMap: Record<string, string> = {
           forte: 'forte', faible: 'faible', moyenne: 'moyenne', inconnue: 'inconnue'

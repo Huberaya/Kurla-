@@ -352,7 +352,9 @@ export function pickHairScienceInsights(ctx: HairAdvisoryContext, max = 3): Scie
   const scalp = String(ctx.scalp ?? '');
 
   const isCoily = texture === 'crepue';
-  const isCurly = texture === 'frisee' || priority === 'definition';
+  // D12 : le bouclé 3A et l’ondulé 2 appartiennent à la famille des boucles —
+  // les observations de forme et de fraîcheur les concernent aussi.
+  const isCurly = texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee' || priority === 'definition';
   const isLocked = texture === 'locksee' || style === 'locks';
   const isRelaxed = texture === 'defrisee';
   const isProtective = texture === 'protective' || style === 'braids' || style === 'twists';

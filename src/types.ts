@@ -1,4 +1,4 @@
-export type HairTexture = 'bouclee' | 'frisee' | 'crepue' | 'locksee' | 'defrisee' | 'protective' | 'inconnue';
+export type HairTexture = 'bouclee' | 'frisee' | 'ondulee' | 'crepue' | 'locksee' | 'defrisee' | 'protective' | 'inconnue';
 export type HairStyle = 'naturel' | 'braids' | 'twists' | 'locks' | 'wig' | 'defrise' | 'enfant';
 export type HairPriority = 'hydratation' | 'casse' | 'definition' | 'pousse' | 'cuir_chevelu' | 'entretien_protective' | 'demelage_enfant';
 export type Porosity = 'faible' | 'moyenne' | 'forte' | 'inconnue';
@@ -46,6 +46,10 @@ export interface HairDiagnosticAnswers {
   locStage?: 'neuve' | 'ado' | 'mature' | 'inconnu';
   locCare?: 'palm' | 'interlock' | 'freeform' | 'inconnu';
   locDry?: 'sec' | 'seche' | 'humide' | 'lentes' | 'inconnu';
+  /** D12 (20/09) — perruque : mode de fixation et durée de portée réelles.
+   *  Posées uniquement quand la perruque est le cycle (jamais sous locks). */
+  wigBond?: 'glue' | 'tape' | 'glueless' | 'inconnu';
+  wigWear?: 'quotidienne' | 'une_semaine' | 'deux_quatre' | 'jamais_retiree' | 'inconnu';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

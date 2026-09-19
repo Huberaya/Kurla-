@@ -5139,3 +5139,27 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
 - **Livrable** : `docs/RAPPORT_D11_LOCKS.md`. Suivant candidat naturel : ondulé 2 / perruque, ou
   l'arbitrage produit « avant-locks » (parcours de préparation, pas une question).
 
+
+## 20/09 (suite 5) — D12 : ondulé 2 rendu posable + perruque dotée de fixation et de portée (agent diagnostic)
+
+- **Trouvaille n°1** : le jeton ondulé n'existait nulle part (le balayage personas testait un 'ondee'
+  fictif — 2ᵉ occurrence du défaut après 'defrie' au D11). Ajouté de bout en bout : type, carte du
+  formulaire + visuel SVG, segments (56 couples), labels compte beauté (dont 'bouclee' absent du mapping,
+  corrigé), hairScience/dérivations. Règle du 2 dans le moteur : « Hydrater léger — la règle des ondes »
+  remplace la LCO, rythme « quand la racine alourdit », leçon LCO refusée, réponses boucles du D10
+  reçues ; faux jeton 'ondee' d'un vieux payload = comportement générique prouvé.
+- **Trouvaille n°2** : le cycle perruque ne posait rien sur la pose. +2 réponses : `wigBond` (colle/
+  adhésif/sans adhésif → clause de dépose au solvant ou dissolution du résidu, test patch 24 h, signes
+  du soir = dépose immédiate) et `wigWear` (quotidienne→confirmé, semaine→confirmé, 2–4→contrôle à
+  mi-parcours, au-delà→« six semaines est un plafond, pas un objectif » + remise à zéro). Lignes de résumé.
+- **Gardes** : perruque = cycle perruque (locks sous perruque : rien — priorité D5) ; **l'enfant trouvé
+  par la matrice** : style wig + priorité démêlage = cycle enfant → questions non posées ET flags à
+  blanc. Valeurs inventées → blanc ; rémanences croisées ignorées ; tuyau unique D9 intact.
+- **Preuves** : nouveau banc `kurla_diagnostic_ondule_perruque.test.ts` 32/32 (chaîné `npm test`) ;
+  matrice 47/47 sur 3 428 profils (ondulee réel balayé, rémanences perruque partout, invariants 8 clauses) ;
+  banc segments 56 couples PASS ; D9/D10/D11 + 15 bancs voisins verts ; tsc 0 ; build 0 ; Playwright 390px
+  3 parcours **29/29** (ondulée sans LCO, perruque colle+continue, locks sous perruque garde) over=0 console=0.
+- **Livrable** : `docs/RAPPORT_D12_ONDULE_PERRUQUE.md`. Programme des segments du cœur achevé (crépu,
+  bouclés+transition, locks, ondulé, perruque). Reste hors diagnostic : arbitrage « avant-locks »,
+  éventuelle question lavage-du-dessous, suivi des compteurs de la matrice.
+
