@@ -197,3 +197,68 @@ export function validateHairAiOutput(out: HairAiGuardrailInput, gate: HairAiGuar
 
   return { ok: reasons.length === 0, reasons };
 }
+
+export interface SkinAiGuardrailGate {
+  /** Actions du moteur segmenté peau — la référence que l'IA doit suivre. */
+  engineActions: string[];
+  /** Le moteur refuse l'exfoliation (barrière fragile, sensibilité). */
+  exfoliationBlocked: boolean;
+  /** Étiquets prioritaires que le résumé doit reprendre (ancre anti-flottante). */
+  anchors: string[];
+}
+
+/**
+ * D6 — miroir peau de `validateHairAiOutput` : mêmes familles de contrôle
+ * (structure, vocabulaire banni, ancrage au programme du moteur), plus la
+ * règle de sécurité propre à la peau : là où le moteur refuse l'exfoliation,
+ * l'IA ne peut pas la proposer — même adoucie, même « en progressif ».
+ * Rejet = bascule silencieuse sur le déterministe (comportement identique au
+ * pôle cheveux, exigence de parité oblige).
+ */
+export function validateSkinAiOutput(out: HairAiGuardrailInput, gate: SkinAiGuardrailGate): GuardrailVerdict {
+  const reasons: string[] = [];
+  const summary = typeof out.summary === 'string' ? out.summary.trim() : '';
+  const routine = typeof out.recommendedRoutine === 'string' ? out.recommendedRoutine.trim() : '';
+  const reason = typeof out.reason === 'string' ? out.reason.trim() : '';
+  const steps = Array.isArray(out.steps) ? out.steps.filter((s): s is string => typeof s === 'string' && s.trim().length >= 8) : [];
+  const warningsArr = Array.isArray(out.warnings) ? out.warnings.filter((w): w is string => typeof w === 'string') : [];
+
+  // 1. Structure minimale (mêmes planchers qu'à cheveux : c'est le contrat
+  // de parité, pas une estimation).
+  if (summary.length < 120) reasons.push('résumé trop court pour être une lecture du profil');
+  if (reason.length < 40) reasons.push('raison trop courte pour être une explication');
+  if (steps.length < 5) reasons.push(`moins de 5 étapes exploitables (${steps.length})`);
+
+  // 2. Zéro vocabulaire banni sur tout le texte servi.
+  const banned = findBannedIn([summary, routine, reason, ...steps, ...warningsArr].join('\n'));
+  if (banned.length) reasons.push(`vocabulaire banni : ${banned.join(', ')}`);
+
+  // 3. Le résumé reprend le profil déclaré (jamais une réponse flottante).
+  if (gate.anchors.length) {
+    const summaryWords = contentWords(summary);
+    const anchorHit = gate.anchors.some(anchor => contentWords(anchor).size && [...contentWords(anchor)].some(word => summaryWords.has(word)));
+    if (!anchorHit) reasons.push('aucun élément du profil déclaré repris dans le résumé');
+  }
+
+  // 4. Les étapes suivent le programme du moteur.
+  if (gate.engineActions.length && steps.length) {
+    const engineWordSets = gate.engineActions.map(action => contentWords(action));
+    const anchored = steps.filter(step => {
+      const words = contentWords(step);
+      return engineWordSets.some(set => coverage(set, words) >= 0.3);
+    }).length;
+    if (anchored < Math.ceil(steps.length * 0.6)) reasons.push('les étapes ne suivent pas la routine moteur (reformulation hors-programme)');
+    const stepsUnion = new Set<string>();
+    for (const step of steps) for (const word of contentWords(step)) stepsUnion.add(word);
+    const represented = engineWordSets.filter(set => coverage(stepsUnion, set) >= 0.4).length;
+    if (represented < Math.ceil(gate.engineActions.length * 0.5)) reasons.push('des actions moteur majeures ont disparu de la réponse');
+  }
+
+  // 5. Sécurité peau : le refus d'exfoliation du moteur est absolu.
+  if (gate.exfoliationBlocked) {
+    const offender = steps.find(step => /exfoli/i.test(step));
+    if (offender) reasons.push('exfoliation proposée alors que le moteur la refuse (barrière ou sensibilité)');
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}

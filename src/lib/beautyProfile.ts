@@ -21,6 +21,17 @@ export interface HairZoneProfile {
 export interface DiagnosticSnapshot {
   at: string;
   source: string;
+  /** D6 — ancrage et réponses du diagnostic peau (miroir exact du bloc cheveux). */
+  atSkin: string;
+  skinType: string;
+  skinHydration: string;
+  skinSensitivity: string;
+  skinConcerns: string;
+  skinObjectives: string;
+  skinSpf: string;
+  skinAcne: string;
+  skinMarks: string;
+  skinApplied: string;
   texture: string;
   style: string;
   focus: string;
@@ -702,13 +713,19 @@ export function normalizeDiagnosticSnapshot(raw: unknown): DiagnosticSnapshot | 
   const value = raw as Record<string, unknown>;
   const one = (key: string, max = 24): string => (typeof value[key] === 'string' ? (value[key] as string).slice(0, max) : '');
   const at = one('at', 40);
-  if (!at) return null;
+  if (!at && !one('atSkin', 40)) return null;
+  const atSkin = one('atSkin', 40);
   return {
     at,
+    atSkin,
     source: one('source', 16) || 'diagnostic',
     texture: one('texture'), style: one('style'), focus: one('focus', 40), priority: one('priority', 40),
     porosity: one('porosity'), scalp: one('scalp'), frequency: one('frequency', 24),
     length: one('length'), experience: one('experience', 24), shorten: one('shorten', 8),
+    skinType: one('skinType'), skinHydration: one('skinHydration'), skinSensitivity: one('skinSensitivity'),
+    skinConcerns: one('skinConcerns', 200), skinObjectives: one('skinObjectives', 200),
+    skinSpf: one('skinSpf'), skinAcne: one('skinAcne'), skinMarks: one('skinMarks'),
+    skinApplied: one('skinApplied', 16),
   };
 }
 

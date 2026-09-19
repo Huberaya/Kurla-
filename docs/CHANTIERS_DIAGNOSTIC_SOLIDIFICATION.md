@@ -348,6 +348,40 @@ logique spécialisée.
 
 **Acceptation** : banc peau miroir du banc cheveux vert.
 
+**LIVRÉ (19/09)**
+- Le moteur peau sert désormais l'IA comme côté cheveux : contexte construit
+  AVANT l'appel, note au prompt (profil déclaré, priorités, référence moteur,
+  refus documenté d'exfoliation), porte de validation `validateSkinAiOutput`
+  (miroir D3 : structure, vocabulaire banni partagé, ancrage au programme,
+  plus la règle de sécurité peau — l'exfoliation refusée par le moteur ne
+  peut PAS être servie par l'IA), et fallback déterministe `buildSkinFallback`
+  — le générique de secours (« routine structurée à ajuster progressivement »)
+  est mort : vérifié en live, un diagnostic peau sensible reçoit 7 étapes
+  personnalisées avec résumé citant le profil, source fallback.
+- Boucle d'évolution peau (miroir D2) : `SKIN_EVOLUTION_RULES` — les 12
+  préoccupations du journal cutané + le ressenti 1–5 (moyenne ≤ 2 →
+  reconstruction de barrière ; ≥ 4 → confirmation sans changement) + les
+  trois signaux peau du journal CHEVEUX que D2 laissait en attente entrent
+  par alias (`spots_not_improving`→taches, `skin_tight`→sécheresse,
+  `spots_improving`→confirmation). Ajouts seulement : aucune valeur déclarée
+  (type, sensibilité, hydratation) n'est écrasée ; préoccupation déjà portée
+  → confirmation, pas doublon.
+- Contrat de parité verrouillé par le banc : le rapport peau a EXACTEMENT les
+  mêmes touches que le rapport cheveux (disponibilité, avant/après,
+  changements nommés avec cause, confirmations, added/removed/changed sur le
+  texte complet des étapes).
+- Instantané de diagnostic étendu à la peau (`atSkin` + énumérations
+  cutanées, jamais de texte libre) ; une sauvegarde cheveux ne peut plus
+  effacer la moitié peau et réciproquement. Application par domaine explicite
+  sur `/account/routine-evolution`, qui affiche désormais les deux parcours
+  côte à côte (mêmes écrans, libellés de colonnes par domaine — le parité
+  espaces est respectée) ; le journal peau renvoie vers la boucle.
+- Bancs : `tests/kurla_profile_evolution_skin.test.ts` 12/12
+  (`test:profile-evolution-skin`, dans la chaîne) ; D2 11/11 et L4 14/14
+  inchangés ; régression peau et diagnostic complète verte ; tsc 0 ; build 0.
+- Limite consignée : la vraie sortie Gemini n'est pas exercée dans le sandbox
+  (porte et fallback testés en unitaire + fallback vérifié en live).
+
 ---
 
 ## Ordre de exécution proposé

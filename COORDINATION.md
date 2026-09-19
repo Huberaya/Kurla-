@@ -4925,3 +4925,20 @@ supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
   over=0 (mur d'auth vérifié — le rendu connecté n'est pas vérifiable dans
   le sandbox sans Supabase, consigné honnêtement).
 - Prochain : **D6** (parité peau : mêmes mécanismes, logique peau).
+
+### D6 LIVRÉ (19/09) — parité peau : garde-fou IA, fallback moteur, boucle d'évolution cutanée
+- `validateSkinAiOutput` (aiGuardrail) : mêmes familles de contrôle que la
+  porte cheveux + refus d'exfoliation sur barrière fragile ; le fallback peau
+  vient du moteur (`buildSkinFallback`, `buildSkinPromptNote` dans
+  skinAdvisory) — le texte générique de secours a disparu du chemin connecté.
+- `buildSkinEvolutionReport` (profileEvolution) : 12 préoccupations du journal
+  peau + jauges + alias des signaux peau du journal cheveux ; ajouts
+  uniquement, jamais d'écrasement des valeurs déclarées.
+- CONTRAT : touches du rapport peau = touches du rapport cheveux (banc
+  `kurla_profile_evolution_skin` l'affirme — ne pas « optimiser » une touche
+  d'un seul côté sans l'autre).
+- Instantané profil : `atSkin` + clé peau dans `diagnostic`, chaque sauvegarde
+  préserve la moitié de l'autre domaine. Ne pas revenir dessus.
+- `/account/routine-evolution` sert les DEUX domaines (apply par
+  `domain: 'hair'|'skin'`) ; le lien L4 unique des deux parcours est ce chemin.
+- Programme D5→D1→D3→D4→D2→D6 : SIX CHANTIERS LIVRÉS.

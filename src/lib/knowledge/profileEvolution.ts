@@ -1,5 +1,7 @@
 import type { HairAdvisoryContext } from './hairAdvisory';
 import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from './hairAdvisory';
+import type { SkinAdvisoryContext, SkinAdvisoryRoutine } from './skinAdvisory';
+import { buildSkinAdvisoryRoutine, buildSkinAdvisorySummary } from './skinAdvisory';
 
 /**
  * D2 — LA BOUCLE QUI BOUCLE (programme « solidification du diagnostic »,
@@ -159,7 +161,8 @@ export const SIGNAL_CONVERSION_RULES: readonly ConversionRule[] = [
 ];
 
 export interface EvolutionChange {
-  readonly field: EvolutionField;
+  /** Champ capillaire (D2) ou cutané (D6) — même contrat des deux côtés. */
+  readonly field: EvolutionField | SkinEvolutionField;
   readonly from: string;
   readonly to: string;
   readonly reason: string;
@@ -366,5 +369,220 @@ export function buildHairEvolutionReport(
     added,
     removed,
     changed,
+  };
+}
+
+/* ================================================================== */
+/* 6 — PARITÉ PEAU (D6) : mêmes mécanismes, logique peau              */
+/* ================================================================== */
+
+/**
+ * Le journal peau déclare des préoccupations (mêmes identifiants que le
+ * formulaire de diagnostic) et un ressenti 1–5. La règle d'or est transposée
+ * sans adoucissement : l'évolution AJOUTE des préoccupations observées, elle
+ * n'écrase JAMAIS une valeur déclarée au diagnostic (ni type, ni sensibilité,
+ * ni niveau d'hydratation) — une tension non résolue devient une confirmation
+ * qui le dit. Les trois signaux peau du journal cheveux (spots_improving,
+ * spots_not_improving, skin_tight), que D2 laissait en attente, entrent ici
+ * par leur alias : plus aucun signal sans réponse, des deux côtés.
+ */
+export interface SkinJournalEntryInput {
+  readonly date: string;
+  feelingScore?: number;
+  concerns?: readonly string[];
+}
+
+export type SkinEvolutionField = 'skinConcerns' | 'skinObjectives';
+
+export interface SkinEvolutionRule {
+  /** Identifiant de préoccupation du journal peau, ou signal alias du journal cheveux. */
+  readonly signal: string;
+  readonly field: SkinEvolutionField;
+  readonly add: string;
+  readonly reason: string;
+}
+
+export const SKIN_EVOLUTION_RULES: readonly SkinEvolutionRule[] = [
+  { signal: 'secheresse', field: 'skinConcerns', add: 'secheresse', reason: 'Tiraillements notés au journal : la routine met le soutien de barrière au premier plan et retire ce qui frotte.' },
+  { signal: 'deshydratation', field: 'skinConcerns', add: 'deshydratation', reason: 'La peau « boit » sans retenir : l’hydratation devient un travail en deux temps — capter l’eau, puis la sceller.' },
+  { signal: 'teint_terne', field: 'skinConcerns', add: 'teint_terne', reason: 'Le teint terne revient dans le journal : la base (hydratation de surface, exfoliation seulement si tolérance prouvée) passe avant tout actif éclat.' },
+  { signal: 'taches', field: 'skinConcerns', add: 'taches', reason: 'Les marques restent ou réapparaissent : le travail du pigment (actif progressif, SPF jamais sauté) devient le cœur de la routine.' },
+  { signal: 'rougeurs', field: 'skinConcerns', add: 'rougeurs', reason: 'Rougeurs observées : la reconstruction de barrière prime — un seul changement à la fois, pas d’exfoliation tant que ça dure.' },
+  { signal: 'imperfections', field: 'skinConcerns', add: 'imperfections', reason: 'Les imperfections tiennent ou repartent : calmer sans assécher, avec le cap des huit à douze semaines plutôt que la chasse au bouton.' },
+  { signal: 'points_noirs', field: 'skinConcerns', add: 'points_noirs', reason: 'Points noirs persistants : c’est le renouvellement doux qui travaille, pas le frottement ni les bandes.' },
+  { signal: 'grain_irregulier', field: 'skinConcerns', add: 'grain_irregulier', reason: 'Le grain reste irrégulier : l’exfoliation douce n’entre au programme que si la tolérance est déjà prouvée par le journal.' },
+  { signal: 'cicatrices', field: 'skinConcerns', add: 'cicatrices', reason: 'Les marques post-imperfections demandent le même traitement que les taches : prévenir l’inflammation, protéger des UV, agir en progressif.' },
+  { signal: 'rides', field: 'skinConcerns', add: 'rides', reason: 'Les signes demandés se traitent d’abord par la prévention documentée : SPF quotidien, hydratation en place, un seul actif à la fois.' },
+  { signal: 'fermete', field: 'skinConcerns', add: 'fermete', reason: 'La fermeté déclarée : rien de miracle — la régularité de la base et la protection sont ce que le soin peut soutenir.' },
+  { signal: 'cernes', field: 'skinConcerns', add: 'cernes', reason: 'Les cernes relèvent d’abord du sommeil et de l’hydratation : la cosmétique soutient, elle ne promet pas l’effacement.' },
+  { signal: 'spots_not_improving', field: 'skinConcerns', add: 'taches', reason: 'Signal « taches sans amélioration » venu du journal : le travail du pigment est repris, SPF inclus — les marques s’estompent sur des mois, pas des semaines.' },
+  { signal: 'skin_tight', field: 'skinConcerns', add: 'secheresse', reason: 'Signal « peau qui tire » venu du journal : la barrière passe en priorité et l’exfoliation attend sa preuve de tolérance.' },
+];
+
+/** Confirmations de progression — un journal qui va bien ne déclenche rien, et c'est un résultat. */
+export const SKIN_CONFIRMATION_SIGNALS: readonly string[] = ['spots_improving'];
+
+function skinActionsOf(ctx: SkinAdvisoryContext): { columns: Record<'morning' | 'evening' | 'weekly', string[]>; full: string[]; actionsByFull: Map<string, string> } {
+  const routine: SkinAdvisoryRoutine = buildSkinAdvisoryRoutine(ctx);
+  const all = [...routine.morning, ...routine.evening, ...routine.weekly];
+  const serialized = (step: { label: string; action: string; why: string; how: string; expect: string }) =>
+    `${step.action}~~~${step.why}~~~${step.how}~~~${step.expect}`;
+  return {
+    columns: {
+      morning: routine.morning.map(st => st.action),
+      evening: routine.evening.map(st => st.action),
+      weekly: routine.weekly.map(st => st.action)
+    },
+    full: all.map(serialized),
+    actionsByFull: new Map(all.map(st => [serialized(st), st.action] as const)),
+  };
+}
+
+const SKIN_PRIORITY_LABELS: Record<string, string> = {
+  secheresse: 'Sécheresse / tiraillements',
+  deshydratation: 'Déshydratation',
+  teint_terne: 'Teint terne',
+  taches: 'Taches / hyperpigmentation',
+  rougeurs: 'Rougeurs / irritations',
+  imperfections: 'Imperfections / boutons',
+  points_noirs: 'Points noirs',
+  grain_irregulier: 'Grain de peau irrégulier',
+  cicatrices: 'Cicatrices post-acné',
+  rides: 'Rides / ridules',
+  fermete: 'Perte de fermeté',
+  cernes: 'Cernes / poches',
+  renforcer_barriere: 'Renforcer la barrière',
+};
+
+export function skinSignalLabel(signal: string): string {
+  return SKIN_PRIORITY_LABELS[signal] ?? JOURNAL_SIGNAL_LABELS[signal as JournalSignal] ?? signal.replaceAll('_', ' ');
+}
+
+/**
+ * Rapport d'évolution peau — MÊME contrat que le rapport cheveux (mêmes
+ * touches, mêmes sémantiques), contenu peau propre. Pur et déterministe.
+ */
+export function buildSkinEvolutionReport(
+  baseCtx: SkinAdvisoryContext | null,
+  entries: readonly SkinJournalEntryInput[],
+  diagnosticAt: string | null | undefined,
+  extraSignals: readonly string[] = []
+): HairEvolutionReport {
+  if (!baseCtx) {
+    return {
+      available: false,
+      whyUnavailable: 'Aucun diagnostic peau n’est rattaché à ce compte : la routine peau ne peut pas être recalée sans point de départ. Refaites le diagnostic peau (3 minutes) pour activer la boucle.',
+      before: { summary: '', morning: [], evening: [], weekly: [] },
+      after: { summary: '', morning: [], evening: [], weekly: [] },
+      nextContext: {},
+      changes: [],
+      confirmations: [],
+      entriesUsed: 0,
+      entriesIgnored: entries.length,
+      added: [],
+      removed: [],
+      changed: [],
+    };
+  }
+
+  const diagnosticMs = diagnosticAt ? new Date(diagnosticAt).getTime() : 0;
+  const usable: SkinJournalEntryInput[] = [];
+  let ignored = 0;
+  for (const entry of entries) {
+    const ms = new Date(`${entry.date}T12:00:00`).getTime();
+    if (!Number.isFinite(ms)) { ignored += 1; continue; }
+    if (diagnosticMs && ms < diagnosticMs) { ignored += 1; continue; }
+    if (ms > Date.now() + 24 * 3600 * 1000) { ignored += 1; continue; }
+    usable.push(entry);
+  }
+
+  const seen = new Set<string>(extraSignals);
+  for (const entry of usable) for (const concern of entry.concerns ?? []) seen.add(concern);
+  const feelingValues = usable.map(e => e.feelingScore).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const feelingAvg = feelingValues.length ? feelingValues.reduce((a, b) => a + b, 0) / feelingValues.length : null;
+
+  const next: SkinAdvisoryContext = {
+    ...baseCtx,
+    skinConcerns: [...(baseCtx.skinConcerns ?? [])],
+    skinObjectives: [...(baseCtx.skinObjectives ?? [])],
+  };
+  const changes: EvolutionChange[] = [];
+  const confirmations: EvolutionConfirmation[] = [];
+
+  for (const rule of SKIN_EVOLUTION_RULES) {
+    if (!seen.has(rule.signal)) continue;
+    const targetList = rule.field === 'skinConcerns' ? (next.skinConcerns as string[]) : (next.skinObjectives as string[]);
+    const alreadyDeclaredBase = (rule.field === 'skinConcerns' ? baseCtx.skinConcerns ?? [] : baseCtx.skinObjectives ?? []).includes(rule.add);
+    if (targetList.includes(rule.add)) {
+      confirmations.push({
+        signal: skinSignalLabel(rule.signal),
+        reason: alreadyDeclaredBase
+          ? 'Déjà déclaré au diagnostic : votre routine en tient compte depuis le départ — le journal le confirme, rien n’est ajouté en double.'
+          : 'Déjà ajouté par une observation précédente : un seul ajustement par point, pas d’empilement.'
+      });
+      continue;
+    }
+    targetList.push(rule.add);
+    changes.push({
+      field: rule.field,
+      from: alreadyDeclaredBase ? '—' : 'non déclaré',
+      to: skinSignalLabel(rule.add),
+      reason: rule.reason,
+      causedBy: skinSignalLabel(rule.signal)
+    });
+  }
+
+  if (feelingAvg !== null && feelingAvg <= 2 && !(next.skinObjectives ?? []).includes('renforcer_barriere')) {
+    (next.skinObjectives as string[]).push('renforcer_barriere');
+    changes.push({
+      field: 'skinObjectives',
+      from: 'non déclaré',
+      to: SKIN_PRIORITY_LABELS.renforcer_barriere,
+      reason: 'Le ressenti moyen est à la limite de l’inconfort : avant tout actif, la barrière se reconstruit — gestes doux, un seul changement à la fois, exfoliation en attente.',
+      causedBy: `jauge confort ≤ 2 (moyenne ${feelingAvg.toFixed(1)})`
+    });
+  } else if (feelingAvg !== null && feelingAvg >= 4) {
+    confirmations.push({ signal: 'confort ≥ 4', reason: 'Votre ressenti tient : la routine actuelle est la bonne longueur — rien n’y est ajouté, la régularité suffit.' });
+  }
+  for (const signal of SKIN_CONFIRMATION_SIGNALS) {
+    if (seen.has(signal)) confirmations.push({ signal: skinSignalLabel(signal), reason: 'Progression confirmée par le journal : le programme en place continue, inchangé — c’est la réponse attendue d’une peau qui s’habitue.' });
+  }
+  // Les deux signaux peau restants du nudge capillaire ont leur mot, même sans
+  // règle d'ajustement : ils ne sont jamais ignorés en silence.
+  for (const signal of extraSignals) {
+    if (!seen.has(signal)) continue;
+    const covered = SKIN_EVOLUTION_RULES.some(r => r.signal === signal) || SKIN_CONFIRMATION_SIGNALS.includes(signal);
+    if (!covered) confirmations.push({ signal: skinSignalLabel(signal), reason: 'Signal reçu, sans effet sur la routine peau : noté dans le dossier, rien à recalculer sur sa base.' });
+  }
+
+  const before = skinActionsOf(baseCtx);
+  const after = skinActionsOf(next);
+  const beforeSet = new Set(Object.values(before.columns).flat());
+  const afterSet = new Set(Object.values(after.columns).flat());
+  const beforeAll = Object.values(before.columns).flat();
+  const afterAll = Object.values(after.columns).flat();
+  const added = afterAll.filter(a => !beforeSet.has(a));
+  const removed = beforeAll.filter(a => !afterSet.has(a));
+  const beforeFull = new Set(before.full);
+  const changedActions = Array.from(new Set(
+    after.full
+      .filter(f => !beforeFull.has(f))
+      .map(f => after.actionsByFull.get(f) ?? '')
+      .filter(a => beforeSet.has(a))
+  ));
+
+  return {
+    available: true,
+    diagnosticAt: diagnosticAt ?? undefined,
+    before: { summary: buildSkinAdvisorySummary(baseCtx, (baseCtx.skinConcerns ?? []).slice(0, 3)), ...before.columns },
+    after: { summary: buildSkinAdvisorySummary(next, (next.skinConcerns ?? []).slice(0, 3)), ...after.columns },
+    nextContext: next as unknown as HairAdvisoryContext,
+    changes,
+    confirmations,
+    entriesUsed: usable.length,
+    entriesIgnored: ignored,
+    added,
+    removed,
+    changed: changedActions
   };
 }

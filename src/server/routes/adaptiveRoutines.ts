@@ -1,8 +1,9 @@
 import type { Express } from 'express';
 
 import { normalizeWeatherContext } from '../../lib/adaptiveRoutine';
-import { buildHairEvolutionReport, type JournalEntryInput } from '../../lib/knowledge/profileEvolution';
+import { buildHairEvolutionReport, buildSkinEvolutionReport, type JournalEntryInput, type SkinJournalEntryInput } from '../../lib/knowledge/profileEvolution';
 import type { HairAdvisoryContext } from '../../lib/knowledge/hairAdvisory';
+import type { SkinAdvisoryContext } from '../../lib/knowledge/skinAdvisory';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, safeApiError } from '../http';
 import { requireUser } from '../auth';
@@ -117,10 +118,37 @@ export function registerAdaptiveRoutineRoutes(app: Express): void {
     };
   };
 
+  const snapshotToSkinContext = (snap: any): SkinAdvisoryContext | null => {
+    if (!snap || typeof snap !== 'object' || !snap.atSkin) return null;
+    const one = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+    const list = (v: unknown): string[] | undefined => (typeof v === 'string' && v ? v.split(',').filter(Boolean) : undefined);
+    return {
+      skinType: one(snap.skinType), hydrationLevel: one(snap.skinHydration), sensitivity: one(snap.skinSensitivity),
+      skinConcerns: list(snap.skinConcerns), skinObjectives: list(snap.skinObjectives),
+      spfUsage: one(snap.skinSpf), acne: one(snap.skinAcne), hyperpigmentationTendency: one(snap.skinMarks)
+    };
+  };
+
+  // Signaux peau consignés dans le JOURNAL CHEVEUX (les trois que D2 renvoyait
+  // explicitement au parcours peau) : ils entrent ici, dans la fenêtre du
+  // diagnostic peau — plus aucun signal sans réponse, des deux côtés.
+  const SKIN_ALIASES = new Set(['spots_improving', 'spots_not_improving', 'skin_tight']);
+  const hairJournalSkinSignals = (journal: any[], skinAt?: string): string[] => {
+    const floor = skinAt ? new Date(skinAt).getTime() : 0;
+    const out = new Set<string>();
+    for (const entry of journal ?? []) {
+      const ms = new Date(`${entry.entryDate}T12:00:00`).getTime();
+      if (floor && Number.isFinite(ms) && ms < floor) continue;
+      for (const signal of entry.signals ?? []) if (SKIN_ALIASES.has(signal)) out.add(signal);
+    }
+    return [...out];
+  };
+
   async function evolutionPayload(userId: string) {
-    const [profileRecord, state] = await Promise.all([
+    const [profileRecord, state, skinJournal] = await Promise.all([
       serverDb.getBeautyProfile(userId),
-      serverDb.getAdaptiveRoutineState(userId)
+      serverDb.getAdaptiveRoutineState(userId),
+      serverDb.getSkinJournalEntries(userId).catch(() => [] as any[])
     ]);
     const snapshot = (profileRecord?.profile as any)?.diagnostic ?? null;
     const entries: JournalEntryInput[] = (state.journal ?? []).map((e: any) => ({
@@ -132,22 +160,63 @@ export function registerAdaptiveRoutineRoutes(app: Express): void {
       detanglingScore: e.detanglingScore
     }));
     const report = buildHairEvolutionReport(snapshotToContext(snapshot), entries, snapshot?.at);
-    return { report, profileRecord, snapshot };
+    const skinEntries: SkinJournalEntryInput[] = (skinJournal ?? []).map((e: any) => ({
+      date: e.date ?? e.entryDate,
+      feelingScore: typeof e.feelingScore === 'number' ? e.feelingScore : undefined,
+      concerns: e.concerns ?? []
+    }));
+    const skinReport = buildSkinEvolutionReport(
+      snapshotToSkinContext(snapshot),
+      skinEntries,
+      snapshot?.atSkin,
+      hairJournalSkinSignals(state.journal ?? [], snapshot?.atSkin)
+    );
+    return { report, skinReport, profileRecord, snapshot };
   }
 
   app.get('/api/routine/evolution', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const user = await requireUser(req, res);
     if (!user) return;
-    const { report, snapshot } = await evolutionPayload(user.id);
-    res.json({ report, applied: (snapshot as any)?.source === 'journal', diagnosticAt: (snapshot as any)?.at ?? null });
+    const { report, skinReport, snapshot } = await evolutionPayload(user.id);
+    res.json({
+      report,
+      skinReport,
+      applied: (snapshot as any)?.source === 'journal',
+      skinApplied: (snapshot as any)?.skinApplied === 'journal',
+      diagnosticAt: (snapshot as any)?.at ?? null,
+      skinAt: (snapshot as any)?.atSkin ?? null
+    });
   }));
 
   app.post('/api/routine/evolution/apply', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const user = await requireUser(req, res);
     if (!user) return;
-    const { report, profileRecord, snapshot } = await evolutionPayload(user.id);
-    if (!report.available) return res.status(409).json({ error: 'Impossible de recaler la routine sans diagnostic enregistré.' });
-    if (report.changes.length === 0) return res.status(409).json({ error: 'Rien à appliquer : le journal ne demande aucun ajustement pour le moment.' });
+    const { report, skinReport, profileRecord, snapshot } = await evolutionPayload(user.id);
+    const domain = req.body?.domain === 'skin' ? 'skin' : 'hair';
+    const active = domain === 'skin' ? skinReport : report;
+    if (!active.available) return res.status(409).json({ error: domain === 'skin' ? 'Impossible de recaler la routine peau sans diagnostic peau enregistré.' : 'Impossible de recaler la routine sans diagnostic enregistré.' });
+    if (active.changes.length === 0) return res.status(409).json({ error: 'Rien à appliquer : le journal ne demande aucun ajustement pour le moment.' });
+    if (domain === 'skin') {
+      try {
+        const next = active.nextContext as any;
+        await serverDb.saveBeautyProfile(user.id, {
+          ...(profileRecord?.profile ?? {}),
+          diagnostic: {
+            ...(((profileRecord?.profile as any)?.diagnostic ?? {}) as Record<string, unknown>),
+            atSkin: (snapshot as any)?.atSkin ?? new Date().toISOString(),
+            skinConcerns: (next.skinConcerns ?? []).join(','),
+            skinObjectives: (next.skinObjectives ?? []).join(','),
+            skinApplied: 'journal'
+          }
+        } as any, 'journal');
+        const refreshed = await evolutionPayload(user.id);
+        res.json({ applied: true, domain, report: refreshed.skinReport, entries: (await serverDb.getSkinJournalEntries(user.id).catch(() => []))?.length ?? 0 });
+      } catch (err) {
+        console.error('[Evolution] application peau impossible :', err);
+        res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette évolution peau.') });
+      }
+      return;
+    }
     try {
       const next = report.nextContext as Record<string, unknown>;
       await serverDb.saveBeautyProfile(user.id, {

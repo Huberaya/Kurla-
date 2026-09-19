@@ -13,6 +13,8 @@ import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } 
 import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
 import { deriveHairObservations } from '../../lib/knowledge/diagnosticDerivations';
 import { validateHairAiOutput } from '../../lib/knowledge/aiGuardrail';
+import { validateSkinAiOutput } from '../../lib/knowledge/aiGuardrail';
+import { buildSkinAdvisoryContext, buildSkinEngineSteps, buildSkinFallback, buildSkinPromptNote, skinExfoliationBlocked } from '../../lib/knowledge/skinAdvisory';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
@@ -359,6 +361,9 @@ export function registerRecommendationRoutes(app: Express): void {
           // serveur : les mêmes réponses, déjà collectées à l'écran, sont
           // conservées en énumérations (jamais de texte libre ici).
           diagnostic: {
+            // D6 — l'autre moitié (peau) du dernier instantané survit à une
+            // sauvegarde cheveux : on complète, on n'efface pas.
+            ...(((profile as any)?.diagnostic ?? {}) as Record<string, unknown>),
             at: new Date().toISOString(),
             source: 'diagnostic',
             texture: String(a.texture || ''),
@@ -374,6 +379,31 @@ export function registerRecommendationRoutes(app: Express): void {
         }, 'diagnostic');
       } catch (error) {
         console.error('[BeautyProfile] sauvegarde diagnostic impossible :', (error as Error)?.message);
+      }
+    }
+    // D6 — miroir exact du bloc cheveux : le diagnostic peau ancre la boucle
+    // d'évolution cutanée (énumérations seules, jamais de texte libre).
+    if (authenticatedUser && diagnosticType === 'skin') {
+      try {
+        const sa = answers as Record<string, unknown>;
+        const listText = (v: unknown): string => (Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string').join(',') : '');
+        await serverDb.saveBeautyProfile(authenticatedUser.id, {
+          ...(profile ?? {}),
+          diagnostic: {
+            ...(((profile as any)?.diagnostic ?? {}) as Record<string, unknown>),
+            atSkin: new Date().toISOString(),
+            skinType: String(sa.skinType ?? ''),
+            skinHydration: String(sa.hydrationLevel ?? ''),
+            skinSensitivity: String(sa.sensitivity ?? ''),
+            skinConcerns: listText(sa.skinConcerns),
+            skinObjectives: listText(sa.skinObjectives),
+            skinSpf: String(sa.spfUsage ?? ''),
+            skinAcne: String(sa.acne ?? ''),
+            skinMarks: String(sa.hyperpigmentationTendency ?? ''),
+          },
+        }, 'diagnostic');
+      } catch (error) {
+        console.error('[BeautyProfile] sauvegarde diagnostic peau impossible :', (error as Error)?.message);
       }
     }
     const diagnosticBudget = typeof answers.budget === 'string' ? ({ moins_40: 40, '40_70': 70, '70_100': 100, premium: Number.POSITIVE_INFINITY } as Record<string, number>)[answers.budget] : undefined;
@@ -400,6 +430,16 @@ export function registerRecommendationRoutes(app: Express): void {
     // Ils servent de garde-fou à la sortie du modèle comme de fallback
     // déterministe si la sortie échoue à la porte — jamais un générique.
     const isHair = diagnosticType === 'hair';
+    // D6 — parité peau : le même triangle moteur→note→porte→fallback, avec
+    // la logique de la peau. Construit avant l'appel IA, servi après rejet.
+    const skinCtx = diagnosticType === 'skin' ? buildSkinAdvisoryContext(answers as Record<string, unknown>) : null;
+    const skinPriorities = [
+      ...(Array.isArray(answers.skinConcerns) ? (answers.skinConcerns as unknown[]).filter((v): v is string => typeof v === 'string') : []),
+      ...(Array.isArray(answers.skinObjectives) ? (answers.skinObjectives as unknown[]).filter((v): v is string => typeof v === 'string') : []),
+    ];
+    const skinEngineActions = skinCtx ? buildSkinEngineSteps(skinCtx) : [];
+    const skinNoExfoliation = skinCtx ? skinExfoliationBlocked(skinCtx) : false;
+    const skinFallbackData = skinCtx ? buildSkinFallback(skinCtx, skinPriorities) : null;
     const advisoryCtx = isHair ? {
       texture: typeof answers.texture === 'string' ? answers.texture : undefined,
       style: typeof answers.style === 'string' ? answers.style : undefined,
@@ -425,6 +465,7 @@ export function registerRecommendationRoutes(app: Express): void {
       if (parts.length) parts.push('Les étapes doivent suivre le cycle de ce profil précis (et servir cette préoccupation) — pas une routine générique : une tressée n’a pas le même cycle qu’une personne en locks, ni qu’une chevelure naturelle.');
       return parts.join(' ');
     })() : '';
+    const skinNote = skinCtx ? buildSkinPromptNote(skinCtx, skinPriorities) : '';
 
 
     let parsed: any;
@@ -436,7 +477,7 @@ export function registerRecommendationRoutes(app: Express): void {
           model: GEMINI_MODEL,
           contents: JSON.stringify({ diagnosticType, answers: answersForAi, locale, country }),
           config: {
-            systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.${segmentNote ? `\n${segmentNote}` : ''}`,
+            systemInstruction: `${SYSTEM_PROMPT_ASSISTANT_BEAUTE}\nRéponds en ${locale}. Tu reçois uniquement ce catalogue vérifié et disponible : ${JSON.stringify(catalog.map(entry => ({ slug: entry.slug, name: entry.name, needs: entry.needs, category: entry.category })))}\nNe crée aucun slug. productHandles doit être une sous-liste exacte des slugs reçus, ou []. Ne présente jamais un conseil cosmétique comme médical.${segmentNote || skinNote ? `\n${segmentNote}${skinNote}` : ''}`,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
@@ -473,6 +514,20 @@ export function registerRecommendationRoutes(app: Express): void {
         generatedWithAI = false;
       }
     }
+    // D6 — même porte pour la peau : ce que le moteur refuse (exfoliation sur
+    // barrière fragile), l'IA ne peut pas le servir ; hors-programme = rejet.
+    if (!isHair && generatedWithAI && parsed && skinCtx) {
+      const skinVerdict = validateSkinAiOutput(parsed, {
+        engineActions: skinEngineActions,
+        exfoliationBlocked: skinNoExfoliation,
+        anchors: [String(answers.skinType ?? ''), ...skinPriorities.slice(0, 3)]
+      });
+      if (!skinVerdict.ok) {
+        console.warn('[AI Routine] garde-fou D6 — sortie peau rejetée, bascule déterministe :', skinVerdict.reasons.join(' ; '));
+        parsed = null;
+        generatedWithAI = false;
+      }
+    }
     // Fallback sans IA (ou sortie IA rejetée) : la réponse suit le profil
     // déclaré (même moteur que la page résultat) — jamais un générique.
     let hairFallback: { summary: string; recommendedRoutine: string; reason: string; steps: string[] } | null = null;
@@ -485,10 +540,10 @@ export function registerRecommendationRoutes(app: Express): void {
       };
     }
     const safeResult = {
-      summary: typeof parsed?.summary === 'string' ? parsed.summary : (hairFallback ? hairFallback.summary : 'Routine de soin de la peau structurée à ajuster progressivement.'),
-      recommendedRoutine: typeof parsed?.recommendedRoutine === 'string' ? parsed.recommendedRoutine : (hairFallback ? hairFallback.recommendedRoutine : 'Routine peau KURLA'),
-      reason: typeof parsed?.reason === 'string' ? parsed.reason : (hairFallback ? hairFallback.reason : 'Les étapes sont proposées à partir des réponses et des produits disponibles, sans diagnostic médical.'),
-      steps: Array.isArray(parsed?.steps) ? parsed.steps.filter((step: unknown): step is string => typeof step === 'string').slice(0, 8) : (hairFallback ? hairFallback.steps : ['Commencer doucement et introduire un changement à la fois.', 'Observer la tolérance et ajuster la fréquence.', 'Demander un avis professionnel en cas de symptôme persistant.']),
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : (hairFallback ? hairFallback.summary : (skinFallbackData ? skinFallbackData.summary : 'Routine de soin de la peau structurée à ajuster progressivement.')),
+      recommendedRoutine: typeof parsed?.recommendedRoutine === 'string' ? parsed.recommendedRoutine : (hairFallback ? hairFallback.recommendedRoutine : (skinFallbackData ? skinFallbackData.recommendedRoutine : 'Routine peau KURLA')),
+      reason: typeof parsed?.reason === 'string' ? parsed.reason : (hairFallback ? hairFallback.reason : (skinFallbackData ? skinFallbackData.reason : 'Les étapes sont proposées à partir des réponses et des produits disponibles, sans diagnostic médical.')),
+      steps: Array.isArray(parsed?.steps) ? parsed.steps.filter((step: unknown): step is string => typeof step === 'string').slice(0, 8) : (hairFallback ? hairFallback.steps : (skinFallbackData ? skinFallbackData.steps : ['Commencer doucement et introduire un changement à la fois.', 'Observer la tolérance et ajuster la fréquence.', 'Demander un avis professionnel en cas de symptôme persistant.'])),
       warnings: Array.isArray(parsed?.warnings) ? parsed.warnings.filter((warning: unknown): warning is string => typeof warning === 'string').slice(0, 8) : [AI_DISCLAIMER],
       productHandles,
       requiresHumanReview: parsed?.requiresHumanReview === true,
