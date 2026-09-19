@@ -325,6 +325,12 @@ export type SupplyAlert = {
   severity: 'critical' | 'warning';
   subject: string;
   message: string;
+  /** 18/09 — « cliquer sur le produit » : l'id de la FICHE produit derrière
+   *  l'alerte. Toute alerte naît d'un produit précis : sans cet id, le nom
+   *  affiché reste du texte et rien ne peut s'ouvrir. */
+  productId: string;
+  /** Pour `supplier_no_contact` : la fiche fournisseur nommée dans l'alerte. */
+  supplierId?: string | null;
 };
 
 /**
@@ -345,35 +351,35 @@ export function evaluateSupplyAlerts(args: {
     const name = product.name || product.id;
 
     if (sources.length === 0) {
-      alerts.push({ kind: 'no_source', severity: 'critical', subject: name, message: 'aucune source d’approvisionnement' });
+      alerts.push({ kind: 'no_source', severity: 'critical', subject: name, message: 'aucune source d’approvisionnement', productId: product.id });
     } else {
       const knownSuppliers = sources.filter(s => s.supplierId);
       if (knownSuppliers.length === 0) {
-        alerts.push({ kind: 'no_supplier', severity: 'warning', subject: name, message: 'aucune source rattachée à un fournisseur enregistré' });
+        alerts.push({ kind: 'no_supplier', severity: 'warning', subject: name, message: 'aucune source rattachée à un fournisseur enregistré', productId: product.id });
       }
       for (const source of knownSuppliers) {
         const supplier = supplierById.get(String(source.supplierId));
         if (supplier && !supplier.contactEmail) {
-          alerts.push({ kind: 'supplier_no_contact', severity: 'warning', subject: `${name} → ${supplier.legalName || source.supplierId}`, message: 'fournisseur sans e-mail de contact' });
+          alerts.push({ kind: 'supplier_no_contact', severity: 'warning', subject: `${name} → ${supplier.legalName || source.supplierId}`, message: 'fournisseur sans e-mail de contact', productId: product.id, supplierId: String(source.supplierId) });
         }
       }
       if (!sources.some(s => s.available)) {
-        alerts.push({ kind: 'source_unavailable', severity: 'critical', subject: name, message: 'toutes les sources sont indisponibles' });
+        alerts.push({ kind: 'source_unavailable', severity: 'critical', subject: name, message: 'toutes les sources sont indisponibles', productId: product.id });
       }
       const primary = selectPrimarySource(sources);
       if (primary && primary.model !== 'affiliation' && primary.costCents == null) {
-        alerts.push({ kind: 'no_cost', severity: 'warning', subject: name, message: 'coût fournisseur inconnu — marge incalculable' });
+        alerts.push({ kind: 'no_cost', severity: 'warning', subject: name, message: 'coût fournisseur inconnu — marge incalculable', productId: product.id });
       }
     }
 
     if (product.priceCents == null) {
-      alerts.push({ kind: 'no_price', severity: 'critical', subject: name, message: 'prix de vente absent' });
+      alerts.push({ kind: 'no_price', severity: 'critical', subject: name, message: 'prix de vente absent', productId: product.id });
     }
     if (product.proofCompliant === false) {
-      alerts.push({ kind: 'not_compliant', severity: 'critical', subject: name, message: 'non conforme aux critères KURLA' });
+      alerts.push({ kind: 'not_compliant', severity: 'critical', subject: name, message: 'non conforme aux critères KURLA', productId: product.id });
     }
     if (product.workflowState === 'approved' && product.catalogStatus !== 'published') {
-      alerts.push({ kind: 'approved_not_published', severity: 'warning', subject: name, message: 'approuvé mais non publié' });
+      alerts.push({ kind: 'approved_not_published', severity: 'warning', subject: name, message: 'approuvé mais non publié', productId: product.id });
     }
   }
   return alerts;

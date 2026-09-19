@@ -92,6 +92,14 @@ function main(): void {
   assert.ok(alerts6.some(a => a.kind === 'no_price' && a.severity === 'critical'));
   assert.ok(alerts6.some(a => a.kind === 'no_cost'));
   assert.ok(alerts6.some(a => a.kind === 'supplier_no_contact'));
+  // 18/09 — « cliquer sur le produit » : chaque alerte porte l'id de la fiche
+  // produit (et du fournisseur pour supplier_no_contact) — sans id, le nom
+  // affiché reste du texte mort et rien ne peut s'ouvrir.
+  for (const alerte of [...alerts5, ...alerts6]) {
+    assert.ok(alerte.productId, `alerte ${alerte.kind} sans productId`);
+  }
+  const sansContact = alerts6.find(a => a.kind === 'supplier_no_contact');
+  assert.equal(sansContact?.supplierId, 'sup-a', 'supplier_no_contact doit nommer la fiche fournisseur');
   const margin6 = evaluateMargin({ model: 'dropshipping', salePriceCents: null, costCents: null, feeCents: null, fulfillmentCostCents: null, commissionPct: null });
   assert.equal(margin6.marginCents, null, 'marge incalculable = null, pas 0');
   assert.ok(margin6.missing.includes('coût fournisseur') && margin6.missing.includes('prix de vente'));

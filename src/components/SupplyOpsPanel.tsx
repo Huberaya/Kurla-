@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ProductName, SupplierName } from './EditableRecordName';
 import { Boxes, Search, TriangleAlert } from 'lucide-react';
 
 /**
@@ -25,6 +26,9 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
   const [filter, setFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('all');
   const [showAlertsOnly, setShowAlertsOnly] = useState(false);
+  // Rechargé après un enregistrement depuis une fiche : l'alerte corrigée
+  // disparaît d'elle-même, la marge recalculée s'affiche.
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -37,7 +41,7 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
         setError(e.message || 'Erreur de chargement.');
       }
     })();
-  }, [headers]);
+  }, [headers, reloadToken]);
 
   const products = useMemo(() => {
     let all = data?.products || [];
@@ -76,7 +80,10 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
             {alerts.map((alert: any, index: number) => (
               <p key={index} className="text-[11px]">
                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold mr-2 ${alert.severity === 'critical' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>{alert.severity === 'critical' ? 'critique' : 'à surveiller'}</span>
-                <span className="font-semibold">{alert.subject}</span> <span className="text-kurla-cream/60">— {alert.message}</span>
+                {alert.productId
+                  ? <ProductName id={alert.productId} label={alert.supplierId ? String(alert.subject).split(' → ')[0] : alert.subject} headers={headers} className="text-[11px] font-semibold" onSaved={() => setReloadToken(t => t + 1)} />
+                  : <span className="font-semibold">{alert.subject}</span>}
+                {alert.supplierId && <> → <SupplierName id={alert.supplierId} label={String(alert.subject).split(' → ').slice(1).join(' → ')} headers={headers} className="text-[11px]" /></>} <span className="text-kurla-cream/60">— {alert.message}</span>
               </p>
             ))}
           </div>
@@ -97,7 +104,7 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
           {products.map((product: any) => (
             <div key={product.id} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 text-[11px] space-y-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="font-semibold flex-1 min-w-[180px]">{product.name}</span>
+                <span className="flex-1 min-w-[180px]"><ProductName id={String(product.id)} label={product.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => setReloadToken(t => t + 1)} /></span>
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 text-sky-300">{product.catalogStatus}</span>
                 {product.primaryModel
                   ? <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-copper/15 text-kurla-copper">{MODEL_LABELS[product.primaryModel] || product.primaryModel}</span>

@@ -4663,6 +4663,7 @@ produit, rien à ajouter côté champs. Le manque était l'**accès** :
 3 n'affichent aucune fiche (compteurs SupplyOps, message 3PL fixe, kits) —
 classification tenue par le banc, qui échoue si un panneau change de côté
 sans mise à jour explicite.
+<<<<<<< Updated upstream
 ## 19/09/2026 — Programme de solidification du diagnostic (proposition)
 
 **Territoire** : go fondateur — « les réponses ne sont pas satisfaisantes ;
@@ -4694,3 +4695,41 @@ une phrase du résumé.
 
 **En attente de validation de l'user** : ordre + ce qui l'a le plus
 déçu dans ses tests + périmètre D4. Aucun chantier exécuté avant ce go.
+=======
+
+## 18/09 (suite) — Vue ops Appro : alertes et produits cliquables
+
+> « fais la même chose pour tous les produits présents dans Approvisionnement →
+> fournisseur & sourcing → Alertes (183 critiques / 183) et … → Produits ·
+> marge · expédition (120) »
+
+Les deux sections vivent dans `SupplyOpsPanel` (route `/api/admin/sourcing/ops`).
+
+### Mesure avant
+
+- **Produits · marge · expédition** : les lignes portent un id produit réel
+  (`String(p.id)` envoyé par le serveur) mais le nom s'affichait en texte.
+- **Alertes** : `SupplyAlert` ne portait **aucun identifiant** — seulement le
+  nom (`subject`). Aucune fiche ne pouvait s'ouvrir : il fallait d'abord que le
+  serveur remonte l'id.
+
+### Fait
+
+- `evaluateSupplyAlerts` (src/lib/supplyModel.ts) : les **8 sortes d'alertes**
+  portent maintenant `productId` ; `supplier_no_contact` porte en plus
+  `supplierId` (la fiche fournisseur nommée dans l'alerte).
+- `SupplyOpsPanel` : nom de produit cliquable dans les DEUX sections
+  (`ProductName` → fiche éditable) ; pour l'alerte « fournisseur sans e-mail »,
+  le fournisseur est cliquable aussi (`SupplierName`). Après enregistrement, la
+  vue se recharge (`reloadToken`) : l'alerte corrigée disparaît d'elle-même.
+
+### Bancs
+
+- `supply-model` : chaque alerte doit porter `productId` ;
+  `supplier_no_contact` doit nommer le fournisseur.
+- `linked-records` : `SupplyOpsPanel` reclassé « avec fiches » (il était
+  « sans fiche » quand il n'affichait que des compteurs et du texte).
+
+Reste sans fiche dans l'Appro : message 3PL (5 lignes fixes) et kits —
+inchangé, assumé.
+>>>>>>> Stashed changes

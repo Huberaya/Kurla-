@@ -364,13 +364,13 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
     // 18/09 — « cliquer sur le fournisseur » partout dans l'Appro :
     'components/SourcingConsolidatedPanel.tsx',   // fiche quand la ligne porte un supplierId réel
     'components/SourcingCountryStrategyPanel.tsx', // chips pays = fiches fournisseurs réelles
+    'components/SupplyOpsPanel.tsx',            // 18/09 : alertes + produits cliquables
   ];
   /** Panneaux de cet espace qui n'affichent AUCUNE fiche : totaux, agrégats par
    *  pays, ou entités qui ne sont pas des fiches (piste sans fiche liée, kit,
    *  message prêt à envoyer à un transporteur). Les rendre « modifiables »
    *  reviendrait à inventer un champ à écrire. */
   const panelsSansFiche = [
-    'components/SupplyOpsPanel.tsx',            // compteurs : fournisseurs sans contact
     'components/TamponOrderPanel.tsx',          // message 3PL, destinataires fixes
     'components/KittingAdminPanel.tsx',         // composition de kits
   ];
