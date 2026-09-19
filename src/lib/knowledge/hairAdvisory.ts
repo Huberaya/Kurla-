@@ -49,6 +49,14 @@ export interface HairAdvisoryContext {
   length?: string;
   /** D4 : expérience capillaire (debutante | habituee | expert). */
   experience?: string;
+  /** D9 (20/09) — les quatre réponses qui manquaient au diagnostic crépu :
+   *  sous-motif (4a|4b|4c|inconnu), élasticité (ressort|mou|cassant|inconnu),
+   *  largeur (fine|moyenne|epaisse|inconnue), passé chaleur/chimie
+   *  (aucun|chaleur|produit|les_deux|inconnue). Absentes = comportement d'avant. */
+  coilyPattern?: string;
+  elasticity?: string;
+  strandWidth?: string;
+  chemicalHeat?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -155,6 +163,8 @@ interface HairFlags {
   length: string; experience: string;
   isShort: boolean; isLong: boolean; isExpert: boolean;
   shorten: boolean;
+  /** D9 — sous-motif crépu (vide hors texture crépue), élasticité, largeur, passé chaleur/chimie (vide pour un enfant). */
+  pattern: string; elasticity: string; strandWidth: string; chem: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -197,6 +207,14 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     isLong: length === 'longue',
     isExpert: experience === 'expert',
     shorten: ctx.shorten === true,
+    // Le sous-motif ne se pose plus une fois la lock formée : le motif a été
+    // consommé par la lock — ni définition, ni démêlage n'ont de sens ici.
+    pattern: texture === 'crepue' && !lockedNow && ['4a', '4b', '4c'].includes(String(ctx.coilyPattern ?? '')) ? String(ctx.coilyPattern) : '',
+    elasticity: ['ressort', 'mou', 'cassant'].includes(String(ctx.elasticity ?? '')) ? String(ctx.elasticity) : '',
+    strandWidth: ['fine', 'epaisse'].includes(String(ctx.strandWidth ?? '')) ? String(ctx.strandWidth) : '',
+    // La question n'est jamais posée à un enfant ; si une réponse ancienne ou
+    // détournée la porte quand même, le moteur l'ignore — la garde vit ici.
+    chem: (style === 'enfant' || priority === 'demelage_enfant') ? '' : (['aucun', 'chaleur', 'produit', 'les_deux'].includes(String(ctx.chemicalHeat ?? '')) ? String(ctx.chemicalHeat) : ''),
   };
 }
 
@@ -222,6 +240,35 @@ function cycleKey(f: HairFlags): HairCycleKey {
  * protectrice n'a pas de « jour de lavage » hebdomadaire, elle a un cycle
  * avant / pendant / à la dépose. La page résultat affiche ces titres.
  */
+/**
+ * D9 — LA source unique de traduction réponses → contexte moteur.
+ * La route serveur et la page résultat appellent CETTE fonction : un champ
+ * du questionnaire ne peut plus se perdre entre les deux (deux listes blanches
+ * séparées, c'est exactement comment le test navigateur du 20/09 a trouvé la
+ * première réponse perdue).
+ */
+export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvisoryContext {
+  const str = (key: string): string | undefined =>
+    typeof answers[key] === 'string' ? (answers[key] as string) : undefined;
+  const focus = str('focus');
+  return {
+    texture: str('texture'),
+    style: str('style'),
+    focus: focus && focus !== '' ? focus : undefined,
+    priority: str('priority'),
+    porosity: str('porosity'),
+    scalp: str('scalp'),
+    frequency: str('frequency'),
+    length: str('length'),
+    experience: str('experience'),
+    budget: str('budget'),
+    coilyPattern: str('coilyPattern'),
+    elasticity: str('elasticity'),
+    strandWidth: str('strandWidth'),
+    chemicalHeat: str('chemicalHeat'),
+  };
+}
+
 export function hairRoutineTitles(ctx: HairAdvisoryContext): { morning: string; evening: string; weekly: string } {
   switch (cycleKey(flags(ctx))) {
     case 'protective': return { morning: 'Avant de se faire coiffer', evening: 'Pendant la coiffure', weekly: 'À la dépose' };
@@ -282,7 +329,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       : f.isBreakage
         ? 'Le conditionneur est l’étape démêlage : sur cheveu mouillé et glissant, chaque nœud cède sans traction. C’est le geste qui protège le plus vos longueurs, avant n’importe quel produit.'
         : 'Le conditionneur prépare le démêlage : sur cheveu mouillé, chaque nœud cède sans traction, et la fibre est prête à recevoir l’hydratation.',
-    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.',
+    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : ''),
     expect: f.isKid
       ? 'Un démêlage sans tirage : si l’enfant grimace, c’est que la méthode est trop rapide, pas que les cheveux sont trop emmêlés. On ralentit, on réhydrate, on recommence.'
       : f.isBreakage
@@ -313,7 +360,12 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
         : f.highPorosity
           ? 'Porosité forte : le cheveu boit vite et perd vite. L’hydratation ne tient que si elle est scellée — c’est la différence entre « ça marche le jour même » et « ça tient la semaine ».'
           : 'Le cheveu texturé est naturellement sec : sa forme en spirale ralentit la remontée du sébum du cuir chevelu vers les pointes. L’hydratation vient de l’eau et des humectants ; le beurre ou l’huile sert à sceller, pas à hydrater.',
-      how: 'Sur cheveux essorés (ni gorgés ni secs) : leave-in hydratant (L), crème (C), puis une noisette de beurre ou d’huile pour sceller (O). Toujours dans cet ordre, toujours sur cheveu humide : sur cheveu sec, on scelle la sécheresse.',
+      how: 'Sur cheveux essorés (ni gorgés ni secs) : leave-in hydratant (L), crème (C), puis une noisette de beurre ou d’huile pour sceller (O). Toujours dans cet ordre, toujours sur cheveu humide : sur cheveu sec, on scelle la sécheresse.'
+        + (f.strandWidth === 'fine'
+          ? ' Cheveu fin : à l’étape O, une huile légère plutôt qu’un beurre — deux ou trois gouttes chauffées dans les paumes puis écrasées sur les longueurs. Un beurre alourdit un cheveu fin en une journée et le fait regraisser plus vite qu’il ne le protège.'
+          : f.strandWidth === 'epaisse'
+            ? ' Cheveu épais : le beurre riche est le bon choix — réchauffez-le entre les paumes pour qu’il pénètre au lieu de rester en surface, et n’ayez pas peur du temps de pose : plus la fibre est large, plus elle prend son temps.'
+            : ''),
       expect: 'Souplesse et élasticité immédiatement ; l’hydratation scellée tient plusieurs jours. Si le cheveu est sec le lendemain, le point faible est au scellement, pas au lavage : on ajuste l’étape O.',
     });
   }
@@ -381,18 +433,70 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
   return steps;
 }
 
+
+/** D9 — les étapes qui découlent du passé chaleur/chimie, identiques dans
+ *  tous les cycles hebdomadaires (naturel, locks, protectrice, perruque,
+ *  transition). flags() les vide pour un enfant : la garde est moteur. */
+function chemSteps(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [];
+  if (f.chem === 'chaleur' || f.chem === 'les_deux') {
+    steps.push({
+      action: 'Chaleur : la règle des trois, pas de faveur',
+      why: 'Vous utilisez la chaleur : l’eau qui bout dans la fibre est la casse immédiate, le fer sans protecteur est la casse différée. Les trois règles ne sont pas une préférence de marque, ce sont les lois physiques du cheveu texturé passé par la chaleur.',
+      how: 'Protecteur de chaleur sur cheveu entièrement sec, température la plus basse qui fait le travail, une seule passe par mèche. Le sèche-cheveux à fluxo tiède remplace le fer autant que possible — un lissé doux se paie en longueur gardée, un lissé parfait se paie en pointes.',
+      expect: 'Un lissé qui ne se paie pas en fourches ni en anneaux de cassure. Si la pointe crisse, fume ou sent le brûlé, la séance s’arrête là : ce n’est pas un réglage à pousser, c’est un signal.',
+    });
+  }
+  if (f.chem === 'produit' || f.chem === 'les_deux') {
+    steps.push({
+      action: 'Démarcation : le point faible de la repousse',
+      why: 'Sous une repousse naturelle, les longueurs traitées au produit chimique sont une autre fibre — plus poreuse, plus fragile. C’est à la jonction des deux, la démarcation, que ça casse ; jamais sur la pousse neuve.'
+        + (f.chem === 'les_deux' ? ' Et chaleur ET produit cumulent leurs effets sur cette même ligne : jamais les deux la même semaine sur la même mèche — la fibre ne négocie pas.' : ''),
+      how: 'Retouche du produit sur les racines seules, jamais sur les longueurs déjà traitées ; soin de force ciblé sur la zone de démarcation une fois sur deux'
+        + (f.isLocked
+          ? ' ; le séchage de la zone est aussi soigné que le reste — l’eau piégée à une démarcation fragilisée est l’irritation assurée.'
+          : ' ; à cet endroit, on démêle encore plus doucement.')
+        + ' Le jour où la ligne tire ou casse, on espace les retouches — et la coupe nette redevient une option assumée, pas une punition.',
+      expect: 'La démarcation tient : peu de cheveux qui tombent après le rinçage, pas de zone qui « décroche » entre la repousse et les longueurs.',
+    });
+  }
+  return steps;
+}
+
 /** « À faire chaque semaine » — cycle naturel et locks. */
 function buildWeekly(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
+  // D9 — le test d’élasticité tranche enfin le « hydratation OU force » : le
+  // masque est DÉCIDÉ, plus seulement proposé. Sur locks, la décision ne
+  // s’applique pas (le masque y est un rinçage souple, pas une cure).
+  const maskDecision = !f.isLocked && f.elasticity === 'mou'
+    ? {
+        action: 'Masque de force, puis hydratation',
+        why: 'Votre test au rinçage est clair : le cheveu mouillé s’étire sans limite et ne revient pas — la fibre manque de matière, pas d’eau. Un soin protéiné léger une semaine sur deux la raffermit, l’hydratation reprend la suivante. En excès, la force rend le cheveu rêche : c’est l’alternance qui soigne, jamais la dose.',
+      }
+    : !f.isLocked && f.elasticity === 'cassant'
+      ? {
+          action: 'Masque d’hydratation d’abord, la force attendra',
+          why: 'Le cheveu casse net sans s’étirer : une fibre assoiffée, pas une fibre molle. Commencer par un soin protéiné sur un cheveu sec le durcirait encore — deux à trois semaines d’hydratation profonde d’abord, puis on refait le test au rinçage avant de décider de la force.',
+        }
+      : !f.isLocked && f.elasticity === 'ressort'
+        ? {
+            action: 'Masque hydratant hebdomadaire, rien de plus',
+            why: 'Votre élasticité est bonne : le cheveu s’étire et revient. Les cures de force systématiques sont un réflexe de catalogue, pas un diagnostic — chez vous, l’hydratation hebdomadaire suffit tant que le test tient.',
+          }
+        : null;
   steps.push({
-    action: 'Masque : hydratation, ou force',
-    why: f.isBreakage
-      ? 'La fibre cassante a besoin de force : un masque protéiné ou un reconstructeur de liens, une à deux fois par mois, en alternance avec un masque hydratant. Trop de protéines sans hydratation rend le cheveu rêche et cassant — l’équilibre est la technique.'
-      : f.isCoily
-        ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
-        : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
-    how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.',
+    action: maskDecision ? maskDecision.action : 'Masque : hydratation, ou force',
+    why: maskDecision
+      ? maskDecision.why
+      : f.isBreakage
+        ? 'La fibre cassante a besoin de force : un masque protéiné ou un reconstructeur de liens, une à deux fois par mois, en alternance avec un masque hydratant. Trop de protéines sans hydratation rend le cheveu rêche et cassant — l’équilibre est la technique.'
+        : f.isCoily
+          ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
+          : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
+    how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.'
+      + (f.elasticity === 'mou' ? ' Le soin de force se pose 10 à 15 minutes, pas une heure : les protéines ne se laissent pas dormir sur la fibre.' : ''),
     expect: f.isLocked && !f.isKid
       ? 'Des locks souples et un cuir chevelu soulagé — c’est la mesure, sur quelques semaines. Une lock ne cherche pas la « facilité au peigne » : elle n’en voit jamais ; ce qui se juge, c’est la douceur sans dépôt et la propreté de la racine.'
       : 'Un cheveu plus souple, un démêlage plus facile, une casse moins nette — sur quelques semaines, pas en un jour. Le soin de la fibre se juge sur un mois, pas sur un usage.',
@@ -416,6 +520,7 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
     });
   }
 
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -508,6 +613,9 @@ function buildProtectiveWeekly(f: HairFlags): HairStepDraft[] {
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise, une définition ou une souplesse qui repart. Si le cheveu pèse déjà avant un mois, c’est un signal de soins trop lourds au quotidien.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -580,6 +688,9 @@ function buildWigWeekly(f: HairFlags): HairStepDraft[] {
       expect: 'Un cuir chevelu plus léger, plus à l’aise, et des portées suivantes plus confortables. Après le nettoyage, l’hydratation légère repart plus vite — c’est le signe que les résidus étaient le problème.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -684,6 +795,9 @@ function buildTransitionWeekly(f: HairFlags): HairStepDraft[] {
       expect: 'Une routine cohérente avec le choix, une ligne de démarcation protégée, et des semaines qui avancent sans casse au contour. La transition se gagne par la cohérence des gestes, pas par la vitesse.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -1339,6 +1453,50 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   // Préoccupation déclarée (question adaptative) — la routine la met au centre.
   const focusLabel = getSegmentFocusLabel(f.focus || undefined);
   if (focusLabel) parts.push(`Votre préoccupation principale est « ${focusLabel} » : la routine intègre l’étape qui la sert, en plus des gestes de base du cycle.`);
+
+  // D9 — les quatre réponses de professionnelle, chacune avec sa conséquence
+  // visible (une réponse qui ne change rien ne doit pas être posée).
+  const patternLine: Record<string, string> = {
+    '4a': 'Motif 4A : la boucle en S est votre atout — la définition se joue à la crème coiffante froissée aux mains, pas au produit qui cartonne.',
+    '4b': 'Motif 4B : les angles en Z s’emmêlent plus qu’ils ne glissent — définition mèche par mèche (twist-out, finger coils) et démêlage section par section sous l’eau.',
+    '4c': 'Motif 4C : définition au doigt, jamais au peigne, et longueur réelle jugée aux pointes — le shrinkage efface une grande partie de la longueur visible, ce n’est pas de la longueur perdue.',
+  };
+  if (f.pattern && patternLine[f.pattern]) parts.push(patternLine[f.pattern]);
+  // La phrase « élasticité » doit dire ce que le cycle fait vraiment : sur
+  // locks, la cure protéinée n'est jamais la réponse (dépôt) ; sur enfant et
+  // sous coiffure, le masque se jugera au prochain lavage complet — on pose
+  // le fait, pas une prescription que la routine ne tient pas.
+  const maskCycle = !f.isLocked && !f.isProtective && !f.isWig && !f.isKid && !f.isTransition;
+  const elasticityLine: Record<string, string> = maskCycle
+    ? {
+        mou: 'Élasticité : le cheveu s’étire sans revenir au rinçage — la routine a donc décidé pour vous, force d’abord, hydratation ensuite, en alternance.',
+        cassant: 'Élasticité : le cheveu casse net sans s’étirer — la priorité est l’eau, pas les protéines ; le masque de force n’arrivera que si le test change.',
+        ressort: 'Élasticité : le test est bon — un hydratant par semaine suffit, les cures de « reconstruction » systématiques n’ont pas de raison d’être chez vous.',
+      }
+    : f.isLocked
+      ? {
+          mou: 'Élasticité : la fibre s’étire sans revenir — sur locks, la réponse n’est pas une cure protéinée qui sature et dépose, mais l’espacement des retwists et un rinçage long, à l’eau claire.',
+          cassant: 'Élasticité : la fibre casse sans s’étirer — sur locks, l’eau d’abord : rinçages soignés, soins légers, séchage complet à chaque lavage.',
+          ressort: 'Élasticité : le test est bon — vos locks sont équilibrées, rien à corriger, la routine garde son cadre.',
+        }
+      : {
+          mou: 'Élasticité : le cheveu s’étire sans revenir, il manque de matière — le soin de force sera privilégié au prochain lavage complet.',
+          cassant: 'Élasticité : le cheveu casse net sans s’étirer, il manque d’eau — l’hydratation profonde passe avant la force au prochain lavage complet.',
+          ressort: 'Élasticité : le test est bon, la fibre est équilibrée — rien à changer au programme.',
+        };
+  if (f.elasticity && elasticityLine[f.elasticity]) parts.push(elasticityLine[f.elasticity]);
+  const widthLine: Record<string, string> = {
+    fine: 'Cheveu fin : votre variable n’est pas le produit, c’est le poids — une huile légère plutôt qu’un beurre au scellement, et jamais plus qu’une noisette.',
+    epaisse: 'Cheveu épais : chez vous, les textures riches et les temps de pose longs ne sont pas un excès, ce sont les réglages qui font la différence.',
+  };
+  if (f.strandWidth && widthLine[f.strandWidth]) parts.push(widthLine[f.strandWidth]);
+  const chemLine: Record<string, string> = {
+    aucun: 'Vos longueurs sont vierges de chaleur et de produit : la routine protège ce capital, elle ne répare rien — la plus enviable des situations, et la moins coûteuse.',
+    chaleur: 'La chaleur fait partie de vos outils : la routine y a ajouté sa règle (protecteur, cheveu entièrement sec, température basse) — le fer n’est jamais un raccourci sur cheveu humide.',
+    produit: 'Passé chimique déclaré : la démarcation entre repousse et longueurs traitées est le point de contrôle de la semaine, et la retouche se limite aux racines.',
+    les_deux: 'Chaleur et produit cumulés : la démarcation porte les deux agressions — le programme pose la règle d’espacement (jamais les deux la même semaine sur la même mèche).',
+  };
+  if (f.chem && chemLine[f.chem]) parts.push(chemLine[f.chem]);
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

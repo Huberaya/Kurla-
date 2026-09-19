@@ -43,7 +43,7 @@ interface Normalized {
   isCoily: boolean;
   isCurly: boolean;
   isTextured: boolean;
-  scalpTrouble: boolean;
+  scalpTrouble: boolean;  pattern: string;
 }
 
 function normalize(ctx: HairAdvisoryContext): Normalized {
@@ -65,6 +65,7 @@ function normalize(ctx: HairAdvisoryContext): Normalized {
     experience: String(ctx.experience ?? (legacyBeginner ? 'debutante' : '')),
     isLong: ctx.length === 'longue',
     isShort: ctx.length === 'courte',
+    pattern: texture === 'crepue' && ['4a', '4b', '4c'].includes(String(ctx.coilyPattern ?? '')) ? String(ctx.coilyPattern) : '',
     isLocked: texture === 'locksee' || style === 'locks',
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
@@ -230,8 +231,14 @@ export const HAIR_DERIVATION_RULES: readonly DerivationRule[] = [
   },
   {
     id: 'pousse_longueur',
-    when: c => c.priority === 'pousse' && !c.isLocked && (c.isTextured || c.texture === 'defrisee'),
+    when: c => c.priority === 'pousse' && !c.isLocked && c.pattern !== '4c' && (c.isTextured || c.texture === 'defrisee'),
     text: 'Sur un motif serré, la longueur visible à sec peut perdre jusqu’aux trois quarts de la longueur réelle : c’est la rétraction naturelle de la boucle, pas de la longueur perdue — vos progrès se mesurent aux pointes et à la casse, pas au miroir du matin.',
+    keys: ['sci_shrinkage'],
+  },
+  {
+    id: 'pousse_longueur_4c',
+    when: c => c.priority === 'pousse' && !c.isLocked && c.pattern === '4c',
+    text: 'Sur un motif 4C, le shrinkage peut effacer les trois quarts de la longueur visible — parfois plus : c’est la géométrie de la fibre, pas une perte. Un mètre ruban au lavage, noté une fois par mois, remplace le miroir du matin : c’est la seule mesure qui ne ment pas sur cette texture.',
     keys: ['sci_shrinkage'],
   },
 

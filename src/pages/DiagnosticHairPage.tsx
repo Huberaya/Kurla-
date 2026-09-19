@@ -19,9 +19,48 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   length: 'moyenne',
   experience: 'habituee',
   budget: '40_70',
-  email: ''
+  email: '',
+  // D9 : les quatre nouvelles réponses ont un défaut « inconnu » — une
+  // réponse ancienne (sans ces clés) reste comprise exactement comme avant.
+  coilyPattern: 'inconnu',
+  elasticity: 'inconnu',
+  strandWidth: 'inconnue',
+  chemicalHeat: 'inconnue'
 };
 import { useAuth } from '../context/AuthContext';
+
+/** Carte-réponse d'une étape du D9 — même style que les options existantes. */
+const AnswerCard: React.FC<{
+  title: string; desc?: string; selected: boolean; onClick: () => void;
+}> = ({ title, desc, selected, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`p-4 rounded-2xl border text-left transition-all ${
+      selected ? 'bg-kurla-copper/20 border-kurla-copper ring-1 ring-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
+    }`}
+  >
+    <div className="font-bold text-sm mb-1">{title}</div>
+    {desc && <div className="text-xs text-kurla-cream/60 leading-relaxed">{desc}</div>}
+  </button>
+);
+
+/** Étape de question du D9 : kicker + titre + contexte + grille d'options. */
+const QuestionStep: React.FC<{
+  step: number; kicker: string; title: string; note?: string;
+  cols?: string; options: { id: string; title: string; desc?: string }[];
+  value: string; onPick: (id: string) => void;
+}> = ({ step, kicker, title, note, cols = 'grid-cols-1 sm:grid-cols-2', options, value, onPick }) => (
+  <div className="space-y-6">
+    <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. {kicker}</span>
+    <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">{title}</h2>
+    {note && <p className="text-sm text-kurla-cream/65 font-light leading-relaxed">{note}</p>}
+    <div className={`grid ${cols} gap-3 pt-2`}>
+      {options.map(opt => (
+        <AnswerCard key={opt.id} title={opt.title} desc={opt.desc} selected={value === opt.id} onClick={() => onPick(opt.id)} />
+      ))}
+    </div>
+  </div>
+);
 
 export const DiagnosticHairPage: React.FC = () => {
   const { session } = useAuth();
@@ -37,7 +76,13 @@ export const DiagnosticHairPage: React.FC = () => {
   // question dédiée à CE profil (ses besoins et problèmes) s'insère en Q3,
   // EN PLUS des questions existantes (qui restent intactes).
   const segment = getHairDiagnosticSegment(answers.texture, answers.style);
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), 'length', 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
+  // D9 (20/09) — le parcours crépu gagne les questions qui manquaient au
+  // diagnostic : sous-motif (4a/4b/4c seulement quand la texture est crépue),
+  // élasticité, largeur du cheveu, passé chaleur/chimie (jamais à un enfant).
+  const lockedNow = answers.texture === 'locksee' || answers.style === 'locks';
+  const isCrepueNow = answers.texture === 'crepue' && !lockedNow;
+  const isKidNow = answers.style === 'enfant' || answers.priority === 'demelage_enfant';
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(isKidNow ? [] : ['chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -103,7 +148,7 @@ export const DiagnosticHairPage: React.FC = () => {
         {/* En-tête */}
         <div className="text-center mb-8">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-kurla-copper/15 border border-kurla-copper/30 text-kurla-amber text-xs font-semibold tracking-wider uppercase mb-4">
-            <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3 minutes · sans abonnement
+            <Sparkles className="w-3.5 h-3.5" /> Diagnostic gratuit · 3–4 minutes · sans abonnement
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif-title font-bold mb-2">Trouvez votre routine cheveux</h1>
           <p className="text-sm text-kurla-cream/70 font-light max-w-md mx-auto">Répondez à {totalSteps} questions simples : vous obtenez une routine sur-mesure, des gestes adaptés et les produits correspondants.</p>
@@ -236,6 +281,79 @@ export const DiagnosticHairPage: React.FC = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {current === 'pattern' && (
+            <QuestionStep
+              step={step}
+              kicker="Motif crépu"
+              title="Dans la famille crépue, quel motif dessinent vos cheveux&nbsp;?"
+              note="Ce n’est pas une question de beauté : le motif change le shrinkage, la méthode de définition et le poids des produits dont votre fibre a besoin."
+              cols="grid-cols-1"
+              options={[
+                { id: '4a', title: '4A — ressorts en S serrés', desc: 'La boucle est visible, même à sec : c’est la plus définie des crépues.' },
+                { id: '4b', title: '4B — angles en Z', desc: 'Peu de boucles rondes, des zigzags : le rétrécissement à sec est déjà fort.' },
+                { id: '4c', title: '4C — très serré, motif à peine visible', desc: 'Shrinkage extrême — la longueur réelle se mesure aux pointes, pas au miroir.' },
+                { id: 'inconnu', title: 'Je ne sais pas / un peu des deux', desc: 'KURLA répond sur le crépue moyen, sans deviner à votre place.' },
+              ]}
+              value={answers.coilyPattern ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, coilyPattern: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'elasticity' && (
+            <QuestionStep
+              step={step}
+              kicker="Élasticité de la fibre"
+              title="Cheveu mouillé, au rinçage : quand vous étirez un cheveu, que se passe-t-il&nbsp;?"
+              note="C’est LE test des professionnelles de la crépue — et c’est lui qui décide si votre masque de la semaine est un soin d’hydratation ou un soin de force. Un cheveu propre, isolé, tiré doucement entre deux doigts, sous l’eau."
+              cols="grid-cols-1"
+              options={[
+                { id: 'ressort', title: 'Il s’étire un peu, puis revient', desc: 'Élasticité saine : la fibre est équilibrée. On garde le rythme, sans cure de force systématique.' },
+                { id: 'mou', title: 'Il s’étire sans limite, mou, et ne revient pas', desc: 'La fibre se gorge mais tient mal : elle manque de matière, pas d’eau. Le soin de force devient prioritaire.' },
+                { id: 'cassant', title: 'Il résiste à peine puis casse net', desc: 'Le cheveu est sec jusqu’au cœur : avant de le renforcer, il faut le réhydrater.' },
+                { id: 'inconnu', title: 'Je n’ai jamais fait ce test', desc: 'Aucun risque : on garde les deux au programme et vous saurez la prochaine fois, au rinçage.' },
+              ]}
+              value={answers.elasticity ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, elasticity: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'strandWidth' && (
+            <QuestionStep
+              step={step}
+              kicker="Largeur du cheveu"
+              title="Un seul de vos cheveux, à contre-jour&nbsp;: il est..."
+              note="La largeur, ce n’est pas la densité (la quantité) : un cheveu fin sous un beurre épais s’aplatit et regraisse ; un cheveu épais sous une brume légère reste sec. C’est ce qui règle le POIDS des produits, pas leur nature."
+              cols="grid-cols-1 sm:grid-cols-2"
+              options={[
+                { id: 'fine', title: 'Fin — presque invisible', desc: 'Les textures légères d’abord : huile plutôt que beurre, dosage noisette.' },
+                { id: 'moyenne', title: 'Moyen — le fil se voit, solide', desc: 'La routine type s’applique telle quelle.' },
+                { id: 'epaisse', title: 'Épais — raide sous les doigts', desc: 'Il accepte — et souvent demande — des textures riches et un temps de pose long.' },
+                { id: 'inconnue', title: 'Je ne sais pas', desc: 'On reste sur le cadre standard ; votre ressenti entre deux lavages ajustera.' },
+              ]}
+              value={answers.strandWidth ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, strandWidth: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'chemicalHeat' && (
+            <QuestionStep
+              step={step}
+              kicker="Passé chaleur & chimie"
+              title="Vos longueurs ont-elles connu le lissage, le défrisage ou la chaleur forte&nbsp;?"
+              note="Rien n’est jugé ici : ça change le programme. Une fibre vierge se protège ; une fibre passée par la chaleur ou le produit se traite avec un plan — la zone de repousse (la démarcation) est le point faible n°1."
+              cols="grid-cols-1"
+              options={[
+                { id: 'aucun', title: 'Jamais — texture naturelle uniquement', desc: 'La fibre garde toute sa marge : la routine protège, elle ne répare pas.' },
+                { id: 'chaleur', title: 'La chaleur seulement (sèche-cheveux, fer, brossage)', desc: 'Pas de produit, des outils chauds : la règle de protection change tout.' },
+                { id: 'produit', title: 'Défrisage, texturisation ou lissage chimique', desc: 'Deux textures sur un même cheveu : la démarcation pilote la routine.' },
+                { id: 'les_deux', title: 'Les deux — chaleur ET produit', desc: 'Deux agressions cumulées : le plan de récupération passe avant la coquetterie.' },
+                { id: 'inconnue', title: 'Préférence pour ne pas dire / je ne sais pas', desc: 'KURLA reste sur le programme général, sans hypothèse.' },
+              ]}
+              value={answers.chemicalHeat ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, chemicalHeat: id as any }); handleNext(); }}
+            />
           )}
 
           {current === 'priority' && (

@@ -291,7 +291,15 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; // LCG : couvre les trois bits du bas
       if (((seed >>> 16) & 7) !== 0) continue; // échantillon déterministe, reproductible à la virgule
       profiles += 1;
-      const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee' };
+      // D9 : les quatre nouvelles réponses sont balayées aussi — déterminées par
+      // le même LCG, donc reproductibles.
+      const v = seed >>> 8;
+      const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
+        coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
+        elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
+        strandWidth: ['fine', 'moyenne', 'epaisse', 'inconnue'][(v >> 6) % 4],
+        chemicalHeat: (style === 'enfant' || priority === 'demelage_enfant') ? 'inconnue' : (['aucun', 'chaleur', 'produit', 'les_deux', 'inconnue'][(v >> 9) % 5])
+      };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
       const locked = texture === 'locksee' || style === 'locks';
@@ -320,6 +328,32 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         if (/notez une observation pr[ée]cise — d[ée]m[êe]lage/.test(full)) at('J+30 « démêlage » servi hors cycle à démêler');
       }
       if (locked && !/hydratation des locks, cuir chevelu, tension aux racines/.test(full)) at('J+30 locks non adapté');
+      // — D9 : la décision du masque et les étapes chaleur/chimie suivent la
+      // réponse donnée, rien de plus, rien de moins (cohérence promesse/programme).
+      const mask = (r.weekly as any[]).find((x: any) => /^Masque/.test(x.action));
+      const heat = steps.some((x: any) => /^Chaleur : la r[èe]gle des trois/.test(x.action));
+      const demarc = steps.some((x: any) => /^D[ée]marcation :/.test(x.action));
+      const chem = ctx.chemicalHeat as string;
+      const elast = ctx.elasticity as string;
+      if (kid && (heat || demarc)) at('étape chaleur/chimie sur un enfant');
+      if (!kid) {
+        if ((chem === 'aucun' || chem === 'inconnue') && (heat || demarc)) at('étape chaleur/chimie sans la réponse qui la justifie');
+        if (chem === 'chaleur' && !(heat && !demarc)) at('chaleur déclarée : étape protecteur absente');
+        if (chem === 'produit' && !(demarc && !heat)) at('chimie déclarée : étape démarcation absente');
+        if (chem === 'les_deux' && !(heat && demarc)) at('chaleur+chimie : les deux étapes doivent être là');
+      }
+      const decidedActions = ['Masque de force, puis hydratation', 'Masque d’hydratation d’abord, la force attendra', 'Masque hydratant hebdomadaire, rien de plus'];
+      const trans = texture === 'defrisee' || style === 'defrise';
+      const prot = texture === 'protective' || style === 'braids' || style === 'twists';
+      if (!locked && !trans && !prot && style === 'naturel' && !kid && elast !== 'inconnu') {
+        if (!mask) at('cycle naturel sans masque');
+        else if (elast === 'mou' && mask.action !== decidedActions[0]) at('élasticité molle : la force devait être décidée');
+        else if (elast === 'cassant' && mask.action !== decidedActions[1]) at('élasticité cassante : l’hydratation devait passer avant');
+        else if (elast === 'ressort' && mask.action !== decidedActions[2]) at('élasticité bonne : pas de cure de force à prescrire');
+      }
+      if ((locked || trans || prot) && mask && decidedActions.includes(mask.action)) at('décision protéinée appliquée hors cycle à masque');
+      if (trans && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé transition prétend une décision que son cycle ne tient pas');
+      if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }
   assert.ok(profiles > 3000, `profil balayés insuffisants : ${profiles}`);

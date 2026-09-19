@@ -10,7 +10,7 @@ import { buildRecommendations, explainLearning, productIngredientIds } from '../
 import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/semanticSearch';
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
 import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
-import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
+import { buildHairAdvisoryCtx, buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
 import { deriveHairObservations } from '../../lib/knowledge/diagnosticDerivations';
 import { validateHairAiOutput } from '../../lib/knowledge/aiGuardrail';
 import { validateSkinAiOutput } from '../../lib/knowledge/aiGuardrail';
@@ -440,17 +440,7 @@ export function registerRecommendationRoutes(app: Express): void {
     const skinEngineActions = skinCtx ? buildSkinEngineSteps(skinCtx) : [];
     const skinNoExfoliation = skinCtx ? skinExfoliationBlocked(skinCtx) : false;
     const skinFallbackData = skinCtx ? buildSkinFallback(skinCtx, skinPriorities) : null;
-    const advisoryCtx = isHair ? {
-      texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-      style: typeof answers.style === 'string' ? answers.style : undefined,
-      focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-      priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-      porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-      scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-      frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-      length: typeof answers.length === 'string' ? answers.length : undefined,
-      experience: typeof answers.experience === 'string' ? answers.experience : undefined,
-    } : null;
+    const advisoryCtx = isHair ? buildHairAdvisoryCtx(answers as Record<string, unknown>) : null;
     const hairSegment = advisoryCtx ? getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style) : undefined;
     const hairFocusLabel = getSegmentFocusLabel(advisoryCtx?.focus);
     const hairDerived = advisoryCtx ? deriveHairObservations(advisoryCtx) : [];

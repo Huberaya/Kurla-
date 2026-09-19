@@ -11,6 +11,7 @@ import {
   type SkinObservation,
 } from './knowledge/skinAdvisory';
 import {
+  buildHairAdvisoryCtx,
   buildHairAdvisoryRoutine,
   buildHairAdvisorySummary,
   hairRoutineTitles,
@@ -284,18 +285,8 @@ export function buildDiagnosticResultModel(input: {
   const fields = profileFields(answers, isSkin);
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
-  const hairAdvisoryCtx: HairAdvisoryContext = {
-    texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-    style: typeof answers.style === 'string' ? answers.style : undefined,
-    focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-    priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-    porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-    scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-    frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-    length: typeof answers.length === 'string' ? answers.length : undefined,
-    experience: typeof answers.experience === 'string' ? answers.experience : undefined,
-    budget: typeof answers.budget === 'string' ? answers.budget : undefined,
-  };
+  // D9 : contexte moteur = le builder unique partagé avec la route serveur.
+  const hairAdvisoryCtx: HairAdvisoryContext = buildHairAdvisoryCtx(answers);
   const routine = isSkin ? routineForSkin(answers) : routineForHair(hairAdvisoryCtx);
   const advisoryCtx = {
     skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,

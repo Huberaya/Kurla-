@@ -25,6 +25,16 @@ export interface HairDiagnosticAnswers {
   length?: 'courte' | 'moyenne' | 'longue';
   /** D4 — expérience capillaire (« je débute » y déménage depuis la fréquence). */
   experience?: 'debutante' | 'habituee' | 'expert';
+  /** D9 (20/09) — sous-motif crépu : la famille 4A–4C n'est pas une seule
+   *  texture. Posée uniquement quand la texture est crépue. */
+  coilyPattern?: '4a' | '4b' | '4c' | 'inconnu';
+  /** D9 — test d'élasticité au rinçage : c'est LUI qui décide masque
+   *  hydratant vs masque de force (avant, le moteur disait « ou »). */
+  elasticity?: 'ressort' | 'mou' | 'cassant' | 'inconnu';
+  /** D9 — largeur du cheveu (fin/moyen/épais) : le poids des produits. */
+  strandWidth?: 'fine' | 'moyenne' | 'epaisse' | 'inconnue';
+  /** D9 — passé chaleur/chimie des longueurs. Jamais posée à un enfant. */
+  chemicalHeat?: 'aucun' | 'chaleur' | 'produit' | 'les_deux' | 'inconnue';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

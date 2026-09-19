@@ -5085,3 +5085,19 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
   390 px via harness jetable : overflow 0, table à scroll interne, drapeaux
   d'anomalies visibles (capture onglet_dropshipping_390.png à la racine du
   workspace).
+
+## 20/09 (suite 2) — D9 : questionnaire crépu 4A–4C enrichi (agent D8)
+- Consigne utilisateur : auditer les questions du diagnostic crépu et les
+  rendre dignes d'un expert. Quatre questions ajoutées (motif 4A/4B/4C —
+  jamais sur locks formées ; élasticité au rinçage — qui DÉCIDE le masque
+  hydratation vs force ; largeur du cheveu — qui règle le poids au scellement ;
+  passé chaleur/chimie — jamais posée à un enfant, ignorée par le moteur si
+  détournée). Chacune change le texte ou le programme ; « inconnu » =
+  comportement d'avant prouvé.
+- Défaut d'infrastructure trouvé au navigateur et consolidé : la route serveur
+  et la page résultat avaient chacune leur liste blanche de réponses — un
+  builder unique `buildHairAdvisoryCtx()` (hairAdvisory.ts) sert les deux ;
+  le banc interdit d'en recréer une.
+- Bancs : `test:diagnostic-crepu` 17/17 (chaîné dans npm test) ; matrice D8
+  étendue aux nouvelles réponses sur 3 404 profils ; 13 bancs diagnostic
+  verts ; tsc 0 ; build 0 ; preuve Playwright 390 px du parcours complet.
