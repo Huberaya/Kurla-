@@ -5037,3 +5037,12 @@ select présent, synchronisé, sert les libellés complets, saut au choix.
 - Contrainte définitive pour tout nouveau texte du moteur : croiser chaque
   {réponse générique × cycle spécialisé} — kit, dérivations, résumé, J+30 — car
   la garde ne vit pas que dans les étapes.
+
+## 20/09 — Rectification « Sections » (agent D8, sur la feature d'un autre agent)
+- Demande utilisateur : la liste déroulante doit être SUR la mention
+  « Sections » — pas un <select> flottant à côté. AdminSectionNav.tsx : la
+  mention est devenue le déclencheur (aria-expanded, chevron), la liste
+  (role=listbox, libellés complets, surlignage scrollspy) s'ouvre sous elle ;
+  fermeture par choix / Échap / clic dehors / changement d'onglet. Le banc
+  admin-section-nav (bloc 5) vérifie le nouveau contrat ; preuve Playwright
+  réelle 390 px (harness jetable) : ouverture, saut, scrollspy, overflow 0.

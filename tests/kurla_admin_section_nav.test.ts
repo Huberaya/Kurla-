@@ -79,10 +79,11 @@ function rootOf(...heads: SectionHeadingEl[]) {
   console.log('✓ ids distincts par libellé');
 }
 
-/* 5. LISTE DÉROULANTE DES SECTIONS (19/09) — « je veux avoir une liste
-      déroulante au niveau de section ». Le banc vérifie le contrat données
-      (fullLabel non tronqué, servi à la liste) et la présence du <select>
-      synchronisé dans la barre. */
+/* 5. LISTE DÉROULANTE SUR LA MENTION « Sections » (20/09, rectification de
+      l'utilisatrice) : « la liste déroulante doit être SUR la mention
+      Sections ». Le libellé est le déclencheur lui-même — plus de <select>
+      flottant à côté. Le banc vérifie le contrat données (fullLabel complet)
+      et la structure de la liste ancrée sous la mention. */
 {
   const long = heading('h2', 'Approvisionnement — 24 besoins couverts par le sourcing');
   const [section] = collectSections(rootOf(long));
@@ -94,11 +95,17 @@ function rootOf(...heads: SectionHeadingEl[]) {
   assert.equal(s2.fullLabel, s2.label, 'libellé court : complet = tronqué');
 
   const source = readFileSync(new URL('../src/components/AdminSectionNav.tsx', import.meta.url), 'utf8');
-  assert.ok(source.includes('aria-label="Aller à la section"'), 'la liste déroulante des sections a disparu de la barre.');
-  assert.ok(/value=\{activeId \?\? sections\[0\]\?\.id/.test(source), 'la liste déroulante n’est plus synchronisée avec la section visible.');
-  assert.ok(source.includes('{section.fullLabel}'), 'la liste déroulante ne sert plus les libellés complets.');
-  assert.ok(/onChange=\{e => jump\(e\.target\.value\)\}/.test(source), 'choisir une section dans la liste doit y faire défiler la page.');
-  console.log('✓ liste déroulante des sections : libellés complets, synchronisée, saut au choix');
+  assert.ok(!source.includes('<select'), 'un <select> séparé subsiste — la liste doit être sur la mention « Sections », pas à côté.');
+  assert.ok(/aria-haspopup="true"[\s\S]{0,600}?List className[\s\S]{0,40}Sections/.test(source), 'la mention « Sections » doit être le déclencheur du déroulant.');
+  assert.ok(source.includes('aria-expanded={open}'), 'le déclencheur doit exposer son état ouvert/fermé.');
+  assert.ok(/absolute left-0 top-full/.test(source), 'la liste doit s\'ouvrir sous la mention, pas ailleurs.');
+  assert.ok(source.includes('role="listbox"') && source.includes('role="option"'), 'liste accessible : listbox + options.');
+  assert.ok(source.includes('aria-selected={active}'), 'la section visible doit être marquée dans la liste (synchronisation scrollspy).');
+  assert.ok(/onClick=\{\(\) => \{ jump\(section\.id\); setOpen\(false\); \}\}/.test(source), 'choisir une section y fait défiler la page et referme la liste.');
+  assert.ok(/e\.key === 'Escape'/.test(source), 'Échap doit refermer la liste.');
+  assert.ok(source.includes('menuRef.current.contains(e.target as Node)') || source.includes('!menuRef.current.contains'), 'un clic dehors doit refermer la liste.');
+  assert.ok(source.includes('setOpen(false); }, [pageKey]') || /setOpen\(false\);\s*\}, \[pageKey\]/.test(source), 'changer d\'onglet referme la liste.');
+  console.log('✓ liste déroulante SUR la mention « Sections » : déclencheur, libellés complets, surlignage, fermeture (clic/Échap/onglet)');
 }
 
-console.log('\n5 blocs de contrôles navigation par sections validés — détection, stabilité, visibilité, bornes, liste déroulante.');
+console.log('\n5 blocs de contrôles navigation par sections validés — détection, stabilité, visibilité, bornes, déroulant sur la mention.');

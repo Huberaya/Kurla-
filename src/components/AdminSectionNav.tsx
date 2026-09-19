@@ -20,7 +20,7 @@
  * Seuil : moins de 3 sections détectées → la barre disparaît (pas de bruit).
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, List } from 'lucide-react';
+import { ArrowUp, ChevronDown, List } from 'lucide-react';
 
 interface SectionInfo {
   id: string;
@@ -92,6 +92,10 @@ export const AdminSectionNav: React.FC<{
   const [progress, setProgress] = useState(0);
   const [showTop, setShowTop] = useState(false);
   const [stuck, setStuck] = useState(false);
+  // (20/09, demande de l'utilisatrice) La liste déroulante vit SUR la mention
+  // « Sections » : le libellé est le déclencheur, plus de select flottant à côté.
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
 
@@ -170,6 +174,22 @@ export const AdminSectionNav: React.FC<{
     return () => io.disconnect();
   }, [sections.length]);
 
+  /* Refermer la liste : clic dehors, touche Échap, ou changement d'onglet. */
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  useEffect(() => { setOpen(false); }, [pageKey]);
+
   const jump = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -192,23 +212,47 @@ export const AdminSectionNav: React.FC<{
         className={`sticky top-[60px] z-30 transition-shadow ${stuck ? 'shadow-xl' : ''}`}
       >
         <div className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 backdrop-blur-md ${stuck ? 'bg-kurla-ink/95 border-kurla-cream/15' : 'bg-kurla-ink/60 border-transparent'}`}>
-          <span className="hidden sm:flex items-center gap-1.5 pl-1 pr-2 text-[10px] font-bold uppercase tracking-wider text-kurla-amber/70 whitespace-nowrap">
-            <List className="w-3.5 h-3.5" /> Sections
-          </span>
-          {/* Liste déroulante des sections (19/09) : libellés COMPLETS (non
-              tronqués comme les boutons), synchronisée avec la section
-              visible — choisir une entrée y fait défiler la page. */}
-          <select
-            value={activeId ?? sections[0]?.id ?? ''}
-            onChange={e => jump(e.target.value)}
-            aria-label="Aller à la section"
-            title="Aller à la section"
-            className="px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/20 text-[11px] font-semibold text-kurla-cream max-w-[46vw] sm:max-w-[260px] shrink-0"
-          >
-            {sections.map(section => (
-              <option key={section.id} value={section.id}>{section.level === 3 ? '· ' : ''}{section.fullLabel}</option>
-            ))}
-          </select>
+          {/* « Sections » n'est plus une étiquette : C'EST la liste déroulante
+              (20/09). Le chevron signale l'action ; la liste s'ouvre sous la
+              mention, sert les libellés COMPLETS, surligne la section visible,
+              saute au clic et se referme (clic dehors / Échap). */}
+          <div ref={menuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setOpen(o => !o)}
+              aria-haspopup="true"
+              aria-expanded={open}
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${open ? 'bg-kurla-cream/10 text-kurla-amber' : 'text-kurla-amber/70 hover:text-kurla-amber hover:bg-kurla-cream/5'}`}
+            >
+              <List className="w-3.5 h-3.5" /> Sections
+              <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} aria-hidden />
+            </button>
+            {open && (
+              <div
+                role="listbox"
+                aria-label="Aller à la section"
+                className="absolute left-0 top-full mt-1 z-40 w-[min(300px,80vw)] max-h-[340px] overflow-auto rounded-xl border border-kurla-cream/15 bg-kurla-ink/95 backdrop-blur-md shadow-2xl py-1"
+              >
+                {sections.map(section => {
+                  const active = section.id === activeId;
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => { jump(section.id); setOpen(false); }}
+                      className={`block w-full text-left px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                        section.level === 3 ? 'pl-6 text-[10.5px]' : ''
+                      } ${active ? 'bg-kurla-copper text-white' : 'text-kurla-cream/70 hover:text-kurla-cream hover:bg-kurla-cream/10'}`}
+                    >
+                      {section.fullLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <div className="hidden md:flex flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {sections.map(section => {
               const active = section.id === activeId;
