@@ -25,6 +25,8 @@ import { ArrowUp, List } from 'lucide-react';
 interface SectionInfo {
   id: string;
   label: string;
+  /** Libellé complet, non tronqué — servi dans la liste déroulante. */
+  fullLabel: string;
   level: 2 | 3;
 }
 
@@ -74,7 +76,7 @@ export function collectSections(root: {
     }
     // Le saut atterrit sous la barre de nav du site + la barre de sections.
     h.style.scrollMarginTop = '132px';
-    list.push({ id, label: rawText.length > 28 ? rawText.slice(0, 27).trimEnd() + '…' : rawText, level: h.tagName === 'H2' ? 2 : 3 });
+    list.push({ id, label: rawText.length > 28 ? rawText.slice(0, 27).trimEnd() + '…' : rawText, fullLabel: rawText, level: h.tagName === 'H2' ? 2 : 3 });
     if (list.length >= MAX_SECTIONS) break;
   }
   return list;
@@ -193,7 +195,21 @@ export const AdminSectionNav: React.FC<{
           <span className="hidden sm:flex items-center gap-1.5 pl-1 pr-2 text-[10px] font-bold uppercase tracking-wider text-kurla-amber/70 whitespace-nowrap">
             <List className="w-3.5 h-3.5" /> Sections
           </span>
-          <div className="flex flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Liste déroulante des sections (19/09) : libellés COMPLETS (non
+              tronqués comme les boutons), synchronisée avec la section
+              visible — choisir une entrée y fait défiler la page. */}
+          <select
+            value={activeId ?? sections[0]?.id ?? ''}
+            onChange={e => jump(e.target.value)}
+            aria-label="Aller à la section"
+            title="Aller à la section"
+            className="px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/20 text-[11px] font-semibold text-kurla-cream max-w-[46vw] sm:max-w-[260px] shrink-0"
+          >
+            {sections.map(section => (
+              <option key={section.id} value={section.id}>{section.level === 3 ? '· ' : ''}{section.fullLabel}</option>
+            ))}
+          </select>
+          <div className="hidden md:flex flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {sections.map(section => {
               const active = section.id === activeId;
               return (

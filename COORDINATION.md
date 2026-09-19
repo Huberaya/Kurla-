@@ -4998,3 +4998,25 @@ Chaîne complète en cours.
 - Note environnement : le sandbox avait perdu node_modules ET les libs
   système de chromium → `npm install` + `npx playwright install chromium
   install-deps chromium` nécessaires avant tsc/build/Playwright.
+
+## 19/09 (suite 4) — Liste déroulante pour la navigation par sections
+
+**Demande** (reformulation précise) : dans le dashboard, la barre « Sections »
+(onglets « À faire aujourd'hui », « Entonnoir unique — cycle de… », « Pilotage
+catalogue », « Ce qui bloque, nommé (28) », « Approvisionnement — 24 beso… »)
+doit proposer une liste déroulante.
+
+**Fait** (`AdminSectionNav.tsx` — la barre collante construite depuis les
+h2/h3 du panel actif) :
+- `<select>` « Aller à la section » ajouté dans la barre : libellés COMPLETS
+  (non tronqués à 28 caractères comme les boutons — nouveau champ `fullLabel`
+  dans collectSections), préfixe « · » pour les sous-sections (h3) ;
+- synchronisée avec le scrollspy (la section visible est sélectionnée) ;
+  choisir une entrée fait défiler jusqu'à la section (jump existant) ;
+- boutons conservés sur écran large (`hidden md:flex`) ; sur mobile, la
+  liste déroulante prend le relais (la barre de boutons y défilait
+  horizontalement sans tout montrer).
+
+**Banc** : `admin-section-nav` bloc 5 — fullLabel complet vs bouton tronqué,
+select présent, synchronisé, sert les libellés complets, saut au choix.
+5 blocs exit 0 · lint exit 0 · chaîne complète en cours.

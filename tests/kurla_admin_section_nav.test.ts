@@ -12,6 +12,7 @@
  *     le plus long : à 8, ses derniers panneaux étaient hors de la barre).
  */
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
 import { collectSections, type SectionHeadingEl } from '../src/components/AdminSectionNav';
 
 function heading(tag: 'h2' | 'h3', text: string, overrides: Partial<SectionHeadingEl> = {}): SectionHeadingEl {
@@ -78,4 +79,26 @@ function rootOf(...heads: SectionHeadingEl[]) {
   console.log('✓ ids distincts par libellé');
 }
 
-console.log('\n4 blocs de contrôles navigation par sections validés — détection, stabilité, visibilité, bornes.');
+/* 5. LISTE DÉROULANTE DES SECTIONS (19/09) — « je veux avoir une liste
+      déroulante au niveau de section ». Le banc vérifie le contrat données
+      (fullLabel non tronqué, servi à la liste) et la présence du <select>
+      synchronisé dans la barre. */
+{
+  const long = heading('h2', 'Approvisionnement — 24 besoins couverts par le sourcing');
+  const [section] = collectSections(rootOf(long));
+  assert.ok(section.label.endsWith('…'), 'le bouton garde son libellé tronqué');
+  assert.equal(section.fullLabel, 'Approvisionnement — 24 besoins couverts par le sourcing', 'la liste déroulante doit servir le libellé COMPLET');
+
+  const short = heading('h3', 'Produit par produit');
+  const [s2] = collectSections(rootOf(short));
+  assert.equal(s2.fullLabel, s2.label, 'libellé court : complet = tronqué');
+
+  const source = readFileSync(new URL('../src/components/AdminSectionNav.tsx', import.meta.url), 'utf8');
+  assert.ok(source.includes('aria-label="Aller à la section"'), 'la liste déroulante des sections a disparu de la barre.');
+  assert.ok(/value=\{activeId \?\? sections\[0\]\?\.id/.test(source), 'la liste déroulante n’est plus synchronisée avec la section visible.');
+  assert.ok(source.includes('{section.fullLabel}'), 'la liste déroulante ne sert plus les libellés complets.');
+  assert.ok(/onChange=\{e => jump\(e\.target\.value\)\}/.test(source), 'choisir une section dans la liste doit y faire défiler la page.');
+  console.log('✓ liste déroulante des sections : libellés complets, synchronisée, saut au choix');
+}
+
+console.log('\n5 blocs de contrôles navigation par sections validés — détection, stabilité, visibilité, bornes, liste déroulante.');
