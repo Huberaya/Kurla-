@@ -4663,7 +4663,6 @@ produit, rien à ajouter côté champs. Le manque était l'**accès** :
 3 n'affichent aucune fiche (compteurs SupplyOps, message 3PL fixe, kits) —
 classification tenue par le banc, qui échoue si un panneau change de côté
 sans mise à jour explicite.
-<<<<<<< Updated upstream
 ## 19/09/2026 — Programme de solidification du diagnostic (proposition)
 
 **Territoire** : go fondateur — « les réponses ne sont pas satisfaisantes ;
@@ -4731,7 +4730,6 @@ Les deux sections vivent dans `SupplyOpsPanel` (route `/api/admin/sourcing/ops`)
 
 Reste sans fiche dans l'Appro : message 3PL (5 lignes fixes) et kits —
 inchangé, assumé.
-=======
 
 ### D5 LIVRÉ (19/09) — baseline qualité du diagnostic
 
@@ -4746,4 +4744,3 @@ structure complète — 25/25 verts.
 cases quand la priorité ne porte pas de pont causal). Cible D1 : ≥2 partout,
 l'assertion passera à ce moment-là. Prochain : **D1** (couche
 d'interprétation, ~25–35 règles tracées vers hairScience).
->>>>>>> 0141de6 (D5 livré : protocole d'évaluation qualité du diagnostic (25 profils) + baseline mesurée)
