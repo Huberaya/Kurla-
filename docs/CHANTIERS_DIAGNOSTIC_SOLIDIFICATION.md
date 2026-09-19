@@ -95,6 +95,18 @@ améliorent le diagnostic.
 **Acceptation** : 25/25 profils notés ; le protocole détecte un régressif
   volontaire (test de sensibilité) ; intégré à `npm test`.
 
+**LIVRÉ (19/09)** — `tests/kurla_diagnostic_quality.test.ts` + script
+`test:diagnostic-quality` dans la chaîne. Baseline mesurée :
+
+- 25/25 profils verts sur la checklist dure (cycle annoncé, préoccupation
+  reprise, étape focus additive, zéro générique/médical/réservé, structure).
+- **Observations dérivées dans le résumé : minimum 0 ; 9 profils à 0/2,
+  8 à 1/2, 8 à 2/2.** C'est le chantier D1 en chiffres : aujourd'hui,
+  l'interprétation n'existe que quand un « pont pédagogique » de priorité
+  contient un marqueur causal ; sur un profil sans priorité riche (débutante,
+  hydratation seule), le résumé est 100 % reprise de cases.
+  Après D1, l'assertion « ≥2 dérivées » passe partout.
+
 ---
 
 ### D1 — Le diagnostic qui interprète (CŒUR)
