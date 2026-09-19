@@ -95,6 +95,18 @@ améliorent le diagnostic.
 **Acceptation** : 25/25 profils notés ; le protocole détecte un régressif
   volontaire (test de sensibilité) ; intégré à `npm test`.
 
+**LIVRÉ (19/09)** — `tests/kurla_diagnostic_quality.test.ts` + script
+`test:diagnostic-quality` dans la chaîne. Baseline mesurée :
+
+- 25/25 profils verts sur la checklist dure (cycle annoncé, préoccupation
+  reprise, étape focus additive, zéro générique/médical/réservé, structure).
+- **Observations dérivées dans le résumé : minimum 0 ; 9 profils à 0/2,
+  8 à 1/2, 8 à 2/2.** C'est le chantier D1 en chiffres : aujourd'hui,
+  l'interprétation n'existe que quand un « pont pédagogique » de priorité
+  contient un marqueur causal ; sur un profil sans priorité riche (débutante,
+  hydratation seule), le résumé est 100 % reprise de cases.
+  Après D1, l'assertion « ≥2 dérivées » passe partout.
+
 ---
 
 ### D1 — Le diagnostic qui interprète (CŒUR)
@@ -124,6 +136,36 @@ améliorent le diagnostic.
 **Acceptation** : sur les 25 profils du protocole D5, ≥2 observations
 dérivées par réponse, aucune qui soit une reprise d'une case cochée,
 revue humaine ≥4/5 sur « spécificité au besoin » ; banc de contenu vert.
+
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/diagnosticDerivations.ts` : **31 règles**, chacune
+  croise ≥2 champs et cite ses cartes `hairScience` sources (20 cartes citées, clés vérifiées existantes par le banc). Filets structurels pour que
+  tout profil reçoive ≥1 dérivation même minimaliste.
+- `buildHairAdvisorySummary` : « Ce que KURLA a compris de votre
+  situation » inséré après la préoccupation, avant la priorité ; les
+  anciennes lignes brutes porosité sont **supprimées** (dédoublonnage —
+  les dérivations portent le mot « porosité »), les lignes rythme
+  réduites à l'agenda (le fond est dans les dérivations).
+- Page résultat : nouvelle section 1c « Ce que KURLA a compris de votre
+  situation », calculée **localement** (pas par l'IA) avec « Fondé sur : »
+  = titre de la carte science. Le résumé IA peut reformuler, la section
+  reste vraie.
+- Prompt Gemini (`segmentNote`) : les dérivations sont injectées comme
+  grille de lecture — « à reprendre fidèlement, sans les contredire ni en
+  inventer d'autres ».
+- Banc D5 renforcé en assertions D1 : ≥2 dérivées **exactes** au résumé,
+  clés science valides pour chaque règle, test de réactivité (retirer la
+  porosité ou le cuir chevelu retire une dérivation — une règle figée est
+  une règle morte). Résultat : 25/25, minimum 3 dérivées (cible ≥2).
+- Contrôles : tsc 0 erreur ; bancs qualité, hair-advisory, routine-segments,
+  diagnostic-segments, care-kit, c4-diagnostic-result, science-hub,
+  skin-ux, parcours-peau, retention-nudges, diagnostic-session verts ;
+  live POST serveur (2 profils) — bloc dérivé présent (fallback, pas de
+  clé IA ici). Corrigé au passage : coquille « pas on en ajoute » dans le
+  focus locks douceur → « on n’en ajoute pas ».
+- **Reste à faire côté D1** : revue humaine ≥4/5 (à toi de retester —
+  c'est le juge) ; l'assertion de style « marqueurs causaux » reste
+  rapportée dans le banc mais ne fait plus foi.
 
 ---
 

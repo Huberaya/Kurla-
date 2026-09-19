@@ -24,7 +24,8 @@ import {
   HAIR_TEXTURE_VALUES,
   type HairAdvisoryContext,
 } from './knowledge/hairAdvisory';
-import { pickHairScienceInsights } from './knowledge/hairScience';
+import { HAIR_SCIENCE_CARDS, pickHairScienceInsights } from './knowledge/hairScience';
+import { deriveHairObservations } from './knowledge/diagnosticDerivations';
 import { pickHairProblemCards, pickSkinProblemCards, type ProblemCard } from './knowledge/problemCards';
 import { getSegmentFocusLabel } from './diagnosticSegments';
 import { pickSkinScienceInsights } from './knowledge/skinScience';
@@ -85,6 +86,13 @@ export interface DiagnosticResultModel {
   };
   warnings: string[];
   summary: string;
+  /**
+   * D1 — Observations dérivées du CROISEMENT des réponses (cheveux).
+   * Calculées localement, jamais par l'IA : elles restent vraies même quand
+   * Gemini reformule le résumé. Chaque observation cite la carte science
+   * qui la fonde (traçabilité exigée par le banc D5).
+   */
+  understood?: { text: string; source: string }[];
   skinKnowledgeProfile: SkinKnowledgeProfile | null;
   /** Leçons pédagogiques sélectionnées sur les priorités déclarées (peau et cheveux). */
   lessons: SkinLesson[];
@@ -350,6 +358,12 @@ export function buildDiagnosticResultModel(input: {
       'Conseil cosmétique : ce résultat ne constitue pas un avis médical ni un diagnostic.',
     ].filter((warning, index, list) => list.indexOf(warning) === index),
     summary: result?.summary || (isSkin ? buildSkinAdvisorySummary(advisoryCtx, priorities) : buildHairAdvisorySummary(hairAdvisoryCtx)),
+    // D1 : dérivations calculées ici, localement — jamais remplacées par la
+    // reformulation IA, qui ne peut qu'ajouter, pas contredire.
+    understood: isSkin ? [] : deriveHairObservations(hairAdvisoryCtx).map(d => ({
+      text: d.text,
+      source: HAIR_SCIENCE_CARDS.find(card => d.keys.includes(card.key))?.title ?? 'Base de connaissances KURLA',
+    })),
     skinKnowledgeProfile,
     kit: isSkin
       ? buildSkinKit(advisoryCtx, routine, products, fields, skinKnowledgeProfile)

@@ -1,4 +1,5 @@
 import { getSegmentFocusLabel } from '../diagnosticSegments';
+import { deriveHairObservations } from './diagnosticDerivations';
 
 /**
  * KURLA HAIR — couche « conseil » du résultat de diagnostic cheveux.
@@ -679,7 +680,7 @@ const FOCUS_STEPS: Record<string, FocusStep> = {
       action: 'Douceur entre deux lavages : eau, pas matière',
       why: 'Le frizz et la raideur d’une lock entre deux lavages viennent de la sécheresse, pas du manque de produit : l’eau ramollit et assouplit, les beurres et huiles lourds déposent et durcissent. La douceur qui tient se garde avec un minimum de matière, pas un maximum.',
       how: 'Une brume d’eau sur les locks, palm rolling léger pour réaligner, et seulement si besoin une toute petite quantité d’huile légère sur les pointes — jamais sur toute la longueur. Si la lock durcit ou sent, c’est un lavage, pas un ajout de soin.',
-      expect: 'Des locks souples au toucher sur toute la semaine, sans dépôt. Le test est simple : la lock doit rester souple au pincement — si elle pince, on retire de la matière, pas on en ajoute.',
+      expect: 'Des locks souples au toucher sur toute la semaine, sans dépôt. Le test est simple : la lock doit rester souple au pincement — si elle pince, on retire de la matière, on n’en ajoute pas.',
     },
   },
   // — protectrice
@@ -1205,6 +1206,15 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   const focusLabel = getSegmentFocusLabel(f.focus || undefined);
   if (focusLabel) parts.push(`Votre préoccupation principale est « ${focusLabel} » : la routine intègre l’étape qui la sert, en plus des gestes de base du cycle.`);
 
+  // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
+  // phrase par observation dérivée (jamais la reprise d'une seule case),
+  // chacune fondée sur une carte science (traçabilité vérifiée par le banc).
+  const derived = deriveHairObservations(ctx);
+  if (derived.length) {
+    parts.push('Ce que KURLA a compris de votre situation :');
+    for (const d of derived) parts.push(d.text);
+  }
+
   // Priorité + pont pédagogique honnête
   const bridge: Record<string, string> = {
     casse: 'La casse est avant tout mécanique : c’est le geste qui casse, pas le produit. La routine est donc construite sur la douceur du démêlage et la force de la fibre — et les progrès se voient plus vite que ne le laisse croire la croissance.',
@@ -1225,14 +1235,9 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     parts.push('Aucune priorité marquée : la routine reste courte et tenable — trois gestes répétés valent mieux qu’une liste de dix mal tenue.');
   }
 
-  // Porosité
-  if (f.porosity === 'forte') {
-    parts.push('Porosité forte déclarée : votre cheveu boit vite et perd vite — d’où l’importance du scellement dans la routine.');
-  } else if (f.porosity === 'faible') {
-    parts.push('Porosité faible déclarée : votre cheveu retient — d’où l’importance des textures légères, en moins, pas en plus.');
-  } else if (f.porosity === 'moyenne') {
-    parts.push('Porosité moyenne déclarée : comportement intermédiaire, la routine type vous convient.');
-  }
+  // Porosité — depuis D1, l'interprétation porosité vit dans les
+  // dérivations (règles poro_*, mot « porosité » inclus) : la ligne brute
+  // qui reprenait la case est supprimée, sinon le résumé se répète.
 
   // Cuir chevelu
   const scalpLine: Record<string, string> = {
@@ -1245,10 +1250,10 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
 
   // Fréquence
   const frequencyLine: Record<string, string> = {
-    debutante: 'Rythme : vous débutez dans la routine — la régularité compte plus que la fréquence : mieux vaut un cycle que l’on tient.',
+    debutante: 'Rythme : pour débuter, un seul jour de lavage à tenir d’abord — les gestes suivants viendront après.',
     '1x_semaine': 'Rythme : un lavage par semaine — un jour de lavage fixe est ce qui rend la routine tenable.',
-    '2x_semaine': 'Rythme : deux lavages par semaine — pensez à garder les soins entre les lavages légers.',
-    irreguliere: 'Rythme de lavage irrégulier déclaré : la routine tient mieux quand elle est ancrée sur un jour fixe — choisissez-le, même imparfait.',
+    '2x_semaine': 'Rythme : deux lavages par semaine — inscrivez les deux jours, le reste de la routine s’accroche à ces deux rendez-vous.',
+    irreguliere: 'Rythme : vos lavages ne se suivent pas — notez simplement le jour choisi après chaque lavage, c’est ce qui rendra la suite lisible.',
   };
   if (frequencyLine[f.frequency]) parts.push(frequencyLine[f.frequency]);
 

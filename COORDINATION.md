@@ -4663,7 +4663,6 @@ produit, rien à ajouter côté champs. Le manque était l'**accès** :
 3 n'affichent aucune fiche (compteurs SupplyOps, message 3PL fixe, kits) —
 classification tenue par le banc, qui échoue si un panneau change de côté
 sans mise à jour explicite.
-<<<<<<< Updated upstream
 ## 19/09/2026 — Programme de solidification du diagnostic (proposition)
 
 **Territoire** : go fondateur — « les réponses ne sont pas satisfaisantes ;
@@ -4695,7 +4694,6 @@ une phrase du résumé.
 
 **En attente de validation de l'user** : ordre + ce qui l'a le plus
 déçu dans ses tests + périmètre D4. Aucun chantier exécuté avant ce go.
-=======
 
 ## 18/09 (suite) — Vue ops Appro : alertes et produits cliquables
 
@@ -4732,7 +4730,6 @@ Les deux sections vivent dans `SupplyOpsPanel` (route `/api/admin/sourcing/ops`)
 
 Reste sans fiche dans l'Appro : message 3PL (5 lignes fixes) et kits —
 inchangé, assumé.
->>>>>>> Stashed changes
 
 ## 19/09 — Règle d'or Année 1 mise en évidence : matériels & outils = dropship 24–48h
 
@@ -4763,3 +4760,35 @@ accessoires — 28 outils publiés conformes (stock 0) et 3 fiches démo
   affichée en tête, écarts et conformes cliquables) — 21 blocs exit 0.
 
 **Contrôles** : lint exit 0 · chaîne complète en cours · prod à re-mesurer.
+=======
+
+### D5 LIVRÉ (19/09) — baseline qualité du diagnostic
+
+`tests/kurla_diagnostic_quality.test.ts` + `test:diagnostic-quality` (chaîné
+après test:routine-segments). 25 profils de référence (7 segments × 5 foci ×
+caractéristiques) avec checklist de contenu dure : cycle annoncé,
+préoccupation reprise, étape focus additive, zéro générique/médical/réservé,
+structure complète — 25/25 verts.
+
+**Baseline « observations dérivées » mesurée : minimum 0 ; 9 profils à 0/2,
+8 à 1/2, 8 à 2/2.** Preuve chiffrée du constat D1 (résumé = reprise de
+cases quand la priorité ne porte pas de pont causal). Cible D1 : ≥2 partout,
+l'assertion passera à ce moment-là. Prochain : **D1** (couche
+d'interprétation, ~25–35 règles tracées vers hairScience).
+
+### D1 LIVRÉ (19/09) — couche d'interprétation du diagnostic cheveux
+
+- `src/lib/knowledge/diagnosticDerivations.ts` : table de règles croisant
+  ≥2 réponses → observations dérivées, chaque règle tracée vers des cartes
+  `hairScience` (clés validées par le banc). Fichier neuf, aucun agent
+  concurrent dedans.
+- Résumé + page résultat (section 1c « Ce que KURLA a compris ») + prompt
+  Gemini (« reprendre fidèlement, ne pas contredire ») branchés ; lignes
+  porosité brutes supprimées (dédoublonnage), lignes rythme réduites à
+  l'agenda.
+- Banc D5 renforcé : assertions dérivées exactes (≥2 au résumé, minimum
+  mesuré 3 sur les 25 profils) + test de réactivité au retrait d'un champ.
+- Coquille corrigée au passage (hairAdvisory, focus locks douceur :
+  « pas on en ajoute » → « on n’en ajoute pas »).
+- tsc 0 ; 11 bancs verts ; live POST 2 profils OK (fallback).
+- Prochain : **D3** (garde-fou qualité sur la sortie Gemini).
