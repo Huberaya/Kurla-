@@ -189,6 +189,31 @@ revue humaine ≥4/5 sur « spécificité au besoin » ; banc de contenu vert.
 **Acceptation** : banc avec sortie IA mockée générique → le fallback est
 servi ; banc avec sortie IA conforme → elle est servie ; tsc vert.
 
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/aiGuardrail.ts` : la porte — mêmes invariants que le
+  fallback (segment reconnu, préoccupation reprise, dérivations D1 non
+  contredites via couverture lexicale ≥35 %, étapes ancrées sur le
+  programme moteur, longueurs minimales) + **source unique** des trois
+  listes de vocabulaire interdit (les bancs hair-advisory et D5 les
+  importent désormais — la porte et les tests ne peuvent plus diverger).
+- Route `/api/ai/routine-result` : calculs moteur hoistés AVANT l'appel
+  (segment, focus, dérivations, actions, routine) → sers d'une part à la
+  note de segment (prompt) et d'autre part de garde ; sortie IA évaluée par
+  `validateHairAiOutput` ; rejet → `parsed = null`, bascule déterministe,
+  raisons journalisées côté serveur uniquement (jamais affichées). Les
+  `warnings` de l'IA sont scannés aussi (un « consultez un dermatologue »
+  généré = rejet).
+- Nuance validée par le banc : « sans diagnostic médical » (négation,
+  disclaimer exigé) n'est PAS un motif de rejet — seule l'affirmation
+  médicale l'est. Le fallback passe sa propre porte sur les 7 segments.
+- Banc `tests/kurla_ai_guardrail.test.ts` (`test:ai-guardrail`, chaîné) :
+  10 contrats — auto-cohérence du déterministe (12 profils), reformulation
+  fidèle acceptée, 6 classes de rejet, disclaimer préservé.
+- Limite assumée : la porte n'est pas exercée sur un VRAI appel Gemini ici
+  (aucune clé dans le bac à sable) ; le branchement route est testé sur la
+  fonction de porte + vérifié au live POST (chemin sans clé → déterministe
+  servi, source 'fallback', bloc dérivé présent, 8 étapes).
+
 ---
 
 ### D4 — Les paramètres manquants (longueur, fréquence réelle, expérience)

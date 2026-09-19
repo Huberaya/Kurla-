@@ -4791,3 +4791,20 @@ d'interprétation, ~25–35 règles tracées vers hairScience).
   « pas on en ajoute » → « on n’en ajoute pas »).
 - tsc 0 ; 11 bancs verts ; live POST 2 profils OK (fallback).
 - Prochain : **D3** (garde-fou qualité sur la sortie Gemini).
+
+### D3 LIVRÉ (19/09) — garde-fou qualité sur la sortie IA du diagnostic cheveux
+
+- Nouveau `src/lib/knowledge/aiGuardrail.ts` : `validateHairAiOutput` (la
+  porte, invariants du fallback) + listes de vocabulaire interdit en SOURCE
+  UNIQUE (les bancs `kurla_hair_advisory` et `kurla_diagnostic_quality`
+  importent désormais ces listes — plus de divergence possible).
+- `recommendations.ts` : calculs moteur hoistés avant l'appel Gemini ;
+  sortie validée par la porte, rejet → bascule déterministe silencieuse
+  (raisons en journal serveur seulement) ; warnings de l'IA scannés ;
+  disclaimer négation (« sans diagnostic médical ») explicitement toléré.
+- Nouveau banc `tests/kurla_ai_guardrail.test.ts` = `test:ai-guardrail`,
+  chaîné après `test:diagnostic-quality`. 10 contrats verts ; tsc 0 ;
+  qualité/hair-advisory/segments/c4/care-kit/advisory/session verts ; live
+  POST route OK (chemin sans clé : fallback servi).
+- Prochain : **D4** (longueur + fréquence réellement utilisée +
+  expérience — chaque paramètre : option → règle → assertion).

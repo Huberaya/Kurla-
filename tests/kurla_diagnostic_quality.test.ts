@@ -7,6 +7,7 @@ import {
   pickHairObservations,
 } from '../src/lib/knowledge/hairAdvisory';
 import { getHairDiagnosticSegment, getSegmentFocusLabel } from '../src/lib/diagnosticSegments';
+import { BANNED_MEDICAL_VOCAB, BANNED_RESERVED_EXPRESSIONS, BANNED_GENERIC_PHRASES } from '../src/lib/knowledge/aiGuardrail';
 import { deriveHairObservations, HAIR_DERIVATION_RULES } from '../src/lib/knowledge/diagnosticDerivations';
 import { HAIR_SCIENCE_CARDS } from '../src/lib/knowledge/hairScience';
 
@@ -84,19 +85,11 @@ const PROFILES: Profile[] = [
 
 // ————————————————— vocabulaire interdit (mêmes listes que kurla_hair_advisory) —————————————————
 
-const MEDICAL_VOCAB = ['traitement', 'guérir', 'guérison', 'prescription', 'ordonnance', 'maladie', 'thérapie', 'pathologie', 'diagnostic médical'];
-const RESERVED_ELSEWHERE = [
-  'texture fluide', 'seule zone réellement accessible', 'occlusif de la formule',
-  'retirez la perruque la nuit', 'lavage clarifiant régulier', 'consultez un dermatologue',
-  'avis dermatologique', 'doivent être montrés à un dermatologue',
-  'Rétinol + AHA', 'Rétinol + BHA', 'Rétinol + vitamine C', 'AHA + BHA',
-];
-// Phrases « générique » bannies : ce que la réponse ne doit jamais être.
-const GENERIC_BANNED = [
-  'routine capillaire structurée à ajuster progressivement',
-  'commencer doucement et introduire un changement à la fois',
-  'observer la tolérance et ajuster la fréquence',
-];
+// Listes importées de la porte D3 (source unique — la porte et les bancs ne
+// peuvent plus diverger) : MEDICAL_VOCAB, RESERVED_ELSEWHERE, GENERIC_BANNED.
+const MEDICAL_VOCAB = BANNED_MEDICAL_VOCAB;
+const RESERVED_ELSEWHERE = BANNED_RESERVED_EXPRESSIONS;
+const GENERIC_BANNED = BANNED_GENERIC_PHRASES;
 
 // Marqueurs d'une phrase DÉRIVÉE de la combinaison des réponses (pas une
 // reprise de case). Depuis D1, l'assertion porte sur les dérivation ELLES-
