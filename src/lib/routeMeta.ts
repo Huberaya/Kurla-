@@ -513,6 +513,12 @@ export const ROUTE_META: RouteMeta[] = [
     indexable: false,
   },
   {
+    path: '/account/routine-evolution',
+    title: 'Votre profil a évolué | KURLA',
+    description: 'Ce que votre journal a changé dans votre routine, étape par étape et causalité en clair.',
+    indexable: false,
+  },
+  {
     path: '/account/journey',
     title: 'Beauty Journey | KURLA',
     description:

@@ -66,6 +66,15 @@ export async function addProgressJournalEntry(token: string, input: {
   });
 }
 
+/** D2 — évolution du profil (journal → moteur segmenté → avant/après). */
+export async function getRoutineEvolution(token: string): Promise<{ report: unknown; applied: boolean; diagnosticAt: string | null }> {
+  return request<{ report: unknown; applied: boolean; diagnosticAt: string | null }>('/api/routine/evolution', token);
+}
+
+export async function applyRoutineEvolution(token: string): Promise<{ applied: boolean; report: unknown }> {
+  return request<{ applied: boolean; report: unknown }>('/api/routine/evolution/apply', token, { method: 'POST' });
+}
+
 export async function getRoutineWeather(token: string, latitude: number, longitude: number): Promise<RoutineWeatherContext> {
   const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
   const data = await request<{ weather: RoutineWeatherContext }>(`/api/routine/weather?${query.toString()}`, token);

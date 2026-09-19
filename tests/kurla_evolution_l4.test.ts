@@ -68,11 +68,11 @@ await ok('acceptation : routine suivie + 1 retour à J+31 → un nudge « évolu
     journalEntries: []
   });
   assert.equal(nudges.length, 1);
-  assert.match(nudges[0].title, /évolution/i);
+  assert.match(nudges[0].title, /évolu/i); // D2 — le titre annonce la page qui existe
   assert.match(nudges[0].message, /routine suivie \(1 étape terminée\)/);
   assert.match(nudges[0].message, /1 retour/);
   assert.doesNotMatch(nudges[0].message, /journal/);
-  assert.equal(nudges[0].link, '/account/kurla-id');
+  assert.equal(nudges[0].link, '/account/routine-evolution'); // D2 — plus d'éditeur nu : la page d'évolution
   assert.equal(nudges[0].dedupeKey, `nudge:profile-evolution:u-test:${daysAgo(31).slice(0, 10)}`);
 });
 
@@ -219,7 +219,7 @@ await ok('orchestrateur : profil seul + routine suivie + 1 retour → notificati
   const evolutionNotif = notifications.find(n => n.type === 'profile_evolution');
   assert.ok(evolutionNotif, 'la notification « évolution » doit exister');
   assert.match(evolutionNotif!.message, /routine suivie/);
-  assert.equal(evolutionNotif!.link, '/account/kurla-id');
+  assert.equal(evolutionNotif!.link, '/account/routine-evolution'); // D2 — la notification mène à la page réelle
 });
 
 await ok('idempotence : un second run ne recrée pas la notification (clé stable)', async () => {

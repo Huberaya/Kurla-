@@ -294,6 +294,46 @@ formulaire sans friction (1 question de plus max par tour).
 casse + cuir chevelu qui démange) → à J+30, la routine DIFFÈRE de J+0 sur
 les points causaux, et la page d'évolution les nomme ; nudge L4 validé.
 
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/profileEvolution.ts` : la table de conversion
+  signal → réponse (9 signaux du journal, 6 réponses capillaires, 3 signaux
+  peau explicitement renvoyés au parcours peau — aucun signal sans issue
+  nommée). Les jauges 1–5 frappent aussi (moyenne ≤ 2 en alerte, ≥ 4 en
+  confirmation) et la cause citée est soit le signal, soit la jauge.
+- Le moteur segmenté est RE-EXÉCUTÉ sur le profil évolué : le rapport
+  compare le TEXTE COMPLET de chaque étape (action + pourquoi + attente) —
+  « ajoutée », « recalée », « retirée ». Un signal qui contredit une valeur
+  déclarée (porosité) ne l'écrase jamais : il produit une confirmation qui
+  explique la protection. Entrées antérieures au diagnostic ou datées du
+  futur : ignorées et comptées. Sans instantané de diagnostic : la page
+  l'affirme et renvoie au diagnostic, rien n'est inventé.
+- Nouveau profil persistant : champ `diagnostic` (instantané assaini,
+  énumérations seules, jamais de texte libre) écrit à chaque diagnostic
+  connecté ; `shorten` dans le contexte moteur (routine « trop longue » →
+  les ajouts de confort passent en réserve, le socle et l'étape de
+  préoccupation restent intacts).
+- Page « Votre profil a évolué » : `/account/routine-evolution`
+  (routeTable + routeMeta + garde d'auth vérifiée au navigateur à 390 px,
+  `over=0`) — 4 temps : ce que le journal a dit / ce que KURLA en déduit
+  (avant → après, cause citée par changement) / la routine recalculée
+  (badges « nouveau » et « recalée », comparateur J+0) / appliquer —
+  l'application au profil est un choix explicite, jamais silencieux.
+- API : `GET /api/routine/evolution`, `POST /api/routine/evolution/apply`
+  (inventaire des routes régénéré volontairement : +2 routes, 349 au
+  total ; gardes d'authorization et de confidentialité passés).
+- Nudge L4 : le lien pointe vers la page qui existe ; la phrase « vos
+  recommandations ont été recalées » (promesse creuse, constat n°2) est
+  remplacée par ce qui est réellement servi (« chaque changement est
+  justifié, et vous gardez la main ») ; le journal CAPILLAIRE compte enfin
+  comme signal d'évolution (il n'y avait que le journal peau).
+- Entrées de la boucle : page résultat → « Ce que mon journal changera » ;
+  journal → « Routine recalculée ».
+- Bancs : `tests/kurla_profile_evolution.test.ts` 11/11 (scénario
+  d'acceptation J+0 → J+30 inclus) ; banc L4 mis à jour du nouveau contrat
+  (14/14). Le point d'entrée « répondre aux observations » du plan a pris
+  la forme d'un lien vers la boucle plutôt que d'un formulaire de plus :
+  le journal existe déjà, une page de plus l'aurait concurrencé.
+
 ---
 
 ### D6 — Parité Peau (après solidification Cheveux)

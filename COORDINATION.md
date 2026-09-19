@@ -4896,3 +4896,32 @@ supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
 - Contrôles : tsc 0 ; 10 bancs verts ; live POST profil D4 complet OK ;
   parcours mobile 11 questions screenshoté (390px, over=0).
 - Prochain : **D2** (la boucle J+7/14/30 → routine réellement recalée).
+
+### D2 LIVRÉ (19/09) — la boucle qui boucle : journal → moteur → « Votre profil a évolué »
+- `src/lib/knowledge/profileEvolution.ts` : table de conversion signaux du
+  journal → réponses du diagnostic (9 signaux, tous avec une issue nommée :
+  6 règles capillaires, 3 signaux peau renvoyés explicitement au parcours
+  peau). Les jauges 1–5 déclenchent aussi (≤ 2 alerte, ≥ 4 confirmation).
+  Jamais d'écrasement silencieux : une valeur déclarée (porosité) produit
+  une confirmation, pas une mutation. Entrées hors fenêtre (avant le
+  diagnostic ou futures) ignorées et comptées.
+- Le moteur segmenté est re-exécuté ; le rapport compare le texte complet
+  des étapes (action + pourquoi + attente) → `added` / `changed` /
+  `removed`. Nouvel input moteur `shorten` : « routine trop longue » met
+  les ajouts de confort en réserve, socle et étape de préoccupation intacts.
+- Profil beauté : instantané `diagnostic` (top-level, énumérations seules)
+  écrit à chaque diagnostic connecté ; à l'application, le `at` d'origine
+  EST CONSERVÉ (sinon le journal deviendrait antérieur et la boucle
+  s'effacerait). Ne pas « corriger » ce point.
+- `GET/POST /api/routine/evolution` (+apply) : inventaire de routes
+  régénéré volontairement (`KURLA_UPDATE_FIXTURE=1`, +2 routes → 349).
+- Page `/account/routine-evolution` (4 temps, badges « nouveau »/« recalée »,
+  comparateur J+0, application = choix explicite) + routeMeta. L4 : lien
+  vers cette page, message sans fausse promesse, journal capillaire enfin
+  compté comme signal.
+- Bancs : `tests/kurla_profile_evolution.test.ts` 11/11 (`test:profile-evolution`,
+  dans la chaîne après `test:diagnostic-params`) ; `kurla_evolution_l4`
+  actualisé au nouveau contrat (14/14). tsc 0 ; build 0 ; mobile 390 px
+  over=0 (mur d'auth vérifié — le rendu connecté n'est pas vérifiable dans
+  le sandbox sans Supabase, consigné honnêtement).
+- Prochain : **D6** (parité peau : mêmes mécanismes, logique peau).

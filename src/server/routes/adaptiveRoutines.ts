@@ -1,6 +1,8 @@
 import type { Express } from 'express';
 
 import { normalizeWeatherContext } from '../../lib/adaptiveRoutine';
+import { buildHairEvolutionReport, type JournalEntryInput } from '../../lib/knowledge/profileEvolution';
+import type { HairAdvisoryContext } from '../../lib/knowledge/hairAdvisory';
 import { serverDb } from '../../lib/serverDb';
 import { asyncRoute, safeApiError } from '../http';
 import { requireUser } from '../auth';
@@ -97,6 +99,75 @@ export function registerAdaptiveRoutineRoutes(app: Express): void {
     } catch (err) {
       console.error('[AdaptiveRoutine] journal error:', err);
       res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette note de progression.') });
+    }
+  }));
+
+  // D2 — L'ÉVOLUTION DU PROFIL : le journal (signaux + jauges) est converti
+  // en réponses du diagnostic, le moteur segmenté est RE-EXÉCUTÉ, et la page
+  // « Votre profil a évolué » montre l'avant/après avec la cause de chaque
+  // changement. Lecture seule ici ; l'application est un choix explicite.
+  const snapshotToContext = (snap: any): HairAdvisoryContext | null => {
+    if (!snap || typeof snap !== 'object') return null;
+    const one = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+    return {
+      texture: one(snap.texture), style: one(snap.style), focus: one(snap.focus),
+      priority: one(snap.priority), porosity: one(snap.porosity), scalp: one(snap.scalp),
+      frequency: one(snap.frequency), length: one(snap.length), experience: one(snap.experience),
+      shorten: snap.shorten === 'true',
+    };
+  };
+
+  async function evolutionPayload(userId: string) {
+    const [profileRecord, state] = await Promise.all([
+      serverDb.getBeautyProfile(userId),
+      serverDb.getAdaptiveRoutineState(userId)
+    ]);
+    const snapshot = (profileRecord?.profile as any)?.diagnostic ?? null;
+    const entries: JournalEntryInput[] = (state.journal ?? []).map((e: any) => ({
+      entryDate: e.entryDate,
+      signals: e.signals ?? [],
+      hydrationScore: e.hydrationScore,
+      breakageScore: e.breakageScore,
+      comfortScore: e.comfortScore,
+      detanglingScore: e.detanglingScore
+    }));
+    const report = buildHairEvolutionReport(snapshotToContext(snapshot), entries, snapshot?.at);
+    return { report, profileRecord, snapshot };
+  }
+
+  app.get('/api/routine/evolution', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const { report, snapshot } = await evolutionPayload(user.id);
+    res.json({ report, applied: (snapshot as any)?.source === 'journal', diagnosticAt: (snapshot as any)?.at ?? null });
+  }));
+
+  app.post('/api/routine/evolution/apply', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const { report, profileRecord, snapshot } = await evolutionPayload(user.id);
+    if (!report.available) return res.status(409).json({ error: 'Impossible de recaler la routine sans diagnostic enregistré.' });
+    if (report.changes.length === 0) return res.status(409).json({ error: 'Rien à appliquer : le journal ne demande aucun ajustement pour le moment.' });
+    try {
+      const next = report.nextContext as Record<string, unknown>;
+      await serverDb.saveBeautyProfile(user.id, {
+        ...(profileRecord?.profile ?? {}),
+        diagnostic: {
+          // Le point de départ du diagnostic EST conservé (sinon le journal
+          // deviendrait « antérieur au diagnostic » et la boucle s'effacerait).
+          at: (snapshot as any)?.at ?? new Date().toISOString(),
+          source: 'journal',
+          texture: String(next.texture ?? ''), style: String(next.style ?? ''), focus: String(next.focus ?? ''),
+          priority: String(next.priority ?? ''), porosity: String(next.porosity ?? ''), scalp: String(next.scalp ?? ''),
+          frequency: String(next.frequency ?? ''), length: String(next.length ?? ''), experience: String(next.experience ?? ''),
+          shorten: next.shorten === true ? 'true' : ''
+        }
+      } as any, 'journal');
+      const refreshed = await evolutionPayload(user.id);
+      res.json({ applied: true, report: refreshed.report, journalCount: (await serverDb.getAdaptiveRoutineState(user.id)).journal?.length ?? 0 });
+    } catch (err) {
+      console.error('[Evolution] application impossible :', err);
+      res.status(400).json({ error: safeApiError(err, 'Impossible d’enregistrer cette évolution.') });
     }
   }));
 

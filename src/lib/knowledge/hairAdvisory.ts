@@ -49,6 +49,9 @@ export interface HairAdvisoryContext {
   length?: string;
   /** D4 : expérience capillaire (debutante | habituee | expert). */
   experience?: string;
+  /** D2 : le journal dit « routine trop longue » → les ajouts de confort
+   * passent en réserve, le socle du cycle reste (voir profileEvolution). */
+  shorten?: boolean;
 }
 
 export interface HairAdvisoryStep {
@@ -151,6 +154,7 @@ interface HairFlags {
   isTransition: boolean;
   length: string; experience: string;
   isShort: boolean; isLong: boolean; isExpert: boolean;
+  shorten: boolean;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -188,6 +192,7 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     isShort: length === 'courte',
     isLong: length === 'longue',
     isExpert: experience === 'expert',
+    shorten: ctx.shorten === true,
   };
 }
 
@@ -1062,7 +1067,9 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
   }
   routine = applyFocus(routine, f);
-  routine = applyParams(routine, f);
+  // D2 — le journal a dit « trop long » : pas d'ajouts de confort, le socle
+  // et l'étape de préoccupation restent (c'est l'inverse d'un ajout).
+  if (!f.shorten) routine = applyParams(routine, f);
   const number = (steps: HairStepDraft[]): HairAdvisoryStep[] =>
     steps.map((step, index) => ({ ...step, label: String(index + 1) }));
   return {
@@ -1354,6 +1361,10 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   if (scalpLine[f.scalp]) parts.push(scalpLine[f.scalp]);
 
   // Fréquence
+  if (f.shorten) {
+    parts.push('Votre journal dit « routine trop longue » : cette version garde le socle — lavage, entretien entre deux lavages, et l’étape qui sert votre préoccupation. Les ajouts de confort restent en réserve, à sortir quand le socle est tenu.');
+  }
+
   // D4 — Longueur : le paramètre agit sur la routine (étapes dédiées), la
   // phrase du résumé l'annonce pour que le client voie POURQUOI ces étapes.
   const lengthLine: Record<string, string> = {

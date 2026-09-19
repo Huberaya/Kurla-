@@ -236,10 +236,14 @@ export async function runRetentionNudges(
       if (profileRecord?.createdAt) {
         const ageDays = (now.getTime() - new Date(profileRecord.createdAt).getTime()) / (1000 * 60 * 60 * 24);
         let completedTasks: Array<{ completedAt?: string }> = [];
+        let hairJournal: Array<{ date?: string | null }> = [];
         if (ageDays >= PROFILE_EVOLUTION_AFTER_DAYS) {
           try {
             const routineState = await getAdaptiveRoutineState(store, userId);
             completedTasks = routineState.tasks;
+            // D2 — le journal de progression capillaire compte comme signal
+            // d'évolution au même titre que les observations peau.
+            hairJournal = (routineState.journal ?? []).map((entry: { entryDate?: string }) => ({ date: entry.entryDate ?? null }));
           } catch {
             // Une routine illisible ne bloque pas le run : le signal « routine
             // suivie » est simplement absent (jamais inventé).
@@ -249,7 +253,7 @@ export async function runRetentionNudges(
           diagnosticAt: profileRecord.createdAt,
           outcomes: observations.map((obs) => ({ observedAt: obs.observedAt })),
           routineCompletedTasks: completedTasks,
-          journalEntries: profileRecord.profile?.skin?.journal ?? []
+          journalEntries: [...(profileRecord.profile?.skin?.journal ?? []), ...hairJournal]
         };
       }
 

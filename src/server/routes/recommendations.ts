@@ -355,6 +355,22 @@ export function registerRecommendationRoutes(app: Express): void {
             washFrequency: String(a.frequency || '') || profile?.hair?.washFrequency || 'inconnue',
             budget: budgetMap[String(a.budget)] || profile?.hair?.budget || 'inconnue',
           },
+          // D2 — la boucle d'évolution a besoin du POINT DE DÉPART côté
+          // serveur : les mêmes réponses, déjà collectées à l'écran, sont
+          // conservées en énumérations (jamais de texte libre ici).
+          diagnostic: {
+            at: new Date().toISOString(),
+            source: 'diagnostic',
+            texture: String(a.texture || ''),
+            style: String(a.style || ''),
+            focus: String(a.focus || ''),
+            priority: String(a.priority || ''),
+            porosity: String(a.porosity || ''),
+            scalp: String(a.scalp || ''),
+            frequency: String(a.frequency || ''),
+            length: String(a.length || ''),
+            experience: String(a.experience || ''),
+          },
         }, 'diagnostic');
       } catch (error) {
         console.error('[BeautyProfile] sauvegarde diagnostic impossible :', (error as Error)?.message);
