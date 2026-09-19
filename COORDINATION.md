@@ -4760,7 +4760,6 @@ accessoires — 28 outils publiés conformes (stock 0) et 3 fiches démo
   affichée en tête, écarts et conformes cliquables) — 21 blocs exit 0.
 
 **Contrôles** : lint exit 0 · chaîne complète en cours · prod à re-mesurer.
-=======
 
 ### D5 LIVRÉ (19/09) — baseline qualité du diagnostic
 
