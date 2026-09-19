@@ -64,6 +64,12 @@ export interface HairAdvisoryContext {
   /** D10 — transition : où en sont les longueurs traitées (majorite | minorite
    *  | quasi_nulle) — c'est ce qui décide le cap, pas le goût. */
   transitionStep?: string;
+  /** D11 (20/09) — locks : maturité (neuve|ado|mature), méthode de racine
+   *  (palm|interlock|freeform) et réalité du séchage (sec|seche|humide|lentes).
+   *  Les trois questions des FAQ locks ; absentes = comportement d'avant. */
+  locStage?: string;
+  locCare?: string;
+  locDry?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -174,6 +180,8 @@ interface HairFlags {
   pattern: string; elasticity: string; strandWidth: string; chem: string;
   /** D10 — séchage + fixant des boucles au naturel (vide hors ce profil) ; position de la transition. */
   curlyDry: string; curlyHold: string; transitionStep: string;
+  /** D11 — locks : maturité, méthode d’entretien racine, séchage (vides hors locks). */
+  locStage: string; locCare: string; locDry: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -244,6 +252,11 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
       String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
       style !== 'wig' && texture !== 'protective' && style !== 'braids' && style !== 'twists' &&
       ['majorite', 'minorite', 'quasi_nulle'].includes(String(ctx.transitionStep ?? '')) ? String(ctx.transitionStep) : '',
+    // D11 — les trois réponses locks n'existent QUE locks en tête (la texture
+    // locksee ou le style locks) ; hors de là, rémanence ignorée à la source.
+    locStage: lockedNow && ['neuve', 'ado', 'mature'].includes(String(ctx.locStage ?? '')) ? String(ctx.locStage) : '',
+    locCare: lockedNow && ['palm', 'interlock', 'freeform'].includes(String(ctx.locCare ?? '')) ? String(ctx.locCare) : '',
+    locDry: lockedNow && ['sec', 'seche', 'humide', 'lentes'].includes(String(ctx.locDry ?? '')) ? String(ctx.locDry) : '',
   };
 }
 
@@ -299,6 +312,10 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     curlyDry: str('curlyDry'),
     curlyHold: str('curlyHold'),
     transitionStep: str('transitionStep'),
+    // D11 — idem : le tuyau unique emporte les trois réponses locks.
+    locStage: str('locStage'),
+    locCare: str('locCare'),
+    locDry: str('locDry'),
   };
 }
 
@@ -431,7 +448,9 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Entretenir entre deux lavages',
       why: 'Entre deux lavages, la lock vit de l’eau et d’une régularité légère : un rafraîchissement à l’eau garde la souplesse sans déposer de matière qui attirerait les résidus.',
-      how: 'Une brume d’eau sur les pointes, un léger retwist en racine seulement si besoin, palm rolling léger. Ne pas toucher les longueurs plus que nécessaire : la manipulation excessive casse et amincit.',
+      how: f.locCare === 'freeform'
+        ? 'Une brume d’eau sur les pointes, rien à retordre : en libre pousse, l’entretien est la séparation des racines, pas le retwist. Ne pas toucher les longueurs plus que nécessaire — c’est déjà le programme.'
+        : 'Une brume d’eau sur les pointes, un léger retwist en racine seulement si besoin, palm rolling léger. Ne pas toucher les longueurs plus que nécessaire : la manipulation excessive casse et amincit.',
       expect: 'Des locks souples et propres entre deux lavages. Un signe de dépôt — rêche, odeur — appelle un lavage, pas plus de produit.',
     });
   }
@@ -545,10 +564,30 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
   }
 
   if (f.isLocked) {
+    // D11 — la méthode se récite rarement correctement pour TOUT LE MONDE : la
+    // maturité décide de ce qu’on attend (patience aux premiers mois, rythme
+    // plus libre ensuite), la méthode décide du geste (on ne parle pas retwist
+    // à une personne en libre pousse). Sources : annieinc.com (rythme 4–6
+    // semaines, méthodes par stade), r/Dreadlocks & r/Microlocs (sur-manipulation,
+    // shrinkage), thekinkyapothecary (trop serré = casse).
+    const stageWhy = f.locStage === 'neuve'
+      ? ' Sur des locks de moins de six mois, la consigne première est la patience : le raccourcissement fait partie du processus — la lock construit sa matrice avant de s’allonger. Un début qui lutte contre ce stade ralentit la maturation au lieu de la servir.'
+      : f.locStage === 'ado'
+        ? ' À mi-parcours, la lock se consolide sans être blindée : le rythme d’entretien se tient, mais la maturation prime encore sur la perfection du tracé.'
+        : f.locStage === 'mature'
+          ? ' Locks bien ancrées : elles supportent un entretien plus espacé et des lavages plus fréquents — le programme peut viser la tenue, plus la survie.'
+          : '';
+    const careHow = f.locCare === 'freeform'
+      ? 'Rien ne sera retordu ici. Le travail hebdomadaire : séparer les locks entre elles à la racine, un doigt propre, surtout nuque et contour où elles fusionnent ; eau légère sur les pointes si besoin ; lavage sans résidu. La libre pousse est une méthode, pas un abandon.'
+      : f.locCare === 'interlock'
+        ? 'Interlocking : la séance se tient (autour de huit semaines, jamais moins), le point de croisement vérifié à chaque racine — serré au-delà du nécessaire, la racine perd sa prise et la lock s’amincit. Aucun produit entre les séances : la méthode tient seule.'
+        : f.locCare === 'palm'
+          ? 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement — et surtout pas tous les jours. Le léger frisottis entre deux séances est normal : il fait partie du verrouillage, ce n’est pas une urgence.'
+          : 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement. Les longueurs : eau et soin, sans retwist.';
     steps.push({
       action: 'Racines : le travail de la lock',
-      why: 'La lock se forme par la régularité : palm rolling pour donner la forme, retwist léger en racine seulement, et beaucoup moins de manipulation que la main ne le voudrait. Une lock retwistée trop souvent et trop serrée casse et amincit — c’est l’ennemi n° 1 de la maturité.',
-      how: 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement. Les longueurs : eau et soin, sans retwist.',
+      why: 'La lock se forme par la régularité : palm rolling pour donner la forme, retwist léger en racine seulement, et beaucoup moins de manipulation que la main ne le voudrait. Une lock retwistée trop souvent et trop serrée casse et amincit — c’est l’ennemi n° 1 de la maturité.' + stageWhy,
+      how: careHow,
       expect: 'Des locks qui se resserrent semaine après semaine. La maturité d’une lock se compte en mois : le travail est dans la régularité, pas dans l’effort.',
     });
   }
@@ -1269,6 +1308,26 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       });
     }
   }
+  // D11 — séchage des locks : la réponse ne décore pas le lavage, elle AJOUTE
+  // l’étape que la routine n’avait pas (locks couchées humides = porte ouverte
+  // à l’odeur et à l’irritation) ou confirme le bon réflexe. Hors cycle locks
+  // et enfant (le même buildWashDay les sert), rien n’est injecté.
+  if (f.locDry && (key === 'locks' || key === 'enfant')) {
+    const locDryText: Record<string, string> = {
+      sec: 'Séchage : le séchage complet avant la nuit est déjà votre réflexe — c’est exactement la règle qui ferme le chapitre des odeurs et des démangeaisons. Le garder tel quel, surtout en hiver et sous bonnet.',
+      seche: 'Séchage : le sèche-cheveux aux racines, air tiède, section par section — le bon outil, bien employé. Terminer quelques minutes plus froid, puis vérifier à la main : une racine encore tiède au coucher est une racine encore humide.',
+      humide: 'Séchage : coucher des locks encore humides est la première cause d’odeur — l’eau piégée au cœur de la lock ne ressort plus. La règle nouvelle : laver plus tôt dans la journée, aider le séchage à l’air tiède racine par racine, et ne se coucher que des locks sèches au toucher profond, pas seulement en surface.',
+      lentes: 'Séchage : si les racines restent humides des heures, deux leviers avant tout produit — un rinçage plus long (l’eau doit couler le long des locks, pas dessus) et des soins plus légers. Si l’odeur de renfermé revient malgré un séchage soigné, c’est un rinçage clarifiant qu’il faut espacer sur l’année — jamais du parfum sur de l’humide.',
+    };
+    if (locDryText[f.locDry]) {
+      routine.morning.push({
+        action: 'Sécher les locks jusqu’au cœur',
+        why: 'Une lock mal séchée garde l’eau en son centre : odeur, irritation et dépôt y trouvent leur point de départ — les FAQ locks posent cette question plus souvent que celle du produit, et le diagnostic doit la connaître pour répondre juste.',
+        how: locDryText[f.locDry],
+        expect: 'Des racines sèches au toucher le jour du lavage, pas le lendemain. C’est le geste qui protège tout le reste : l’odeur disparaît quand l’humidité n’a plus où loger.',
+      });
+    }
+  }
   // D2 — le journal a dit « trop long » : pas d'ajouts de confort, le socle
   // et l'étape de préoccupation restent (c'est l'inverse d'un ajout).
   if (!f.shorten) routine = applyParams(routine, f);
@@ -1586,6 +1645,28 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     quasi_nulle: 'Transition presque au bout : la routine quitte le mode réparation — votre forme naturelle nouvelle se protège, sans « homogénéisation » chimique.',
   };
   if (f.transitionStep && transStepLine[f.transitionStep]) parts.push(transStepLine[f.transitionStep]);
+
+  // D11 — locks : le résumé rend les trois décisions, uniquement quand la
+  // réponse existe (mêmes garde-flags que la routine).
+  const stageLine: Record<string, string> = {
+    neuve: 'Maturité : locks de moins de six mois — le programme protège le stade de maturation ; le raccourcissement est attendu, pas combattu.',
+    ado: 'Maturité : locks à mi-parcours — l’entretien se tient, mais la maturation prime sur la perfection du tracé.',
+    mature: 'Maturité : locks établies — rythme d’entretien plus espacé possible, lavages fréquents sans risque.',
+  };
+  if (f.locStage && stageLine[f.locStage]) parts.push(stageLine[f.locStage]);
+  const careLine: Record<string, string> = {
+    palm: 'Entretien déclaré : palm rolling et retwist légers — la règle posée : jamais quotidien, le frisottis entre deux séances est normal.',
+    interlock: 'Entretien déclaré : interlocking — séance tenue autour de huit semaines et serrage vérifié ; au-delà, ce n’est plus de la tenue, c’est une traction.',
+    freeform: 'Entretien déclaré : libre pousse — rien ne sera retordu ; le programme donne la méthode de la séparation et du lavage sans résidu.',
+  };
+  if (f.locCare && careLine[f.locCare]) parts.push(careLine[f.locCare]);
+  const locDryLine: Record<string, string> = {
+    sec: 'Séchage : complet avant la nuit — le bon réflexe est déjà en place, la routine le confirme et n’ajoute rien.',
+    seche: 'Séchage : sèche-cheveux air tiède aux racines — méthode validée, avec la vérification au toucher en plus.',
+    humide: 'Séchage : des locks couchées humides s’abîment de l’intérieur — la routine impose le séchage complet avant la nuit.',
+    lentes: 'Séchage : séchage lent déclaré — rinçage allongé, produits allégés, clarifiant seulement si l’odeur revient malgré tout.',
+  };
+  if (f.locDry && locDryLine[f.locDry]) parts.push(locDryLine[f.locDry]);
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

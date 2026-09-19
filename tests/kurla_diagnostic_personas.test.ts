@@ -294,6 +294,11 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       // D9 : les quatre nouvelles réponses sont balayées aussi — déterminées par
       // le même LCG, donc reproductibles.
       const v = seed >>> 8;
+      // D11 : trois tirages supplémentaires pour les réponses locks — balayées
+      // PARTOUT (rémanences volontaires : le moteur doit les ignorer hors locks).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v2 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v3 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v4 = seed >>> 8;
       const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
@@ -304,7 +309,10 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         // le moteur ignore toute rémanence hors segment.
         curlyDry: ['inconnue', 'air', 'diffuse_chaud', 'diffuse_froid', 'serviette'][(v >> 12) % 5],
         curlyHold: ['inconnue', 'gel', 'mousse', 'creme', 'rien'][(v >> 15) % 5],
-        transitionStep: ['inconnue', 'majorite', 'minorite', 'quasi_nulle'][(v >> 18) % 4]
+        transitionStep: ['inconnue', 'majorite', 'minorite', 'quasi_nulle'][(v >> 18) % 4],
+        locStage: ['inconnu', 'neuve', 'ado', 'mature'][v2 % 4],
+        locCare: ['inconnu', 'palm', 'interlock', 'freeform'][v3 % 4],
+        locDry: ['inconnu', 'sec', 'seche', 'humide', 'lentes'][v4 % 5]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -388,6 +396,28 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         if (/stabilisation|fade est engagé|mode réparation|Transition engagée|Transition presque/.test(full)) at('fragment de transition servi sur réponse inconnue');
       }
       if (trans && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé transition prétend une décision que son cycle ne tient pas');
+      // — D11 : les trois réponses locks ne rendent leurs effets QUE locks en
+      // tête ; chaque fragment correspond exactement à la réponse donnée.
+      const dryStep = (steps as any[]).find((x: any) => x.action === 'Sécher les locks jusqu’au cœur');
+      const racines = (steps as any[]).find((x: any) => x.action === 'Racines : le travail de la lock');
+      const entre = (steps as any[]).find((x: any) => x.action === 'Entretenir entre deux lavages');
+      const sum3 = buildHairAdvisorySummary(ctx as never) as string;
+      if (locked) {
+        const lStage = ctx.locStage as string, lCare = ctx.locCare as string, lDry = ctx.locDry as string;
+        if (!!dryStep !== (lDry !== 'inconnu')) at('étape séchage locks ≠ réponse séchage');
+        if (dryStep && lDry !== 'inconnu') {
+          const frag: Record<string, RegExp> = { sec: /ferme le chapitre des odeurs/, seche: /vérifier à la main/, humide: /première cause d’odeur/, lentes: /rinçage plus long/ };
+          if (!frag[lDry]?.test(String((dryStep as any).how))) at('fragment séchage locks ≠ réponse');
+        }
+        if (racines && lCare === 'freeform' && !/Rien ne sera retordu/.test(String((racines as any).how))) at('freeform : le retwist récité malgr[/]é');
+        if (racines && lCare !== 'freeform' && /Rien ne sera retordu/.test(String((racines as any).how))) at('phrase freeform servie sans la réponse');
+        if (racines && !/raccourcissement fait partie|se consolide sans être blindée|plus espacé/.test(String((racines as any).why)) !== (lStage === 'inconnu')) at('phrase maturité ≠ réponse maturité');
+        if (entre && lCare === 'freeform' && !/rien à retordre/.test(String((entre as any).how))) at('entre-deux lavages : retwist récité au freeform');
+        if (/Maturité :|Entretien déclaré :|Séchage : /.test(sum3) && !/(Maturité : locks|rythme d’entretien plus espacé|libre pousse|palm rolling et retwist|interlocking|réflexe est déjà en place|méthode validée|s’abîment de l’intérieur|rinçage allongé)/.test(sum3)) at('résumé locks : ligne sans décision correspondante');
+      } else {
+        if (dryStep) at('étape séchage locks hors locks');
+        if (/Maturité : locks|Entretien déclaré : (palm|interlocking|libre)/.test(sum3)) at('décision locks au résumé hors locks');
+      }
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }

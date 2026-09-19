@@ -41,6 +41,11 @@ export interface HairDiagnosticAnswers {
   /** D10 — transition : part de longueurs traitées restantes (remplace la
    *  question chaleur/chimie, déjà répondue par la texture déclarée). */
   transitionStep?: 'majorite' | 'minorite' | 'quasi_nulle' | 'inconnue';
+  /** D11 (20/09) — locks : maturité, méthode d’entretien racine, réalité du
+   *  séchage. Jamais posées hors locks ; inconnu = comportement d'avant. */
+  locStage?: 'neuve' | 'ado' | 'mature' | 'inconnu';
+  locCare?: 'palm' | 'interlock' | 'freeform' | 'inconnu';
+  locDry?: 'sec' | 'seche' | 'humide' | 'lentes' | 'inconnu';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

@@ -5119,3 +5119,23 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
 - **Livrable** : `docs/RAPPORT_D10_BOUCELES_TRANSITION.md`. Chantier clos ; suivants candidats :
   ondulé 2 et perruque (même audit question-par-question).
 
+
+## 20/09 (suite 4) — D11 : locks / microlocks audités avec les questions des communautés (agent diagnostic)
+
+- **Audit** : aucune question locks décorative à retirer (toutes vérifiées dans le moteur) — mais le
+  moteur récitait sa méthode sans rien savoir de la personne. Recherche web (9 sources, voir rapport) :
+  les questions reines du segment = maturité des locks, méthode de racine (palm/interlocking/freeform),
+  séchage complet (la couche humide du soir = cause n°1 d'odeur).
+- **Fait** : +3 réponses avec effet rendu — l'étape « Racines » se cale sur maturité et méthode
+  (freeform REMPLACE consigne retwist hebdo + entre-deux lavages), et l'étape du jour de lavage
+  « Sécher les locks jusqu'au cœur » n'existe que si la réponse l'appelle. Lignes de résumé dédiées.
+  Gardes dans `flags()` (lockedNow uniquement, whitelist, cycles locks/enfant seulement). Enfant-locks :
+  questions posées volontairement (le gardien répond), chaleur/chimie toujours exclue.
+- **Tuyau** : 3 clés ajoutées au builder partagé — zéro patch consommateur (consolidation D9).
+- **Preuves** : nouveau banc `kurla_diagnostic_locks.test.ts` 27/27 (chaîné dans `npm test`) ; matrice
+  personas 47/47 sur 3 455 profils avec rémanences locks balayées partout ; bancs D9 17/17 et D10
+  rejoués ; 13 bancs voisins verts ; tsc 0 ; build 0 ; Playwright 390px deux parcours (locks complet,
+  frisée garde hors locks) 16/16, over=0, console=0.
+- **Livrable** : `docs/RAPPORT_D11_LOCKS.md`. Suivant candidat naturel : ondulé 2 / perruque, ou
+  l'arbitrage produit « avant-locks » (parcours de préparation, pas une question).
+
