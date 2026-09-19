@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T12:12:49.025Z",
+  "generatedAt": "2026-09-19T12:49:43.249Z",
   "routes": [
     "DELETE /api/account",
     "DELETE /api/ai/history",
@@ -160,6 +160,7 @@
     "GET /api/returns/insight-prompt",
     "GET /api/routine",
     "GET /api/routine/complements",
+    "GET /api/routine/evolution",
     "GET /api/routine/journal",
     "GET /api/routine/weather",
     "GET /api/routines",
@@ -323,6 +324,7 @@
     "POST /api/returns",
     "POST /api/returns/:returnId/insight",
     "POST /api/routine-builder",
+    "POST /api/routine/evolution/apply",
     "POST /api/routine/feedback",
     "POST /api/routine/journal",
     "POST /api/routines/compare",

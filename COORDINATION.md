@@ -4916,3 +4916,48 @@ La vue ops utilise la même carte — une seule implémentation.
 **Banc** : linked-records bloc 21 étendu — composant partagé, section
 autonome, carte utilisée par la vue ops, onglet dropship hôte de la section.
 23 blocs exit 0 · lint exit 0 · chaîne complète en cours.
+### D2 LIVRÉ (19/09) — la boucle qui boucle : journal → moteur → « Votre profil a évolué »
+- `src/lib/knowledge/profileEvolution.ts` : table de conversion signaux du
+  journal → réponses du diagnostic (9 signaux, tous avec une issue nommée :
+  6 règles capillaires, 3 signaux peau renvoyés explicitement au parcours
+  peau). Les jauges 1–5 déclenchent aussi (≤ 2 alerte, ≥ 4 confirmation).
+  Jamais d'écrasement silencieux : une valeur déclarée (porosité) produit
+  une confirmation, pas une mutation. Entrées hors fenêtre (avant le
+  diagnostic ou futures) ignorées et comptées.
+- Le moteur segmenté est re-exécuté ; le rapport compare le texte complet
+  des étapes (action + pourquoi + attente) → `added` / `changed` /
+  `removed`. Nouvel input moteur `shorten` : « routine trop longue » met
+  les ajouts de confort en réserve, socle et étape de préoccupation intacts.
+- Profil beauté : instantané `diagnostic` (top-level, énumérations seules)
+  écrit à chaque diagnostic connecté ; à l'application, le `at` d'origine
+  EST CONSERVÉ (sinon le journal deviendrait antérieur et la boucle
+  s'effacerait). Ne pas « corriger » ce point.
+- `GET/POST /api/routine/evolution` (+apply) : inventaire de routes
+  régénéré volontairement (`KURLA_UPDATE_FIXTURE=1`, +2 routes → 349).
+- Page `/account/routine-evolution` (4 temps, badges « nouveau »/« recalée »,
+  comparateur J+0, application = choix explicite) + routeMeta. L4 : lien
+  vers cette page, message sans fausse promesse, journal capillaire enfin
+  compté comme signal.
+- Bancs : `tests/kurla_profile_evolution.test.ts` 11/11 (`test:profile-evolution`,
+  dans la chaîne après `test:diagnostic-params`) ; `kurla_evolution_l4`
+  actualisé au nouveau contrat (14/14). tsc 0 ; build 0 ; mobile 390 px
+  over=0 (mur d'auth vérifié — le rendu connecté n'est pas vérifiable dans
+  le sandbox sans Supabase, consigné honnêtement).
+- Prochain : **D6** (parité peau : mêmes mécanismes, logique peau).
+
+### D6 LIVRÉ (19/09) — parité peau : garde-fou IA, fallback moteur, boucle d'évolution cutanée
+- `validateSkinAiOutput` (aiGuardrail) : mêmes familles de contrôle que la
+  porte cheveux + refus d'exfoliation sur barrière fragile ; le fallback peau
+  vient du moteur (`buildSkinFallback`, `buildSkinPromptNote` dans
+  skinAdvisory) — le texte générique de secours a disparu du chemin connecté.
+- `buildSkinEvolutionReport` (profileEvolution) : 12 préoccupations du journal
+  peau + jauges + alias des signaux peau du journal cheveux ; ajouts
+  uniquement, jamais d'écrasement des valeurs déclarées.
+- CONTRAT : touches du rapport peau = touches du rapport cheveux (banc
+  `kurla_profile_evolution_skin` l'affirme — ne pas « optimiser » une touche
+  d'un seul côté sans l'autre).
+- Instantané profil : `atSkin` + clé peau dans `diagnostic`, chaque sauvegarde
+  préserve la moitié de l'autre domaine. Ne pas revenir dessus.
+- `/account/routine-evolution` sert les DEUX domaines (apply par
+  `domain: 'hair'|'skin'`) ; le lien L4 unique des deux parcours est ce chemin.
+- Programme D5→D1→D3→D4→D2→D6 : SIX CHANTIERS LIVRÉS.

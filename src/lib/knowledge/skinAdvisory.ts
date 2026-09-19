@@ -444,4 +444,70 @@ export function buildSkinAdvisorySummary(ctx: SkinAdvisoryContext, priorities: s
   return parts.join(' ');
 }
 
+/* ------------------------------------------------------------------ */
+/* 5. PARITÉ CHEVEUX (D6) — le moteur sert l'IA, pas l'inverse        */
+/* ------------------------------------------------------------------ */
 
+/**
+ * Miroir exact du chemin capillaire (D1/D3/D4) : le contexte est construit
+ * AVANT l'appel IA, il alimente la note au modèle, il devient la porte de
+ * validation de la sortie et le fallback déterministe si la sortie est
+ * rejetée. Le client ne voit jamais la porte : ce qu'il voit est soit une
+ * reformulation fidèle du moteur, soit le moteur lui-même — jamais un
+ * générique de secours, jamais une promesse que la base ne tient pas.
+ */
+export function buildSkinAdvisoryContext(answers: Record<string, unknown>): SkinAdvisoryContext {
+  const one = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() && !IGNORED.includes(v.trim()) ? v.trim() : undefined);
+  const list = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string' && !IGNORED.includes(item.trim())).map(item => item.trim()) : undefined);
+  return {
+    skinType: one(answers.skinType),
+    hydrationLevel: one(answers.hydrationLevel),
+    sensitivity: one(answers.sensitivity),
+    sensitivities: list(answers.sensitivities),
+    skinConcerns: list(answers.skinConcerns),
+    skinObjectives: list(answers.skinObjectives),
+    hyperpigmentationTendency: one(answers.hyperpigmentationTendency),
+    spfUsage: one(answers.spfUsage),
+    acne: one(answers.acne),
+  };
+}
+
+export function buildSkinEngineSteps(ctx: SkinAdvisoryContext): string[] {
+  const routine = buildSkinAdvisoryRoutine(ctx);
+  return [...routine.morning, ...routine.evening, ...routine.weekly].map(step => step.action);
+}
+
+/** Le moteur refuse-t-il l'exfoliation automatique (barrière fragile ou peau sensible) ? */
+export function skinExfoliationBlocked(ctx: SkinAdvisoryContext): boolean {
+  const routine = buildSkinAdvisoryRoutine(ctx);
+  return routine.weekly.some(step => /aucune exfoliation/i.test(step.action));
+}
+
+export function buildSkinPromptNote(ctx: SkinAdvisoryContext, priorities: string[]): string {
+  const parts: string[] = [];
+  const f = contextFlags(ctx);
+  const bits: string[] = [];
+  if (isDeclared(ctx.skinType)) bits.push(`type ${ctx.skinType}`);
+  if (isDeclared(ctx.sensitivity)) bits.push(`sensibilité ${ctx.sensitivity}`);
+  if (f.marks) bits.push('travail du pigment (HPI) en progressif');
+  if (f.blemishes) bits.push('calmer sans assécher');
+  if (f.barrierFocus) bits.push('barrière à reconstruire d’abord');
+  if (bits.length) parts.push(`Le profil déclaré : ${bits.join(', ')}.`);
+  if (priorities.length) parts.push(`Priorités du questionnaire : ${priorities.slice(0, 3).join(', ')} — elles doivent apparaître dans le summary, pas seulement dans les produits.`);
+  const steps = buildSkinEngineSteps(ctx);
+  if (steps.length) parts.push(`Référence moteur des étapes (l’IA reformule, n’invente pas un autre programme) : ${steps.join(' | ')}.`);
+  if (skinExfoliationBlocked(ctx)) parts.push('Exfoliation refusée par le moteur (barrière ou sensibilité) : aucune étape ne doit la proposer, ni aujourd’hui ni « en progressif ».');
+  if (parts.length) parts.push('Une peau sensible n’a pas le même programme qu’une peau qui marque : suis le cycle de CE profil précis.');
+  return parts.join(' ');
+}
+
+export function buildSkinFallback(ctx: SkinAdvisoryContext, priorities: string[]): { summary: string; recommendedRoutine: string; reason: string; steps: string[] } {
+  const f = contextFlags(ctx);
+  const target = f.marks ? 'taches / HPI' : f.blemishes ? 'imperfections' : f.dry ? 'sécheresse' : f.dehydrated ? 'déshydratation' : f.sensitive ? 'tolérance' : 'entretien';
+  return {
+    summary: buildSkinAdvisorySummary(ctx, priorities),
+    recommendedRoutine: `Routine KURLA — peau ${target}`,
+    reason: 'Les étapes suivent le cycle du profil déclaré : type de peau, sensibilité, préoccupations et SPF — sans diagnostic médical.',
+    steps: buildSkinEngineSteps(ctx).slice(0, 8)
+  };
+}

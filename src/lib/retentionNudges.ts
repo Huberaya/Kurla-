@@ -74,7 +74,8 @@ export interface NudgeEvolution {
   outcomes?: Array<{ observedAt?: string | null }>;
   /** Tâches de routine terminées (routine_tasks.completed_at). */
   routineCompletedTasks?: Array<{ completedAt?: string | null }>;
-  /** Entrées du journal peau (beauty_profiles.profile.skin.journal). */
+/** Entrées des journaux peau ET cheveux — la routine capillaire évolue
+   * aussi à la lecture du journal de progression (D2). */
   journalEntries?: Array<{ date?: string | null }>;
 }
 
@@ -275,9 +276,9 @@ function pushProfileEvolutionNudge(input: NudgeInput, now: Date, nudges: Nudge[]
   nudges.push({
     kind: 'profile_evolution',
     dedupeKey: `nudge:profile-evolution:${input.userId}:${diagnosticAt.slice(0, 10)}`,
-    title: 'Évolution de votre profil — nouvelle recommandation',
-    message: `Depuis votre diagnostic, ${parts.join(', ')} a${parts.length > 1 ? 'nt' : ''} alimenté le moteur KURLA. Vos recommandations ont été recalées en conséquence : découvrez ce qui a changé dans votre profil.`,
-    link: '/account/kurla-id',
+    title: 'Votre profil a évolué — routine recalculée',
+    message: `Depuis votre diagnostic, ${parts.join(', ')} a${parts.length > 1 ? 'nt' : ''} alimenté le moteur KURLA. La routine recalculée vous attend : chaque changement est justifié, et vous gardez la main pour l’appliquer.`,
+    link: '/account/routine-evolution',
     refId: input.userId,
   });
 }

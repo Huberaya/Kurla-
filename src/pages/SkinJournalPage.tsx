@@ -372,7 +372,7 @@ export const SkinJournalPage: React.FC = () => {
               <span className="text-3xl font-bold text-kurla-copper">{entries.length}</span><span className="text-sm text-kurla-carbon/50"> / 50</span>
               <p className="text-[11px] text-kurla-carbon/50 mt-1">J+0 · J+7 · J+30</p>
               <div className="mt-3 flex gap-2 justify-center">
-                <a href="/peau/routine" className="px-3 py-1.5 rounded-full bg-kurla-carbon text-white text-[11px] font-bold">Ma routine</a>
+                <a href="/peau/routine" className="px-3 py-1.5 rounded-full bg-kurla-carbon text-white text-[11px] font-bold">Ma routine</a><a href="/account/routine-evolution" className="px-3 py-1.5 rounded-full border border-kurla-copper/40 text-kurla-copper text-[11px] font-bold">Routine recalculée →</a>
                 <a href="/account/shelf?cat=peau" className="px-3 py-1.5 rounded-full bg-kurla-sand border border-kurla-stone text-[11px] font-bold">Mon étagère peau</a>
               </div>
             </div>

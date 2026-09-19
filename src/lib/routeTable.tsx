@@ -34,6 +34,7 @@ const SkinIdPage = lazy(() => import('../pages/SkinIdPage').then(m => ({ default
 const RoutineIdPage = lazy(() => import('../pages/RoutineIdPage').then(m => ({ default: m.RoutineIdPage })));
 const RoutineTrackerPage = lazy(() => import('../pages/RoutineTrackerPage').then(m => ({ default: m.RoutineTrackerPage })));
 const ProgressJournalPage = lazy(() => import('../pages/ProgressJournalPage').then(m => ({ default: m.ProgressJournalPage })));
+const RoutineEvolutionPage = lazy(() => import('../pages/RoutineEvolutionPage').then(m => ({ default: m.RoutineEvolutionPage })));
 const ProgressionPage = lazy(() => import('../pages/ProgressionPage').then(m => ({ default: m.ProgressionPage })));
 const BeautyJourneyPage = lazy(() => import('../pages/BeautyJourneyPage').then(m => ({ default: m.BeautyJourneyPage })));
 const KurlaPlusPage = lazy(() => import('../pages/KurlaPlusPage').then(m => ({ default: m.KurlaPlusPage })));
@@ -240,6 +241,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/account/routine-id', auth: {}, render: () => <RoutineIdPage /> },
   { path: '/account/routine-tracker', auth: {}, render: () => <RoutineTrackerPage /> },
   { path: '/account/progress', auth: {}, render: () => <ProgressJournalPage /> },
+  { path: '/account/routine-evolution', auth: {}, render: () => <RoutineEvolutionPage /> },
   { path: '/account/progression', auth: {}, render: () => <ProgressionPage /> },
   { path: '/account/journey', auth: {}, render: () => <BeautyJourneyPage /> },
   { path: '/account/kurla-plus', auth: {}, render: () => <KurlaPlusPage /> },

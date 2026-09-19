@@ -294,6 +294,46 @@ formulaire sans friction (1 question de plus max par tour).
 casse + cuir chevelu qui démange) → à J+30, la routine DIFFÈRE de J+0 sur
 les points causaux, et la page d'évolution les nomme ; nudge L4 validé.
 
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/profileEvolution.ts` : la table de conversion
+  signal → réponse (9 signaux du journal, 6 réponses capillaires, 3 signaux
+  peau explicitement renvoyés au parcours peau — aucun signal sans issue
+  nommée). Les jauges 1–5 frappent aussi (moyenne ≤ 2 en alerte, ≥ 4 en
+  confirmation) et la cause citée est soit le signal, soit la jauge.
+- Le moteur segmenté est RE-EXÉCUTÉ sur le profil évolué : le rapport
+  compare le TEXTE COMPLET de chaque étape (action + pourquoi + attente) —
+  « ajoutée », « recalée », « retirée ». Un signal qui contredit une valeur
+  déclarée (porosité) ne l'écrase jamais : il produit une confirmation qui
+  explique la protection. Entrées antérieures au diagnostic ou datées du
+  futur : ignorées et comptées. Sans instantané de diagnostic : la page
+  l'affirme et renvoie au diagnostic, rien n'est inventé.
+- Nouveau profil persistant : champ `diagnostic` (instantané assaini,
+  énumérations seules, jamais de texte libre) écrit à chaque diagnostic
+  connecté ; `shorten` dans le contexte moteur (routine « trop longue » →
+  les ajouts de confort passent en réserve, le socle et l'étape de
+  préoccupation restent intacts).
+- Page « Votre profil a évolué » : `/account/routine-evolution`
+  (routeTable + routeMeta + garde d'auth vérifiée au navigateur à 390 px,
+  `over=0`) — 4 temps : ce que le journal a dit / ce que KURLA en déduit
+  (avant → après, cause citée par changement) / la routine recalculée
+  (badges « nouveau » et « recalée », comparateur J+0) / appliquer —
+  l'application au profil est un choix explicite, jamais silencieux.
+- API : `GET /api/routine/evolution`, `POST /api/routine/evolution/apply`
+  (inventaire des routes régénéré volontairement : +2 routes, 349 au
+  total ; gardes d'authorization et de confidentialité passés).
+- Nudge L4 : le lien pointe vers la page qui existe ; la phrase « vos
+  recommandations ont été recalées » (promesse creuse, constat n°2) est
+  remplacée par ce qui est réellement servi (« chaque changement est
+  justifié, et vous gardez la main ») ; le journal CAPILLAIRE compte enfin
+  comme signal d'évolution (il n'y avait que le journal peau).
+- Entrées de la boucle : page résultat → « Ce que mon journal changera » ;
+  journal → « Routine recalculée ».
+- Bancs : `tests/kurla_profile_evolution.test.ts` 11/11 (scénario
+  d'acceptation J+0 → J+30 inclus) ; banc L4 mis à jour du nouveau contrat
+  (14/14). Le point d'entrée « répondre aux observations » du plan a pris
+  la forme d'un lien vers la boucle plutôt que d'un formulaire de plus :
+  le journal existe déjà, une page de plus l'aurait concurrencé.
+
 ---
 
 ### D6 — Parité Peau (après solidification Cheveux)
@@ -307,6 +347,40 @@ D2 (boucle) à la peau avec le contenu peau propre — même architecture,
 logique spécialisée.
 
 **Acceptation** : banc peau miroir du banc cheveux vert.
+
+**LIVRÉ (19/09)**
+- Le moteur peau sert désormais l'IA comme côté cheveux : contexte construit
+  AVANT l'appel, note au prompt (profil déclaré, priorités, référence moteur,
+  refus documenté d'exfoliation), porte de validation `validateSkinAiOutput`
+  (miroir D3 : structure, vocabulaire banni partagé, ancrage au programme,
+  plus la règle de sécurité peau — l'exfoliation refusée par le moteur ne
+  peut PAS être servie par l'IA), et fallback déterministe `buildSkinFallback`
+  — le générique de secours (« routine structurée à ajuster progressivement »)
+  est mort : vérifié en live, un diagnostic peau sensible reçoit 7 étapes
+  personnalisées avec résumé citant le profil, source fallback.
+- Boucle d'évolution peau (miroir D2) : `SKIN_EVOLUTION_RULES` — les 12
+  préoccupations du journal cutané + le ressenti 1–5 (moyenne ≤ 2 →
+  reconstruction de barrière ; ≥ 4 → confirmation sans changement) + les
+  trois signaux peau du journal CHEVEUX que D2 laissait en attente entrent
+  par alias (`spots_not_improving`→taches, `skin_tight`→sécheresse,
+  `spots_improving`→confirmation). Ajouts seulement : aucune valeur déclarée
+  (type, sensibilité, hydratation) n'est écrasée ; préoccupation déjà portée
+  → confirmation, pas doublon.
+- Contrat de parité verrouillé par le banc : le rapport peau a EXACTEMENT les
+  mêmes touches que le rapport cheveux (disponibilité, avant/après,
+  changements nommés avec cause, confirmations, added/removed/changed sur le
+  texte complet des étapes).
+- Instantané de diagnostic étendu à la peau (`atSkin` + énumérations
+  cutanées, jamais de texte libre) ; une sauvegarde cheveux ne peut plus
+  effacer la moitié peau et réciproquement. Application par domaine explicite
+  sur `/account/routine-evolution`, qui affiche désormais les deux parcours
+  côte à côte (mêmes écrans, libellés de colonnes par domaine — le parité
+  espaces est respectée) ; le journal peau renvoie vers la boucle.
+- Bancs : `tests/kurla_profile_evolution_skin.test.ts` 12/12
+  (`test:profile-evolution-skin`, dans la chaîne) ; D2 11/11 et L4 14/14
+  inchangés ; régression peau et diagnostic complète verte ; tsc 0 ; build 0.
+- Limite consignée : la vraie sortie Gemini n'est pas exercée dans le sandbox
+  (porte et fallback testés en unitaire + fallback vérifié en live).
 
 ---
 

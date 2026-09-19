@@ -12,6 +12,38 @@ export interface HairZoneProfile {
   concerns: string[];
 }
 
+/**
+ * D2 — instantané des réponses du dernier diagnostic, rattaché au profil
+ * pour que la boucle J+30 ait un point de départ côté serveur (le champ
+ * existe déjà à l'écran ; ici il est seulement conservé, rien de nouveau
+ * n'est collecté). Uniquement des énumérations connues, jamais de texte libre.
+ */
+export interface DiagnosticSnapshot {
+  at: string;
+  source: string;
+  /** D6 — ancrage et réponses du diagnostic peau (miroir exact du bloc cheveux). */
+  atSkin: string;
+  skinType: string;
+  skinHydration: string;
+  skinSensitivity: string;
+  skinConcerns: string;
+  skinObjectives: string;
+  skinSpf: string;
+  skinAcne: string;
+  skinMarks: string;
+  skinApplied: string;
+  texture: string;
+  style: string;
+  focus: string;
+  priority: string;
+  porosity: string;
+  scalp: string;
+  frequency: string;
+  length: string;
+  experience: string;
+  shorten: string;
+}
+
 export interface HairBeautyProfile {
   texturePatterns: string[];
   curlPattern: string;
@@ -108,6 +140,8 @@ export interface BeautyEnvironmentProfile {
 
 export interface BeautyProfile {
   version: 1;
+  /** D2 — dernier instantané de diagnostic (boucle d'évolution). */
+  diagnostic: DiagnosticSnapshot | null;
   hair: HairBeautyProfile;
   skin: SkinBeautyProfile;
   environment: BeautyEnvironmentProfile;
@@ -530,6 +564,7 @@ const emptyZone = (): HairZoneProfile => ({
 export function createEmptyBeautyProfile(): BeautyProfile {
   return {
     version: 1,
+    diagnostic: null,
     hair: {
       texturePatterns: [UNKNOWN],
       curlPattern: UNKNOWN,
@@ -673,6 +708,27 @@ function normalizeZone(value: unknown): HairZoneProfile {
   };
 }
 
+export function normalizeDiagnosticSnapshot(raw: unknown): DiagnosticSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Record<string, unknown>;
+  const one = (key: string, max = 24): string => (typeof value[key] === 'string' ? (value[key] as string).slice(0, max) : '');
+  const at = one('at', 40);
+  if (!at && !one('atSkin', 40)) return null;
+  const atSkin = one('atSkin', 40);
+  return {
+    at,
+    atSkin,
+    source: one('source', 16) || 'diagnostic',
+    texture: one('texture'), style: one('style'), focus: one('focus', 40), priority: one('priority', 40),
+    porosity: one('porosity'), scalp: one('scalp'), frequency: one('frequency', 24),
+    length: one('length'), experience: one('experience', 24), shorten: one('shorten', 8),
+    skinType: one('skinType'), skinHydration: one('skinHydration'), skinSensitivity: one('skinSensitivity'),
+    skinConcerns: one('skinConcerns', 200), skinObjectives: one('skinObjectives', 200),
+    skinSpf: one('skinSpf'), skinAcne: one('skinAcne'), skinMarks: one('skinMarks'),
+    skinApplied: one('skinApplied', 16),
+  };
+}
+
 export function normalizeBeautyProfile(input: unknown): BeautyProfile {
   const base = createEmptyBeautyProfile();
   const value = input && typeof input === 'object' ? input as Record<string, any> : {};
@@ -688,6 +744,7 @@ export function normalizeBeautyProfile(input: unknown): BeautyProfile {
 
   return {
     version: 1,
+    diagnostic: normalizeDiagnosticSnapshot(value.diagnostic),
     hair: {
       texturePatterns: safeArray(hair.texturePatterns),
       curlPattern: safeString(hair.curlPattern),

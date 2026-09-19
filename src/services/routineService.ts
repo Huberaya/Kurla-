@@ -66,6 +66,20 @@ export async function addProgressJournalEntry(token: string, input: {
   });
 }
 
+/** D2 — évolution du profil (journal → moteur segmenté → avant/après). */
+export async function getRoutineEvolution(token: string): Promise<{ report: unknown; applied: boolean; diagnosticAt: string | null }> {
+  return request<{ report: unknown; applied: boolean; diagnosticAt: string | null }>('/api/routine/evolution', token);
+}
+
+export async function applyRoutineEvolution(token: string, domain: 'hair' | 'skin' = 'hair'): Promise<{ applied: boolean; domain: string; report: unknown }> {
+  return request<{ applied: boolean; domain: string; report: unknown }>('/api/routine/evolution/apply', token, { method: 'POST', body: JSON.stringify({ domain }) });
+}
+
+/** D6 — le journal peau (entrées serveur, pas localStorage) pour l'évolution cutanée. */
+export async function getSkinJournal(token: string): Promise<{ entries: Array<{ id?: string; date: string; concerns: string[]; feelingScore?: number; note?: string; notes?: string }> }> {
+  return request<{ entries: Array<{ id?: string; date: string; concerns: string[]; feelingScore?: number; note?: string; notes?: string }> }>('/api/skin/journal', token);
+}
+
 export async function getRoutineWeather(token: string, latitude: number, longitude: number): Promise<RoutineWeatherContext> {
   const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
   const data = await request<{ weather: RoutineWeatherContext }>(`/api/routine/weather?${query.toString()}`, token);
