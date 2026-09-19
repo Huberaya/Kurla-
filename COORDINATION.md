@@ -4823,3 +4823,19 @@ candidate → catalogue) jamais utilisé (0).
 **Bancs** : linked-records bloc 22 (route, lien réel, sections, cliquabilité,
 contexte passé au bureau) — 22 blocs exit 0 · purchasing/prospects/
 supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
+### D3 LIVRÉ (19/09) — garde-fou qualité sur la sortie IA du diagnostic cheveux
+
+- Nouveau `src/lib/knowledge/aiGuardrail.ts` : `validateHairAiOutput` (la
+  porte, invariants du fallback) + listes de vocabulaire interdit en SOURCE
+  UNIQUE (les bancs `kurla_hair_advisory` et `kurla_diagnostic_quality`
+  importent désormais ces listes — plus de divergence possible).
+- `recommendations.ts` : calculs moteur hoistés avant l'appel Gemini ;
+  sortie validée par la porte, rejet → bascule déterministe silencieuse
+  (raisons en journal serveur seulement) ; warnings de l'IA scannés ;
+  disclaimer négation (« sans diagnostic médical ») explicitement toléré.
+- Nouveau banc `tests/kurla_ai_guardrail.test.ts` = `test:ai-guardrail`,
+  chaîné après `test:diagnostic-quality`. 10 contrats verts ; tsc 0 ;
+  qualité/hair-advisory/segments/c4/care-kit/advisory/session verts ; live
+  POST route OK (chemin sans clé : fallback servi).
+- Prochain : **D4** (longueur + fréquence réellement utilisée +
+  expérience — chaque paramètre : option → règle → assertion).
