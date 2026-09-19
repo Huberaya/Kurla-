@@ -228,5 +228,56 @@ function mainRegistry(): void {
   console.log('[PASS] Registre approvisionné (chantier D) : 4 stades dérivés fail-closed, réconciliation par id, vague réelle, filtres cumulables, options sans invention, CSV CRLF échappé, e-mail par ligne.');
 }
 
+/**
+ * CIBLAGE DES MESSAGES (19/09) — « quand j'envoie un message à un
+ * fournisseur, je veux savoir quels produits sont ciblés, lesquels sont déjà
+ * dans la boutique, et lesquels attendent un fournisseur ».
+ */
+function mainTargeting() {
+  const result = buildConsolidatedSourcing(fixtures as any);
+
+  // Chaque bloc porte son ciblage : compte cohérent, jamais inventé.
+  for (const block of result.supplierBlocks) {
+    assert.equal(block.targetedCount, block.targeted.length, `bloc ${block.name} : targetedCount doit coller à la liste`);
+    assert.equal(block.targetedCount, block.rowCount, `bloc ${block.name} : le ciblage couvre toutes les lignes du bloc`);
+    assert.ok(block.inShopCount <= block.targetedCount, `bloc ${block.name} : inShopCount incohérent`);
+  }
+
+  // Un produit publié rattaché à un fournisseur : ciblé ET dans la boutique,
+  // derrière son id réel (fiche éditable).
+  const blacketique = result.supplierBlocks.find(b => b.name === 'BLACKETIQUE SAS');
+  assert.ok(blacketique, 'bloc BLACKETIQUE attendu');
+  const boj = blacketique!.targeted.find(t => t.name === 'Beauty of Joseon Glow');
+  assert.ok(boj, 'le produit publié doit être ciblé dans le message à son fournisseur');
+  assert.equal(boj!.inShop, true, 'publié = dans la boutique (fait mesuré)');
+  assert.equal(boj!.productId, 'fond-boj-glow', 'le ciblage porte l’id réel de la fiche');
+  assert.equal(boj!.stateLabel, 'publié');
+  assert.ok(blacketique!.inShopCount >= 1);
+  assert.equal(blacketique!.needsSupplier, false);
+
+  // Un candidat sans fiche : ciblé, pas dans la boutique, et AUCUN id produit
+  // inventé — le nom reste du texte tant qu'aucune fiche n'existe.
+  const ankorstore = result.supplierBlocks.find(b => b.name === 'Ankorstore');
+  assert.ok(ankorstore, 'bloc Ankorstore attendu');
+  const cand = ankorstore!.targeted.find(t => t.name === 'Sérum Niacinamide 10 %');
+  assert.ok(cand, 'le candidat rattaché à la piste doit être ciblé');
+  assert.equal(cand!.inShop, false);
+  assert.equal(cand!.productId, null, 'pas de fiche = pas d’id produit (jamais inventé)');
+  assert.equal(cand!.stateLabel, 'identifié');
+
+  // Le bloc des produits sans canal connu est marqué « à sourcer » — c'est la
+  // liste des produits pour lesquels il faut CHERCHER un fournisseur.
+  const toSource = result.supplierBlocks.find(b => b.name === 'Fournisseur à qualifier');
+  assert.ok(toSource, 'bloc « Fournisseur à qualifier » attendu');
+  assert.equal(toSource!.needsSupplier, true, 'le bloc sans canal doit être marqué à sourcer');
+  assert.ok(toSource!.targeted.some(t => t.name === 'Sérum sans prix'), 'l’orphelin sans canal doit y figurer');
+  for (const block of result.supplierBlocks) {
+    if (block.name !== 'Fournisseur à qualifier') assert.equal(block.needsSupplier, false, `bloc ${block.name} : needsSupplier ne se déclenche que sur le bloc sans canal`);
+  }
+
+  console.log('[PASS] Ciblage des messages : produits ciblés par fournisseur, dans la boutique ou non, id réel seulement s’il existe une fiche, bloc « à sourcer » marqué.');
+}
+
 main();
 mainRegistry();
+mainTargeting();

@@ -62,6 +62,23 @@ export type ConsolidatedRow = {
   linkedCandidateId: string | null;
 };
 
+/**
+ * Un produit ciblé par le message à un fournisseur — avec ce que l'acheteur
+ * doit voir avant d'envoyer : est-il déjà dans la boutique, et derrière quel
+ * id réel (fiche éditable) ou aucun (texte, jamais de lien inventé).
+ */
+export type SupplierEmailTarget = {
+  rowKey: string;
+  name: string;
+  kind: ConsolidatedRow['kind'];
+  /** Id de la fiche produit réelle (produit catalogue ou draft) — null = pas de fiche. */
+  productId: string | null;
+  /** Déjà dans la boutique : publié ou en vente (fait mesuré, jamais supposé). */
+  inShop: boolean;
+  /** État lisible pour l'acheteur (en vente, publié, fiché, identifié…). */
+  stateLabel: string;
+};
+
 export type SupplierEmailBlock = {
   key: string;
   name: string;
@@ -73,6 +90,17 @@ export type SupplierEmailBlock = {
   emailSubject: string;
   emailBody: string;
   knownTerms: string[];
+  /**
+   * Bloc « Fournisseur à qualifier » : ce ne sont pas des produits ciblés par
+   * un message, ce sont les produits POUR LESQUELS il faut trouver un
+   * fournisseur — aucun canal n'est connu, aucun e-mail n'a de destinataire.
+   */
+  needsSupplier: boolean;
+  /** Les produits visés par le message de ce bloc, dans l'ordre du registre. */
+  targeted: SupplierEmailTarget[];
+  targetedCount: number;
+  /** Parmi les ciblés : ceux déjà dans la boutique (publié / en vente). */
+  inShopCount: number;
 };
 
 export type ConsolidatedSourcing = {
@@ -328,6 +356,10 @@ export function buildConsolidatedSourcing(args: {
   }
 
   const supplierBlocks: SupplierEmailBlock[] = [];
+  const STATE_LABEL: Record<string, string> = {
+    en_vente: 'en vente', publie: 'publié', conforme: 'conforme',
+    source: 'sourcé', contacte: 'contacté', identifie: 'identifié',
+  };
   for (const block of blocks.values()) {
     const rfq = (rfqs || []).find(r => {
       const content = str(r.content);
@@ -338,6 +370,23 @@ export function buildConsolidatedSourcing(args: {
     });
     const terms = knownTermsFor(block.name);
     const subject = `[KURLA] Compte revendeur + devis — ${block.rows.length} référence${block.rows.length > 1 ? 's' : ''}`;
+    /**
+     * Ciblage du message : quels produits ce bloc vise, lesquels sont déjà
+     * dans la boutique (publié / en vente — fait mesuré), et derrière quel id
+     * réel la fiche est éditable. `productId` n'est posé que s'il existe une
+     * fiche (produit catalogue ou draft de candidat) — jamais inventé.
+     */
+    const targeted: SupplierEmailTarget[] = block.rows.map(row => ({
+      rowKey: row.id,
+      name: row.name,
+      kind: row.kind,
+      productId: row.linkedProductId ? String(row.linkedProductId) : null,
+      inShop: row.state === 'publie' || row.state === 'en_vente',
+      stateLabel: row.state === 'publie' || row.state === 'en_vente'
+        ? STATE_LABEL[row.state]
+        : (row.registryStage === 'fiche_creee' ? 'fiche créée' : (STATE_LABEL[row.state] || row.state)),
+    }));
+    const needsSupplier = block.name === 'Fournisseur à qualifier';
     supplierBlocks.push({
       key: block.name.toLowerCase(),
       name: block.name,
@@ -348,6 +397,10 @@ export function buildConsolidatedSourcing(args: {
       emailSubject: rfq ? subject : subject,
       emailBody: rfq ? String(rfq.content) : buildEmail(subject, block.name, block.rows, terms),
       knownTerms: terms,
+      needsSupplier,
+      targeted,
+      targetedCount: targeted.length,
+      inShopCount: targeted.filter(t => t.inShop).length,
     });
     // Les lignes d'un bloc ayant un RFQ prêt héritent de l'état « pret ».
     if (rfq) for (const row of block.rows) row.emailState = 'pret';

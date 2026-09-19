@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SupplierName } from './EditableRecordName';
+import { ProductName, SupplierName } from './EditableRecordName';
 import { ColumnFilterStrip, applyColumnFilters, emptyFilterState, type ColumnFilter, listFilter } from '../lib/columnFilters';
 import {
   applyRegistryFilter, buildRowEmail, emptyRegistryFilter, registryFilterOptions, registryToCsv,
@@ -213,21 +213,53 @@ export const SourcingConsolidatedPanel: React.FC<{
         <h3 className="font-bold">Fournisseurs & e-mails prêts ({data.supplierBlocks.length})</h3>
         <div className="space-y-3">
           {data.supplierBlocks.map((block: any) => (
-            <div key={block.key} className="p-4 rounded-2xl bg-kurla-ink border border-kurla-cream/10 space-y-2">
+            <div key={block.key} className={`p-4 rounded-2xl bg-kurla-ink border space-y-2 ${block.needsSupplier ? 'border-rose-400/40' : 'border-kurla-cream/10'}`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-bold text-sm">{block.name} <span className="text-[10px] text-kurla-cream/50 font-normal">· {block.rowCount} ligne{block.rowCount > 1 ? 's' : ''}</span></span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${block.emailState === 'pret' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{block.emailState === 'pret' ? 'e-mail prêt (RFQ rédigé)' : 'e-mail généré — à relire'}</span>
+                {block.needsSupplier
+                  ? <span className="font-bold text-sm text-rose-200">Produits pour lesquels trouver un fournisseur <span className="text-[10px] text-rose-200/60 font-normal">· {block.rowCount} référence{block.rowCount > 1 ? 's' : ''} sans canal connu — aucun message ne peut partir tant qu’aucun fournisseur n’est identifié</span></span>
+                  : <span className="font-bold text-sm">{block.name} <span className="text-[10px] text-kurla-cream/50 font-normal">· {block.rowCount} ligne{block.rowCount > 1 ? 's' : ''}</span></span>}
+                {!block.needsSupplier && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${block.emailState === 'pret' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{block.emailState === 'pret' ? 'e-mail prêt (RFQ rédigé)' : 'e-mail généré — à relire'}</span>
+                )}
               </div>
-              <p className="text-[11px] text-kurla-cream/70">
-                Contact : {block.contact ? <a className="text-kurla-amber underline" href={`mailto:${block.contact}`}>{block.contact}</a> : <span className="text-amber-300">e-mail à obtenir</span>}
-                {block.website ? <> · <a className="text-kurla-amber underline" href={block.website.startsWith('http') ? block.website : `https://${block.website}`} target="_blank" rel="noreferrer">{block.website}</a></> : null}
-              </p>
-              {block.knownTerms?.length > 0 && <p className="text-[10px] text-kurla-cream/50">Conditions publiques constatées : {block.knownTerms.join(' · ')}</p>}
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => copyEmail(block)} className="px-3 py-1.5 rounded-lg bg-kurla-copper text-white text-[11px] font-bold flex items-center gap-1"><Copy className="w-3 h-3" /> {copied === block.key ? 'Copié !' : 'Copier l’e-mail'}</button>
-                {block.contact && <a className="px-3 py-1.5 rounded-lg border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1" href={`mailto:${block.contact}?subject=${encodeURIComponent(block.emailSubject)}`}><Mail className="w-3 h-3" /> Ouvrir dans la messagerie</a>}
+              {!block.needsSupplier && (
+                <p className="text-[11px] text-kurla-cream/70">
+                  Contact : {block.contact ? <a className="text-kurla-amber underline" href={`mailto:${block.contact}`}>{block.contact}</a> : <span className="text-amber-300">e-mail à obtenir</span>}
+                  {block.website ? <> · <a className="text-kurla-amber underline" href={block.website.startsWith('http') ? block.website : `https://${block.website}`} target="_blank" rel="noreferrer">{block.website}</a></> : null}
+                </p>
+              )}
+              {/* Ciblage du message : ce que l'acheteur doit voir avant d'envoyer. */}
+              <div className={`text-[11px] font-bold ${block.needsSupplier ? 'text-rose-200/90' : 'text-kurla-cream/85'}`}>
+                {block.needsSupplier
+                  ? <>À sourcer : <span className="text-rose-300">{block.targetedCount - block.inShopCount}</span> référence{block.targetedCount - block.inShopCount > 1 ? 's' : ''}{block.inShopCount > 0 && <> · déjà dans la boutique : <span className="text-emerald-300">{block.inShopCount}</span></>}</>
+                  : <>Ce message cible <span className="text-kurla-amber">{block.targetedCount}</span> produit{block.targetedCount > 1 ? 's' : ''} · déjà dans la boutique : <span className="text-emerald-300">{block.inShopCount}</span> · pas encore en boutique : <span className={block.targetedCount - block.inShopCount > 0 ? 'text-amber-300' : 'text-kurla-cream/50'}>{block.targetedCount - block.inShopCount}</span></>}
               </div>
-              <details className="text-[11px] text-kurla-cream/70 whitespace-pre-wrap border-t border-kurla-cream/5 pt-2">{block.emailBody}</details>
+              <details className="border-t border-kurla-cream/5 pt-2">
+                <summary className="cursor-pointer text-[11px] font-bold text-kurla-amber">{block.needsSupplier ? 'Lister les produits à sourcer' : 'Lister les produits ciblés par le message'}</summary>
+                <div className="space-y-1 mt-2 max-h-72 overflow-y-auto pr-1">
+                  {(block.targeted || []).slice(0, 40).map((target: any) => (
+                    <div key={target.rowKey} className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 rounded-lg bg-kurla-espresso border border-kurla-cream/5">
+                      {target.inShop
+                        ? <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 shrink-0">dans la boutique · {target.stateLabel}</span>
+                        : <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-cream/8 text-kurla-cream/60 shrink-0">{target.stateLabel}</span>}
+                      {target.productId
+                        ? <ProductName id={String(target.productId)} label={target.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => load()} />
+                        : <span className="text-[11px] font-semibold text-kurla-cream/80">{target.name}</span>}
+                      {target.kind === 'candidate' && <span className="text-[9px] text-kurla-cream/40">identifié</span>}
+                      {target.kind === 'position' && <span className="text-[9px] text-kurla-cream/40">veille</span>}
+                    </div>
+                  ))}
+                  {(block.targeted || []).length > 40 && <p className="text-[10px] text-kurla-cream/45">… et {(block.targeted || []).length - 40} autres références (toutes listées dans l’e-mail).</p>}
+                </div>
+              </details>
+              {!block.needsSupplier && block.knownTerms?.length > 0 && <p className="text-[10px] text-kurla-cream/50">Conditions publiques constatées : {block.knownTerms.join(' · ')}</p>}
+              {!block.needsSupplier && (
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => copyEmail(block)} className="px-3 py-1.5 rounded-lg bg-kurla-copper text-white text-[11px] font-bold flex items-center gap-1"><Copy className="w-3 h-3" /> {copied === block.key ? 'Copié !' : 'Copier l’e-mail'}</button>
+                  {block.contact && <a className="px-3 py-1.5 rounded-lg border border-kurla-cream/15 text-[11px] font-bold flex items-center gap-1" href={`mailto:${block.contact}?subject=${encodeURIComponent(block.emailSubject)}`}><Mail className="w-3 h-3" /> Ouvrir dans la messagerie</a>}
+                </div>
+              )}
+              {!block.needsSupplier && <details className="text-[11px] text-kurla-cream/70 whitespace-pre-wrap border-t border-kurla-cream/5 pt-2">{block.emailBody}</details>}
             </div>
           ))}
         </div>

@@ -4791,3 +4791,38 @@ d'interprétation, ~25–35 règles tracées vers hairScience).
   « pas on en ajoute » → « on n’en ajoute pas »).
 - tsc 0 ; 11 bancs verts ; live POST 2 profils OK (fallback).
 - Prochain : **D3** (garde-fou qualité sur la sortie Gemini).
+
+## 19/09 (suite) — Ciblage des messages fournisseurs : produits ciblés, en boutique, à sourcer
+
+**Problème utilisateur** : « quand j'envoie des messages aux fournisseurs pour
+leur demander de l'affiliation, je ne sais pas quels sont les produits ciblés,
+les produits ciblés qui sont dans la boutique, et les produits pour lesquels
+il faut chercher un fournisseur. »
+
+**Mesure avant (base prod)** : 138 produits (111 rattachés, 27 orphelins,
+65 publiés — tous avec fournisseur) · 121 candidats (liés aux pistes par
+prospect_id, draft_product_id quand une fiche existe) · 250 positions ·
+6 RFQ rédigés · 28 pistes (3 liées) · product_sources vide. Le modèle
+consolidé regroupait déjà les lignes par fournisseur et générait l'e-mail
+(références listées dans le corps), mais la vue n'affichait AUCUNE
+ventilation : ni les produits ciblés, ni leur statut boutique.
+
+**Fait** :
+- `sourcingConsolidated.ts` : `SupplierEmailTarget` + bloc étendu —
+  `targeted` (rowKey, name, kind, productId réel ou null, inShop, stateLabel),
+  `targetedCount`, `inShopCount`, `needsSupplier` (bloc « Fournisseur à
+  qualifier » = produits POUR LESQUELS chercher un fournisseur).
+  inShop = état publié/en vente (fait mesuré) ; productId n'existe que s'il y
+  a une fiche (produit ou draft de candidat) — jamais inventé.
+- `SourcingConsolidatedPanel` : chaque bloc affiche « Ce message cible N
+  produit(s) · déjà dans la boutique : M · pas encore : K » + liste dépliable
+  (badge vert « dans la boutique », état lisible, nom cliquable vers la fiche
+  éditable quand un id réel existe, texte sinon ; rechargement après
+  enregistrement). Le bloc sans canal devient « Produits pour lesquels
+  trouver un fournisseur » (rouge, boutons e-mail retirés — aucun
+  destinataire n'existe).
+- Bancs : sourcing-consolidé +`mainTargeting` (ciblage complet, publié = en
+  boutique avec id réel, candidat sans fiche = texte, bloc à sourcer marqué,
+  testé en positif ET négatif) exit 0 · linked-records bloc 22 exit 0.
+
+**Contrôles** : lint exit 0 · chaîne complète en cours · prod à re-mesurer.

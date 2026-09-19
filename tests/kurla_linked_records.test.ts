@@ -510,4 +510,30 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ règle d’or Année 1 : matériels & outils = dropship 24–48h · 0 carton à Paris — mise en évidence en tête de la vue ops, écarts nommés, fiches cliquables');
 }
 
-console.log('\n21 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence.');
+// ---------------------------------------------------------------------------
+// 22. CIBLAGE DES MESSAGES FOURNISSEURS (19/09) — avant d'envoyer un message
+//     (affiliation, devis), l'acheteur voit : quels produits sont ciblés,
+//     lesquels sont déjà dans la boutique, et la liste des produits pour
+//     lesquels il faut chercher un fournisseur. Les noms sont cliquables
+//     vers la fiche éditable SEULEMENT derrière un id réel.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const lib = read('lib/sourcingConsolidated.ts');
+  assert.ok(lib.includes('SupplierEmailTarget'), 'consolidé : le ciblage des messages (SupplierEmailTarget) a disparu.');
+  assert.ok(lib.includes('needsSupplier'), 'consolidé : le bloc « produits à sourcer » n’est plus marqué.');
+  assert.ok(lib.includes('inShopCount'), 'consolidé : le compte « déjà dans la boutique » a disparu.');
+
+  const panel = read('components/SourcingConsolidatedPanel.tsx');
+  assert.ok(panel.includes('Ce message cible'), 'vue consolidée : le ciblage du message n’est plus affiché.');
+  assert.ok(panel.includes('déjà dans la boutique'), 'vue consolidée : les produits déjà en boutique ne sont plus distingués.');
+  assert.ok(panel.includes('Produits pour lesquels trouver un fournisseur'), 'vue consolidée : la liste des produits à sourcer a disparu.');
+  const targetBlock = panel.slice(panel.indexOf('Lister les produits ciblés') - 2000, panel.indexOf('Lister les produits ciblés') + 2000);
+  assert.ok(targetBlock.includes('target.productId'), 'vue consolidée : le clic vers la fiche doit dépendre d’un id produit réel.');
+  assert.ok(/target\.productId\s*\?\s*<ProductName/.test(panel), 'vue consolidée : sans id réel, le nom doit rester du texte — jamais de lien inventé.');
+
+  console.log('✓ ciblage des messages fournisseurs : produits ciblés, déjà dans la boutique, à sourcer — cliquables seulement sur fiche réelle');
+}
+
+console.log('\n22 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, ciblage des messages fournisseurs.');
