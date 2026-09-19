@@ -392,6 +392,8 @@ export function registerRecommendationRoutes(app: Express): void {
       porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
       scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
       frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+      length: typeof answers.length === 'string' ? answers.length : undefined,
+      experience: typeof answers.experience === 'string' ? answers.experience : undefined,
     } : null;
     const hairSegment = advisoryCtx ? getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style) : undefined;
     const hairFocusLabel = getSegmentFocusLabel(advisoryCtx?.focus);

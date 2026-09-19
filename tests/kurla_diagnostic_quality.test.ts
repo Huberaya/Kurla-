@@ -45,6 +45,8 @@ type Profile = {
   scalp?: string;
   porosity?: string;
   frequency: string;
+  length?: string;
+  experience?: string;
   /** Mot-clé qui prouve que le cycle du segment est annoncé dans le résumé. */
   cycleSignal: string;
 };
@@ -55,21 +57,21 @@ const PROFILES: Profile[] = [
   { name: 'L2', texture: 'locksee', style: 'locks', focus: 'locks_propre', priority: 'hydratation', frequency: '1x_semaine', cycleSignal: 'cycle locks' },
   { name: 'L3', texture: 'locksee', style: 'locks', focus: 'locks_cuirs', priority: 'cuir_chevelu', scalp: 'demangeaisons', frequency: '1x_semaine', cycleSignal: 'cycle locks' },
   { name: 'L4', texture: 'locksee', style: 'locks', focus: 'locks_regularite', priority: 'definition', frequency: '2x_semaine', cycleSignal: 'cycle locks' },
-  { name: 'L5', texture: 'locksee', style: 'locks', focus: 'locks_douceur', priority: 'hydratation', scalp: 'sec', porosity: 'faible', frequency: 'debutante', cycleSignal: 'cycle locks' },
+  { name: 'L5', texture: 'locksee', style: 'locks', focus: 'locks_douceur', priority: 'hydratation', scalp: 'sec', porosity: 'faible', frequency: '1x_semaine', experience: 'debutante', length: 'courte', cycleSignal: 'cycle locks' },
   // — protectrice (5)
   { name: 'P1', texture: 'frisee', style: 'braids', focus: 'prot_tension', priority: 'casse', porosity: 'forte', frequency: '1x_semaine', cycleSignal: 'cycle protectrice' },
   { name: 'P2', texture: 'crepue', style: 'twists', focus: 'prot_lavage', priority: 'hydratation', porosity: 'forte', frequency: '2x_semaine', cycleSignal: 'cycle protectrice' },
   { name: 'P3', texture: 'frisee', style: 'braids', focus: 'prot_duree', priority: 'definition', porosity: 'moyenne', frequency: '1x_semaine', cycleSignal: 'cycle protectrice' },
   { name: 'P4', texture: 'crepue', style: 'twists', focus: 'prot_cuirs', priority: 'cuir_chevelu', scalp: 'irritation', frequency: 'irreguliere', cycleSignal: 'cycle protectrice' },
-  { name: 'P5', texture: 'frisee', style: 'braids', focus: 'prot_longueurs', priority: 'pousse', scalp: 'sec', porosity: 'faible', frequency: '1x_semaine', cycleSignal: 'cycle protectrice' },
+  { name: 'P5', texture: 'frisee', style: 'braids', focus: 'prot_longueurs', priority: 'pousse', scalp: 'sec', porosity: 'faible', frequency: '1x_semaine', length: 'longue', cycleSignal: 'cycle protectrice' },
   // — perruque / tissage (4)
   { name: 'W1', texture: 'crepue', style: 'wig', focus: 'wig_cuirs', priority: 'cuir_chevelu', scalp: 'demangeaisons', frequency: '1x_semaine', cycleSignal: 'protège le dessous' },
-  { name: 'W2', texture: 'crepue', style: 'wig', focus: 'wig_transpiration', priority: 'hydratation', porosity: 'forte', frequency: '2x_semaine', cycleSignal: 'protège le dessous' },
+  { name: 'W2', texture: 'crepue', style: 'wig', focus: 'wig_transpiration', priority: 'hydratation', porosity: 'forte', frequency: '2x_semaine', experience: 'habituee', cycleSignal: 'protège le dessous' },
   { name: 'W3', texture: 'frisee', style: 'wig', focus: 'wig_edges', priority: 'casse', frequency: '1x_semaine', cycleSignal: 'protège le dessous' },
   { name: 'W4', texture: 'crepue', style: 'wig', focus: 'wig_entretien', priority: 'hydratation', porosity: 'moyenne', frequency: 'irreguliere', cycleSignal: 'protège le dessous' },
   // — enfant (3)
   { name: 'E1', texture: 'crepue', style: 'enfant', focus: 'enf_demeler', priority: 'demelage_enfant', frequency: '1x_semaine', cycleSignal: 'enfant' },
-  { name: 'E2', texture: 'crepue', style: 'enfant', focus: 'enf_cuirs', priority: 'cuir_chevelu', scalp: 'demangeaisons', frequency: 'debutante', cycleSignal: 'enfant' },
+  { name: 'E2', texture: 'crepue', style: 'enfant', focus: 'enf_cuirs', priority: 'cuir_chevelu', scalp: 'demangeaisons', frequency: '1x_semaine', experience: 'debutante', cycleSignal: 'enfant' },
   { name: 'E3', texture: 'frisee', style: 'enfant', focus: 'enf_patience', priority: 'hydratation', scalp: 'sec', porosity: 'faible', frequency: 'irreguliere', cycleSignal: 'enfant' },
   // — transition (4)
   { name: 'T1', texture: 'defrisee', style: 'naturel', focus: 'trans_ligne', priority: 'casse', porosity: 'forte', frequency: '1x_semaine', cycleSignal: 'transition' },
@@ -80,7 +82,7 @@ const PROFILES: Profile[] = [
   { name: 'N1', texture: 'crepue', style: 'naturel', focus: 'cresp_hydratation', priority: 'hydratation', scalp: 'sec', porosity: 'forte', frequency: '1x_semaine', cycleSignal: 'cycle naturel' },
   { name: 'N2', texture: 'crepue', style: 'naturel', focus: 'cresp_demelage', priority: 'casse', frequency: '2x_semaine', cycleSignal: 'cycle naturel' },
   { name: 'N3', texture: 'frisee', style: 'naturel', focus: 'boucle_frisottis', priority: 'definition', porosity: 'forte', frequency: '1x_semaine', cycleSignal: 'cycle naturel' },
-  { name: 'N4', texture: 'frisee', style: 'naturel', focus: 'boucle_definition', priority: 'definition', porosity: 'moyenne', frequency: 'debutante', cycleSignal: 'cycle naturel' },
+  { name: 'N4', texture: 'frisee', style: 'naturel', focus: 'boucle_definition', priority: 'definition', porosity: 'moyenne', frequency: '1x_semaine', experience: 'expert', length: 'longue', cycleSignal: 'cycle naturel' },
 ];
 
 // ————————————————— vocabulaire interdit (mêmes listes que kurla_hair_advisory) —————————————————
@@ -106,7 +108,7 @@ for (const rule of HAIR_DERIVATION_RULES) {
 }
 
 function ctxOf(p: Profile) {
-  return { texture: p.texture, style: p.style, focus: p.focus, priority: p.priority, scalp: p.scalp, porosity: p.porosity, frequency: p.frequency };
+  return { texture: p.texture, style: p.style, focus: p.focus, priority: p.priority, scalp: p.scalp, porosity: p.porosity, frequency: p.frequency, length: p.length, experience: p.experience };
 }
 
 function allText(p: Profile): string[] {

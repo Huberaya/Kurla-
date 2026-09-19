@@ -20,7 +20,11 @@ export interface HairDiagnosticAnswers {
   priority: HairPriority;
   porosity: Porosity;
   scalp: ScalpCondition;
-  frequency: 'debutante' | '1x_semaine' | '2x_semaine' | 'irreguliere';
+  frequency: 'less_1x' | '1x_semaine' | '2x_semaine' | 'irreguliere' | 'debutante';
+  /** D4 — longueur réellement portée (la question s'insère après le coiffage). */
+  length?: 'courte' | 'moyenne' | 'longue';
+  /** D4 — expérience capillaire (« je débute » y déménage depuis la fréquence). */
+  experience?: 'debutante' | 'habituee' | 'expert';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

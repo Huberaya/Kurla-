@@ -239,6 +239,37 @@ servi ; banc avec sortie IA conforme → elle est servie ; tsc vert.
 expérience différentes) → réponses différenciées vérifiées au banc ;
 formulaire sans friction (1 question de plus max par tour).
 
+**LIVRÉ (19/09)**
+- Formulaire cheveux : +2 questions (Longueur actuelle en Q4, après le
+  coiffage/focus ; Votre expérience en Q9, après la fréquence — 11 questions
+  au total, jauge mise à jour toute seule). La question Fréquence devient le
+  rythme RÉELLEMENT pratiqué : « Moins d’une fois / 1× / 2× (sport) /
+  Variable » — « Je débute » en est déménagé (c’était une expérience).
+- Moteur (`hairAdvisory.ts`) : les trois paramètres produisent des ÉTAPES
+  (pas des phrases) — `applyParams` ajoute « Contrôle des pointes » (longue),
+  « Doser selon la longueur » (courte), « Recharger l’hydratation entre deux
+  lavages » (rythme rare), « Un geste nouveau par semaine » (débutante),
+  « Régler fin : élasticité et temps de pose » (experte), avec déduplication
+  stricte (un cycle qui a déjà son geste d’entre-deux ne le voit pas dupliqué
+  — vérifié chez l’enfant) et régression nulle pour les réponses anciennes
+  (« Je débute » logé dans la fréquence est compris comme expérience).
+- Dérivations D1 branchées sur les nouveaux champs : longueur (frottement /
+  lisibilité), rythme rare (l’eau entre les lavages), croisée forte
+  porosité + 2 lavages (la règle croisée remplace les deux simples), réglages
+  expertes.
+- Fiche technique (page résultat + kit) : les deux lignes nouvelles
+  s’affichent, jamais déduites — champ absent = « Non renseigné ».
+- Route IA : passe-plat des nouveaux champs (le garde-fou D3 reçoit la
+  routine moteur complète ; l’auto-cohérence du déterministe est vérifiée sur
+  6 profils à paramètres).
+- Bancs : `tests/kurla_diagnostic_params.test.ts` (10 contrats : 3 paires +
+  déduplication + pont hérité + fiche + porte D3 + qualité des étapes
+  greffées) chaîné sous `test:diagnostic-params` ; les 25 profils D5 gagnent
+  longueur/expérience et restent verts (min 3 dérivées).
+- Contrôles : tsc 0 ; 10 bancs verts ; live POST (profil transition+longue+
+  débutante+rythme rare → résumé et étape « Recharger » corrects) ; parcours
+  mobile 390px des 11 questions screenshoté, zéro débordement.
+
 ---
 
 ### D2 — La boucle qui boucle (J+7/14/30 → routine réellement recalée)

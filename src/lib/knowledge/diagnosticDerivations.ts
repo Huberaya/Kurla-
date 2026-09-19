@@ -32,6 +32,10 @@ interface Normalized {
   porosity: string;
   scalp: string;
   frequency: string;
+  length: string;
+  experience: string;
+  isLong: boolean;
+  isShort: boolean;
   isLocked: boolean;
   isProtective: boolean;
   isWig: boolean;
@@ -46,6 +50,9 @@ function normalize(ctx: HairAdvisoryContext): Normalized {
   const texture = String(ctx.texture ?? '');
   const style = String(ctx.style ?? '');
   const scalp = String(ctx.scalp ?? '');
+  // D4 : « je débute » vivait dans la fréquence ; le pont garde les réponses
+  // anciennes comprises comme de l'expérience, et libère la fréquence.
+  const legacyBeginner = ctx.frequency === 'debutante';
   return {
     texture,
     style,
@@ -53,7 +60,11 @@ function normalize(ctx: HairAdvisoryContext): Normalized {
     priority: String(ctx.priority ?? ''),
     porosity: String(ctx.porosity ?? ''),
     scalp,
-    frequency: String(ctx.frequency ?? ''),
+    frequency: legacyBeginner ? '' : String(ctx.frequency ?? ''),
+    length: String(ctx.length ?? ''),
+    experience: String(ctx.experience ?? (legacyBeginner ? 'debutante' : '')),
+    isLong: ctx.length === 'longue',
+    isShort: ctx.length === 'courte',
     isLocked: texture === 'locksee' || style === 'locks',
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
@@ -103,19 +114,9 @@ export const HAIR_DERIVATION_RULES: readonly DerivationRule[] = [
     text: 'Un inconfort du cuir chevelu sous les locks met le plus souvent le résidu en cause : rien ne s’échappe facilement d’une lock — c’est pourquoi le shampoing sans résidu et le lavage aux doigts passent avant l’ajout de n’importe quel produit.',
     keys: ['sci_locks_scalp'],
   },
-  {
-    id: 'locks_lavage',
-    when: c => c.isLocked && (c.frequency === '1x_semaine' || c.frequency === '2x_semaine'),
-    text: 'Votre rythme de lavage est juste pour des locks ; le vrai réglage est après l’eau : une lock mal séchée se dégrade plus vite qu’une lock lavée de trop — c’est ce qui rend le temps de séchage non négociable.',
-    keys: ['sci_locks_scalp'],
-  },
-  {
-    id: 'locks_process',
-    when: c => c.isLocked,
-    text: 'La lock se forme par friction et par temps, pas par produit : les cheveux perdus chaque jour restent pris dans le cœur de la lock et la compactent — la routine accompagne ce phénomène, elle ne cherche pas à le forcer.',
-    keys: ['sci_locks_mecanisme'],
-  },
 
+  // Lavage des locks : réglage de rythme — placé après le procès général pour
+  // que les dérivations porosité/cuir chevelu restent dans la fenêtre des 4.
   // — coiffures protectrices (tresses, twists) et perruque / tissage —
   {
     id: 'prot_tension',
@@ -251,13 +252,13 @@ export const HAIR_DERIVATION_RULES: readonly DerivationRule[] = [
   // — rythme de lavage —
   {
     id: 'freq_2x',
-    when: c => c.frequency === '2x_semaine' && !c.isLocked,
+    when: c => c.frequency === '2x_semaine' && !c.isLocked && c.porosity !== 'forte',
     text: 'Deux lavages par semaine, c’est aussi deux séances de démêlage par semaine : chaque lavage est une fenêtre de casse — c’est pourquoi la routine allège les manipulations entre les deux plutôt que d’ajouter des produits.',
     keys: ['sci_friction', 'sci_section_plate'],
   },
   {
     id: 'freq_debut',
-    when: c => c.frequency === 'debutante' && !c.isLocked,
+    when: c => c.experience === 'debutante' && !c.isLocked,
     text: 'En débutant, la première victoire est la tenue du rythme, pas le produit parfait : la douceur vaut plus que la liste — c’est ce qui explique trois gestes courts plutôt qu’un rituel complet qui ne tiendrait pas deux semaines.',
     keys: ['sci_cgm'],
   },
@@ -266,6 +267,53 @@ export const HAIR_DERIVATION_RULES: readonly DerivationRule[] = [
     when: c => c.frequency === 'irreguliere' && !c.isProtective && !c.isWig,
     text: 'Un rythme irrégulier ne laisse aucune prise à l’observation : impossible de relier un progrès ou une gêne à une fréquence — c’est pourquoi choisir un jour de lavage, même imparfait, rend le J+7 lisible.',
     keys: ['sci_typing'],
+  },
+
+  // — D4 : longueur, fréquence réelle, expérience —
+  {
+    id: 'longueur_frottement',
+    when: c => c.isLong && (c.isTextured || c.texture === 'defrisee'),
+    text: 'Vos longueurs portent leur propre poids : les zones fines subissent davantage de frottement au fil des jours — c’est ce qui rend la protection de nuit et le démêlage par sections non optionnels chez vous.',
+    keys: ['sci_friction', 'sci_section_plate'],
+  },
+  {
+    id: 'longueur_courte_lisibilite',
+    when: c => c.isShort,
+    text: 'Sur une longueur courte, les problèmes se voient plus vite — nœuds, sécheresse, tiraillements apparaissent avant de s’installer : c’est ce qui permet à KURLA de régler votre routine à la semaine plutôt qu’à la saison.',
+    keys: ['sci_typing'],
+  },
+  {
+    id: 'rare_hydratation_entre',
+    when: c => c.frequency === 'less_1x',
+    text: 'Laver peu, c’est ne rien apporter en eau la plupart des jours : l’hydratation vient donc de la brume entre les lavages, pas du shampoing — c’est pourquoi l’aqueux léger est une étape, pas un appoint.',
+    keys: ['sci_sebum'],
+  },
+  {
+    id: 'forte_relavage',
+    when: c => c.porosity === 'forte' && c.frequency === '2x_semaine',
+    text: 'Porosité forte lavée deux fois par semaine : chaque lavage rend l’eau que vous venez d’apporter — c’est ce qui impose le second lavage plus doux qu’un premier, ou un simple rinçage aux longueurs.',
+    keys: ['sci_pellicules', 'sci_porosite_test'],
+  },
+  {
+    id: 'expert_reglages',
+    when: c => c.experience === 'expert',
+    text: 'Vous connaissez votre cheveu : KURLA ne vous enseigne pas les gestes, il vous donne les points de mesure — l’élasticité d’une mèche humide et le temps de pose sont les deux molettes que la routine vous laisse régler.',
+    keys: ['sci_relax_porosite', 'sci_typing'],
+  },
+
+  // — remplissages de segment (1 seul champ) : relégués après toutes les
+  // règles croisées, pour ne jamais éjecter une dérivation du plafond de 4 —
+  {
+    id: 'locks_process',
+    when: c => c.isLocked,
+    text: 'La lock se forme par friction et par temps, pas par produit : les cheveux perdus chaque jour restent pris dans le cœur de la lock et la compactent — la routine accompagne ce phénomène, elle ne cherche pas à le forcer.',
+    keys: ['sci_locks_mecanisme'],
+  },
+  {
+    id: 'locks_lavage',
+    when: c => c.isLocked && (c.frequency === '1x_semaine' || c.frequency === '2x_semaine'),
+    text: 'Votre rythme de lavage est juste pour des locks ; le vrai réglage est après l’eau : une lock mal séchée se dégrade plus vite qu’une lock lavée de trop — c’est ce qui rend le temps de séchage non négociable.',
+    keys: ['sci_locks_scalp'],
   },
 
   // — filets structurels (garantissent ≥1 dérivée sur tout profil) —

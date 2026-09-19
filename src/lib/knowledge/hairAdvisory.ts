@@ -43,8 +43,12 @@ export interface HairAdvisoryContext {
   priority?: string;   // hydratation | casse | definition | pousse | cuir_chevelu | demelage_enfant
   porosity?: string;   // forte | faible | moyenne | inconnue
   scalp?: string;      // normal | sec | demangeaisons | pellicules | irritation
-  frequency?: string;  // debutante | 1x_semaine | 2x_semaine | irreguliere
+  frequency?: string;  // less_1x | 1x_semaine | 2x_semaine | irreguliere (+ 'debutante' hérité → expérience)
   budget?: string;     // moins_40 | 40_70 | 70_100 | premium
+  /** D4 : longueur réellement portée (courte | moyenne | longue). */
+  length?: string;
+  /** D4 : expérience capillaire (debutante | habituee | expert). */
+  experience?: string;
 }
 
 export interface HairAdvisoryStep {
@@ -117,10 +121,25 @@ export const HAIR_SCALP_VALUES: Record<string, string> = {
 };
 
 export const HAIR_FREQUENCY_VALUES: Record<string, string> = {
-  debutante: 'Débutante',
+  'less_1x': 'Moins d’1× par semaine',
   '1x_semaine': '1× par semaine',
   '2x_semaine': '2× par semaine',
-  irreguliere: 'Irregular',
+  irreguliere: 'Variable / selon le temps',
+  // Reçu des réponses antérieures (D4 a déplacé « débutante » vers
+  // l'expérience) — gardé pour que les sessions en cours s'affichent juste.
+  debutante: 'Débutante (réponse héritée)',
+};
+
+export const HAIR_LENGTH_VALUES: Record<string, string> = {
+  courte: 'Courte (au-dessus de l’épaule non atteinte)',
+  moyenne: 'Moyenne (épaules)',
+  longue: 'Longue (au-delà des épaules)',
+};
+
+export const HAIR_EXPERIENCE_VALUES: Record<string, string> = {
+  debutante: 'Je débute dans les routines texturées',
+  habituee: 'J’ai déjà des habitudes',
+  expert: 'Routine avancée, je connais ma fibre',
 };
 
 interface HairFlags {
@@ -130,6 +149,8 @@ interface HairFlags {
   isGrowth: boolean; isScalp: boolean; scalpTrouble: boolean;
   highPorosity: boolean; lowPorosity: boolean; isBeginner: boolean;
   isTransition: boolean;
+  length: string; experience: string;
+  isShort: boolean; isLong: boolean; isExpert: boolean;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -140,9 +161,13 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
   const scalp = String(ctx.scalp ?? '');
   const frequency = String(ctx.frequency ?? '');
   const focus = String(ctx.focus ?? '');
+  const length = String(ctx.length ?? '');
+  const experience = String(ctx.experience ?? '');
+  const legacyBeginner = frequency === 'debutante';
+  const frequencyReal = legacyBeginner ? '' : frequency;
   const scalpTrouble = scalp === 'sec' || scalp === 'demangeaisons' || scalp === 'pellicules' || scalp === 'irritation';
   return {
-    texture, style, priority, porosity, scalp, frequency, focus,
+    texture, style, priority, porosity, scalp, frequency: frequencyReal, focus, length, experience,
     isCoily: texture === 'crepue',
     isCurly: texture === 'frisee' || texture === 'bouclee' || priority === 'definition',
     isLocked: texture === 'locksee' || style === 'locks',
@@ -156,8 +181,13 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     scalpTrouble,
     highPorosity: porosity === 'forte',
     lowPorosity: porosity === 'faible',
-    isBeginner: frequency === 'debutante',
+    // D4 : « débutante » vivait dans la fréquence (mauvaise case) ; le champ
+    // propre existe — le reçu ancien reste compris comme expérience.
+    isBeginner: experience === 'debutante' || legacyBeginner,
     isTransition: texture === 'defrisee' || style === 'defrise',
+    isShort: length === 'courte',
+    isLong: length === 'longue',
+    isExpert: experience === 'expert',
   };
 }
 
@@ -917,6 +947,80 @@ const FOCUS_STEPS: Record<string, FocusStep> = {
 };
 
 /** Ajoute l’étape qui sert la préoccupation déclarée (une par colonnes concernées). */
+/**
+ * D4 — LA COUCHE PARAMÈTRES (longueur, fréquence réelle, expérience) : le
+ * croisement segment × paramètre produit des étapes RÉELLES, pas une simple
+ * phrase de résumé. Chaque ajout vérifie la déduplication : un paramètre ne
+ * recopie jamais une étape que le cycle du segment contient déjà.
+ */
+function applyParams(
+  routine: { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] },
+  f: HairFlags
+): { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] } {
+  const all = [...routine.morning, ...routine.evening, ...routine.weekly];
+  const has = (re: RegExp) => all.some(step => re.test(step.action));
+  const next = { morning: [...routine.morning], evening: [...routine.evening], weekly: [...routine.weekly] };
+
+  // — Longueur —
+  if (f.isLong && !f.isKid && !has(/Contrôle des pointes/)) {
+    next.weekly.push({
+      action: 'Contrôle des pointes',
+      why: 'Une longueur longue porte toute l’usure à ses extrémités : les fourches remontent la mèche si on les laisse, et c’est ainsi qu’une chevelure saine perd sa longueur faute de surveillance.',
+      how: 'En fin de semaine, mèche par mèche, palper les pointes et repérer les fourches naissantes ; protéger la nuit est le premier remède, la coupe se décide à un rendez-vous, pas à la maison entre deux lavages.',
+      expect: 'Des pointes surveillées plutôt que surprises : la longueur ne se gagne pas au produit « pousse », elle se gagne à ce qui ne casse pas.',
+    });
+  }
+  if (f.isShort && !has(/Doser selon la longueur/)) {
+    next.evening.push({
+      action: 'Doser selon la longueur',
+      why: 'Sur une longueur courte, le produit parcourt déjà toute la mèche : doser comme sur des longueurs superpose sans hydrater davantage — et l’alourdissement tire sur les racines.',
+      how: 'Une noisette maximum pour l’ensemble, appliquée sur cheveu humide ; étirer avec les doigts plutôt qu’ajouter une couche de plus, racines comprises.',
+      expect: 'Des longueurs souples sans résidu ni racines alourdies — la preuve que le dosage compte autant que le produit.',
+    });
+  }
+
+  // — Fréquence réelle —
+  if (f.frequency === 'less_1x' && !has(/Rafra[îi]chis|entretenir entre/i) && !next.evening.some(st => /Recharger l’hydratation/i.test(st.action))) {
+    next.evening.push({
+      action: 'Recharger l’hydratation entre deux lavages',
+      why: 'Moins d’un lavage par semaine veut dire des jours sans apport d’eau fraîche : le sébum ne remonte pas la fibre courbée, l’hydratation du jour de lavage s’évapore avant le suivant.',
+      how: 'Aux jours du milieu de semaine, brume d’eau sur les longueurs puis scellement léger ; le cuir chevelu, lui, ne se rebrume pas — il se laisse respirer.',
+      expect: 'Une souplesse qui tient jusqu’au lavage suivant au lieu de s’éteindre trois jours plus tôt — moins de nœuds au démêlage, c’est là que la différence se voit.',
+    });
+  }
+  // Le « tout-alléger » n'a de sens que si le cycle n'a pas déjà son geste
+  // d'entretien entre les lavages (naturel/locks l'ont) — sinon on ferait
+  // doublon avec une reformulation du même service.
+  if (f.frequency === '2x_semaine' && !f.isKid && !has(/all[ée]ger|Entretenir entre/i)) {
+    next.evening.push({
+      action: 'Alléger entre les deux lavages',
+      why: 'Deux lavages par semaine, c’est la fibre remise à plat deux fois : ce qui tient entre les deux est un entretien aqueux minimal — un soin riche de plus ne protège rien, il se cumule.',
+      how: 'Le jour sans lavage : brume d’eau sur les longueurs, scellement léger seulement si la fibre tire ; le contour se rince à l’eau claire, sans shampoing intermédiaire.',
+      expect: 'Deux lavages qui ne se marchent pas dessus : chaque jour de lavage repart d’une base propre et souple, sans résidu à décoller.',
+    });
+  }
+
+  // — Expérience —
+  if (f.isBeginner && !has(/Un geste nouveau par semaine|changement à la fois/)) {
+    next.weekly.push({
+      action: 'Un geste nouveau par semaine',
+      why: 'Débuter dix gestes à la fois finit abandonné au deuxième week-end : la routine qui protège le cheveu est celle qui est tenue — un ajout à la fois, le temps que le geste devienne automatique.',
+      how: 'Choisir le premier jour de lavage fixe cette semaine ; n’ajouter le soin suivant que quand celui-là se fait sans y penser ; noter au passage ce qui change (démêlage, tiraillements).',
+      expect: 'En un mois, trois gestes tenus valent plus qu’une routine idéale de liste — et vos notes rendront le prochain ajustement juste.',
+    });
+  }
+  if (f.isExpert && !has(/Régler fin/)) {
+    next.weekly.push({
+      action: 'Régler fin : élasticité et temps de pose',
+      why: 'Sur un cheveu qu’on connaît, le gain n’est plus dans les gestes mais dans les réglages : une fibre qui s’étire sans revenir manque d’eau, une fibre qui casse net manque de souplesse — les deux ne se soignent pas pareil.',
+      how: 'Une fois par mois, étirer une mèche humide et observer le retour ; ajuster le temps de pose du soin de dix minutes selon le résultat — pas de pilote automatique sur les habitudes.',
+      expect: 'Une routine réglée sur votre fibre à la saison près, au lieu d’une routine reconduite par habitude depuis deux ans.',
+    });
+  }
+
+  return next;
+}
+
 function applyFocus(routine: { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] }, f: HairFlags): { morning: HairStepDraft[]; evening: HairStepDraft[]; weekly: HairStepDraft[] } {
   if (!f.focus) return routine;
   const entry = FOCUS_STEPS[f.focus];
@@ -958,6 +1062,7 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
   }
   routine = applyFocus(routine, f);
+  routine = applyParams(routine, f);
   const number = (steps: HairStepDraft[]): HairAdvisoryStep[] =>
     steps.map((step, index) => ({ ...step, label: String(index + 1) }));
   return {
@@ -1249,11 +1354,31 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   if (scalpLine[f.scalp]) parts.push(scalpLine[f.scalp]);
 
   // Fréquence
+  // D4 — Longueur : le paramètre agit sur la routine (étapes dédiées), la
+  // phrase du résumé l'annonce pour que le client voie POURQUOI ces étapes.
+  const lengthLine: Record<string, string> = {
+    courte: 'Longueur courte déclarée : la routine dose en conséquence — moins de produit, et l’ajustement se voit plus vite.',
+    moyenne: 'Longueur moyenne : ni contrainte de fourches à surveiller comme du long, ni maniabilité du court — la routine garde son cadre sans s’alourdir.',
+    longue: 'Longueur longue déclarée : l’usure se concentre aux pointes — la routine ajoute le contrôle des pointes et protège la nuit, jamais en arrachant le démêlage.',
+  };
+  if (lengthLine[f.length]) parts.push(lengthLine[f.length]);
+
+  // D4 — Expérience capillaire (la case qui était logée dans « fréquence »).
+  const experienceLine: Record<string, string> = {
+    debutante: 'Vous débutez : la routine gagne un seul ajout par semaine, pas une liste — c’est la constance qui protège le cheveu.',
+    habituee: 'Vous avez déjà des habitudes : la base KURLA garde ce qui tient chez vous et ajuste le dosage et le temps de pose.',
+    expert: 'Vous connaissez votre fibre : la routine va droit au réglage fin — élasticité mesurée, temps de pose ajusté, rien par habitude.',
+  };
+  if (experienceLine[f.experience]) parts.push(experienceLine[f.experience]);
+
   const frequencyLine: Record<string, string> = {
-    debutante: 'Rythme : pour débuter, un seul jour de lavage à tenir d’abord — les gestes suivants viendront après.',
+    'less_1x': 'Rythme : moins d’un lavage par semaine — l’hydratation vit donc entre les lavages, à l’aqueux léger.',
     '1x_semaine': 'Rythme : un lavage par semaine — un jour de lavage fixe est ce qui rend la routine tenable.',
     '2x_semaine': 'Rythme : deux lavages par semaine — inscrivez les deux jours, le reste de la routine s’accroche à ces deux rendez-vous.',
     irreguliere: 'Rythme : vos lavages ne se suivent pas — notez simplement le jour choisi après chaque lavage, c’est ce qui rendra la suite lisible.',
+    // Reçu des anciennes réponses (« je débute » était une option de
+    // fréquence) : le fond est dit par la ligne d'expérience, on n'alourdit pas.
+    debutante: '',
   };
   if (frequencyLine[f.frequency]) parts.push(frequencyLine[f.frequency]);
 

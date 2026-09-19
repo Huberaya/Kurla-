@@ -4839,3 +4839,26 @@ supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
   POST route OK (chemin sans clé : fallback servi).
 - Prochain : **D4** (longueur + fréquence réellement utilisée +
   expérience — chaque paramètre : option → règle → assertion).
+
+### D4 LIVRÉ (19/09) — longueur, fréquence réelle, expérience
+
+- Formulaire cheveux 9 → 11 questions : « Longueur actuelle » (courte/
+  moyenne/longue, Q4) et « Votre expérience » (débutante/habituée/experte,
+  Q9) ; la Fréquence devient le rythme réellement pratiqué (« Je débute »
+  en sort, déplacé vers l’expérience). Pont régressif : une ancienne
+  réponse frequency=debutante est comprise comme une expérience (banc
+  dédié) et le vieux texte « Rythme : pour débuter » ne peut plus revenir.
+- `applyParams` dans le moteur : chaque paramètre ajoute une VRAIE étape
+  (Contrôle des pointes, Doser selon la longueur, Recharger l’hydratation,
+  Un geste nouveau par semaine, Régler fin) avec déduplication par cycle ;
+  5 nouvelles dérivations D1 (dont croisée porosité forte + 2 lavages).
+  Réordonnancement : les dérivations « remplissage 1 champ » passent après
+  toutes les croisées — une règle de remplissage n’éjecte plus une règle
+  croisée du plafond de 4 (attrapé par le test de réactivité D5).
+- `tests/kurla_diagnostic_params.test.ts` (`test:diagnostic-params`) :
+  3 paires de l’acceptation + déduplication + pont hérité + fiche + garde-
+  fou D3. D5 : profils enrichis longueur/expérience. Fiche résultat et kit
+  affichent les nouvelles lignes (jamais déduites).
+- Contrôles : tsc 0 ; 10 bancs verts ; live POST profil D4 complet OK ;
+  parcours mobile 11 questions screenshoté (390px, over=0).
+- Prochain : **D2** (la boucle J+7/14/30 → routine réellement recalée).
