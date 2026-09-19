@@ -4663,3 +4663,34 @@ produit, rien à ajouter côté champs. Le manque était l'**accès** :
 3 n'affichent aucune fiche (compteurs SupplyOps, message 3PL fixe, kits) —
 classification tenue par le banc, qui échoue si un panneau change de côté
 sans mise à jour explicite.
+## 19/09/2026 — Programme de solidification du diagnostic (proposition)
+
+**Territoire** : go fondateur — « les réponses ne sont pas satisfaisantes ;
+établir des chantiers pour solidifier la partie diagnostic, notre
+innovation, le cœur de la plateforme. »
+
+Proposition rédigée dans `docs/CHANTIERS_DIAGNOSTIC_SOLIDIFICATION.md`
+(proposition d'abord, exécution ensuite) :
+
+- **D5** protocole d'évaluation qualité (25 profils de référence +
+  checklists de contenu + grille de revue) — 1er, pour mesurer
+- **D1** le diagnostic qui interprète (observations dérivées de la
+  combinaison des réponses, ~25–35 règles tracées vers hairScience)
+- **D3** garde-fou IA (la sortie Gemini validée par les invariants du
+  fallback, sinon fallback déterministe — jamais de générique)
+- **D4** paramètres manquants (longueur, fréquence réellement utilisée,
+  expérience)
+- **D2** la boucle qui boucle (observations J+7/14/30 reliées au journal,
+  conversion signaux→réponses, routine recalée re-exécutée, page
+  « votre profil a évolué », nudge L4 corrigé)
+- **D6** parité peau (après solidification cheveux)
+
+Constats vérifiés dans le code qui fondent les chantiers : le résumé
+recite le formulaire (pas de phrase dérivée) ; KurlaIdPage/HairIdPage
+sont des éditeurs de profil (le nudge L4 « recommandations recalées »
+pointe vers une page sans recommandation) ; safeResult vérifie les types
+pas la qualité ; pas de question longueur ; la fréquence n'agit que sur
+une phrase du résumé.
+
+**En attente de validation de l'user** : ordre + ce qui l'a le plus
+déçu dans ses tests + périmètre D4. Aucun chantier exécuté avant ce go.
