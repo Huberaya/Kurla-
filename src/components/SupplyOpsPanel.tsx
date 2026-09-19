@@ -57,7 +57,7 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
   if (error) return <div className="p-6 rounded-3xl bg-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
   if (!data) return <div className="p-6 rounded-3xl bg-espresso border border-kurla-cream/10 text-xs text-kurla-cream/60">Chargement de la vue ops…</div>;
 
-  const { kpi, alerts } = data;
+  const { kpi, alerts, dropshipRule } = data;
 
   return (
     <div className="space-y-4">
@@ -72,6 +72,46 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
           <span className="px-2.5 py-1 rounded-lg bg-kurla-ink border border-kurla-cream/10">{kpi.suppliers} fournisseurs · <span className={kpi.suppliersWithoutContact > 0 ? 'text-amber-300' : 'text-emerald-300'}>{kpi.suppliersWithoutContact} sans contact</span></span>
         </div>
       </div>
+
+      {dropshipRule && (
+        <div className="p-6 rounded-3xl bg-kurla-espresso border-2 border-kurla-copper/50 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <Boxes className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-kurla-amber">Règle d’or Année 1 — tous les matériels &amp; outils sont en dropship 24–48h</h3>
+              <p className="text-[11px] text-kurla-cream/60 mt-1">
+                Expédiés à l’unité par notre partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span> (catégorie « accessoires » = matériels &amp; outils).
+                {' '}{dropshipRule.toolTotal} produit(s) concerné(s) · <span className="text-emerald-300 font-bold">{dropshipRule.conforming.length} conforme(s)</span>
+                {dropshipRule.violations.length > 0 && <> · <span className="text-rose-300 font-bold">{dropshipRule.violations.length} hors règle</span></>}.
+              </p>
+            </div>
+          </div>
+          {dropshipRule.violations.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-rose-300">Hors règle — cliquez sur le nom pour corriger la fiche</p>
+              {dropshipRule.violations.map((violation: any) => (
+                <div key={`tool-violation-${violation.productId}`} className="px-3 py-2 rounded-xl bg-rose-950/25 border border-rose-500/25 flex flex-wrap items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+                  <ProductName id={String(violation.productId)} label={violation.name} headers={headers} className="text-[11px] font-bold text-rose-100" onSaved={() => setReloadToken(t => t + 1)} />
+                  <span className="text-[10px] text-rose-200/75">{(violation.reasons || []).join(' · ')}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{violation.catalogStatus}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <details>
+            <summary className="cursor-pointer text-[11px] font-bold text-emerald-300">{dropshipRule.conforming.length} matériel(s) &amp; outil(s) conforme(s) — dropship 24–48h ✓</summary>
+            <div className="grid md:grid-cols-2 gap-1.5 mt-2">
+              {dropshipRule.conforming.map((entry: any) => (
+                <div key={`tool-ok-${entry.productId}`} className="px-3 py-2 rounded-xl bg-emerald-950/20 border border-emerald-500/15 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <ProductName id={String(entry.productId)} label={entry.name} headers={headers} className="text-[11px] font-semibold text-emerald-100/90" onSaved={() => setReloadToken(t => t + 1)} />
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
 
       {alerts.length > 0 && (
         <div className="p-6 rounded-3xl bg-rose-950/30 border border-rose-400/30 space-y-2">

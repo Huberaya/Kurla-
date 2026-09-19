@@ -11,6 +11,7 @@ import { searchAcrossCatalog } from '../../lib/globalSearch';
 import { freezeOrderRouting } from '../payments/orderRoutingHook';
 import {
   canTransitionSupplyWorkflow,
+  evaluateDropshipToolRule,
   evaluateMargin,
   evaluateSupplyAlerts,
   routeFulfillment,
@@ -357,6 +358,26 @@ export function registerSourcingRoutes(app: Express): void {
         suppliers,
       });
 
+      /**
+       * RÈGLE D'OR ANNÉE 1 — matériels & outils = dropship 24–48h, 0 carton
+       * à Paris. Évaluée sur TOUS les accessoires, y compris `unavailable` :
+       * une fiche démo avec du stock à Paris contredit la règle même si elle
+       * est masquée de la vue ops. Chaque écart porte l'id produit — la vue
+       * le rend cliquable vers sa fiche éditable.
+       */
+      const dropshipRule = evaluateDropshipToolRule(products.map((p: any) => {
+        const productSources = sourcesByProduct[String(p.id)] || [];
+        const primary = productSources.find((s: ProductSource) => s.isPrimary) || productSources.find((s: ProductSource) => s.available) || null;
+        return {
+          id: String(p.id),
+          name: String(p.name || p.id),
+          category: p.category ?? null,
+          catalogStatus: String(p.catalogStatus || p.catalog_status || 'draft'),
+          stockQuantity: Number(p.stockQuantity ?? p.stock_quantity ?? 0),
+          primaryModel: primary?.model || null,
+        };
+      }));
+
       const kpi = {
         products: catalogRows.length,
         withSource: catalogRows.filter(r => r.sourcesCount > 0).length,
@@ -367,7 +388,7 @@ export function registerSourcingRoutes(app: Express): void {
         criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
       };
 
-      res.json({ kpi, alerts, products: catalogRows });
+      res.json({ kpi, alerts, products: catalogRows, dropshipRule });
     } catch (error) {
       console.error('[Sourcing] ops error:', error);
       res.status(500).json({ error: safeApiError(error, 'Vue ops impossible.') });

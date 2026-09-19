@@ -477,4 +477,37 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ fournisseurs : nom cliquable dans la base, fiche = 11 champs + manques nommés, consolidé cliquable seulement sur fiche réelle');
 }
 
-console.log('\n20 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables.');
+// ---------------------------------------------------------------------------
+// 21. RÈGLE D'OR ANNÉE 1 — « tous les matériels & outils sont en dropship
+//     24–48h, 0 carton à Paris » — mise en évidence dans la vue ops :
+//     a) supplyModel expose le contrôle (evaluateDropshipToolRule) ;
+//     b) la route ops l'évalue sur TOUS les accessoires (y compris
+//        unavailable) et renvoie le bloc `dropshipRule` ;
+//     c) le panneau affiche la règle en tête, nomme les écarts, et chaque
+//        matériel/outil (conforme ou hors règle) reste cliquable vers sa
+//        fiche éditable — pas de texte mort.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const model = read('lib/supplyModel.ts');
+  assert.ok(model.includes('export function evaluateDropshipToolRule'), 'supplyModel : le contrôle de la règle dropship outils a disparu.');
+  assert.ok(model.includes('accessoires') && model.includes('0 carton'), 'supplyModel : la règle ne nomme plus son périmètre (accessoires) ni son exigence (0 carton).');
+
+  const route = read('server/routes/sourcing.ts');
+  assert.ok(route.includes('evaluateDropshipToolRule('), 'route ops : la règle n’est plus évaluée côté serveur.');
+  assert.ok(route.includes('dropshipRule'), 'route ops : le bloc dropshipRule n’est plus renvoyé à la vue.');
+
+  const panel = read('components/SupplyOpsPanel.tsx');
+  assert.ok(panel.includes('Règle d’or Année 1'), 'vue ops : la règle d’or n’est plus mise en évidence.');
+  assert.ok(panel.includes('0 carton à Paris'), 'vue ops : l’exigence « 0 carton à Paris » n’est plus affichée.');
+  assert.ok(panel.includes('Hors règle — cliquez sur le nom pour corriger la fiche'), 'vue ops : les écarts à la règle ne sont plus nommés comme corrigeables.');
+  const violationBlock = panel.slice(panel.indexOf('tool-violation-'), panel.indexOf('tool-ok-'));
+  assert.ok(violationBlock.includes('<ProductName'), 'vue ops : un matériel/outil hors règle n’est plus cliquable vers sa fiche.');
+  const conformingBlock = panel.slice(panel.indexOf('tool-ok-'));
+  assert.ok(conformingBlock.includes('<ProductName'), 'vue ops : un matériel/outil conforme n’est plus cliquable vers sa fiche.');
+
+  console.log('✓ règle d’or Année 1 : matériels & outils = dropship 24–48h · 0 carton à Paris — mise en évidence en tête de la vue ops, écarts nommés, fiches cliquables');
+}
+
+console.log('\n21 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence.');

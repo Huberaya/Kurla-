@@ -4733,3 +4733,33 @@ Les deux sections vivent dans `SupplyOpsPanel` (route `/api/admin/sourcing/ops`)
 Reste sans fiche dans l'Appro : message 3PL (5 lignes fixes) et kits —
 inchangé, assumé.
 >>>>>>> Stashed changes
+
+## 19/09 — Règle d'or Année 1 mise en évidence : matériels & outils = dropship 24–48h
+
+**Demande** : « dans les règles, j'avais demandé que tous les matériels et outils
+soient en dropship. je veux que tu mettes ça en évidence ».
+
+**Constat mesuré avant** : la règle existe (FICHE_PLACER_OUTILS_DROPSHIP.md +
+fulfillment.ts : toute la catégorie `accessoires` est routée dropship 24–48h),
+mais elle n'était visible NULLE PART dans l'espace Appro. Base prod : 31
+accessoires — 28 outils publiés conformes (stock 0) et 3 fiches démo
+`unavailable` avec stock à Paris (200/150/100 unités) qui contredisent
+« 0 carton à Paris » — invisibles car la vue ops filtre `unavailable`.
+
+**Fait** :
+- `supplyModel.ts` : `evaluateDropshipToolRule(products)` — périmètre =
+  catégorie `accessoires` ; écart = stock > 0 à Paris (quantité nommée) ou
+  modèle `stock_kurla` ; chaque entrée porte `productId` (cliquable).
+- Route ops : bloc `dropshipRule` évalué sur TOUS les accessoires, y compris
+  `unavailable` (une démo stockée à Paris viole la règle même masquée).
+- `SupplyOpsPanel` : section en tête (bordure cuivre, après les KPI) —
+  « Règle d'or Année 1 — tous les matériels & outils sont en dropship 24–48h ·
+  0 carton à Paris », compte conforme(s)/hors règle, écarts en rouge avec
+  raisons, liste conforme dépliable ; TOUS les noms sont cliquables
+  (ProductName → fiche éditable, reload après enregistrement).
+- Bancs : supply-model CAS 11 (périmètre accessoires, écarts nommés avec
+  quantité, cosmétique stocké hors périmètre, id réel sur chaque entrée) —
+  11 cas exit 0 ; linked-records bloc 21 (règle évaluée serveur, renvoyée,
+  affichée en tête, écarts et conformes cliquables) — 21 blocs exit 0.
+
+**Contrôles** : lint exit 0 · chaîne complète en cours · prod à re-mesurer.

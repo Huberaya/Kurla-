@@ -384,3 +384,51 @@ export function evaluateSupplyAlerts(args: {
   }
   return alerts;
 }
+
+/**
+ * RÈGLE D'OR ANNÉE 1 (FICHE_PLACER_OUTILS_DROPSHIP.md, 2026-09-08) :
+ * tous les matériels & outils — catégorie « accessoires » — sont vendus en
+ * dropship 24–48h depuis le partenaire UE, avec 0 carton à Paris. La couche
+ * fulfillment les route déjà ainsi (`getProductFulfillmentMode`) ; ce qui
+ * manquait, c'est le contrôle : un stock à Paris ou un sourcing « Stock
+ * KURLA » sur ces fiches contredit la règle et doit être nommé, pas absorbé
+ * en silence.
+ */
+export type DropshipToolEntry = {
+  productId: string;
+  name: string;
+  catalogStatus: string;
+  reasons: string[];
+};
+
+export type DropshipToolRule = {
+  toolTotal: number;
+  conforming: DropshipToolEntry[];
+  violations: DropshipToolEntry[];
+};
+
+export function evaluateDropshipToolRule(
+  products: Array<{ id: string; name: string; category?: string | null; catalogStatus?: string | null; stockQuantity?: number | null; primaryModel?: string | null }>,
+): DropshipToolRule {
+  const tools = products.filter(p => String(p.category || '').trim().toLowerCase() === 'accessoires');
+  const conforming: DropshipToolEntry[] = [];
+  const violations: DropshipToolEntry[] = [];
+  for (const tool of tools) {
+    const reasons: string[] = [];
+    const stock = Number(tool.stockQuantity ?? 0);
+    if (Number.isFinite(stock) && stock > 0) {
+      reasons.push(`${stock} unité(s) de stock à Paris — « 0 carton » non respecté`);
+    }
+    if (tool.primaryModel === 'stock_kurla') {
+      reasons.push('sourcé en « Stock KURLA » — doit être dropship 24–48h');
+    }
+    const entry: DropshipToolEntry = {
+      productId: tool.id,
+      name: tool.name || tool.id,
+      catalogStatus: String(tool.catalogStatus || 'draft'),
+      reasons,
+    };
+    if (reasons.length > 0) violations.push(entry); else conforming.push(entry);
+  }
+  return { toolTotal: tools.length, conforming, violations };
+}

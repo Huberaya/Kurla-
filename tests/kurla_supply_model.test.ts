@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import {
   canTransitionSupplyWorkflow,
+  evaluateDropshipToolRule,
   evaluateMargin,
   evaluateSupplyAlerts,
   mapProductSource,
@@ -139,13 +140,34 @@ function main(): void {
   assert.equal(after.marginCents, 0, 'marge nulle après hausse — signalée, pas masquée');
   assert.equal(after.marginPct, 0);
 
+  // CAS 11 — RÈGLE D'OR ANNÉE 1 : tous les matériels & outils (catégorie
+  // « accessoires ») sont en dropship 24–48h, 0 carton à Paris. Un stock à
+  // Paris ou un sourcing « Stock KURLA » sur un outil = hors règle, nommé.
+  // Un cosmétique stocké n'est PAS concerné par la règle (périmètre outils).
+  const rule = evaluateDropshipToolRule([
+    { id: 't1', name: 'Peigne afro', category: 'accessoires', catalogStatus: 'published', stockQuantity: 0, primaryModel: 'dropshipping' },
+    { id: 't2', name: 'Bonnet satin (démo)', category: 'accessoires', catalogStatus: 'unavailable', stockQuantity: 200, primaryModel: null },
+    { id: 't3', name: 'Brosse sourcée en stock', category: 'accessoires', catalogStatus: 'published', stockQuantity: 0, primaryModel: 'stock_kurla' },
+    { id: 'c1', name: 'Shampooing', category: 'cheveux', catalogStatus: 'published', stockQuantity: 40, primaryModel: 'stock_kurla' },
+  ]);
+  assert.equal(rule.toolTotal, 3, 'seule la catégorie accessoires est concernée par la règle');
+  assert.deepEqual(rule.conforming.map(t => t.productId), ['t1'], 'l’outil dropship sans stock est conforme');
+  assert.deepEqual(rule.violations.map(t => t.productId).sort(), ['t2', 't3'], 'les deux écarts sont isolés');
+  const v2 = rule.violations.find(t => t.productId === 't2')!;
+  assert.ok(v2.reasons.some(r => r.includes('0 carton') && r.includes('200')), 'le stock à Paris est nommé avec la quantité');
+  const v3 = rule.violations.find(t => t.productId === 't3')!;
+  assert.ok(v3.reasons.some(r => r.includes('Stock KURLA')), 'le modèle contraire à la règle est nommé');
+  for (const entry of [...rule.conforming, ...rule.violations]) {
+    assert.ok(entry.productId && entry.name, 'chaque entrée porte un id produit réel — la vue peut la rendre cliquable');
+  }
+
   // Garde supplémentaire : le mapping base → domaine ne fabrique rien.
   const mapped = mapProductSource({ product_id: 'pX', model: 'nimporte', cost_cents: null, available: false });
   assert.equal(mapped.model, 'other', 'modèle inconnu replacé, pas deviné');
   assert.equal(mapped.costCents, null);
   assert.equal(mapped.available, false);
 
-  console.log('[PASS] Système d’achat : 10 cas réels (dropship, affiliation, 3PL, multi-sources, non-conforme, incomplet, workflow tracé, rupture, fournisseur indisponible, hausse de prix) — aucune donnée inventée.');
+  console.log('[PASS] Système d’achat : 11 cas réels (dropship, affiliation, 3PL, multi-sources, non-conforme, incomplet, workflow tracé, rupture, fournisseur indisponible, hausse de prix, règle d’or outils dropship 0 carton) — aucune donnée inventée.');
 }
 
 main();
