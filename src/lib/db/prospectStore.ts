@@ -109,6 +109,13 @@ export interface ProductCandidate {
   routineStep?: string;
   category?: string;
   sourcedVia?: string;
+  /**
+   * Lien RÉEL vers la fiche catalogue créée depuis cette référence
+   * (colonne `draft_product_id`). Null tant que la référence n'est pas
+   * entrée au catalogue — le statut « dans la boutique » ne se devine
+   * jamais par rapprochement de noms.
+   */
+  draftProductId?: string | null;
   inciReceived: boolean;
   ingredientsMapped: number;
   purchasePriceCents: number | null;
@@ -233,6 +240,10 @@ function mapCandidate(row: any): ProductCandidate {
     routineStep: row.routine_step ?? row.routineStep ?? undefined,
     category: row.category ?? undefined,
     sourcedVia: row.sourced_via ?? row.sourcedVia ?? undefined,
+    draftProductId: (() => {
+      const v = row.draft_product_id ?? row.draftProductId;
+      return typeof v === 'string' && v.trim() ? v.trim() : null;
+    })(),
     inciReceived: bool(row.inci_received ?? row.inciReceived),
     ingredientsMapped: Number(row.ingredients_mapped ?? row.ingredientsMapped ?? 0) || 0,
     purchasePriceCents: nonNegInt(row.purchase_price_cents ?? row.purchasePriceCents),

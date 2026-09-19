@@ -52,6 +52,8 @@ type Candidate = {
   product: string;
   routineStep?: string;
   category?: string;
+  /** Lien réel vers la fiche catalogue (null = pas encore dans la boutique). */
+  draftProductId?: string | null;
   inciReceived: boolean;
   ingredientsMapped: number;
   purchasePriceCents: number | null;
@@ -114,6 +116,7 @@ function badge(cls: { label: string; color: string }): string {
 export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSuccess }) => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [outreachProducts, setOutreachProducts] = useState<Array<{ id: string; name: string; catalogStatus: string; supplierId: string | null }>>([]);
   const [directory, setDirectory] = useState<Array<{ id: string; legalName: string }>>([]);
   const [convertNotice, setConvertNotice] = useState('');
   const [ambiguous, setAmbiguous] = useState<Array<{ prospectId: string; candidates: Array<{ id: string; legalName: string }> }>>([]);
@@ -151,14 +154,17 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
     setLoading(true);
     setError(null);
     try {
-      const [pRes, cRes] = await Promise.all([
+      const [pRes, cRes, oRes] = await Promise.all([
         fetch('/api/admin/sourcing/prospects', { headers }),
         fetch('/api/admin/sourcing/candidates', { headers }),
+        fetch('/api/admin/sourcing/outreach-products', { headers }),
       ]);
       const pData = await pRes.json();
       const cData = await cRes.json();
+      const oData = oRes.ok ? await oRes.json() : { products: [] };
       setProspects(pData.prospects || []);
       setCandidates(cData.candidates || []);
+      setOutreachProducts(oData.products || []);
     } catch (e) {
       setError('Impossible de charger le suivi de sourcing.');
     } finally {
@@ -302,7 +308,7 @@ export const SourcingProspectsPanel: React.FC<PanelProps> = ({ headers, onSucces
 
       {/* ---------------- BUREAU DES ACHATS ---------------- */}
       {!loading && tab === 'desk' && (
-        <PurchasingDeskPanel prospects={prospects} />
+        <PurchasingDeskPanel prospects={prospects} candidates={candidates} products={outreachProducts} headers={headers} onReload={load} />
       )}
 
       {/* ---------------- PLAN D'ASSORTIMENT ---------------- */}

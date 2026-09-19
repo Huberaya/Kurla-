@@ -4791,3 +4791,35 @@ d'interprétation, ~25–35 règles tracées vers hairScience).
   « pas on en ajoute » → « on n’en ajoute pas »).
 - tsc 0 ; 11 bancs verts ; live POST 2 profils OK (fallback).
 - Prochain : **D3** (garde-fou qualité sur la sortie Gemini).
+
+## 19/09 (suite) — Contexte outreach : que cible chaque email fournisseur
+
+**Problème posé** : « quand j'envoie des messages aux fournisseurs pour leur
+demander de l'affiliation, je ne sais pas quels sont les produits ciblés, les
+produits ciblés qui sont dans la boutique, et les produits qu'il faut chercher
+un fournisseur. »
+
+**Constat mesuré** : les emails du bureau des achats (outreachEmails.ts) ne
+nomment AUCUN produit. Base prod : 138 produits dont 27 sans fournisseur
+(aucun publié sans fournisseur) · 28 pistes dont 3 liées à une fiche
+fournisseur · 121 candidates, TOUTES rattachées à une piste
+(sourcing_product_candidates.prospect_id), mais draft_product_id (lien réel
+candidate → catalogue) jamais utilisé (0).
+
+**Fait** :
+- `prospectStore` : `mapCandidate` remonte `draftProductId` (colonne réelle,
+  null = pas encore dans la boutique — aucun rapprochement par nom).
+- Route `GET /api/admin/sourcing/outreach-products` : liste légère
+  (id, nom, statut, supplierId null si absent). Inventaires régénérés
+  (347 routes · 108 admin).
+- `SourcingProspectsPanel` : charge le contexte et le passe au bureau.
+- `PurchasingDeskPanel` : (1) section « Produits sans fournisseur — il faut
+  en chercher un (N) », noms cliquables → fiche ; (2) dans chaque bloc email,
+  « Que cible cet email ? » — par destinataire : N produit(s) ciblé(s)
+  (candidates de la piste), badge « dans la boutique » sur lien RÉEL
+  draftProductId, produits boutique du fournisseur (si piste liée) dépliables
+  et cliquables ; sans fiche fournisseur : « rien dans la boutique ».
+
+**Bancs** : linked-records bloc 22 (route, lien réel, sections, cliquabilité,
+contexte passé au bureau) — 22 blocs exit 0 · purchasing/prospects/
+supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
