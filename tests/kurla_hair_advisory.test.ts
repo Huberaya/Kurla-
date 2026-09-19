@@ -95,6 +95,38 @@ async function main() {
   });
 
   // --- 2. Contexte : la routine suit le profil déclaré ------------------------
+  await ok('locks : la priorité « définir les boucles » ne définit rien — cycle locks intact (test utilisateur 19/09)', () => {
+    const model = buildDiagnosticResultModel({
+      answers: { texture: 'locksee', style: 'locks', priority: 'definition', focus: 'locks_pousse', porosity: 'forte', scalp: 'demangeaisons', frequency: '2x', length: 'moyenne', experience: 'habituee' },
+      result: {}, products: [], isSkin: false,
+    } as any);
+    const steps = ALL_STEPS(model);
+    const actions = steps.map(step => step.action).join(' | ');
+    assert.ok(actions.includes('Conditionner sans défaire les locks'), 'les locks reçoivent le conditionneur sans peigne');
+    assert.ok(!/démêler|outil à dents|pré-démêler aux doigts|passer un peigne/i.test(actions), 'aucune action locks ne prescrit un démêlage');
+    for (const step of steps) {
+      assert.ok(!/démêlage plus facile|démêlage se fait avant/.test(`${step.why} ${step.how} ${step.expect}`), `le vocabulaire du peigne n'a rien à faire ici : ${step.action}`);
+    }
+    const summary = model.summary;
+    assert.ok(!summary.includes('Votre priorité est définir les boucles'), 'la ligne de priorité générique ne doit pas contredire le cycle');
+    assert.match(summary, /ne s.’applique pas|n’y a plus de boucle|il n.y a plus de boucle/iu, 'la priorité inapplicable est dite, pas tue');
+    assert.match(summary, /À J\+30, notez une observation précise — hydratation des locks, cuir chevelu, tension aux racines/u);
+  });
+
+  await ok('locks + casse : le pourquoi parle de racines et pointes, jamais de nœuds', () => {
+    const routine = buildHairAdvisoryRoutine({ texture: 'locksee', style: 'locks', priority: 'casse', scalp: 'normal', frequency: '1x_semaine' } as any);
+    const all = [...routine.morning, ...routine.evening, ...routine.weekly];
+    assert.ok(!all.some(step => /emmêlé|chaque nœud/i.test(step.why + step.expect)), 'ni lavage ni masque ne doivent promettre un démêlage à une lock');
+    assert.ok(all.some(step => /tension du retwist|racines.*pointes|pointes.*racines/i.test(step.why)), 'la casse sur locks est nommée à sa source (racine/pointes)');
+  });
+
+  await ok('naturel + casse : le chemin démêlage reste intact (garde de non-régression)', () => {
+    const routine = buildHairAdvisoryRoutine({ texture: 'crepue', style: 'naturel', priority: 'casse', scalp: 'normal', frequency: '1x_semaine' } as any);
+    const all = [...routine.morning, ...routine.evening, ...routine.weekly];
+    const detangle = all.filter(step => /démêl/i.test(step.action + step.why));
+    assert.ok(detangle.length >= 2, 'la casse en cheveux naturels doit continuer à traverser la routine');
+  });
+
   await ok('contexte : priorité casse → démêlage protégé en tête de routine', () => {
     const model = buildDiagnosticResultModel({
       answers: { texture: 'crepue', style: 'naturel', priority: 'casse', porosity: 'moyenne', scalp: 'normal', frequency: '2x_semaine', budget: '40_70' },

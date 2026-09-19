@@ -382,6 +382,29 @@ logique spécialisée.
 - Limite consignée : la vraie sortie Gemini n'est pas exercée dans le sandbox
   (porte et fallback testés en unitaire + fallback vérifié en live).
 
+**CORRIGÉ D6-bis (19/09, test utilisateur post-livraison)** : « sur un profil
+locks, la routine parle de démêler au peigne et le résumé dit “définir les
+boucles” ». Trois défauts racines, tous fermés :
+- `buildWashDay` servait « Conditionner et démêler » (outil à dents larges,
+  pré-démêlage) même en locks : le cycle locks reçoit désormais « Conditionner
+  sans défaire les locks » (rinçage dans le sens de la lock, zéro peigne) ;
+  le pourquoi « casse » sur locks parle de tension aux racines et pointes
+  effilochées, plus de nœuds ; le masque hebdo ne promet plus « un démêlage
+  plus facile » à une lock.
+- La priorité `definition` forçait les flags bouclés (isCurly) et la ligne «
+  Votre priorité est définir les boucles » contredisait le cycle : le flag ne
+  peut plus contredire la réalité du segment (locks formées = plus de boucle à
+  définir), le résumé le DIT (« ne s'applique pas… rien n'est forcé ») au lieu
+  de le taire, et la ligne J+30 devient locks-spécifique (« hydratation des
+  locks, cuir chevelu, tension aux racines »).
+- Le formulaire proposait les six priorités génériques à tout le monde : la
+  question Priorité est filtrée par segment (plus de « définir les boucles »
+  ni de « démêlage enfant » hors enfant ; « casse » renommée « aux racines et
+  aux pointes » en locks) — vérifié au navigateur sur le parcours locks réel,
+  390 px, over=0.
+- Bancs : trois tests locks ajoutés à `kurla_hair_advisory` (18/18) ;
+  non-régression naturel+« casse → ≥2 démêlage » vérifiée (11 bancs verts).
+
 ---
 
 ## Ordre de exécution proposé

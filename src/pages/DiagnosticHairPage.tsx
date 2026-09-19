@@ -243,14 +243,19 @@ export const DiagnosticHairPage: React.FC = () => {
               <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Priorité Beauté</span>
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Quelle est votre priorité ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {[
-                  { id: 'hydratation', title: 'Stopper la sécheresse intense' },
-                  { id: 'casse', title: 'Éviter la casse au démêlage' },
-                  { id: 'definition', title: 'Définir les boucles sans cartonner' },
-                  { id: 'pousse', title: 'Favoriser la santé des longueurs & racines' },
-                  { id: 'cuir_chevelu', title: 'Apaiser les démangeaisons cuir chevelu' },
-                  { id: 'demelage_enfant', title: 'Faciliter le démêlage enfant sans larmes' },
-                ].map(opt => (
+                {(() => {
+                  // D6-bis (test utilisateur) : on ne propose plus une option
+                  // que le moteur ne peut pas servir sur le segment déclaré.
+                  const lockedNow = answers.texture === 'locksee' || answers.style === 'locks';
+                  const kidNow = answers.style === 'enfant';
+                  return [
+                    { id: 'hydratation', title: 'Stopper la sécheresse intense' },
+                    { id: 'casse', title: lockedNow ? 'Éviter la casse aux racines et aux pointes' : 'Éviter la casse au démêlage' },
+                    ...(lockedNow ? [] : [{ id: 'definition', title: 'Définir les boucles sans cartonner' }]),
+                    { id: 'pousse', title: 'Favoriser la santé des longueurs & racines' },
+                    { id: 'cuir_chevelu', title: 'Apaiser les démangeaisons cuir chevelu' },
+                    ...(kidNow ? [{ id: 'demelage_enfant', title: 'Faciliter le démêlage enfant sans larmes' }] : []),
+                  ].map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => { setAnswers({ ...answers, priority: opt.id as any }); handleNext(); }}
@@ -260,7 +265,8 @@ export const DiagnosticHairPage: React.FC = () => {
                   >
                     {opt.title}
                   </button>
-                ))}
+                ))
+                })()}
               </div>
             </div>
           )}
