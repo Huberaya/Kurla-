@@ -5020,3 +5020,20 @@ h2/h3 du panel actif) :
 **Banc** : `admin-section-nav` bloc 5 — fullLabel complet vs bouton tronqué,
 select présent, synchronisé, sert les libellés complets, saut au choix.
 5 blocs exit 0 · lint exit 0 · chaîne complète en cours.
+## 20/09 — D8 livrée (à verifier par le prochain agent)
+- Programme de solidification du diagnostic — chantier D8 (« des dizaines de tests,
+  trois regards »), consigne utilisateur des 19–20/09.
+- Ce qui a été fait : banc permanent `tests/kurla_diagnostic_personas.test.ts`
+  (47 tests métier + balayage déterministe de 3 404 profils, script npm
+  `test:diagnostic-personas`, chaîné dans `npm test`). Deux vrais défauts trouvés
+  et corrigés : (1) enfant + locks — la priorité démêlage court-circuitait la
+  physique locks (hairAdvisory.ts : wash day locks inconditionnel ; nouvelle
+  dérivation `kid_methode_locks` dans diagnosticDerivations.ts) ; (2) kit matériel
+  (careKit.ts) : le démêloir était prescrit à TOUS les profils — désormais le
+  segment locks reçoit le crochet fin, les autres gardent le peigne (garde-fou
+  dans les deux sens, test K1).
+- Preuve navigateur 390 px rejouable : `scripts/d8_mobile_kid_locks.mjs`
+  (over=0, zéro démêloir sur la page locks).
+- Contrainte définitive pour tout nouveau texte du moteur : croiser chaque
+  {réponse générique × cycle spécialisé} — kit, dérivations, résumé, J+30 — car
+  la garde ne vit pas que dans les étapes.

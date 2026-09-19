@@ -244,10 +244,12 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
   let washWhy: string;
   if (f.isScalp) {
     washWhy = 'Le cuir chevelu d’abord : les inconforts — tiraillements, démangeaisons, pellicules — viennent le plus souvent de résidus (coiffants, gels, bords de bonnet) ou d’un dessèchement. Nettoyer en douceur, sans décaper, est le premier geste d’apaisement.';
-  } else if ((f.isBreakage || f.isKid) && !(f.isLocked && !f.isKid)) {
+  } else if (f.isLocked) {
+    washWhy = f.isBreakage
+      ? 'Sur locks, le lavage ne démêle rien — il emporte les résidus qui pèsent et tiraillent. La casse des locks se lit ailleurs : tension aux racines, pointes effilochées. Laver dans le sens de la lock protège les deux.'
+      : 'Laver une lock, ce n’est pas la démêler : rien ne s’emmêle dans une lock ancrée, tout s’y dépose. Le shampoing sans résidu, dans le sens de la lock, est le vrai soin de la journée de lavage.';
+  } else if (f.isBreakage || f.isKid) {
     washWhy = 'Ne jamais attaquer un cheveu emmêlé : le démêlage se fait avant, sur cheveu mouillé et glissant. C’est à sec, sous tension, que la fibre casse le plus.';
-  } else if (f.isLocked && f.isBreakage) {
-    washWhy = 'Sur locks, le lavage ne démêle rien — il emporte les résidus qui pèsent et tiraillent. La casse des locks se lit ailleurs : tension aux racines, pointes effilochées. Laver dans le sens de la lock protège les deux.';
   } else if (f.isCoily || f.highPorosity) {
     washWhy = 'Le cheveu texturé est naturellement sec : le lavage est l’étape où l’hydratation repart de zéro. Un nettoyant doux, sans sulfate, ou un co-wash, nettoie sans décaper.';
   } else {
@@ -262,14 +264,16 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
 
   // 2. Conditionnement + démêlage — ou conditionnement seul sur locks :
   // une lock ne se démêle pas, elle se rince (test utilisateur 19/09).
-  if (f.isLocked && !f.isKid) {
+  if (f.isLocked) {
     steps.push({
       action: 'Conditionner sans défaire les locks',
       why: f.isBreakage
         ? 'Sur locks, la casse ne se joue pas au peigne — il n’y en a pas : elle se joue à la racine (tension du retwist, racines fines) et aux pointes qui s’effilochent. Le soin se pose dans le sens de la lock, jamais en frottement.'
         : 'Le conditionneur sur locks est un rinçage, pas un démêlage : il adoucit la surface et emporte les résidus sans jamais défaire ce qui est ancré. Travailler « dans le sens de », jamais contre.',
       how: 'Poser le conditionneur sur les longueurs mouillées, lisser du haut vers le bas sans frotter, laisser agir le temps du lavage du cuir chevelu, puis rincer à l’eau tiède en laissant l’eau couler le long des locks. Aucun peigne, aucun pré-démêlage : ils n’ont rien à faire ici.',
-      expect: 'Des locks propres, souples, sans résidu ni fibre arrachée. Si de petits cheveux libérés restent pris dans une lock, retirez-les aux doigts sous l’eau — c’est normal, pas un signal d’alerte.',
+      expect: f.isKid
+        ? 'Des locks propres et souples sans séance de larmes : chez un enfant, le temps de pose se raccourcit, les gestes se font plus courts — jamais plus forts. Aucun peigne ne remplacera jamais la main.'
+        : 'Des locks propres, souples, sans résidu ni fibre arrachée. Si de petits cheveux libérés restent pris dans une lock, retirez-les aux doigts sous l’eau — c’est normal, pas un signal d’alerte.',
     });
   } else steps.push({
     action: 'Conditionner et démêler',
