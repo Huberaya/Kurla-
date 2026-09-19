@@ -4961,3 +4961,24 @@ autonome, carte utilisée par la vue ops, onglet dropship hôte de la section.
 - `/account/routine-evolution` sert les DEUX domaines (apply par
   `domain: 'hair'|'skin'`) ; le lien L4 unique des deux parcours est ce chemin.
 - Programme D5→D1→D3→D4→D2→D6 : SIX CHANTIERS LIVRÉS.
+
+## 19/09 (suite 3) — Listes déroulantes au niveau de chaque section
+
+**Demande** : « Au niveau de chaque section, je veux avoir une liste
+déroulante. »
+
+**Fait** (options construites depuis les données RÉELLES, avec comptes —
+jamais de nomenclature supposée) :
+- Règle d'or (carte partagée : vue ops + onglet dropship) : Tous les
+  matériels & outils (N) / Conformes (M) / Hors règle — à corriger (K).
+- Alertes (vue ops) : filtre par type — les 8 sortes libellées en français,
+  seules les sortes présentes sont proposées, avec comptes.
+- Produits · marge · expédition (vue ops) : liste par statut (valeurs réelles
+  du catalogue) EN PLUS de la liste par modèle existante.
+- Ciblage des messages (vue consolidée) : chaque bloc fournisseur garde son
+  propre filtre (composant BlockTargets) — Tous / Dans la boutique / Pas
+  encore (À sourcer pour le bloc sans canal).
+
+**Banc** : linked-records bloc 24 (chaque section verrouillée : aria-labels,
+options depuis les données, composant par bloc) — 24 blocs exit 0 · lint 0.
+Chaîne complète en cours.

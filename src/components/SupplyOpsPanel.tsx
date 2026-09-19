@@ -8,6 +8,10 @@ import { Boxes, Search, TriangleAlert } from 'lucide-react';
  * Répond aux questions opérationnelles sans détour : qu'avons-nous, qui le
  * fournit, avec quel modèle, quelle marge, qui expédie, quoi régler en
  * premier. Toute valeur absente s'affiche « à obtenir » — jamais inventée.
+ *
+ * 19/09 — chaque section porte sa liste déroulante : les options sont
+ * construites depuis les données réelles (types d'alertes présents, statuts
+ * catalogue existants), jamais depuis une nomenclature supposée.
  */
 
 const MODEL_LABELS: Record<string, string> = {
@@ -18,13 +22,29 @@ const MODEL_LABELS: Record<string, string> = {
   other: 'Autre',
 };
 
+/** Libellés des 8 sortes d'alertes produites par evaluateSupplyAlerts. */
+const ALERT_KIND_LABELS: Record<string, string> = {
+  no_source: 'Aucune source d’approvisionnement',
+  no_supplier: 'Aucun fournisseur enregistré',
+  supplier_no_contact: 'Fournisseur sans e-mail de contact',
+  source_unavailable: 'Source indisponible',
+  no_cost: 'Coût fournisseur inconnu',
+  no_price: 'Prix de vente absent',
+  not_compliant: 'Non conforme aux critères KURLA',
+  approved_not_published: 'Approuvé mais non publié',
+};
+
 const eur = (cents: number | null | undefined) => (cents == null ? 'à obtenir' : `${(cents / 100).toFixed(2).replace('.', ',')} €`);
+
+const SELECT_CLASS = 'px-2 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px]';
 
 export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ headers }) => {
   const [data, setData] = useState<any | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [alertKind, setAlertKind] = useState('all');
   const [showAlertsOnly, setShowAlertsOnly] = useState(false);
   // Rechargé après un enregistrement depuis une fiche : l'alerte corrigée
   // disparaît d'elle-même, la marge recalculée s'affiche.
@@ -43,16 +63,42 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
     })();
   }, [headers, reloadToken]);
 
+  // Options des listes déroulantes : valeurs RÉELLES des données chargées,
+  // avec leurs comptes — aucune option pour une valeur absente.
+  const alertKindOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const alert of (data?.alerts || []) as any[]) {
+      const kind = String(alert?.kind || 'autre');
+      counts.set(kind, (counts.get(kind) || 0) + 1);
+    }
+    return Array.from(counts.entries());
+  }, [data]);
+
+  const statusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const product of (data?.products || []) as any[]) {
+      const status = String(product?.catalogStatus || 'inconnu');
+      counts.set(status, (counts.get(status) || 0) + 1);
+    }
+    return Array.from(counts.entries());
+  }, [data]);
+
+  const visibleAlerts = useMemo(() => {
+    const all = (data?.alerts || []) as any[];
+    return alertKind === 'all' ? all : all.filter(a => String(a?.kind || 'autre') === alertKind);
+  }, [data, alertKind]);
+
   const products = useMemo(() => {
     let all = data?.products || [];
     if (modelFilter !== 'all') all = all.filter((p: any) => p.primaryModel === modelFilter);
+    if (statusFilter !== 'all') all = all.filter((p: any) => String(p.catalogStatus || 'inconnu') === statusFilter);
     if (showAlertsOnly) {
       const alerted = new Set((data?.alerts || []).map((a: any) => a.subject));
       all = all.filter((p: any) => alerted.has(p.name));
     }
     const low = filter.toLowerCase();
     return low ? all.filter((p: any) => p.name.toLowerCase().includes(low)) : all;
-  }, [data, filter, modelFilter, showAlertsOnly]);
+  }, [data, filter, modelFilter, statusFilter, showAlertsOnly]);
 
   if (error) return <div className="p-6 rounded-3xl bg-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
   if (!data) return <div className="p-6 rounded-3xl bg-espresso border border-kurla-cream/10 text-xs text-kurla-cream/60">Chargement de la vue ops…</div>;
@@ -77,9 +123,17 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
 
       {alerts.length > 0 && (
         <div className="p-6 rounded-3xl bg-rose-950/30 border border-rose-400/30 space-y-2">
-          <h3 className="font-bold flex items-center gap-2 text-rose-200"><TriangleAlert className="w-4 h-4" /> Alertes ({kpi.criticalAlerts} critiques / {alerts.length})</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-bold flex items-center gap-2 text-rose-200 mr-auto"><TriangleAlert className="w-4 h-4" /> Alertes ({kpi.criticalAlerts} critiques / {alerts.length})</h3>
+            <select value={alertKind} onChange={e => setAlertKind(e.target.value)} className={SELECT_CLASS} aria-label="Filtrer les alertes par type">
+              <option value="all">Tous les types d’alerte ({alerts.length})</option>
+              {alertKindOptions.map(([kind, count]) => (
+                <option key={kind} value={kind}>{ALERT_KIND_LABELS[kind] || kind} ({count})</option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
-            {alerts.map((alert: any, index: number) => (
+            {visibleAlerts.map((alert: any, index: number) => (
               <p key={index} className="text-[11px]">
                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold mr-2 ${alert.severity === 'critical' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>{alert.severity === 'critical' ? 'critique' : 'à surveiller'}</span>
                 {alert.productId
@@ -88,6 +142,7 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
                 {alert.supplierId && <> → <SupplierName id={alert.supplierId} label={String(alert.subject).split(' → ').slice(1).join(' → ')} headers={headers} className="text-[11px]" /></>} <span className="text-kurla-cream/60">— {alert.message}</span>
               </p>
             ))}
+            {visibleAlerts.length === 0 && <p className="text-[11px] text-kurla-cream/45">Aucune alerte de ce type.</p>}
           </div>
         </div>
       )}
@@ -96,11 +151,17 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-bold mr-auto">Produits · marge · expédition ({products.length})</h3>
           <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Rechercher un produit…" className="sm:w-64 px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-xs" />
-          <select value={modelFilter} onChange={e => setModelFilter(e.target.value)} className="px-2 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/15 text-[11px]">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filtrer les produits par statut">
+            <option value="all">Tous les statuts</option>
+            {statusOptions.map(([status, count]) => (
+              <option key={status} value={status}>{status} ({count})</option>
+            ))}
+          </select>
+          <select value={modelFilter} onChange={e => setModelFilter(e.target.value)} className={SELECT_CLASS} aria-label="Filtrer les produits par modèle">
             <option value="all">Tous les modèles</option>
             {Object.entries(MODEL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
-          <button type="button" onClick={() => setShowAlertsOnly(v => !v)} className={`px-3 py-2 rounded-xl border text-[11px] font-bold ${showAlertsOnly ? 'bg-rose-500/15 border-rose-400/40 text-rose-300' : 'bg-kurla-ink border-kurla-cream/15 text-kurla-cream/60'}`}>Seulement avec alerte</button>
+          <button type="button" onClick={() => setShowAlertsOnly(v => !v)} className={`px-3 py-2 rounded-xl border text-[11px] font-bold ${showAlertsOnly ? 'bg-rose-500/15 border-rose-400/40 text-rose-300' : 'bg-kurla-ink border border-kurla-cream/15 text-kurla-cream/60'}`}>Seulement avec alerte</button>
         </div>
         <div className="space-y-1.5 max-h-[520px] overflow-y-auto pr-1">
           {products.map((product: any) => (
@@ -137,50 +198,64 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
 
 /**
  * CARTE RÈGLE D'OR — matériels & outils = dropship 24–48h, 0 carton à Paris.
- * Présentationale pure : les données viennent de la vue ops (route
+ * Présentation pure : les données viennent de la vue ops (route
  * /api/admin/sourcing/ops, bloc dropshipRule). Chaque nom est cliquable vers
  * la fiche éditable — l'enregistrement déclenche onSaved (rechargement).
+ * Sa liste déroulante filtre : tous / conformes / hors règle.
  */
-export const DropshipRuleCard: React.FC<{ dropshipRule: any; headers: Record<string, string>; onSaved: () => void }> = ({ dropshipRule, headers, onSaved }) => (
-        <div className="p-6 rounded-3xl bg-kurla-espresso border-2 border-kurla-copper/50 space-y-3">
-          <div className="flex items-start gap-2.5">
-            <Boxes className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-kurla-amber">Règle d’or Année 1 — tous les matériels &amp; outils sont en dropship 24–48h</h3>
-              <p className="text-[11px] text-kurla-cream/60 mt-1">
-                Expédiés à l’unité par notre partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span> (catégorie « accessoires » = matériels &amp; outils).
-                {' '}{dropshipRule.toolTotal} produit(s) concerné(s) · <span className="text-emerald-300 font-bold">{dropshipRule.conforming.length} conforme(s)</span>
-                {dropshipRule.violations.length > 0 && <> · <span className="text-rose-300 font-bold">{dropshipRule.violations.length} hors règle</span></>}.
-              </p>
-            </div>
-          </div>
-          {dropshipRule.violations.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-rose-300">Hors règle — cliquez sur le nom pour corriger la fiche</p>
-              {dropshipRule.violations.map((violation: any) => (
-                <div key={`tool-violation-${violation.productId}`} className="px-3 py-2 rounded-xl bg-rose-950/25 border border-rose-500/25 flex flex-wrap items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
-                  <ProductName id={String(violation.productId)} label={violation.name} headers={headers} className="text-[11px] font-bold text-rose-100" onSaved={() => onSaved()} />
-                  <span className="text-[10px] text-rose-200/75">{(violation.reasons || []).join(' · ')}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{violation.catalogStatus}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <details>
-            <summary className="cursor-pointer text-[11px] font-bold text-emerald-300">{dropshipRule.conforming.length} matériel(s) &amp; outil(s) conforme(s) — dropship 24–48h ✓</summary>
-            <div className="grid md:grid-cols-2 gap-1.5 mt-2">
-              {dropshipRule.conforming.map((entry: any) => (
-                <div key={`tool-ok-${entry.productId}`} className="px-3 py-2 rounded-xl bg-emerald-950/20 border border-emerald-500/15 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <ProductName id={String(entry.productId)} label={entry.name} headers={headers} className="text-[11px] font-semibold text-emerald-100/90" onSaved={() => onSaved()} />
-                </div>
-              ))}
-            </div>
-          </details>
+export const DropshipRuleCard: React.FC<{ dropshipRule: any; headers: Record<string, string>; onSaved: () => void }> = ({ dropshipRule, headers, onSaved }) => {
+  const [view, setView] = useState('all');
+  const showViolations = view !== 'conforming';
+  const showConforming = view !== 'violations';
+  return (
+    <div className="p-6 rounded-3xl bg-kurla-espresso border-2 border-kurla-copper/50 space-y-3">
+      <div className="flex items-start gap-2.5">
+        <Boxes className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-kurla-amber">Règle d’or Année 1 — tous les matériels &amp; outils sont en dropship 24–48h</h3>
+          <p className="text-[11px] text-kurla-cream/60 mt-1">
+            Expédiés à l’unité par notre partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span> (catégorie « accessoires » = matériels &amp; outils).
+            {' '}{dropshipRule.toolTotal} produit(s) concerné(s) · <span className="text-emerald-300 font-bold">{dropshipRule.conforming.length} conforme(s)</span>
+            {dropshipRule.violations.length > 0 && <> · <span className="text-rose-300 font-bold">{dropshipRule.violations.length} hors règle</span></>}.
+          </p>
         </div>
-      
-);
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={view} onChange={e => setView(e.target.value)} className={SELECT_CLASS} aria-label="Filtrer les matériels et outils">
+          <option value="all">Tous les matériels &amp; outils ({dropshipRule.toolTotal})</option>
+          <option value="conforming">Conformes — dropship 24–48h ({dropshipRule.conforming.length})</option>
+          <option value="violations">Hors règle — à corriger ({dropshipRule.violations.length})</option>
+        </select>
+      </div>
+      {showViolations && dropshipRule.violations.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-rose-300">Hors règle — cliquez sur le nom pour corriger la fiche</p>
+          {dropshipRule.violations.map((violation: any) => (
+            <div key={`tool-violation-${violation.productId}`} className="px-3 py-2 rounded-xl bg-rose-950/25 border border-rose-500/25 flex flex-wrap items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+              <ProductName id={String(violation.productId)} label={violation.name} headers={headers} className="text-[11px] font-bold text-rose-100" onSaved={() => onSaved()} />
+              <span className="text-[10px] text-rose-200/75">{(violation.reasons || []).join(' · ')}</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{violation.catalogStatus}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {showConforming && (
+        <details>
+          <summary className="cursor-pointer text-[11px] font-bold text-emerald-300">{dropshipRule.conforming.length} matériel(s) &amp; outil(s) conforme(s) — dropship 24–48h ✓</summary>
+          <div className="grid md:grid-cols-2 gap-1.5 mt-2">
+            {dropshipRule.conforming.map((entry: any) => (
+              <div key={`tool-ok-${entry.productId}`} className="px-3 py-2 rounded-xl bg-emerald-950/20 border border-emerald-500/15 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <ProductName id={String(entry.productId)} label={entry.name} headers={headers} className="text-[11px] font-semibold text-emerald-100/90" onSaved={() => onSaved()} />
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+};
 
 /**
  * SECTION AUTONOME pour l'onglet « Guide dropship 0 carton » : charge le

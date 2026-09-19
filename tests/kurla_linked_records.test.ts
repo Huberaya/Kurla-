@@ -583,4 +583,33 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ ciblage des messages (vue consolidée) : produits ciblés, déjà dans la boutique, à sourcer — cliquables seulement sur fiche réelle');
 }
 
-console.log('\n23 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée.');
+// ---------------------------------------------------------------------------
+// 24. LISTES DÉROULANTES PAR SECTION (19/09) — « au niveau de chaque
+//     section, je veux avoir une liste déroulante ». Chaque liste de la vue
+//     ops et du ciblage consolidé porte son filtre : règle d'or (tous /
+//     conformes / hors règle), alertes (par type), produits (par statut et
+//     par modèle), produits ciblés d'un message (tous / en boutique / pas
+//     encore). Les options viennent des données réelles, jamais d'une
+//     nomenclature supposée.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const ops = read('components/SupplyOpsPanel.tsx');
+  assert.ok(ops.includes('Filtrer les matériels et outils'), 'règle d’or : la liste déroulante a disparu.');
+  assert.ok(ops.includes('Tous les matériels') && ops.includes('Hors règle — à corriger'), 'règle d’or : les options du filtre ont changé.');
+  assert.ok(ops.includes('Filtrer les alertes par type'), 'alertes : la liste déroulante par type a disparu.');
+  assert.ok(ops.includes('ALERT_KIND_LABELS'), 'alertes : les types n’ont plus de libellés lisibles.');
+  assert.ok(ops.includes('alertKindOptions'), 'alertes : les options ne sont plus construites depuis les alertes réelles.');
+  assert.ok(ops.includes('Filtrer les produits par statut'), 'produits : la liste déroulante par statut a disparu.');
+  assert.ok(ops.includes('Filtrer les produits par modèle'), 'produits : la liste déroulante par modèle a disparu.');
+  assert.ok(ops.includes('statusOptions'), 'produits : les statuts du filtre ne viennent plus des données.');
+
+  const consolidated = read('components/SourcingConsolidatedPanel.tsx');
+  assert.ok(consolidated.includes('Filtrer les produits ciblés'), 'ciblage consolidé : la liste déroulante par message a disparu.');
+  assert.ok(consolidated.includes('BlockTargets'), 'ciblage consolidé : le filtre par bloc n’est plus un composant (chaque bloc doit garder son choix).');
+
+  console.log('✓ listes déroulantes par section : règle d’or, alertes par type, produits par statut/modèle, ciblage des messages — options issues des données réelles');
+}
+
+console.log('\n24 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée, listes déroulantes par section.');

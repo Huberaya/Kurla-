@@ -28,6 +28,45 @@ const STAGE_BADGE: Record<RegistryStage, string> = {
   publie: 'bg-kurla-copper/20 text-kurla-copper',
 };
 
+/**
+ * LISTE DES PRODUITS CIBLÉS par le message d'un bloc fournisseur, avec sa
+ * liste déroulante : tous / dans la boutique / pas encore (à sourcer pour le
+ * bloc sans canal). Composant propre car chaque bloc garde son propre choix.
+ */
+const BlockTargets: React.FC<{ block: any; headers: Record<string, string>; onSaved: () => void }> = ({ block, headers, onSaved }) => {
+  const [targetView, setTargetView] = useState('all');
+  const all = (block.targeted || []) as any[];
+  const targets = targetView === 'all' ? all : targetView === 'in' ? all.filter(t => t.inShop) : all.filter(t => !t.inShop);
+  return (
+    <details className="border-t border-kurla-cream/5 pt-2">
+      <summary className="cursor-pointer text-[11px] font-bold text-kurla-amber">{block.needsSupplier ? 'Lister les produits à sourcer' : 'Lister les produits ciblés par le message'}</summary>
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        <select value={targetView} onChange={e => setTargetView(e.target.value)} className="px-2 py-1.5 rounded-lg bg-kurla-ink border border-kurla-cream/15 text-[10px]" aria-label="Filtrer les produits ciblés">
+          <option value="all">{block.needsSupplier ? `Toutes les références (${all.length})` : `Tous les produits ciblés (${all.length})`}</option>
+          <option value="in">Dans la boutique ({block.inShopCount})</option>
+          <option value="out">{block.needsSupplier ? `À sourcer (${all.length - block.inShopCount})` : `Pas encore en boutique (${all.length - block.inShopCount})`}</option>
+        </select>
+      </div>
+      <div className="space-y-1 mt-2 max-h-72 overflow-y-auto pr-1">
+        {targets.slice(0, 40).map((target: any) => (
+          <div key={target.rowKey} className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 rounded-lg bg-kurla-espresso border border-kurla-cream/5">
+            {target.inShop
+              ? <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 shrink-0">dans la boutique · {target.stateLabel}</span>
+              : <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-cream/8 text-kurla-cream/60 shrink-0">{target.stateLabel}</span>}
+            {target.productId
+              ? <ProductName id={String(target.productId)} label={target.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => onSaved()} />
+              : <span className="text-[11px] font-semibold text-kurla-cream/80">{target.name}</span>}
+            {target.kind === 'candidate' && <span className="text-[9px] text-kurla-cream/40">identifié</span>}
+            {target.kind === 'position' && <span className="text-[9px] text-kurla-cream/40">veille</span>}
+          </div>
+        ))}
+        {targets.length === 0 && <p className="text-[10px] text-kurla-cream/45">Aucun produit pour ce filtre.</p>}
+        {targets.length > 40 && <p className="text-[10px] text-kurla-cream/45">… et {targets.length - 40} autres références (toutes listées dans l’e-mail).</p>}
+      </div>
+    </details>
+  );
+};
+
 export const SourcingConsolidatedPanel: React.FC<{
   headers: Record<string, string>;
   /** Deep link vers le catalogue (fiche focalisée) — « Voir dans le catalogue ». */
@@ -234,24 +273,7 @@ export const SourcingConsolidatedPanel: React.FC<{
                   ? <>À sourcer : <span className="text-rose-300">{block.targetedCount - block.inShopCount}</span> référence{block.targetedCount - block.inShopCount > 1 ? 's' : ''}{block.inShopCount > 0 && <> · déjà dans la boutique : <span className="text-emerald-300">{block.inShopCount}</span></>}</>
                   : <>Ce message cible <span className="text-kurla-amber">{block.targetedCount}</span> produit{block.targetedCount > 1 ? 's' : ''} · déjà dans la boutique : <span className="text-emerald-300">{block.inShopCount}</span> · pas encore en boutique : <span className={block.targetedCount - block.inShopCount > 0 ? 'text-amber-300' : 'text-kurla-cream/50'}>{block.targetedCount - block.inShopCount}</span></>}
               </div>
-              <details className="border-t border-kurla-cream/5 pt-2">
-                <summary className="cursor-pointer text-[11px] font-bold text-kurla-amber">{block.needsSupplier ? 'Lister les produits à sourcer' : 'Lister les produits ciblés par le message'}</summary>
-                <div className="space-y-1 mt-2 max-h-72 overflow-y-auto pr-1">
-                  {(block.targeted || []).slice(0, 40).map((target: any) => (
-                    <div key={target.rowKey} className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 rounded-lg bg-kurla-espresso border border-kurla-cream/5">
-                      {target.inShop
-                        ? <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 shrink-0">dans la boutique · {target.stateLabel}</span>
-                        : <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-cream/8 text-kurla-cream/60 shrink-0">{target.stateLabel}</span>}
-                      {target.productId
-                        ? <ProductName id={String(target.productId)} label={target.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => load()} />
-                        : <span className="text-[11px] font-semibold text-kurla-cream/80">{target.name}</span>}
-                      {target.kind === 'candidate' && <span className="text-[9px] text-kurla-cream/40">identifié</span>}
-                      {target.kind === 'position' && <span className="text-[9px] text-kurla-cream/40">veille</span>}
-                    </div>
-                  ))}
-                  {(block.targeted || []).length > 40 && <p className="text-[10px] text-kurla-cream/45">… et {(block.targeted || []).length - 40} autres références (toutes listées dans l’e-mail).</p>}
-                </div>
-              </details>
+              <BlockTargets block={block} headers={headers} onSaved={() => load()} />
               {!block.needsSupplier && block.knownTerms?.length > 0 && <p className="text-[10px] text-kurla-cream/50">Conditions publiques constatées : {block.knownTerms.join(' · ')}</p>}
               {!block.needsSupplier && (
                 <div className="flex flex-wrap gap-2">
