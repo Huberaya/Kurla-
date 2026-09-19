@@ -170,16 +170,20 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
   const legacyBeginner = frequency === 'debutante';
   const frequencyReal = legacyBeginner ? '' : frequency;
   const scalpTrouble = scalp === 'sec' || scalp === 'demangeaisons' || scalp === 'pellicules' || scalp === 'irritation';
+  // D6-bis (test utilisateur 19/09) : une priorité déclarée ne peut plus
+  // contredire la réalité du segment. « Définir les boucles » ne définit rien
+  // sur des locks formées — le flag suit le cycle, pas le souhait isolé.
+  const lockedNow = texture === 'locksee' || style === 'locks';
   return {
     texture, style, priority, porosity, scalp, frequency: frequencyReal, focus, length, experience,
     isCoily: texture === 'crepue',
-    isCurly: texture === 'frisee' || texture === 'bouclee' || priority === 'definition',
-    isLocked: texture === 'locksee' || style === 'locks',
+    isCurly: texture === 'frisee' || texture === 'bouclee' || (priority === 'definition' && !lockedNow),
+    isLocked: lockedNow,
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
     isKid: style === 'enfant' || priority === 'demelage_enfant',
     isBreakage: priority === 'casse',
-    isDefinition: priority === 'definition',
+    isDefinition: priority === 'definition' && !lockedNow,
     isGrowth: priority === 'pousse',
     isScalp: priority === 'cuir_chevelu' || scalpTrouble,
     scalpTrouble,
@@ -240,8 +244,10 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
   let washWhy: string;
   if (f.isScalp) {
     washWhy = 'Le cuir chevelu d’abord : les inconforts — tiraillements, démangeaisons, pellicules — viennent le plus souvent de résidus (coiffants, gels, bords de bonnet) ou d’un dessèchement. Nettoyer en douceur, sans décaper, est le premier geste d’apaisement.';
-  } else if (f.isBreakage || f.isKid) {
+  } else if ((f.isBreakage || f.isKid) && !(f.isLocked && !f.isKid)) {
     washWhy = 'Ne jamais attaquer un cheveu emmêlé : le démêlage se fait avant, sur cheveu mouillé et glissant. C’est à sec, sous tension, que la fibre casse le plus.';
+  } else if (f.isLocked && f.isBreakage) {
+    washWhy = 'Sur locks, le lavage ne démêle rien — il emporte les résidus qui pèsent et tiraillent. La casse des locks se lit ailleurs : tension aux racines, pointes effilochées. Laver dans le sens de la lock protège les deux.';
   } else if (f.isCoily || f.highPorosity) {
     washWhy = 'Le cheveu texturé est naturellement sec : le lavage est l’étape où l’hydratation repart de zéro. Un nettoyant doux, sans sulfate, ou un co-wash, nettoie sans décaper.';
   } else {
@@ -254,8 +260,18 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     expect: 'Un cuir chevelu propre, sans effet collant ni tiraillement. Si le cuir chevelu gratte après chaque lavage, notez-le : la cause est plus souvent un résidu qu’un produit qui ne convient pas.',
   });
 
-  // 2. Conditionnement + démêlage
-  steps.push({
+  // 2. Conditionnement + démêlage — ou conditionnement seul sur locks :
+  // une lock ne se démêle pas, elle se rince (test utilisateur 19/09).
+  if (f.isLocked && !f.isKid) {
+    steps.push({
+      action: 'Conditionner sans défaire les locks',
+      why: f.isBreakage
+        ? 'Sur locks, la casse ne se joue pas au peigne — il n’y en a pas : elle se joue à la racine (tension du retwist, racines fines) et aux pointes qui s’effilochent. Le soin se pose dans le sens de la lock, jamais en frottement.'
+        : 'Le conditionneur sur locks est un rinçage, pas un démêlage : il adoucit la surface et emporte les résidus sans jamais défaire ce qui est ancré. Travailler « dans le sens de », jamais contre.',
+      how: 'Poser le conditionneur sur les longueurs mouillées, lisser du haut vers le bas sans frotter, laisser agir le temps du lavage du cuir chevelu, puis rincer à l’eau tiède en laissant l’eau couler le long des locks. Aucun peigne, aucun pré-démêlage : ils n’ont rien à faire ici.',
+      expect: 'Des locks propres, souples, sans résidu ni fibre arrachée. Si de petits cheveux libérés restent pris dans une lock, retirez-les aux doigts sous l’eau — c’est normal, pas un signal d’alerte.',
+    });
+  } else steps.push({
     action: 'Conditionner et démêler',
     why: f.isKid
       ? 'Démêler sans larmes, c’est une méthode : cheveu mouillé et glissant, outil à dents larges, toujours des pointes vers la racine. Si ça accroche, on recule d’un pas — plus de produit, plus d’eau — on ne tire jamais.'
@@ -373,7 +389,9 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
         ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
         : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
     how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.',
-    expect: 'Un cheveu plus souple, un démêlage plus facile, une casse moins nette — sur quelques semaines, pas en un jour. Le soin de la fibre se juge sur un mois, pas sur un usage.',
+    expect: f.isLocked && !f.isKid
+      ? 'Des locks souples et un cuir chevelu soulagé — c’est la mesure, sur quelques semaines. Une lock ne cherche pas la « facilité au peigne » : elle n’en voit jamais ; ce qui se juge, c’est la douceur sans dépôt et la propreté de la racine.'
+      : 'Un cheveu plus souple, un démêlage plus facile, une casse moins nette — sur quelques semaines, pas en un jour. Le soin de la fibre se juge sur un mois, pas sur un usage.',
   });
 
   if (f.scalpTrouble || f.isProtective || f.isWig) {
@@ -1186,7 +1204,7 @@ export function pickHairLessons(ctx: HairAdvisoryContext, max = 3): HairLesson[]
   if (f.isGrowth) wanted.push('hair_lesson_pousse');
   if (f.isDefinition) wanted.push('hair_lesson_definition');
   if (f.highPorosity || f.lowPorosity) wanted.push('hair_lesson_porosite');
-  if (f.isCoily || f.isCurly || f.priority === 'hydratation') wanted.push('hair_lesson_lco');
+  if ((f.isCoily || f.isCurly || f.priority === 'hydratation') && !f.isLocked) wanted.push('hair_lesson_lco');
   wanted.push('hair_lesson_entretien');
 
   const byKey = new Map(HAIR_LESSONS.map(l => [l.key, l]));
@@ -1339,8 +1357,16 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     hydratation: 'Le cheveu texturé est naturellement sec : l’hydratation vient de l’eau, et le scellement l’empêche de s’évaporer. La routine est construite sur cet ordre — eau d’abord, matière après.',
   };
   if (f.priority && HAIR_PRIORITY_VALUES[f.priority]) {
-    parts.push(`Votre priorité est ${HAIR_PRIORITY_VALUES[f.priority].toLowerCase()}.`);
-    if (bridge[f.priority]) parts.push(bridge[f.priority]);
+    // D6-bis — sur locks, « définir les boucles » et « casse au démêlage »
+    // n'ont plus d'objet : la ligne le dit honnêtement, sans feindre de servir un geste qui n'existe pas.
+    if (f.isLocked && f.priority === 'definition') {
+      parts.push('Votre priorité déclarée — définir les boucles — travaille le cheveu avant le locking : sur des locks formées, il n’y a plus de boucle à définir. Le moteur garde donc le cycle locks et votre préoccupation ; rien n’est forcé.');
+    } else if (f.isLocked && f.priority === 'casse') {
+      parts.push('Votre priorité est la casse : sur locks, elle se surveille à la racine (tension du retwist) et aux pointes qui s’effilochent — pas au démêlage, qui n’existe pas ici.');
+    } else {
+      parts.push(`Votre priorité est ${HAIR_PRIORITY_VALUES[f.priority].toLowerCase()}.`);
+      if (bridge[f.priority]) parts.push(bridge[f.priority]);
+    }
   } else if (f.texture === 'locksee' || f.style === 'locks') {
     parts.push(bridge.locks);
   } else if (f.priority === undefined) {
@@ -1393,7 +1419,11 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   };
   if (frequencyLine[f.frequency]) parts.push(frequencyLine[f.frequency]);
 
-  parts.push('À J+30, notez une observation précise — démêlage, cuir chevelu, tenue de la coiffure : c’est elle qui oriente le prochain ajustement.');
+  parts.push(f.isLocked
+    ? 'À J+30, notez une observation précise — hydratation des locks, cuir chevelu, tension aux racines : c’est elle qui oriente le prochain ajustement.'
+    : (f.isWig || f.isProtective)
+      ? 'À J+30, notez une observation précise — confort du cuir chevelu, tension aux attaches, tenue de la coiffure : c’est elle qui oriente le prochain ajustement.'
+      : 'À J+30, notez une observation précise — démêlage, cuir chevelu, tenue de la coiffure : c’est elle qui oriente le prochain ajustement.');
 
   return parts.join(' ');
 }

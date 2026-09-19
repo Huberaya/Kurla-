@@ -4961,3 +4961,20 @@ autonome, carte utilisée par la vue ops, onglet dropship hôte de la section.
 - `/account/routine-evolution` sert les DEUX domaines (apply par
   `domain: 'hair'|'skin'`) ; le lien L4 unique des deux parcours est ce chemin.
 - Programme D5→D1→D3→D4→D2→D6 : SIX CHANTIERS LIVRÉS.
+
+### D6-bis CORRECTIF (19/09) — test utilisateur : locks ne démêlent pas
+- Le wash-day était partagé locks/naturel : l'étape « Conditionner et démêler »
+  (peigne) sortait sur un profil locks ; la priorité « definition » écrasait
+  les flags de cycle ; la ligne J+30 imposait « démêlage ». Moteur verrouillé :
+  `lockedNow` garde isCurly/isDefinition hors des locks, étape conditionneur
+  propre au cycle locks, pourquoi casse locks = racines/pointes, masque locks
+  sans promesse de peigne, ligne J+30 par cycle. Résumé : une priorité
+  inapplicable est ANNONCÉE, pas tue (« ne s'applique pas aux locks formées »).
+- Formulaire : question Priorité filtrée par segment (plus d'options
+  inapplicables proposées ; casse renommée sur locks). Vérifié au navigateur
+  (parcours locks réel, 390 px, over=0) + 3 tests banc (hair-advisory 18/18).
+- NE PAS « unifier » le wash-day tous segments : le conditionneur locks est un
+  rinçage, l'inverse d'un choix cosmétique — c'est la physique de la fibre.
+- Note environnement : le sandbox avait perdu node_modules ET les libs
+  système de chromium → `npm install` + `npx playwright install chromium
+  install-deps chromium` nécessaires avant tsc/build/Playwright.
