@@ -11,6 +11,7 @@ import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/sem
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
 import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
 import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
+import { deriveHairObservations } from '../../lib/knowledge/diagnosticDerivations';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
@@ -385,6 +386,18 @@ export function registerRecommendationRoutes(app: Express): void {
       const parts: string[] = [];
       if (seg) parts.push(`Le profil déclaré est : ${seg.label} (texture ${String(answers.texture ?? 'inconnue')}, coiffage usuel ${String(answers.style ?? 'inconnu')}).`);
       if (focusLabel) parts.push(`Préoccupation principale déclarée : « ${focusLabel} ».`);
+      // D1 : les observations dérivées sont la grille de lecture du profil —
+      // Gemini les reprend, jamais ne les contredit, jamais n'en invente.
+      const derivedNotes = deriveHairObservations({
+        texture: typeof answers.texture === 'string' ? answers.texture : undefined,
+        style: typeof answers.style === 'string' ? answers.style : undefined,
+        focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
+        priority: typeof answers.priority === 'string' ? answers.priority : undefined,
+        porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
+        scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
+        frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+      });
+      if (derivedNotes.length) parts.push(`Croisements déjà déduits des réponses (à reprendre fidèlement dans le summary, sans les contredire ni en inventer d'autres) : ${derivedNotes.map(d => d.text).join(' ')}`);
       if (parts.length) parts.push('Les étapes doivent suivre le cycle de ce profil précis (et servir cette préoccupation) — pas une routine générique : une tressée n’a pas le même cycle qu’une personne en locks, ni qu’une chevelure naturelle.');
       return parts.join(' ');
     })() : '';

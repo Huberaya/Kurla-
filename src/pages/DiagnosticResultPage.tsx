@@ -115,6 +115,17 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
       <p className="mt-4 text-xs text-kurla-cream/50">Les champs non renseignés ne sont pas complétés par déduction. Le phototype apparaît uniquement s’il a été déclaré avec consentement.</p>
     </section>,
 
+    // D1 — « Ce que KURLA a compris » : lectures issues du CROISEMENT des
+    // réponses déclarées (jamais d'une case seule, jamais d'un champ
+    // manquant deviné), chacune fondée sur une carte de la base science.
+    model.understood && model.understood.length > 0 ? (
+      <section key="page-compris" className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="kurla-a-compris">
+        <SectionHeading number="1c" id="kurla-a-compris" title="Ce que KURLA a compris de votre situation" />
+        <p className="mb-4 text-xs leading-relaxed text-kurla-cream/55">Ces lectures ne recopient pas vos réponses : elles les croisent, et expliquent pourquoi la routine est construite ainsi pour vous.</p>
+        <ul className="space-y-3">{model.understood.map(item => <li key={item.text} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4 text-sm leading-relaxed text-kurla-cream/80">{item.text}<span className="mt-2 block text-[11px] uppercase tracking-wide text-kurla-cream/45">Fondé sur : {item.source}</span></li>)}</ul>
+      </section>
+    ) : null,
+
     model.skinKnowledgeProfile ? (
       <section key="page-skin-knowledge" className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="skin-knowledge-profile">
         <SectionHeading number="1b" id="skin-knowledge-profile" title="Ce que ta peau mélaninée exige" />

@@ -137,6 +137,36 @@ améliorent le diagnostic.
 dérivées par réponse, aucune qui soit une reprise d'une case cochée,
 revue humaine ≥4/5 sur « spécificité au besoin » ; banc de contenu vert.
 
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/diagnosticDerivations.ts` : **31 règles**, chacune
+  croise ≥2 champs et cite ses cartes `hairScience` sources (20 cartes citées, clés vérifiées existantes par le banc). Filets structurels pour que
+  tout profil reçoive ≥1 dérivation même minimaliste.
+- `buildHairAdvisorySummary` : « Ce que KURLA a compris de votre
+  situation » inséré après la préoccupation, avant la priorité ; les
+  anciennes lignes brutes porosité sont **supprimées** (dédoublonnage —
+  les dérivations portent le mot « porosité »), les lignes rythme
+  réduites à l'agenda (le fond est dans les dérivations).
+- Page résultat : nouvelle section 1c « Ce que KURLA a compris de votre
+  situation », calculée **localement** (pas par l'IA) avec « Fondé sur : »
+  = titre de la carte science. Le résumé IA peut reformuler, la section
+  reste vraie.
+- Prompt Gemini (`segmentNote`) : les dérivations sont injectées comme
+  grille de lecture — « à reprendre fidèlement, sans les contredire ni en
+  inventer d'autres ».
+- Banc D5 renforcé en assertions D1 : ≥2 dérivées **exactes** au résumé,
+  clés science valides pour chaque règle, test de réactivité (retirer la
+  porosité ou le cuir chevelu retire une dérivation — une règle figée est
+  une règle morte). Résultat : 25/25, minimum 3 dérivées (cible ≥2).
+- Contrôles : tsc 0 erreur ; bancs qualité, hair-advisory, routine-segments,
+  diagnostic-segments, care-kit, c4-diagnostic-result, science-hub,
+  skin-ux, parcours-peau, retention-nudges, diagnostic-session verts ;
+  live POST serveur (2 profils) — bloc dérivé présent (fallback, pas de
+  clé IA ici). Corrigé au passage : coquille « pas on en ajoute » dans le
+  focus locks douceur → « on n’en ajoute pas ».
+- **Reste à faire côté D1** : revue humaine ≥4/5 (à toi de retester —
+  c'est le juge) ; l'assertion de style « marqueurs causaux » reste
+  rapportée dans le banc mais ne fait plus foi.
+
 ---
 
 ### D3 — Le garde-fou IA (garantir que le chemin IA ne sert jamais du générique)

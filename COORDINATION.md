@@ -4744,3 +4744,20 @@ structure complète — 25/25 verts.
 cases quand la priorité ne porte pas de pont causal). Cible D1 : ≥2 partout,
 l'assertion passera à ce moment-là. Prochain : **D1** (couche
 d'interprétation, ~25–35 règles tracées vers hairScience).
+
+### D1 LIVRÉ (19/09) — couche d'interprétation du diagnostic cheveux
+
+- `src/lib/knowledge/diagnosticDerivations.ts` : table de règles croisant
+  ≥2 réponses → observations dérivées, chaque règle tracée vers des cartes
+  `hairScience` (clés validées par le banc). Fichier neuf, aucun agent
+  concurrent dedans.
+- Résumé + page résultat (section 1c « Ce que KURLA a compris ») + prompt
+  Gemini (« reprendre fidèlement, ne pas contredire ») branchés ; lignes
+  porosité brutes supprimées (dédoublonnage), lignes rythme réduites à
+  l'agenda.
+- Banc D5 renforcé : assertions dérivées exactes (≥2 au résumé, minimum
+  mesuré 3 sur les 25 profils) + test de réactivité au retrait d'un champ.
+- Coquille corrigée au passage (hairAdvisory, focus locks douceur :
+  « pas on en ajoute » → « on n’en ajoute pas »).
+- tsc 0 ; 11 bancs verts ; live POST 2 profils OK (fallback).
+- Prochain : **D3** (garde-fou qualité sur la sortie Gemini).

@@ -7,6 +7,8 @@ import {
   pickHairObservations,
 } from '../src/lib/knowledge/hairAdvisory';
 import { getHairDiagnosticSegment, getSegmentFocusLabel } from '../src/lib/diagnosticSegments';
+import { deriveHairObservations, HAIR_DERIVATION_RULES } from '../src/lib/knowledge/diagnosticDerivations';
+import { HAIR_SCIENCE_CARDS } from '../src/lib/knowledge/hairScience';
 
 /**
  * BANC — D5 : PROTOCOLE D'ÉVALUATION QUALITÉ DU DIAGNOSTIC (programme
@@ -25,12 +27,12 @@ import { getHairDiagnosticSegment, getSegmentFocusLabel } from '../src/lib/diagn
  *     expressions réservées ailleurs.
  *  5. STRUCTURE — ≥6 étapes, action/why/how/expect de longueur minimale.
  *
- * Mesuré (et rapporté, non bloquant tant que D1 « interprétation » n'est
- * pas livré) :
- *  6. OBSERVATIONS DÉRIVÉES — phrases du résumé qui DÉCIDENT quelque chose
- *     de la combinaison des réponses (marqueurs causaux), et non de
- *     simples reprises de cases. C'est le cœur du chantier D1 : la
- *     baseline actuelle est rapportée ici ; après D1, l'assertion ≥2 passe.
+ *  6. OBSERVATIONS DÉRIVÉES (assertion D1, active depuis sa livraison) —
+ *     chaque profil doit avoir ≥2 observations dérivées du CROISEMENT des
+ *     réponses (table `HAIR_DERIVATION_RULES`), reprises au résumé,
+ *     chacune fondée sur une carte `hairScience` existante (traçabilité),
+ *     et RÉACTIVES : retirer un champ retiré une dérivation. Les marqueurs
+ *     causaux restent rapportés comme signal de style.
  */
 
 type Profile = {
@@ -97,8 +99,18 @@ const GENERIC_BANNED = [
 ];
 
 // Marqueurs d'une phrase DÉRIVÉE de la combinaison des réponses (pas une
-// reprise de case). Utilisé pour le rapport « observations dérivées » (D1).
+// reprise de case). Depuis D1, l'assertion porte sur les dérivation ELLES-
+// MÊMES (texte exact présent au résumé) ; le compteur de marqueurs reste
+// comme signal de style causal des phrases.
 const DERIVED_MARKERS = ['d’où', 'c’est ce qui', 'probablement', 'le geste qui', 'la cause', 'ce qui change', 's’installe', 'viennent de', 'vient de'];
+
+// Les clés science de toutes les règles doivent exister (traçabilité D1 :
+// une déduction sans carte source est une déduction interdite).
+const SCIENCE_KEYS = new Set(HAIR_SCIENCE_CARDS.map(card => card.key));
+for (const rule of HAIR_DERIVATION_RULES) {
+  assert.ok(rule.keys.length >= 1, `règle « ${rule.id} » sans carte science source`);
+  for (const key of rule.keys) assert.ok(SCIENCE_KEYS.has(key), `règle « ${rule.id} » pointe vers une clé science inexistante : ${key}`);
+}
 
 function ctxOf(p: Profile) {
   return { texture: p.texture, style: p.style, focus: p.focus, priority: p.priority, scalp: p.scalp, porosity: p.porosity, frequency: p.frequency };
@@ -168,10 +180,28 @@ async function main() {
       assert.ok(s.expect.length >= 40, `${p.name} : expect trop court sur « ${s.action} »`);
     }
 
-    // 6. (rapport) Observations dérivées — la baseline de D1.
-    const derived = derivedCount(buildHairAdvisorySummary(ctx));
-    minDerived = Math.min(minDerived, derived);
-    report.push(`  ${p.name} ${p.texture}/${p.style} focus=${p.focus ?? '—'} : ✓ cycle ✓ focus ✓ étape+ ✓ sans générique | dérivées : ${derived}/2`);
+    // 6. (D1 — assertion active) Observations dérivées : ≥2 par profil et
+    // réellement présentes dans le résumé, pas un stock statique.
+    const derivations = deriveHairObservations(ctx);
+    assert.ok(derivations.length >= 2, `${p.name} : moins de 2 observations dérivées (${derivations.length})`);
+    const summaryText = buildHairAdvisorySummary(ctx);
+    const seen = derivations.filter(d => summaryText.includes(d.text));
+    assert.ok(seen.length >= 2, `${p.name} : seulement ${seen.length} dérivée(s) reprise(s) au résumé`);
+    for (const d of seen) assert.ok(d.text.length >= 80, `${p.name} : dérivation trop courte pour être une interprétation : « ${d.text} »`);
+    // Les dérivations RÉAGISSENT aux réponses : retirer un champ doit
+    // retirer au moins une dérivation (sinon la règle est un texte figé).
+    if (p.porosity) {
+      const idsWith = derivations.map(d => d.id).join(',');
+      const idsWithout = deriveHairObservations({ ...ctx, porosity: undefined }).map(d => d.id).join(',');
+      assert.notEqual(idsWith, idsWithout, `${p.name} : retirer la porosité ne change aucune dérivation — règle figée ?`);
+    }
+    if (p.scalp) {
+      const idsWith = derivations.map(d => d.id).join(',');
+      const idsWithout = deriveHairObservations({ ...ctx, scalp: undefined }).map(d => d.id).join(',');
+      assert.notEqual(idsWith, idsWithout, `${p.name} : retirer le cuir chevelu ne change aucune dérivation — règle figée ?`);
+    }
+    minDerived = Math.min(minDerived, seen.length);
+    report.push(`  ${p.name} ${p.texture}/${p.style} focus=${p.focus ?? '—'} : ✓ cycle ✓ focus ✓ étape+ ✓ sans générique | dérivées au résumé : ${seen.length} (marqueurs causaux : ${derivedCount(summaryText)})`);
   }
 
   // Baseline D5 : la différenciation inter-profils est réelle (pas deux
@@ -189,8 +219,9 @@ async function main() {
 
   console.log('[D5] Baseline qualité du diagnostic (25 profils de référence) :');
   for (const line of report) console.log(line);
-  console.log(`[D5] Minimum d'observations dérivées dans le résumé : ${minDerived} (cible D1 : ≥2 partout)`);
-  console.log('[PASS] Protocole D5 : 25 profils — cycle annoncé, préoccupation reprise, étape focus additive, zéro générique/médical/réservé, structure complète. Baseline « observations dérivées » rapportée (D1 à venir : assertion ≥2).');
+  assert.ok(minDerived >= 2, `D1 : au moins un profil sous le seuil de 2 dérivées (min = ${minDerived})`);
+  console.log(`[D5] Observations dérivées au résumé : minimum ${minDerived} (assertion D1 ≥2 partout — active)`);
+  console.log('[PASS] Protocole D5 : 25 profils — cycle annoncé, préoccupation reprise, étape focus additive, zéro générique/médical/réservé, structure complète. Assertions D1 actives : ≥2 observations dérivées tracées hairScience, réactives au retrait d’un champ.');
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });
