@@ -17,6 +17,8 @@ import {
   pickHairLessons,
   pickHairObservations,
   HAIR_FREQUENCY_VALUES,
+  HAIR_LENGTH_VALUES,
+  HAIR_EXPERIENCE_VALUES,
   HAIR_POROSITY_VALUES,
   HAIR_PRIORITY_VALUES,
   HAIR_SCALP_VALUES,
@@ -192,6 +194,8 @@ function profileFields(answers: Record<string, unknown>, isSkin: boolean): Diagn
       ['scalp', 'Cuir chevelu', HAIR_SCALP_VALUES, answers.scalp],
       ['priority', 'Besoin prioritaire', HAIR_PRIORITY_VALUES, answers.priority],
       ['frequency', 'Fréquence de lavage', HAIR_FREQUENCY_VALUES, answers.frequency],
+      ['length', 'Longueur actuelle', HAIR_LENGTH_VALUES, answers.length],
+      ['experience', 'Expérience capillaire', HAIR_EXPERIENCE_VALUES, answers.experience],
       ['budget', 'Budget', undefined, answers.budget],
     ];
     const fields = hairFields.map(([key, label, values, raw]) => ({
@@ -288,6 +292,8 @@ export function buildDiagnosticResultModel(input: {
     porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
     scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
     frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+    length: typeof answers.length === 'string' ? answers.length : undefined,
+    experience: typeof answers.experience === 'string' ? answers.experience : undefined,
     budget: typeof answers.budget === 'string' ? answers.budget : undefined,
   };
   const routine = isSkin ? routineForSkin(answers) : routineForHair(hairAdvisoryCtx);

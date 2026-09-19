@@ -129,6 +129,33 @@ export function registerProspectRoutes(app: Express): void {
     }
   }));
 
+  /**
+   * CONTEXTE OUTREACH — la liste légère des produits du catalogue avec leur
+   * fournisseur et leur statut. C'est ce qui permet au bureau des achats de
+   * répondre à trois questions au moment d'écrire à un fournisseur :
+   * quels produits ce message cible, lesquels sont déjà dans la boutique,
+   * et quels produits n'ont encore aucun fournisseur. Un produit sans
+   * fournisseur remonte `supplierId: null` — jamais deviné.
+   */
+  app.get('/api/admin/sourcing/outreach-products', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    try {
+      const products = await serverDb.getAdminCatalogProducts();
+      res.json({
+        products: products.map((p: any) => ({
+          id: String(p.id),
+          name: String(p.name || p.id),
+          catalogStatus: String(p.catalogStatus || p.catalog_status || 'draft'),
+          supplierId: p.supplierId ? String(p.supplierId) : null,
+        })),
+      });
+    } catch (error) {
+      console.error('[Prospects] outreach products error:', error);
+      res.status(500).json({ error: safeApiError(error, 'Produits indisponibles.') });
+    }
+  }));
+
   app.put('/api/admin/sourcing/candidates/:id', asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;

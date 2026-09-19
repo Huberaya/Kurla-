@@ -16,6 +16,8 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   porosity: 'forte',
   scalp: 'sec',
   frequency: '1x_semaine',
+  length: 'moyenne',
+  experience: 'habituee',
   budget: '40_70',
   email: ''
 };
@@ -35,7 +37,7 @@ export const DiagnosticHairPage: React.FC = () => {
   // question dédiée à CE profil (ses besoins et problèmes) s'insère en Q3,
   // EN PLUS des questions existantes (qui restent intactes).
   const segment = getHairDiagnosticSegment(answers.texture, answers.style);
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), 'priority', 'porosity', 'scalp', 'frequency', 'budget', 'email'];
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), 'length', 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -210,6 +212,32 @@ export const DiagnosticHairPage: React.FC = () => {
             </div>
           )}
 
+          {current === 'length' && (
+            <div className="space-y-6">
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Longueur actuelle</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Vos cheveux font quelle longueur aujourd’hui&nbsp;?</h2>
+              <p className="text-sm text-kurla-cream/60">Ce n’est pas une question de beauté — la longueur change le dosage, le temps de pose et ce qui casse en premier.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                {[
+                  { id: 'courte', title: 'Courte', desc: 'Au-dessus des épaules, tiges récentes.' },
+                  { id: 'moyenne', title: 'Moyenne', desc: 'Épaules atteintes.' },
+                  { id: 'longue', title: 'Longue', desc: 'Au-delà des épaules — les pointes sont anciennes.' },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { setAnswers({ ...answers, length: opt.id as any }); handleNext(); }}
+                    className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
+                      answers.length === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
+                    }`}
+                  >
+                    {opt.title}
+                    <span className="mt-1 block text-xs font-normal text-kurla-cream/55">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {current === 'priority' && (
             <div className="space-y-6">
               <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Priorité Beauté</span>
@@ -312,9 +340,9 @@ export const DiagnosticHairPage: React.FC = () => {
               <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">À quelle fréquence lavez-vous vos cheveux ?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {[
-                  { id: 'debutante', title: 'Je débute (pas encore de routine fixe)' },
+                  { id: 'less_1x', title: 'Moins d’une fois par semaine' },
                   { id: '1x_semaine', title: '1 fois par semaine (Wash Day fixe)' },
-                  { id: '2x_semaine', title: '2 fois par semaine' },
+                  { id: '2x_semaine', title: '2 fois par semaine (sport, transpiration)' },
                   { id: 'irreguliere', title: 'Variable / Selon le temps' },
                 ].map(opt => (
                   <button
@@ -325,6 +353,31 @@ export const DiagnosticHairPage: React.FC = () => {
                     }`}
                   >
                     {opt.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {current === 'experience' && (
+            <div className="space-y-6">
+              <span className="text-xs uppercase tracking-widest text-kurla-copper font-semibold block">{step}. Votre expérience</span>
+              <h2 className="text-2xl sm:text-3xl font-serif-title font-bold">Où en êtes-vous avec vos cheveux&nbsp;?</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                {[
+                  { id: 'debutante', title: 'Je débute', desc: 'Pas encore de routine fixe, ou tout récente.' },
+                  { id: 'habituee', title: 'J’ai des habitudes', desc: 'Quelques gestes qui tiennent déjà.' },
+                  { id: 'expert', title: 'Routine avancée', desc: 'Je connais ma fibre et ses réactions.' },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { setAnswers({ ...answers, experience: opt.id as any }); handleNext(); }}
+                    className={`p-4 rounded-2xl border text-left font-semibold text-sm transition-all ${
+                      answers.experience === opt.id ? 'bg-kurla-copper/20 border-kurla-copper' : 'bg-kurla-ink border-kurla-cream/10 hover:border-kurla-copper/50'
+                    }`}
+                  >
+                    {opt.title}
+                    <span className="mt-1 block text-xs font-normal text-kurla-cream/55">{opt.desc}</span>
                   </button>
                 ))}
               </div>

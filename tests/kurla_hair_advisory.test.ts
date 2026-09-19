@@ -27,6 +27,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { BANNED_MEDICAL_VOCAB, BANNED_RESERVED_EXPRESSIONS } from '../src/lib/knowledge/aiGuardrail';
 import {
   buildDiagnosticResultModel,
   type DiagnosticRoutineStep
@@ -47,24 +48,10 @@ const ok = async (label: string, fn: () => void | Promise<void>) => {
   console.log(`  ✓ ${label}`);
 };
 
-/** Formulations produites par d’autres modules — le conseil ne les redit pas. */
-const RESERVED_ELSEWHERE = [
-  'texture fluide',
-  'seule zone réellement accessible',
-  'occlusif de la formule',
-  'retirez la perruque la nuit',
-  'lavage clarifiant régulier',
-  'consultez un dermatologue',
-  'avis dermatologique',
-  'doivent être montrés à un dermatologue',
-  'Rétinol + AHA',
-  'Rétinol + BHA',
-  'Rétinol + vitamine C',
-  'AHA + BHA'
-];
-
-/** Vocabulaire médical — le conseil est cosmétique, jamais médical. */
-const MEDICAL_VOCAB = ['traitement', 'guérir', 'guérison', 'prescription', 'ordonnance', 'maladie', 'thérapie', 'pathologie', 'diagnostic médical'];
+/** Listes importées de la porte D3 (source unique) : la porte et le banc
+ * partagent exactement le même vocabulaire interdit. */
+const RESERVED_ELSEWHERE = BANNED_RESERVED_EXPRESSIONS;
+const MEDICAL_VOCAB = BANNED_MEDICAL_VOCAB;
 
 const ALL_STEPS = (model: ReturnType<typeof buildDiagnosticResultModel>): DiagnosticRoutineStep[] =>
   [...model.morning, ...model.evening, ...model.weekly];

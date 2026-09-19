@@ -7,8 +7,19 @@ import {
 
 import { PURCHASING_PHASES, RFQ_CHECKLIST_RETAIL, RFQ_CHECKLIST_PRIVATE_LABEL } from '../lib/purchasingDesk';
 import { emailForPhase, KNOWN_PROSPECT_EMAILS, contactActionForProspect } from '../lib/outreachEmails';
+import { ProductName } from './EditableRecordName';
 
-type Props = { prospects: any[] };
+type OutreachProduct = { id: string; name: string; catalogStatus: string; supplierId: string | null };
+
+type Props = {
+  prospects: any[];
+  /** Références identifiées (candidates) — portent prospectId et le lien réel draftProductId. */
+  candidates?: any[];
+  /** Produits du catalogue avec fournisseur et statut (route outreach-products). */
+  products?: OutreachProduct[];
+  headers?: HeadersInit;
+  onReload?: () => void;
+};
 
 const ROUTE_LABEL: Record<string, string> = {
   A: 'Revente (route A)',
@@ -18,9 +29,43 @@ const ROUTE_LABEL: Record<string, string> = {
 
 const PHASE_ICONS = [TruckIcon, TruckIcon, Sparkles, Sun, Baby, FlaskConical];
 
-export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
+export const PurchasingDeskPanel: React.FC<Props> = ({ prospects, candidates = [], products = [], headers, onReload }) => {
   const [copiedPhase, setCopiedPhase] = useState<string | null>(null);
   const [openEmail, setOpenEmail] = useState<string | null>(null);
+
+  /**
+   * CONTEXTE OUTREACH — trois questions au moment d'écrire à un fournisseur :
+   * 1. quels produits ce message cible (candidates rattachées à la piste) ;
+   * 2. lesquels sont déjà dans la boutique (lien réel draftProductId, ou
+   *    produits du catalogue rattachés à la fiche fournisseur de la piste) ;
+   * 3. quels produits du catalogue n'ont encore AUCUN fournisseur.
+   * Rien n'est rapproché par nom : sans lien réel, le statut reste « pas
+   * encore dans la boutique ».
+   */
+  const candidatesByProspect = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const c of candidates) {
+      const key = String(c.prospectId || '');
+      if (!key) continue;
+      const list = m.get(key) || [];
+      list.push(c);
+      m.set(key, list);
+    }
+    return m;
+  }, [candidates]);
+
+  const productsBySupplier = useMemo(() => {
+    const m = new Map<string, OutreachProduct[]>();
+    for (const p of products) {
+      if (!p.supplierId) continue;
+      const list = m.get(p.supplierId) || [];
+      list.push(p);
+      m.set(p.supplierId, list);
+    }
+    return m;
+  }, [products]);
+
+  const productsWithoutSupplier = useMemo(() => products.filter(p => !p.supplierId), [products]);
 
   const copyEmail = async (phaseId: string, text: string) => {
     try {
@@ -96,6 +141,33 @@ export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
           ))}
         </div>
       </div>
+
+      {/* Produits sans fournisseur — la liste de recherche */}
+      {products.length > 0 && (
+        <div className="rounded-2xl bg-kurla-ink border border-amber-400/25 p-4 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold flex items-center gap-1.5">
+              <PackageCheck className="w-3.5 h-3.5" /> Produits sans fournisseur — il faut en chercher un ({productsWithoutSupplier.length})
+            </p>
+            <p className="text-[10px] text-kurla-cream/50">Cliquez sur un nom pour ouvrir la fiche et rattacher un fournisseur.</p>
+          </div>
+          {productsWithoutSupplier.length === 0 ? (
+            <p className="text-[11px] text-emerald-300">✓ Tous les produits du catalogue ont un fournisseur.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-1.5">
+              {productsWithoutSupplier.map((p) => (
+                <div key={`no-supplier-${p.id}`} className="px-3 py-2 rounded-xl bg-kurla-espresso border border-amber-400/15 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  {headers
+                    ? <ProductName id={p.id} label={p.name} headers={headers} className="text-[11px] font-semibold" onSaved={onReload} />
+                    : <span className="text-[11px] font-semibold">{p.name}</span>}
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{p.catalogStatus}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Prochaine action */}
       <div className="rounded-2xl border border-kurla-copper/35 bg-kurla-copper/8 p-4 flex items-start gap-3">
@@ -252,6 +324,63 @@ export const PurchasingDeskPanel: React.FC<Props> = ({ prospects }) => {
                               : <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 text-kurla-cream/40" />{t.name} <em className="text-kurla-cream/40">(formulaire site)</em></span>}
                           </span>
                         ))}
+                      </div>
+
+                      {/* Que cible cet email ? — produits visés, statut boutique, fiche fournisseur */}
+                      <div className="space-y-2 pt-2 border-t border-kurla-cream/8">
+                        <p className="text-[10px] uppercase tracking-wider text-kurla-amber font-bold flex items-center gap-1.5">
+                          <Target className="w-3.5 h-3.5" /> Que cible cet email ?
+                        </p>
+                        {ps.map((p) => {
+                          const targeted = candidatesByProspect.get(String(p.id)) || [];
+                          const inShop = p.supplierId ? (productsBySupplier.get(String(p.supplierId)) || []) : [];
+                          return (
+                            <div key={`cible-${p.id}`} className="rounded-lg bg-kurla-espresso border border-kurla-cream/8 p-2.5 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-2 text-[10.5px]">
+                                <span className="font-bold text-kurla-cream">{p.name}</span>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-copper/15 text-kurla-copper">{targeted.length} produit(s) ciblé(s)</span>
+                                {p.supplierId
+                                  ? <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300">{inShop.length} dans la boutique</span>
+                                  : <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300">pas encore de fiche fournisseur — rien dans la boutique</span>}
+                              </div>
+                              {targeted.length > 0 && (
+                                <ul className="space-y-0.5">
+                                  {targeted.map((c: any) => (
+                                    <li key={`cible-cand-${c.id}`} className="text-[10px] text-kurla-cream/70 flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-kurla-copper">▸</span>
+                                      <span className="font-semibold">{c.brand ? `${c.brand} — ` : ''}{c.product}</span>
+                                      {c.draftProductId
+                                        ? <>
+                                            {headers && <ProductName id={String(c.draftProductId)} label="voir la fiche boutique" headers={headers} className="text-[10px]" onSaved={onReload} />}
+                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300">dans la boutique</span>
+                                          </>
+                                        : <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-cream/10 text-kurla-cream/50">pas encore dans la boutique</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {targeted.length === 0 && (
+                                <p className="text-[10px] text-kurla-cream/45 italic">Aucune référence identifiée rattachée à cette piste — le message ne cible aucun produit précis.</p>
+                              )}
+                              {inShop.length > 0 && (
+                                <details>
+                                  <summary className="cursor-pointer text-[10px] font-bold text-emerald-300">Produits de la boutique déjà rattachés à ce fournisseur ({inShop.length})</summary>
+                                  <ul className="mt-1 space-y-0.5">
+                                    {inShop.map((prod) => (
+                                      <li key={`cible-shop-${prod.id}`} className="text-[10px] flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-emerald-400">▸</span>
+                                        {headers
+                                          ? <ProductName id={prod.id} label={prod.name} headers={headers} className="text-[10px]" onSaved={onReload} />
+                                          : <span>{prod.name}</span>}
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{prod.catalogStatus}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </details>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {isOpen && (

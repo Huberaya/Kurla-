@@ -189,6 +189,31 @@ revue humaine ≥4/5 sur « spécificité au besoin » ; banc de contenu vert.
 **Acceptation** : banc avec sortie IA mockée générique → le fallback est
 servi ; banc avec sortie IA conforme → elle est servie ; tsc vert.
 
+**LIVRÉ (19/09)**
+- `src/lib/knowledge/aiGuardrail.ts` : la porte — mêmes invariants que le
+  fallback (segment reconnu, préoccupation reprise, dérivations D1 non
+  contredites via couverture lexicale ≥35 %, étapes ancrées sur le
+  programme moteur, longueurs minimales) + **source unique** des trois
+  listes de vocabulaire interdit (les bancs hair-advisory et D5 les
+  importent désormais — la porte et les tests ne peuvent plus diverger).
+- Route `/api/ai/routine-result` : calculs moteur hoistés AVANT l'appel
+  (segment, focus, dérivations, actions, routine) → sers d'une part à la
+  note de segment (prompt) et d'autre part de garde ; sortie IA évaluée par
+  `validateHairAiOutput` ; rejet → `parsed = null`, bascule déterministe,
+  raisons journalisées côté serveur uniquement (jamais affichées). Les
+  `warnings` de l'IA sont scannés aussi (un « consultez un dermatologue »
+  généré = rejet).
+- Nuance validée par le banc : « sans diagnostic médical » (négation,
+  disclaimer exigé) n'est PAS un motif de rejet — seule l'affirmation
+  médicale l'est. Le fallback passe sa propre porte sur les 7 segments.
+- Banc `tests/kurla_ai_guardrail.test.ts` (`test:ai-guardrail`, chaîné) :
+  10 contrats — auto-cohérence du déterministe (12 profils), reformulation
+  fidèle acceptée, 6 classes de rejet, disclaimer préservé.
+- Limite assumée : la porte n'est pas exercée sur un VRAI appel Gemini ici
+  (aucune clé dans le bac à sable) ; le branchement route est testé sur la
+  fonction de porte + vérifié au live POST (chemin sans clé → déterministe
+  servi, source 'fallback', bloc dérivé présent, 8 étapes).
+
 ---
 
 ### D4 — Les paramètres manquants (longueur, fréquence réelle, expérience)
@@ -213,6 +238,37 @@ servi ; banc avec sortie IA conforme → elle est servie ; tsc vert.
 **Acceptation** : 3 paires de profils (même segment, longueur/fréquence/
 expérience différentes) → réponses différenciées vérifiées au banc ;
 formulaire sans friction (1 question de plus max par tour).
+
+**LIVRÉ (19/09)**
+- Formulaire cheveux : +2 questions (Longueur actuelle en Q4, après le
+  coiffage/focus ; Votre expérience en Q9, après la fréquence — 11 questions
+  au total, jauge mise à jour toute seule). La question Fréquence devient le
+  rythme RÉELLEMENT pratiqué : « Moins d’une fois / 1× / 2× (sport) /
+  Variable » — « Je débute » en est déménagé (c’était une expérience).
+- Moteur (`hairAdvisory.ts`) : les trois paramètres produisent des ÉTAPES
+  (pas des phrases) — `applyParams` ajoute « Contrôle des pointes » (longue),
+  « Doser selon la longueur » (courte), « Recharger l’hydratation entre deux
+  lavages » (rythme rare), « Un geste nouveau par semaine » (débutante),
+  « Régler fin : élasticité et temps de pose » (experte), avec déduplication
+  stricte (un cycle qui a déjà son geste d’entre-deux ne le voit pas dupliqué
+  — vérifié chez l’enfant) et régression nulle pour les réponses anciennes
+  (« Je débute » logé dans la fréquence est compris comme expérience).
+- Dérivations D1 branchées sur les nouveaux champs : longueur (frottement /
+  lisibilité), rythme rare (l’eau entre les lavages), croisée forte
+  porosité + 2 lavages (la règle croisée remplace les deux simples), réglages
+  expertes.
+- Fiche technique (page résultat + kit) : les deux lignes nouvelles
+  s’affichent, jamais déduites — champ absent = « Non renseigné ».
+- Route IA : passe-plat des nouveaux champs (le garde-fou D3 reçoit la
+  routine moteur complète ; l’auto-cohérence du déterministe est vérifiée sur
+  6 profils à paramètres).
+- Bancs : `tests/kurla_diagnostic_params.test.ts` (10 contrats : 3 paires +
+  déduplication + pont hérité + fiche + porte D3 + qualité des étapes
+  greffées) chaîné sous `test:diagnostic-params` ; les 25 profils D5 gagnent
+  longueur/expérience et restent verts (min 3 dérivées).
+- Contrôles : tsc 0 ; 10 bancs verts ; live POST (profil transition+longue+
+  débutante+rythme rare → résumé et étape « Recharger » corrects) ; parcours
+  mobile 390px des 11 questions screenshoté, zéro débordement.
 
 ---
 

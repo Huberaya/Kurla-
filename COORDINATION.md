@@ -4826,3 +4826,73 @@ ventilation : ni les produits ciblés, ni leur statut boutique.
   testé en positif ET négatif) exit 0 · linked-records bloc 22 exit 0.
 
 **Contrôles** : lint exit 0 · chaîne complète en cours · prod à re-mesurer.
+## 19/09 (suite) — Contexte outreach : que cible chaque email fournisseur
+
+**Problème posé** : « quand j'envoie des messages aux fournisseurs pour leur
+demander de l'affiliation, je ne sais pas quels sont les produits ciblés, les
+produits ciblés qui sont dans la boutique, et les produits qu'il faut chercher
+un fournisseur. »
+
+**Constat mesuré** : les emails du bureau des achats (outreachEmails.ts) ne
+nomment AUCUN produit. Base prod : 138 produits dont 27 sans fournisseur
+(aucun publié sans fournisseur) · 28 pistes dont 3 liées à une fiche
+fournisseur · 121 candidates, TOUTES rattachées à une piste
+(sourcing_product_candidates.prospect_id), mais draft_product_id (lien réel
+candidate → catalogue) jamais utilisé (0).
+
+**Fait** :
+- `prospectStore` : `mapCandidate` remonte `draftProductId` (colonne réelle,
+  null = pas encore dans la boutique — aucun rapprochement par nom).
+- Route `GET /api/admin/sourcing/outreach-products` : liste légère
+  (id, nom, statut, supplierId null si absent). Inventaires régénérés
+  (347 routes · 108 admin).
+- `SourcingProspectsPanel` : charge le contexte et le passe au bureau.
+- `PurchasingDeskPanel` : (1) section « Produits sans fournisseur — il faut
+  en chercher un (N) », noms cliquables → fiche ; (2) dans chaque bloc email,
+  « Que cible cet email ? » — par destinataire : N produit(s) ciblé(s)
+  (candidates de la piste), badge « dans la boutique » sur lien RÉEL
+  draftProductId, produits boutique du fournisseur (si piste liée) dépliables
+  et cliquables ; sans fiche fournisseur : « rien dans la boutique ».
+
+**Bancs** : linked-records bloc 22 (route, lien réel, sections, cliquabilité,
+contexte passé au bureau) — 22 blocs exit 0 · purchasing/prospects/
+supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
+### D3 LIVRÉ (19/09) — garde-fou qualité sur la sortie IA du diagnostic cheveux
+
+- Nouveau `src/lib/knowledge/aiGuardrail.ts` : `validateHairAiOutput` (la
+  porte, invariants du fallback) + listes de vocabulaire interdit en SOURCE
+  UNIQUE (les bancs `kurla_hair_advisory` et `kurla_diagnostic_quality`
+  importent désormais ces listes — plus de divergence possible).
+- `recommendations.ts` : calculs moteur hoistés avant l'appel Gemini ;
+  sortie validée par la porte, rejet → bascule déterministe silencieuse
+  (raisons en journal serveur seulement) ; warnings de l'IA scannés ;
+  disclaimer négation (« sans diagnostic médical ») explicitement toléré.
+- Nouveau banc `tests/kurla_ai_guardrail.test.ts` = `test:ai-guardrail`,
+  chaîné après `test:diagnostic-quality`. 10 contrats verts ; tsc 0 ;
+  qualité/hair-advisory/segments/c4/care-kit/advisory/session verts ; live
+  POST route OK (chemin sans clé : fallback servi).
+- Prochain : **D4** (longueur + fréquence réellement utilisée +
+  expérience — chaque paramètre : option → règle → assertion).
+
+### D4 LIVRÉ (19/09) — longueur, fréquence réelle, expérience
+
+- Formulaire cheveux 9 → 11 questions : « Longueur actuelle » (courte/
+  moyenne/longue, Q4) et « Votre expérience » (débutante/habituée/experte,
+  Q9) ; la Fréquence devient le rythme réellement pratiqué (« Je débute »
+  en sort, déplacé vers l’expérience). Pont régressif : une ancienne
+  réponse frequency=debutante est comprise comme une expérience (banc
+  dédié) et le vieux texte « Rythme : pour débuter » ne peut plus revenir.
+- `applyParams` dans le moteur : chaque paramètre ajoute une VRAIE étape
+  (Contrôle des pointes, Doser selon la longueur, Recharger l’hydratation,
+  Un geste nouveau par semaine, Régler fin) avec déduplication par cycle ;
+  5 nouvelles dérivations D1 (dont croisée porosité forte + 2 lavages).
+  Réordonnancement : les dérivations « remplissage 1 champ » passent après
+  toutes les croisées — une règle de remplissage n’éjecte plus une règle
+  croisée du plafond de 4 (attrapé par le test de réactivité D5).
+- `tests/kurla_diagnostic_params.test.ts` (`test:diagnostic-params`) :
+  3 paires de l’acceptation + déduplication + pont hérité + fiche + garde-
+  fou D3. D5 : profils enrichis longueur/expérience. Fiche résultat et kit
+  affichent les nouvelles lignes (jamais déduites).
+- Contrôles : tsc 0 ; 10 bancs verts ; live POST profil D4 complet OK ;
+  parcours mobile 11 questions screenshoté (390px, over=0).
+- Prochain : **D2** (la boucle J+7/14/30 → routine réellement recalée).

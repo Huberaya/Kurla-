@@ -12,6 +12,7 @@ import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../l
 import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
 import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
 import { deriveHairObservations } from '../../lib/knowledge/diagnosticDerivations';
+import { validateHairAiOutput } from '../../lib/knowledge/aiGuardrail';
 import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
@@ -378,29 +379,37 @@ export function registerRecommendationRoutes(app: Express): void {
       return res.json({ summary: triage.message, recommendedRoutine: 'Avis professionnel recommandé', reason: triage.message, steps: ['Suspendre les produits nouveaux ou irritants.', 'Ne pas appliquer de cosmétique sur une zone lésée.', 'Demander un avis médical ou dermatologique.'], warnings: [AI_DISCLAIMER], productHandles: [], requiresHumanReview: true, generatedWithAI: false, source: 'fallback', sources: cards.map(card => ({ id: card.id, label: card.sourceLabel, status: card.status })) });
     }
 
-    // Chantier routine segmentée : l'IA doit répondre AU profil déclaré
-    // (texture + coiffage usuel = cycle, + préoccupation), jamais une routine générique.
-    const segmentNote = diagnosticType === 'hair' ? (() => {
-      const seg = getHairDiagnosticSegment(typeof answers.texture === 'string' ? answers.texture : undefined, typeof answers.style === 'string' ? answers.style : undefined);
-      const focusLabel = getSegmentFocusLabel(typeof answers.focus === 'string' ? answers.focus : undefined);
+    // Chantier routine segmentée + D3 : les calculs moteur du profil (segment,
+    // préoccupation, dérivations D1, routine) sont faits AVANT l'appel IA.
+    // Ils servent de garde-fou à la sortie du modèle comme de fallback
+    // déterministe si la sortie échoue à la porte — jamais un générique.
+    const isHair = diagnosticType === 'hair';
+    const advisoryCtx = isHair ? {
+      texture: typeof answers.texture === 'string' ? answers.texture : undefined,
+      style: typeof answers.style === 'string' ? answers.style : undefined,
+      focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
+      priority: typeof answers.priority === 'string' ? answers.priority : undefined,
+      porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
+      scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
+      frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
+      length: typeof answers.length === 'string' ? answers.length : undefined,
+      experience: typeof answers.experience === 'string' ? answers.experience : undefined,
+    } : null;
+    const hairSegment = advisoryCtx ? getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style) : undefined;
+    const hairFocusLabel = getSegmentFocusLabel(advisoryCtx?.focus);
+    const hairDerived = advisoryCtx ? deriveHairObservations(advisoryCtx) : [];
+    const hairRoutine = advisoryCtx ? buildHairAdvisoryRoutine(advisoryCtx) : undefined;
+    const hairEngineActions = hairRoutine ? [...hairRoutine.morning, ...hairRoutine.evening, ...hairRoutine.weekly].map(step => step.action) : [];
+    const segmentNote = isHair ? (() => {
       const parts: string[] = [];
-      if (seg) parts.push(`Le profil déclaré est : ${seg.label} (texture ${String(answers.texture ?? 'inconnue')}, coiffage usuel ${String(answers.style ?? 'inconnu')}).`);
-      if (focusLabel) parts.push(`Préoccupation principale déclarée : « ${focusLabel} ».`);
-      // D1 : les observations dérivées sont la grille de lecture du profil —
-      // Gemini les reprend, jamais ne les contredit, jamais n'en invente.
-      const derivedNotes = deriveHairObservations({
-        texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-        style: typeof answers.style === 'string' ? answers.style : undefined,
-        focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-        priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-        porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-        scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-        frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-      });
-      if (derivedNotes.length) parts.push(`Croisements déjà déduits des réponses (à reprendre fidèlement dans le summary, sans les contredire ni en inventer d'autres) : ${derivedNotes.map(d => d.text).join(' ')}`);
+      if (hairSegment) parts.push(`Le profil déclaré est : ${hairSegment.label} (texture ${String(answers.texture ?? 'inconnue')}, coiffage usuel ${String(answers.style ?? 'inconnu')}).`);
+      if (hairFocusLabel) parts.push(`Préoccupation principale déclarée : « ${hairFocusLabel} ».`);
+      if (hairDerived.length) parts.push(`Croisements déjà déduits des réponses (à reprendre fidèlement dans le summary, sans les contredire ni en inventer d'autres) : ${hairDerived.map(d => d.text).join(' ')}`);
+      if (hairEngineActions.length) parts.push(`Référence moteur des étapes (l'IA reformule, n'invente pas un autre programme) : ${hairEngineActions.join(' | ')}`);
       if (parts.length) parts.push('Les étapes doivent suivre le cycle de ce profil précis (et servir cette préoccupation) — pas une routine générique : une tressée n’a pas le même cycle qu’une personne en locks, ni qu’une chevelure naturelle.');
       return parts.join(' ');
     })() : '';
+
 
     let parsed: any;
     let generatedWithAI = false;
@@ -432,27 +441,31 @@ export function registerRecommendationRoutes(app: Express): void {
     const requestedHandles = Array.isArray(parsed?.productHandles) ? parsed.productHandles : candidateSlugs;
     const filteredRequestedHandles = requestedHandles.filter((slug: unknown): slug is string => typeof slug === 'string' && validSlugs.has(slug) && relevantSlugs.has(slug));
     const productHandles = Array.from(new Set(filteredRequestedHandles.length > 0 ? filteredRequestedHandles : candidateSlugs));
-    const isHair = diagnosticType === 'hair';
-    // Fallback sans IA : la réponse suit le profil déclaré (même moteur que
-    // la page résultat) — jamais un générique.
+    // D3 — GARDE-FOU : la sortie IA d'un diagnostic cheveux est validée par
+    // les invariants du fallback. Rejet = bascule automatique sur le
+    // déterministe (le client ne voit ni la porte ni les raisons).
+    if (isHair && generatedWithAI && parsed) {
+      const verdict = validateHairAiOutput(parsed, {
+        segmentId: hairSegment?.id ?? null,
+        focusLabel: hairFocusLabel ?? null,
+        derived: hairDerived,
+        engineActions: hairEngineActions,
+      });
+      if (!verdict.ok) {
+        console.warn('[AI Routine] garde-fou D3 — sortie rejetée, bascule déterministe :', verdict.reasons.join(' ; '));
+        parsed = null;
+        generatedWithAI = false;
+      }
+    }
+    // Fallback sans IA (ou sortie IA rejetée) : la réponse suit le profil
+    // déclaré (même moteur que la page résultat) — jamais un générique.
     let hairFallback: { summary: string; recommendedRoutine: string; reason: string; steps: string[] } | null = null;
-    if (isHair) {
-      const advisoryCtx = {
-        texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-        style: typeof answers.style === 'string' ? answers.style : undefined,
-        focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-        priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-        porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-        scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-        frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-      };
-      const segment = getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style);
-      const hairRoutine = buildHairAdvisoryRoutine(advisoryCtx);
+    if (isHair && advisoryCtx) {
       hairFallback = {
         summary: buildHairAdvisorySummary(advisoryCtx),
-        recommendedRoutine: `Routine KURLA — ${segment ? segment.label : 'profil déclaré'}`,
+        recommendedRoutine: `Routine KURLA — ${hairSegment ? hairSegment.label : 'profil déclaré'}`,
         reason: 'Les étapes suivent le cycle du profil déclaré : texture, coiffage usuel, préoccupation, porosité et cuir chevelu — sans diagnostic médical.',
-        steps: [...hairRoutine.morning, ...hairRoutine.evening, ...hairRoutine.weekly].map(step => step.action).slice(0, 8),
+        steps: hairEngineActions.slice(0, 8),
       };
     }
     const safeResult = {

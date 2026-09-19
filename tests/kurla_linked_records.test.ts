@@ -511,7 +511,44 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
 }
 
 // ---------------------------------------------------------------------------
-// 22. CIBLAGE DES MESSAGES FOURNISSEURS (19/09) — avant d'envoyer un message
+// 22. CONTEXTE OUTREACH — au moment d'écrire à un fournisseur, trois réponses
+//     visibles : quels produits le message cible, lesquels sont dans la
+//     boutique, quels produits n'ont aucun fournisseur.
+//     a) la route outreach-products remonte le fournisseur réel (null = sans
+//        fournisseur, jamais deviné) ;
+//     b) le lien candidate → boutique est le lien RÉEL draft_product_id —
+//        aucun rapprochement par nom ;
+//     c) le bureau des achats affiche les produits sans fournisseur (noms
+//        cliquables) et, par destinataire, les produits ciblés + statut.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const route = read('server/routes/prospects.ts');
+  assert.ok(route.includes("app.get('/api/admin/sourcing/outreach-products'"), 'route outreach-products absente.');
+  assert.ok(route.includes('supplierId: p.supplierId ? String(p.supplierId) : null'), 'route outreach-products : le fournisseur absent doit rester null, pas deviné.');
+
+  const store = read('lib/db/prospectStore.ts');
+  assert.ok(store.includes('draft_product_id'), 'prospectStore : le lien réel draft_product_id n’est plus remonté.');
+
+  const desk = read('components/PurchasingDeskPanel.tsx');
+  assert.ok(desk.includes('Produits sans fournisseur — il faut en chercher un'), 'bureau des achats : la liste des produits sans fournisseur a disparu.');
+  assert.ok(desk.includes('Que cible cet email ?'), 'bureau des achats : le ciblage produit par email a disparu.');
+  assert.ok(desk.includes('pas encore dans la boutique'), 'bureau des achats : le statut « pas encore dans la boutique » a disparu.');
+  assert.ok(desk.includes('candidatesByProspect') && desk.includes('productsBySupplier') && desk.includes('productsWithoutSupplier'), 'bureau des achats : les trois calculs de contexte ont disparu.');
+  const noSupplierBlock = desk.slice(desk.indexOf('no-supplier-'), desk.indexOf('Prochaine action'));
+  assert.ok(noSupplierBlock.includes('<ProductName'), 'bureau des achats : les produits sans fournisseur ne sont plus cliquables vers leur fiche.');
+  const cibleBlock = desk.slice(desk.indexOf('cible-shop-'));
+  assert.ok(cibleBlock.includes('<ProductName'), 'bureau des achats : les produits boutique du fournisseur visé ne sont plus cliquables.');
+
+  const parent = read('components/SourcingProspectsPanel.tsx');
+  assert.ok(parent.includes('outreach-products') && parent.includes('candidates={candidates} products={outreachProducts}'), 'panneau pistes : le contexte outreach n’est plus passé au bureau des achats.');
+
+  console.log('✓ contexte outreach : produits ciblés par email, statut boutique sur lien réel, produits sans fournisseur cliquables');
+}
+
+// ---------------------------------------------------------------------------
+// 23. CIBLAGE DES MESSAGES DANS LA VUE CONSOLIDÉE (19/09) — avant d'envoyer un message
 //     (affiliation, devis), l'acheteur voit : quels produits sont ciblés,
 //     lesquels sont déjà dans la boutique, et la liste des produits pour
 //     lesquels il faut chercher un fournisseur. Les noms sont cliquables
@@ -533,7 +570,7 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   assert.ok(targetBlock.includes('target.productId'), 'vue consolidée : le clic vers la fiche doit dépendre d’un id produit réel.');
   assert.ok(/target\.productId\s*\?\s*<ProductName/.test(panel), 'vue consolidée : sans id réel, le nom doit rester du texte — jamais de lien inventé.');
 
-  console.log('✓ ciblage des messages fournisseurs : produits ciblés, déjà dans la boutique, à sourcer — cliquables seulement sur fiche réelle');
+  console.log('✓ ciblage des messages (vue consolidée) : produits ciblés, déjà dans la boutique, à sourcer — cliquables seulement sur fiche réelle');
 }
 
-console.log('\n22 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, ciblage des messages fournisseurs.');
+console.log('\n23 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée.');
