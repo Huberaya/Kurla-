@@ -4896,3 +4896,23 @@ supplier-admin/sourcing-consolidated exit 0 · lint exit 0.
 - Contrôles : tsc 0 ; 10 bancs verts ; live POST profil D4 complet OK ;
   parcours mobile 11 questions screenshoté (390px, over=0).
 - Prochain : **D2** (la boucle J+7/14/30 → routine réellement recalée).
+
+## 19/09 (suite 2) — Règle d'or dropship visible dans l'onglet « Guide dropship 0 carton »
+
+**Retour utilisateur** : « je ne vois pas l'onglet dropship avec les matériels
+et outils ». Diagnostic : la section règle d'or avait été placée dans la vue
+ops (onglets « Fournisseurs & sourcing » et « 3 · Acheter & marges »), mais
+l'onglet qui s'appelle « Guide dropship 0 carton » n'affichait que le guide
+statique — aucun produit. L'utilisateur cherche au bon endroit : c'est la
+section qui était au mauvais.
+
+**Fait** : la carte règle d'or devient un composant partagé
+(`DropshipRuleCard`, présentation pure) + une section autonome qui charge le
+bloc `dropshipRule` de la route ops (`DropshipToolsSection`). L'onglet
+« Guide dropship 0 carton » affiche la carte EN TÊTE (état réel des 31
+matériels & outils, écarts nommés, fiches cliquables) au-dessus du guide.
+La vue ops utilise la même carte — une seule implémentation.
+
+**Banc** : linked-records bloc 21 étendu — composant partagé, section
+autonome, carte utilisée par la vue ops, onglet dropship hôte de la section.
+23 blocs exit 0 · lint exit 0 · chaîne complète en cours.

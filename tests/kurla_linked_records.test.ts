@@ -507,7 +507,17 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   const conformingBlock = panel.slice(panel.indexOf('tool-ok-'));
   assert.ok(conformingBlock.includes('<ProductName'), 'vue ops : un matériel/outil conforme n’est plus cliquable vers sa fiche.');
 
-  console.log('✓ règle d’or Année 1 : matériels & outils = dropship 24–48h · 0 carton à Paris — mise en évidence en tête de la vue ops, écarts nommés, fiches cliquables');
+  // La règle doit aussi être visible dans l'ONGLET DROPSHIP (« Guide dropship
+  // 0 carton ») — c'est là qu'on la cherche. Correction du 19/09 : la carte
+  // est partagée (DropshipRuleCard) entre la vue ops et l'onglet dropship.
+  assert.ok(panel.includes('export const DropshipRuleCard'), 'la carte règle d’or n’est plus un composant partagé.');
+  assert.ok(panel.includes('export const DropshipToolsSection'), 'la section autonome pour l’onglet dropship a disparu.');
+  assert.ok(panel.includes('<DropshipRuleCard dropshipRule={dropshipRule}'), 'vue ops : la carte partagée n’est plus utilisée.');
+  const page = read('pages/AdminDashboardPage.tsx');
+  const guideTab = page.slice(page.indexOf("activeTab === 'guide_dropship'"));
+  assert.ok(guideTab.includes('<DropshipToolsSection'), 'onglet « Guide dropship 0 carton » : l’état des matériels & outils n’y est plus affiché.');
+
+  console.log('✓ règle d’or Année 1 : matériels & outils = dropship 24–48h · 0 carton à Paris — mise en évidence dans la vue ops ET l’onglet dropship, écarts nommés, fiches cliquables');
 }
 
 // ---------------------------------------------------------------------------

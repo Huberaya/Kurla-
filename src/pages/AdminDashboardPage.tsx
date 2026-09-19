@@ -12,7 +12,7 @@ import { SupplierAdminPanel } from '../components/SupplierAdminPanel';
 import { FulfillmentContactPanel } from '../components/FulfillmentContactPanel';
 import { TamponOrderPanel } from '../components/TamponOrderPanel';
 import { SourcingConsolidatedPanel } from '../components/SourcingConsolidatedPanel';
-import { SupplyOpsPanel } from '../components/SupplyOpsPanel';
+import { SupplyOpsPanel, DropshipToolsSection } from '../components/SupplyOpsPanel';
 import { ProductSourcesPanel } from '../components/ProductSourcesPanel';
 import { GlobalSearchPanel } from '../components/GlobalSearchPanel';
 import { SourcingWorkflowPanel } from '../components/SourcingWorkflowPanel';
@@ -1457,7 +1457,13 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* TAB 5D: GUIDE DROPSHIP 0 CARTON — fiche opérationnelle intégrée */}
         {activeTab === 'guide_dropship' && (
-          <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
+          <div className="space-y-4">
+            {/* Règle d'or en tête de l'onglet dropship : l'état réel des
+                matériels & outils (conformes / hors règle, fiches cliquables)
+                se voit ICI, pas seulement dans la vue ops. */}
+            <DropshipToolsSection headers={adminHeaders} />
+            <DropshipGuidePanel onCreateTool={() => setActiveTab('catalog')} />
+          </div>
         )}
 
         {/* TAB PIPELINE — vue d'ensemble de mise en vente (chantier 17/09 B+C) */}

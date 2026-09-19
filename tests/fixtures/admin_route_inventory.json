@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T12:12:04.971Z",
+  "generatedAt": "2026-09-19T15:24:34.876Z",
   "routes": [
     {
       "method": "POST",
@@ -796,6 +796,7 @@
       "callers": [
         "src/components/ProductLifecyclePanel.tsx:62",
         "src/components/SupplyOpsPanel.tsx:36",
+        "src/components/SupplyOpsPanel.tsx:199",
         "src/components/WorkspacePulsePanel.tsx:74"
       ]
     },

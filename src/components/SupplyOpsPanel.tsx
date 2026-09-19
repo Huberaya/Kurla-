@@ -73,45 +73,7 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
         </div>
       </div>
 
-      {dropshipRule && (
-        <div className="p-6 rounded-3xl bg-kurla-espresso border-2 border-kurla-copper/50 space-y-3">
-          <div className="flex items-start gap-2.5">
-            <Boxes className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-kurla-amber">Règle d’or Année 1 — tous les matériels &amp; outils sont en dropship 24–48h</h3>
-              <p className="text-[11px] text-kurla-cream/60 mt-1">
-                Expédiés à l’unité par notre partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span> (catégorie « accessoires » = matériels &amp; outils).
-                {' '}{dropshipRule.toolTotal} produit(s) concerné(s) · <span className="text-emerald-300 font-bold">{dropshipRule.conforming.length} conforme(s)</span>
-                {dropshipRule.violations.length > 0 && <> · <span className="text-rose-300 font-bold">{dropshipRule.violations.length} hors règle</span></>}.
-              </p>
-            </div>
-          </div>
-          {dropshipRule.violations.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-rose-300">Hors règle — cliquez sur le nom pour corriger la fiche</p>
-              {dropshipRule.violations.map((violation: any) => (
-                <div key={`tool-violation-${violation.productId}`} className="px-3 py-2 rounded-xl bg-rose-950/25 border border-rose-500/25 flex flex-wrap items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
-                  <ProductName id={String(violation.productId)} label={violation.name} headers={headers} className="text-[11px] font-bold text-rose-100" onSaved={() => setReloadToken(t => t + 1)} />
-                  <span className="text-[10px] text-rose-200/75">{(violation.reasons || []).join(' · ')}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{violation.catalogStatus}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <details>
-            <summary className="cursor-pointer text-[11px] font-bold text-emerald-300">{dropshipRule.conforming.length} matériel(s) &amp; outil(s) conforme(s) — dropship 24–48h ✓</summary>
-            <div className="grid md:grid-cols-2 gap-1.5 mt-2">
-              {dropshipRule.conforming.map((entry: any) => (
-                <div key={`tool-ok-${entry.productId}`} className="px-3 py-2 rounded-xl bg-emerald-950/20 border border-emerald-500/15 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <ProductName id={String(entry.productId)} label={entry.name} headers={headers} className="text-[11px] font-semibold text-emerald-100/90" onSaved={() => setReloadToken(t => t + 1)} />
-                </div>
-              ))}
-            </div>
-          </details>
-        </div>
-      )}
+      {dropshipRule && <DropshipRuleCard dropshipRule={dropshipRule} headers={headers} onSaved={() => setReloadToken(t => t + 1)} />}
 
       {alerts.length > 0 && (
         <div className="p-6 rounded-3xl bg-rose-950/30 border border-rose-400/30 space-y-2">
@@ -171,4 +133,80 @@ export const SupplyOpsPanel: React.FC<{ headers: Record<string, string> }> = ({ 
       </div>
     </div>
   );
+};
+
+/**
+ * CARTE RÈGLE D'OR — matériels & outils = dropship 24–48h, 0 carton à Paris.
+ * Présentationale pure : les données viennent de la vue ops (route
+ * /api/admin/sourcing/ops, bloc dropshipRule). Chaque nom est cliquable vers
+ * la fiche éditable — l'enregistrement déclenche onSaved (rechargement).
+ */
+export const DropshipRuleCard: React.FC<{ dropshipRule: any; headers: Record<string, string>; onSaved: () => void }> = ({ dropshipRule, headers, onSaved }) => (
+        <div className="p-6 rounded-3xl bg-kurla-espresso border-2 border-kurla-copper/50 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <Boxes className="w-5 h-5 text-kurla-amber shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-kurla-amber">Règle d’or Année 1 — tous les matériels &amp; outils sont en dropship 24–48h</h3>
+              <p className="text-[11px] text-kurla-cream/60 mt-1">
+                Expédiés à l’unité par notre partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span> (catégorie « accessoires » = matériels &amp; outils).
+                {' '}{dropshipRule.toolTotal} produit(s) concerné(s) · <span className="text-emerald-300 font-bold">{dropshipRule.conforming.length} conforme(s)</span>
+                {dropshipRule.violations.length > 0 && <> · <span className="text-rose-300 font-bold">{dropshipRule.violations.length} hors règle</span></>}.
+              </p>
+            </div>
+          </div>
+          {dropshipRule.violations.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-rose-300">Hors règle — cliquez sur le nom pour corriger la fiche</p>
+              {dropshipRule.violations.map((violation: any) => (
+                <div key={`tool-violation-${violation.productId}`} className="px-3 py-2 rounded-xl bg-rose-950/25 border border-rose-500/25 flex flex-wrap items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+                  <ProductName id={String(violation.productId)} label={violation.name} headers={headers} className="text-[11px] font-bold text-rose-100" onSaved={() => onSaved()} />
+                  <span className="text-[10px] text-rose-200/75">{(violation.reasons || []).join(' · ')}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-kurla-ink border border-kurla-cream/10 text-kurla-cream/60">{violation.catalogStatus}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <details>
+            <summary className="cursor-pointer text-[11px] font-bold text-emerald-300">{dropshipRule.conforming.length} matériel(s) &amp; outil(s) conforme(s) — dropship 24–48h ✓</summary>
+            <div className="grid md:grid-cols-2 gap-1.5 mt-2">
+              {dropshipRule.conforming.map((entry: any) => (
+                <div key={`tool-ok-${entry.productId}`} className="px-3 py-2 rounded-xl bg-emerald-950/20 border border-emerald-500/15 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <ProductName id={String(entry.productId)} label={entry.name} headers={headers} className="text-[11px] font-semibold text-emerald-100/90" onSaved={() => onSaved()} />
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      
+);
+
+/**
+ * SECTION AUTONOME pour l'onglet « Guide dropship 0 carton » : charge le
+ * bloc dropshipRule de la vue ops et affiche la même carte — la règle et
+ * l'état des matériels & outils sont visibles là où l'on pense à les
+ * chercher, pas seulement dans la vue ops.
+ */
+export const DropshipToolsSection: React.FC<{ headers: Record<string, string> }> = ({ headers }) => {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetch('/api/admin/sourcing/ops', { headers });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || 'Vue ops indisponible.');
+        setData(body);
+      } catch (e: any) {
+        setError(e.message || 'Erreur de chargement.');
+      }
+    })();
+  }, [headers, reloadToken]);
+
+  if (error) return <div className="p-6 rounded-3xl bg-kurla-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
+  if (!data?.dropshipRule) return <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 text-xs text-kurla-cream/60">Chargement de l'état dropship des matériels &amp; outils…</div>;
+  return <DropshipRuleCard dropshipRule={data.dropshipRule} headers={headers} onSaved={() => setReloadToken(t => t + 1)} />;
 };
