@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T15:24:34.876Z",
+  "generatedAt": "2026-09-19T21:27:47.191Z",
   "routes": [
     {
       "method": "POST",
@@ -710,7 +710,7 @@
       "guard": "requireAdmin(",
       "callers": [
         "src/components/IdentifiedProductsPanel.tsx:122",
-        "src/components/SourcingConsolidatedPanel.tsx:62"
+        "src/components/SourcingConsolidatedPanel.tsx:101"
       ]
     },
     {
@@ -721,8 +721,8 @@
       "callers": [
         "src/components/CatalogPipelinePanel.tsx:88",
         "src/components/IdentifiedProductsPanel.tsx:70",
-        "src/components/ProductLifecyclePanel.tsx:60",
-        "src/components/SourcingConsolidatedPanel.tsx:45"
+        "src/components/ProductLifecyclePanel.tsx:79",
+        "src/components/SourcingConsolidatedPanel.tsx:84"
       ]
     },
     {
@@ -794,9 +794,9 @@
       "file": "src/server/routes/sourcing.ts:313",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductLifecyclePanel.tsx:62",
-        "src/components/SupplyOpsPanel.tsx:36",
-        "src/components/SupplyOpsPanel.tsx:199",
+        "src/components/ProductLifecyclePanel.tsx:81",
+        "src/components/SupplyOpsPanel.tsx:56",
+        "src/components/SupplyOpsPanel.tsx:274",
         "src/components/WorkspacePulsePanel.tsx:74"
       ]
     },
@@ -873,6 +873,7 @@
       "file": "src/server/routes/sourcing.ts:159",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/DropshipOpsPanel.tsx:33",
         "src/components/ProductSourcesPanel.tsx:80",
         "src/components/ProductSourcesPanel.tsx:126"
       ]
@@ -883,6 +884,7 @@
       "file": "src/server/routes/sourcing.ts:177",
       "guard": "requireAdmin(",
       "callers": [
+        "src/components/DropshipOpsPanel.tsx:33",
         "src/components/ProductSourcesPanel.tsx:80",
         "src/components/ProductSourcesPanel.tsx:126"
       ]
@@ -929,7 +931,7 @@
       "file": "src/server/routes/sourcing.ts:269",
       "guard": "requireAdmin(",
       "callers": [
-        "src/components/ProductLifecyclePanel.tsx:63",
+        "src/components/ProductLifecyclePanel.tsx:82",
         "src/components/SourcingWorkflowFunnel.tsx:20"
       ]
     },
@@ -961,6 +963,7 @@
         "src/components/BatchAdminPanel.tsx:153",
         "src/components/CatalogAdminPanel.tsx:246",
         "src/components/CatalogPipelinePanel.tsx:91",
+        "src/components/DropshipOpsPanel.tsx:34",
         "src/components/ProductSourcesPanel.tsx:65",
         "src/components/ProductSupplierPanel.tsx:76",
         "src/components/ProductSupplierPanel.tsx:76",
@@ -983,6 +986,7 @@
         "src/components/BatchAdminPanel.tsx:153",
         "src/components/CatalogAdminPanel.tsx:246",
         "src/components/CatalogPipelinePanel.tsx:91",
+        "src/components/DropshipOpsPanel.tsx:34",
         "src/components/ProductSourcesPanel.tsx:65",
         "src/components/ProductSupplierPanel.tsx:76",
         "src/components/ProductSupplierPanel.tsx:76",
