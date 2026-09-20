@@ -5163,3 +5163,19 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
   bouclés+transition, locks, ondulé, perruque). Reste hors diagnostic : arbitrage « avant-locks »,
   éventuelle question lavage-du-dessous, suivi des compteurs de la matrice.
 
+
+### 20/09 (suite 6) — D13 concision des réponses : « Plus » sur la page résultat
+
+- Retour utilisateur : réponses trop longues → première phrase concise en
+  vedette, suite derrière « Plus » (rien de coupé, tout dépliable). Moteur
+  inchangé ; 100 % présentation.
+- Nouveau : `src/components/ui/MoreLess.tsx` (splitLead pur + LeadBlock,
+  aria-expanded/controls) ; `StepBody` dans la page résultat pour les colonnes
+  routine peau+cheveux ; LeadBlock sur résumé, §4 pourquoi, leçons, kit.
+- Banc `tests/kurla_resultat_concision.test.ts` 19/19 (propriété sans-perte
+  sur 334 textes moteur) ; suite npm test verte (lint tsc inclus) ;
+  Playwright 390 px 12/12 (replié par défaut, clic Plus → texte moteur
+  intégral, over 0, console 0). Captures docs/d13_resultat_{replie,deplie}.png.
+- Corrigé au passage : « Faites glisser pour feuiller » → « feuilleter »
+  (vue sur capture client).
+- Rapport : docs/RAPPORT_D13_CONCISION.md.
