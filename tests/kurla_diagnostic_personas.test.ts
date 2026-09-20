@@ -302,6 +302,9 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       // D12 : fixation et portée de la pose balayées PARTOUT (rémanences).
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v5 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v6 = seed >>> 8;
+      // D14 : lavage du dessous et sous-motif ondulé balayés PARTOUT (rémanences).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v7 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v8 = seed >>> 8;
       const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
@@ -317,7 +320,9 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         locCare: ['inconnu', 'palm', 'interlock', 'freeform'][v3 % 4],
         locDry: ['inconnu', 'sec', 'seche', 'humide', 'lentes'][v4 % 5],
         wigBond: ['inconnu', 'glue', 'tape', 'glueless'][v5 % 4],
-        wigWear: ['inconnu', 'quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'][v6 % 5]
+        wigWear: ['inconnu', 'quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'][v6 % 5],
+        wigWash: ['inconnu', 'a_repos', 'deux_semaine', 'rare'][v7 % 4],
+        wavyPattern: ['inconnu', '2a', '2b', '2c'][v8 % 4]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -455,6 +460,23 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       if (w === 'une_semaine' && wigCycle !== wkOn) at('confirmation hebdo rendue hors cycle perruque');
       if (w === 'quotidienne' && wigCycle !== dailyOn) at('confirmation quotidienne rendue hors cycle perruque');
       if (/Pose déclarée :|Rythme de pose :/.test(sum3) && !wigCycle) at('décision perruque au résumé hors cycle perruque');
+      // D14 — lavage du dessous : rendu exactement quand le cycle perruque l'a reçu.
+      const washRareOn = /ordre de dépose immédiate|le lavage se reprend à la dépose/.test(full);
+      if ((ctx.wigWash === 'rare' && wigCycle) !== washRareOn) at('clause lavage rare rendue hors cycle perruque');
+      const washRepoOn = /Le dessous lavé à chaque dépose : le rythme est pris/.test(full);
+      if ((ctx.wigWash === 'a_repos' && wigCycle) !== washRepoOn) at('clause lavage à la dépose rendue hors cycle perruque');
+      const washQuinOn = /c’est la dépose qui doit avancer/.test(full);
+      if ((ctx.wigWash === 'deux_semaine' && wigCycle) !== washQuinOn) at('clause quinze jours rendue hors cycle perruque');
+      if (/Lavage du dessous/.test(sum3) && !wigCycle) at('décision lavage du dessous au résumé hors cycle perruque');
+      // D14 — sous-motif ondulé : clause rendue seulement quand la branche ondes
+      // est servie (ondulé non verrouillé, porosité non faible — la branche du 3 léger passe avant).
+      const wavyGate = texture === 'ondulee' && !locked && porosity !== 'faible' && style === 'naturel';
+      const on2a = /premier ennemi est le poids/.test(full);
+      if ((ctx.wavyPattern === '2a' && wavyGate) !== on2a) at('clause 2A rendue hors ondulé libre');
+      const on2c = /pas tout à fait tourné/.test(full);
+      if ((ctx.wavyPattern === '2c' && wavyGate) !== on2c) at('clause 2C rendue hors ondulé libre');
+      const on2aSum = /En 2A déclaré/.test(sum3);
+      if ((ctx.wavyPattern === '2a' && wavyGate) !== on2aSum) at('ligne 2A au résumé hors branche ondes servie');
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }

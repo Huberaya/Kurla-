@@ -74,6 +74,8 @@ export interface HairAdvisoryContext {
    *  portée (quotidienne|une_semaine|deux_quatre|jamais_retiree). */
   wigBond?: string;
   wigWear?: string;
+  wigWash?: string;
+  wavyPattern?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -190,7 +192,7 @@ interface HairFlags {
   /** D12 — ondulé 2 (famille des boucles, à la règle de légèreté près) ;
    *  perruque : fixation et portée réelles (vides hors cycle perruque). */
   isWavy: boolean;
-  wigBond: string; wigWear: string;
+  wigBond: string; wigWear: string; wigWash: string; wavyPattern: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -278,6 +280,12 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
       ['glue', 'tape', 'glueless'].includes(String(ctx.wigBond ?? '')) ? String(ctx.wigBond) : '',
     wigWear: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
       ['quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'].includes(String(ctx.wigWear ?? '')) ? String(ctx.wigWear) : '',
+    // D14 — le lavage du dessous n'existe que là où le cycle perruque est servi
+    // (mêmes gardes que wigBond/wigWear : locks et enfant court-circuitent).
+    wigWash: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['a_repos', 'deux_semaine', 'rare'].includes(String(ctx.wigWash ?? '')) ? String(ctx.wigWash) : '',
+    // D14 — le sous-motif ondulé ne se pose que sur l'ondulé non verrouillé (miroir du pattern crépu).
+    wavyPattern: texture === 'ondulee' && style === 'naturel' && !lockedNow && ['2a', '2b', '2c'].includes(String(ctx.wavyPattern ?? '')) ? String(ctx.wavyPattern) : '',
   };
 }
 
@@ -340,6 +348,8 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     // D12 — idem : le tuyau unique emporte fixation et portée de la pose.
     wigBond: str('wigBond'),
     wigWear: str('wigWear'),
+    wigWash: str('wigWash'),
+    wavyPattern: str('wavyPattern'),
   };
 }
 
@@ -434,7 +444,14 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Hydrater léger — la règle des ondes',
       why: 'Sur ondulé, le sébum remonte vite : la racine graisse pendant que les longueurs boivent. Les beurres et les huiles épaisses couchent la forme plus vite qu’ils ne la nourrissent — la légèreté est le vrai soin, pas une version pauvre du soin.',
-      how: 'Après le lavage : leave-in léger à l’eau, dos noisette — jamais l’avant-bras ; mousse ou gel aérien posés sur cheveu trempé, en scrunching, sur les longueurs seulement. Pas de crème épaisse, pas d’huile en racine.',
+      how: 'Après le lavage : leave-in léger à l’eau, dos noisette — jamais l’avant-bras ; mousse ou gel aérien posés sur cheveu trempé, en scrunching, sur les longueurs seulement. Pas de crème épaisse, pas d’huile en racine.'
+      + (f.wavyPattern === '2a'
+        ? ' Motif 2A : la vague s’écrase dans la journée — le premier ennemi est le poids, pas le frizz. Mousse ou spray seuls, posés aussi près de la racine que possible, aucune crème sur les longueurs.'
+        : f.wavyPattern === '2c'
+          ? ' Motif 2C : ces ondes sont des boucles qui n’ont pas tout à fait tourné — le scrunching au gel et le « carton » du séchage sont pour elles aussi. « Léger » veut dire pas de crème épaisse, pas absence de maintien : le film se casse à l’eau, pas aux doigts.'
+          : f.wavyPattern === '2b'
+            ? ' Motif 2B : le S est déjà net — la règle des ondes est exactement la sienne ; à surveiller seulement aux longueurs, là où le S se défait le premier.'
+            : ''),
       expect: 'Des ondes qui se forment en séchant sans s’alourdir : le volume racinaire revient, le dessin tient la journée. Si la forme « fond » en deux heures, le suspect est le dosage, pas la nature du cheveu.',
     });
   } else {
@@ -810,7 +827,16 @@ function buildWigWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'Nettoyage profond occasionnel',
       why: 'Sous une pose, les résidus — transpiration, produits, eau calcaire — s’installent plus vite que d’habitude : un nettoyage profond occasionnel remet le cuir chevelu et les racines à zéro avant la prochaine portée. C’est un geste correcteur, pas un rythme.',
-      how: 'Entre deux poses, une fois par mois ou quand le cuir chevelu pèse ou tire : un nettoyant doux, massage aux pulpes, rince long. Si le cuir chevelu a besoin d’un nettoyage chaque semaine, la cause est en amont — un soin trop lourd, ou une pose trop serrée.',
+      how: 'Entre deux poses, une fois par mois ou quand le cuir chevelu pèse ou tire : un nettoyant doux, massage aux pulpes, rince long. Si le cuir chevelu a besoin d’un nettoyage chaque semaine, la cause est en amont — un soin trop lourd, ou une pose trop serrée.'
+      + (f.wigWash === 'rare' && f.wigWear === 'quotidienne'
+        ? ' Le dessous déclaré rarement lavé ne tient pas une dépose quotidienne : le lavage se reprend à la dépose, point — un shampooing doux sur la raie seule, le reste se rince. Ce n’est pas un soin de plus, c’est le rythme qui se recale.'
+        : f.wigWash === 'rare'
+          ? ' Le dessous lavé moins d’une fois par mois : sous la coiffe, sébum, peaux mortes et produits ne partent pas seuls — le lavage se recale à chaque dépose, avec de l’eau fraîche à l’applicateur entre deux. Une odeur ou une démangeaison sous la pose est un ordre de dépose immédiate, pas un motif de parfum.'
+          : f.wigWash === 'deux_semaine'
+            ? ' Le rythme du dessous tous les quinze jours tient tant que la portée ne dépasse pas deux semaines : au-delà, c’est la dépose qui doit avancer, pas le lavage qui doit attendre. Entre deux lavages, eau fraîche à l’applicateur au ras de la raie, sans frotter.'
+            : f.wigWash === 'a_repos'
+              ? ' Le dessous lavé à chaque dépose : le rythme est pris, rien à corriger — shampooing doux sur la raie seule, le reste se rince. Le séchage complet avant la repose prime sur l’horaire.'
+              : ''),
       expect: 'Un cuir chevelu plus léger, plus à l’aise, et des portées suivantes plus confortables. Après le nettoyage, l’hydratation légère repart plus vite — c’est le signe que les résidus étaient le problème.',
     },
   ];
@@ -1645,7 +1671,14 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   if (f.pattern && patternLine[f.pattern]) parts.push(patternLine[f.pattern]);
   // D12 — la règle de l'ondulé est une phrase, pas un paragraphe : elle doit
   // rester vraie quel que soit le reste du profil.
-  if (f.isWavy) parts.push('Ondulée 2A–2C : la règle maîtresse est la légèreté — mousse ou gel aérien sur cheveu trempé, pas de crème épaisse, lavage quand la racine alourdit.');
+  if (f.isWavy) parts.push('Ondulée 2A–2C : la règle maîtresse est la légèreté — mousse ou gel aérien sur cheveu trempé, pas de crème épaisse, lavage quand la racine alourdit.'
+    // D14 — la clause de sous-motif ne se promet que là où la branche ondes est
+    // servie : sur porosité faible, c'est la branche « légers, bien placés » qui tient (D12).
+    + (!f.lowPorosity && f.wavyPattern === '2a'
+      ? ' En 2A déclaré : le poids avant tout — mousse seule, racine comprise, aucune crème sur les longueurs.'
+      : !f.lowPorosity && f.wavyPattern === '2c'
+        ? ' En 2C déclaré : maintien de boucle assumé — gel, carton, casse à l’eau ; « léger » ne veut pas dire « sans tenue ».'
+        : ''));
   // La phrase « élasticité » doit dire ce que le cycle fait vraiment : sur
   // locks, la cure protéinée n'est jamais la réponse (dépôt) ; sur enfant et
   // sous coiffure, le masque se jugera au prochain lavage complet — on pose
@@ -1742,6 +1775,18 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     jamais_retiree: 'Rythme de pose : portée continue au-delà du plafond — la routine commence par une dépose, un lavage et quelques jours de repos ; c’est une remise à zéro, pas une punition.',
   };
   if (f.wigWear && wearLine[f.wigWear]) parts.push(wearLine[f.wigWear]);
+  // D14 — le dessous a son rythme propre, et la ligne ne promet que ce que la
+  // routine tient : rare + dépose quotidienne se résout à la dépose, pas au mois.
+  const washLine: Record<string, string> = {
+    a_repos: 'Lavage du dessous : à chaque dépose — le dessous vit au rythme du dessus, le régime le plus simple à tenir.',
+    deux_semaine: 'Lavage du dessous : tous les quinze jours environ — entre deux, eau fraîche à l’applicateur à la raie ; la portée ne doit pas dépasser le rythme.',
+    rare: 'Lavage du dessous déclaré rare : la raie porte tout sous la coiffe — la routine recale le lavage à chaque dépose et l’eau à l’applicateur entre deux.',
+  };
+  if (f.wigWash && washLine[f.wigWash]) {
+    parts.push(f.wigWash === 'rare' && f.wigWear === 'quotidienne'
+      ? 'Lavage du dessous déclaré rare, dépose quotidienne : le rythme se reprend à la dépose — le dessous ne reste pas un mois sans rinçage sous une perruque qui sort chaque soir.'
+      : washLine[f.wigWash]);
+  }
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

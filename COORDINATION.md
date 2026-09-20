@@ -5179,3 +5179,30 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
 - Corrigé au passage : « Faites glisser pour feuiller » → « feuilleter »
   (vue sur capture client).
 - Rapport : docs/RAPPORT_D13_CONCISION.md.
+
+### 20/09 (suite 7) — D14 : sous-motif ondulé 2A/2B/2C + lavage du dessous sous perruque (agent diagnostic)
+
+- **Deux FAQ réelles** (règle D11) ouvertes : « comment savoir si je suis 2A, 2B ou 2C »
+  (la question reine des communautés de l'ondulé) et « à quelle fréquence laver le dessous
+  sous une perruque » (thread distinct de l'entretien de la coiffe).
+- **Fait** : +2 réponses. Ondulé — clause par sous-motif dans l'étape « Hydrater léger »
+  (2A : le poids avant tout, mousse seule, racine comprise / 2B : confirmation, surveillance
+  aux longueurs / 2C : maintien de boucle assumé, gel, « carton », casse à l'eau — « léger »
+  ne veut pas dire « sans tenue »). Perruque — le lavage du dessous recale le rythme
+  (rare → lavage à chaque dépose + applicateur entre deux, odeur = ordre de dépose).
+- **Trouvaille d'invariant** : la clause de sous-motif ne se promet que là où la branche
+  ondes est servie — porosité faible (branche « Soins légers ») et style non naturel
+  (twists) la court-circuitent. Le croisement `dessous rare × dépose quotidienne` est tranché
+  par la physique (le lavage se reprend à la dépose), pas par un intervalle récité.
+- **Gardes** : `wigWash` suit exactement celles de `wigBond`/`wigWear` (locks et enfant
+  court-circuitent) ; `wavyPattern` = miroir de `pattern` (ondulée non verrouillée).
+  Aucun patch consommateur : 2 clés de plus dans le tuyau D9.
+- **Preuves** : banc ondulé+perruque **53/53** (U1–U11, V1–V10) ; matrice **47/47** sur
+  **3 389** profils (rémanences balayées partout) ; concision **OK** (+2 profils au
+  balayage sans-perte) ; suite **npm test verte** (EXIT=0) ; tsc **0** ; build **OK** ;
+  Playwright 390 px **20/20** (ondulée 2C, perruque dessous rare, frisée garde) over=0
+  console=0.
+- **Livrable** : `docs/RAPPORT_D14_SOUS_MOTIF_ONDULE_LAVAGE_DESSOUS.md` + captures
+  `docs/d14_{ondulee_2c,perruque_dessous,frisee_garde}.png`.
+- **Reste ouvert** : arbitrage produit « avant-locks » (mini-parcours de préparation, pas une
+  question) ; poids/diamètre des locks — noté, non réclamé.

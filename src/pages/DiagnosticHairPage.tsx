@@ -36,7 +36,9 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   locDry: 'inconnu',
   // D12 : idem — deux réponses perruque, défaut « inconnu » = cycle d'avant.
   wigBond: 'inconnu',
-  wigWear: 'inconnu'
+  wigWear: 'inconnu',
+  wigWash: 'inconnu',
+  wavyPattern: 'inconnu'
 };
 import { useAuth } from '../context/AuthContext';
 
@@ -100,8 +102,10 @@ export const DiagnosticHairPage: React.FC = () => {
   // D12 : sous priorité « démêlage enfant », c'est le cycle enfant qui sert — la
   // routine perruque n'existe plus : pas de question sans endroit où atterrir.
   const isWigNow = answers.style === 'wig' && !lockedNow && answers.priority !== 'demelage_enfant';
+  // D14 : le sous-motif ondulé se pose au même étage que le motif crépu (miroir).
+  const isWavyNow = answers.texture === 'ondulee' && answers.style === 'naturel' && !lockedNow;
   const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee' || answers.texture === 'ondulee');
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), ...(isWavyNow ? ['wavyPattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear', 'wigWash'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -321,6 +325,24 @@ export const DiagnosticHairPage: React.FC = () => {
             />
           )}
 
+          {current === 'wavyPattern' && (
+            <QuestionStep
+              step={step}
+              kicker="Motif ondulé"
+              title="À quelle hauteur vos ondes se dessinent-elles le mieux&nbsp;?"
+              note="La question que les communautés de l’ondulé se posent le plus (« how do I know if I’m 2A, 2B or 2C »). Le test est simple : cheveux lavés, séchés à l’air, sans brossage ni produit — on regarde où le S apparaît. Le point de départ de la vague change le poids du produit et le maintien, rien d’autre."
+              cols="grid-cols-1"
+              options={[
+                { id: '2a', title: '2A — souples, plutôt vers les pointes', desc: 'Racines droites, vagues légères qui s’écrasent dans la journée : l’ennemi n°1 est le poids.' },
+                { id: '2b', title: '2B — S nets à mi-longueurs', desc: 'La vague est franche dès qu’elle a de la place ; le frizz la guette au moindre écart.' },
+                { id: '2c', title: '2C — profondes, presque des boucles', desc: 'Serrées près des racines, quelques anneaux : elles se traitent avec les techniques du 3.' },
+                { id: 'inconnu', title: 'Je ne sais pas / ça dépend des jours', desc: 'KURLA répond sur l’ondulé moyen — la règle des ondes, sans deviner à votre place.' },
+              ]}
+              value={answers.wavyPattern ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, wavyPattern: id as any }); handleNext(); }}
+            />
+          )}
+
           {current === 'elasticity' && (
             <QuestionStep
               step={step}
@@ -410,6 +432,23 @@ export const DiagnosticHairPage: React.FC = () => {
               ]}
               value={answers.wigWear ?? 'inconnu'}
               onPick={id => { setAnswers({ ...answers, wigWear: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'wigWash' && (
+            <QuestionStep
+              step={step}
+              kicker="Le dessous"
+              title="Votre cheveu naturel, sous la perruque, vous le lavez quand&nbsp;?"
+              note="Ce n’est pas l’entretien de la perruque — c’est celui du dessous, et les forums le traitent à part (« washing under a wig »). Le rythme dépend de la dépose, pas du calendrier de la coiffe."
+              cols="grid-cols-1"
+              options={[
+                { id: 'a_repos', title: 'À chaque dépose (ou presque)', desc: 'Le dessous suit le dessus : le rythme le plus simple à tenir, et le plus sûr pour la raie.' },
+                { id: 'deux_semaine', title: 'Tous les quinze jours environ', desc: 'Le rythme courant des poses d’une à deux semaines ; entre deux, l’eau à l’applicateur.' },
+                { id: 'rare', title: 'Moins d’une fois par mois', desc: 'C’est ici que la routine reprend la main : sous la coiffe, rien ne se rince tout seul.' },
+              ]}
+              value={answers.wigWash ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, wigWash: id as any }); handleNext(); }}
             />
           )}
 

@@ -120,7 +120,7 @@ const wig = (extra: Record<string, unknown> = {}) => buildHairAdvisoryCtx({
 
   // E8. La page pose les questions au bon moment, avec les défauts « inconnu ».
   const ui = readFileSync(new URL('../src/pages/DiagnosticHairPage.tsx', import.meta.url), 'utf8');
-  ok('E8_ui_gates_perruque', /\.\.\.\(isWigNow \? \['wigBond', 'wigWear'\] : \[\]\)/.test(ui));
+  ok('E8_ui_gates_perruque', /\.\.\.\(isWigNow \? \['wigBond', 'wigWear', 'wigWash'\] : \[\]\)/.test(ui));
   ok('E9_ui_gate_enfant_exclu', /const isWigNow = answers\.style === 'wig' && !lockedNow && answers\.priority !== 'demelage_enfant';/.test(ui));
   ok('E10_ui_carte_ondulee', /id: 'ondulee', title: 'Ondulée \(2A–2C\)'/.test(ui));
   ok('E11_ui_defauts_inconnus', /wigBond: 'inconnu'/.test(ui) && /wigWear: 'inconnu'/.test(ui));
@@ -131,6 +131,46 @@ const wig = (extra: Record<string, unknown> = {}) => buildHairAdvisoryCtx({
   const legacy = buildHairAdvisoryCtx({ texture: 'ondee', style: 'naturel', porosity: 'moyenne', scalp: 'normal', frequency: '1x_semaine', priority: 'definition' } as any);
   ok('E13_ancien_faux_jeton_tombe_bien',
     !/Hydrater léger — la règle des ondes/.test(txt(all(legacy))) && !/Ondulée 2A–2C/.test(buildHairAdvisorySummary(legacy) as string));
+}
+
+
+// --- D14 : sous-motif ondulé + lavage du dessous ---
+{
+  const o2a = ondee({ wavyPattern: '2a' });
+  ok('U1_2a_effet_routine_et_resume', /premier ennemi est le poids/.test(txt(all(o2a))) && /En 2A déclaré/.test(buildHairAdvisorySummary(o2a) as string));
+  const o2c = ondee({ wavyPattern: '2c' });
+  ok('U2_2c_maintien_de_boucle', /pas tout à fait tourné/.test(txt(all(o2c))) && /En 2C déclaré/.test(buildHairAdvisorySummary(o2c) as string));
+  ok('U3_2c_jamais_LCO', !/Hydrater puis sceller/.test(txt(all(o2c))));
+  const o2b = ondee({ wavyPattern: '2b' });
+  ok('U4_2b_confirmation_seule', /exactement la sienne/.test(txt(all(o2b))) && !/En 2A déclaré|En 2C déclaré/.test(buildHairAdvisorySummary(o2b) as string));
+  ok('U5_inconnu_aucun_effet', !/Motif 2/.test(txt(all(ondee({ wavyPattern: 'inconnu' })))) && !/Motif 2/.test(txt(all(ondee()))));
+    ok('U6_valeur_inventee_tombe_bien', !/Motif 2/.test(txt(all(ondee({ wavyPattern: '3c' })))));
+  ok('U10_porosite_faible_garde_la_branche_leger',
+    !/premier ennemi est le poids|En 2A déclaré/.test(txt(all(ondee({ porosity: 'faible', wavyPattern: '2a' }))))
+    && /Soins légers/.test(txt(all(ondee({ porosity: 'faible', wavyPattern: '2a' })))));
+  const frFake = buildHairAdvisoryCtx({ texture: 'frisee', style: 'naturel', porosity: 'moyenne', scalp: 'normal', frequency: '1x_semaine', length: 'moyenne', experience: 'habituee', priority: 'definition', wavyPattern: '2c' } as any);
+  ok('U7_pas_de_clause_sur_frisee', !/pas tout à fait tourné/.test(txt(all(frFake))) && !/En 2C déclaré/.test(buildHairAdvisorySummary(frFake) as string));
+    ok('U8_jamais_sous_locks', !/premier ennemi est le poids/.test(txt(all(ondee({ style: 'locks', wavyPattern: '2a' })))));
+  ok('U11_jamais_hors_naturel', !/premier ennemi est le poids/.test(txt(all(ondee({ style: 'twists', wavyPattern: '2a' }))) + buildHairAdvisorySummary(ondee({ style: 'twists', wavyPattern: '2a' }))));
+  const ui14 = readFileSync(new URL('../src/pages/DiagnosticHairPage.tsx', import.meta.url), 'utf8');
+  ok('U9_ui_gate_wavyPattern', /\.\.\.\(isWavyNow \? \['wavyPattern'\] : \[\]\)/.test(ui14) && /const isWavyNow = answers\.texture === 'ondulee' && answers\.style === 'naturel' && !lockedNow;/.test(ui14));
+
+  const wRare = wig({ wigWash: 'rare', wigWear: 'deux_quatre' });
+  ok('V1_rare_recale_le_lavage', /ordre de dépose immédiate/.test(txt(all(wRare))) && /Lavage du dessous déclaré rare/.test(buildHairAdvisorySummary(wRare) as string));
+  const wRareQ = wig({ wigWash: 'rare', wigWear: 'quotidienne' });
+  ok('V2_rare_x_quotidienne_resolu_a_la_depose', /le lavage se reprend à la dépose/.test(txt(all(wRareQ))) && /le rythme se reprend à la dépose/.test(buildHairAdvisorySummary(wRareQ) as string));
+  const wQuin = wig({ wigWash: 'deux_semaine' });
+  ok('V3_quinze_jours', /c’est la dépose qui doit avancer/.test(txt(all(wQuin))) && /tous les quinze jours environ/.test(buildHairAdvisorySummary(wQuin) as string));
+  const wRepo = wig({ wigWash: 'a_repos' });
+  ok('V4_a_chaque_depose', /le rythme est pris, rien à corriger/.test(txt(all(wRepo))) && /le dessous vit au rythme du dessus/.test(buildHairAdvisorySummary(wRepo) as string));
+    ok('V5_sans_reponse_aucun_effet', !/Lavage du dessous/.test(txt(all(wig())) + buildHairAdvisorySummary(wig())));
+    ok('V6_valeur_inventee_tombe_bien', !/Lavage du dessous/.test(txt(all(wig({ wigWash: 'jamais' }))) + buildHairAdvisorySummary(wig({ wigWash: 'jamais' }))));
+  const kRare = buildHairAdvisoryCtx({ texture: 'crepue', style: 'wig', priority: 'demelage_enfant', wigWash: 'rare', porosity: 'moyenne', scalp: 'normal', frequency: '1x_semaine', length: 'moyenne', experience: 'debutante' } as any);
+  ok('V7_enfant_garde', !/Lavage du dessous/.test(txt(all(kRare))));
+  const lRare = buildHairAdvisoryCtx({ texture: 'locksee', style: 'wig', wigWash: 'rare', wigBond: 'glue', porosity: 'moyenne', scalp: 'normal', frequency: '1x_semaine', length: 'longue', experience: 'habituee', priority: 'protection' } as any);
+  ok('V8_locks_sous_perruque_garde', !/Lavage du dessous/.test(txt(all(lRare)) + buildHairAdvisorySummary(lRare)));
+  ok('V9_ui_carte_dessous', /kicker="Le dessous"/.test(ui14) && /washing under a wig/.test(ui14));
+  ok('V10_ui_defauts_inconnus', /wigWash: 'inconnu'/.test(ui14) && /wavyPattern: 'inconnu'/.test(ui14));
 }
 
 if (failed > 0) { console.error('ÉCHECS:', failed); process.exit(1); }

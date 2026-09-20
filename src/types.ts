@@ -50,6 +50,9 @@ export interface HairDiagnosticAnswers {
    *  Posées uniquement quand la perruque est le cycle (jamais sous locks). */
   wigBond?: 'glue' | 'tape' | 'glueless' | 'inconnu';
   wigWear?: 'quotidienne' | 'une_semaine' | 'deux_quatre' | 'jamais_retiree' | 'inconnu';
+  // D14 — le lavage du dessous (FAQ perruque) et le sous-motif de l'ondulé (FAQ 2A/2B/2C).
+  wigWash?: 'a_repos' | 'deux_semaine' | 'rare' | 'inconnu';
+  wavyPattern?: '2a' | '2b' | '2c' | 'inconnu';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }
