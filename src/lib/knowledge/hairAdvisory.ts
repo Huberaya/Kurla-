@@ -76,6 +76,9 @@ export interface HairAdvisoryContext {
   wigWear?: string;
   wigWash?: string;
   wavyPattern?: string;
+  washTime?: string;
+  water?: string;
+  humidity?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -173,6 +176,25 @@ export const HAIR_EXPERIENCE_VALUES: Record<string, string> = {
   expert: 'Routine avancée, je connais ma fibre',
 };
 
+/** Vague 1 (20/09) — libellés lisibles du quotidien réel (jamais l'id technique). */
+export const HAIR_WASH_TIME_VALUES: Record<string, string> = {
+  court: 'Moins de 20 minutes',
+  moyen: '20 à 45 minutes',
+  long: 'Une heure ou plus',
+};
+
+export const HAIR_WATER_VALUES: Record<string, string> = {
+  douce: 'Eau douce (pas de dépôt)',
+  calcaire: 'Eau calcaire (dépôts, cheveux qui accrochent)',
+};
+
+export const HAIR_HUMIDITY_VALUES: Record<string, string> = {
+  gonfle: 'Gonfle et frise par temps humide',
+  sallonge: 'La forme s’allonge par temps humide',
+  sec: 'S’assèche en air sec ou en hiver',
+  ne_bouge_pas: 'Aucune différence selon l’air',
+};
+
 interface HairFlags {
   texture: string; style: string; priority: string; porosity: string; scalp: string; frequency: string; focus: string;
   isCoily: boolean; isCurly: boolean; isLocked: boolean; isProtective: boolean;
@@ -193,6 +215,8 @@ interface HairFlags {
    *  perruque : fixation et portée réelles (vides hors cycle perruque). */
   isWavy: boolean;
   wigBond: string; wigWear: string; wigWash: string; wavyPattern: string;
+  /** Vague 1 — le réel du quotidien : universel (tout le monde a une eau, un air et un temps). */
+  washTime: string; water: string; humidity: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -286,6 +310,9 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
       ['a_repos', 'deux_semaine', 'rare'].includes(String(ctx.wigWash ?? '')) ? String(ctx.wigWash) : '',
     // D14 — le sous-motif ondulé ne se pose que sur l'ondulé non verrouillé (miroir du pattern crépu).
     wavyPattern: texture === 'ondulee' && style === 'naturel' && !lockedNow && ['2a', '2b', '2c'].includes(String(ctx.wavyPattern ?? '')) ? String(ctx.wavyPattern) : '',
+    washTime: ['court', 'moyen', 'long'].includes(String(ctx.washTime ?? '')) ? String(ctx.washTime) : '',
+    water: ['douce', 'calcaire'].includes(String(ctx.water ?? '')) ? String(ctx.water) : '',
+    humidity: ['gonfle', 'sallonge', 'sec', 'ne_bouge_pas'].includes(String(ctx.humidity ?? '')) ? String(ctx.humidity) : '',
   };
 }
 
@@ -350,6 +377,9 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     wigWear: str('wigWear'),
     wigWash: str('wigWash'),
     wavyPattern: str('wavyPattern'),
+    washTime: str('washTime'),
+    water: str('water'),
+    humidity: str('humidity'),
   };
 }
 
@@ -368,6 +398,82 @@ type HairStepDraft = Omit<HairAdvisoryStep, 'label'>;
  * Chaque étape est contextuelle : le *pourquoi* change selon le profil
  * déclaré (casse, cuir chevelu, porosité, enfant, locks…).
  */
+/* ------------------------------------------------------------------ */
+/* Vague 1 (20/09) — le réel du quotidien : temps, eau, air            */
+/* Trois variables que personne ne demande et qui décident pourtant de  */
+/* ce qu'une routine vaut : le temps disponible, l'eau du robinet, le   */
+/* comportement du cheveu selon l'air. Chaque clause est rendue UNIQUE- */
+/* MENT quand la réponse existe (jamais de voeu pieux par défaut).      */
+/* ------------------------------------------------------------------ */
+
+function washTimeDetangle(f: HairFlags): string {
+  if (f.washTime === 'court') {
+    return ' Jour de lavage court déclaré (moins de 20 minutes) : le temps ne se gagne pas sur le démêlage, il se gagne avant lui — deux sections, pas de pinces, une seule passe par mèche, et le conditionneur posé dès la racine pour que l’outil glisse du premier coup.'
+      + (f.frequency === 'less_1x' || f.frequency === 'irreguliere'
+        ? ' Et le levier le plus court est ailleurs : laver plus souvent, c’est démêler un cheveu qui n’a pas eu le temps de se nouer. Un lavage hebdomadaire fait gagne plus de minutes qu’une méthode plus rapide.'
+        : '');
+  }
+  if (f.washTime === 'moyen') {
+    return ' Jour de lavage de 20 à 45 minutes : le format de la plupart des routines — quatre sections, démêlage pendant que l’après-shampoing pose, rien qui attende.';
+  }
+  if (f.washTime === 'long') {
+    return ' Jour de lavage long déclaré : le temps est de votre côté, alors il va au pré-démêlage — défaire les nœuds aux doigts la veille, sur cheveu sec, est le geste qui rend tout le reste facile.';
+  }
+  return '';
+}
+
+function washTimeMask(f: HairFlags): string {
+  if (f.washTime === 'court') {
+    // Sur locks, il n'y a rien à démêler : la même économie de temps se joue
+    // sur le conditionneur qu'on laisse poser, pas sur un peigne qu'on n'a pas.
+    return f.isLocked
+      ? ' Avec moins de 20 minutes : le soin se confond avec le conditionneur — on le pose, on rince. Cinq minutes sous une serviette chaude valent mieux que trente minutes repoussées à la semaine suivante.'
+      : ' Avec moins de 20 minutes : le masque se confond avec le conditionneur — on le pose, on démêle dedans, on rince. Cinq minutes sous une serviette chaude valent mieux que trente minutes repoussées à la semaine suivante.';
+  }
+  if (f.washTime === 'long') {
+    return ' Le temps de pose est votre avantage : 20 à 30 minutes sous chaleur douce, pas au-delà — un soin qui sèche sur la fibre n’y entre plus.';
+  }
+  return '';
+}
+
+// L'eau se lit à deux endroits, pour qu'elle soit toujours rendue : l'étape
+// « laver » existe dans TOUS les cycles, le nettoyage profond n'existe que
+// dans certains (cuir chevelu, protectrice, perruque). Sans le premier, une
+// eau calcaire sur cuir chevelu normal n'aurait aucun effet — réponse décorative.
+function waterWash(f: HairFlags): string {
+  if (f.water === 'calcaire') {
+    return ' Eau calcaire déclarée : le dépôt minéral ne part pas au shampoing doux, il lui faut un chélateur (EDTA, acide phytique ou citrique sur l’étiquette) — une fois par mois, jamais toutes les semaines, toujours suivi d’un soin hydratant. Le signal qui ne trompe pas : un produit qui « ne fait plus rien » alors que la routine n’a pas changé.';
+  }
+  if (f.water === 'douce') {
+    return ' Eau douce déclarée : rien à corriger de ce côté — si le cheveu pèse quand même, la cause est un produit, pas votre eau.';
+  }
+  return '';
+}
+
+// Le complément opérationnel, uniquement là où un nettoyage profond est prévu.
+function waterDeep(f: HairFlags): string {
+  return f.water === 'calcaire'
+    ? ' Eau calcaire déclarée : c’est ce nettoyage-ci qui doit être chélateur (EDTA, acide phytique ou citrique), une fois par mois ; un rinçage acide (vinaigre de cidre, un volume pour trois d’eau) complète entre deux, sans jamais remplacer le soin hydratant qui suit.'
+    : '';
+}
+
+function humidityHow(f: HairFlags): string {
+  if (f.humidity === 'gonfle') {
+    return ' Temps humide : vos cheveux gonflent. La glycérine en tête de liste attire alors l’eau de l’air dans la fibre — gardez-la pour les saisons tempérées et, par forte humidité, passez aux humectants filmogènes (aloé, miel, graines de lin) avec un fixant à tenue ferme.'
+      + (f.isCoily ? ' Nuance pour votre texture : un cheveu très sec tolère souvent la glycérine plus longtemps que la moyenne — c’est votre observation qui tranche, pas la règle.' : '');
+  }
+  if (f.humidity === 'sec') {
+    return ' Air sec ou hiver : la glycérine fait ici l’inverse, elle rend l’humidité de la fibre à l’air. En saison sèche, un leave-in plus riche et des émollients ; la glycérine reviendra aux beaux jours.';
+  }
+  if (f.humidity === 'sallonge') {
+    return ' Temps humide : la forme s’allonge — c’est une surcharge d’eau, pas un manque. Retirer une couche (leave-in ou crème) et ajouter un fixant à tenue ferme rend plus que changer de produit.';
+  }
+  if (f.humidity === 'ne_bouge_pas') {
+    return ' Vos cheveux ne réagissent ni à l’humidité ni au sec : aucun ajustement saisonnier à prévoir, votre routine peut rester la même toute l’année.';
+  }
+  return '';
+}
+
 function buildWashDay(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
@@ -390,7 +496,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     action: 'Laver en douceur',
     why: washWhy,
     how: 'Masser le cuir chevelu avec les pulpes des doigts (pas les ongles), laisser l’écume faire le travail sur les longueurs, rincer à l’eau tiède. Jamais d’eau chaude : elle dessèche et tire sur le cuir chevelu.'
-      + (f.isWavy && !f.isLocked ? ' Sur ondulé, le calendrier cède à la racine : on lave quand elle alourdit ou que la forme retombe — le rythme du 2 est plus court que celui du 3, et c’est normal.' : ''),
+      + (f.isWavy && !f.isLocked ? ' Sur ondulé, le calendrier cède à la racine : on lave quand elle alourdit ou que la forme retombe — le rythme du 2 est plus court que celui du 3, et c’est normal.' : '') + waterWash(f),
     expect: 'Un cuir chevelu propre, sans effet collant ni tiraillement. Si le cuir chevelu gratte après chaque lavage, notez-le : la cause est plus souvent un résidu qu’un produit qui ne convient pas.',
   });
 
@@ -414,7 +520,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       : f.isBreakage
         ? 'Le conditionneur est l’étape démêlage : sur cheveu mouillé et glissant, chaque nœud cède sans traction. C’est le geste qui protège le plus vos longueurs, avant n’importe quel produit.'
         : 'Le conditionneur prépare le démêlage : sur cheveu mouillé, chaque nœud cède sans traction, et la fibre est prête à recevoir l’hydratation.',
-    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : ''),
+    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : '') + washTimeDetangle(f),
     expect: f.isKid
       ? 'Un démêlage sans tirage : si l’enfant grimace, c’est que la méthode est trop rapide, pas que les cheveux sont trop emmêlés. On ralentit, on réhydrate, on recommence.'
       : f.isBreakage
@@ -427,7 +533,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Soins légers, bien placés',
       why: 'Cheveux à porosité faible : les écailles sont fermées, l’eau met du temps à entrer et les produits lourds restent en surface. La règle : des textures légères à base d’eau, sur cheveu bien humide, et un peu de chaleur douce si besoin — pas plus de produit.',
-      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.',
+      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.' + humidityHow(f),
       expect: 'Un cheveu qui respire, défini sans effet collant. La porosité faible s’entretient en moins, pas en plus — l’accumulation est l’ennemi, pas le manque.',
     });
   } else if (f.isLocked) {
@@ -451,7 +557,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
           ? ' Motif 2C : ces ondes sont des boucles qui n’ont pas tout à fait tourné — le scrunching au gel et le « carton » du séchage sont pour elles aussi. « Léger » veut dire pas de crème épaisse, pas absence de maintien : le film se casse à l’eau, pas aux doigts.'
           : f.wavyPattern === '2b'
             ? ' Motif 2B : le S est déjà net — la règle des ondes est exactement la sienne ; à surveiller seulement aux longueurs, là où le S se défait le premier.'
-            : ''),
+            : '') + humidityHow(f),
       expect: 'Des ondes qui se forment en séchant sans s’alourdir : le volume racinaire revient, le dessin tient la journée. Si la forme « fond » en deux heures, le suspect est le dosage, pas la nature du cheveu.',
     });
   } else {
@@ -467,7 +573,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
           ? ' Cheveu fin : à l’étape O, une huile légère plutôt qu’un beurre — deux ou trois gouttes chauffées dans les paumes puis écrasées sur les longueurs. Un beurre alourdit un cheveu fin en une journée et le fait regraisser plus vite qu’il ne le protège.'
           : f.strandWidth === 'epaisse'
             ? ' Cheveu épais : le beurre riche est le bon choix — réchauffez-le entre les paumes pour qu’il pénètre au lieu de rester en surface, et n’ayez pas peur du temps de pose : plus la fibre est large, plus elle prend son temps.'
-            : ''),
+            : '') + humidityHow(f),
       expect: 'Souplesse et élasticité immédiatement ; l’hydratation scellée tient plusieurs jours. Si le cheveu est sec le lendemain, le point faible est au scellement, pas au lavage : on ajuste l’étape O.',
     });
   }
@@ -600,7 +706,7 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
           ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
           : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
     how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.'
-      + (f.elasticity === 'mou' ? ' Le soin de force se pose 10 à 15 minutes, pas une heure : les protéines ne se laissent pas dormir sur la fibre.' : ''),
+      + (f.elasticity === 'mou' ? ' Le soin de force se pose 10 à 15 minutes, pas une heure : les protéines ne se laissent pas dormir sur la fibre.' : '') + washTimeMask(f),
     expect: f.isLocked && !f.isKid
       ? 'Des locks souples et un cuir chevelu soulagé — c’est la mesure, sur quelques semaines. Une lock ne cherche pas la « facilité au peigne » : elle n’en voit jamais ; ce qui se juge, c’est la douceur sans dépôt et la propreté de la racine.'
       : 'Un cheveu plus souple, un démêlage plus facile, une casse moins nette — sur quelques semaines, pas en un jour. Le soin de la fibre se juge sur un mois, pas sur un usage.',
@@ -610,7 +716,7 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Nettoyage profond occasionnel',
       why: 'Les résidus — coiffants, eau calcaire, dépôts de produits — s’installent sur le cuir chevelu et les longueurs : un nettoyage profond, occasionnel, redonne de la légèreté et fait que les autres soins recommencent à agir.',
-      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de sa définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.',
+      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de sa définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.' + waterDeep(f),
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise. Après un nettoyage profond, l’hydratation repart plus vite : c’est le signe que les résidus étaient le problème.',
     });
   }
@@ -733,7 +839,7 @@ function buildProtectiveWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'Nettoyage profond avant la prochaine coiffure',
       why: 'Chaque cycle protectrice dépose un peu de résidus — coiffants, eau calcaire, produits. Sans nettoyage profond occasionnel, les cycles s’additionnent : le cheveu pèse, le cuir chevelu s’irrite, et les soins ne travaillent plus. C’est le geste qui remet le compteur à zéro.',
-      how: 'Une fois par mois, ou entre deux coiffures : un nettoyant clarifiant doux, massage du cuir chevelu section par section, rince long. Ensuite, repartir sur des soins légers — l’hydratation repart plus vite quand les résidus partent.',
+      how: 'Une fois par mois, ou entre deux coiffures : un nettoyant clarifiant doux, massage du cuir chevelu section par section, rince long. Ensuite, repartir sur des soins légers — l’hydratation repart plus vite quand les résidus partent.' + waterDeep(f),
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise, une définition ou une souplesse qui repart. Si le cheveu pèse déjà avant un mois, c’est un signal de soins trop lourds au quotidien.',
     },
   ];
@@ -836,7 +942,7 @@ function buildWigWeekly(f: HairFlags): HairStepDraft[] {
             ? ' Le rythme du dessous tous les quinze jours tient tant que la portée ne dépasse pas deux semaines : au-delà, c’est la dépose qui doit avancer, pas le lavage qui doit attendre. Entre deux lavages, eau fraîche à l’applicateur au ras de la raie, sans frotter.'
             : f.wigWash === 'a_repos'
               ? ' Le dessous lavé à chaque dépose : le rythme est pris, rien à corriger — shampooing doux sur la raie seule, le reste se rince. Le séchage complet avant la repose prime sur l’horaire.'
-              : ''),
+              : '') + waterDeep(f),
       expect: 'Un cuir chevelu plus léger, plus à l’aise, et des portées suivantes plus confortables. Après le nettoyage, l’hydratation légère repart plus vite — c’est le signe que les résidus étaient le problème.',
     },
   ];
@@ -1782,6 +1888,22 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     deux_semaine: 'Lavage du dessous : tous les quinze jours environ — entre deux, eau fraîche à l’applicateur à la raie ; la portée ne doit pas dépasser le rythme.',
     rare: 'Lavage du dessous déclaré rare : la raie porte tout sous la coiffe — la routine recale le lavage à chaque dépose et l’eau à l’applicateur entre deux.',
   };
+  // Vague 1 — le quotidien réel au résumé : le résumé ne promet que ce que la
+  // routine tient (temps du jour de lavage, eau, air).
+  // Sur locks, le temps ne se joue pas au démêlage (une lock ne se démêle pas) :
+  // il se joue au rinçage et au séchage. Le mot est proscrit par le garde D9.
+  if (f.washTime === 'court') {
+    parts.push(f.isLocked
+      ? 'Jour de lavage : moins de 20 minutes déclarées — sur locks, le temps se gagne au séchage : essorer lock par lock dès la sortie de l’eau, et le prévoir complet avant de commencer.'
+      : 'Jour de lavage : moins de 20 minutes déclarées — le temps se gagne avant le démêlage (deux sections, une passe par mèche), et si vos lavages sont espacés, c’est la fréquence qui en fera gagner le plus.');
+  } else if (f.washTime === 'long') {
+    parts.push(f.isLocked
+      ? 'Jour de lavage : vous avez du temps — sur locks, il va au rinçage et au séchage complet, là où se jouent les résidus et l’odeur.'
+      : 'Jour de lavage : vous avez du temps — il va au pré-démêlage et au temps de pose, pas à un produit de plus.');
+  }
+  if (f.water === 'calcaire') parts.push('Eau calcaire déclarée : un chélateur une fois par mois, jamais toutes les semaines — le signal qui compte, c’est un produit qui cesse de faire effet.');
+  if (f.humidity === 'gonfle') parts.push('Humidité : vos cheveux gonflent par temps humide — glycérine réservée aux saisons tempérées, humectants filmogènes et fixant ferme en été.');
+  if (f.humidity === 'sec') parts.push('Air sec déclaré : la glycérine y fait l’inverse — leave-in plus riche et émollients en saison sèche.');
   if (f.wigWash && washLine[f.wigWash]) {
     parts.push(f.wigWash === 'rare' && f.wigWear === 'quotidienne'
       ? 'Lavage du dessous déclaré rare, dépose quotidienne : le rythme se reprend à la dépose — le dessous ne reste pas un mois sans rinçage sous une perruque qui sort chaque soir.'

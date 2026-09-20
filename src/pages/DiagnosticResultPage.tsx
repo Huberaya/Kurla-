@@ -187,6 +187,24 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
       <div className="rounded-3xl border border-amber-400/20 bg-[#171208] p-6"><SectionHeading number="2b" title="Ce qui reste inconnu" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.unknown.length ? model.unknown.map(item => <li key={item} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />{item}</li>) : <li>Aucun champ clé ne manque dans ce questionnaire.</li>}</ul></div>
     </section>,
 
+    // C11 (vague 1) — l'honnêteté : ce que ce diagnostic ne peut pas dire.
+    // La confiance est calculée (combien de réponses manquent, et lesquelles),
+    // et les signaux d'orientation ne sont plus noyés dans un paragraphe.
+    <section key="page-limites" className="mb-6 rounded-3xl border border-rose-400/25 bg-[#1a0f10] p-6">
+      <SectionHeading number="2c" id="limites" title="Ce que ce diagnostic ne peut pas dire" />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-4 py-1.5 text-xs font-bold ${
+          model.confidence.level === 'haute' ? 'bg-emerald-400/20 text-emerald-200'
+            : model.confidence.level === 'moyenne' ? 'bg-amber-400/20 text-amber-200'
+              : 'bg-rose-400/20 text-rose-200'
+        }`}>{model.confidence.label}</span>
+        <p className="flex-1 text-sm leading-relaxed text-kurla-cream/75">{model.confidence.note}</p>
+      </div>
+      <p className="mt-4 text-xs font-bold uppercase tracking-wide text-rose-200/70">Ce qui relève d’un avis professionnel, pas d’une routine</p>
+      <ul className="mt-2 space-y-2 text-sm text-kurla-cream/80">{model.redFlags.map(flag => <li key={flag} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />{flag}</li>)}</ul>
+      <p className="mt-4 rounded-2xl border border-kurla-cream/10 bg-kurla-ink px-4 py-3 text-xs leading-relaxed text-kurla-cream/60">{model.scopeNote}</p>
+    </section>,
+
     <section key="page-routine" className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>,
 
     <section key="page-pourquoi" className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title="Pourquoi cette routine ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><LeadBlock className="mt-1 text-xs leading-relaxed text-kurla-cream/65" text={step.why} /></div>)}</div></section>,

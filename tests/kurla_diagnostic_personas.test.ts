@@ -305,6 +305,10 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       // D14 : lavage du dessous et sous-motif ondulé balayés PARTOUT (rémanences).
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v7 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v8 = seed >>> 8;
+      // Vague 1 : temps du jour de lavage, eau, air — balayés PARTOUT (universels).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v9 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v10 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v11 = seed >>> 8;
       const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
@@ -322,7 +326,10 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         wigBond: ['inconnu', 'glue', 'tape', 'glueless'][v5 % 4],
         wigWear: ['inconnu', 'quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'][v6 % 5],
         wigWash: ['inconnu', 'a_repos', 'deux_semaine', 'rare'][v7 % 4],
-        wavyPattern: ['inconnu', '2a', '2b', '2c'][v8 % 4]
+        wavyPattern: ['inconnu', '2a', '2b', '2c'][v8 % 4],
+        washTime: ['inconnu', 'court', 'moyen', 'long'][v9 % 4],
+        water: ['inconnue', 'douce', 'calcaire'][v10 % 3],
+        humidity: ['inconnu', 'gonfle', 'sallonge', 'sec', 'ne_bouge_pas'][v11 % 5]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -477,6 +484,14 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       if ((ctx.wavyPattern === '2c' && wavyGate) !== on2c) at('clause 2C rendue hors ondulé libre');
       const on2aSum = /En 2A déclaré/.test(sum3);
       if ((ctx.wavyPattern === '2a' && wavyGate) !== on2aSum) at('ligne 2A au résumé hors branche ondes servie');
+      // Vague 1 — invariants universels (temps, eau, air) : la clause ne paraît
+      // que si la réponse existe, et elle paraît dès qu'elle existe. Le résumé
+      // est le porteur universel (toutes les cycles l'utilisent).
+      if ((ctx.washTime === 'court') !== /Jour de lavage : moins de 20 minutes/.test(sum3)) at('ligne « jour de lavage court » au résumé sans la réponse, ou l’inverse');
+      if ((ctx.washTime === 'long') !== /vous avez du temps/.test(sum3)) at('ligne « jour de lavage long » au résumé sans la réponse, ou l’inverse');
+      if ((ctx.water === 'calcaire') !== /chélateur/.test(full)) at('clause eau calcaire sans la réponse, ou l’inverse');
+      if ((ctx.humidity === 'gonfle') !== /vos cheveux gonflent par temps humide/.test(sum3)) at('ligne humidité au résumé sans la réponse, ou l’inverse');
+      if ((ctx.humidity === 'sec') !== /Air sec déclaré/.test(sum3)) at('ligne air sec au résumé sans la réponse, ou l’inverse');
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }

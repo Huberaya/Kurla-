@@ -53,6 +53,11 @@ export interface HairDiagnosticAnswers {
   // D14 — le lavage du dessous (FAQ perruque) et le sous-motif de l'ondulé (FAQ 2A/2B/2C).
   wigWash?: 'a_repos' | 'deux_semaine' | 'rare' | 'inconnu';
   wavyPattern?: '2a' | '2b' | '2c' | 'inconnu';
+  /** Vague 1 (20/09) — C4 : le temps réellement disponible le jour de lavage. */
+  washTime?: 'court' | 'moyen' | 'long' | 'inconnu';
+  /** Vague 1 (20/09) — C3 : l'eau du robinet (dépôt minéral) et l'air (comportement par temps humide). */
+  water?: 'douce' | 'calcaire' | 'inconnue';
+  humidity?: 'gonfle' | 'sallonge' | 'sec' | 'ne_bouge_pas' | 'inconnu';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

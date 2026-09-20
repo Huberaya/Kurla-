@@ -5206,3 +5206,34 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
   `docs/d14_{ondulee_2c,perruque_dessous,frisee_garde}.png`.
 - **Reste ouvert** : arbitrage produit « avant-locks » (mini-parcours de préparation, pas une
   question) ; poids/diamètre des locks — noté, non réclamé.
+
+### 20/09 (suite 8) — VAGUE 1 : C11 limites affichées, C4 temps du jour de lavage, C3 eau + air (agent diagnostic)
+
+- **Bug grave trouvé en parcours réel (hors chantier)** : la route
+  `/api/ai/routine-result` construisait son triage médical sur `JSON.stringify(answers)`
+  → les **ids techniques** passaient au détecteur d'urgence. `humidity: 'gonfle'`
+  (« cheveux qui gonflent à l'humidité ») était lu comme un œdème : fausse alerte
+  « appelez le 15 », et le message **remplaçait tout le résumé du moteur**
+  (`result?.summary ||`). Correctif : `pickFreeTextForTriage()` (guardrails.ts) — le
+  triage ne lit plus que du texte libre (≥ 2 mots, 20 car.). Filet de sécurité intact :
+  « ma gorge gonfle… » est toujours détecté.
+- **C11** : bloc §2c « Ce que ce diagnostic ne peut pas dire » — confiance **calculée**
+  (combien de manques, et lesquels : texture/priorité pèsent plus ; la question
+  adaptative `focus` ne compte pas), 3 signaux d'orientation (version peau distincte,
+  assertion anti-copier-coller), périmètre non médical.
+- **C4** : `washTime` (court/moyen/long). Le temps se gagne **avant** le démêlage
+  (deux sections, une passe) ; masque confondu avec le conditionneur en < 20 min ;
+  croisement `< 20 min × lavages espacés` → le levier est la **fréquence** (sourcé
+  r/Naturalhair). Aucun geste utile supprimé ; variante locks = séchage/rinçage, le
+  mot « démêlage » y est proscrit (garde D9, attrapé par la matrice).
+- **C3** : `water` (douce/calcaire) → chélateur 1×/mois, jamais hebdo, porté par
+  l'étape « laver » (tous cycles) + complément au nettoyage profond (sinon réponse
+  décorative sur cuir chevelu normal) ; `humidity` → glycérine conditionnelle,
+  humectants filmogènes, nuance « cheveu très sec » réservée au crépu.
+- **Preuves** : nouveau banc `kurla_diagnostic_vague1.test.ts` **54/54** (chaîné
+  `npm test`) ; matrice **47/47** sur **3 442** profils ; concision **OK** ; suite
+  complète **0 npm ERR** ; lint tsc **0** ; build **OK** ; Playwright 390 px **19/19**
+  (parcours plein + garde « je ne sais pas ») over=0 console=0.
+- **Livrable** : `docs/RAPPORT_VAGUE1_2026-09.md` + captures `docs/vague1_*.png`.
+- **Signalé, non traité** : le résumé du moteur est écrasé dès que la couche IA
+  produit un `summary` — à traiter dans D3 (garde-fou IA).

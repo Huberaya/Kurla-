@@ -19,6 +19,7 @@ import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
 import { asyncRoute, rateLimit } from '../http';
+import { pickFreeTextForTriage } from '../../lib/ai/guardrails';
 import { authenticateRequest, bearerToken, requireUser } from '../auth';
 import { getAvailableCatalog, selectOperationalKnowledgeCards, type AvailableCatalogEntry } from '../ai/catalog';
 import {
@@ -293,8 +294,10 @@ export function registerRecommendationRoutes(app: Express): void {
     if (!diagnosticType || !req.body?.answers || typeof req.body.answers !== 'object') return res.status(400).json({ error: 'Diagnostic invalide.' });
     const answers = req.body.answers;
     const { email: _diagnosticEmail, ...answersForAi } = answers as Record<string, unknown>;
-    const answerText = JSON.stringify(answersForAi);
-    const triage = medicalTriage(answerText);
+    // Le triage médical ne porte que sur du texte libre : un identifiant de
+    // questionnaire (« gonfle », « glue ») n'est pas un propos de santé.
+    const answerText = pickFreeTextForTriage(answersForAi);
+    const triage = answerText ? medicalTriage(answerText) : { emergency: false, review: false, message: '', matched: [] };
     const locale = normalizeAiLocale(req.body?.locale);
     const country = normalizeAiCountry(req.body?.country);
     const fullCatalog = await getAvailableCatalog(country);

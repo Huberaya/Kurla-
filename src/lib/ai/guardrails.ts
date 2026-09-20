@@ -146,3 +146,26 @@ export const AI_TRANSPARENCY = {
 export function formatAiDisclosure(): string {
   return `${AI_TRANSPARENCY.disclosure} ${AI_GUARDRAILS.disclaimer}`;
 }
+
+/**
+ * Texte à soumettre au triage médical : le TEXTE LIBRE saisi par la personne,
+ * et rien d'autre.
+ *
+ * Pourquoi : les réponses d'un questionnaire sont des identifiants techniques
+ * (« gonfle », « serviette », « glue »). Passer leur JSON au détecteur
+ * déclenche de fausses urgences — « humidity:gonfle » (cheveux qui gonflent
+ * par temps humide) était lu comme un œdème, et le message d'urgence
+ * remplaçait alors le vrai résumé du diagnostic. Un identifiant ne dit rien
+ * de l'état de santé de la personne ; seule une phrase écrite par elle le peut.
+ */
+export function pickFreeTextForTriage(payload: Record<string, unknown>): string {
+  return Object.values(payload)
+    .flatMap(value => (Array.isArray(value) ? value : [value]))
+    .filter((value): value is string => typeof value === 'string')
+    .map(value => value.trim())
+    // Un identifiant est un token court et sans espace : on ne garde que ce
+    // qui ressemble à une phrase (au moins deux mots, 20 caractères ou plus).
+    .filter(value => value.length >= 20 && /\s/.test(value))
+    .join(' ')
+    .slice(0, 2000);
+}

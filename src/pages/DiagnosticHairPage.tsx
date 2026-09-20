@@ -38,7 +38,10 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   wigBond: 'inconnu',
   wigWear: 'inconnu',
   wigWash: 'inconnu',
-  wavyPattern: 'inconnu'
+  wavyPattern: 'inconnu',
+  washTime: 'inconnu',
+  water: 'inconnue',
+  humidity: 'inconnu'
 };
 import { useAuth } from '../context/AuthContext';
 
@@ -105,7 +108,7 @@ export const DiagnosticHairPage: React.FC = () => {
   // D14 : le sous-motif ondulé se pose au même étage que le motif crépu (miroir).
   const isWavyNow = answers.texture === 'ondulee' && answers.style === 'naturel' && !lockedNow;
   const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee' || answers.texture === 'ondulee');
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), ...(isWavyNow ? ['wavyPattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear', 'wigWash'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'experience', 'budget', 'email'];
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), ...(isWavyNow ? ['wavyPattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear', 'wigWash'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'washTime', 'water', 'humidity', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -738,6 +741,60 @@ export const DiagnosticHairPage: React.FC = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {current === 'washTime' && (
+            <QuestionStep
+              step={step}
+              kicker="Jour de lavage"
+              title="Votre jour de lavage&nbsp;: vous avez combien de temps devant vous&nbsp;?"
+              note="C’est le premier motif d’abandon d’une routine. Selon les témoignages, un wash day va de 20 minutes à plusieurs heures — et le raccourcir est une affaire de méthode et de fréquence, pas de vitesse. Une routine que vous n’avez pas le temps de faire n’est pas une routine."
+              cols="grid-cols-1"
+              options={[
+                { id: 'court', title: 'Moins de 20 minutes', desc: 'Le format court : la routine se réorganise — deux sections, aucune étape supprimée.' },
+                { id: 'moyen', title: '20 à 45 minutes', desc: 'Le format de la plupart des routines tenables semaine après semaine.' },
+                { id: 'long', title: 'Une heure ou plus', desc: 'Le temps est de votre côté : il ira au pré-démêlage et au temps de pose.' },
+                { id: 'inconnu', title: 'Ça dépend des semaines', desc: 'KURLA construit la routine standard, sans variante courte.' },
+              ]}
+              value={answers.washTime ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, washTime: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'water' && (
+            <QuestionStep
+              step={step}
+              kicker="Votre eau"
+              title="L’eau qui coule chez vous laisse-t-elle des traces&nbsp;?"
+              note="L’eau calcaire est l’une des questions les plus posées en communauté, et pour cause : le dépôt minéral ne part pas au shampoing doux. La réponse ne change pas toute la routine — elle change un geste par mois."
+              cols="grid-cols-1"
+              options={[
+                { id: 'calcaire', title: 'Calcaire — traces sur la robinetterie, cheveux qui accrochent', desc: 'Un chélateur une fois par mois, jamais toutes les semaines.' },
+                { id: 'douce', title: 'Plutôt douce — pas de dépôt visible', desc: 'Rien à corriger de ce côté : si le cheveu pèse, c’est un produit.' },
+                { id: 'inconnue', title: 'Je ne sais pas', desc: 'Aucune clause : la routine reste le cadre standard.' },
+              ]}
+              value={answers.water ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, water: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'humidity' && (
+            <QuestionStep
+              step={step}
+              kicker="Votre climat"
+              title="Quand l’air change, que font vos cheveux&nbsp;?"
+              note="La glycérine — présente dans la plupart des leave-in et des gels — attire l’eau de l’air. Précieuse par temps tempéré, elle fait gonfler le cheveu par forte humidité et l’assèche en air très sec. Votre observation vaut mieux qu’un chiffre de météo."
+              cols="grid-cols-1"
+              options={[
+                { id: 'gonfle', title: 'Ils gonflent et frisent par temps humide', desc: 'Humectants filmogènes et fixant ferme en saison humide.' },
+                { id: 'sallonge', title: 'La forme s’allonge, retombe', desc: 'Surcharge d’eau : on retire une couche, on n’en ajoute pas une.' },
+                { id: 'sec', title: 'Ils s’assèchent vite en hiver ou en air sec', desc: 'Leave-in plus riche et émollients en saison sèche.' },
+                { id: 'ne_bouge_pas', title: 'Je ne vois pas de différence', desc: 'Aucun ajustement saisonnier à prévoir.' },
+                { id: 'inconnu', title: 'Je n’ai pas fait attention', desc: 'La routine reste la même toute l’année.' },
+              ]}
+              value={answers.humidity ?? 'inconnu'}
+              onPick={id => { setAnswers({ ...answers, humidity: id as any }); handleNext(); }}
+            />
           )}
 
           {current === 'email' && (

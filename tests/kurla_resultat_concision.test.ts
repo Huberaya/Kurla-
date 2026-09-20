@@ -56,6 +56,8 @@ const norm = (x: string) => x.replace(/[\s;—–]+/g, ' ').trim();
     { texture: 'bouclee', style: 'enfant', priority: 'demelage_enfant' },
     { texture: 'ondulee', style: 'naturel', wavyPattern: '2c', curlyDry: 'air', curlyHold: 'gel', priority: 'definition' },
     { texture: 'crepue', style: 'wig', wigWash: 'rare', wigWear: 'deux_quatre', priority: 'protection' },
+    { texture: 'crepue', style: 'naturel', washTime: 'court', water: 'calcaire', humidity: 'gonfle', frequency: 'less_1x', priority: 'hydratation' },
+    { texture: 'ondulee', style: 'naturel', washTime: 'long', water: 'douce', humidity: 'sec', wavyPattern: '2c', priority: 'definition' },
     { texture: 'protective', style: 'braids', priority: 'cuir_chevelu' },
     { texture: 'crepue', style: 'locks', locStage: 'mature', locCare: 'interlock', locDry: 'lentes', priority: 'casse' },
     { texture: 'ondee', style: 'naturel' }, // faux jeton hérité : doit tomber bien
