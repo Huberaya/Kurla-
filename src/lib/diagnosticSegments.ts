@@ -163,7 +163,7 @@ export function getHairDiagnosticSegment(texture: string | undefined, style: str
   if (t === 'defrisee' || s === 'defrise') return SEGMENTS.transition;
   if (s === 'naturel') {
     if (t === 'crepue') return SEGMENTS.naturel_cresp;
-    if (t === 'frisee' || t === 'bouclee') return SEGMENTS.naturel_boucle;
+    if (t === 'frisee' || t === 'bouclee' || t === 'ondulee') return SEGMENTS.naturel_boucle;
   }
   return null;
 }
@@ -201,5 +201,5 @@ export function getSegmentFocusLabel(focusId: string | undefined): string {
 }
 
 /** Toutes les combinaisons (texture, style) du questionnaire — pour le banc. */
-export const ALL_HAIR_TEXTURES: HairTexture[] = ['bouclee', 'frisee', 'crepue', 'locksee', 'defrisee', 'protective', 'inconnue'];
+export const ALL_HAIR_TEXTURES: HairTexture[] = ['bouclee', 'frisee', 'ondulee', 'crepue', 'locksee', 'defrisee', 'protective', 'inconnue'];
 export const ALL_HAIR_STYLES: HairStyle[] = ['naturel', 'braids', 'twists', 'locks', 'wig', 'defrise', 'enfant'];

@@ -11,6 +11,7 @@ import {
   type SkinObservation,
 } from './knowledge/skinAdvisory';
 import {
+  buildHairAdvisoryCtx,
   buildHairAdvisoryRoutine,
   buildHairAdvisorySummary,
   hairRoutineTitles,
@@ -19,6 +20,9 @@ import {
   HAIR_FREQUENCY_VALUES,
   HAIR_LENGTH_VALUES,
   HAIR_EXPERIENCE_VALUES,
+  HAIR_WASH_TIME_VALUES,
+  HAIR_WATER_VALUES,
+  HAIR_HUMIDITY_VALUES,
   HAIR_POROSITY_VALUES,
   HAIR_PRIORITY_VALUES,
   HAIR_SCALP_VALUES,
@@ -73,6 +77,12 @@ export interface DiagnosticResultModel {
   profileFields: DiagnosticProfileField[];
   certain: string[];
   unknown: string[];
+  /** Vague 1 — C11 : ce que le diagnostic ne peut pas dire (confiance + signaux). */
+  confidence: { level: 'haute' | 'moyenne' | 'a_ajuster'; label: string; note: string };
+  /** Signaux qui ne relèvent pas d'une routine beauté — à afficher, jamais à noyer. */
+  redFlags: string[];
+  /** Fermeture du bloc : rappel de périmètre (ni diagnostic médical, ni promesse). */
+  scopeNote: string;
   priorities: string[];
   morning: DiagnosticRoutineStep[];
   evening: DiagnosticRoutineStep[];
@@ -196,6 +206,11 @@ function profileFields(answers: Record<string, unknown>, isSkin: boolean): Diagn
       ['frequency', 'Fréquence de lavage', HAIR_FREQUENCY_VALUES, answers.frequency],
       ['length', 'Longueur actuelle', HAIR_LENGTH_VALUES, answers.length],
       ['experience', 'Expérience capillaire', HAIR_EXPERIENCE_VALUES, answers.experience],
+      // Vague 1 : le quotidien réel est un profil déclaré comme un autre — il
+      // compte donc dans la confiance affichée (§2c).
+      ['washTime', 'Temps du jour de lavage', HAIR_WASH_TIME_VALUES, answers.washTime],
+      ['water', 'Eau du robinet', HAIR_WATER_VALUES, answers.water],
+      ['humidity', 'Comportement selon l’air', HAIR_HUMIDITY_VALUES, answers.humidity],
       ['budget', 'Budget', undefined, answers.budget],
     ];
     const fields = hairFields.map(([key, label, values, raw]) => ({
@@ -284,18 +299,41 @@ export function buildDiagnosticResultModel(input: {
   const fields = profileFields(answers, isSkin);
   const certain = fields.filter(field => field.known).map(field => `${field.label} : ${field.value}`);
   const unknown = fields.filter(field => !field.known).map(field => field.label);
-  const hairAdvisoryCtx: HairAdvisoryContext = {
-    texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-    style: typeof answers.style === 'string' ? answers.style : undefined,
-    focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-    priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-    porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-    scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-    frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-    length: typeof answers.length === 'string' ? answers.length : undefined,
-    experience: typeof answers.experience === 'string' ? answers.experience : undefined,
-    budget: typeof answers.budget === 'string' ? answers.budget : undefined,
+  // C11 — la confiance se calcule, elle ne se devine pas : combien de réponses
+  // manquent, ET lesquelles. Une réponse « je ne sais pas » doit se VOIR.
+  const CRITICAL_KEYS = new Set(isSkin ? ['skinType', 'skinConcerns'] : ['texture', 'priority']);
+  // La préoccupation de segment est une question ADAPTATIVE : quand aucun
+  // segment ne la déclenche, elle n'est pas posée — ce n'est pas un manque.
+  const OPTIONAL_KEYS = new Set(['focus']);
+  const missing = fields.filter(field => !field.known && !OPTIONAL_KEYS.has(field.key));
+  const criticalMissing = missing.filter(field => CRITICAL_KEYS.has(field.key)).map(field => field.label);
+  const level: DiagnosticResultModel['confidence']['level'] =
+    missing.length === 0 ? 'haute' : (missing.length <= 2 && criticalMissing.length === 0 ? 'moyenne' : 'a_ajuster');
+  const confidence = {
+    level,
+    label: level === 'haute' ? 'Profil complet' : level === 'moyenne' ? 'Profil solide, à affiner' : 'Profil à affiner',
+    note: level === 'haute'
+      ? 'Toutes les réponses clés sont renseignées : la routine est construite sur votre profil, pas sur un profil moyen.'
+      : level === 'moyenne'
+        ? `${missing.length} réponse${missing.length > 1 ? 's' : ''} manquante${missing.length > 1 ? 's' : ''} (${missing.map(field => field.label).join(', ').toLowerCase()}) : KURLA a appliqué le profil moyen du segment sur ce point. Refaire le diagnostic avec ces réponses resserrera la routine.`
+        : `${missing.length} réponses manquantes${criticalMissing.length > 0 ? `, dont ${criticalMissing.join(' et ').toLowerCase()}` : ''} : la routine reste sûre, mais elle est construite sur un profil moyen. Deux réponses de plus changeraient nettement les recommandations.`,
   };
+  // Les signaux existaient déjà dans le moteur, noyés dans les paragraphes :
+  // ici ils sont le seul contenu d'un bloc, et ils sont les mêmes pour tous.
+  const redFlags = isSkin
+    ? [
+        'Une lésion qui change de forme ou de couleur, qui saigne ou ne cicatrise pas : un avis médical, pas un soin.',
+        'Une rougeur ou un gonflement qui s’étend, une douleur, une brûlure : on arrête les actifs et on consulte.',
+        'Une tache apparue pendant une grossesse ou un traitement hormonal : le diagnostic ne tranche pas, un professionnel oui.',
+      ]
+    : [
+        'Des plaques, des zones qui dégarnissent ou une chute localisée : ce n’est pas un problème de routine, c’est un avis professionnel.',
+        'Un cuir chevelu qui brûle, suinte ou fait mal au toucher : on arrête les produits et on consulte.',
+        'Une démangeaison ou une odeur qui résiste à trois lavages doux : la cause doit être tranchée, pas couverte.',
+      ];
+  const scopeNote = 'Ce diagnostic est un conseil beauté personnalisé : il ne pose aucun diagnostic médical et ne remplace pas un avis professionnel.';
+  // D9 : contexte moteur = le builder unique partagé avec la route serveur.
+  const hairAdvisoryCtx: HairAdvisoryContext = buildHairAdvisoryCtx(answers);
   const routine = isSkin ? routineForSkin(answers) : routineForHair(hairAdvisoryCtx);
   const advisoryCtx = {
     skinType: typeof answers.skinType === 'string' ? answers.skinType : undefined,
@@ -345,6 +383,9 @@ export function buildDiagnosticResultModel(input: {
     profileFields: fields,
     certain,
     unknown,
+    confidence,
+    redFlags,
+    scopeNote,
     priorities,
     morning: routine.morning,
     evening: routine.evening,

@@ -5109,3 +5109,154 @@ produits présents dans la boutique et qui sont en dropship. »
 motifs nommés, positif ET négatif) exit 0 · linked-records bloc 26 (route,
 section rendue, clic sur fiche réelle) — 26 blocs exit 0 · lint exit 0.
 Chaîne complète en cours.
+## 20/09 (suite 2) — D9 : questionnaire crépu 4A–4C enrichi (agent D8)
+- Consigne utilisateur : auditer les questions du diagnostic crépu et les
+  rendre dignes d'un expert. Quatre questions ajoutées (motif 4A/4B/4C —
+  jamais sur locks formées ; élasticité au rinçage — qui DÉCIDE le masque
+  hydratation vs force ; largeur du cheveu — qui règle le poids au scellement ;
+  passé chaleur/chimie — jamais posée à un enfant, ignorée par le moteur si
+  détournée). Chacune change le texte ou le programme ; « inconnu » =
+  comportement d'avant prouvé.
+- Défaut d'infrastructure trouvé au navigateur et consolidé : la route serveur
+  et la page résultat avaient chacune leur liste blanche de réponses — un
+  builder unique `buildHairAdvisoryCtx()` (hairAdvisory.ts) sert les deux ;
+  le banc interdit d'en recréer une.
+- Bancs : `test:diagnostic-crepu` 17/17 (chaîné dans npm test) ; matrice D8
+  étendue aux nouvelles réponses sur 3 404 profils ; 13 bancs diagnostic
+  verts ; tsc 0 ; build 0 ; preuve Playwright 390 px du parcours complet.
+
+## 20/09 (suite 3) — D10 : audit étendu aux bouclés 3B–3C et à la transition (agent diagnostic)
+
+- **Fait** : +3 réponses diagnostiques avec effet prouvé — séchage réel et fixant réel des boucles
+  (nouvelle étape « Séchage et finition, calés sur vos habitudes », fragments par réponse), et position
+  de la transition (fade) qui **remplace** la question chaleur/chimie en profil défrisé et décide « Le
+  choix honnête ». Contradiction D9 fermée : défrisé + « aucun » ne sert plus « vierges de chaleur ».
+  Gardes moteur dans `flags()` (boucles que si frisée/bouclée naturel adulte hors locks ; transition que
+  si cycle transition réellement servi) — rémanences de payload ignorées par construction.
+- **Tuyau** : rien eu à patcher côté consommateur — la consolidation D9 (`buildHairAdvisoryCtx`) fait
+  transiter les 3 champs automatiquement.
+- **Preuves** : nouveau banc `kurla_diagnostic_boucle_transition.test.ts` 25/25 (branché dans `npm test`) ;
+  matrice personas 47/47 sur 3 404 profils étendue D10 (et corrigée : le balayage utilisait le jeton
+  inexistant `defrie` au lieu de `defrise`) ; banc D9 17/17 (F1 renforcé) ; 13 bancs voisins verts ;
+  tsc 0 ; build 0 ; Playwright 390px deux parcours complets (frisée et défrisée) 20/20, over=0, erreurs=0.
+- **Livrable** : `docs/RAPPORT_D10_BOUCELES_TRANSITION.md`. Chantier clos ; suivants candidats :
+  ondulé 2 et perruque (même audit question-par-question).
+
+
+## 20/09 (suite 4) — D11 : locks / microlocks audités avec les questions des communautés (agent diagnostic)
+
+- **Audit** : aucune question locks décorative à retirer (toutes vérifiées dans le moteur) — mais le
+  moteur récitait sa méthode sans rien savoir de la personne. Recherche web (9 sources, voir rapport) :
+  les questions reines du segment = maturité des locks, méthode de racine (palm/interlocking/freeform),
+  séchage complet (la couche humide du soir = cause n°1 d'odeur).
+- **Fait** : +3 réponses avec effet rendu — l'étape « Racines » se cale sur maturité et méthode
+  (freeform REMPLACE consigne retwist hebdo + entre-deux lavages), et l'étape du jour de lavage
+  « Sécher les locks jusqu'au cœur » n'existe que si la réponse l'appelle. Lignes de résumé dédiées.
+  Gardes dans `flags()` (lockedNow uniquement, whitelist, cycles locks/enfant seulement). Enfant-locks :
+  questions posées volontairement (le gardien répond), chaleur/chimie toujours exclue.
+- **Tuyau** : 3 clés ajoutées au builder partagé — zéro patch consommateur (consolidation D9).
+- **Preuves** : nouveau banc `kurla_diagnostic_locks.test.ts` 27/27 (chaîné dans `npm test`) ; matrice
+  personas 47/47 sur 3 455 profils avec rémanences locks balayées partout ; bancs D9 17/17 et D10
+  rejoués ; 13 bancs voisins verts ; tsc 0 ; build 0 ; Playwright 390px deux parcours (locks complet,
+  frisée garde hors locks) 16/16, over=0, console=0.
+- **Livrable** : `docs/RAPPORT_D11_LOCKS.md`. Suivant candidat naturel : ondulé 2 / perruque, ou
+  l'arbitrage produit « avant-locks » (parcours de préparation, pas une question).
+
+
+## 20/09 (suite 5) — D12 : ondulé 2 rendu posable + perruque dotée de fixation et de portée (agent diagnostic)
+
+- **Trouvaille n°1** : le jeton ondulé n'existait nulle part (le balayage personas testait un 'ondee'
+  fictif — 2ᵉ occurrence du défaut après 'defrie' au D11). Ajouté de bout en bout : type, carte du
+  formulaire + visuel SVG, segments (56 couples), labels compte beauté (dont 'bouclee' absent du mapping,
+  corrigé), hairScience/dérivations. Règle du 2 dans le moteur : « Hydrater léger — la règle des ondes »
+  remplace la LCO, rythme « quand la racine alourdit », leçon LCO refusée, réponses boucles du D10
+  reçues ; faux jeton 'ondee' d'un vieux payload = comportement générique prouvé.
+- **Trouvaille n°2** : le cycle perruque ne posait rien sur la pose. +2 réponses : `wigBond` (colle/
+  adhésif/sans adhésif → clause de dépose au solvant ou dissolution du résidu, test patch 24 h, signes
+  du soir = dépose immédiate) et `wigWear` (quotidienne→confirmé, semaine→confirmé, 2–4→contrôle à
+  mi-parcours, au-delà→« six semaines est un plafond, pas un objectif » + remise à zéro). Lignes de résumé.
+- **Gardes** : perruque = cycle perruque (locks sous perruque : rien — priorité D5) ; **l'enfant trouvé
+  par la matrice** : style wig + priorité démêlage = cycle enfant → questions non posées ET flags à
+  blanc. Valeurs inventées → blanc ; rémanences croisées ignorées ; tuyau unique D9 intact.
+- **Preuves** : nouveau banc `kurla_diagnostic_ondule_perruque.test.ts` 32/32 (chaîné `npm test`) ;
+  matrice 47/47 sur 3 428 profils (ondulee réel balayé, rémanences perruque partout, invariants 8 clauses) ;
+  banc segments 56 couples PASS ; D9/D10/D11 + 15 bancs voisins verts ; tsc 0 ; build 0 ; Playwright 390px
+  3 parcours **29/29** (ondulée sans LCO, perruque colle+continue, locks sous perruque garde) over=0 console=0.
+- **Livrable** : `docs/RAPPORT_D12_ONDULE_PERRUQUE.md`. Programme des segments du cœur achevé (crépu,
+  bouclés+transition, locks, ondulé, perruque). Reste hors diagnostic : arbitrage « avant-locks »,
+  éventuelle question lavage-du-dessous, suivi des compteurs de la matrice.
+
+
+### 20/09 (suite 6) — D13 concision des réponses : « Plus » sur la page résultat
+
+- Retour utilisateur : réponses trop longues → première phrase concise en
+  vedette, suite derrière « Plus » (rien de coupé, tout dépliable). Moteur
+  inchangé ; 100 % présentation.
+- Nouveau : `src/components/ui/MoreLess.tsx` (splitLead pur + LeadBlock,
+  aria-expanded/controls) ; `StepBody` dans la page résultat pour les colonnes
+  routine peau+cheveux ; LeadBlock sur résumé, §4 pourquoi, leçons, kit.
+- Banc `tests/kurla_resultat_concision.test.ts` 19/19 (propriété sans-perte
+  sur 334 textes moteur) ; suite npm test verte (lint tsc inclus) ;
+  Playwright 390 px 12/12 (replié par défaut, clic Plus → texte moteur
+  intégral, over 0, console 0). Captures docs/d13_resultat_{replie,deplie}.png.
+- Corrigé au passage : « Faites glisser pour feuiller » → « feuilleter »
+  (vue sur capture client).
+- Rapport : docs/RAPPORT_D13_CONCISION.md.
+
+### 20/09 (suite 7) — D14 : sous-motif ondulé 2A/2B/2C + lavage du dessous sous perruque (agent diagnostic)
+
+- **Deux FAQ réelles** (règle D11) ouvertes : « comment savoir si je suis 2A, 2B ou 2C »
+  (la question reine des communautés de l'ondulé) et « à quelle fréquence laver le dessous
+  sous une perruque » (thread distinct de l'entretien de la coiffe).
+- **Fait** : +2 réponses. Ondulé — clause par sous-motif dans l'étape « Hydrater léger »
+  (2A : le poids avant tout, mousse seule, racine comprise / 2B : confirmation, surveillance
+  aux longueurs / 2C : maintien de boucle assumé, gel, « carton », casse à l'eau — « léger »
+  ne veut pas dire « sans tenue »). Perruque — le lavage du dessous recale le rythme
+  (rare → lavage à chaque dépose + applicateur entre deux, odeur = ordre de dépose).
+- **Trouvaille d'invariant** : la clause de sous-motif ne se promet que là où la branche
+  ondes est servie — porosité faible (branche « Soins légers ») et style non naturel
+  (twists) la court-circuitent. Le croisement `dessous rare × dépose quotidienne` est tranché
+  par la physique (le lavage se reprend à la dépose), pas par un intervalle récité.
+- **Gardes** : `wigWash` suit exactement celles de `wigBond`/`wigWear` (locks et enfant
+  court-circuitent) ; `wavyPattern` = miroir de `pattern` (ondulée non verrouillée).
+  Aucun patch consommateur : 2 clés de plus dans le tuyau D9.
+- **Preuves** : banc ondulé+perruque **53/53** (U1–U11, V1–V10) ; matrice **47/47** sur
+  **3 389** profils (rémanences balayées partout) ; concision **OK** (+2 profils au
+  balayage sans-perte) ; suite **npm test verte** (EXIT=0) ; tsc **0** ; build **OK** ;
+  Playwright 390 px **20/20** (ondulée 2C, perruque dessous rare, frisée garde) over=0
+  console=0.
+- **Livrable** : `docs/RAPPORT_D14_SOUS_MOTIF_ONDULE_LAVAGE_DESSOUS.md` + captures
+  `docs/d14_{ondulee_2c,perruque_dessous,frisee_garde}.png`.
+- **Reste ouvert** : arbitrage produit « avant-locks » (mini-parcours de préparation, pas une
+  question) ; poids/diamètre des locks — noté, non réclamé.
+
+### 20/09 (suite 8) — VAGUE 1 : C11 limites affichées, C4 temps du jour de lavage, C3 eau + air (agent diagnostic)
+
+- **Bug grave trouvé en parcours réel (hors chantier)** : la route
+  `/api/ai/routine-result` construisait son triage médical sur `JSON.stringify(answers)`
+  → les **ids techniques** passaient au détecteur d'urgence. `humidity: 'gonfle'`
+  (« cheveux qui gonflent à l'humidité ») était lu comme un œdème : fausse alerte
+  « appelez le 15 », et le message **remplaçait tout le résumé du moteur**
+  (`result?.summary ||`). Correctif : `pickFreeTextForTriage()` (guardrails.ts) — le
+  triage ne lit plus que du texte libre (≥ 2 mots, 20 car.). Filet de sécurité intact :
+  « ma gorge gonfle… » est toujours détecté.
+- **C11** : bloc §2c « Ce que ce diagnostic ne peut pas dire » — confiance **calculée**
+  (combien de manques, et lesquels : texture/priorité pèsent plus ; la question
+  adaptative `focus` ne compte pas), 3 signaux d'orientation (version peau distincte,
+  assertion anti-copier-coller), périmètre non médical.
+- **C4** : `washTime` (court/moyen/long). Le temps se gagne **avant** le démêlage
+  (deux sections, une passe) ; masque confondu avec le conditionneur en < 20 min ;
+  croisement `< 20 min × lavages espacés` → le levier est la **fréquence** (sourcé
+  r/Naturalhair). Aucun geste utile supprimé ; variante locks = séchage/rinçage, le
+  mot « démêlage » y est proscrit (garde D9, attrapé par la matrice).
+- **C3** : `water` (douce/calcaire) → chélateur 1×/mois, jamais hebdo, porté par
+  l'étape « laver » (tous cycles) + complément au nettoyage profond (sinon réponse
+  décorative sur cuir chevelu normal) ; `humidity` → glycérine conditionnelle,
+  humectants filmogènes, nuance « cheveu très sec » réservée au crépu.
+- **Preuves** : nouveau banc `kurla_diagnostic_vague1.test.ts` **54/54** (chaîné
+  `npm test`) ; matrice **47/47** sur **3 442** profils ; concision **OK** ; suite
+  complète **0 npm ERR** ; lint tsc **0** ; build **OK** ; Playwright 390 px **19/19**
+  (parcours plein + garde « je ne sais pas ») over=0 console=0.
+- **Livrable** : `docs/RAPPORT_VAGUE1_2026-09.md` + captures `docs/vague1_*.png`.
+- **Signalé, non traité** : le résumé du moteur est écrasé dès que la couche IA
+  produit un `summary` — à traiter dans D3 (garde-fou IA).

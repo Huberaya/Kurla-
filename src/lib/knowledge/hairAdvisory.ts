@@ -49,6 +49,36 @@ export interface HairAdvisoryContext {
   length?: string;
   /** D4 : expérience capillaire (debutante | habituee | expert). */
   experience?: string;
+  /** D9 (20/09) — les quatre réponses qui manquaient au diagnostic crépu :
+   *  sous-motif (4a|4b|4c|inconnu), élasticité (ressort|mou|cassant|inconnu),
+   *  largeur (fine|moyenne|epaisse|inconnue), passé chaleur/chimie
+   *  (aucun|chaleur|produit|les_deux|inconnue). Absentes = comportement d'avant. */
+  coilyPattern?: string;
+  elasticity?: string;
+  strandWidth?: string;
+  chemicalHeat?: string;
+  /** D10 (20/09) — bouclés 3B–3C au naturel : séchage + fixant déclarés, pour
+   *  caler la méthode sur l'habitude réelle au lieu de la réciter. */
+  curlyDry?: string;
+  curlyHold?: string;
+  /** D10 — transition : où en sont les longueurs traitées (majorite | minorite
+   *  | quasi_nulle) — c'est ce qui décide le cap, pas le goût. */
+  transitionStep?: string;
+  /** D11 (20/09) — locks : maturité (neuve|ado|mature), méthode de racine
+   *  (palm|interlock|freeform) et réalité du séchage (sec|seche|humide|lentes).
+   *  Les trois questions des FAQ locks ; absentes = comportement d'avant. */
+  locStage?: string;
+  locCare?: string;
+  locDry?: string;
+  /** D12 (20/09) — perruque : fixation (glue|tape|glueless) et durée de
+   *  portée (quotidienne|une_semaine|deux_quatre|jamais_retiree). */
+  wigBond?: string;
+  wigWear?: string;
+  wigWash?: string;
+  wavyPattern?: string;
+  washTime?: string;
+  water?: string;
+  humidity?: string;
   /** D2 : le journal dit « routine trop longue » → les ajouts de confort
    * passent en réserve, le socle du cycle reste (voir profileEvolution). */
   shorten?: boolean;
@@ -83,6 +113,7 @@ export interface HairObservation {
 /** Vocabulaire affiché (profil déclaré) — miroir des choix du diagnostic. */
 export const HAIR_TEXTURE_VALUES: Record<string, string> = {
   crepue: 'Crépue (4A–4C)',
+  ondulee: 'Ondulée (2A–2C)',
   frisee: 'Frisée / bouclée (3B–3C)',
   locksee: 'En locks',
   protective: 'En coiffure protectrice',
@@ -145,6 +176,25 @@ export const HAIR_EXPERIENCE_VALUES: Record<string, string> = {
   expert: 'Routine avancée, je connais ma fibre',
 };
 
+/** Vague 1 (20/09) — libellés lisibles du quotidien réel (jamais l'id technique). */
+export const HAIR_WASH_TIME_VALUES: Record<string, string> = {
+  court: 'Moins de 20 minutes',
+  moyen: '20 à 45 minutes',
+  long: 'Une heure ou plus',
+};
+
+export const HAIR_WATER_VALUES: Record<string, string> = {
+  douce: 'Eau douce (pas de dépôt)',
+  calcaire: 'Eau calcaire (dépôts, cheveux qui accrochent)',
+};
+
+export const HAIR_HUMIDITY_VALUES: Record<string, string> = {
+  gonfle: 'Gonfle et frise par temps humide',
+  sallonge: 'La forme s’allonge par temps humide',
+  sec: 'S’assèche en air sec ou en hiver',
+  ne_bouge_pas: 'Aucune différence selon l’air',
+};
+
 interface HairFlags {
   texture: string; style: string; priority: string; porosity: string; scalp: string; frequency: string; focus: string;
   isCoily: boolean; isCurly: boolean; isLocked: boolean; isProtective: boolean;
@@ -155,6 +205,18 @@ interface HairFlags {
   length: string; experience: string;
   isShort: boolean; isLong: boolean; isExpert: boolean;
   shorten: boolean;
+  /** D9 — sous-motif crépu (vide hors texture crépue), élasticité, largeur, passé chaleur/chimie (vide pour un enfant). */
+  pattern: string; elasticity: string; strandWidth: string; chem: string;
+  /** D10 — séchage + fixant des boucles au naturel (vide hors ce profil) ; position de la transition. */
+  curlyDry: string; curlyHold: string; transitionStep: string;
+  /** D11 — locks : maturité, méthode d’entretien racine, séchage (vides hors locks). */
+  locStage: string; locCare: string; locDry: string;
+  /** D12 — ondulé 2 (famille des boucles, à la règle de légèreté près) ;
+   *  perruque : fixation et portée réelles (vides hors cycle perruque). */
+  isWavy: boolean;
+  wigBond: string; wigWear: string; wigWash: string; wavyPattern: string;
+  /** Vague 1 — le réel du quotidien : universel (tout le monde a une eau, un air et un temps). */
+  washTime: string; water: string; humidity: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -177,7 +239,11 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
   return {
     texture, style, priority, porosity, scalp, frequency: frequencyReal, focus, length, experience,
     isCoily: texture === 'crepue',
-    isCurly: texture === 'frisee' || texture === 'bouclee' || (priority === 'definition' && !lockedNow),
+    // D12 : l'ondulé 2 appartient à la famille des boucles (mêmes gestes de
+    // forme et de fraîcheur) — sa différence tient dans la légèreté, portée
+    // par isWavy, pas dans l'exclusion du reste.
+    isCurly: texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee' || (priority === 'definition' && !lockedNow),
+    isWavy: texture === 'ondulee',
     isLocked: lockedNow,
     isProtective: texture === 'protective' || style === 'braids' || style === 'twists',
     isWig: style === 'wig',
@@ -197,6 +263,56 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     isLong: length === 'longue',
     isExpert: experience === 'expert',
     shorten: ctx.shorten === true,
+    // Le sous-motif ne se pose plus une fois la lock formée : le motif a été
+    // consommé par la lock — ni définition, ni démêlage n'ont de sens ici.
+    pattern: texture === 'crepue' && !lockedNow && ['4a', '4b', '4c'].includes(String(ctx.coilyPattern ?? '')) ? String(ctx.coilyPattern) : '',
+    elasticity: ['ressort', 'mou', 'cassant'].includes(String(ctx.elasticity ?? '')) ? String(ctx.elasticity) : '',
+    strandWidth: ['fine', 'epaisse'].includes(String(ctx.strandWidth ?? '')) ? String(ctx.strandWidth) : '',
+    // La question n'est jamais posée à un enfant ; si une réponse ancienne ou
+    // détournée la porte quand même, le moteur l'ignore — la garde vit ici.
+    // D10 : un profil « défrisée » qui répondrait « jamais de chimie » se
+    // contredit lui-même ; la texture déclarée prime, la ligne de récompense
+    // n'est pas servie.
+    chem: (style === 'enfant' || priority === 'demelage_enfant') ? '' : ((texture === 'defrisee' || style === 'defrise') && String(ctx.chemicalHeat) === 'aucun') ? '' : (['aucun', 'chaleur', 'produit', 'les_deux'].includes(String(ctx.chemicalHeat ?? '')) ? String(ctx.chemicalHeat) : ''),
+    // D10 — les réponses boucles ne vivent que sur le cycle où l'on sèche
+    // et coiffe vraiment : bouclés déclarés, portés au naturel, hors locks.
+    // D10 (20/09) — séchage et fixant n'existent QUE pour le bouclés/crépu porté
+    // au naturel : locks, perruque, enfant (la question ne lui est pas posée —
+    // une réponse rémanente d'un ancien profil ne doit rien injecter chez lui).
+    curlyDry: ['frisee', 'bouclee', 'ondulee'].includes(texture) && style === 'naturel' && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['air', 'diffuse_chaud', 'diffuse_froid', 'serviette'].includes(String(ctx.curlyDry ?? '')) ? String(ctx.curlyDry) : '',
+    curlyHold: ['frisee', 'bouclee', 'ondulee'].includes(texture) && style === 'naturel' && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['gel', 'mousse', 'creme', 'rien'].includes(String(ctx.curlyHold ?? '')) ? String(ctx.curlyHold) : '',
+    // D10 — la position de transition ne vit qu'en transition, hors locks et
+    // hors enfant ; sinon c'est une rémanence d'un autre profil, elle est ignorée.
+    transitionStep: (texture === 'defrisee' || style === 'defrise') && !lockedNow &&
+      String(ctx.style ?? '') !== 'enfant' && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      style !== 'wig' && texture !== 'protective' && style !== 'braids' && style !== 'twists' &&
+      ['majorite', 'minorite', 'quasi_nulle'].includes(String(ctx.transitionStep ?? '')) ? String(ctx.transitionStep) : '',
+    // D11 — les trois réponses locks n'existent QUE locks en tête (la texture
+    // locksee ou le style locks) ; hors de là, rémanence ignorée à la source.
+    locStage: lockedNow && ['neuve', 'ado', 'mature'].includes(String(ctx.locStage ?? '')) ? String(ctx.locStage) : '',
+    locCare: lockedNow && ['palm', 'interlock', 'freeform'].includes(String(ctx.locCare ?? '')) ? String(ctx.locCare) : '',
+    locDry: lockedNow && ['sec', 'seche', 'humide', 'lentes'].includes(String(ctx.locDry ?? '')) ? String(ctx.locDry) : '',
+    // D12 — les réponses perruque n'existent que dans le CYCLE perruque : un
+    // cuir chevelu en locks sous une pose répond au cycle locks (priorité D5,
+    // « locks toujours locks ») ; la question ne lui est donc pas posée et une
+    // rémanence est ignorée ici, à la source.
+    wigBond: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['glue', 'tape', 'glueless'].includes(String(ctx.wigBond ?? '')) ? String(ctx.wigBond) : '',
+    wigWear: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'].includes(String(ctx.wigWear ?? '')) ? String(ctx.wigWear) : '',
+    // D14 — le lavage du dessous n'existe que là où le cycle perruque est servi
+    // (mêmes gardes que wigBond/wigWear : locks et enfant court-circuitent).
+    wigWash: style === 'wig' && !lockedNow && String(ctx.priority ?? '') !== 'demelage_enfant' &&
+      ['a_repos', 'deux_semaine', 'rare'].includes(String(ctx.wigWash ?? '')) ? String(ctx.wigWash) : '',
+    // D14 — le sous-motif ondulé ne se pose que sur l'ondulé non verrouillé (miroir du pattern crépu).
+    wavyPattern: texture === 'ondulee' && style === 'naturel' && !lockedNow && ['2a', '2b', '2c'].includes(String(ctx.wavyPattern ?? '')) ? String(ctx.wavyPattern) : '',
+    washTime: ['court', 'moyen', 'long'].includes(String(ctx.washTime ?? '')) ? String(ctx.washTime) : '',
+    water: ['douce', 'calcaire'].includes(String(ctx.water ?? '')) ? String(ctx.water) : '',
+    humidity: ['gonfle', 'sallonge', 'sec', 'ne_bouge_pas'].includes(String(ctx.humidity ?? '')) ? String(ctx.humidity) : '',
   };
 }
 
@@ -222,6 +338,51 @@ function cycleKey(f: HairFlags): HairCycleKey {
  * protectrice n'a pas de « jour de lavage » hebdomadaire, elle a un cycle
  * avant / pendant / à la dépose. La page résultat affiche ces titres.
  */
+/**
+ * D9 — LA source unique de traduction réponses → contexte moteur.
+ * La route serveur et la page résultat appellent CETTE fonction : un champ
+ * du questionnaire ne peut plus se perdre entre les deux (deux listes blanches
+ * séparées, c'est exactement comment le test navigateur du 20/09 a trouvé la
+ * première réponse perdue).
+ */
+export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvisoryContext {
+  const str = (key: string): string | undefined =>
+    typeof answers[key] === 'string' ? (answers[key] as string) : undefined;
+  const focus = str('focus');
+  return {
+    texture: str('texture'),
+    style: str('style'),
+    focus: focus && focus !== '' ? focus : undefined,
+    priority: str('priority'),
+    porosity: str('porosity'),
+    scalp: str('scalp'),
+    frequency: str('frequency'),
+    length: str('length'),
+    experience: str('experience'),
+    budget: str('budget'),
+    coilyPattern: str('coilyPattern'),
+    elasticity: str('elasticity'),
+    strandWidth: str('strandWidth'),
+    chemicalHeat: str('chemicalHeat'),
+    // D10
+    curlyDry: str('curlyDry'),
+    curlyHold: str('curlyHold'),
+    transitionStep: str('transitionStep'),
+    // D11 — idem : le tuyau unique emporte les trois réponses locks.
+    locStage: str('locStage'),
+    locCare: str('locCare'),
+    locDry: str('locDry'),
+    // D12 — idem : le tuyau unique emporte fixation et portée de la pose.
+    wigBond: str('wigBond'),
+    wigWear: str('wigWear'),
+    wigWash: str('wigWash'),
+    wavyPattern: str('wavyPattern'),
+    washTime: str('washTime'),
+    water: str('water'),
+    humidity: str('humidity'),
+  };
+}
+
 export function hairRoutineTitles(ctx: HairAdvisoryContext): { morning: string; evening: string; weekly: string } {
   switch (cycleKey(flags(ctx))) {
     case 'protective': return { morning: 'Avant de se faire coiffer', evening: 'Pendant la coiffure', weekly: 'À la dépose' };
@@ -237,6 +398,82 @@ type HairStepDraft = Omit<HairAdvisoryStep, 'label'>;
  * Chaque étape est contextuelle : le *pourquoi* change selon le profil
  * déclaré (casse, cuir chevelu, porosité, enfant, locks…).
  */
+/* ------------------------------------------------------------------ */
+/* Vague 1 (20/09) — le réel du quotidien : temps, eau, air            */
+/* Trois variables que personne ne demande et qui décident pourtant de  */
+/* ce qu'une routine vaut : le temps disponible, l'eau du robinet, le   */
+/* comportement du cheveu selon l'air. Chaque clause est rendue UNIQUE- */
+/* MENT quand la réponse existe (jamais de voeu pieux par défaut).      */
+/* ------------------------------------------------------------------ */
+
+function washTimeDetangle(f: HairFlags): string {
+  if (f.washTime === 'court') {
+    return ' Jour de lavage court déclaré (moins de 20 minutes) : le temps ne se gagne pas sur le démêlage, il se gagne avant lui — deux sections, pas de pinces, une seule passe par mèche, et le conditionneur posé dès la racine pour que l’outil glisse du premier coup.'
+      + (f.frequency === 'less_1x' || f.frequency === 'irreguliere'
+        ? ' Et le levier le plus court est ailleurs : laver plus souvent, c’est démêler un cheveu qui n’a pas eu le temps de se nouer. Un lavage hebdomadaire fait gagne plus de minutes qu’une méthode plus rapide.'
+        : '');
+  }
+  if (f.washTime === 'moyen') {
+    return ' Jour de lavage de 20 à 45 minutes : le format de la plupart des routines — quatre sections, démêlage pendant que l’après-shampoing pose, rien qui attende.';
+  }
+  if (f.washTime === 'long') {
+    return ' Jour de lavage long déclaré : le temps est de votre côté, alors il va au pré-démêlage — défaire les nœuds aux doigts la veille, sur cheveu sec, est le geste qui rend tout le reste facile.';
+  }
+  return '';
+}
+
+function washTimeMask(f: HairFlags): string {
+  if (f.washTime === 'court') {
+    // Sur locks, il n'y a rien à démêler : la même économie de temps se joue
+    // sur le conditionneur qu'on laisse poser, pas sur un peigne qu'on n'a pas.
+    return f.isLocked
+      ? ' Avec moins de 20 minutes : le soin se confond avec le conditionneur — on le pose, on rince. Cinq minutes sous une serviette chaude valent mieux que trente minutes repoussées à la semaine suivante.'
+      : ' Avec moins de 20 minutes : le masque se confond avec le conditionneur — on le pose, on démêle dedans, on rince. Cinq minutes sous une serviette chaude valent mieux que trente minutes repoussées à la semaine suivante.';
+  }
+  if (f.washTime === 'long') {
+    return ' Le temps de pose est votre avantage : 20 à 30 minutes sous chaleur douce, pas au-delà — un soin qui sèche sur la fibre n’y entre plus.';
+  }
+  return '';
+}
+
+// L'eau se lit à deux endroits, pour qu'elle soit toujours rendue : l'étape
+// « laver » existe dans TOUS les cycles, le nettoyage profond n'existe que
+// dans certains (cuir chevelu, protectrice, perruque). Sans le premier, une
+// eau calcaire sur cuir chevelu normal n'aurait aucun effet — réponse décorative.
+function waterWash(f: HairFlags): string {
+  if (f.water === 'calcaire') {
+    return ' Eau calcaire déclarée : le dépôt minéral ne part pas au shampoing doux, il lui faut un chélateur (EDTA, acide phytique ou citrique sur l’étiquette) — une fois par mois, jamais toutes les semaines, toujours suivi d’un soin hydratant. Le signal qui ne trompe pas : un produit qui « ne fait plus rien » alors que la routine n’a pas changé.';
+  }
+  if (f.water === 'douce') {
+    return ' Eau douce déclarée : rien à corriger de ce côté — si le cheveu pèse quand même, la cause est un produit, pas votre eau.';
+  }
+  return '';
+}
+
+// Le complément opérationnel, uniquement là où un nettoyage profond est prévu.
+function waterDeep(f: HairFlags): string {
+  return f.water === 'calcaire'
+    ? ' Eau calcaire déclarée : c’est ce nettoyage-ci qui doit être chélateur (EDTA, acide phytique ou citrique), une fois par mois ; un rinçage acide (vinaigre de cidre, un volume pour trois d’eau) complète entre deux, sans jamais remplacer le soin hydratant qui suit.'
+    : '';
+}
+
+function humidityHow(f: HairFlags): string {
+  if (f.humidity === 'gonfle') {
+    return ' Temps humide : vos cheveux gonflent. La glycérine en tête de liste attire alors l’eau de l’air dans la fibre — gardez-la pour les saisons tempérées et, par forte humidité, passez aux humectants filmogènes (aloé, miel, graines de lin) avec un fixant à tenue ferme.'
+      + (f.isCoily ? ' Nuance pour votre texture : un cheveu très sec tolère souvent la glycérine plus longtemps que la moyenne — c’est votre observation qui tranche, pas la règle.' : '');
+  }
+  if (f.humidity === 'sec') {
+    return ' Air sec ou hiver : la glycérine fait ici l’inverse, elle rend l’humidité de la fibre à l’air. En saison sèche, un leave-in plus riche et des émollients ; la glycérine reviendra aux beaux jours.';
+  }
+  if (f.humidity === 'sallonge') {
+    return ' Temps humide : la forme s’allonge — c’est une surcharge d’eau, pas un manque. Retirer une couche (leave-in ou crème) et ajouter un fixant à tenue ferme rend plus que changer de produit.';
+  }
+  if (f.humidity === 'ne_bouge_pas') {
+    return ' Vos cheveux ne réagissent ni à l’humidité ni au sec : aucun ajustement saisonnier à prévoir, votre routine peut rester la même toute l’année.';
+  }
+  return '';
+}
+
 function buildWashDay(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
@@ -258,7 +495,8 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
   steps.push({
     action: 'Laver en douceur',
     why: washWhy,
-    how: 'Masser le cuir chevelu avec les pulpes des doigts (pas les ongles), laisser l’écume faire le travail sur les longueurs, rincer à l’eau tiède. Jamais d’eau chaude : elle dessèche et tire sur le cuir chevelu.',
+    how: 'Masser le cuir chevelu avec les pulpes des doigts (pas les ongles), laisser l’écume faire le travail sur les longueurs, rincer à l’eau tiède. Jamais d’eau chaude : elle dessèche et tire sur le cuir chevelu.'
+      + (f.isWavy && !f.isLocked ? ' Sur ondulé, le calendrier cède à la racine : on lave quand elle alourdit ou que la forme retombe — le rythme du 2 est plus court que celui du 3, et c’est normal.' : '') + waterWash(f),
     expect: 'Un cuir chevelu propre, sans effet collant ni tiraillement. Si le cuir chevelu gratte après chaque lavage, notez-le : la cause est plus souvent un résidu qu’un produit qui ne convient pas.',
   });
 
@@ -282,7 +520,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       : f.isBreakage
         ? 'Le conditionneur est l’étape démêlage : sur cheveu mouillé et glissant, chaque nœud cède sans traction. C’est le geste qui protège le plus vos longueurs, avant n’importe quel produit.'
         : 'Le conditionneur prépare le démêlage : sur cheveu mouillé, chaque nœud cède sans traction, et la fibre est prête à recevoir l’hydratation.',
-    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.',
+    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : '') + washTimeDetangle(f),
     expect: f.isKid
       ? 'Un démêlage sans tirage : si l’enfant grimace, c’est que la méthode est trop rapide, pas que les cheveux sont trop emmêlés. On ralentit, on réhydrate, on recommence.'
       : f.isBreakage
@@ -295,7 +533,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Soins légers, bien placés',
       why: 'Cheveux à porosité faible : les écailles sont fermées, l’eau met du temps à entrer et les produits lourds restent en surface. La règle : des textures légères à base d’eau, sur cheveu bien humide, et un peu de chaleur douce si besoin — pas plus de produit.',
-      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.',
+      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.' + humidityHow(f),
       expect: 'Un cheveu qui respire, défini sans effet collant. La porosité faible s’entretient en moins, pas en plus — l’accumulation est l’ennemi, pas le manque.',
     });
   } else if (f.isLocked) {
@@ -305,6 +543,23 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       how: 'Sur cheveux mouillés, un conditionneur léger, bien rincé, puis une brume d’eau sur les pointes. Les longueurs ne se retwistent pas : l’eau et la main suffisent.',
       expect: 'Des locks souples et propres, sans dépôt. Un cheveu rêche qui sent, c’est un signal de lavage plus profond, pas de plus de produit.',
     });
+  } else if (f.isWavy) {
+    // D12 — la faute n°1 du 2 est la crème héritée du 3 : sur une vague fine,
+    // sceller sous l'huile couche la forme. La légèreté n'est pas un conseil
+    // esthétique, c'est la physique du segment (guides 2A–2C, r/Wavyhair).
+    steps.push({
+      action: 'Hydrater léger — la règle des ondes',
+      why: 'Sur ondulé, le sébum remonte vite : la racine graisse pendant que les longueurs boivent. Les beurres et les huiles épaisses couchent la forme plus vite qu’ils ne la nourrissent — la légèreté est le vrai soin, pas une version pauvre du soin.',
+      how: 'Après le lavage : leave-in léger à l’eau, dos noisette — jamais l’avant-bras ; mousse ou gel aérien posés sur cheveu trempé, en scrunching, sur les longueurs seulement. Pas de crème épaisse, pas d’huile en racine.'
+      + (f.wavyPattern === '2a'
+        ? ' Motif 2A : la vague s’écrase dans la journée — le premier ennemi est le poids, pas le frizz. Mousse ou spray seuls, posés aussi près de la racine que possible, aucune crème sur les longueurs.'
+        : f.wavyPattern === '2c'
+          ? ' Motif 2C : ces ondes sont des boucles qui n’ont pas tout à fait tourné — le scrunching au gel et le « carton » du séchage sont pour elles aussi. « Léger » veut dire pas de crème épaisse, pas absence de maintien : le film se casse à l’eau, pas aux doigts.'
+          : f.wavyPattern === '2b'
+            ? ' Motif 2B : le S est déjà net — la règle des ondes est exactement la sienne ; à surveiller seulement aux longueurs, là où le S se défait le premier.'
+            : '') + humidityHow(f),
+      expect: 'Des ondes qui se forment en séchant sans s’alourdir : le volume racinaire revient, le dessin tient la journée. Si la forme « fond » en deux heures, le suspect est le dosage, pas la nature du cheveu.',
+    });
   } else {
     steps.push({
       action: 'Hydrater puis sceller (LCO)',
@@ -313,7 +568,12 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
         : f.highPorosity
           ? 'Porosité forte : le cheveu boit vite et perd vite. L’hydratation ne tient que si elle est scellée — c’est la différence entre « ça marche le jour même » et « ça tient la semaine ».'
           : 'Le cheveu texturé est naturellement sec : sa forme en spirale ralentit la remontée du sébum du cuir chevelu vers les pointes. L’hydratation vient de l’eau et des humectants ; le beurre ou l’huile sert à sceller, pas à hydrater.',
-      how: 'Sur cheveux essorés (ni gorgés ni secs) : leave-in hydratant (L), crème (C), puis une noisette de beurre ou d’huile pour sceller (O). Toujours dans cet ordre, toujours sur cheveu humide : sur cheveu sec, on scelle la sécheresse.',
+      how: 'Sur cheveux essorés (ni gorgés ni secs) : leave-in hydratant (L), crème (C), puis une noisette de beurre ou d’huile pour sceller (O). Toujours dans cet ordre, toujours sur cheveu humide : sur cheveu sec, on scelle la sécheresse.'
+        + (f.strandWidth === 'fine'
+          ? ' Cheveu fin : à l’étape O, une huile légère plutôt qu’un beurre — deux ou trois gouttes chauffées dans les paumes puis écrasées sur les longueurs. Un beurre alourdit un cheveu fin en une journée et le fait regraisser plus vite qu’il ne le protège.'
+          : f.strandWidth === 'epaisse'
+            ? ' Cheveu épais : le beurre riche est le bon choix — réchauffez-le entre les paumes pour qu’il pénètre au lieu de rester en surface, et n’ayez pas peur du temps de pose : plus la fibre est large, plus elle prend son temps.'
+            : '') + humidityHow(f),
       expect: 'Souplesse et élasticité immédiatement ; l’hydratation scellée tient plusieurs jours. Si le cheveu est sec le lendemain, le point faible est au scellement, pas au lavage : on ajuste l’étape O.',
     });
   }
@@ -346,7 +606,9 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Entretenir entre deux lavages',
       why: 'Entre deux lavages, la lock vit de l’eau et d’une régularité légère : un rafraîchissement à l’eau garde la souplesse sans déposer de matière qui attirerait les résidus.',
-      how: 'Une brume d’eau sur les pointes, un léger retwist en racine seulement si besoin, palm rolling léger. Ne pas toucher les longueurs plus que nécessaire : la manipulation excessive casse et amincit.',
+      how: f.locCare === 'freeform'
+        ? 'Une brume d’eau sur les pointes, rien à retordre : en libre pousse, l’entretien est la séparation des racines, pas le retwist. Ne pas toucher les longueurs plus que nécessaire — c’est déjà le programme.'
+        : 'Une brume d’eau sur les pointes, un léger retwist en racine seulement si besoin, palm rolling léger. Ne pas toucher les longueurs plus que nécessaire : la manipulation excessive casse et amincit.',
       expect: 'Des locks souples et propres entre deux lavages. Un signe de dépôt — rêche, odeur — appelle un lavage, pas plus de produit.',
     });
   }
@@ -381,18 +643,70 @@ function buildBetweenWashes(f: HairFlags): HairStepDraft[] {
   return steps;
 }
 
+
+/** D9 — les étapes qui découlent du passé chaleur/chimie, identiques dans
+ *  tous les cycles hebdomadaires (naturel, locks, protectrice, perruque,
+ *  transition). flags() les vide pour un enfant : la garde est moteur. */
+function chemSteps(f: HairFlags): HairStepDraft[] {
+  const steps: HairStepDraft[] = [];
+  if (f.chem === 'chaleur' || f.chem === 'les_deux') {
+    steps.push({
+      action: 'Chaleur : la règle des trois, pas de faveur',
+      why: 'Vous utilisez la chaleur : l’eau qui bout dans la fibre est la casse immédiate, le fer sans protecteur est la casse différée. Les trois règles ne sont pas une préférence de marque, ce sont les lois physiques du cheveu texturé passé par la chaleur.',
+      how: 'Protecteur de chaleur sur cheveu entièrement sec, température la plus basse qui fait le travail, une seule passe par mèche. Le sèche-cheveux à fluxo tiède remplace le fer autant que possible — un lissé doux se paie en longueur gardée, un lissé parfait se paie en pointes.',
+      expect: 'Un lissé qui ne se paie pas en fourches ni en anneaux de cassure. Si la pointe crisse, fume ou sent le brûlé, la séance s’arrête là : ce n’est pas un réglage à pousser, c’est un signal.',
+    });
+  }
+  if (f.chem === 'produit' || f.chem === 'les_deux') {
+    steps.push({
+      action: 'Démarcation : le point faible de la repousse',
+      why: 'Sous une repousse naturelle, les longueurs traitées au produit chimique sont une autre fibre — plus poreuse, plus fragile. C’est à la jonction des deux, la démarcation, que ça casse ; jamais sur la pousse neuve.'
+        + (f.chem === 'les_deux' ? ' Et chaleur ET produit cumulent leurs effets sur cette même ligne : jamais les deux la même semaine sur la même mèche — la fibre ne négocie pas.' : ''),
+      how: 'Retouche du produit sur les racines seules, jamais sur les longueurs déjà traitées ; soin de force ciblé sur la zone de démarcation une fois sur deux'
+        + (f.isLocked
+          ? ' ; le séchage de la zone est aussi soigné que le reste — l’eau piégée à une démarcation fragilisée est l’irritation assurée.'
+          : ' ; à cet endroit, on démêle encore plus doucement.')
+        + ' Le jour où la ligne tire ou casse, on espace les retouches — et la coupe nette redevient une option assumée, pas une punition.',
+      expect: 'La démarcation tient : peu de cheveux qui tombent après le rinçage, pas de zone qui « décroche » entre la repousse et les longueurs.',
+    });
+  }
+  return steps;
+}
+
 /** « À faire chaque semaine » — cycle naturel et locks. */
 function buildWeekly(f: HairFlags): HairStepDraft[] {
   const steps: HairStepDraft[] = [];
 
+  // D9 — le test d’élasticité tranche enfin le « hydratation OU force » : le
+  // masque est DÉCIDÉ, plus seulement proposé. Sur locks, la décision ne
+  // s’applique pas (le masque y est un rinçage souple, pas une cure).
+  const maskDecision = !f.isLocked && f.elasticity === 'mou'
+    ? {
+        action: 'Masque de force, puis hydratation',
+        why: 'Votre test au rinçage est clair : le cheveu mouillé s’étire sans limite et ne revient pas — la fibre manque de matière, pas d’eau. Un soin protéiné léger une semaine sur deux la raffermit, l’hydratation reprend la suivante. En excès, la force rend le cheveu rêche : c’est l’alternance qui soigne, jamais la dose.',
+      }
+    : !f.isLocked && f.elasticity === 'cassant'
+      ? {
+          action: 'Masque d’hydratation d’abord, la force attendra',
+          why: 'Le cheveu casse net sans s’étirer : une fibre assoiffée, pas une fibre molle. Commencer par un soin protéiné sur un cheveu sec le durcirait encore — deux à trois semaines d’hydratation profonde d’abord, puis on refait le test au rinçage avant de décider de la force.',
+        }
+      : !f.isLocked && f.elasticity === 'ressort'
+        ? {
+            action: 'Masque hydratant hebdomadaire, rien de plus',
+            why: 'Votre élasticité est bonne : le cheveu s’étire et revient. Les cures de force systématiques sont un réflexe de catalogue, pas un diagnostic — chez vous, l’hydratation hebdomadaire suffit tant que le test tient.',
+          }
+        : null;
   steps.push({
-    action: 'Masque : hydratation, ou force',
-    why: f.isBreakage
-      ? 'La fibre cassante a besoin de force : un masque protéiné ou un reconstructeur de liens, une à deux fois par mois, en alternance avec un masque hydratant. Trop de protéines sans hydratation rend le cheveu rêche et cassant — l’équilibre est la technique.'
-      : f.isCoily
-        ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
-        : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
-    how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.',
+    action: maskDecision ? maskDecision.action : 'Masque : hydratation, ou force',
+    why: maskDecision
+      ? maskDecision.why
+      : f.isBreakage
+        ? 'La fibre cassante a besoin de force : un masque protéiné ou un reconstructeur de liens, une à deux fois par mois, en alternance avec un masque hydratant. Trop de protéines sans hydratation rend le cheveu rêche et cassant — l’équilibre est la technique.'
+        : f.isCoily
+          ? 'Une fois par semaine, un masque hydratant sous chaleur (chapeau chaud ou vapeur) est ce qui change le plus sur un cheveu très texturé : la chaleur ouvre la fibre et fait pénétrer.'
+          : 'Le masque est le soin en profondeur que la routine quotidienne ne fait pas : hydratant en règle générale, en alternance avec un soin de force si la fibre casse.',
+    how: 'Sur cheveux propres et essorés, mèche par mèche, couvrir (bonnet ou chapeau de bain), 20 à 30 minutes. Le masque n’est pas un leave-in : on rince.'
+      + (f.elasticity === 'mou' ? ' Le soin de force se pose 10 à 15 minutes, pas une heure : les protéines ne se laissent pas dormir sur la fibre.' : '') + washTimeMask(f),
     expect: f.isLocked && !f.isKid
       ? 'Des locks souples et un cuir chevelu soulagé — c’est la mesure, sur quelques semaines. Une lock ne cherche pas la « facilité au peigne » : elle n’en voit jamais ; ce qui se juge, c’est la douceur sans dépôt et la propreté de la racine.'
       : 'Un cheveu plus souple, un démêlage plus facile, une casse moins nette — sur quelques semaines, pas en un jour. Le soin de la fibre se juge sur un mois, pas sur un usage.',
@@ -402,20 +716,41 @@ function buildWeekly(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Nettoyage profond occasionnel',
       why: 'Les résidus — coiffants, eau calcaire, dépôts de produits — s’installent sur le cuir chevelu et les longueurs : un nettoyage profond, occasionnel, redonne de la légèreté et fait que les autres soins recommencent à agir.',
-      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de sa définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.',
+      how: 'Une fois par mois, ou quand le cheveu pèse et qu’il perd de sa définition. C’est un geste correcteur, pas un rythme : s’il faut clarifier chaque semaine, la cause est en amont — trop de produit, ou mauvais type.' + waterDeep(f),
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise. Après un nettoyage profond, l’hydratation repart plus vite : c’est le signe que les résidus étaient le problème.',
     });
   }
 
   if (f.isLocked) {
+    // D11 — la méthode se récite rarement correctement pour TOUT LE MONDE : la
+    // maturité décide de ce qu’on attend (patience aux premiers mois, rythme
+    // plus libre ensuite), la méthode décide du geste (on ne parle pas retwist
+    // à une personne en libre pousse). Sources : annieinc.com (rythme 4–6
+    // semaines, méthodes par stade), r/Dreadlocks & r/Microlocs (sur-manipulation,
+    // shrinkage), thekinkyapothecary (trop serré = casse).
+    const stageWhy = f.locStage === 'neuve'
+      ? ' Sur des locks de moins de six mois, la consigne première est la patience : le raccourcissement fait partie du processus — la lock construit sa matrice avant de s’allonger. Un début qui lutte contre ce stade ralentit la maturation au lieu de la servir.'
+      : f.locStage === 'ado'
+        ? ' À mi-parcours, la lock se consolide sans être blindée : le rythme d’entretien se tient, mais la maturation prime encore sur la perfection du tracé.'
+        : f.locStage === 'mature'
+          ? ' Locks bien ancrées : elles supportent un entretien plus espacé et des lavages plus fréquents — le programme peut viser la tenue, plus la survie.'
+          : '';
+    const careHow = f.locCare === 'freeform'
+      ? 'Rien ne sera retordu ici. Le travail hebdomadaire : séparer les locks entre elles à la racine, un doigt propre, surtout nuque et contour où elles fusionnent ; eau légère sur les pointes si besoin ; lavage sans résidu. La libre pousse est une méthode, pas un abandon.'
+      : f.locCare === 'interlock'
+        ? 'Interlocking : la séance se tient (autour de huit semaines, jamais moins), le point de croisement vérifié à chaque racine — serré au-delà du nécessaire, la racine perd sa prise et la lock s’amincit. Aucun produit entre les séances : la méthode tient seule.'
+        : f.locCare === 'palm'
+          ? 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement — et surtout pas tous les jours. Le léger frisottis entre deux séances est normal : il fait partie du verrouillage, ce n’est pas une urgence.'
+          : 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement. Les longueurs : eau et soin, sans retwist.';
     steps.push({
       action: 'Racines : le travail de la lock',
-      why: 'La lock se forme par la régularité : palm rolling pour donner la forme, retwist léger en racine seulement, et beaucoup moins de manipulation que la main ne le voudrait. Une lock retwistée trop souvent et trop serrée casse et amincit — c’est l’ennemi n° 1 de la maturité.',
-      how: 'Après le lavage : palm rolling des pointes vers la racine, retwist léger sur les nouvelles racines seulement. Les longueurs : eau et soin, sans retwist.',
+      why: 'La lock se forme par la régularité : palm rolling pour donner la forme, retwist léger en racine seulement, et beaucoup moins de manipulation que la main ne le voudrait. Une lock retwistée trop souvent et trop serrée casse et amincit — c’est l’ennemi n° 1 de la maturité.' + stageWhy,
+      how: careHow,
       expect: 'Des locks qui se resserrent semaine après semaine. La maturité d’une lock se compte en mois : le travail est dans la régularité, pas dans l’effort.',
     });
   }
 
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -504,10 +839,13 @@ function buildProtectiveWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'Nettoyage profond avant la prochaine coiffure',
       why: 'Chaque cycle protectrice dépose un peu de résidus — coiffants, eau calcaire, produits. Sans nettoyage profond occasionnel, les cycles s’additionnent : le cheveu pèse, le cuir chevelu s’irrite, et les soins ne travaillent plus. C’est le geste qui remet le compteur à zéro.',
-      how: 'Une fois par mois, ou entre deux coiffures : un nettoyant clarifiant doux, massage du cuir chevelu section par section, rince long. Ensuite, repartir sur des soins légers — l’hydratation repart plus vite quand les résidus partent.',
+      how: 'Une fois par mois, ou entre deux coiffures : un nettoyant clarifiant doux, massage du cuir chevelu section par section, rince long. Ensuite, repartir sur des soins légers — l’hydratation repart plus vite quand les résidus partent.' + waterDeep(f),
       expect: 'Un cheveu plus léger, un cuir chevelu plus à l’aise, une définition ou une souplesse qui repart. Si le cheveu pèse déjà avant un mois, c’est un signal de soins trop lourds au quotidien.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -546,7 +884,10 @@ function buildWigEvening(f: HairFlags): HairStepDraft[] {
     {
       action: 'Pendant la portée : fraîcheur et propreté',
       why: 'La portée se vit au quotidien : transpiration, chaleur, frottement — l’entretien léger et régulier est ce qui fait qu’une pose de plusieurs semaines reste confortable. Ce n’est pas un ajout de produit, c’est de la propreté : linge propre, soin aqueux, cuir chevelu sec.',
-      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, laisser le cuir chevelu respirer sans la pose le plus possible.',
+      how: 'Chaque soir si besoin : un linge propre et léger sous la pose ; un spray aqueux très léger uniquement si le cuir chevelu tire — jamais sur cuir humide. Les jours chauds, laisser le cuir chevelu respirer sans la pose le plus possible.'
+      + (f.wigBond === 'glue' || f.wigBond === 'tape'
+        ? ' Sous colle ou adhésif, un signal interrompt la portée sans discussion : démangeaison persistante, brûlure ou odeur sous la pose = dépose immédiate, nettoyage, contrôle — pas un linge propre de plus.'
+        : ''),
       expect: 'Une journée sans odeur, un cuir chevelu sec au toucher le soir. Si l’odeur revient malgré la propreté, c’est un signal de lavage en profondeur, pas d’ajout de parfum.',
     },
     {
@@ -564,22 +905,50 @@ function buildWigWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'À la dépose : contrôler raie et tempes',
       why: 'La dépose est l’heure de vérité du cycle perruque : c’est là que se voit ce que la portée a coûté au dessous — casse en raie, usure des tempes, tiraillements. Le contrôle régulier est ce qui fait que la prochaine pose repart de plus loin, pas de plus près.',
-      how: 'À chaque dépose : examiner la raie, les tempes, le contour — casse, irritation, zones qui tirent. Noter ce qui change d’une portée à l’autre. Si une zone s’use : changer la pose ou la tension avant la prochaine, sans exception.',
+      how: 'À chaque dépose : examiner la raie, les tempes, le contour — casse, irritation, zones qui tirent. Noter ce qui change d’une portée à l’autre. Si une zone s’use : changer la pose ou la tension avant la prochaine, sans exception.'
+      + (f.wigBond === 'glue'
+        ? ' Sous colle : la dépose se fait au solvant adapté, jamais à l’arraché ; la peau marque deux jours de repos avant la repose, et une première utilisation (ou une peau sensible) se teste 24 heures avant, pli du coude — la vérification est gratuite, l’allergie de contact dure un mois.'
+        : f.wigBond === 'tape'
+          ? ' Sous adhésif double-face : le ruban se retire dans le sens de la pousse, puis le résidu se dissout (dissolvant ou huile légère sur coton) AVANT de frotter. La trace collante laissée dans la raie est une irritation programmée.'
+          : f.wigBond === 'glueless'
+            ? ' Sans adhésif : la dépose est libre et c’est le grand avantage du glueless — le contour n’a rien à récupérer. Il se contrôle quand même à chaque fois : la tension de l’élastique ou des peignes passe exactement par là.'
+            : ''),
       expect: 'Un dessous qui reste fort et souple porté après porté : c’est l’indicateur honnête que les poses ne coûtent rien aux racines. Une usure qui revient à la même place, c’est un signal à traiter avant la suite.',
     },
     {
       action: 'Laisser le cuir chevelu respirer entre deux poses',
       why: 'Un cuir chevelu qui passe d’une pose à l’autre sans relâche ne se repose jamais : sécheresse, fatigue et irritation s’installent dans l’intervalle. Quelques jours sans pose — avec la routine légère d’entretien — sont ce qui fait durer les portées suivantes.',
-      how: 'Quelques jours entre deux poses : cuir chevelu propre, soin aqueux léger si sécheresse, coiffure détendue, satin la nuit. Ne jamais reposer une perruque sur un cuir chevelu qui tire ou gratte.',
+      how: 'Quelques jours entre deux poses : cuir chevelu propre, soin aqueux léger si sécheresse, coiffure détendue, satin la nuit. Ne jamais reposer une perruque sur un cuir chevelu qui tire ou gratte.'
+      + (f.wigWear === 'jamais_retiree'
+        ? ' Un point d’abord : porter sans dépose au-delà de six semaines n’est plus de la tenue, c’est un compromis sur le cuir chevelu — la routine commence par une dépose immédiate, lavage, contrôle raie et tempes, quelques jours de repos avant de reposer. Six semaines est un plafond, pas un objectif.'
+        : f.wigWear === 'deux_quatre'
+          ? ' Portée de deux à quatre semaines : un contrôle à blanc à mi-parcours — applicateur d’eau fraîche au ras des racines ; au premier signe (chaleur, odeur, démangeaison) la dépose est anticipée, sans négociation.'
+          : f.wigWear === 'une_semaine'
+            ? ' Une semaine de pose puis dépose : le format standard sain. Le contrôle et le lavage du dessous suivent la dépose — pas d’extension « puisque c’est bien tenu ».'
+            : f.wigWear === 'quotidienne'
+              ? ' Dépose chaque soir : ce rythme est le modèle — le dessus respire, le dessous est lavé et séché à chaque reprise. Rien à ajouter, tout à garder.'
+              : ''),
       expect: 'Un cuir chevelu qui repart frais à chaque nouvelle pose, des portées qui restent confortables semaine après semaine. La régularité de l’intervalle est le geste le plus sous-estimé du cycle perruque.',
     },
     {
       action: 'Nettoyage profond occasionnel',
       why: 'Sous une pose, les résidus — transpiration, produits, eau calcaire — s’installent plus vite que d’habitude : un nettoyage profond occasionnel remet le cuir chevelu et les racines à zéro avant la prochaine portée. C’est un geste correcteur, pas un rythme.',
-      how: 'Entre deux poses, une fois par mois ou quand le cuir chevelu pèse ou tire : un nettoyant doux, massage aux pulpes, rince long. Si le cuir chevelu a besoin d’un nettoyage chaque semaine, la cause est en amont — un soin trop lourd, ou une pose trop serrée.',
+      how: 'Entre deux poses, une fois par mois ou quand le cuir chevelu pèse ou tire : un nettoyant doux, massage aux pulpes, rince long. Si le cuir chevelu a besoin d’un nettoyage chaque semaine, la cause est en amont — un soin trop lourd, ou une pose trop serrée.'
+      + (f.wigWash === 'rare' && f.wigWear === 'quotidienne'
+        ? ' Le dessous déclaré rarement lavé ne tient pas une dépose quotidienne : le lavage se reprend à la dépose, point — un shampooing doux sur la raie seule, le reste se rince. Ce n’est pas un soin de plus, c’est le rythme qui se recale.'
+        : f.wigWash === 'rare'
+          ? ' Le dessous lavé moins d’une fois par mois : sous la coiffe, sébum, peaux mortes et produits ne partent pas seuls — le lavage se recale à chaque dépose, avec de l’eau fraîche à l’applicateur entre deux. Une odeur ou une démangeaison sous la pose est un ordre de dépose immédiate, pas un motif de parfum.'
+          : f.wigWash === 'deux_semaine'
+            ? ' Le rythme du dessous tous les quinze jours tient tant que la portée ne dépasse pas deux semaines : au-delà, c’est la dépose qui doit avancer, pas le lavage qui doit attendre. Entre deux lavages, eau fraîche à l’applicateur au ras de la raie, sans frotter.'
+            : f.wigWash === 'a_repos'
+              ? ' Le dessous lavé à chaque dépose : le rythme est pris, rien à corriger — shampooing doux sur la raie seule, le reste se rince. Le séchage complet avant la repose prime sur l’horaire.'
+              : '') + waterDeep(f),
       expect: 'Un cuir chevelu plus léger, plus à l’aise, et des portées suivantes plus confortables. Après le nettoyage, l’hydratation légère repart plus vite — c’est le signe que les résidus étaient le problème.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -680,10 +1049,20 @@ function buildTransitionWeekly(f: HairFlags): HairStepDraft[] {
     {
       action: 'Le choix honnête : fade ou continuité',
       why: 'La transition pose un choix qui n’en est pas un : faire progressivement place aux racines naturelles, ou continuer le défrisage — les deux sont des choix valides. Ce qui est hors sujet, c’est de coiffer les deux textures comme une seule : la routine s’adapte au choix, pas l’inverse.',
-      how: 'Décider du cap (progressif ou continué) et aligner la routine dessus : coiffures, fréquence de lavage, soins par zone. La ligne de démarcation se protège dans les deux cas — c’est la seule constante du cycle transition.',
+      how: 'Décider du cap (progressif ou continué) et aligner la routine dessus : coiffures, fréquence de lavage, soins par zone. La ligne de démarcation se protège dans les deux cas — c’est la seule constante du cycle transition.'
+        + (f.transitionStep === 'majorite'
+          ? ' Longueurs traitées encore majoritaires : le cap utile n’est pas la coupe, c’est la stabilisation — alternance force/hydratation sur la ligne, coiffures qui ne brossent pas les deux textures ensemble, et retouches jamais plus rapprochées que 8 à 10 semaines.'
+          : f.transitionStep === 'minorite'
+            ? ' Le fade est engagé : la ligne recule, la zone fragile recule avec elle. Tenir le programme jusqu’à la sortie des longueurs traitées — pas avant, elles ne sont pas encore remplacées.'
+            : f.transitionStep === 'quasi_nulle'
+              ? ' Les longueurs traitées sont presque parties : le programme quitte le mode réparation. Rien à « homogénéiser » chimiquement — c’est la texture naturelle nouvelle qui mérite la routine, dans sa forme à elle.'
+              : ''),
       expect: 'Une routine cohérente avec le choix, une ligne de démarcation protégée, et des semaines qui avancent sans casse au contour. La transition se gagne par la cohérence des gestes, pas par la vitesse.',
     },
   ];
+  // D9 — le passé chaleur/chimie se lit dans TOUS les cycles hebdo
+  // (la promesse du résumé doit être tenue, pas seulement annoncée).
+  steps.push(...chemSteps(f));
   return steps;
 }
 
@@ -1089,6 +1468,52 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       routine = { morning: buildWashDay(f), evening: buildBetweenWashes(f), weekly: buildWeekly(f) };
   }
   routine = applyFocus(routine, f);
+  // D10 — bouclés au naturel : la méthode de séchage et de fixation est
+  // CALÉE sur les habitudes déclarées (une réponse inconnue = rien ajouté,
+  // pas de conseil général débité pour rien).
+  if ((f.curlyDry || f.curlyHold) && key === 'naturel') {
+    const dryText: Record<string, string> = {
+      serviette: 'Séchage : remplacez le frottement à la serviette éponge par la presse — t-shirt de coton ou microfibre, on presse sans frotter, puis on laisse la tête emmaillotée 10 à 15 minutes avant de sécher. Le frottement est votre frizz ; le produit n’y peut rien.',
+      diffuse_chaud: 'Séchage : le diffuseur garde sa place, avec deux gardes — protecteur de chaleur, et air coupé aux trois quarts du séchage. La chaleur qui finit une boucle la fige froissée ; le dernier coup d’air froid est gratuit, il ferme tout.',
+      diffuse_froid: 'Séchage : diffuseur tiède ou froid, c’est le bon réflexe — gardez-le, surtout les jours humides, où la chaleur ajoutée est exactement ce qui défait la boucle.',
+      air: 'Séchage : à l’air libre, la méthode native de la boucle, avec sa règle unique — ne plus toucher les mèches une fois le produit posé. La forme fige en séchant ; chaque retouche avant la fin casse ce figeage.',
+    };
+    const holdText: Record<string, string> = {
+      gel: 'Finition : le « carton » du gel n’est pas un défaut, c’est un moule — une fois le cheveu sec à 100 %, une goutte d’huile sur les paumes et on froisse doucement pour casser le film. Avant, on ne touche pas.',
+      mousse: 'Finition : la mousse tient léger et se pose sur cheveu très mouillé — jamais en retouche sur cheveu quasi sec, à ce stade elle redéforme au lieu de fixer.',
+      creme: 'Finition : la crème légère donne la souplesse, pas le maintien. Si la forme fond dans les 24 heures, le correctif est un gel sur les longueurs du seul jour de coiffage — pas plus de crème partout.',
+      rien: 'Finition : aucun coiffant déclaré, la routine ne force rien — à savoir malgré tout : la boucle « prend » en séchant. Si le réveil est sans forme, ce n’est pas le produit qui manque, c’est le maintien pendant le séchage. Un gel ou une mousse au seul jour de lavage pour tester ; si la forme est là, on revient à rien.',
+    };
+    const parts = [dryText[f.curlyDry], holdText[f.curlyHold]].filter(Boolean);
+    if (parts.length > 0) {
+      routine.morning.push({
+        action: 'Séchage et finition, calés sur vos habitudes',
+        why: 'Définir une boucle, c’est trois conditions : le produit, le geste, le séchage. Vos réponses disent laquelle coche chez vous — la routine corrige celle-là, pas les trois d’un coup.',
+        how: parts.join(' '),
+        expect: 'Une boucle qui se forme entre deux lavages sans y penser, un réveil qui ne se rejoue pas au produit : c’est la méthode ajustée, pas la puissance ajoutée.',
+      });
+    }
+  }
+  // D11 — séchage des locks : la réponse ne décore pas le lavage, elle AJOUTE
+  // l’étape que la routine n’avait pas (locks couchées humides = porte ouverte
+  // à l’odeur et à l’irritation) ou confirme le bon réflexe. Hors cycle locks
+  // et enfant (le même buildWashDay les sert), rien n’est injecté.
+  if (f.locDry && (key === 'locks' || key === 'enfant')) {
+    const locDryText: Record<string, string> = {
+      sec: 'Séchage : le séchage complet avant la nuit est déjà votre réflexe — c’est exactement la règle qui ferme le chapitre des odeurs et des démangeaisons. Le garder tel quel, surtout en hiver et sous bonnet.',
+      seche: 'Séchage : le sèche-cheveux aux racines, air tiède, section par section — le bon outil, bien employé. Terminer quelques minutes plus froid, puis vérifier à la main : une racine encore tiède au coucher est une racine encore humide.',
+      humide: 'Séchage : coucher des locks encore humides est la première cause d’odeur — l’eau piégée au cœur de la lock ne ressort plus. La règle nouvelle : laver plus tôt dans la journée, aider le séchage à l’air tiède racine par racine, et ne se coucher que des locks sèches au toucher profond, pas seulement en surface.',
+      lentes: 'Séchage : si les racines restent humides des heures, deux leviers avant tout produit — un rinçage plus long (l’eau doit couler le long des locks, pas dessus) et des soins plus légers. Si l’odeur de renfermé revient malgré un séchage soigné, c’est un rinçage clarifiant qu’il faut espacer sur l’année — jamais du parfum sur de l’humide.',
+    };
+    if (locDryText[f.locDry]) {
+      routine.morning.push({
+        action: 'Sécher les locks jusqu’au cœur',
+        why: 'Une lock mal séchée garde l’eau en son centre : odeur, irritation et dépôt y trouvent leur point de départ — les FAQ locks posent cette question plus souvent que celle du produit, et le diagnostic doit la connaître pour répondre juste.',
+        how: locDryText[f.locDry],
+        expect: 'Des racines sèches au toucher le jour du lavage, pas le lendemain. C’est le geste qui protège tout le reste : l’odeur disparaît quand l’humidité n’a plus où loger.',
+      });
+    }
+  }
   // D2 — le journal a dit « trop long » : pas d'ajouts de confort, le socle
   // et l'étape de préoccupation restent (c'est l'inverse d'un ajout).
   if (!f.shorten) routine = applyParams(routine, f);
@@ -1208,7 +1633,9 @@ export function pickHairLessons(ctx: HairAdvisoryContext, max = 3): HairLesson[]
   if (f.isGrowth) wanted.push('hair_lesson_pousse');
   if (f.isDefinition) wanted.push('hair_lesson_definition');
   if (f.highPorosity || f.lowPorosity) wanted.push('hair_lesson_porosite');
-  if ((f.isCoily || f.isCurly || f.priority === 'hydratation') && !f.isLocked) wanted.push('hair_lesson_lco');
+  // D12 : l'ondulé est dans la famille des boucles mais PAS dans celle du
+  // scellement — la leçon LCO contredirait sa règle de légèreté.
+  if ((f.isCoily || f.isCurly || f.priority === 'hydratation') && !f.isLocked && !f.isWavy) wanted.push('hair_lesson_lco');
   wanted.push('hair_lesson_entretien');
 
   const byKey = new Map(HAIR_LESSONS.map(l => [l.key, l]));
@@ -1339,6 +1766,149 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
   // Préoccupation déclarée (question adaptative) — la routine la met au centre.
   const focusLabel = getSegmentFocusLabel(f.focus || undefined);
   if (focusLabel) parts.push(`Votre préoccupation principale est « ${focusLabel} » : la routine intègre l’étape qui la sert, en plus des gestes de base du cycle.`);
+
+  // D9 — les quatre réponses de professionnelle, chacune avec sa conséquence
+  // visible (une réponse qui ne change rien ne doit pas être posée).
+  const patternLine: Record<string, string> = {
+    '4a': 'Motif 4A : la boucle en S est votre atout — la définition se joue à la crème coiffante froissée aux mains, pas au produit qui cartonne.',
+    '4b': 'Motif 4B : les angles en Z s’emmêlent plus qu’ils ne glissent — définition mèche par mèche (twist-out, finger coils) et démêlage section par section sous l’eau.',
+    '4c': 'Motif 4C : définition au doigt, jamais au peigne, et longueur réelle jugée aux pointes — le shrinkage efface une grande partie de la longueur visible, ce n’est pas de la longueur perdue.',
+  };
+  if (f.pattern && patternLine[f.pattern]) parts.push(patternLine[f.pattern]);
+  // D12 — la règle de l'ondulé est une phrase, pas un paragraphe : elle doit
+  // rester vraie quel que soit le reste du profil.
+  if (f.isWavy) parts.push('Ondulée 2A–2C : la règle maîtresse est la légèreté — mousse ou gel aérien sur cheveu trempé, pas de crème épaisse, lavage quand la racine alourdit.'
+    // D14 — la clause de sous-motif ne se promet que là où la branche ondes est
+    // servie : sur porosité faible, c'est la branche « légers, bien placés » qui tient (D12).
+    + (!f.lowPorosity && f.wavyPattern === '2a'
+      ? ' En 2A déclaré : le poids avant tout — mousse seule, racine comprise, aucune crème sur les longueurs.'
+      : !f.lowPorosity && f.wavyPattern === '2c'
+        ? ' En 2C déclaré : maintien de boucle assumé — gel, carton, casse à l’eau ; « léger » ne veut pas dire « sans tenue ».'
+        : ''));
+  // La phrase « élasticité » doit dire ce que le cycle fait vraiment : sur
+  // locks, la cure protéinée n'est jamais la réponse (dépôt) ; sur enfant et
+  // sous coiffure, le masque se jugera au prochain lavage complet — on pose
+  // le fait, pas une prescription que la routine ne tient pas.
+  const maskCycle = !f.isLocked && !f.isProtective && !f.isWig && !f.isKid && !f.isTransition;
+  const elasticityLine: Record<string, string> = maskCycle
+    ? {
+        mou: 'Élasticité : le cheveu s’étire sans revenir au rinçage — la routine a donc décidé pour vous, force d’abord, hydratation ensuite, en alternance.',
+        cassant: 'Élasticité : le cheveu casse net sans s’étirer — la priorité est l’eau, pas les protéines ; le masque de force n’arrivera que si le test change.',
+        ressort: 'Élasticité : le test est bon — un hydratant par semaine suffit, les cures de « reconstruction » systématiques n’ont pas de raison d’être chez vous.',
+      }
+    : f.isLocked
+      ? {
+          mou: 'Élasticité : la fibre s’étire sans revenir — sur locks, la réponse n’est pas une cure protéinée qui sature et dépose, mais l’espacement des retwists et un rinçage long, à l’eau claire.',
+          cassant: 'Élasticité : la fibre casse sans s’étirer — sur locks, l’eau d’abord : rinçages soignés, soins légers, séchage complet à chaque lavage.',
+          ressort: 'Élasticité : le test est bon — vos locks sont équilibrées, rien à corriger, la routine garde son cadre.',
+        }
+      : {
+          mou: 'Élasticité : le cheveu s’étire sans revenir, il manque de matière — le soin de force sera privilégié au prochain lavage complet.',
+          cassant: 'Élasticité : le cheveu casse net sans s’étirer, il manque d’eau — l’hydratation profonde passe avant la force au prochain lavage complet.',
+          ressort: 'Élasticité : le test est bon, la fibre est équilibrée — rien à changer au programme.',
+        };
+  if (f.elasticity && elasticityLine[f.elasticity]) parts.push(elasticityLine[f.elasticity]);
+  const widthLine: Record<string, string> = {
+    fine: 'Cheveu fin : votre variable n’est pas le produit, c’est le poids — une huile légère plutôt qu’un beurre au scellement, et jamais plus qu’une noisette.',
+    epaisse: 'Cheveu épais : chez vous, les textures riches et les temps de pose longs ne sont pas un excès, ce sont les réglages qui font la différence.',
+  };
+  if (f.strandWidth && widthLine[f.strandWidth]) parts.push(widthLine[f.strandWidth]);
+  const chemLine: Record<string, string> = {
+    aucun: 'Vos longueurs sont vierges de chaleur et de produit : la routine protège ce capital, elle ne répare rien — la plus enviable des situations, et la moins coûteuse.',
+    chaleur: 'La chaleur fait partie de vos outils : la routine y a ajouté sa règle (protecteur, cheveu entièrement sec, température basse) — le fer n’est jamais un raccourci sur cheveu humide.',
+    produit: 'Passé chimique déclaré : la démarcation entre repousse et longueurs traitées est le point de contrôle de la semaine, et la retouche se limite aux racines.',
+    les_deux: 'Chaleur et produit cumulés : la démarcation porte les deux agressions — le programme pose la règle d’espacement (jamais les deux la même semaine sur la même mèche).',
+  };
+  if (f.chem && chemLine[f.chem]) parts.push(chemLine[f.chem]);
+
+  // D10 — boucles et transition : la phrase ne paraît que si la réponse a un
+  // cycle où s'appliquer (garde déjà posée dans flags()).
+  const dryLine: Record<string, string> = {
+    serviette: 'Séchage déclaré à la serviette, par frottement : la routine remplace le geste — presse et maillot de coton, pas de frottement. Le frizz vient de là, pas du produit.',
+    diffuse_chaud: 'Séchage au diffuseur chaud : la routine garde l’outil et pose ses deux gardes — protecteur, et chaleur coupée avant la fin.',
+    diffuse_froid: 'Séchage au diffuseur froid ou tiède : le bon réflexe est déjà chez vous — la routine le confirme au lieu de le répéter.',
+    air: 'Séchage à l’air libre : la méthode native de la boucle ; la routine y ajoute la seule règle qui manque souvent — ne plus toucher avant la fin.',
+  };
+  if (f.curlyDry && dryLine[f.curlyDry]) parts.push(dryLine[f.curlyDry]);
+  const holdLine: Record<string, string> = {
+    gel: 'Fixation au gel : le carton s’assume et se casse à l’huile, une fois sec à 100 % — le film est un moule, pas un échec.',
+    mousse: 'Fixation à la mousse : pose sur cheveu très mouillé, jamais en retouche à mi-séchage.',
+    creme: 'Fixation à la crème : souplesse sans maintien — si la forme fond, c’est le gel du jour de coiffage qui manque, pas une couche de plus.',
+    rien: 'Aucun fixant déclaré : rien n’est imposé ; le maintien se joue pendant le séchage, et un essai au seul jour de lavage suffit pour le vérifier.',
+  };
+  if (f.curlyHold && holdLine[f.curlyHold]) parts.push(holdLine[f.curlyHold]);
+  const transStepLine: Record<string, string> = {
+    majorite: 'Transition : les longueurs traitées sont encore majoritaires — le programme stabilise la ligne de démarcation avant toute décision de coupe.',
+    minorite: 'Transition engagée : les longueurs naturelles gagnent — la routine protège la démarcation jusqu’à la sortie complète des longueurs traitées.',
+    quasi_nulle: 'Transition presque au bout : la routine quitte le mode réparation — votre forme naturelle nouvelle se protège, sans « homogénéisation » chimique.',
+  };
+  if (f.transitionStep && transStepLine[f.transitionStep]) parts.push(transStepLine[f.transitionStep]);
+
+  // D11 — locks : le résumé rend les trois décisions, uniquement quand la
+  // réponse existe (mêmes garde-flags que la routine).
+  const stageLine: Record<string, string> = {
+    neuve: 'Maturité : locks de moins de six mois — le programme protège le stade de maturation ; le raccourcissement est attendu, pas combattu.',
+    ado: 'Maturité : locks à mi-parcours — l’entretien se tient, mais la maturation prime sur la perfection du tracé.',
+    mature: 'Maturité : locks établies — rythme d’entretien plus espacé possible, lavages fréquents sans risque.',
+  };
+  if (f.locStage && stageLine[f.locStage]) parts.push(stageLine[f.locStage]);
+  const careLine: Record<string, string> = {
+    palm: 'Entretien déclaré : palm rolling et retwist légers — la règle posée : jamais quotidien, le frisottis entre deux séances est normal.',
+    interlock: 'Entretien déclaré : interlocking — séance tenue autour de huit semaines et serrage vérifié ; au-delà, ce n’est plus de la tenue, c’est une traction.',
+    freeform: 'Entretien déclaré : libre pousse — rien ne sera retordu ; le programme donne la méthode de la séparation et du lavage sans résidu.',
+  };
+  if (f.locCare && careLine[f.locCare]) parts.push(careLine[f.locCare]);
+  const locDryLine: Record<string, string> = {
+    sec: 'Séchage : complet avant la nuit — le bon réflexe est déjà en place, la routine le confirme et n’ajoute rien.',
+    seche: 'Séchage : sèche-cheveux air tiède aux racines — méthode validée, avec la vérification au toucher en plus.',
+    humide: 'Séchage : des locks couchées humides s’abîment de l’intérieur — la routine impose le séchage complet avant la nuit.',
+    lentes: 'Séchage : séchage lent déclaré — rinçage allongé, produits allégés, clarifiant seulement si l’odeur revient malgré tout.',
+  };
+  if (f.locDry && locDryLine[f.locDry]) parts.push(locDryLine[f.locDry]);
+
+  // D12 — perruque : fixation et portée rendues au résumé, uniquement quand la
+  // réponse existe (mêmes garde-flags que la routine).
+  const bondLine: Record<string, string> = {
+    glue: 'Pose déclarée : colle — plafond de six semaines, solvant à la dépose, test cutané 24 h avant la première utilisation.',
+    tape: 'Pose déclarée : adhésif double-face — résidu dissous avant de frotter, contrôle du contour à chaque dépose.',
+    glueless: 'Pose déclarée : sans adhésif — le choix le plus sûr pour les tempes ; l’élastique et les peignes se vérifient à la dépose comme une colle.',
+  };
+  if (f.wigBond && bondLine[f.wigBond]) parts.push(bondLine[f.wigBond]);
+  const wearLine: Record<string, string> = {
+    quotidienne: 'Rythme de pose : dépose chaque soir — le modèle ; le lavage du dessous suit le même rythme.',
+    une_semaine: 'Rythme de pose : une semaine tenue, dépose contrôlée — le format standard sain.',
+    deux_quatre: 'Rythme de pose : deux à quatre semaines — contrôle à mi-parcours, dépose anticipée au moindre signe.',
+    jamais_retiree: 'Rythme de pose : portée continue au-delà du plafond — la routine commence par une dépose, un lavage et quelques jours de repos ; c’est une remise à zéro, pas une punition.',
+  };
+  if (f.wigWear && wearLine[f.wigWear]) parts.push(wearLine[f.wigWear]);
+  // D14 — le dessous a son rythme propre, et la ligne ne promet que ce que la
+  // routine tient : rare + dépose quotidienne se résout à la dépose, pas au mois.
+  const washLine: Record<string, string> = {
+    a_repos: 'Lavage du dessous : à chaque dépose — le dessous vit au rythme du dessus, le régime le plus simple à tenir.',
+    deux_semaine: 'Lavage du dessous : tous les quinze jours environ — entre deux, eau fraîche à l’applicateur à la raie ; la portée ne doit pas dépasser le rythme.',
+    rare: 'Lavage du dessous déclaré rare : la raie porte tout sous la coiffe — la routine recale le lavage à chaque dépose et l’eau à l’applicateur entre deux.',
+  };
+  // Vague 1 — le quotidien réel au résumé : le résumé ne promet que ce que la
+  // routine tient (temps du jour de lavage, eau, air).
+  // Sur locks, le temps ne se joue pas au démêlage (une lock ne se démêle pas) :
+  // il se joue au rinçage et au séchage. Le mot est proscrit par le garde D9.
+  if (f.washTime === 'court') {
+    parts.push(f.isLocked
+      ? 'Jour de lavage : moins de 20 minutes déclarées — sur locks, le temps se gagne au séchage : essorer lock par lock dès la sortie de l’eau, et le prévoir complet avant de commencer.'
+      : 'Jour de lavage : moins de 20 minutes déclarées — le temps se gagne avant le démêlage (deux sections, une passe par mèche), et si vos lavages sont espacés, c’est la fréquence qui en fera gagner le plus.');
+  } else if (f.washTime === 'long') {
+    parts.push(f.isLocked
+      ? 'Jour de lavage : vous avez du temps — sur locks, il va au rinçage et au séchage complet, là où se jouent les résidus et l’odeur.'
+      : 'Jour de lavage : vous avez du temps — il va au pré-démêlage et au temps de pose, pas à un produit de plus.');
+  }
+  if (f.water === 'calcaire') parts.push('Eau calcaire déclarée : un chélateur une fois par mois, jamais toutes les semaines — le signal qui compte, c’est un produit qui cesse de faire effet.');
+  if (f.humidity === 'gonfle') parts.push('Humidité : vos cheveux gonflent par temps humide — glycérine réservée aux saisons tempérées, humectants filmogènes et fixant ferme en été.');
+  if (f.humidity === 'sec') parts.push('Air sec déclaré : la glycérine y fait l’inverse — leave-in plus riche et émollients en saison sèche.');
+  if (f.wigWash && washLine[f.wigWash]) {
+    parts.push(f.wigWash === 'rare' && f.wigWear === 'quotidienne'
+      ? 'Lavage du dessous déclaré rare, dépose quotidienne : le rythme se reprend à la dépose — le dessous ne reste pas un mois sans rinçage sous une perruque qui sort chaque soir.'
+      : washLine[f.wigWash]);
+  }
 
   // Interprétation (D1) : ce que la COMBINAISON des réponses veut dire. Une
   // phrase par observation dérivée (jamais la reprise d'une seule case),

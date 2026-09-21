@@ -1,4 +1,4 @@
-export type HairTexture = 'bouclee' | 'frisee' | 'crepue' | 'locksee' | 'defrisee' | 'protective' | 'inconnue';
+export type HairTexture = 'bouclee' | 'frisee' | 'ondulee' | 'crepue' | 'locksee' | 'defrisee' | 'protective' | 'inconnue';
 export type HairStyle = 'naturel' | 'braids' | 'twists' | 'locks' | 'wig' | 'defrise' | 'enfant';
 export type HairPriority = 'hydratation' | 'casse' | 'definition' | 'pousse' | 'cuir_chevelu' | 'entretien_protective' | 'demelage_enfant';
 export type Porosity = 'faible' | 'moyenne' | 'forte' | 'inconnue';
@@ -25,6 +25,39 @@ export interface HairDiagnosticAnswers {
   length?: 'courte' | 'moyenne' | 'longue';
   /** D4 — expérience capillaire (« je débute » y déménage depuis la fréquence). */
   experience?: 'debutante' | 'habituee' | 'expert';
+  /** D9 (20/09) — sous-motif crépu : la famille 4A–4C n'est pas une seule
+   *  texture. Posée uniquement quand la texture est crépue. */
+  coilyPattern?: '4a' | '4b' | '4c' | 'inconnu';
+  /** D9 — test d'élasticité au rinçage : c'est LUI qui décide masque
+   *  hydratant vs masque de force (avant, le moteur disait « ou »). */
+  elasticity?: 'ressort' | 'mou' | 'cassant' | 'inconnu';
+  /** D9 — largeur du cheveu (fin/moyen/épais) : le poids des produits. */
+  strandWidth?: 'fine' | 'moyenne' | 'epaisse' | 'inconnue';
+  /** D9 — passé chaleur/chimie des longueurs. Jamais posée à un enfant. */
+  chemicalHeat?: 'aucun' | 'chaleur' | 'produit' | 'les_deux' | 'inconnue';
+  /** D10 (20/09) — bouclés 3B–3C au naturel : séchage et fixant réels. */
+  curlyDry?: 'air' | 'diffuse_chaud' | 'diffuse_froid' | 'serviette' | 'inconnue';
+  curlyHold?: 'gel' | 'mousse' | 'creme' | 'rien' | 'inconnue';
+  /** D10 — transition : part de longueurs traitées restantes (remplace la
+   *  question chaleur/chimie, déjà répondue par la texture déclarée). */
+  transitionStep?: 'majorite' | 'minorite' | 'quasi_nulle' | 'inconnue';
+  /** D11 (20/09) — locks : maturité, méthode d’entretien racine, réalité du
+   *  séchage. Jamais posées hors locks ; inconnu = comportement d'avant. */
+  locStage?: 'neuve' | 'ado' | 'mature' | 'inconnu';
+  locCare?: 'palm' | 'interlock' | 'freeform' | 'inconnu';
+  locDry?: 'sec' | 'seche' | 'humide' | 'lentes' | 'inconnu';
+  /** D12 (20/09) — perruque : mode de fixation et durée de portée réelles.
+   *  Posées uniquement quand la perruque est le cycle (jamais sous locks). */
+  wigBond?: 'glue' | 'tape' | 'glueless' | 'inconnu';
+  wigWear?: 'quotidienne' | 'une_semaine' | 'deux_quatre' | 'jamais_retiree' | 'inconnu';
+  // D14 — le lavage du dessous (FAQ perruque) et le sous-motif de l'ondulé (FAQ 2A/2B/2C).
+  wigWash?: 'a_repos' | 'deux_semaine' | 'rare' | 'inconnu';
+  wavyPattern?: '2a' | '2b' | '2c' | 'inconnu';
+  /** Vague 1 (20/09) — C4 : le temps réellement disponible le jour de lavage. */
+  washTime?: 'court' | 'moyen' | 'long' | 'inconnu';
+  /** Vague 1 (20/09) — C3 : l'eau du robinet (dépôt minéral) et l'air (comportement par temps humide). */
+  water?: 'douce' | 'calcaire' | 'inconnue';
+  humidity?: 'gonfle' | 'sallonge' | 'sec' | 'ne_bouge_pas' | 'inconnu';
   budget: 'moins_40' | '40_70' | '70_100' | 'premium';
   email: string;
 }

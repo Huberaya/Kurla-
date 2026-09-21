@@ -136,6 +136,9 @@ export const DiagnosticVisual: React.FC<{ step: number; optionId: string }> = ({
       case 'crepue': // 4A-4C zigzag serré
         art = (<g><ZigzagStrand x={34} amp={5} /><ZigzagStrand x={60} amp={6} /><ZigzagStrand x={86} amp={4.5} /></g>);
         break;
+      case 'ondulee': // 2A-2C ondes souples, amples
+        art = (<g><SpiralStrand x={34} amp={4} waves={2} /><SpiralStrand x={60} amp={4.5} waves={2} /><SpiralStrand x={86} amp={4} waves={2} /></g>);
+        break;
       case 'frisee': // 3B-3C boucles S
         art = (<g><SpiralStrand x={34} amp={7} waves={3} /><SpiralStrand x={60} amp={8} waves={4} /><SpiralStrand x={86} amp={7} waves={3} /></g>);
         break;

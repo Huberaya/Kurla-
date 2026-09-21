@@ -274,7 +274,7 @@ test('C10 enchaînement des poses : « laisser reposer le cuir chevelu » est da
 /* le défaut locks×peigne, ni servir un vocabulaire interdit.         */
 /* ================================================================== */
 
-const TEXTURES = ['crepue', 'frisee', 'bouclee', 'ondee', 'locksee', 'defrisee', 'protective'];
+const TEXTURES = ['crepue', 'frisee', 'bouclee', 'ondulee', 'locksee', 'defrisee', 'protective']; // D12 : 'ondulee' est un vrai jeton — le faux 'ondee' balayait du vide (leçon 'defrie')
 const STYLES = ['naturel', 'locks', 'twists', 'braids', 'wig', 'enfant', 'defrise'];
 const PRIORITIES = ['', 'hydratation', 'casse', 'definition', 'pousse', 'cuir_chevelu', 'demelage_enfant'];
 const POROSITIES = ['faible', 'moyenne', 'forte', 'inconnue'];
@@ -291,7 +291,46 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; // LCG : couvre les trois bits du bas
       if (((seed >>> 16) & 7) !== 0) continue; // échantillon déterministe, reproductible à la virgule
       profiles += 1;
-      const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee' };
+      // D9 : les quatre nouvelles réponses sont balayées aussi — déterminées par
+      // le même LCG, donc reproductibles.
+      const v = seed >>> 8;
+      // D11 : trois tirages supplémentaires pour les réponses locks — balayées
+      // PARTOUT (rémanences volontaires : le moteur doit les ignorer hors locks).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v2 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v3 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v4 = seed >>> 8;
+      // D12 : fixation et portée de la pose balayées PARTOUT (rémanences).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v5 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v6 = seed >>> 8;
+      // D14 : lavage du dessous et sous-motif ondulé balayés PARTOUT (rémanences).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v7 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v8 = seed >>> 8;
+      // Vague 1 : temps du jour de lavage, eau, air — balayés PARTOUT (universels).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v9 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v10 = seed >>> 8;
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v11 = seed >>> 8;
+      const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
+        coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
+        elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
+        strandWidth: ['fine', 'moyenne', 'epaisse', 'inconnue'][(v >> 6) % 4],
+        chemicalHeat: (style === 'enfant' || priority === 'demelage_enfant') ? 'inconnue' : (['aucun', 'chaleur', 'produit', 'les_deux', 'inconnue'][(v >> 9) % 5]),
+        // D10 : séchage/fixant et position de transition sont balayés PARTOUT,
+        // y compris hors de leur profil — c'est voulu : l'invariant prouve que
+        // le moteur ignore toute rémanence hors segment.
+        curlyDry: ['inconnue', 'air', 'diffuse_chaud', 'diffuse_froid', 'serviette'][(v >> 12) % 5],
+        curlyHold: ['inconnue', 'gel', 'mousse', 'creme', 'rien'][(v >> 15) % 5],
+        transitionStep: ['inconnue', 'majorite', 'minorite', 'quasi_nulle'][(v >> 18) % 4],
+        locStage: ['inconnu', 'neuve', 'ado', 'mature'][v2 % 4],
+        locCare: ['inconnu', 'palm', 'interlock', 'freeform'][v3 % 4],
+        locDry: ['inconnu', 'sec', 'seche', 'humide', 'lentes'][v4 % 5],
+        wigBond: ['inconnu', 'glue', 'tape', 'glueless'][v5 % 4],
+        wigWear: ['inconnu', 'quotidienne', 'une_semaine', 'deux_quatre', 'jamais_retiree'][v6 % 5],
+        wigWash: ['inconnu', 'a_repos', 'deux_semaine', 'rare'][v7 % 4],
+        wavyPattern: ['inconnu', '2a', '2b', '2c'][v8 % 4],
+        washTime: ['inconnu', 'court', 'moyen', 'long'][v9 % 4],
+        water: ['inconnue', 'douce', 'calcaire'][v10 % 3],
+        humidity: ['inconnu', 'gonfle', 'sallonge', 'sec', 'ne_bouge_pas'][v11 % 5]
+      };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
       const locked = texture === 'locksee' || style === 'locks';
@@ -320,6 +359,140 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         if (/notez une observation pr[ée]cise — d[ée]m[êe]lage/.test(full)) at('J+30 « démêlage » servi hors cycle à démêler');
       }
       if (locked && !/hydratation des locks, cuir chevelu, tension aux racines/.test(full)) at('J+30 locks non adapté');
+      // — D9 : la décision du masque et les étapes chaleur/chimie suivent la
+      // réponse donnée, rien de plus, rien de moins (cohérence promesse/programme).
+      const mask = (r.weekly as any[]).find((x: any) => /^Masque/.test(x.action));
+      const heat = steps.some((x: any) => /^Chaleur : la r[èe]gle des trois/.test(x.action));
+      const demarc = steps.some((x: any) => /^D[ée]marcation :/.test(x.action));
+      const chem = ctx.chemicalHeat as string;
+      const elast = ctx.elasticity as string;
+      if (kid && (heat || demarc)) at('étape chaleur/chimie sur un enfant');
+      if (!kid) {
+        if ((chem === 'aucun' || chem === 'inconnue') && (heat || demarc)) at('étape chaleur/chimie sans la réponse qui la justifie');
+        if (chem === 'chaleur' && !(heat && !demarc)) at('chaleur déclarée : étape protecteur absente');
+        if (chem === 'produit' && !(demarc && !heat)) at('chimie déclarée : étape démarcation absente');
+        if (chem === 'les_deux' && !(heat && demarc)) at('chaleur+chimie : les deux étapes doivent être là');
+      }
+      const decidedActions = ['Masque de force, puis hydratation', 'Masque d’hydratation d’abord, la force attendra', 'Masque hydratant hebdomadaire, rien de plus'];
+      const trans = texture === 'defrisee' || style === 'defrise';
+      const prot = texture === 'protective' || style === 'braids' || style === 'twists';
+      if (!locked && !trans && !prot && style === 'naturel' && !kid && elast !== 'inconnu') {
+        if (!mask) at('cycle naturel sans masque');
+        else if (elast === 'mou' && mask.action !== decidedActions[0]) at('élasticité molle : la force devait être décidée');
+        else if (elast === 'cassant' && mask.action !== decidedActions[1]) at('élasticité cassante : l’hydratation devait passer avant');
+        else if (elast === 'ressort' && mask.action !== decidedActions[2]) at('élasticité bonne : pas de cure de force à prescrire');
+      }
+      if ((locked || trans || prot) && mask && decidedActions.includes(mask.action)) at('décision protéinée appliquée hors cycle à masque');
+      // — D10 : l'étape boucles ne vit que dans le cycle naturel des bouclées ;
+      // chaque fragment rendu est exactement celui de la réponse, jamais un autre.
+      const curlyCycle = !locked && !kid && !prot && style === 'naturel' && (texture === 'frisee' || texture === 'bouclee' || texture === 'ondulee');
+      const dry = ctx.curlyDry as string;
+      const hold = ctx.curlyHold as string;
+      const curlyStep = (steps as any[]).find((x: any) => x.action === 'Séchage et finition, calés sur vos habitudes');
+      if (!!curlyStep !== (curlyCycle && (dry !== 'inconnue' || hold !== 'inconnue'))) at('étape séchage/finition hors de son profil ou absente alors que déclarée');
+      if (curlyStep) {
+        const howC = String(curlyStep.how ?? '');
+        const fragDry: Record<string, RegExp> = { air: /ne plus toucher/, diffuse_chaud: /air coupé/, diffuse_froid: /bon réflexe/, serviette: /presse — t-shirt/ };
+        const fragHold: Record<string, RegExp> = { gel: /casser le film/, mousse: /très mouillé/, creme: /seul jour de coiffage/, rien: /maintien pendant le séchage/ };
+        if (dry === 'inconnue' && /Séchage :/.test(howC)) at('fragment séchage servi sans réponse');
+        if (dry !== 'inconnue' && !fragDry[dry]?.test(howC)) at('fragment séchage ≠ réponse');
+        if (hold === 'inconnue' && /Finition :/.test(howC)) at('fragment finition servi sans réponse');
+        if (hold !== 'inconnue' && !fragHold[hold]?.test(howC)) at('fragment finition ≠ réponse');
+      }
+      // — D10 : la décision de transition rend son fragment dans « Le choix
+      // honnête » et le résumé ne la promet que dans le cycle transition.
+      const transCycle = !locked && !kid && !prot && style !== 'wig' && (texture === 'defrisee' || style === 'defrise');
+      const tStep = ctx.transitionStep as string;
+      const honest = (steps as any[]).find((x: any) => x.action === 'Le choix honnête : fade ou continuité');
+      const honestHow = String(honest?.how ?? '');
+      const fragT: Record<string, RegExp> = { majorite: /c’est la stabilisation/, minorite: /Le fade est engagé/, quasi_nulle: /quitte le mode réparation/ };
+      if (tStep !== 'inconnue') {
+        if (transCycle !== fragT[tStep]?.test(honestHow)) at('fragment transition ≠ cycle+réponse');
+        if ((transCycle) !== /Transition :|Transition engagée|Transition presque/.test(full)) at('résumé : promesse de transition hors cycle ou absente alors qu’elle est due');
+      } else {
+        if (/stabilisation|fade est engagé|mode réparation|Transition engagée|Transition presque/.test(full)) at('fragment de transition servi sur réponse inconnue');
+      }
+      if (trans && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé transition prétend une décision que son cycle ne tient pas');
+      // — D11 : les trois réponses locks ne rendent leurs effets QUE locks en
+      // tête ; chaque fragment correspond exactement à la réponse donnée.
+      const dryStep = (steps as any[]).find((x: any) => x.action === 'Sécher les locks jusqu’au cœur');
+      const racines = (steps as any[]).find((x: any) => x.action === 'Racines : le travail de la lock');
+      const entre = (steps as any[]).find((x: any) => x.action === 'Entretenir entre deux lavages');
+      const sum3 = buildHairAdvisorySummary(ctx as never) as string;
+      if (locked) {
+        const lStage = ctx.locStage as string, lCare = ctx.locCare as string, lDry = ctx.locDry as string;
+        if (!!dryStep !== (lDry !== 'inconnu')) at('étape séchage locks ≠ réponse séchage');
+        if (dryStep && lDry !== 'inconnu') {
+          const frag: Record<string, RegExp> = { sec: /ferme le chapitre des odeurs/, seche: /vérifier à la main/, humide: /première cause d’odeur/, lentes: /rinçage plus long/ };
+          if (!frag[lDry]?.test(String((dryStep as any).how))) at('fragment séchage locks ≠ réponse');
+        }
+        if (racines && lCare === 'freeform' && !/Rien ne sera retordu/.test(String((racines as any).how))) at('freeform : le retwist récité malgr[/]é');
+        if (racines && lCare !== 'freeform' && /Rien ne sera retordu/.test(String((racines as any).how))) at('phrase freeform servie sans la réponse');
+        if (racines && !/raccourcissement fait partie|se consolide sans être blindée|plus espacé/.test(String((racines as any).why)) !== (lStage === 'inconnu')) at('phrase maturité ≠ réponse maturité');
+        if (entre && lCare === 'freeform' && !/rien à retordre/.test(String((entre as any).how))) at('entre-deux lavages : retwist récité au freeform');
+        if (/Maturité :|Entretien déclaré :|Séchage : /.test(sum3) && !/(Maturité : locks|rythme d’entretien plus espacé|libre pousse|palm rolling et retwist|interlocking|réflexe est déjà en place|méthode validée|s’abîment de l’intérieur|rinçage allongé)/.test(sum3)) at('résumé locks : ligne sans décision correspondante');
+      } else {
+        if (dryStep) at('étape séchage locks hors locks');
+        if (/Maturité : locks|Entretien déclaré : (palm|interlocking|libre)/.test(sum3)) at('décision locks au résumé hors locks');
+      }
+      // — D12 : l'ondulé a sa règle (jamais la LCO) ; perruque rend la fixation
+      // et la portée, et RIEN hors du cycle perruque (locks comprises).
+      const wavyStep = (steps as any[]).some((x: any) => x.action === 'Hydrater léger — la règle des ondes');
+      const lcoStep = (steps as any[]).some((x: any) => /^Hydrater puis sceller/.test(x.action));
+      if (texture === 'ondulee') {
+        if (lcoStep) at('LCO scellante servie à un ondulé');
+        // Le cycle ondulé doit rendre SA règle de légèreté : soit l'étape ondes,
+        // soit la branche porosité faible — qui dit la même physique (« moins,
+        // pas plus »). Les deux sont justes ; l'absence des deux serait faute.
+        const lightStep = (steps as any[]).some((x: any) => x.action === 'Soins légers, bien placés');
+        if (!locked && !kid && !prot && !trans && style === 'naturel' && !wavyStep && !lightStep) at('règle de légèreté absente du cycle naturel ondulé');
+        // L'étape ondes vit dans le buildWashDay partagé (naturel/enfant) : elle
+        // est fautive sous protectrice non-enfant (cycle propre) ou sous locks.
+        if ((locked || (prot && !kid)) && wavyStep) at('étape ondes dans un cycle qui hydrate déjà autrement');
+      }
+      const wigCycle = style === 'wig' && !locked && !kid;
+      const glueOn = /jamais à l’arraché/.test(full);
+      const tapeOn = /résidu se dissout/.test(full);
+      const freeOn = /la dépose est libre/.test(full);
+      const capOn = /Six semaines est un plafond/.test(full);
+      const midOn = /contrôle à blanc à mi-parcours/.test(full);
+      const wkOn = /format standard sain/.test(full);
+      const dailyOn = /ce rythme est le modèle/.test(full);
+      const b = ctx.wigBond as string, w = ctx.wigWear as string;
+      if (b === 'glue' && wigCycle !== glueOn) at('clause colle rendue hors pose encollée');
+      if (b === 'tape' && wigCycle !== tapeOn) at('clause adhésif rendue hors pose collante');
+      if (b === 'glueless' && wigCycle !== freeOn) at('clause glueless rendue hors cycle perruque');
+      if (w === 'jamais_retiree' && wigCycle !== capOn) at('plafond de six semaines rendu hors cycle perruque');
+      if (w === 'deux_quatre' && wigCycle !== midOn) at('contrôle à mi-parcours rendu hors pose longue');
+      if (w === 'une_semaine' && wigCycle !== wkOn) at('confirmation hebdo rendue hors cycle perruque');
+      if (w === 'quotidienne' && wigCycle !== dailyOn) at('confirmation quotidienne rendue hors cycle perruque');
+      if (/Pose déclarée :|Rythme de pose :/.test(sum3) && !wigCycle) at('décision perruque au résumé hors cycle perruque');
+      // D14 — lavage du dessous : rendu exactement quand le cycle perruque l'a reçu.
+      const washRareOn = /ordre de dépose immédiate|le lavage se reprend à la dépose/.test(full);
+      if ((ctx.wigWash === 'rare' && wigCycle) !== washRareOn) at('clause lavage rare rendue hors cycle perruque');
+      const washRepoOn = /Le dessous lavé à chaque dépose : le rythme est pris/.test(full);
+      if ((ctx.wigWash === 'a_repos' && wigCycle) !== washRepoOn) at('clause lavage à la dépose rendue hors cycle perruque');
+      const washQuinOn = /c’est la dépose qui doit avancer/.test(full);
+      if ((ctx.wigWash === 'deux_semaine' && wigCycle) !== washQuinOn) at('clause quinze jours rendue hors cycle perruque');
+      if (/Lavage du dessous/.test(sum3) && !wigCycle) at('décision lavage du dessous au résumé hors cycle perruque');
+      // D14 — sous-motif ondulé : clause rendue seulement quand la branche ondes
+      // est servie (ondulé non verrouillé, porosité non faible — la branche du 3 léger passe avant).
+      const wavyGate = texture === 'ondulee' && !locked && porosity !== 'faible' && style === 'naturel';
+      const on2a = /premier ennemi est le poids/.test(full);
+      if ((ctx.wavyPattern === '2a' && wavyGate) !== on2a) at('clause 2A rendue hors ondulé libre');
+      const on2c = /pas tout à fait tourné/.test(full);
+      if ((ctx.wavyPattern === '2c' && wavyGate) !== on2c) at('clause 2C rendue hors ondulé libre');
+      const on2aSum = /En 2A déclaré/.test(sum3);
+      if ((ctx.wavyPattern === '2a' && wavyGate) !== on2aSum) at('ligne 2A au résumé hors branche ondes servie');
+      // Vague 1 — invariants universels (temps, eau, air) : la clause ne paraît
+      // que si la réponse existe, et elle paraît dès qu'elle existe. Le résumé
+      // est le porteur universel (toutes les cycles l'utilisent).
+      if ((ctx.washTime === 'court') !== /Jour de lavage : moins de 20 minutes/.test(sum3)) at('ligne « jour de lavage court » au résumé sans la réponse, ou l’inverse');
+      if ((ctx.washTime === 'long') !== /vous avez du temps/.test(sum3)) at('ligne « jour de lavage long » au résumé sans la réponse, ou l’inverse');
+      if ((ctx.water === 'calcaire') !== /chélateur/.test(full)) at('clause eau calcaire sans la réponse, ou l’inverse');
+      if ((ctx.humidity === 'gonfle') !== /vos cheveux gonflent par temps humide/.test(sum3)) at('ligne humidité au résumé sans la réponse, ou l’inverse');
+      if ((ctx.humidity === 'sec') !== /Air sec déclaré/.test(sum3)) at('ligne air sec au résumé sans la réponse, ou l’inverse');
+      if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }
   assert.ok(profiles > 3000, `profil balayés insuffisants : ${profiles}`);

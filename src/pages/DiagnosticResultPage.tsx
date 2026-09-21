@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, Loader2, ShoppingBag, Sparkles, XCircle } from 'lucide-react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, Clock3, Loader2, ShoppingBag, Sparkles, XCircle } from 'lucide-react';
 import type { Product } from '../types';
 import { useProducts } from '../services/productService';
 import { buildDiagnosticResultModel, type DiagnosticResultModel, type DiagnosticRoutineStep } from '../lib/diagnosticResult';
+import { LeadBlock, splitLead } from '../components/ui/MoreLess';
 import { SKIN_EMPTY_COPY } from '../lib/skinCommerce';
 import { readDiagnosticSession, type DiagnosticSession } from '../lib/diagnosticSession';
 
@@ -14,6 +15,55 @@ function money(value: number | null): string {
   return value === null ? 'Prix non communiqué par le serveur' : `${value.toFixed(2).replace('.', ',')} €`;
 }
 
+/**
+ * D13 — corps d'étape concis : le geste concret en première phrase (le « Comment »
+ * s'il existe, sinon le « Pourquoi »), et le reste derrière « Plus ». Rien n'est
+ * supprimé du contenu moteur : tout ce qui ne tient pas dans la ligne du haut est
+ * dépliable à un clic. Lead trop courte pour mériter un bouton ? Elle est affichée
+ * en entier sans expansion.
+ */
+const StepBody: React.FC<{ step: DiagnosticRoutineStep }> = ({ step }) => {
+  const src = step.how && step.how.trim() ? step.how : step.why;
+  const { lead, rest } = splitLead(src);
+  const blocks: { label: string; text: string }[] = [];
+  if (rest.trim().length >= 55) blocks.push({ label: step.how ? 'Comment (suite)' : 'Pourquoi (suite)', text: rest });
+  if (step.how && step.why) blocks.push({ label: 'Pourquoi', text: step.why });
+  if (step.expect) blocks.push({ label: 'À attendre', text: step.expect });
+  const extra = blocks.reduce((n, b) => n + b.text.length, 0);
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const shown = rest.trim().length >= 55 ? lead : src.trim();
+  return (
+    <div className="min-w-0">
+      <p className="font-semibold">{step.action}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-kurla-cream/55">{shown}</p>
+      {extra >= 55 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            aria-expanded={open}
+            aria-controls={id}
+            className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-kurla-copper hover:text-kurla-amber"
+          >
+            {open ? 'Moins' : 'Plus'}
+            <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+          {open && (
+            <div id={id} className="mt-1 space-y-1">
+              {blocks.map(b => (
+                <p key={b.label} className="text-xs leading-relaxed text-kurla-cream/55">
+                  <span className="text-kurla-amber font-semibold">{b.label} : </span>{b.text}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 function RoutineColumn({ title, steps }: { title: string; steps: DiagnosticRoutineStep[] }) {
   return (
     <div className="rounded-2xl bg-kurla-ink border border-kurla-cream/10 p-4">
@@ -23,12 +73,7 @@ function RoutineColumn({ title, steps }: { title: string; steps: DiagnosticRouti
           {steps.map(step => (
             <li key={`${title}-${step.label}-${step.action}`} className="flex gap-3 text-sm">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-kurla-copper/15 text-xs font-bold text-kurla-amber">{step.label}</span>
-              <div className="min-w-0">
-                <p className="font-semibold">{step.action}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">Pourquoi : </span>{step.why}</p>
-                {step.how && <p className="mt-1 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">Comment : </span>{step.how}</p>}
-                {step.expect && <p className="mt-1 text-xs leading-relaxed text-kurla-cream/55"><span className="text-kurla-amber font-semibold">À attendre : </span>{step.expect}</p>}
-              </div>
+              <StepBody step={step} />
             </li>
           ))}
         </ol>
@@ -83,7 +128,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
       <header className="mb-8 text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-kurla-copper/30 bg-kurla-bark px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-kurla-amber"><Sparkles className="h-4 w-4" /> Résultat du questionnaire</span>
         <h1 className="mt-4 font-serif-title text-3xl font-bold sm:text-4xl">Votre {profileLabel}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-kurla-cream/70">{model.summary}</p>
+        <div className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-kurla-cream/70"><LeadBlock text={model.summary} /></div>
         <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs">
           <span className="rounded-full border border-kurla-cream/15 bg-kurla-espresso px-3 py-1.5">Calculé à partir de vos réponses</span>
           {model.generatedWithAI && <span className="rounded-full border border-emerald-400/30 bg-emerald-950/30 px-3 py-1.5 text-emerald-200">Généré avec aide IA</span>}
@@ -142,9 +187,27 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
       <div className="rounded-3xl border border-amber-400/20 bg-[#171208] p-6"><SectionHeading number="2b" title="Ce qui reste inconnu" /><ul className="space-y-2 text-sm text-kurla-cream/80">{model.unknown.length ? model.unknown.map(item => <li key={item} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />{item}</li>) : <li>Aucun champ clé ne manque dans ce questionnaire.</li>}</ul></div>
     </section>,
 
+    // C11 (vague 1) — l'honnêteté : ce que ce diagnostic ne peut pas dire.
+    // La confiance est calculée (combien de réponses manquent, et lesquelles),
+    // et les signaux d'orientation ne sont plus noyés dans un paragraphe.
+    <section key="page-limites" className="mb-6 rounded-3xl border border-rose-400/25 bg-[#1a0f10] p-6">
+      <SectionHeading number="2c" id="limites" title="Ce que ce diagnostic ne peut pas dire" />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-4 py-1.5 text-xs font-bold ${
+          model.confidence.level === 'haute' ? 'bg-emerald-400/20 text-emerald-200'
+            : model.confidence.level === 'moyenne' ? 'bg-amber-400/20 text-amber-200'
+              : 'bg-rose-400/20 text-rose-200'
+        }`}>{model.confidence.label}</span>
+        <p className="flex-1 text-sm leading-relaxed text-kurla-cream/75">{model.confidence.note}</p>
+      </div>
+      <p className="mt-4 text-xs font-bold uppercase tracking-wide text-rose-200/70">Ce qui relève d’un avis professionnel, pas d’une routine</p>
+      <ul className="mt-2 space-y-2 text-sm text-kurla-cream/80">{model.redFlags.map(flag => <li key={flag} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />{flag}</li>)}</ul>
+      <p className="mt-4 rounded-2xl border border-kurla-cream/10 bg-kurla-ink px-4 py-3 text-xs leading-relaxed text-kurla-cream/60">{model.scopeNote}</p>
+    </section>,
+
     <section key="page-routine" className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="3" title={model.isSkin ? 'Routine minimale matin / soir' : 'Routine minimale : lavage et entretien'} /><div className="grid gap-4 md:grid-cols-3"><RoutineColumn title={model.routineTitles.morning} steps={model.morning} /><RoutineColumn title={model.routineTitles.evening} steps={model.evening} /><RoutineColumn title={model.routineTitles.weekly} steps={model.weekly} /></div><p className="mt-4 text-xs text-kurla-cream/50">Commencez par cette base et introduisez un seul changement à la fois. La routine ne crée pas de promesse de résultat.</p></section>,
 
-    <section key="page-pourquoi" className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title="Pourquoi cette routine ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><p className="mt-1 text-xs leading-relaxed text-kurla-cream/65">{step.why}</p></div>)}</div></section>,
+    <section key="page-pourquoi" className="mb-6 rounded-3xl border border-kurla-cream/10 bg-kurla-espresso p-6"><SectionHeading number="4" title="Pourquoi cette routine ?" /><div className="grid gap-3 md:grid-cols-2">{[...model.morning, ...model.evening, ...model.weekly].map(step => <div key={`why-${step.label}-${step.action}`} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4"><p className="text-sm font-semibold">{step.action}</p><LeadBlock className="mt-1 text-xs leading-relaxed text-kurla-cream/65" text={step.why} /></div>)}</div></section>,
 
     model.lessons.length > 0 ? (
       <section key="page-comprendre" className="mb-6 rounded-3xl border border-kurla-copper/25 bg-kurla-espresso p-6" aria-labelledby="comprendre">
@@ -154,7 +217,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
           {model.lessons.map(lesson => (
             <div key={lesson.key} className="rounded-2xl border border-kurla-cream/10 bg-kurla-ink p-4">
               <p className="text-sm font-semibold text-[#FFE0C6]">{lesson.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-kurla-cream/75">{lesson.lesson}</p>
+              <LeadBlock className="mt-2 text-sm leading-relaxed text-kurla-cream/75" text={lesson.lesson} />
               <p className="mt-3 text-[10px] uppercase tracking-wide text-kurla-amber">{lesson.source}</p>
             </div>
           ))}
@@ -246,7 +309,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
                   {material.name}
                   {material.product ? <a href={`/produit/${material.product.slug}`} className="ml-2 inline-flex items-center gap-1 font-semibold text-kurla-amber hover:underline">Réf. KURLA : {material.product.name} <ArrowRight className="h-3 w-3" /></a> : null}
                 </p>
-                <p className="mt-0.5 text-kurla-cream/55">{material.why}</p>
+                <LeadBlock className="mt-0.5 text-kurla-cream/55" text={material.why} />
               </li>
             ))}
           </ul>
@@ -261,7 +324,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
               <span className="w-40 shrink-0 pt-0.5 text-[10px] font-bold uppercase tracking-wide text-kurla-amber">{essential.phase}</span>
               <div className="min-w-0 flex-1 text-xs leading-relaxed">
                 <p className="font-semibold text-kurla-cream/90">{essential.type}{essential.nonNegotiable ? <span className="ml-2 rounded-full bg-kurla-copper px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Non négociable</span> : null}</p>
-                <p className="mt-0.5 text-kurla-cream/55">{essential.why}</p>
+                <LeadBlock className="mt-0.5 text-kurla-cream/55" text={essential.why} />
                 {essential.product
                   ? <a href={`/produit/${essential.product.slug}`} className="mt-1 inline-flex items-center gap-1 font-semibold text-kurla-amber hover:underline">Réf. KURLA : {essential.product.name} <ArrowRight className="h-3 w-3" /></a>
                   : <p className="mt-1 text-[11px] text-kurla-cream/45">Aucune référence KURLA publiée pour l’instant — le type de produit fait règle, aucune marque n’est imposée.</p>}
@@ -322,7 +385,7 @@ export const DiagnosticResultPage: React.FC<DiagnosticResultPageProps> = ({ onAd
               {/* Indication de départ (page d’intro uniquement). */}
               {page === 0 && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-16 flex justify-center">
-                  <span className="animate-pulse rounded-full border border-kurla-copper/40 bg-kurla-espresso/90 px-4 py-2 text-xs font-semibold text-kurla-amber">Faites glisser pour feuiller →</span>
+                  <span className="animate-pulse rounded-full border border-kurla-copper/40 bg-kurla-espresso/90 px-4 py-2 text-xs font-semibold text-kurla-amber">Faites glisser pour feuilleter →</span>
                 </div>
               )}
 

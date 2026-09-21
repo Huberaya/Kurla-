@@ -10,7 +10,7 @@ import { buildRecommendations, explainLearning, productIngredientIds } from '../
 import { describeIntent, parseSearchIntent, searchByIntent } from '../../lib/semanticSearch';
 import { buildRoutine, isExperienceLevel, isRequestedRoutineStep } from '../../lib/routineBuilder';
 import { getHairDiagnosticSegment, getSegmentFocusLabel, getSegmentFocusNeeds } from '../../lib/diagnosticSegments';
-import { buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
+import { buildHairAdvisoryCtx, buildHairAdvisoryRoutine, buildHairAdvisorySummary } from '../../lib/knowledge/hairAdvisory';
 import { deriveHairObservations } from '../../lib/knowledge/diagnosticDerivations';
 import { validateHairAiOutput } from '../../lib/knowledge/aiGuardrail';
 import { validateSkinAiOutput } from '../../lib/knowledge/aiGuardrail';
@@ -19,6 +19,7 @@ import { calculateKurlaFit } from '../../lib/kurlaFit';
 import { serverDb } from '../../lib/serverDb';
 import { RoutineStep } from '../../lib/shelf';
 import { asyncRoute, rateLimit } from '../http';
+import { pickFreeTextForTriage } from '../../lib/ai/guardrails';
 import { authenticateRequest, bearerToken, requireUser } from '../auth';
 import { getAvailableCatalog, selectOperationalKnowledgeCards, type AvailableCatalogEntry } from '../ai/catalog';
 import {
@@ -293,8 +294,10 @@ export function registerRecommendationRoutes(app: Express): void {
     if (!diagnosticType || !req.body?.answers || typeof req.body.answers !== 'object') return res.status(400).json({ error: 'Diagnostic invalide.' });
     const answers = req.body.answers;
     const { email: _diagnosticEmail, ...answersForAi } = answers as Record<string, unknown>;
-    const answerText = JSON.stringify(answersForAi);
-    const triage = medicalTriage(answerText);
+    // Le triage médical ne porte que sur du texte libre : un identifiant de
+    // questionnaire (« gonfle », « glue ») n'est pas un propos de santé.
+    const answerText = pickFreeTextForTriage(answersForAi);
+    const triage = answerText ? medicalTriage(answerText) : { emergency: false, review: false, message: '', matched: [] };
     const locale = normalizeAiLocale(req.body?.locale);
     const country = normalizeAiCountry(req.body?.country);
     const fullCatalog = await getAvailableCatalog(country);
@@ -334,7 +337,7 @@ export function registerRecommendationRoutes(app: Express): void {
     if (authenticatedUser && diagnosticType === 'hair') {
       try {
         const textureMap: Record<string, string> = {
-          crepue: 'crépue', frisee: 'bouclée', locksee: 'locks', protective: 'protectrice', defrisee: 'défrisée', inconnue: 'inconnue'
+          crepue: 'crépue', frisee: 'bouclée', bouclee: 'bouclée', ondulee: 'ondulée', locksee: 'locks', protective: 'protectrice', defrisee: 'défrisée', inconnue: 'inconnue'
         };
         const porosityMap: Record<string, string> = {
           forte: 'forte', faible: 'faible', moyenne: 'moyenne', inconnue: 'inconnue'
@@ -440,17 +443,7 @@ export function registerRecommendationRoutes(app: Express): void {
     const skinEngineActions = skinCtx ? buildSkinEngineSteps(skinCtx) : [];
     const skinNoExfoliation = skinCtx ? skinExfoliationBlocked(skinCtx) : false;
     const skinFallbackData = skinCtx ? buildSkinFallback(skinCtx, skinPriorities) : null;
-    const advisoryCtx = isHair ? {
-      texture: typeof answers.texture === 'string' ? answers.texture : undefined,
-      style: typeof answers.style === 'string' ? answers.style : undefined,
-      focus: typeof answers.focus === 'string' && answers.focus !== '' ? answers.focus : undefined,
-      priority: typeof answers.priority === 'string' ? answers.priority : undefined,
-      porosity: typeof answers.porosity === 'string' ? answers.porosity : undefined,
-      scalp: typeof answers.scalp === 'string' ? answers.scalp : undefined,
-      frequency: typeof answers.frequency === 'string' ? answers.frequency : undefined,
-      length: typeof answers.length === 'string' ? answers.length : undefined,
-      experience: typeof answers.experience === 'string' ? answers.experience : undefined,
-    } : null;
+    const advisoryCtx = isHair ? buildHairAdvisoryCtx(answers as Record<string, unknown>) : null;
     const hairSegment = advisoryCtx ? getHairDiagnosticSegment(advisoryCtx.texture, advisoryCtx.style) : undefined;
     const hairFocusLabel = getSegmentFocusLabel(advisoryCtx?.focus);
     const hairDerived = advisoryCtx ? deriveHairObservations(advisoryCtx) : [];
