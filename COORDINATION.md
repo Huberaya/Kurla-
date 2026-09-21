@@ -5085,3 +5085,27 @@ vocabulaire canonique) — 25 blocs exit 0 · filtres-catalogue : 64 listes
   390 px via harness jetable : overflow 0, table à scroll interne, drapeaux
   d'anomalies visibles (capture onglet_dropshipping_390.png à la racine du
   workspace).
+
+## 19/09 (suite 6) — Produits en dropship présents dans la boutique
+
+**Demande** : « dans catalogue, dans dropshipping, je veux avoir tous les
+produits présents dans la boutique et qui sont en dropship. »
+
+**Fait** :
+- `fulfillment.ts` : `selectShopDropshipProducts` — publiés SEULEMENT (fait
+  mesuré) × règle canonique `isDropshipToolProduct` (badge dropship, catégorie
+  accessoires, ou l'un des 12 outils historiques) ; le motif est nommé par
+  produit (`why`), le prix absent reste null.
+- Route ops : bloc `dropshipInShop` dans la réponse.
+- Onglet « Guide dropship 0 carton » : nouvelle section sous la carte règle
+  d'or — « Produits en dropship — présents dans la boutique (N) », badge
+  « dropship 24–48h », prix, motif, nom cliquable vers la fiche éditable
+  (rechargement après enregistrement).
+- Mesure prod attendue : 28 accessoires publiés (les 3 fiches démo
+  `unavailable` sont exclues — pas dans la boutique ; aucun produit à badge
+  dropship en base à ce jour).
+
+**Bancs** : dropship-procedure + bloc (publiés seulement, règle canonique,
+motifs nommés, positif ET négatif) exit 0 · linked-records bloc 26 (route,
+section rendue, clic sur fiche réelle) — 26 blocs exit 0 · lint exit 0.
+Chaîne complète en cours.

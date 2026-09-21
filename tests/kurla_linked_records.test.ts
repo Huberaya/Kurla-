@@ -635,4 +635,30 @@ function recorder(handler: (url: string, init: any) => Promise<Response>) {
   console.log('✓ entonnoir unique : Stade, Nom, Origine, Fournisseur, Offre, Public en listes déroulantes — barre rendue, fournisseurs par nom réel');
 }
 
-console.log('\n25 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée, listes déroulantes par section, entonnoir unique filtrable.');
+// ---------------------------------------------------------------------------
+// 26. PRODUITS EN DROPSHIP PRÉSENTS DANS LA BOUTIQUE (19/09) — « dans
+//     catalogue, dans dropshipping, je veux avoir tous les produits présents
+//     dans la boutique et qui sont en dropship » : la règle canonique
+//     (badge / accessoires / outil historique) appliquée aux produits
+//     publiés, listée dans l'onglet dropship, noms cliquables vers la fiche.
+// ---------------------------------------------------------------------------
+{
+  const read = (relative: string) => readFileSync(join(process.cwd(), 'src', relative), 'utf8');
+
+  const fulfillment = read('lib/fulfillment.ts');
+  assert.ok(fulfillment.includes('export function selectShopDropshipProducts'), 'fulfillment : la sélection des produits dropship en boutique a disparu.');
+  assert.ok(fulfillment.includes("status !== 'published'"), 'fulfillment : « présent dans la boutique » n’est plus le statut publié mesuré.');
+
+  const route = read('server/routes/sourcing.ts');
+  assert.ok(route.includes('selectShopDropshipProducts(') && route.includes('dropshipInShop'), 'route ops : le bloc dropshipInShop n’est plus renvoyé.');
+
+  const panel = read('components/SupplyOpsPanel.tsx');
+  assert.ok(panel.includes('Produits en dropship — présents dans la boutique'), 'onglet dropship : la liste des produits dropship en boutique a disparu.');
+  const shopBlock = panel.slice(panel.indexOf('dropship-shop-'));
+  assert.ok(shopBlock.includes('<ProductName'), 'onglet dropship : un produit dropship en boutique n’est plus cliquable vers sa fiche.');
+  assert.ok(panel.includes('{product.why}'), 'onglet dropship : le motif dropship n’est plus nommé par produit.');
+
+  console.log('✓ produits dropship présents dans la boutique : règle canonique sur les publiés, liste dans l’onglet dropship, motif nommé, fiches cliquables');
+}
+
+console.log('\n26 blocs de contrôles validés — manques nommés, magasin partagé, optimiste restauré, écritures serialisées, rattachement sur la bonne route, référentiel partagé, une seule surface d\'édition fournisseur, catalogue et fournisseurs entièrement modifiables, règle d’or dropship outils mise en évidence, contexte outreach complet, ciblage des messages dans la vue consolidée, listes déroulantes par section, entonnoir unique filtrable, produits dropship en boutique listés.');

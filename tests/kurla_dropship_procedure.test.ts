@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { DROPSHIP_TOOLS_IMMEDIATE, isDropshipToolProduct } from '../src/lib/fulfillment';
+import { DROPSHIP_TOOLS_IMMEDIATE, isDropshipToolProduct, selectShopDropshipProducts } from '../src/lib/fulfillment';
 import {
   badgesForDropshipToggle,
   buildDropshipPurchaseOrder,
@@ -153,3 +153,28 @@ function main(): void {
 }
 
 main();
+
+/* 19/09 — « dans catalogue, dans dropshipping : tous les produits présents
+   dans la boutique et qui sont en dropship ». selectShopDropshipProducts :
+   publiés SEULEMENT, règle canonique (badge / accessoires / outil
+   historique), motif nommé — testé en positif ET en négatif. */
+{
+  const list = selectShopDropshipProducts([
+    { id: 'launch-p35', name: 'Peigne afro métal', category: 'accessoires', catalogStatus: 'published', priceCents: 490 },
+    { id: 'prod-1', name: 'Sérum publié', category: 'peau', catalogStatus: 'published', priceCents: 1900 },
+    { id: 'prod-2', name: 'Bonnet satin badge', category: 'cheveux', badges: ['dropship_24_48h'], catalogStatus: 'published', priceCents: 1290 },
+    { id: 'p41', name: 'Éponge twist (id historique)', category: null, catalogStatus: 'published', priceCents: null },
+    { id: 'prod-3', name: 'Brosse draft', category: 'accessoires', catalogStatus: 'draft' },
+    { id: 'prod-4', name: 'Bonnet retiré', category: 'accessoires', catalogStatus: 'unavailable', priceCents: 990 },
+  ]);
+
+  assert.deepEqual(list.map(p => p.productId).sort(), ['launch-p35', 'p41', 'prod-2'], 'publiés + règle dropship seulement');
+  const byId = Object.fromEntries(list.map(p => [p.productId, p]));
+  assert.equal(byId['launch-p35'].why, 'catégorie accessoires', 'motif nommé : catégorie');
+  assert.equal(byId['prod-2'].why, 'badge dropship', 'motif nommé : badge');
+  assert.equal(byId['p41'].why, 'outil historique', 'motif nommé : liste des 12 héros');
+  assert.equal(byId['p41'].priceCents, null, 'prix absent = null, jamais 0 inventé');
+  assert.equal(byId['launch-p35'].priceCents, 490);
+
+  console.log('[PASS] Produits dropship présents dans la boutique : publiés seulement, règle canonique, motif nommé, prix jamais inventé.');
+}

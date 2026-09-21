@@ -21,6 +21,7 @@ import {
   type SupplyWorkflowState,
 } from '../../lib/supplyModel';
 import { workflowPublishesToBoutique } from '../../lib/sourcingWorkflow';
+import { selectShopDropshipProducts } from '../../lib/fulfillment';
 
 /**
  * CHANTIER 16C — ROUTES DE SOURCING.
@@ -378,6 +379,23 @@ export function registerSourcingRoutes(app: Express): void {
         };
       }));
 
+      /**
+       * « Dans catalogue, dans dropshipping » — tous les produits présents
+       * dans la boutique (publiés) et en dropship : badge explicite, catégorie
+       * accessoires, ou outil historique. Le motif est nommé par produit.
+       */
+      const dropshipInShop = selectShopDropshipProducts(products.map((p: any) => {
+        const price = Number(p.basePrice ?? p.price);
+        return {
+          id: String(p.id),
+          name: String(p.name || p.id),
+          category: p.category ?? null,
+          badges: Array.isArray(p.badges) ? p.badges : null,
+          catalogStatus: String(p.catalogStatus || p.catalog_status || 'draft'),
+          priceCents: Number.isFinite(price) && price > 0 ? Math.round(price * 100) : null,
+        };
+      }));
+
       const kpi = {
         products: catalogRows.length,
         withSource: catalogRows.filter(r => r.sourcesCount > 0).length,
@@ -388,7 +406,7 @@ export function registerSourcingRoutes(app: Express): void {
         criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
       };
 
-      res.json({ kpi, alerts, products: catalogRows, dropshipRule });
+      res.json({ kpi, alerts, products: catalogRows, dropshipRule, dropshipInShop });
     } catch (error) {
       console.error('[Sourcing] ops error:', error);
       res.status(500).json({ error: safeApiError(error, 'Vue ops impossible.') });

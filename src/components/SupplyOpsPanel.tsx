@@ -283,5 +283,34 @@ export const DropshipToolsSection: React.FC<{ headers: Record<string, string> }>
 
   if (error) return <div className="p-6 rounded-3xl bg-kurla-espresso border border-rose-400/30 text-rose-300 text-xs">{error}</div>;
   if (!data?.dropshipRule) return <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 text-xs text-kurla-cream/60">Chargement de l'état dropship des matériels &amp; outils…</div>;
-  return <DropshipRuleCard dropshipRule={data.dropshipRule} headers={headers} onSaved={() => setReloadToken(t => t + 1)} />;
+  const dropshipInShop: any[] = Array.isArray(data.dropshipInShop) ? data.dropshipInShop : [];
+  return (
+    <div className="space-y-4">
+      <DropshipRuleCard dropshipRule={data.dropshipRule} headers={headers} onSaved={() => setReloadToken(t => t + 1)} />
+
+      {/* « Dans catalogue, dans dropshipping » — tous les produits présents
+          dans la boutique et qui sont en dropship (19/09). Publiés = fait
+          mesuré ; le motif dropship est nommé par produit. */}
+      {Array.isArray(data.dropshipInShop) && (
+        <div className="p-6 rounded-3xl bg-kurla-espresso border border-kurla-cream/10 space-y-3">
+          <h3 className="font-bold flex items-center gap-2"><Boxes className="w-4 h-4 text-kurla-amber" /> Produits en dropship — présents dans la boutique ({dropshipInShop.length})</h3>
+          <p className="text-[11px] text-kurla-cream/60">
+            Publiés en boutique et expédiés en dropship 24–48h par le partenaire UE — <span className="font-bold text-kurla-cream/85">0 carton à Paris</span>.
+            Motif nommé par produit : catégorie « accessoires », badge dropship ou outil historique. Cliquez sur un nom pour ouvrir la fiche.
+          </p>
+          <div className="grid md:grid-cols-2 gap-1.5 max-h-[420px] overflow-y-auto pr-1">
+            {dropshipInShop.map((product: any) => (
+              <div key={`dropship-shop-${product.productId}`} className="px-3 py-2 rounded-xl bg-kurla-ink border border-kurla-cream/5 flex flex-wrap items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 shrink-0">dropship 24–48h</span>
+                <ProductName id={String(product.productId)} label={product.name} headers={headers} className="text-[11px] font-semibold" onSaved={() => setReloadToken(t => t + 1)} />
+                {product.priceCents != null && <span className="text-[10px] text-kurla-cream/55">{(product.priceCents / 100).toFixed(2).replace('.', ',')} €</span>}
+                <span className="text-[9px] text-kurla-cream/40">{product.why}</span>
+              </div>
+            ))}
+            {dropshipInShop.length === 0 && <p className="text-[11px] text-kurla-cream/45">Aucun produit dropship publié en boutique pour l’instant.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };

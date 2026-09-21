@@ -244,3 +244,52 @@ export const CATALOG_GUARD = {
   forbidden: ['LAUNCH_PRODUCTS', 'LAUNCH_KITS', 'retailPriceEur', 'targetCostEur'],
   verify: 'git diff -- src/lib/launchCatalog.ts doit rester vide',
 } as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5b. PRODUITS EN DROPSHIP PRÉSENTS DANS LA BOUTIQUE (19/09)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ShopDropshipProduct = {
+  productId: string;
+  name: string;
+  category: string | null;
+  catalogStatus: string;
+  /** null = prix à obtenir. Jamais 0 inventé. */
+  priceCents: number | null;
+  /** Pourquoi ce produit est en dropship — la règle appliquée, nommée. */
+  why: string;
+};
+
+/**
+ * « Dans catalogue, dans dropshipping : tous les produits présents dans la
+ * boutique et qui sont en dropship. »
+ *
+ * Présent dans la boutique = statut catalogue `published` (fait mesuré).
+ * En dropship = la règle canonique d'`isDropshipToolProduct` : badge explicite,
+ * catégorie `accessoires`, ou l'un des 12 outils historiques. Le motif est
+ * remonté (`why`) pour que la vue nomme la règle au lieu de la sous-entendre.
+ */
+export function selectShopDropshipProducts(
+  products: Array<{ id: string; name: string; category?: string | null; badges?: string[] | null; catalogStatus?: string | null; priceCents?: number | null }>,
+): ShopDropshipProduct[] {
+  const list: ShopDropshipProduct[] = [];
+  for (const product of products || []) {
+    const status = String(product.catalogStatus || 'draft');
+    if (status !== 'published') continue; // pas dans la boutique
+    const badges = Array.isArray(product.badges) ? product.badges : [];
+    const hasBadge = badges.includes('dropship') || badges.includes('dropship_24_48h') || badges.includes('dropship_24-48h');
+    const cat = String(product.category || '').trim().toLowerCase();
+    const isAccessoire = cat === 'accessoire' || cat === 'accessoires';
+    const isLegacyTool = isDropshipToolId(product.id);
+    if (!hasBadge && !isAccessoire && !isLegacyTool) continue; // pas en dropship
+    list.push({
+      productId: product.id,
+      name: product.name || product.id,
+      category: product.category ?? null,
+      catalogStatus: status,
+      priceCents: Number.isFinite(Number(product.priceCents)) && product.priceCents != null ? Number(product.priceCents) : null,
+      why: hasBadge ? 'badge dropship' : isAccessoire ? 'catégorie accessoires' : 'outil historique',
+    });
+  }
+  return list;
+}
