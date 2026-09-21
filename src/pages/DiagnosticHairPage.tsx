@@ -25,6 +25,7 @@ const HAIR_DEFAULTS: HairDiagnosticAnswers = {
   coilyPattern: 'inconnu',
   elasticity: 'inconnu',
   strandWidth: 'inconnue',
+  density: 'inconnue',
   chemicalHeat: 'inconnue',
   // D10 : idem — défaut « inconnue » = comportement antérieur garanti.
   curlyDry: 'inconnue',
@@ -108,7 +109,7 @@ export const DiagnosticHairPage: React.FC = () => {
   // D14 : le sous-motif ondulé se pose au même étage que le motif crépu (miroir).
   const isWavyNow = answers.texture === 'ondulee' && answers.style === 'naturel' && !lockedNow;
   const isCurlyNow = !lockedNow && !isKidNow && answers.style === 'naturel' && (answers.texture === 'frisee' || answers.texture === 'bouclee' || answers.texture === 'ondulee');
-  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), ...(isWavyNow ? ['wavyPattern'] : []), 'length', 'elasticity', 'strandWidth', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear', 'wigWash'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'washTime', 'water', 'humidity', 'experience', 'budget', 'email'];
+  const stepIds: string[] = ['texture', 'style', ...(segment ? ['focus'] : []), ...(isCrepueNow ? ['pattern'] : []), ...(isWavyNow ? ['wavyPattern'] : []), 'length', 'elasticity', 'strandWidth', 'density', ...(lockedNow ? ['locStage', 'locCare', 'locDry'] : []), ...(isCurlyNow ? ['curlyDry', 'curlyHold'] : []), ...(isWigNow ? ['wigBond', 'wigWear', 'wigWash'] : []), ...(isKidNow ? [] : [isTransitionNow ? 'transitionStep' : 'chemicalHeat']), 'priority', 'porosity', 'scalp', 'frequency', 'washTime', 'water', 'humidity', 'experience', 'budget', 'email'];
   const current = stepIds[Math.min(step, stepIds.length) - 1] || 'texture';
   const totalSteps = stepIds.length;
 
@@ -379,6 +380,24 @@ export const DiagnosticHairPage: React.FC = () => {
               ]}
               value={answers.strandWidth ?? 'inconnue'}
               onPick={id => { setAnswers({ ...answers, strandWidth: id as any }); handleNext(); }}
+            />
+          )}
+
+          {current === 'density' && (
+            <QuestionStep
+              step={step}
+              kicker="Densité"
+              title="Quand vous faites une raie bien nette à la lumière, vous voyez..."
+              note="La densité, ce n’est pas la largeur : vous pouvez avoir le cheveu fin et très dense (beaucoup de volume si on ne l’écrase pas), ou le cheveu épais et clairsemé (chaque mèche est solide, mais elles sont peu nombreuses). C’est ce qui règle le nombre de sections et le temps de séchage."
+              cols="grid-cols-1 sm:grid-cols-2"
+              options={[
+                { id: 'clairsemee', title: 'Mon cuir chevelu, bien visible', desc: 'Peu dense : produits légers en racine, 2 à 4 sections, séchage rapide.' },
+                { id: 'moyenne', title: 'Un peu de cuir chevelu', desc: 'Densité moyenne : le dosage standard s’applique, 4 sections.' },
+                { id: 'dense', title: 'Presse pas le cuir chevelu', desc: 'Très dense : 6 à 8 sections, produit dosé par section, séchage plus long.' },
+                { id: 'inconnue', title: 'Je ne sais pas', desc: 'On reste sur le cadre standard ; le temps entre deux lavages ajustera.' },
+              ]}
+              value={answers.density ?? 'inconnue'}
+              onPick={id => { setAnswers({ ...answers, density: id as any }); handleNext(); }}
             />
           )}
 

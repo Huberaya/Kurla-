@@ -23,6 +23,7 @@ import {
   HAIR_WASH_TIME_VALUES,
   HAIR_WATER_VALUES,
   HAIR_HUMIDITY_VALUES,
+  HAIR_DENSITY_VALUES,
   HAIR_POROSITY_VALUES,
   HAIR_PRIORITY_VALUES,
   HAIR_SCALP_VALUES,
@@ -201,6 +202,9 @@ function profileFields(answers: Record<string, unknown>, isSkin: boolean): Diagn
       ['style', 'Coiffure usuelle', HAIR_STYLE_VALUES, answers.style],
       ['focus', 'Préoccupation principale', undefined, answers.focus],
       ['porosity', 'Porosité', HAIR_POROSITY_VALUES, answers.porosity],
+      // Vague 2 : la densité (ce qu'on voit à la raie) est un profil déclaré
+      // comme un autre — elle compte dans la confiance affichée (§2c).
+      ['density', 'Densité', HAIR_DENSITY_VALUES, answers.density],
       ['scalp', 'Cuir chevelu', HAIR_SCALP_VALUES, answers.scalp],
       ['priority', 'Besoin prioritaire', HAIR_PRIORITY_VALUES, answers.priority],
       ['frequency', 'Fréquence de lavage', HAIR_FREQUENCY_VALUES, answers.frequency],

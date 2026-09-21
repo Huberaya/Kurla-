@@ -56,6 +56,7 @@ export interface HairAdvisoryContext {
   coilyPattern?: string;
   elasticity?: string;
   strandWidth?: string;
+  density?: string;
   chemicalHeat?: string;
   /** D10 (20/09) — bouclés 3B–3C au naturel : séchage + fixant déclarés, pour
    *  caler la méthode sur l'habitude réelle au lieu de la réciter. */
@@ -195,6 +196,13 @@ export const HAIR_HUMIDITY_VALUES: Record<string, string> = {
   ne_bouge_pas: 'Aucune différence selon l’air',
 };
 
+/** Vague 2 (21/09) — densité observée (ce qu'on voit à la raie, pas la largeur d'un cheveu). */
+export const HAIR_DENSITY_VALUES: Record<string, string> = {
+  clairsemee: 'Peu dense — je vois mon cuir chevelu à la raie',
+  moyenne: 'Densité moyenne — je vois un peu de cuir chevelu',
+  dense: 'Très dense — je ne vois pas le cuir chevelu à la raie',
+};
+
 interface HairFlags {
   texture: string; style: string; priority: string; porosity: string; scalp: string; frequency: string; focus: string;
   isCoily: boolean; isCurly: boolean; isLocked: boolean; isProtective: boolean;
@@ -217,6 +225,8 @@ interface HairFlags {
   wigBond: string; wigWear: string; wigWash: string; wavyPattern: string;
   /** Vague 1 — le réel du quotidien : universel (tout le monde a une eau, un air et un temps). */
   washTime: string; water: string; humidity: string;
+  /** Vague 2 (21/09) — densité observée (clairsemee|moyenne|dense), pas la largeur. */
+  density: string;
 }
 
 function flags(ctx: HairAdvisoryContext): HairFlags {
@@ -268,6 +278,10 @@ function flags(ctx: HairAdvisoryContext): HairFlags {
     pattern: texture === 'crepue' && !lockedNow && ['4a', '4b', '4c'].includes(String(ctx.coilyPattern ?? '')) ? String(ctx.coilyPattern) : '',
     elasticity: ['ressort', 'mou', 'cassant'].includes(String(ctx.elasticity ?? '')) ? String(ctx.elasticity) : '',
     strandWidth: ['fine', 'epaisse'].includes(String(ctx.strandWidth ?? '')) ? String(ctx.strandWidth) : '',
+    // Vague 2 — la densité (ce que voit-on à la raie) est universelle : locks,
+    // enfant et perruque ont aussi une densité sur leur propre tête. Les
+    // rémanences inconnues sont ignorées.
+    density: ['clairsemee', 'moyenne', 'dense'].includes(String(ctx.density ?? '')) ? String(ctx.density) : '',
     // La question n'est jamais posée à un enfant ; si une réponse ancienne ou
     // détournée la porte quand même, le moteur l'ignore — la garde vit ici.
     // D10 : un profil « défrisée » qui répondrait « jamais de chimie » se
@@ -363,6 +377,7 @@ export function buildHairAdvisoryCtx(answers: Record<string, unknown>): HairAdvi
     coilyPattern: str('coilyPattern'),
     elasticity: str('elasticity'),
     strandWidth: str('strandWidth'),
+    density: str('density'),
     chemicalHeat: str('chemicalHeat'),
     // D10
     curlyDry: str('curlyDry'),
@@ -457,6 +472,87 @@ function waterDeep(f: HairFlags): string {
     : '';
 }
 
+/* ------------------------------------------------------------------ */
+/* Vague 2 (21/09) — densité (ce qu'on voit à la raie, pas la largeur) */
+/* ------------------------------------------------------------------ */
+
+/** Densité : nombre de sections adapté — un cheveu dense demande plus
+ *  de divisions pour que le produit et l'eau atteignent le cuir chevelu ;
+ *  un cheveu clairsemé en demande moins, pour ne pas multiplier les gestes
+ *  sur ce qu'il n'y a pas. */
+function densitySections(f: HairFlags): string {
+  if (f.density === 'dense') {
+    return ' Densité forte déclarée : 6 à 8 sections, pas 4 — le produit doit atteindre le cuir chevelu à chaque passage, sinon il ne traite que la couche du dessus.';
+  }
+  if (f.density === 'clairsemee') {
+    return ' Densité faible déclarée : 2 à 4 sections suffisent — multiplier les divisions sur un cheveu clairsemé, c’est multiplier la traction et le temps pour rien.';
+  }
+  return '';
+}
+
+/** Densité sur cuir chevelu (sous coiffure, sous perruque, brumes) : même
+ *  logique que les sections du jour de lavage — dense = viser zone par zone
+ *  pour que le produit atteigne la peau ; clairsemé = ne pas charger les
+ *  zones visibles ni tirer ce qu'il y a peu de cheveux à protéger. */
+function densityScalp(f: HairFlags): string {
+  if (f.density === 'dense') {
+    return ' Densité forte : la brume ou le soin se pose raie par raie, en écartant légèrement — sous des cheveux nombreux, une application « en surface » laisse le cuir chevelu de l’intérieur à sec.';
+  }
+  if (f.density === 'clairsemee') {
+    return ' Densité faible : éviter tout corps gras ou produit brillant sur les zones où le cuir chevelu se voit (raie, tempes) — il se voit davantage sous un film gras. La main est légère, les attaches le sont aussi.';
+  }
+  return '';
+}
+
+/** Densité sur locks : on ne divise pas en « sections » comme sur cheveu libre
+ *  (les locks sont déjà des divisions), mais un cuir chevelu dense sous locks
+ *  demande un rinçage par zone pour que l'eau atteigne bien la racine ; un
+ *  cuir chevelu clairsemé demande une main légère au retwist pour ne pas tirer
+ *  ce qu'il y a peu de cheveux à ancrer. */
+function densityLocks(f: HairFlags): string {
+  if (f.density === 'dense') {
+    return ' Densité forte déclarée : rincer zone par zone, en écartant les locks pour que l’eau atteigne bien la racine — sous des locks nombreuses, un rinçage « en surface » laisse des résidus qui grattaient.';
+  }
+  if (f.density === 'clairsemee') {
+    return ' Densité faible déclarée : retwist léger, sans tirer — une lock ancrée sur peu de cheveux s’arrache à la racine sous la tension d’un palm roulé trop ferme.';
+  }
+  return '';
+}
+
+/** Densité × largeur : le dosage et le poids. Le piège le plus commun — et
+ *  le plus mal soigné — c'est le « fin = clairsemé » : cheveu fin + dense,
+ *  la cliente achète des produits « volume » qui alourdissent en couchant
+ *  ce volume ; cheveu épais + clairsemé, les beurres riches n'ajoutent
+ *  rien au nombre de mèches. */
+function densityDose(f: HairFlags): string {
+  if (f.density === 'dense' && f.strandWidth === 'fine') {
+    return ' Votre combinaison (cheveu fin, nombreux) est la plus souvent mal servie : le volume ne viendra jamais d’un beurre qui couche, ni d’une crème qui gaine — il vient de légèreté posée en couches (mousse, gel aérien) et d’un dosage noisette, pas « dose pour cheveux épais ». Le cheveu est fin : il s’alourdit avant tout ; il est nombreux : il a du volume si on ne l’écrase pas.';
+  }
+  if (f.density === 'clairsemee' && f.strandWidth === 'epaisse') {
+    return ' Votre combinaison (cheveux épais mais peu nombreux) : l’hydratation riche garde son sens — la fibre est large, elle boit — mais elle ne créera pas de densité. Le volume ne se gagne pas en ajoutant du produit, il se gagne à la coupe (carré net, pas dégradé creusé) et à la pose racinaire le jour du lavage.';
+  }
+  if (f.density === 'dense') {
+    return ' Densité forte : la dose de produit n’est pas une noisette — comptez une noisette par section, de la racine aux pointes, sinon la couche intérieure reste sèche tandis que le dessus est chargé.';
+  }
+  if (f.density === 'clairsemee') {
+    return ' Densité faible : dose légère sur les longueurs seulement, rien en racine — le produit racinaire sur un cuir chevelu visible alourdit et graisse plus vite qu’il ne protège.';
+  }
+  return '';
+}
+
+/** Densité : temps de séchage attendu. Évite le piège « mon séchage met
+ *  trop de temps » sur cheveu dense, qui croit avoir un problème de produit
+ *  quand le problème est la masse à sécher. */
+function densityDry(f: HairFlags): string {
+  if (f.density === 'dense') {
+    return ' Densité forte : comptez deux fois plus de temps de séchage qu’un cheveu moyen, même à l’air libre — ce n’est pas un produit qui « retient l’humidité », c’est la masse. Un diffuseur tiède accélère sans écraser ; toucher avant la fin, lui, allonge le séchage en recollant les mèches.';
+  }
+  if (f.density === 'clairsemee') {
+    return ' Densité faible : le séchage est rapide — ne partez pas du principe qu’il faut « attendre une heure ». Quand la racine est sèche, c’est fini : continuer à chauffer un cheveu déjà sec casse les pointes pour rien.';
+  }
+  return '';
+}
+
 function humidityHow(f: HairFlags): string {
   if (f.humidity === 'gonfle') {
     return ' Temps humide : vos cheveux gonflent. La glycérine en tête de liste attire alors l’eau de l’air dans la fibre — gardez-la pour les saisons tempérées et, par forte humidité, passez aux humectants filmogènes (aloé, miel, graines de lin) avec un fixant à tenue ferme.'
@@ -508,7 +604,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       why: f.isBreakage
         ? 'Sur locks, la casse ne se joue pas au peigne — il n’y en a pas : elle se joue à la racine (tension du retwist, racines fines) et aux pointes qui s’effilochent. Le soin se pose dans le sens de la lock, jamais en frottement.'
         : 'Le conditionneur sur locks est un rinçage, pas un démêlage : il adoucit la surface et emporte les résidus sans jamais défaire ce qui est ancré. Travailler « dans le sens de », jamais contre.',
-      how: 'Poser le conditionneur sur les longueurs mouillées, lisser du haut vers le bas sans frotter, laisser agir le temps du lavage du cuir chevelu, puis rincer à l’eau tiède en laissant l’eau couler le long des locks. Aucun peigne, aucun pré-démêlage : ils n’ont rien à faire ici.',
+      how: 'Poser le conditionneur sur les longueurs mouillées, lisser du haut vers le bas sans frotter, laisser agir le temps du lavage du cuir chevelu, puis rincer à l’eau tiède en laissant l’eau couler le long des locks. Aucun peigne, aucun pré-démêlage : ils n’ont rien à faire ici.' + densityLocks(f),
       expect: f.isKid
         ? 'Des locks propres et souples sans séance de larmes : chez un enfant, le temps de pose se raccourcit, les gestes se font plus courts — jamais plus forts. Aucun peigne ne remplacera jamais la main.'
         : 'Des locks propres, souples, sans résidu ni fibre arrachée. Si de petits cheveux libérés restent pris dans une lock, retirez-les aux doigts sous l’eau — c’est normal, pas un signal d’alerte.',
@@ -520,7 +616,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
       : f.isBreakage
         ? 'Le conditionneur est l’étape démêlage : sur cheveu mouillé et glissant, chaque nœud cède sans traction. C’est le geste qui protège le plus vos longueurs, avant n’importe quel produit.'
         : 'Le conditionneur prépare le démêlage : sur cheveu mouillé, chaque nœud cède sans traction, et la fibre est prête à recevoir l’hydratation.',
-    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : '') + washTimeDetangle(f),
+    how: 'Répartir le conditionneur, pré-démêler aux doigts, puis passer un outil à dents larges des pointes vers la racine, mèche par mèche. Rincer à l’eau tiède, jamais chaude.' + (f.pattern === '4b' || f.pattern === '4c' ? ' Sur un motif serré 4B/4C : quadriller la tête en sections, travailler une section à la fois sous l’eau et le conditionneur — les doigts lèvent les nœuds, l’outil finit ; jamais l’inverse.' : '') + densitySections(f) + (f.strandWidth === 'fine' ? ' Cheveu fin : il s’arrache quand on insiste — deux passages par section suffisent, puis on rince.' : '') + washTimeDetangle(f),
     expect: f.isKid
       ? 'Un démêlage sans tirage : si l’enfant grimace, c’est que la méthode est trop rapide, pas que les cheveux sont trop emmêlés. On ralentit, on réhydrate, on recommence.'
       : f.isBreakage
@@ -533,7 +629,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
     steps.push({
       action: 'Soins légers, bien placés',
       why: 'Cheveux à porosité faible : les écailles sont fermées, l’eau met du temps à entrer et les produits lourds restent en surface. La règle : des textures légères à base d’eau, sur cheveu bien humide, et un peu de chaleur douce si besoin — pas plus de produit.',
-      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.' + humidityHow(f),
+      how: 'Commencer par un spray ou un leave-in léger sur cheveu mouillé, finir par le plus fin de vos soins. Si le cheveu pèse ou colle, c’est trop : on réduit la quantité avant d’ajouter un produit.' + humidityHow(f) + densityDose(f),
       expect: 'Un cheveu qui respire, défini sans effet collant. La porosité faible s’entretient en moins, pas en plus — l’accumulation est l’ennemi, pas le manque.',
     });
   } else if (f.isLocked) {
@@ -557,7 +653,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
           ? ' Motif 2C : ces ondes sont des boucles qui n’ont pas tout à fait tourné — le scrunching au gel et le « carton » du séchage sont pour elles aussi. « Léger » veut dire pas de crème épaisse, pas absence de maintien : le film se casse à l’eau, pas aux doigts.'
           : f.wavyPattern === '2b'
             ? ' Motif 2B : le S est déjà net — la règle des ondes est exactement la sienne ; à surveiller seulement aux longueurs, là où le S se défait le premier.'
-            : '') + humidityHow(f),
+            : '') + humidityHow(f) + densityDose(f),
       expect: 'Des ondes qui se forment en séchant sans s’alourdir : le volume racinaire revient, le dessin tient la journée. Si la forme « fond » en deux heures, le suspect est le dosage, pas la nature du cheveu.',
     });
   } else {
@@ -573,7 +669,7 @@ function buildWashDay(f: HairFlags): HairStepDraft[] {
           ? ' Cheveu fin : à l’étape O, une huile légère plutôt qu’un beurre — deux ou trois gouttes chauffées dans les paumes puis écrasées sur les longueurs. Un beurre alourdit un cheveu fin en une journée et le fait regraisser plus vite qu’il ne le protège.'
           : f.strandWidth === 'epaisse'
             ? ' Cheveu épais : le beurre riche est le bon choix — réchauffez-le entre les paumes pour qu’il pénètre au lieu de rester en surface, et n’ayez pas peur du temps de pose : plus la fibre est large, plus elle prend son temps.'
-            : '') + humidityHow(f),
+            : '') + humidityHow(f) + densityDose(f),
       expect: 'Souplesse et élasticité immédiatement ; l’hydratation scellée tient plusieurs jours. Si le cheveu est sec le lendemain, le point faible est au scellement, pas au lavage : on ajuste l’étape O.',
     });
   }
@@ -763,13 +859,13 @@ function buildProtectiveMorning(f: HairFlags): HairStepDraft[] {
     {
       action: 'Laver en profondeur avant la coiffure',
       why: 'C’est le seul moment où tout est accessible : cuir chevelu, longueurs, nœuds. Ce qui reste en résidu avant d’être tressé ou twisté s’installe pour des semaines — l’odeur et la sécheresse sous la coiffure commencent ici. Un nettoyant doux, sans décaper, remet tout à zéro.',
-      how: 'Cheveux mouillés, section par section : masser le cuir chevelu avec les pulpes dans chaque raie, rincer long à l’eau tiède, sans frotter les longueurs. Si des résidus pèsent encore, c’est un nettoyage profond, pas un second shampoing agressif.',
+      how: 'Cheveux mouillés, section par section : masser le cuir chevelu avec les pulpes dans chaque raie, rincer long à l’eau tiède, sans frotter les longueurs. Si des résidus pèsent encore, c’est un nettoyage profond, pas un second shampoing agressif.' + densitySections(f),
       expect: 'Un cuir chevelu propre et léger, des longueurs sans résidu : c’est la base d’une coiffure qui tiendra proprement jusqu’à la dépose. La fraîcheur qui dure des semaines commence ici.',
     },
     {
       action: 'Démêler complètement, avant de coiffer',
       why: 'Sous tresses ou twists, le démêlage ne se refait pas : chaque nœud non réglé avant l’installation devient un point de casse à la dépose. C’est la dernière occasion de le faire bien — sur cheveu mouillé et glissant, sans précipitation.',
-      how: 'Sur cheveu mouillé et conditionné : démêler des pointes vers la racine, mèche par mèche, outil à dents larges. Si une zone accroche : plus d’eau et de produit, on recule d’un pas. Ne jamais installer sur un cheveu encore noué.',
+      how: 'Sur cheveu mouillé et conditionné : démêler des pointes vers la racine, mèche par mèche, outil à dents larges. Si une zone accroche : plus d’eau et de produit, on recule d’un pas. Ne jamais installer sur un cheveu encore noué.' + densitySections(f) + densityDose(f),
       expect: 'Un cheveu entièrement démêlé avant l’installation : c’est ce qui fera que la dépose se passera sans arrachage. À la sortie de la coiffure, le démêlage doit rester facile — c’est le test honnête.',
     },
     {
@@ -795,7 +891,7 @@ function buildProtectiveEvening(f: HairFlags): HairStepDraft[] {
     {
       action: 'Cuir chevelu : brume aqueuse, 1 à 2 fois par semaine',
       why: 'Sous tresses ou twists, le cuir chevelu vit isolé : sans son entretien léger, il tire, gratte, et les résidus s’accumulent plus vite qu’en coiffure naturelle. Le protocole tient en deux mots — aqueux et régulier : une brume à base d’eau, jamais de matière épaisse sous une coiffure attachée.',
-      how: 'Une à deux fois par semaine : une brume aqueuse sur le cuir chevelu, massée aux pulpes des doigts, sans eau ni rinçage. Ne jamais appliquer de beurre ni d’huile épaisse sous la coiffure : ça fait dépôt, pas soin.',
+      how: 'Une à deux fois par semaine : une brume aqueuse sur le cuir chevelu, massée aux pulpes des doigts, sans eau ni rinçage. Ne jamais appliquer de beurre ni d’huile épaisse sous la coiffure : ça fait dépôt, pas soin.' + densityScalp(f),
       expect: 'Un cuir chevelu à l’aise sur toute la durée de la coiffure : pas de tiraillement, pas de gratte au réveil. La fraîcheur qui dure est le signe que le protocole tient.',
     },
     {
@@ -864,7 +960,7 @@ function buildWigMorning(f: HairFlags): HairStepDraft[] {
     {
       action: 'Soin léger et aqueux du cuir chevelu',
       why: 'Le cuir chevelu sous une pose a besoin d’eau, pas de matière : un soin léger à base d’eau garde le confort sans dépôt, pendant que les beurres et huiles épaisses collent, chauffent et entretiennent l’irritation. La règle est la même qu’en coiffure protectrice — aqueux et régulier.',
-      how: 'Une brume aqueuse ou un soin léger sur le cuir chevelu, une à deux fois par semaine, massé aux pulpes, sans rinçage. Ne poser aucun produit épais sous la pose : le cuir chevelu ne doit pas être alourdi pendant des semaines.',
+      how: 'Une brume aqueuse ou un soin léger sur le cuir chevelu, une à deux fois par semaine, massé aux pulpes, sans rinçage. Ne poser aucun produit épais sous la pose : le cuir chevelu ne doit pas être alourdi pendant des semaines.' + densityScalp(f),
       expect: 'Un cuir chevelu frais et à l’aise pendant toute la portée, sans odeur ni irritation. La fraîcheur qui dure plusieurs semaines est le signe que la routine tenue est la bonne.',
     },
   ];
@@ -1007,7 +1103,7 @@ function buildTransitionMorning(f: HairFlags): HairStepDraft[] {
     {
       action: 'Conditionner : deux zones, deux besoins',
       why: 'Deux types de fibre dans la même chevelure n’ont pas le même besoin : les racines naturelles (crépues) demandent de l’hydratation et de la douceur au démêlage ; les longueurs traitées demandent de la légèreté et de la protection. Un soin unique appliqué partout ne sert personne.',
-      how: 'Conditionneur sur les racines naturelles, démêlage humide et glissant des pointes vers la racine ; sur les longueurs traitées, un soin plus léger, sans surcharge. La raie reste libre : ne jamais coiffer en tirant d’un côté et de l’autre de la ligne.',
+      how: 'Conditionneur sur les racines naturelles, démêlage humide et glissant des pointes vers la racine ; sur les longueurs traitées, un soin plus léger, sans surcharge. La raie reste libre : ne jamais coiffer en tirant d’un côté et de l’autre de la ligne.' + densitySections(f) + densityDose(f),
       expect: 'Des racines souples et démêlées, des longueurs nettes et légères, et une ligne de démarcation intacte. L’harmonie des deux zones vient de l’adaptation par zone, pas d’un produit unique.',
     },
     {
@@ -1489,7 +1585,7 @@ export function buildHairAdvisoryRoutine(ctx: HairAdvisoryContext): HairAdvisory
       routine.morning.push({
         action: 'Séchage et finition, calés sur vos habitudes',
         why: 'Définir une boucle, c’est trois conditions : le produit, le geste, le séchage. Vos réponses disent laquelle coche chez vous — la routine corrige celle-là, pas les trois d’un coup.',
-        how: parts.join(' '),
+        how: parts.join(' ') + densityDry(f),
         expect: 'Une boucle qui se forme entre deux lavages sans y penser, un réveil qui ne se rejoue pas au produit : c’est la méthode ajustée, pas la puissance ajoutée.',
       });
     }
@@ -1813,6 +1909,16 @@ export function buildHairAdvisorySummary(ctx: HairAdvisoryContext): string {
     epaisse: 'Cheveu épais : chez vous, les textures riches et les temps de pose longs ne sont pas un excès, ce sont les réglages qui font la différence.',
   };
   if (f.strandWidth && widthLine[f.strandWidth]) parts.push(widthLine[f.strandWidth]);
+  // Vague 2 — la densité dit le contraire de la largeur dans les cas piégés,
+  // et c'est exactement ce qui fait la valeur de la question : sans elle,
+  // une cliente fine+dense achète « épaississant » et une cliente épaisse+clairsemée
+  // achète « volume » — deux échecs coûteux.
+  const densityLine: Record<string, string> = {
+    dense: 'Densité forte : le cheveu est nombreux — on dose par section (pas par noisette pour toute la tête), on compte les sections, et on sait que le séchage prendra plus longtemps.',
+    clairsemee: 'Densité faible : le cuir chevelu se voit — rien ne le « remplira » en flacon ; on pose léger en racine, on ne multiplie pas les sections, et la coupe (carré net) fera plus que n’importe quel produit volumateur.',
+    moyenne: 'Densité moyenne : le dosage standard s’applique — vous n’avez pas à compenser quoi que ce soit par le poids du produit.',
+  };
+  if (f.density && densityLine[f.density]) parts.push(densityLine[f.density]);
   const chemLine: Record<string, string> = {
     aucun: 'Vos longueurs sont vierges de chaleur et de produit : la routine protège ce capital, elle ne répare rien — la plus enviable des situations, et la moins coûteuse.',
     chaleur: 'La chaleur fait partie de vos outils : la routine y a ajouté sa règle (protecteur, cheveu entièrement sec, température basse) — le fer n’est jamais un raccourci sur cheveu humide.',

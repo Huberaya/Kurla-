@@ -33,6 +33,8 @@ export interface HairDiagnosticAnswers {
   elasticity?: 'ressort' | 'mou' | 'cassant' | 'inconnu';
   /** D9 — largeur du cheveu (fin/moyen/épais) : le poids des produits. */
   strandWidth?: 'fine' | 'moyenne' | 'epaisse' | 'inconnue';
+  /** Vague 2 (21/09) — densité observée à la raie (pas la largeur). */
+  density?: 'clairsemee' | 'moyenne' | 'dense' | 'inconnue';
   /** D9 — passé chaleur/chimie des longueurs. Jamais posée à un enfant. */
   chemicalHeat?: 'aucun' | 'chaleur' | 'produit' | 'les_deux' | 'inconnue';
   /** D10 (20/09) — bouclés 3B–3C au naturel : séchage et fixant réels. */

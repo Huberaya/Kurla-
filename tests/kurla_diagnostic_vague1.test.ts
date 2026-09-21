@@ -135,6 +135,7 @@ const ondee = (extra: Record<string, unknown> = {}) => buildHairAdvisoryCtx({
   const complet = model({
     texture: 'crepue', style: 'naturel', porosity: 'moyenne', scalp: 'normal', frequency: '1x_semaine',
     length: 'moyenne', experience: 'habituee', priority: 'hydratation', budget: '40_70', focus: '',
+    strandWidth: 'moyenne', density: 'moyenne',
     washTime: 'moyen', water: 'douce', humidity: 'ne_bouge_pas',
   });
   ok('C11_1_profil_complet_confiance_haute', complet.confidence.level === 'haute' && complet.confidence.label === 'Profil complet');
@@ -148,6 +149,7 @@ const ondee = (extra: Record<string, unknown> = {}) => buildHairAdvisoryCtx({
   const moyen = model({
     texture: 'crepue', style: 'naturel', porosity: 'inconnue', scalp: 'normal', frequency: '1x_semaine',
     length: 'moyenne', experience: 'inconnue', priority: 'hydratation', budget: '40_70',
+    strandWidth: 'moyenne', density: 'moyenne',
     washTime: 'moyen', water: 'douce', humidity: 'ne_bouge_pas',
   });
   ok('C11_5_confiance_moyenne', moyen.confidence.level === 'moyenne' && moyen.confidence.label === 'Profil solide, à affiner');

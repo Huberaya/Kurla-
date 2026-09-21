@@ -309,6 +309,8 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v9 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v10 = seed >>> 8;
       seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v11 = seed >>> 8;
+      // Vague 2 (21/09) : densité — balayée PARTOUT (universelle, comme le temps/l'eau/l'air).
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; const v12 = seed >>> 8;
       const ctx = { texture, style, priority, porosity, scalp, frequency, length: 'moyenne', experience: 'habituee',
         coilyPattern: ['4a', '4b', '4c', 'inconnu'][v % 4],
         elasticity: ['ressort', 'mou', 'cassant', 'inconnu'][(v >> 3) % 4],
@@ -329,7 +331,8 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
         wavyPattern: ['inconnu', '2a', '2b', '2c'][v8 % 4],
         washTime: ['inconnu', 'court', 'moyen', 'long'][v9 % 4],
         water: ['inconnue', 'douce', 'calcaire'][v10 % 3],
-        humidity: ['inconnu', 'gonfle', 'sallonge', 'sec', 'ne_bouge_pas'][v11 % 5]
+        humidity: ['inconnu', 'gonfle', 'sallonge', 'sec', 'ne_bouge_pas'][v11 % 5],
+        density: ['inconnue', 'clairsemee', 'moyenne', 'dense'][v12 % 4]
       };
       const { r, steps, full } = textOf(ctx);
       const low = full.toLowerCase();
@@ -492,6 +495,18 @@ test('MATRICE — balayage déterministe 49 couples × variantes : invariants de
       if ((ctx.water === 'calcaire') !== /chélateur/.test(full)) at('clause eau calcaire sans la réponse, ou l’inverse');
       if ((ctx.humidity === 'gonfle') !== /vos cheveux gonflent par temps humide/.test(sum3)) at('ligne humidité au résumé sans la réponse, ou l’inverse');
       if ((ctx.humidity === 'sec') !== /Air sec déclaré/.test(sum3)) at('ligne air sec au résumé sans la réponse, ou l’inverse');
+      // Vague 2 (C2) — invariants densité : la ligne du résumé est le porteur
+      // universel, et les clauses « 6-8 sections » / « 2-4 sections » /
+      // « noisette par section » / « rien en racine » suivent strictement la réponse.
+      if ((ctx.density === 'dense') !== /Densit[ée] forte/.test(sum3)) at('ligne « densité forte » au résumé sans la réponse, ou l’inverse');
+      if ((ctx.density === 'clairsemee') !== /Densit[ée] faible/.test(sum3)) at('ligne « densité faible » au résumé sans la réponse, ou l’inverse');
+      if (ctx.density === 'dense' && !/6 à 8 sections|noisette par section|rincer zone par zone|raie par raie/.test(full)) at('clauses densité forte absentes de la routine');
+      if (ctx.density === 'clairsemee' && !/2 à 4 sections|rien en racine|retwist l[ée]ger|zones o[uù] le cuir chevelu se voit/.test(full)) at('clauses densité faible absentes de la routine');
+      // Une valeur inventée (rémanence, injection malveillante) ne doit rien injecter.
+      if (!['inconnue', 'clairsemee', 'moyenne', 'dense'].includes(String(ctx.density))
+          && (/6 à 8 sections|2 à 4 sections|noisette par section|rien en racine|Densit[ée]/.test(full))) {
+        at('une valeur inventée pour density injecte une clause');
+      }
       if (locked && /routine a donc d[ée]cid[ée]/.test(full)) at('résumé locks prétend une décision que la routine ne tient pas');
     }
   }

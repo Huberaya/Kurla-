@@ -5260,3 +5260,31 @@ Chaîne complète en cours.
 - **Livrable** : `docs/RAPPORT_VAGUE1_2026-09.md` + captures `docs/vague1_*.png`.
 - **Signalé, non traité** : le résumé du moteur est écrasé dès que la couche IA
   produit un `summary` — à traiter dans D3 (garde-fou IA).
+
+### 21/09 — VAGUE 2a : C2 — la densité (la variable manquante) (agent diagnostic)
+
+- Question observable, sans jargon : « quand vous faites une raie bien nette à la
+  lumière, vous voyez... » (cuir chevelu visible / un peu / pas du tout).
+  Placée juste après la largeur — c'est la confusion la plus coûteuse.
+- Effets rendus, adaptés PAR SEGMENT (la matrice a attrapé chaque cas) :
+  · tronc naturel : nombre de sections au démêlage (2–4 / 6–8) + dose par
+    section vs légère en racine ; combinaison piège « fin+dense » (pas de
+    beurre qui couche, le volume vient de légèreté) et « épais+clairsemé »
+    (coupe, pas produit volumateur).
+  · boucles au naturel : temps de séchage attendu (dense = 2× plus long,
+    clairsemé = rapide, pas de sur-chauffe).
+  · ondulé : hérite du dosage (mousse/gel pas trop de poids).
+  · locks : rinçage zone par zone si dense, retwist léger si clairsemé
+    (zéro « sections » ni « démêlage » sur locks — garde D9 intacte).
+  · coiffure protectrice : sections et dosage avant installation ; brume
+    aqueuse raie par raie sous la coiffure.
+  · perruque : soin aqueux raie par raie / évitement des zones visibles.
+  · transition : sections et dosage au conditionnement par zone.
+- Banc dédié `kurla_diagnostic_vague2.test.ts` (17 assertions) ; matrice
+  personas étendue d'un tirage (density) avec 5 invariants — **47/47 sur
+  3 458 profils** ; régression banc vague 1 corrigée (champ densité dans
+  les fixtures) ; tsc 0 ; build OK ; **Playwright 390 px 12/12 VERT**
+  (parcours A fin+dense, parcours B « je ne sais pas »).
+- Capture : `docs/vague2_c2_densite.png`.
+- **Non fait dans ce commit** : C5 (porosité honnête) et C6 (croisé peau ↔
+  cheveux) — la vague 2 est livrée par paliers.
